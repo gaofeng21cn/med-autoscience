@@ -1515,6 +1515,8 @@ def owner_action_next_step(action: Mapping[str, Any]) -> str | None:
 
 
 def _from_stage_artifact_index(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    if _runtime_or_current_owner_surface_already_selected(payload):
+        return None
     index = _mapping_copy(payload.get("stage_artifact_index"))
     if _non_empty_text(index.get("surface_kind")) != "stage_artifact_index":
         return None
@@ -1551,6 +1553,30 @@ def _from_stage_artifact_index(payload: Mapping[str, Any]) -> dict[str, Any] | N
             "authority_boundary": _authority_boundary(),
         }
     )
+
+
+def _runtime_or_current_owner_surface_already_selected(payload: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("surface_kind")) == "current_work_unit":
+        return True
+    envelope = _mapping_copy(payload.get("current_execution_envelope"))
+    if _non_empty_text(envelope.get("state_kind")) in {
+        "executable_owner_action",
+        "running_provider_attempt",
+        "typed_blocker",
+        "parked",
+    }:
+        return True
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    if handoff.get("running_provider_attempt") is True:
+        return True
+    if any(isinstance(item, Mapping) for item in handoff.get("action_queue") or []):
+        return True
+    if _mapping_copy(handoff.get("typed_blocker")):
+        return True
+    if _non_empty_text(handoff.get("blocked_reason")) is not None:
+        return True
+    return False
 
 
 def _from_stage_native_current_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:

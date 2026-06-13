@@ -223,6 +223,35 @@ def test_progress_first_monitoring_does_not_let_artifact_index_override_medical_
     assert monitoring["typed_blocker"]["blocker_type"] == "medical_paper_readiness_not_ready"
 
 
+def test_current_executable_owner_action_does_not_derive_stage_index_when_current_work_unit_exists() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:current-blocker",
+            },
+            "stage_artifact_index": {
+                "surface_kind": "stage_artifact_index",
+                "current_stage": "08-publication_package_handoff",
+                "next_owner_action": {
+                    "next_owner": "08-publication_package_handoff",
+                    "work_unit_id": "artifacts/stage_outputs/08-publication_package_handoff/manifest.json",
+                    "allowed_actions": ["materialize_stage_artifact_delta"],
+                },
+            },
+        }
+    )
+
+    assert action is None
+
+
 def test_progress_first_monitoring_keeps_running_provider_liveness_from_overriding_artifact_owner_action() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

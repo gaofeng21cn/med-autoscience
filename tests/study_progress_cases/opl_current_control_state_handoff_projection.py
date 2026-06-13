@@ -944,3 +944,6 @@ def test_supervisor_tick_audit_uses_workspace_opl_current_control_state(
     assert audit["provider_ready"] is True
     assert audit["worker_ready"] is True
     assert audit["managed_worker_source_current"] is True
+
+
+from .opl_current_control_state_handoff_projection_cases.running_attempt_identity import *  # noqa: F403,F401,E402

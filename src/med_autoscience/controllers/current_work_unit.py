@@ -154,8 +154,12 @@ def build_current_work_unit(
         work_unit_fingerprint=_work_unit_fingerprint,
         action_fingerprint=_action_fingerprint,
     )
-    if terminal_action_blocker is not None:
+    terminal_action_blocker_selected = False
+    if terminal_action_blocker is not None and not _typed_blocker_has_owner_answer_currentness(
+        resolved_typed_blocker
+    ):
         resolved_typed_blocker = terminal_action_blocker
+        terminal_action_blocker_selected = True
     running_attempt = _strict_running_provider_attempt(
         live_provider_attempt=live_provider_attempt,
         provider_running_proof=provider_running_proof,
@@ -268,7 +272,7 @@ def build_current_work_unit(
             currentness_basis=basis,
             source="typed_blocker",
         )
-    if terminal_action_blocker is not None:
+    if terminal_action_blocker_selected:
         return _typed_blocker_work_unit(
             blocker=terminal_action_blocker,
             action=action,
@@ -508,6 +512,31 @@ def _typed_blocker_answer_ref(blocker: Mapping[str, Any]) -> str | None:
         if ref.endswith("#typed_blocker"):
             return ref
     return _text(blocker.get("typed_blocker_ref")) or _text(blocker.get("source_ref"))
+
+
+def _typed_blocker_has_owner_answer_currentness(blocker: Mapping[str, Any] | None) -> bool:
+    payload = _mapping(blocker)
+    if not payload:
+        return False
+    if _typed_blocker_answer_ref(payload) is not None:
+        return True
+    if _text(payload.get("latest_owner_answer_ref")) is not None:
+        return True
+    if _text_items(payload.get("closeout_refs")):
+        return True
+    if _mapping(payload.get("owner_answer_binding")):
+        return True
+    basis = _mapping(payload.get("currentness_basis")) or _mapping(
+        payload.get("owner_route_currentness_basis")
+    )
+    return bool(
+        _text(basis.get("work_unit_id"))
+        and (
+            _text(basis.get("work_unit_fingerprint"))
+            or _text(basis.get("source_fingerprint"))
+            or _text(basis.get("stage_attempt_id"))
+        )
+    )
 
 
 def _typed_blocker_owner_answer_basis(

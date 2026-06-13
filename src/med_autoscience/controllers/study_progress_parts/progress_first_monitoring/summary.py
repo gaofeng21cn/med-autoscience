@@ -261,12 +261,18 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         handoff=handoff_for_admission,
         current_action=current_action,
     )
+    canonical_running_provider_attempt = _canonical_current_work_unit_running_provider_attempt(
+        current_work_unit=canonical_current_work_unit,
+        handoff=handoff,
+    )
     current_action_running_provider_attempt = bool(
-        strict_running_provider_liveness and current_action_provider_attempt_proof
+        (strict_running_provider_liveness and current_action_provider_attempt_proof)
+        or canonical_running_provider_attempt
     )
     running_provider_attempt_suppressed_by_unbound_owner_action = False
     if (
         strict_running_provider_liveness
+        and not canonical_running_provider_attempt
         and current_action
         and (
             current_work_unit_status == "executable_owner_action"
@@ -286,6 +292,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         active_stage_attempt_id = None
         active_workflow_id = None
         running_provider_attempt_suppressed_by_unbound_owner_action = True
+    if canonical_running_provider_attempt:
+        running_provider_attempt = True
+        active_run_id = active_run_id or _text(handoff.get("active_run_id"))
+        active_stage_attempt_id = active_stage_attempt_id or _text(handoff.get("active_stage_attempt_id"))
+        active_workflow_id = active_workflow_id or _text(handoff.get("active_workflow_id"))
     artifact_first_owner_action = _artifact_first_owner_action(current_action)
     canonical_work_unit_for_aliases = (
         {}
@@ -812,6 +823,63 @@ def _strict_running_provider_liveness(handoff: Mapping[str, Any]) -> bool:
         "running",
         "live",
     }
+
+
+def _canonical_current_work_unit_running_provider_attempt(
+    *,
+    current_work_unit: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> bool:
+    if _text(current_work_unit.get("status")) != "running_provider_attempt":
+        return False
+    if not _strict_running_provider_liveness(handoff):
+        return False
+    handoff_attempt_id = _text(handoff.get("active_stage_attempt_id"))
+    if handoff_attempt_id is None:
+        return False
+    state = _mapping(current_work_unit.get("state"))
+    proof = _mapping(state.get("provider_attempt_proof"))
+    proof_attempt_id = _text(proof.get("active_stage_attempt_id"))
+    if proof_attempt_id is not None and proof_attempt_id != handoff_attempt_id:
+        return False
+    work_unit_id = _work_unit_id(current_work_unit.get("work_unit_id"))
+    proof_work_unit_id = _work_unit_id(proof.get("work_unit_id")) or _work_unit_id(
+        proof.get("next_work_unit")
+    )
+    handoff_work_unit_id = _work_unit_id(handoff.get("work_unit_id")) or _work_unit_id(
+        handoff.get("next_work_unit")
+    )
+    comparable_identity_observed = False
+    if work_unit_id is not None and proof_work_unit_id is not None and proof_work_unit_id != work_unit_id:
+        return False
+    comparable_identity_observed = comparable_identity_observed or (
+        work_unit_id is not None and proof_work_unit_id is not None
+    )
+    if work_unit_id is not None:
+        if handoff_work_unit_id is None:
+            return False
+        if handoff_work_unit_id != work_unit_id:
+            return False
+        comparable_identity_observed = True
+    fingerprint = _text(current_work_unit.get("work_unit_fingerprint")) or _text(
+        current_work_unit.get("action_fingerprint")
+    )
+    handoff_fingerprints = {
+        text
+        for value in (
+            handoff.get("work_unit_fingerprint"),
+            handoff.get("action_fingerprint"),
+            _mapping(handoff.get("runtime_health")).get("work_unit_fingerprint"),
+            _mapping(handoff.get("runtime_health")).get("action_fingerprint"),
+        )
+        if (text := _text(value)) is not None
+    }
+    if fingerprint is not None and handoff_fingerprints and fingerprint not in handoff_fingerprints:
+        return False
+    comparable_identity_observed = comparable_identity_observed or (
+        fingerprint is not None and bool(handoff_fingerprints)
+    )
+    return comparable_identity_observed
 
 
 def _handoff_identity_conflicts_current_action(

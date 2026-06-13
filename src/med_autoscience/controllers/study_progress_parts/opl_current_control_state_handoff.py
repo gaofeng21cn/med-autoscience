@@ -38,6 +38,14 @@ LIVE_ATTEMPT_HANDOFF_KEYS = (
     "active_workflow_id",
     "running_provider_attempt",
 )
+ATTEMPT_IDENTITY_KEYS = (
+    "action_type",
+    "work_unit_id",
+    "next_work_unit",
+    "work_unit_fingerprint",
+    "action_fingerprint",
+    "lineage_ref",
+)
 LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
     {
         "live_worker_requires_worker_running",
@@ -324,9 +332,21 @@ def opl_current_control_state_study_handoff_projection(
         "runtime_owner": "one-person-lab" if matching.get("running_provider_attempt") is True else None,
         "provider_attempt_owner": "one-person-lab" if matching.get("running_provider_attempt") is True else None,
         "queue_owner": "one-person-lab" if matching.get("running_provider_attempt") is True else None,
+        "action_type": _non_empty_text(matching.get("action_type")),
+        "work_unit_id": _work_unit_identity(matching.get("work_unit_id")),
+        "next_work_unit": _work_unit_identity(matching.get("next_work_unit")),
+        "work_unit_fingerprint": _non_empty_text(matching.get("work_unit_fingerprint")),
+        "action_fingerprint": _non_empty_text(matching.get("action_fingerprint"))
+        or _non_empty_text(matching.get("work_unit_fingerprint")),
         "runtime_health": _copy_mapping_keys(
             matching.get("runtime_health"),
-            ("health_status", "runtime_liveness_status", "summary", "blocked_reason"),
+            (
+                "health_status",
+                "runtime_liveness_status",
+                "summary",
+                "blocked_reason",
+                *ATTEMPT_IDENTITY_KEYS,
+            ),
         ),
         "artifact_delta": _copy_mapping_keys(
             matching.get("artifact_delta"),
@@ -441,7 +461,13 @@ def opl_current_control_state_live_attempt_handoff_projection(
     )
     runtime_health = _copy_mapping_keys(
         runtime_liveness_audit.get("runtime_health"),
-        ("health_status", "runtime_liveness_status", "summary", "blocked_reason"),
+        (
+            "health_status",
+            "runtime_liveness_status",
+            "summary",
+            "blocked_reason",
+            *ATTEMPT_IDENTITY_KEYS,
+        ),
     )
     return {
         "surface_kind": "opl_current_control_state_provider_attempt_handoff",

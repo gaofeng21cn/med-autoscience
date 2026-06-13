@@ -89,10 +89,8 @@ def test_envelope_accepts_current_provider_admission_repair_action_over_stage_re
                 "allowed_actions": ["run_quality_repair_batch"],
                 "authority": "mas_provider_admission_identity",
                 "action_id": "provider-admission::002-dm::run_quality_repair_batch",
-                "action_fingerprint": (
-                    "study-progress-current-owner-ticket::002-dm::"
-                    "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-                ),
+                "action_fingerprint": "sha256:dm002-current-provider-admission",
+                "work_unit_fingerprint": "sha256:dm002-current-provider-admission",
             }
         ],
         blocked_reason="medical_paper_readiness_missing",
@@ -125,10 +123,8 @@ def test_envelope_accepts_materialized_provider_admission_action_over_admission_
                 "allowed_actions": ["run_gate_clearing_batch"],
                 "authority": "mas_provider_admission_identity",
                 "action_id": "provider-admission::003-dpcc::run_gate_clearing_batch",
-                "action_fingerprint": (
-                    "study-progress-current-owner-ticket::003-dpcc::"
-                    "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-                ),
+                "action_fingerprint": "sha256:dpcc-current-provider-admission",
+                "work_unit_fingerprint": "sha256:dpcc-current-provider-admission",
             }
         ],
         blocked_reason="provider_admission_current_control_state_required",
@@ -299,6 +295,8 @@ def test_envelope_actions_prefer_repair_progress_current_action_over_stale_gate_
             "allowed_actions": ["return_to_ai_reviewer_workflow"],
             "source_surface": "repair_progress_projection.mas_owner_repair_execution_evidence",
             "source_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+            "work_unit_fingerprint": "sha256:current-ai-reviewer-record",
+            "action_fingerprint": "sha256:current-ai-reviewer-record",
             "acceptance_refs": ["artifacts/supervision/requests/ai_reviewer/latest.json"],
         }
     ]
@@ -371,6 +369,8 @@ def test_envelope_accepts_repair_progress_ai_reviewer_action_over_stage_readines
                     "produce_ai_reviewer_publication_eval_record_against_current_inputs"
                 ),
                 "source_surface": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "work_unit_fingerprint": "sha256:current-ai-reviewer-record",
+                "action_fingerprint": "sha256:current-ai-reviewer-record",
             }
         ],
     )
@@ -409,7 +409,7 @@ def test_envelope_does_not_borrow_next_work_unit_from_stale_action_queue_for_run
 
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert envelope["next_work_unit"] == "sat-live"
 
 
 def test_envelope_prefers_running_provider_attempt_over_stale_parked_projection() -> None:
@@ -462,7 +462,7 @@ def test_envelope_prefers_running_provider_attempt_over_stale_parked_projection(
 
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
+    assert envelope["next_work_unit"] == "sat-live"
     assert envelope["parked_state"] is None
 
 
@@ -487,6 +487,8 @@ def test_envelope_ignores_stale_running_attempt_when_owner_action_supersedes_use
                 "action_type": "materialize_stage_artifact_delta",
                 "owner": "08-publication_package_handoff",
                 "next_work_unit": "materialize_stage_artifact_delta",
+                "work_unit_fingerprint": "sha256:materialize-stage-artifact-delta",
+                "action_fingerprint": "sha256:materialize-stage-artifact-delta",
             }
         ],
         next_owner="08-publication_package_handoff",
@@ -524,6 +526,8 @@ def test_envelope_does_not_report_closed_stage_attempt_as_running_provider() -> 
                 "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                 "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                 "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                "work_unit_fingerprint": "sha256:current-ai-reviewer-record",
+                "action_fingerprint": "sha256:current-ai-reviewer-record",
             }
         ],
         next_owner="MedAutoScience",
@@ -566,6 +570,8 @@ def test_envelope_does_not_report_record_only_archive_closeout_as_running_provid
                 "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
                 "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
                 "allowed_actions": ["run_gate_clearing_batch"],
+                "work_unit_fingerprint": "sha256:dpcc-gate-replay-current",
+                "action_fingerprint": "sha256:dpcc-gate-replay-current",
             }
         ],
         next_owner="MedAutoScience",
@@ -615,6 +621,8 @@ def test_envelope_prefers_repair_progress_followup_over_runtime_recovery_blocker
                 "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                 "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                 "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                "work_unit_fingerprint": "sha256:current-ai-reviewer-record",
+                "action_fingerprint": "sha256:current-ai-reviewer-record",
             }
         ],
         blocked_reason="runtime_recovery_not_authorized",

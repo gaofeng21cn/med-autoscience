@@ -9,6 +9,9 @@ def _readiness_action() -> dict[str, object]:
         "owner": "MedAutoScience",
         "next_work_unit": "complete_medical_paper_readiness_surface",
         "allowed_actions": ["complete_medical_paper_readiness_surface"],
+        "work_unit_fingerprint": "sha256:medical-readiness-current-action",
+        "action_fingerprint": "sha256:medical-readiness-current-action",
+        "source_surface": "stage_kernel_projection.current_owner_delta",
     }
 
 

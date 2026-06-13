@@ -79,12 +79,13 @@ def build_current_execution_envelope(
         )
     parked = _parked_state(status_payload, progress_payload)
     if parked is not None:
-        if _parked_state_requires_human_resume(
+        parked_requires_human_resume = _parked_state_requires_human_resume(
             status=status_payload,
             progress=progress_payload,
             parked=parked,
             current_work_unit=canonical_work_unit,
-        ):
+        )
+        if parked_requires_human_resume:
             return _envelope(
                 state_kind="parked",
                 owner=parked["owner"],
@@ -94,7 +95,13 @@ def build_current_execution_envelope(
                 source_refs=resolved_source_refs,
                 conflict_suppression_refs=resolved_suppression_refs,
             )
-        if _current_work_unit_status(canonical_work_unit) != "executable_owner_action":
+        if _current_work_unit_status(canonical_work_unit) != "executable_owner_action" and not (
+            _current_work_unit_supersedes_explicit_resume(
+                status=status_payload,
+                progress=progress_payload,
+                current_work_unit=canonical_work_unit,
+            )
+        ):
             return _envelope(
                 state_kind="parked",
                 owner=parked["owner"],
@@ -205,6 +212,30 @@ def _current_work_unit_stage_owner_answer(work_unit: Mapping[str, Any]) -> bool:
     return _text(_mapping(work_unit.get("state")).get("source")) == "stage_owner_answer"
 
 
+def _current_work_unit_has_authoritative_typed_blocker(work_unit: Mapping[str, Any]) -> bool:
+    if _current_work_unit_status(work_unit) not in {"typed_blocker", "blocked_current_work_unit"}:
+        return False
+    state = _mapping(work_unit.get("state"))
+    blocker = _mapping(state.get("typed_blocker"))
+    source = _text(state.get("source"))
+    if source in {
+        "terminal_closeout_typed_blocker",
+        "stage_owner_answer",
+        "stage_owner_answer_identity",
+        "gate_clearing_batch_followthrough",
+    }:
+        return True
+    if _mapping(state.get("owner_answer_binding")):
+        return True
+    if _text(blocker.get("typed_blocker_ref")) is not None:
+        return True
+    if _text(blocker.get("source_ref")) is not None:
+        return True
+    if _text_items(blocker.get("closeout_refs")):
+        return True
+    return False
+
+
 def _running_provider_attempt_work_unit_or_identity(work_unit: Mapping[str, Any]) -> str | None:
     proof = _mapping(_mapping(work_unit.get("state")).get("provider_attempt_proof"))
     proof_work_unit = _text(proof.get("work_unit_id")) or _text(proof.get("next_work_unit"))
@@ -273,6 +304,8 @@ def _current_work_unit_supersedes_explicit_resume(
     progress: Mapping[str, Any],
     current_work_unit: Mapping[str, Any],
 ) -> bool:
+    if _current_work_unit_has_authoritative_typed_blocker(current_work_unit):
+        return True
     if _current_work_unit_status(current_work_unit) != "executable_owner_action":
         return False
     owner = _text(current_work_unit.get("owner"))

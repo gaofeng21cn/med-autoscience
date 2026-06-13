@@ -278,6 +278,22 @@ def _current_executable_owner_action_as_envelope_action(
         "source_surface": _non_empty_text(current_executable_owner_action.get("source")),
         "source_ref": _non_empty_text(current_executable_owner_action.get("source_ref")),
     }
+    for key in (
+        "work_unit_fingerprint",
+        "action_fingerprint",
+        "fingerprint",
+        "source_fingerprint",
+        "source_eval_id",
+        "truth_epoch",
+        "runtime_health_epoch",
+        "idempotency_key",
+    ):
+        if (value := _non_empty_text(current_executable_owner_action.get(key))) is not None:
+            action[key] = value
+    for key in ("owner_route_currentness_basis", "currentness_basis", "source_refs"):
+        value = _mapping_copy(current_executable_owner_action.get(key))
+        if value:
+            action[key] = value
     target_surface = _mapping_copy(current_executable_owner_action.get("target_surface"))
     if target_surface:
         action["target_surface"] = target_surface

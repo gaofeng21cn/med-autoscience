@@ -12,41 +12,6 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_current_work_unit_supersedes_non_human_explicit_resume_residue() -> None:
-    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
-
-    envelope = module.build_current_execution_envelope(
-        status={
-            "auto_runtime_parked": {
-                "parked": True,
-                "parked_state": "explicit_resume_pending",
-                "parked_owner": "user",
-                "awaiting_explicit_wakeup": True,
-                "runtime_failure_classification": {"requires_human_gate": False},
-            },
-            "runtime_health_snapshot": {
-                "canonical_runtime_action": "await_explicit_resume",
-            },
-        },
-        progress={
-            "parked_state": "explicit_resume_pending",
-            "parked_owner": "user",
-        },
-        current_work_unit_payload={
-            "status": "executable_owner_action",
-            "owner": "ai_reviewer",
-            "action_type": "return_to_ai_reviewer_workflow",
-            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
-        },
-    )
-
-    assert envelope["state_kind"] == "executable_owner_action"
-    assert envelope["owner"] == "ai_reviewer"
-    assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-    assert envelope["parked_state"] is None
-    assert "runtime_health:await_explicit_resume" in envelope["conflict_suppression_refs"]
-
-
 def test_owner_route_envelope_projects_ai_reviewer_action_past_non_human_explicit_resume_residue(
     monkeypatch,
     tmp_path: Path,
@@ -178,7 +143,7 @@ def test_owner_route_envelope_projects_ai_reviewer_action_past_non_human_explici
     assert result["current_execution_envelopes"][study_id] == envelope
 
 
-def test_study_progress_envelope_projects_handoff_action_past_non_human_explicit_resume_residue(
+def test_study_progress_envelope_projects_current_action_past_non_human_explicit_resume_residue(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -205,7 +170,11 @@ def test_study_progress_envelope_projects_handoff_action_past_non_human_explicit
                         {
                             "action_type": "return_to_ai_reviewer_workflow",
                             "owner": "ai_reviewer",
+                            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                             "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                            "work_unit_fingerprint": "sha256:current-ai-reviewer-explicit-resume",
+                            "action_fingerprint": "sha256:current-ai-reviewer-explicit-resume",
+                            "source_surface": "repair_progress_projection.mas_owner_repair_execution_evidence",
                         }
                     ],
                     "blocked_reason": "domain_transition_ai_reviewer_re_eval",
@@ -286,13 +255,22 @@ def test_study_progress_envelope_prefers_live_opl_attempt_over_handoff_action_qu
                     "runtime_health": {
                         "health_status": "running",
                         "runtime_liveness_status": "live",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "work_unit_fingerprint": "sha256:closed-attempt-current-readiness",
                         "summary": "OPL provider attempt is running.",
                     },
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "work_unit_fingerprint": "sha256:closed-attempt-current-readiness",
+                    "action_fingerprint": "sha256:closed-attempt-current-readiness",
                     "action_queue": [
                         {
                             "action_type": "complete_medical_paper_readiness_surface",
                             "owner": "MedAutoScience",
                             "next_work_unit": "complete_medical_paper_readiness_surface",
+                            "work_unit_fingerprint": "sha256:closed-attempt-current-readiness",
+                            "action_fingerprint": "sha256:closed-attempt-current-readiness",
+                            "source_surface": "stage_kernel_projection.current_owner_delta",
                         }
                     ],
                     "next_owner": "MedAutoScience",
@@ -330,7 +308,7 @@ def test_study_progress_envelope_prefers_live_opl_attempt_over_handoff_action_qu
     assert result["opl_current_control_state_handoff"]["running_provider_attempt"] is True
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] == "sat-live"
+    assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
     assert envelope["typed_blocker"] is None
     assert result["current_execution_evidence"]["action_queue"][0]["action_type"] == (
         "complete_medical_paper_readiness_surface"
@@ -365,7 +343,10 @@ def test_study_progress_does_not_project_closed_handoff_attempt_as_live(
                     "runtime_health": {
                         "health_status": "running",
                         "runtime_liveness_status": "live",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
                     },
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "action_type": "complete_medical_paper_readiness_surface",
                     "latest_terminal_stage_log": {
                         "stage_attempt_id": "sat-closed",
                         "status": "closed_with_domain_owner_refs",
@@ -456,12 +437,21 @@ def test_study_progress_envelope_prefers_live_attempt_over_readiness_blocker(
                     "runtime_health": {
                         "health_status": "running",
                         "runtime_liveness_status": "live",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "work_unit_fingerprint": "sha256:live-readiness-attempt",
                     },
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "work_unit_fingerprint": "sha256:live-readiness-attempt",
+                    "action_fingerprint": "sha256:live-readiness-attempt",
                     "action_queue": [
                         {
                             "action_type": "complete_medical_paper_readiness_surface",
                             "owner": "MedAutoScience",
                             "next_work_unit": "complete_medical_paper_readiness_surface",
+                            "work_unit_fingerprint": "sha256:live-readiness-attempt",
+                            "action_fingerprint": "sha256:live-readiness-attempt",
+                            "source_surface": "stage_kernel_projection.current_owner_delta",
                         }
                     ],
                     "next_owner": "MedAutoScience",
@@ -499,7 +489,7 @@ def test_study_progress_envelope_prefers_live_attempt_over_readiness_blocker(
     assert result["opl_current_control_state_handoff"]["running_provider_attempt"] is True
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] == "sat-live"
+    assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
     assert envelope["typed_blocker"] is None
 
 
@@ -543,14 +533,8 @@ def test_study_progress_projects_provider_admission_identity_queue_fields(
                             ),
                             "authority": "mas_provider_admission_identity",
                             "action_id": "provider-admission::002-dm::run_quality_repair_batch",
-                            "action_fingerprint": (
-                                "study-progress-current-owner-ticket::002-dm::"
-                                "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-                            ),
-                            "work_unit_fingerprint": (
-                                "study-progress-current-owner-ticket::002-dm::"
-                                "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-                            ),
+                            "action_fingerprint": "sha256:dm002-current-provider-admission",
+                            "work_unit_fingerprint": "sha256:dm002-current-provider-admission",
                         }
                     ],
                     "blocked_reason": "provider_admission_current_control_state_required",
@@ -587,8 +571,8 @@ def test_study_progress_projects_provider_admission_identity_queue_fields(
     action = result["opl_current_control_state_handoff"]["action_queue"][0]
     assert action["authority"] == "mas_provider_admission_identity"
     assert action["action_id"] == "provider-admission::002-dm::run_quality_repair_batch"
-    assert action["action_fingerprint"].startswith("study-progress-current-owner-ticket::002-dm::")
-    assert action["work_unit_fingerprint"].startswith("study-progress-current-owner-ticket::002-dm::")
+    assert action["action_fingerprint"] == "sha256:dm002-current-provider-admission"
+    assert action["work_unit_fingerprint"] == "sha256:dm002-current-provider-admission"
     assert result["current_execution_evidence"]["action_queue"][0]["authority"] == (
         "mas_provider_admission_identity"
     )
@@ -721,13 +705,17 @@ def test_study_progress_envelope_preserves_latest_default_executor_typed_closeou
 
     handoff = result["opl_current_control_state_handoff"]
     envelope = result["current_execution_envelope"]
-    assert handoff["blocked_reason"] == "medical_prose_review_request_rehydrate_required"
+    assert handoff["blocked_reason"] == "domain_closeout_provided_incomplete_user_stage_log"
     assert handoff["latest_typed_default_executor_closeout"]["receipt_ref"].endswith(
         "sat-rehydrate.closeout.json"
     )
     assert result["current_execution_evidence"]["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert (
+        result["current_execution_evidence"]["action_queue"][0]["source_surface"]
+        == "study_progress.next_forced_delta.owner_action"
+    )
     assert envelope["state_kind"] == "typed_blocker"
-    assert envelope["owner"] == "ai_reviewer"
+    assert envelope["owner"] == "one-person-lab"
     assert envelope["next_work_unit"] is None
     assert envelope["typed_blocker"]["blocker_type"] == "medical_prose_review_request_rehydrate_required"
 
@@ -816,6 +804,8 @@ def test_envelope_prefers_executable_action_over_reason_only_blocker() -> None:
                 "action_type": "return_to_ai_reviewer_workflow",
                 "owner": "ai_reviewer",
                 "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": "sha256:ai-reviewer-route",
+                "action_fingerprint": "sha256:ai-reviewer-route",
             }
         ],
         blocked_reason="domain_transition_ai_reviewer_re_eval",
@@ -869,6 +859,8 @@ def test_envelope_domain_transition_supersedes_readiness_blocker_after_paper_del
                 "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
                 "allowed_actions": ["request_opl_stage_attempt"],
                 "source_surface": "domain_transition",
+                "work_unit_fingerprint": "sha256:dpcc-gate-replay-route",
+                "action_fingerprint": "sha256:dpcc-gate-replay-route",
             }
         ],
         blocked_reason="medical_paper_readiness_not_ready",
@@ -911,6 +903,8 @@ def test_envelope_does_not_let_stale_waiting_user_decision_hide_executable_route
                 "action_type": "run_gate_clearing_batch",
                 "owner": "gate_clearing_batch",
                 "next_work_unit": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:publication-gate-replay",
+                "action_fingerprint": "sha256:publication-gate-replay",
             }
         ],
         blocked_reason="domain_transition_publication_gate_blocker",
@@ -969,6 +963,9 @@ def test_envelope_treats_non_human_waiting_user_decision_as_stale_when_owner_act
                 "owner": "MedAutoScience",
                 "next_work_unit": "complete_medical_paper_readiness_surface",
                 "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                "work_unit_fingerprint": "sha256:medical-readiness-current-action",
+                "action_fingerprint": "sha256:medical-readiness-current-action",
+                "source_surface": "stage_kernel_projection.current_owner_delta",
             }
         ],
         blocked_reason="medical_paper_readiness_not_ready",
@@ -982,5 +979,6 @@ def test_envelope_treats_non_human_waiting_user_decision_as_stale_when_owner_act
     assert envelope["parked_state"] is None
 
 
+from tests.test_current_execution_envelope_cases.explicit_resume_residue import *  # noqa: F403,F401,E402
 from tests.test_current_execution_envelope_cases.repair_progress_and_provider_admission import *  # noqa: F403,F401,E402
 from tests.test_current_execution_envelope_cases.provider_attempt_priority import *  # noqa: F403,F401,E402
