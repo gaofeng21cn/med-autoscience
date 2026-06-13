@@ -1167,6 +1167,15 @@ def _accepted_closeout_matches_candidate_identity(
     if (
         action_and_work_unit_match
         and receipt_fingerprint is None
+        and _receipt_is_executed_owner_refs_closeout(
+            receipt,
+            statuses=_receipt_statuses(receipt),
+        )
+    ):
+        return _source_currentness_matches(receipt, identity=identity)
+    if (
+        action_and_work_unit_match
+        and receipt_fingerprint is None
         and is_anti_loop_stop_loss_closeout(receipt)
     ):
         return _source_currentness_matches(receipt, identity=identity)
@@ -1199,15 +1208,23 @@ def _receipt_identity_inferred_from_current_work_unit(receipt: Mapping[str, Any]
 
 
 def _receipt_has_opl_execution_authorization_blocker(receipt: Mapping[str, Any]) -> bool:
-    if is_anti_loop_stop_loss_closeout(receipt):
+    if is_anti_loop_stop_loss_closeout(receipt) and not _receipt_has_explicit_opl_execution_authorization_blocker(
+        receipt
+    ):
         return False
+    return _receipt_has_explicit_opl_execution_authorization_blocker(receipt)
+
+
+def _receipt_has_explicit_opl_execution_authorization_blocker(receipt: Mapping[str, Any]) -> bool:
     typed_blocker = _mapping(receipt.get("typed_blocker"))
     direct_values = (
         receipt.get("blocked_reason"),
         receipt.get("typed_blocker_reason"),
         typed_blocker.get("blocker_id"),
         typed_blocker.get("blocker_type"),
+        typed_blocker.get("blocker_kind"),
         typed_blocker.get("blocked_reason"),
+        typed_blocker.get("reason"),
     )
     if any(_non_empty_text(value) == OPL_EXECUTION_AUTHORIZATION_BLOCKER for value in direct_values):
         return True
@@ -1234,7 +1251,9 @@ def _receipt_is_accepted_closeout(receipt: Mapping[str, Any]) -> bool:
         return True
     if _receipt_is_record_only_owner_refs_closeout(receipt, statuses=statuses):
         return True
-    if _non_empty_text(receipt.get("surface_kind")) in {
+    if _receipt_is_executed_owner_refs_closeout(receipt, statuses=statuses):
+        return True
+    if _receipt_surface_kind(receipt) in {
         "stage_attempt_closeout_packet",
         "domain_stage_closeout_packet",
     } and (
@@ -1275,7 +1294,7 @@ def _receipt_is_record_only_owner_refs_closeout(
     *,
     statuses: set[str | None],
 ) -> bool:
-    if _non_empty_text(receipt.get("surface_kind")) not in {
+    if _receipt_surface_kind(receipt) not in {
         "stage_attempt_closeout_packet",
         "domain_stage_closeout_packet",
     }:
@@ -1285,6 +1304,29 @@ def _receipt_is_record_only_owner_refs_closeout(
     if _receipt_has_opl_execution_authorization_blocker(receipt):
         return False
     return _receipt_has_current_owner_ref(receipt)
+
+
+def _receipt_is_executed_owner_refs_closeout(
+    receipt: Mapping[str, Any],
+    *,
+    statuses: set[str | None],
+) -> bool:
+    if _receipt_surface_kind(receipt) not in {
+        "stage_attempt_closeout_packet",
+        "domain_stage_closeout_packet",
+    }:
+        return False
+    if "executed" not in statuses:
+        return False
+    if _receipt_has_opl_execution_authorization_blocker(receipt):
+        return False
+    return _receipt_has_current_owner_ref(receipt)
+
+
+def _receipt_surface_kind(receipt: Mapping[str, Any]) -> str | None:
+    return _non_empty_text(receipt.get("surface_kind")) or _non_empty_text(
+        receipt.get("stage_closeout_surface_kind")
+    )
 
 
 def _receipt_had_no_raw_fingerprint(receipt: Mapping[str, Any]) -> bool:

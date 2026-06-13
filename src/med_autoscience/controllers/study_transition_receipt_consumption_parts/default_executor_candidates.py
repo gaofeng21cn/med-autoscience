@@ -499,7 +499,11 @@ def _stage_closeout_execution_status(closeout: Mapping[str, Any]) -> str:
 
 
 def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path) -> tuple[dict[str, Any], str]:
-    basis = _mapping(closeout.get("owner_route_basis")) or _mapping(closeout.get("owner_route_currentness"))
+    basis = (
+        _mapping(closeout.get("owner_route_basis"))
+        or _mapping(closeout.get("owner_route_currentness"))
+        or _mapping(closeout.get("owner_route_currentness_basis"))
+    )
     if not basis:
         basis = {
             "truth_epoch": _text(closeout.get("truth_epoch")),
