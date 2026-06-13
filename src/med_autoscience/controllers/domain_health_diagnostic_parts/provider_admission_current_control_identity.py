@@ -5,6 +5,7 @@ from typing import Any, Mapping
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
     mapping as _mapping,
+    text_items as _text_items,
 )
 
 
@@ -64,6 +65,12 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
     )
     route_key = route_identity_key(candidate)
     attempt_key = attempt_idempotency_key(candidate)
+    dispatch_ref = _non_empty_text(candidate.get("dispatch_ref")) or _non_empty_text(candidate.get("dispatch_path"))
+    stage_packet_ref = _non_empty_text(candidate.get("stage_packet_ref"))
+    stage_packet_refs = _text_items(candidate.get("stage_packet_refs"))
+    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
+        stage_packet_refs.append(stage_packet_ref)
+    checkpoint_refs = _text_items(candidate.get("checkpoint_refs")) or list(stage_packet_refs)
     source_refs = {
         key: value
         for key, value in {
@@ -73,9 +80,12 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "attempt_idempotency_key": attempt_key,
             "provider_admission_identity_ref": _non_empty_text(candidate.get("execution_ref")),
             "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
+            "dispatch_ref": dispatch_ref,
+            "stage_packet_ref": stage_packet_ref,
+            "stage_packet_refs": stage_packet_refs or None,
             "blocked_reason": _non_empty_text(candidate.get("blocked_reason")),
         }.items()
-        if value is not None
+        if value not in (None, "", [], {})
     }
     owner_route = {
         "surface": "domain_route_owner_route",
@@ -125,6 +135,10 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "route_identity_key": route_key,
             "attempt_idempotency_key": attempt_key,
             "idempotency_key": attempt_key,
+            "dispatch_ref": dispatch_ref,
+            "stage_packet_ref": stage_packet_ref,
+            "stage_packet_refs": stage_packet_refs or None,
+            "checkpoint_refs": checkpoint_refs or None,
             "source_surface": "mas_opl_runtime_owner_handoff.provider_admission_identity",
             "source_ref": _non_empty_text(candidate.get("execution_ref")),
             "provider_attempt_or_lease_required": True,
@@ -144,11 +158,16 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
                 "work_unit_fingerprint": action_fingerprint,
                 "route_identity_key": route_key,
                 "attempt_idempotency_key": attempt_key,
+                "dispatch_ref": dispatch_ref,
+                "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
+                "stage_packet_ref": stage_packet_ref,
+                "stage_packet_refs": stage_packet_refs or None,
+                "checkpoint_refs": checkpoint_refs or None,
                 "source_ref": _non_empty_text(candidate.get("execution_ref")),
                 "owner_route": owner_route,
             },
         }.items()
-        if value is not None
+        if value not in (None, "", [], {})
     }
 
 
@@ -171,13 +190,47 @@ def missing_identity_fields(payload: Mapping[str, Any]) -> list[str] | None:
 
 def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(candidate)
+    fingerprint = _non_empty_text(payload.get("work_unit_fingerprint")) or _non_empty_text(
+        payload.get("action_fingerprint")
+    )
+    can_bind_progress_currentness = (
+        _non_empty_text(payload.get("source"))
+        == "opl_current_control_state.study_current_executable_owner_action"
+    )
     route_key = route_identity_key(payload)
+    if route_key is None and can_bind_progress_currentness:
+        study_id = _non_empty_text(payload.get("study_id"))
+        if study_id is not None and fingerprint is not None:
+            route_key = f"provider-admission::{study_id}::{fingerprint}"
     attempt_key = attempt_idempotency_key(payload)
+    if attempt_key is None and can_bind_progress_currentness:
+        attempt_key = route_key
     if route_key is not None:
         payload["route_identity_key"] = route_key
     if attempt_key is not None:
         payload["attempt_idempotency_key"] = attempt_key
         payload.setdefault("idempotency_key", attempt_key)
+    stage_packet_ref = _non_empty_text(payload.get("stage_packet_ref"))
+    dispatch_ref = _non_empty_text(payload.get("dispatch_ref")) or _non_empty_text(payload.get("dispatch_path"))
+    if can_bind_progress_currentness and stage_packet_ref is None and dispatch_ref is not None:
+        payload["stage_packet_ref"] = dispatch_ref
+        payload["stage_packet_refs"] = [
+            *[
+                item
+                for item in payload.get("stage_packet_refs") or []
+                if _non_empty_text(item) is not None
+            ],
+            dispatch_ref,
+        ]
+    elif stage_packet_ref is not None:
+        refs = [
+            item
+            for item in payload.get("stage_packet_refs") or []
+            if _non_empty_text(item) is not None
+        ]
+        if stage_packet_ref not in refs:
+            refs.append(stage_packet_ref)
+        payload["stage_packet_refs"] = refs
     return payload
 
 

@@ -346,6 +346,96 @@ def test_default_executor_dispatch_tasks_overlay_current_action_identity_on_stal
     assert stage_packet_path.read_text(encoding="utf-8") == before_stage_packet
 
 
+def test_default_executor_dispatch_tasks_require_existing_dispatch_packet_for_current_action_projection(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.default_executor_dispatch_tasks"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.toml"
+    profile_ref.write_text("[profile]\n", encoding="utf-8")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    dispatch_root = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+    )
+    current_owner_action = {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "action_fingerprint": "publication-blockers::0915410f804b3697",
+        "source_eval_id": (
+            "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+            "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+        ),
+        "owner_route_currentness_basis": {
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "source_eval_id": (
+                "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+            ),
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+            "runtime_health_epoch": "runtime-health-event-006815-adef9d6c0803e64e",
+        },
+        "target_surface": {
+            "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+        },
+    }
+    current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "status": "executable_owner_action",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "action_fingerprint": "publication-blockers::0915410f804b3697",
+        "currentness_basis": {
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "source_eval_id": (
+                "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+            ),
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+            "runtime_health_epoch": "runtime-health-event-006815-adef9d6c0803e64e",
+        },
+    }
+
+    tasks = module.default_executor_dispatch_tasks(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        current_owner_action=current_owner_action,
+        current_work_unit=current_work_unit,
+        current_execution_envelope={
+            "state_kind": "executable_owner_action",
+            "owner": "write",
+            "next_work_unit": "medical_prose_write_repair",
+        },
+        persist_identity=False,
+    )
+
+    assert not dispatch_root.exists()
+    assert tasks == []
+
+
 def test_default_executor_dispatch_tasks_suppress_residual_action_when_current_work_unit_is_typed_blocker(
     monkeypatch,
     tmp_path: Path,

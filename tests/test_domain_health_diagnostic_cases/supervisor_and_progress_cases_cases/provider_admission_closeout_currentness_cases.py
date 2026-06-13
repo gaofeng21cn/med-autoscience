@@ -126,6 +126,11 @@ def test_materialized_current_control_retains_record_only_closeout_without_curre
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
     fingerprint = "gate-replay-route-back::write::publication-blockers::0915410f804b3697"
+    dispatch_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_dispatches/run_quality_repair_batch.json"
+    )
+    identity_key = f"provider-admission::{study_id}::{fingerprint}"
     candidate = {
         "surface": "opl_provider_admission_candidate",
         "schema_version": 1,
@@ -136,6 +141,11 @@ def test_materialized_current_control_retains_record_only_closeout_without_curre
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": fingerprint,
         "action_fingerprint": fingerprint,
+        "dispatch_ref": dispatch_ref,
+        "stage_packet_ref": dispatch_ref,
+        "stage_packet_refs": [dispatch_ref],
+        "route_identity_key": identity_key,
+        "attempt_idempotency_key": identity_key,
         "next_executable_owner": "write",
         "required_output_surface": "canonical manuscript story-surface delta",
         "provider_attempt_or_lease_required": True,
@@ -494,6 +504,11 @@ def test_report_current_control_retains_dm002_current_pending_over_stale_anti_lo
     study_root = profile.studies_root / study_id
     work_unit_id = "analysis_claim_evidence_repair"
     fingerprint = "publication-blockers::497d1260db522f01"
+    dispatch_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_dispatches/run_quality_repair_batch.json"
+    )
+    identity_key = f"provider-admission::{study_id}::{fingerprint}"
     closeout_ref = (
         study_root
         / "artifacts"
@@ -589,6 +604,11 @@ def test_report_current_control_retains_dm002_current_pending_over_stale_anti_lo
                     "work_unit_id": work_unit_id,
                     "work_unit_fingerprint": fingerprint,
                     "action_fingerprint": fingerprint,
+                    "dispatch_ref": dispatch_ref,
+                    "stage_packet_ref": dispatch_ref,
+                    "stage_packet_refs": [dispatch_ref],
+                    "route_identity_key": identity_key,
+                    "attempt_idempotency_key": identity_key,
                     "next_executable_owner": "analysis-campaign",
                     "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
                     "provider_attempt_or_lease_required": True,

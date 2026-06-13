@@ -10,13 +10,14 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts import (
+    provider_admission_current_control_receipts as current_control_receipts,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity import (
     accepted_closeout_receipts as _accepted_closeout_receipts,
     attempt_idempotency_key as _attempt_idempotency_key,
-    basis_conflicts_with_identity as _basis_conflicts_with_identity,
     candidate_with_identity as _candidate_with_identity,
     candidate_with_progress_currentness_identity as _candidate_with_progress_currentness_identity,
-    closeout_owner_route_basis as _closeout_owner_route_basis,
     missing_identity_fields as _missing_identity_fields,
     provider_admission_current_control_study,
     route_identity_key as _route_identity_key,
@@ -26,7 +27,6 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     mapping as _mapping,
     text_items as _text_items,
 )
-from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.owner_route_reconcile_parts import scan_output, supervision_surfaces
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -263,17 +263,6 @@ def _stage_route_arbiter_decisions(
 ) -> list[dict[str, Any]]:
     decisions: list[dict[str, Any]] = []
     for candidate in candidates:
-        weak_identity = _weak_provider_admission_identity(candidate)
-        if weak_identity:
-            decisions.append(
-                _arbiter_decision(
-                    candidate,
-                    decision="weak_provider_admission_identity",
-                    effect="suppress_provider_admission_pending",
-                    evidence=weak_identity,
-                )
-            )
-            continue
         study_id = _non_empty_text(candidate.get("study_id"))
         scanned_study = (
             _mapping(scanned_studies_by_id.get(study_id)) if study_id is not None else {}
@@ -292,6 +281,19 @@ def _stage_route_arbiter_decisions(
                 )
             )
             continue
+        if current_control_receipts.accepted_closeout_matches_identity(
+            scanned_study,
+            identity=candidate,
+        ):
+            decisions.append(
+                _arbiter_decision(
+                    candidate,
+                    decision="accepted_closeout_consumed_pending",
+                    effect="suppress_provider_admission_pending",
+                    evidence=_matching_accepted_closeout(scanned_study, identity=candidate),
+                )
+            )
+            continue
         live_study = _mapping(live_studies_by_id.get(study_id)) if study_id is not None else {}
         live_attempt = _running_attempt_from_study(live_study)
         if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
@@ -304,13 +306,14 @@ def _stage_route_arbiter_decisions(
                 )
             )
             continue
-        if _accepted_closeout_matches_identity(scanned_study, identity=candidate):
+        weak_identity = _current_control_weak_provider_admission_identity(candidate)
+        if weak_identity:
             decisions.append(
                 _arbiter_decision(
                     candidate,
-                    decision="accepted_closeout_consumed_pending",
+                    decision="weak_provider_admission_identity",
                     effect="suppress_provider_admission_pending",
-                    evidence=_matching_accepted_closeout(scanned_study, identity=candidate),
+                    evidence=weak_identity,
                 )
             )
             continue
@@ -437,9 +440,11 @@ def _matching_accepted_closeout(
     identity: Mapping[str, Any],
 ) -> dict[str, Any]:
     for receipt in _accepted_closeout_receipts(study):
-        if _receipt_identity_inferred_from_current_work_unit(receipt):
+        if current_control_receipts.receipt_identity_inferred_from_current_work_unit(receipt):
             continue
-        if _receipt_is_accepted_closeout(receipt) and _accepted_closeout_matches_candidate_identity(
+        if current_control_receipts.receipt_is_accepted_closeout(
+            receipt
+        ) and current_control_receipts.accepted_closeout_matches_candidate_identity(
             receipt,
             identity=identity,
         ):
@@ -455,7 +460,7 @@ def _terminal_closeout_precedence_evidence(
     precedence_evidence = _mapping(study.get("terminal_closeout_precedence_evidence"))
     if (
         precedence_evidence
-        and _receipt_is_accepted_closeout(precedence_evidence)
+        and current_control_receipts.receipt_is_accepted_closeout(precedence_evidence)
         and provider_attempt_matches_identity(precedence_evidence, identity=identity)
     ):
         return precedence_evidence
@@ -465,7 +470,7 @@ def _terminal_closeout_precedence_evidence(
     closeout = _matching_accepted_closeout(study, identity=identity)
     if not closeout:
         return {}
-    if _receipt_matches_live_attempt(closeout, live_attempt):
+    if current_control_receipts.receipt_matches_live_attempt(closeout, live_attempt):
         return closeout
     return {}
 
@@ -852,39 +857,14 @@ def _accepted_closeout_for_live_attempt(study: Mapping[str, Any]) -> dict[str, A
     if not live_attempt:
         return {}
     for receipt in _accepted_closeout_receipts(study):
-        if _receipt_is_accepted_closeout(receipt) and _receipt_matches_live_attempt(
+        if current_control_receipts.receipt_is_accepted_closeout(
+            receipt
+        ) and current_control_receipts.receipt_matches_live_attempt(
             receipt,
             live_attempt,
         ):
             return receipt
     return {}
-
-
-def _receipt_matches_live_attempt(
-    receipt: Mapping[str, Any],
-    live_attempt: Mapping[str, Any],
-) -> bool:
-    receipt_stage_attempt_id = _stage_attempt_id(receipt)
-    live_stage_attempt_id = _stage_attempt_id(live_attempt)
-    if receipt_stage_attempt_id is not None and live_stage_attempt_id is not None:
-        return receipt_stage_attempt_id == live_stage_attempt_id
-    receipt_run_id = _active_run_id(receipt)
-    live_run_id = _active_run_id(live_attempt)
-    if receipt_run_id is not None and live_run_id is not None:
-        return receipt_run_id == live_run_id
-    if not _identity_has_match_key(live_attempt):
-        return False
-    return provider_attempt_matches_identity(receipt, identity=live_attempt)
-
-
-def _stage_attempt_id(payload: Mapping[str, Any]) -> str | None:
-    return _non_empty_text(payload.get("active_stage_attempt_id")) or _non_empty_text(
-        payload.get("stage_attempt_id")
-    )
-
-
-def _active_run_id(payload: Mapping[str, Any]) -> str | None:
-    return _non_empty_text(payload.get("active_run_id")) or _non_empty_text(payload.get("run_id"))
 
 
 def _running_attempt_from_study(study: Mapping[str, Any]) -> dict[str, Any]:
@@ -1008,8 +988,6 @@ def _candidates_not_covered_by_live_attempt(
 ) -> list[dict[str, Any]]:
     pending: list[dict[str, Any]] = []
     for candidate in candidates:
-        if _weak_provider_admission_identity(candidate):
-            continue
         study_id = _non_empty_text(candidate.get("study_id"))
         live_study = _mapping(live_studies_by_id.get(study_id)) if study_id is not None else {}
         live_attempt = _running_attempt_from_study(live_study)
@@ -1018,9 +996,14 @@ def _candidates_not_covered_by_live_attempt(
         )
         if _terminal_closeout_precedence_evidence(scanned_study, identity=candidate):
             continue
+        if current_control_receipts.accepted_closeout_matches_identity(
+            scanned_study,
+            identity=candidate,
+        ):
+            continue
         if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
             continue
-        if _accepted_closeout_matches_identity(scanned_study, identity=candidate):
+        if _current_control_weak_provider_admission_identity(candidate):
             continue
         if _current_typed_blocker_precedence_evidence(scanned_study, identity=candidate):
             continue
@@ -1106,390 +1089,29 @@ def _current_typed_blocker(study: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _accepted_closeout_matches_identity(
-    study: Mapping[str, Any],
-    *,
-    identity: Mapping[str, Any],
-) -> bool:
-    if not _identity_has_match_key(identity):
-        return False
-    for receipt in _accepted_closeout_receipts(study):
-        if _receipt_is_accepted_closeout(receipt) and _accepted_closeout_matches_candidate_identity(
-            receipt,
-            identity=identity,
-        ):
-            return True
-    return False
-
-
-def _accepted_closeout_matches_candidate_identity(
-    receipt: Mapping[str, Any],
-    *,
-    identity: Mapping[str, Any],
-) -> bool:
-    if _receipt_identity_inferred_from_current_work_unit(receipt):
-        return False
-    if _receipt_has_opl_execution_authorization_blocker(receipt):
-        return False
-    expected_action = _non_empty_text(identity.get("action_type"))
-    expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
-    expected_fingerprint = _non_empty_text(identity.get("work_unit_fingerprint")) or _non_empty_text(
-        identity.get("action_fingerprint")
-    )
-    if expected_action is None or expected_work_unit is None or expected_fingerprint is None:
-        return False
-    receipt_fingerprint = _non_empty_text(receipt.get("work_unit_fingerprint")) or _non_empty_text(
-        receipt.get("action_fingerprint")
-    )
-    if _receipt_had_no_raw_fingerprint(receipt):
-        receipt_fingerprint = None
-    action_and_work_unit_match = (
-        _non_empty_text(receipt.get("action_type")) == expected_action
-        and _non_empty_text(receipt.get("work_unit_id")) == expected_work_unit
-    )
-    if (
-        action_and_work_unit_match
-        and receipt_fingerprint == expected_fingerprint
-        and _receipt_is_explicit_accepted_typed_closeout(receipt)
-    ):
-        return True
-    if _source_currentness_precludes_consumption(receipt, identity=identity):
-        return False
-    if provider_attempt_matches_identity(receipt, identity=identity):
-        return _receipt_has_current_admission_consumption_authority(receipt, identity=identity)
-    if (
-        action_and_work_unit_match
-        and receipt_fingerprint is None
-        and _receipt_is_record_only_owner_refs_closeout(
-            receipt,
-            statuses=_receipt_statuses(receipt),
-        )
-    ):
-        return _source_currentness_matches(receipt, identity=identity)
-    if (
-        action_and_work_unit_match
-        and receipt_fingerprint is None
-        and _receipt_is_executed_owner_refs_closeout(
-            receipt,
-            statuses=_receipt_statuses(receipt),
-        )
-    ):
-        return _source_currentness_matches(receipt, identity=identity)
-    if (
-        action_and_work_unit_match
-        and receipt_fingerprint is None
-        and is_anti_loop_stop_loss_closeout(receipt)
-    ):
-        return _source_currentness_matches(receipt, identity=identity)
-    return (
-        action_and_work_unit_match
-        and receipt_fingerprint == expected_fingerprint
-        and _receipt_has_current_admission_consumption_authority(receipt, identity=identity)
-    )
-
-
-def _receipt_has_current_admission_consumption_authority(
-    receipt: Mapping[str, Any],
-    *,
-    identity: Mapping[str, Any],
-) -> bool:
-    if _receipt_is_explicit_accepted_typed_closeout(receipt):
-        return True
-    if _receipt_is_record_only_owner_refs_closeout(
-        receipt,
-        statuses=_receipt_statuses(receipt),
-    ):
-        return True
-    if _receipt_route_identity_matches(receipt, identity=identity):
-        return True
-    return _source_currentness_matches(receipt, identity=identity)
-
-
-def _receipt_identity_inferred_from_current_work_unit(receipt: Mapping[str, Any]) -> bool:
-    return _non_empty_text(receipt.get("identity_binding_status")) == "inferred_from_current_work_unit"
-
-
-def _receipt_has_opl_execution_authorization_blocker(receipt: Mapping[str, Any]) -> bool:
-    if is_anti_loop_stop_loss_closeout(receipt) and not _receipt_has_explicit_opl_execution_authorization_blocker(
-        receipt
-    ):
-        return False
-    return _receipt_has_explicit_opl_execution_authorization_blocker(receipt)
-
-
-def _receipt_has_explicit_opl_execution_authorization_blocker(receipt: Mapping[str, Any]) -> bool:
-    typed_blocker = _mapping(receipt.get("typed_blocker"))
-    direct_values = (
-        receipt.get("blocked_reason"),
-        receipt.get("typed_blocker_reason"),
-        typed_blocker.get("blocker_id"),
-        typed_blocker.get("blocker_type"),
-        typed_blocker.get("blocker_kind"),
-        typed_blocker.get("blocked_reason"),
-        typed_blocker.get("reason"),
-    )
-    if any(_non_empty_text(value) == OPL_EXECUTION_AUTHORIZATION_BLOCKER for value in direct_values):
-        return True
-    text_values = (
-        receipt.get("outcome"),
-        receipt.get("problem_summary"),
-        receipt.get("semantic_gap"),
-        *list(receipt.get("remaining_blockers") or []),
-    )
-    return any(
-        OPL_EXECUTION_AUTHORIZATION_BLOCKER in text
-        for value in text_values
-        if (text := _non_empty_text(value)) is not None
-    )
-
-
-def _identity_has_match_key(identity: Mapping[str, Any]) -> bool:
-    return _weak_provider_admission_identity(identity) == {}
-
-
-def _receipt_is_accepted_closeout(receipt: Mapping[str, Any]) -> bool:
-    statuses = _receipt_statuses(receipt)
-    if _receipt_is_explicit_accepted_typed_closeout(receipt):
-        return True
-    if _receipt_is_record_only_owner_refs_closeout(receipt, statuses=statuses):
-        return True
-    if _receipt_is_executed_owner_refs_closeout(receipt, statuses=statuses):
-        return True
-    if _receipt_surface_kind(receipt) in {
-        "stage_attempt_closeout_packet",
-        "domain_stage_closeout_packet",
-    } and (
-        "blocked" in statuses
-        or "closed_with_typed_domain_blocker" in statuses
-        or "blocked_with_domain_owner_refs" in statuses
-        or _mapping(receipt.get("typed_blocker"))
-        or _non_empty_text(receipt.get("typed_blocker_ref")) is not None
-        or _non_empty_text(receipt.get("typed_blocker_reason")) is not None
-    ):
-        return True
-    if _non_empty_text(receipt.get("outcome")) != "typed_blocker":
-        return False
-    if _non_empty_text(receipt.get("execution_status")) != "executed":
-        return False
-    return _non_empty_text(receipt.get("typed_blocker_ref")) is not None or _non_empty_text(
-        receipt.get("typed_blocker_reason")
-    ) is not None
-
-
-def _receipt_statuses(receipt: Mapping[str, Any]) -> set[str | None]:
+def _current_control_weak_provider_admission_identity(identity: Mapping[str, Any]) -> dict[str, Any]:
+    weak_identity = _weak_provider_admission_identity(identity)
+    if not weak_identity:
+        return {}
+    current_control_missing = [
+        field
+        for field in weak_identity.get("missing_identity_fields") or []
+        if field
+        in {
+            "study_id",
+            "action_type",
+            "work_unit_id",
+            "work_unit_fingerprint",
+            "dispatch_path_or_ref",
+            "currentness_basis",
+        }
+    ]
+    if not current_control_missing:
+        return {}
     return {
-        _non_empty_text(receipt.get("status")),
-        _non_empty_text(receipt.get("execution_status")),
-        _non_empty_text(receipt.get("closeout_receipt_status")),
-        _non_empty_text(receipt.get("current_attempt_state")),
-        _non_empty_text(receipt.get("reconciliation_status")),
-        _non_empty_text(receipt.get("stage_closeout_status")),
+        "status": "weak_provider_admission_identity",
+        "missing_identity_fields": current_control_missing,
     }
-
-
-def _receipt_is_explicit_accepted_typed_closeout(receipt: Mapping[str, Any]) -> bool:
-    return "accepted_typed_closeout" in _receipt_statuses(receipt)
-
-
-def _receipt_is_record_only_owner_refs_closeout(
-    receipt: Mapping[str, Any],
-    *,
-    statuses: set[str | None],
-) -> bool:
-    if _receipt_surface_kind(receipt) not in {
-        "stage_attempt_closeout_packet",
-        "domain_stage_closeout_packet",
-    }:
-        return False
-    if "closed_with_domain_owner_refs" not in statuses:
-        return False
-    if _receipt_has_opl_execution_authorization_blocker(receipt):
-        return False
-    return _receipt_has_current_owner_ref(receipt)
-
-
-def _receipt_is_executed_owner_refs_closeout(
-    receipt: Mapping[str, Any],
-    *,
-    statuses: set[str | None],
-) -> bool:
-    if _receipt_surface_kind(receipt) not in {
-        "stage_attempt_closeout_packet",
-        "domain_stage_closeout_packet",
-    }:
-        return False
-    if "executed" not in statuses:
-        return False
-    if _receipt_has_opl_execution_authorization_blocker(receipt):
-        return False
-    return _receipt_has_current_owner_ref(receipt)
-
-
-def _receipt_surface_kind(receipt: Mapping[str, Any]) -> str | None:
-    return _non_empty_text(receipt.get("surface_kind")) or _non_empty_text(
-        receipt.get("stage_closeout_surface_kind")
-    )
-
-
-def _receipt_had_no_raw_fingerprint(receipt: Mapping[str, Any]) -> bool:
-    if receipt.get("raw_closeout_work_unit_fingerprint_present") is False:
-        return receipt.get("raw_closeout_action_fingerprint_present") is False
-    return False
-
-
-def _receipt_has_current_owner_ref(receipt: Mapping[str, Any]) -> bool:
-    owner_result = _mapping(receipt.get("owner_result"))
-    owner_receipt = _mapping(receipt.get("owner_receipt"))
-    return any(
-        _non_empty_text(value) is not None
-        for value in (
-            receipt.get("owner_receipt_ref"),
-            receipt.get("record_ref"),
-            receipt.get("publication_eval_record_ref"),
-            owner_result.get("owner_receipt_ref"),
-            owner_result.get("publication_eval_record_ref"),
-            owner_receipt.get("owner_receipt_ref"),
-            owner_receipt.get("publication_eval_record_ref"),
-        )
-    )
-
-
-def _receipt_route_identity_matches(receipt: Mapping[str, Any], *, identity: Mapping[str, Any]) -> bool:
-    receipt_route_identity_key = _non_empty_text(receipt.get("route_identity_key")) or _non_empty_text(
-        receipt.get("idempotency_key")
-    )
-    identity_route_identity_key = _route_identity_key(identity)
-    if receipt_route_identity_key is not None and identity_route_identity_key is not None:
-        return receipt_route_identity_key == identity_route_identity_key
-    receipt_attempt_idempotency_key = _non_empty_text(receipt.get("attempt_idempotency_key"))
-    identity_attempt_idempotency_key = _attempt_idempotency_key(identity)
-    return (
-        receipt_attempt_idempotency_key is not None
-        and identity_attempt_idempotency_key is not None
-        and receipt_attempt_idempotency_key == identity_attempt_idempotency_key
-    )
-
-
-def _source_currentness_matches(receipt: Mapping[str, Any], *, identity: Mapping[str, Any]) -> bool:
-    receipt_basis = _receipt_currentness_basis(receipt)
-    identity_basis = _identity_currentness_basis(identity)
-    if not receipt_basis or not identity_basis:
-        return False
-    if _basis_conflicts_with_identity(receipt_basis, identity=identity):
-        return False
-    if _basis_conflicts_with_identity(identity_basis, identity=identity):
-        return False
-    receipt_source_eval = _non_empty_text(receipt_basis.get("source_eval_id"))
-    identity_source_eval = _non_empty_text(identity_basis.get("source_eval_id"))
-    if receipt_source_eval is not None or identity_source_eval is not None:
-        if receipt_source_eval is not None and identity_source_eval is not None:
-            return receipt_source_eval == identity_source_eval
-        return _legacy_currentness_basis_matches(receipt_basis, identity_basis)
-    return _legacy_currentness_basis_matches(receipt_basis, identity_basis)
-
-
-def _source_currentness_precludes_consumption(
-    receipt: Mapping[str, Any],
-    *,
-    identity: Mapping[str, Any],
-) -> bool:
-    receipt_basis = _receipt_currentness_basis(receipt)
-    identity_basis = _identity_currentness_basis(identity)
-    identity_source_eval = _non_empty_text(identity_basis.get("source_eval_id"))
-    if identity_source_eval is None:
-        return False
-    receipt_source_eval = _non_empty_text(receipt_basis.get("source_eval_id"))
-    if receipt_source_eval is not None:
-        return receipt_source_eval != identity_source_eval
-    return not _legacy_currentness_basis_matches(receipt_basis, identity_basis)
-
-
-def _receipt_currentness_basis(receipt: Mapping[str, Any]) -> dict[str, Any]:
-    basis = dict(_closeout_owner_route_basis(receipt))
-    nested_owner_route_basis = _mapping(
-        _mapping(_mapping(receipt.get("owner_route")).get("source_refs")).get(
-            "owner_route_currentness_basis"
-        )
-    )
-    direct_owner_route_basis = _mapping(receipt.get("owner_route_currentness_basis"))
-    owner_route_basis = _mapping(receipt.get("owner_route_basis"))
-    for candidate_basis in (nested_owner_route_basis, direct_owner_route_basis, owner_route_basis):
-        for key, value in candidate_basis.items():
-            if basis.get(key) in (None, "", [], {}) and value not in (None, "", [], {}):
-                basis[key] = value
-    for key, value in {
-        "work_unit_id": _non_empty_text(receipt.get("work_unit_id"))
-        or _non_empty_text(basis.get("work_unit_id")),
-        "work_unit_fingerprint": _non_empty_text(receipt.get("work_unit_fingerprint"))
-        or _non_empty_text(receipt.get("action_fingerprint"))
-        or _non_empty_text(basis.get("work_unit_fingerprint"))
-        or _non_empty_text(basis.get("action_fingerprint")),
-        "action_fingerprint": _non_empty_text(receipt.get("action_fingerprint"))
-        or _non_empty_text(receipt.get("work_unit_fingerprint"))
-        or _non_empty_text(basis.get("action_fingerprint"))
-        or _non_empty_text(basis.get("work_unit_fingerprint")),
-        "source_eval_id": _non_empty_text(receipt.get("source_eval_id"))
-        or _non_empty_text(basis.get("source_eval_id")),
-        "truth_epoch": _non_empty_text(receipt.get("truth_epoch"))
-        or _non_empty_text(basis.get("truth_epoch")),
-        "runtime_health_epoch": _non_empty_text(receipt.get("runtime_health_epoch"))
-        or _non_empty_text(basis.get("runtime_health_epoch")),
-    }.items():
-        if value is not None:
-            basis[key] = value
-    return {key: value for key, value in basis.items() if value not in (None, "", [], {})}
-
-
-def _identity_currentness_basis(identity: Mapping[str, Any]) -> dict[str, Any]:
-    basis = dict(_mapping(identity.get("currentness_basis")))
-    nested_basis = _mapping(basis.get("owner_route_currentness_basis"))
-    for key, value in nested_basis.items():
-        if basis.get(key) in (None, "", [], {}) and value not in (None, "", [], {}):
-            basis[key] = value
-    for key, value in {
-        "work_unit_id": _non_empty_text(identity.get("work_unit_id"))
-        or _non_empty_text(basis.get("work_unit_id")),
-        "work_unit_fingerprint": _non_empty_text(identity.get("work_unit_fingerprint"))
-        or _non_empty_text(identity.get("action_fingerprint"))
-        or _non_empty_text(basis.get("work_unit_fingerprint"))
-        or _non_empty_text(basis.get("action_fingerprint")),
-        "action_fingerprint": _non_empty_text(identity.get("action_fingerprint"))
-        or _non_empty_text(identity.get("work_unit_fingerprint"))
-        or _non_empty_text(basis.get("action_fingerprint"))
-        or _non_empty_text(basis.get("work_unit_fingerprint")),
-        "source_eval_id": _non_empty_text(identity.get("source_eval_id"))
-        or _non_empty_text(basis.get("source_eval_id")),
-        "truth_epoch": _non_empty_text(identity.get("truth_epoch"))
-        or _non_empty_text(basis.get("truth_epoch"))
-        or _non_empty_text(basis.get("study_truth_epoch")),
-        "runtime_health_epoch": _non_empty_text(identity.get("runtime_health_epoch"))
-        or _non_empty_text(basis.get("runtime_health_epoch")),
-    }.items():
-        if value is not None:
-            basis[key] = value
-    return {key: value for key, value in basis.items() if value not in (None, "", [], {})}
-
-
-def _legacy_currentness_basis_matches(
-    receipt_basis: Mapping[str, Any],
-    identity_basis: Mapping[str, Any],
-) -> bool:
-    for key in ("work_unit_id", "truth_epoch", "runtime_health_epoch"):
-        receipt_value = _non_empty_text(receipt_basis.get(key))
-        identity_value = _non_empty_text(identity_basis.get(key))
-        if receipt_value is None or identity_value is None or receipt_value != identity_value:
-            return False
-    receipt_fingerprint = _non_empty_text(receipt_basis.get("work_unit_fingerprint")) or _non_empty_text(
-        receipt_basis.get("action_fingerprint")
-    )
-    identity_fingerprint = _non_empty_text(identity_basis.get("work_unit_fingerprint")) or _non_empty_text(
-        identity_basis.get("action_fingerprint")
-    )
-    return (
-        receipt_fingerprint is not None
-        and identity_fingerprint is not None
-        and receipt_fingerprint == identity_fingerprint
-    )
 
 
 __all__ = [

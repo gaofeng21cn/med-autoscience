@@ -53,11 +53,7 @@ def _current_control_payload_for_provider_admission(
 
 def _study_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any]:
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
-    current_work_unit_state = _mapping_copy(current_work_unit.get("state"))
-    if (
-        _non_empty_text(current_work_unit.get("status")) != "executable_owner_action"
-        or current_work_unit_state.get("provider_admission_pending") is not True
-    ):
+    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
         return {}
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if not current_action:

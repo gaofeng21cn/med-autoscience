@@ -40,6 +40,12 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     provider_probe_has_non_running_actions,
     study_has_running_provider_attempt,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_stage_run_identity import (
+    candidate_with_stage_run_admission_identity as _candidate_with_stage_run_admission_identity,
+)
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_status_currentness import (
+    current_control_payload_with_status_currentness,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_status import (
     execution_state_kind as _execution_state_kind,
     status_blocks_action_queue_self_identity as _status_blocks_action_queue_self_identity,
@@ -314,6 +320,13 @@ def provider_admission_candidate_from_current_control_action(
         "current_control_ref": current_control_ref,
         "dispatch_path": str(dispatch_path),
     }
+    candidate = _candidate_with_stage_run_admission_identity(
+        candidate,
+        execution=execution,
+        dispatch_payload=_mapping(dispatch_payload),
+        dispatch_path=dispatch_path,
+        study_root=study_root,
+    )
     return candidate
 
 
@@ -640,7 +653,7 @@ def provider_admission_candidate_from_execution(
             "work_unit_fingerprint": _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
             or work_unit_fingerprint,
         }
-    return {
+    candidate = {
         "surface": "opl_provider_admission_candidate",
         "schema_version": 1,
         "status": "provider_admission_pending",
@@ -683,6 +696,10 @@ def provider_admission_candidate_from_execution(
             if key in source_refs
         },
     }
+    return _candidate_with_stage_run_admission_identity(
+        candidate,
+        execution=execution,
+    )
 
 
 def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any]:

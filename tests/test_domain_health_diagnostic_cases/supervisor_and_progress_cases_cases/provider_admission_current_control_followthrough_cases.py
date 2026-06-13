@@ -99,6 +99,17 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
     assert result["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
     assert result["action_queue"][0]["work_unit_fingerprint"] == work_unit_fingerprint
+    expected_identity = f"provider-admission::{study_id}::{work_unit_fingerprint}"
+    candidate = result["provider_admission_candidates"][0]
+    action = result["action_queue"][0]
+    assert candidate["route_identity_key"] == expected_identity
+    assert candidate["attempt_idempotency_key"] == expected_identity
+    assert candidate["stage_packet_ref"] == str(dispatch_path)
+    assert candidate["stage_packet_refs"] == [str(dispatch_path)]
+    assert action["route_identity_key"] == expected_identity
+    assert action["attempt_idempotency_key"] == expected_identity
+    assert action["stage_packet_ref"] == str(dispatch_path)
+    assert action["stage_packet_refs"] == [str(dispatch_path)]
 
 
 def test_current_control_action_supplies_work_unit_identity_when_dispatch_is_legacy_shape(
@@ -130,7 +141,10 @@ def test_current_control_action_supplies_work_unit_identity_when_dispatch_is_leg
             "dispatch_status": "ready",
             "next_executable_owner": "write",
             "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
-            "refs": {"dispatch_path": str(dispatch_path)},
+            "refs": {
+                "dispatch_path": str(dispatch_path),
+                "stage_packet_path": str(dispatch_path),
+            },
         },
     )
     work_unit_id = "medical_prose_write_repair"
@@ -209,6 +223,179 @@ def test_current_control_action_supplies_work_unit_identity_when_dispatch_is_leg
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["work_unit_fingerprint"] == work_unit_fingerprint
     assert candidate["dispatch_path"] == str(dispatch_path)
+    expected_identity = f"provider-admission::{study_id}::{work_unit_fingerprint}"
+    expected_stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_dispatches/run_quality_repair_batch.json"
+    )
+    assert candidate["route_identity_key"] == expected_identity
+    assert candidate["attempt_idempotency_key"] == expected_identity
+    assert candidate["stage_packet_ref"] == expected_stage_packet_ref
+    assert candidate["stage_packet_refs"] == [expected_stage_packet_ref]
+
+
+def test_domain_health_diagnostic_projects_progress_owner_action_without_current_control_study_entry(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "next_executable_owner": "write",
+            "provider_attempt_or_lease_required": True,
+            "provider_completion_is_domain_completion": False,
+            "owner_route_current": True,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+    dump_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "running_provider_attempt": False,
+            "action_queue": [],
+            "studies": [],
+        },
+    )
+    status_payload = {
+        **make_progress_projection_payload(
+            study_id=study_id,
+            decision="blocked",
+            reason="quest_waiting_for_user",
+        ),
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(profile.runtime_root / "quests" / study_id),
+    }
+    current_action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "source_eval_id": source_eval_id,
+        "owner_route_currentness_basis": {
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "explicit_publication_work_unit_id": work_unit_id,
+        },
+        "target_surface": {
+            "ref_kind": "publication_work_unit",
+            "route_target": "write",
+            "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+        },
+    }
+    current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "schema_version": 1,
+        "status": "executable_owner_action",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "state": {
+            "state_kind": "executable_owner_action",
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "next_work_unit": work_unit_id,
+            "owner_answer_missing": False,
+            "owner_answer_still_required": False,
+            "provider_admission_pending": False,
+        },
+        "currentness_basis": {
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "explicit_publication_work_unit_id": work_unit_id,
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+        },
+    }
+
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(
+        study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "generated_at": "2026-06-13T08:31:00+00:00",
+            "current_work_unit": current_work_unit,
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": work_unit_id,
+                "typed_blocker": None,
+            },
+            "current_executable_owner_action": current_action,
+        },
+    )
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=False,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    assert result["provider_admission_pending_count"] == 1
+    candidate = result["managed_study_opl_provider_admission_candidates"][0]
+    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
+    assert candidate["action_type"] == "run_quality_repair_batch"
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["work_unit_fingerprint"] == fingerprint
+    assert candidate["dispatch_path"] == str(dispatch_path)
+    assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 1
 
 
 def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_queue(
@@ -253,6 +440,7 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
         / "opl_current_control_state"
         / "latest.json"
     )
+    route_identity_key = f"provider-admission::{study_id}::{action_fingerprint}"
     dump_json(
         current_control_path,
         {
@@ -264,26 +452,37 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
                     "action_type": "return_to_ai_reviewer_workflow",
                     "status": "queued",
                     "owner": "ai_reviewer",
-                    "next_work_unit": work_unit_id,
-                    "action_fingerprint": action_fingerprint,
-                    "work_unit_fingerprint": action_fingerprint,
-                    "refs": {"dispatch_path": str(dispatch_path)},
-                }
-            ],
-            "studies": [
-                {
-                    "study_id": study_id,
+                        "next_work_unit": work_unit_id,
+                        "action_fingerprint": action_fingerprint,
+                        "work_unit_fingerprint": action_fingerprint,
+                        "route_identity_key": route_identity_key,
+                        "attempt_idempotency_key": route_identity_key,
+                        "stage_packet_ref": str(dispatch_path),
+                        "stage_packet_refs": [str(dispatch_path)],
+                        "refs": {
+                            "dispatch_path": str(dispatch_path),
+                            "stage_packet_path": str(dispatch_path),
+                        },
+                    }
+                ],
+                "studies": [
+                    {
+                        "study_id": study_id,
                     "quest_id": study_id,
                     "owner_route": {
                         "next_owner": "ai_reviewer",
-                        "source_refs": {
-                            "work_unit_id": work_unit_id,
-                            "work_unit_fingerprint": action_fingerprint,
-                            "owner_route_currentness_basis": {
-                                "truth_epoch": "truth-event-current",
-                                "runtime_health_epoch": "runtime-health-current",
+                            "source_refs": {
                                 "work_unit_id": work_unit_id,
                                 "work_unit_fingerprint": action_fingerprint,
+                                "route_identity_key": route_identity_key,
+                                "attempt_idempotency_key": route_identity_key,
+                                "stage_packet_ref": str(dispatch_path),
+                                "stage_packet_refs": [str(dispatch_path)],
+                                "owner_route_currentness_basis": {
+                                    "truth_epoch": "truth-event-current",
+                                    "runtime_health_epoch": "runtime-health-current",
+                                    "work_unit_id": work_unit_id,
+                                    "work_unit_fingerprint": action_fingerprint,
                             },
                         },
                     },
@@ -345,6 +544,14 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["action_fingerprint"] == action_fingerprint
     assert candidate["dispatch_path"] == str(dispatch_path)
+    assert candidate["route_identity_key"] == route_identity_key
+    assert candidate["attempt_idempotency_key"] == route_identity_key
+    expected_stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+    )
+    assert candidate["stage_packet_ref"] == expected_stage_packet_ref
+    assert candidate["stage_packet_refs"] == [expected_stage_packet_ref]
     assert result["action_fingerprints"] == [action_fingerprint]
 
 
@@ -600,6 +807,16 @@ def test_same_tick_owner_route_apply_refreshes_report_currentness_before_provide
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["action_fingerprint"] == action_fingerprint
     assert candidate["dispatch_path"] == str(dispatch_path)
+    expected_identity = f"provider-admission::{study_id}::{action_fingerprint}"
+    assert candidate["route_identity_key"] == expected_identity
+    assert candidate["attempt_idempotency_key"] == expected_identity
+    assert candidate["stage_packet_ref"] == str(dispatch_path)
+    assert candidate["stage_packet_refs"] == [str(dispatch_path)]
+    action = result["provider_admission_current_control_state"]["action_queue"][0]
+    assert action["route_identity_key"] == expected_identity
+    assert action["attempt_idempotency_key"] == expected_identity
+    assert action["stage_packet_ref"] == str(dispatch_path)
+    assert action["stage_packet_refs"] == [str(dispatch_path)]
     assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 1
     assert result["action_fingerprints"] == [action_fingerprint]
 

@@ -599,7 +599,12 @@ def _filter_provider_admission_candidates_by_progress_currentness(
             current_action_identity=current_action_identity,
         ):
             continue
-        filtered.append(dict(candidate))
+        filtered.append(
+            _candidate_with_current_action_identity(
+                candidate,
+                current_action_identity=current_action_identity,
+            )
+        )
     return filtered
 
 
@@ -683,6 +688,7 @@ def _provider_admission_candidates_from_same_tick_materialize(
         )
         if currentness_basis:
             candidate["currentness_basis"] = currentness_basis
+        candidate = _same_tick_candidate_with_stage_run_identity(candidate)
         if candidate["study_id"] is not None and candidate["action_type"] is not None:
             current_action_identity = current_action_by_study.get(candidate["study_id"])
             if current_action_identity is not None and not _same_tick_candidate_matches_current_action(
@@ -692,6 +698,85 @@ def _provider_admission_candidates_from_same_tick_materialize(
                 continue
             candidates.append({key: value for key, value in candidate.items() if value is not None})
     return candidates
+
+
+def _candidate_with_current_action_identity(
+    candidate: Mapping[str, Any],
+    *,
+    current_action_identity: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    payload = dict(candidate)
+    if not current_action_identity:
+        return payload
+    fingerprint = _non_empty_text(payload.get("work_unit_fingerprint")) or _non_empty_text(
+        payload.get("action_fingerprint")
+    )
+    if fingerprint is None:
+        return payload
+    if _non_empty_text(payload.get("route_identity_key")) is None:
+        study_id = _non_empty_text(payload.get("study_id"))
+        if study_id is not None:
+            payload["route_identity_key"] = f"provider-admission::{study_id}::{fingerprint}"
+    if _non_empty_text(payload.get("attempt_idempotency_key")) is None and _non_empty_text(
+        payload.get("route_identity_key")
+    ) is not None:
+        payload["attempt_idempotency_key"] = _non_empty_text(payload.get("route_identity_key"))
+    currentness_basis = _mapping(payload.get("currentness_basis"))
+    current_basis = _mapping(current_action_identity.get("currentness_basis"))
+    if current_basis:
+        payload["currentness_basis"] = {
+            **dict(current_basis),
+            **dict(currentness_basis),
+            "work_unit_id": _non_empty_text(currentness_basis.get("work_unit_id"))
+            or _non_empty_text(current_action_identity.get("work_unit_id"))
+            or _non_empty_text(payload.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
+            or fingerprint,
+        }
+    return payload
+
+
+def _same_tick_candidate_with_stage_run_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(candidate)
+    study_id = _non_empty_text(payload.get("study_id"))
+    fingerprint = _non_empty_text(payload.get("work_unit_fingerprint")) or _non_empty_text(
+        payload.get("action_fingerprint")
+    )
+    route_key = _non_empty_text(payload.get("route_identity_key"))
+    if route_key is None and study_id is not None and fingerprint is not None:
+        route_key = f"provider-admission::{study_id}::{fingerprint}"
+    attempt_key = _non_empty_text(payload.get("attempt_idempotency_key")) or route_key
+    dispatch_ref = _non_empty_text(payload.get("dispatch_ref")) or _non_empty_text(payload.get("dispatch_path"))
+    stage_packet_ref = _non_empty_text(payload.get("stage_packet_ref")) or dispatch_ref
+    stage_packet_refs = _same_tick_text_items(payload.get("stage_packet_refs"))
+    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
+        stage_packet_refs.append(stage_packet_ref)
+    for key, value in {
+        "dispatch_ref": dispatch_ref,
+        "stage_packet_ref": stage_packet_ref,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": attempt_key,
+        "idempotency_key": attempt_key,
+    }.items():
+        if value is not None:
+            payload[key] = value
+    if stage_packet_refs:
+        payload["stage_packet_refs"] = stage_packet_refs
+        payload.setdefault("checkpoint_refs", list(stage_packet_refs))
+    source_refs = dict(_mapping(payload.get("source_refs")))
+    for key, value in {
+        "dispatch_ref": dispatch_ref,
+        "stage_packet_ref": stage_packet_ref,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": attempt_key,
+    }.items():
+        if value is not None:
+            source_refs[key] = value
+    if stage_packet_refs:
+        source_refs["stage_packet_refs"] = stage_packet_refs
+    if source_refs:
+        payload["source_refs"] = source_refs
+    return payload
 
 
 def _same_tick_materialized_currentness_basis(

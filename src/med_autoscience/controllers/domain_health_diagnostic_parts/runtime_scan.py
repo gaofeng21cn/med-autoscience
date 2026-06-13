@@ -1101,6 +1101,10 @@ def _provider_admission_candidates_for_status(
         return candidates
     current_control_path = supervision_surfaces.latest_path(profile)
     current_control_payload = supervision_surfaces.read_json_object(current_control_path)
+    current_control_payload = provider_admission.current_control_payload_with_status_currentness(
+        current_control_payload,
+        status_payload=status_payload,
+    )
     return provider_admission.current_control_provider_admission_candidates(
         current_control_payload,
         study_root=study_root,
