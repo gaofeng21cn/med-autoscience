@@ -179,6 +179,10 @@ def build_current_work_unit(
     if terminal_action_blocker is not None and (
         not _typed_blocker_has_owner_answer_currentness(resolved_typed_blocker)
         or _typed_blocker_is_stage_owner_answer(resolved_typed_blocker)
+        or _terminal_action_blocker_has_fresher_identity(
+            terminal_action_blocker,
+            existing_blocker=resolved_typed_blocker,
+        )
     ):
         resolved_typed_blocker = terminal_action_blocker
         terminal_action_blocker_selected = True
@@ -478,10 +482,13 @@ def _typed_blocker_work_unit(
         work_unit_fingerprint=resolved_work_unit_fingerprint,
         action_fingerprint=resolved_action_fingerprint,
     )
+    enriched_basis = _mapping(enriched_blocker.get("currentness_basis")) or resolved_basis
+    resolved_work_unit_fingerprint = _text(enriched_basis.get("work_unit_fingerprint")) or resolved_work_unit_fingerprint
+    resolved_action_fingerprint = _text(enriched_basis.get("action_fingerprint")) or resolved_action_fingerprint
     owner_answer_binding = _owner_answer_binding(
         blocker=enriched_blocker,
         action=resolved_action,
-        currentness_basis=resolved_basis,
+        currentness_basis=enriched_basis,
         progress_payload=progress_payload,
         status_payload=status_payload,
     )
@@ -497,7 +504,7 @@ def _typed_blocker_work_unit(
         input_refs=_input_refs(enriched_blocker, source_refs),
         required_output_contract=_typed_blocker_required_output_contract(enriched_blocker),
         acceptance_refs=_acceptance_refs(enriched_blocker),
-        currentness_basis=_mapping(enriched_blocker.get("currentness_basis")) or resolved_basis,
+        currentness_basis=enriched_basis,
         state={
             "state_kind": status_kind,
             "source": source,
@@ -511,6 +518,27 @@ def _typed_blocker_work_unit(
         progress_payload=progress_payload,
         action=resolved_action,
     )
+
+
+def _terminal_action_blocker_has_fresher_identity(
+    blocker: Mapping[str, Any],
+    *,
+    existing_blocker: Mapping[str, Any] | None,
+) -> bool:
+    existing = _mapping(existing_blocker)
+    if not existing:
+        return False
+    blocker_type = _text(blocker.get("blocker_type")) or _text(blocker.get("blocked_reason"))
+    existing_type = _text(existing.get("blocker_type")) or _text(existing.get("blocked_reason"))
+    if blocker_type != "stage_packet_not_current_selected_dispatch" or existing_type != blocker_type:
+        return False
+    blocker_work_unit = _work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(blocker.get("next_work_unit"))
+    existing_work_unit = _work_unit_id(existing.get("work_unit_id")) or _work_unit_id(existing.get("next_work_unit"))
+    if blocker_work_unit is not None and existing_work_unit is not None and blocker_work_unit != existing_work_unit:
+        return False
+    blocker_fingerprint = _text(blocker.get("work_unit_fingerprint")) or _text(blocker.get("action_fingerprint"))
+    existing_fingerprint = _text(existing.get("work_unit_fingerprint")) or _text(existing.get("action_fingerprint"))
+    return bool(blocker_fingerprint and existing_fingerprint and blocker_fingerprint != existing_fingerprint)
 
 
 def _current_work_unit(

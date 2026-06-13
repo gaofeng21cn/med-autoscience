@@ -80,12 +80,26 @@ def terminal_closeout_blocker_for_action(
     if terminal is None:
         return None
     blocker_type = _terminal_stage_blocker_reason(terminal, mapping=mapping, text=text)
-    resolved_work_unit_id = work_unit_id(action_payload.get("work_unit_id")) or work_unit_id(
+    structured_blocker = mapping(terminal.get("typed_blocker"))
+    terminal_fresh_current_identity = _terminal_fresh_current_control_identity(
+        terminal,
+        mapping=mapping,
+        text=text,
+    )
+    resolved_work_unit_id = work_unit_id(terminal_fresh_current_identity.get("work_unit_id")) or work_unit_id(
+        structured_blocker.get("work_unit_id")
+    ) or work_unit_id(
+        structured_blocker.get("next_work_unit")
+    ) or work_unit_id(action_payload.get("work_unit_id")) or work_unit_id(
         action_payload.get("next_work_unit")
     )
     currentness_basis = mapping(action_payload.get("owner_route_currentness_basis"))
     paper_stage_log = mapping(terminal.get("paper_stage_log"))
-    resolved_work_unit_fingerprint = work_unit_fingerprint(action_payload, currentness_basis=currentness_basis)
+    terminal_fingerprint = _terminal_identity_fingerprint(terminal, mapping=mapping, text=text)
+    resolved_work_unit_fingerprint = terminal_fingerprint or work_unit_fingerprint(
+        action_payload,
+        currentness_basis=currentness_basis,
+    )
     source_ref = text(terminal.get("source_path")) or text(terminal.get("record_path"))
     return {
         key: value
@@ -102,7 +116,8 @@ def terminal_closeout_blocker_for_action(
             "action_type": action_type(action_payload),
             "work_unit_id": resolved_work_unit_id,
             "work_unit_fingerprint": resolved_work_unit_fingerprint,
-            "action_fingerprint": action_fingerprint(action_payload, currentness_basis=currentness_basis),
+            "action_fingerprint": terminal_fingerprint
+            or action_fingerprint(action_payload, currentness_basis=currentness_basis),
             "source_ref": source_ref,
             "acceptance_refs": text_items(terminal.get("closeout_refs"))
             + text_items(terminal.get("evidence_refs"))
@@ -297,7 +312,11 @@ def _terminal_stage_blocks_action(
         return False
     expected_action = action_type(action)
     terminal_action = text(terminal.get("action_type"))
+    typed_blocker = mapping(terminal.get("typed_blocker"))
+    typed_blocker_action = text(typed_blocker.get("action_type"))
     if expected_action is None:
+        return False
+    if typed_blocker_action is not None and typed_blocker_action != expected_action:
         return False
     if terminal_action is not None and terminal_action != expected_action:
         return False
@@ -312,6 +331,8 @@ def _terminal_stage_blocks_action(
     terminal_work_units = {
         item
         for value in (
+            typed_blocker.get("work_unit_id"),
+            typed_blocker.get("next_work_unit"),
             terminal.get("work_unit_id"),
             terminal.get("next_work_unit"),
             terminal.get("stage_name"),
@@ -347,10 +368,74 @@ def _terminal_stage_identity_conflicts_action(
     action_fp = _action_identity_fingerprint(action, mapping=mapping, text=text)
     terminal_fp = _terminal_identity_fingerprint(terminal, mapping=mapping, text=text)
     if action_fp is not None and terminal_fp is not None and action_fp != terminal_fp:
-        return True
+        return not _terminal_typed_blocker_supersedes_action_identity(
+            terminal,
+            action=action,
+            mapping=mapping,
+            text=text,
+        )
     action_eval = _action_source_eval_id(action, mapping=mapping, text=text)
     terminal_eval = _terminal_source_eval_id(terminal, mapping=mapping, text=text)
     return action_eval is not None and terminal_eval is not None and action_eval != terminal_eval
+
+
+def _terminal_typed_blocker_supersedes_action_identity(
+    terminal: Mapping[str, Any],
+    *,
+    action: Mapping[str, Any],
+    mapping: MappingReader,
+    text: TextReader,
+) -> bool:
+    typed_blocker = mapping(terminal.get("typed_blocker"))
+    if not typed_blocker:
+        return False
+    blocker_type = text(typed_blocker.get("blocker_type")) or text(typed_blocker.get("blocked_reason"))
+    if blocker_type != "stage_packet_not_current_selected_dispatch":
+        return False
+    if text(typed_blocker.get("action_type")) != text(action.get("action_type")):
+        return False
+    fresh_current_identity = _terminal_fresh_current_control_identity(
+        terminal,
+        mapping=mapping,
+        text=text,
+    )
+    typed_fp = (
+        text(fresh_current_identity.get("work_unit_fingerprint"))
+        or text(typed_blocker.get("work_unit_fingerprint"))
+        or text(typed_blocker.get("action_fingerprint"))
+    )
+    terminal_top_fp = (
+        text(terminal.get("work_unit_fingerprint"))
+        or text(terminal.get("action_fingerprint"))
+        or text(terminal.get("fingerprint"))
+    )
+    action_fp = _action_identity_fingerprint(action, mapping=mapping, text=text)
+    return bool(typed_fp and action_fp and terminal_top_fp and terminal_top_fp == action_fp)
+
+
+def _terminal_fresh_current_control_identity(
+    terminal: Mapping[str, Any],
+    *,
+    mapping: MappingReader,
+    text: TextReader,
+) -> dict[str, str]:
+    typed_blocker = mapping(terminal.get("typed_blocker"))
+    blocker_type = text(typed_blocker.get("blocker_type")) or text(typed_blocker.get("blocked_reason"))
+    if blocker_type != "stage_packet_not_current_selected_dispatch":
+        return {}
+    domain_execution = mapping(terminal.get("domain_execution"))
+    work_unit_id = text(domain_execution.get("fresh_current_control_work_unit_id"))
+    work_unit_fingerprint = text(domain_execution.get("fresh_current_control_work_unit_fingerprint"))
+    action_fingerprint = text(domain_execution.get("fresh_current_control_action_fingerprint"))
+    return {
+        key: value
+        for key, value in {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": action_fingerprint or work_unit_fingerprint,
+        }.items()
+        if value is not None
+    }
 
 
 def _action_identity_fingerprint(
@@ -379,6 +464,12 @@ def _terminal_identity_fingerprint(
     text: TextReader,
 ) -> str | None:
     paper_stage_log = mapping(terminal.get("paper_stage_log"))
+    typed_blocker = mapping(terminal.get("typed_blocker"))
+    fresh_current_identity = _terminal_fresh_current_control_identity(
+        terminal,
+        mapping=mapping,
+        text=text,
+    )
     next_forced_delta = mapping(terminal.get("next_forced_delta")) or mapping(
         paper_stage_log.get("next_forced_delta")
     )
@@ -388,7 +479,11 @@ def _terminal_identity_fingerprint(
         semantic.get("owner_route_currentness_basis")
     )
     return (
-        text(terminal.get("work_unit_fingerprint"))
+        text(fresh_current_identity.get("work_unit_fingerprint"))
+        or text(fresh_current_identity.get("action_fingerprint"))
+        or text(typed_blocker.get("work_unit_fingerprint"))
+        or text(typed_blocker.get("action_fingerprint"))
+        or text(terminal.get("work_unit_fingerprint"))
         or text(terminal.get("action_fingerprint"))
         or text(terminal.get("fingerprint"))
         or text(paper_stage_log.get("work_unit_fingerprint"))
