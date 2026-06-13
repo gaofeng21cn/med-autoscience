@@ -182,9 +182,10 @@ def _from_gate_followthrough_current_work_unit(payload: Mapping[str, Any]) -> di
         return None
     if currentness.get("lacks_specific_blocker_object") is True:
         return None
+    followthrough_work_unit_id = _non_empty_text(followthrough.get("work_unit_id"))
     explicit_work_unit_id = (
         _non_empty_text(currentness.get("explicit_publication_work_unit_id"))
-        or _non_empty_text(followthrough.get("work_unit_id"))
+        or followthrough_work_unit_id
         or _non_empty_text(_mapping_copy(followthrough.get("explicit_publication_work_unit")).get("unit_id"))
     )
     current_publication_work_unit = _mapping_copy(followthrough.get("current_publication_work_unit"))
@@ -192,8 +193,12 @@ def _from_gate_followthrough_current_work_unit(payload: Mapping[str, Any]) -> di
         _non_empty_text(currentness.get("current_publication_work_unit_id"))
         or _non_empty_text(current_publication_work_unit.get("unit_id"))
     )
-    if current_work_unit_id is None or current_work_unit_id == explicit_work_unit_id:
+    if current_work_unit_id is None:
         return None
+    if current_work_unit_id == explicit_work_unit_id:
+        selected_work_unit_id = _non_empty_text(currentness.get("selected_publication_work_unit_id"))
+        if current_work_unit_id not in {followthrough_work_unit_id, selected_work_unit_id}:
+            return None
     lane = _non_empty_text(current_publication_work_unit.get("lane"))
     next_owner = lane if lane in {"write", "analysis-campaign", "finalize"} else "write"
     work_unit_fingerprint = _non_empty_text(currentness.get("current_work_unit_fingerprint"))
@@ -1061,6 +1066,11 @@ def _terminal_gate_closeout_consumes_repair_followup(
     )
     if action_fingerprint is not None and action_fingerprint == terminal_fingerprint:
         return True
+    if _ref_sets_intersect(
+        _repair_followup_gate_action_refs(action),
+        _terminal_gate_closeout_refs(terminal, paper_stage_log=paper_stage_log),
+    ):
+        return True
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
     if _non_empty_text(current_work_unit.get("status")) != "typed_blocker":
         return False
@@ -1081,6 +1091,64 @@ def _terminal_gate_closeout_consumes_repair_followup(
         or _non_empty_text(typed_blocker.get("action_fingerprint"))
     )
     return action_fingerprint is not None and action_fingerprint == blocker_fingerprint
+
+
+def _repair_followup_gate_action_refs(action: Mapping[str, Any]) -> set[str]:
+    target_surface = _mapping_copy(action.get("target_surface"))
+    return _ref_set(
+        [
+            action.get("source_ref"),
+            target_surface.get("request_ref"),
+            target_surface.get("surface_ref"),
+            *list(action.get("acceptance_refs") or []),
+        ]
+    )
+
+
+def _terminal_gate_closeout_refs(
+    terminal: Mapping[str, Any],
+    *,
+    paper_stage_log: Mapping[str, Any],
+) -> set[str]:
+    next_forced_delta = _mapping_copy(terminal.get("next_forced_delta")) or _mapping_copy(
+        paper_stage_log.get("next_forced_delta")
+    )
+    target_surface = _mapping_copy(next_forced_delta.get("target_surface"))
+    return _ref_set(
+        [
+            terminal.get("source_path"),
+            terminal.get("source_ref"),
+            terminal.get("record_path"),
+            terminal.get("closeout_ref"),
+            target_surface.get("request_ref"),
+            target_surface.get("surface_ref"),
+            *list(terminal.get("closeout_refs") or []),
+            *list(terminal.get("evidence_refs") or []),
+            *list(paper_stage_log.get("closeout_refs") or []),
+            *list(paper_stage_log.get("evidence_refs") or []),
+        ]
+    )
+
+
+def _ref_set(values: list[object]) -> set[str]:
+    refs: set[str] = set()
+    for value in values:
+        text = _non_empty_text(value)
+        if text is None:
+            continue
+        refs.add(text)
+        if text.startswith("/"):
+            refs.add(text.lstrip("/"))
+        for marker in ("/studies/", "/runtime/quests/"):
+            if marker in text:
+                refs.add(f"{marker[1:]}{text.split(marker, 1)[1]}")
+        if "/artifacts/" in text:
+            refs.add(f"artifacts/{text.split('/artifacts/', 1)[1]}")
+    return refs
+
+
+def _ref_sets_intersect(left: set[str], right: set[str]) -> bool:
+    return bool(left and right and left.intersection(right))
 
 
 def _terminal_stage_closeout_consumes_repair_followup(

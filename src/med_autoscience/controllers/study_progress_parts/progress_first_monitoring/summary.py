@@ -257,7 +257,9 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         and current_action
         and (
             current_work_unit_status == "executable_owner_action"
+            or current_work_unit_status == "running_provider_attempt"
             or _text(execution.get("state_kind")) == "executable_owner_action"
+            or _text(execution.get("state_kind")) == "running_provider_attempt"
             or _first_current_action_queue_item(handoff_for_admission.get("action_queue")) is not None
         )
         and _handoff_identity_conflicts_current_action(
