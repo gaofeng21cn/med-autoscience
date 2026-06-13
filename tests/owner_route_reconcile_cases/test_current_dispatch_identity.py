@@ -184,3 +184,99 @@ def test_canonical_dispatch_identity_derives_route_currentness_when_only_synthet
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": expected_fingerprint,
     }
+
+
+def test_current_owner_action_identity_overlays_stale_same_action_dispatch_work_unit() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.current_dispatch_identity"
+    )
+
+    dispatch = {
+        "action_type": "run_quality_repair_batch",
+        "next_executable_owner": "write",
+        "owner_route": {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_owner": "mas_controller",
+            "next_owner": "write",
+            "owner_reason": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "truth_epoch": "stage-native-next-action::old",
+            "runtime_health_epoch": "stage-native-next-action::old",
+            "work_unit_fingerprint": "stage-native-next-action::old-fp",
+            "source_fingerprint": "stage-native-next-action::old-fp",
+            "source_refs": {
+                "work_unit_id": "run_quality_repair_batch",
+                "work_unit_fingerprint": "stage-native-next-action::old-fp",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "run_quality_repair_batch",
+                    "work_unit_fingerprint": "stage-native-next-action::old-fp",
+                    "truth_epoch": "stage-native-next-action::old",
+                    "runtime_health_epoch": "stage-native-next-action::old",
+                },
+            },
+        },
+        "prompt_contract": {
+            "action_type": "run_quality_repair_batch",
+            "owner_route": {
+                "allowed_actions": ["run_quality_repair_batch"],
+                "source_refs": {
+                    "work_unit_id": "run_quality_repair_batch",
+                    "work_unit_fingerprint": "stage-native-next-action::old-fp",
+                },
+            },
+        },
+    }
+    current_owner_action = {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "action_fingerprint": "publication-blockers::0915410f804b3697",
+        "owner_route_currentness_basis": {
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+            "source_eval_id": "publication-eval::current",
+        },
+    }
+    canonical_identity = {
+        "source": "current_work_unit",
+        "action_type": "run_quality_repair_batch",
+        "action_ids": ["run_quality_repair_batch", "medical_prose_write_repair"],
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "owner_route_currentness_basis": {
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+            "source_eval_id": "publication-eval::current",
+        },
+    }
+
+    updated = module.dispatch_with_current_owner_action_identity(
+        dispatch=dispatch,
+        current_owner_action=current_owner_action,
+        canonical_identity=canonical_identity,
+    )
+
+    owner_route = updated["owner_route"]
+    assert owner_route["owner_reason"] == "medical_prose_write_repair"
+    assert owner_route["work_unit_fingerprint"] == "publication-blockers::0915410f804b3697"
+    assert owner_route["truth_epoch"] == "truth-event-current"
+    assert owner_route["runtime_health_epoch"] == "runtime-health-current"
+    assert owner_route["source_refs"]["owner_route_currentness_basis"] == {
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "truth_epoch": "truth-event-current",
+        "runtime_health_epoch": "runtime-health-current",
+        "source_eval_id": "publication-eval::current",
+    }

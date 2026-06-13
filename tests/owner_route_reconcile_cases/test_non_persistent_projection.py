@@ -181,6 +181,171 @@ def test_domain_handler_export_does_not_persist_dispatch_identity(
     assert stage_packet_path.stat().st_mtime_ns == before_stage_packet_mtime
 
 
+def test_default_executor_dispatch_tasks_overlay_current_action_identity_on_stale_same_action_dispatch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.default_executor_dispatch_tasks"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.toml"
+    profile_ref.write_text("[profile]\n", encoding="utf-8")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    stage_packet_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "immutable"
+        / "run_quality_repair_batch"
+        / "stage-packet.json"
+    )
+    stale_dispatch = {
+        "surface": "default_executor_dispatch_request",
+        "dispatch_status": "ready",
+        "action_type": "run_quality_repair_batch",
+        "next_executable_owner": "write",
+        "executor_kind": "codex_cli_default",
+        "dispatch_authority": "consumer_default_executor_dispatch",
+        "refs": {
+            "dispatch_path": str(dispatch_path),
+            "stage_packet_path": str(stage_packet_path),
+        },
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner_route": {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_owner": "mas_controller",
+            "next_owner": "write",
+            "owner_reason": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "source_refs": {
+                "work_unit_id": "run_quality_repair_batch",
+                "work_unit_fingerprint": "stage-native-next-action::old-fp",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "run_quality_repair_batch",
+                    "work_unit_fingerprint": "stage-native-next-action::old-fp",
+                    "truth_epoch": "stage-native-next-action::old",
+                    "runtime_health_epoch": "stage-native-next-action::old",
+                },
+            },
+            "truth_epoch": "stage-native-next-action::old",
+            "runtime_health_epoch": "stage-native-next-action::old",
+            "work_unit_fingerprint": "stage-native-next-action::old-fp",
+            "source_fingerprint": "stage-native-next-action::old-fp",
+        },
+        "prompt_contract": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "next_executable_owner": "write",
+            "owner_route": {
+                "allowed_actions": ["run_quality_repair_batch"],
+                "source_refs": {
+                    "work_unit_id": "run_quality_repair_batch",
+                    "work_unit_fingerprint": "stage-native-next-action::old-fp",
+                },
+            },
+            "allowed_write_surfaces": ["artifacts/controller/repair_execution_evidence/latest.json"],
+            "forbidden_surfaces": [
+                "paper/current_package/**",
+                "manuscript/current_package/**",
+                "artifacts/publication_eval/latest.json",
+                "artifacts/controller_decisions/latest.json",
+            ],
+        },
+    }
+    _write_json(dispatch_path, stale_dispatch)
+    _write_json(stage_packet_path, {**stale_dispatch, "immutable_packet_ref": "existing"})
+    before_dispatch = dispatch_path.read_text(encoding="utf-8")
+    before_stage_packet = stage_packet_path.read_text(encoding="utf-8")
+
+    current_owner_action = {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "action_fingerprint": "publication-blockers::0915410f804b3697",
+        "owner_route_currentness_basis": {
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+            "source_eval_id": "publication-eval::current",
+        },
+    }
+    current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "status": "executable_owner_action",
+        "owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "currentness_basis": {
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+            "source_eval_id": "publication-eval::current",
+        },
+    }
+
+    tasks = module.default_executor_dispatch_tasks(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        current_owner_action=current_owner_action,
+        current_work_unit=current_work_unit,
+        current_execution_envelope={"state_kind": "executable_owner_action"},
+        persist_identity=False,
+    )
+
+    assert len(tasks) == 1
+    assert tasks[0]["task_kind"] == "domain_owner/default-executor-dispatch"
+    assert tasks[0]["work_unit_id"] == "medical_prose_write_repair"
+    assert tasks[0]["work_unit_fingerprint"] == "publication-blockers::0915410f804b3697"
+    assert tasks[0]["payload"]["work_unit_id"] == "medical_prose_write_repair"
+    owner_route_basis = tasks[0]["payload"]["owner_route_currentness_basis"]
+    assert {
+        key: owner_route_basis.get(key)
+        for key in (
+            "work_unit_id",
+            "work_unit_fingerprint",
+            "truth_epoch",
+            "runtime_health_epoch",
+            "source_eval_id",
+        )
+    } == {
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "truth_epoch": "truth-event-current",
+        "runtime_health_epoch": "runtime-health-current",
+        "source_eval_id": "publication-eval::current",
+    }
+    assert owner_route_basis["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert dispatch_path.read_text(encoding="utf-8") == before_dispatch
+    assert stage_packet_path.read_text(encoding="utf-8") == before_stage_packet
+
+
 def test_default_executor_dispatch_tasks_suppress_residual_action_when_current_work_unit_is_typed_blocker(
     monkeypatch,
     tmp_path: Path,

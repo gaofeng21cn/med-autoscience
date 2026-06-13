@@ -322,16 +322,21 @@ def _current_owner_action_route_for_dispatch(
     if not owner_route:
         return {}
     dispatch_work_unit_id = owner_route_work_unit_id(owner_route)
-    if not work_unit_ids_equivalent_for_action(
-        action_type=action_type,
-        left=dispatch_work_unit_id,
-        right=current_work_unit_id,
-    ):
-        return {}
     current_fingerprint = _current_owner_action_expected_fingerprint(
         current_owner_action=current_owner_action,
         canonical_identity=_mapping(canonical_identity),
     )
+    if not work_unit_ids_equivalent_for_action(
+        action_type=action_type,
+        left=dispatch_work_unit_id,
+        right=current_work_unit_id,
+    ) and not _current_owner_action_can_override_stale_dispatch_work_unit(
+        current_owner_action=current_owner_action,
+        canonical_identity=_mapping(canonical_identity),
+        current_work_unit_id=current_work_unit_id,
+        current_fingerprint=current_fingerprint,
+    ):
+        return {}
     source_refs = dict(_mapping(owner_route.get("source_refs")))
     basis = dict(
         _mapping(current_owner_action.get("owner_route_currentness_basis"))
@@ -372,6 +377,27 @@ def _current_owner_action_route_for_dispatch(
             item for item in ("owner-route", study_id, identity_basis, action_type) if item
         )
     return owner_route
+
+
+def _current_owner_action_can_override_stale_dispatch_work_unit(
+    *,
+    current_owner_action: Mapping[str, Any],
+    canonical_identity: Mapping[str, Any],
+    current_work_unit_id: str,
+    current_fingerprint: str | None,
+) -> bool:
+    if current_fingerprint is None:
+        return False
+    basis = _mapping(current_owner_action.get("owner_route_currentness_basis")) or _mapping(
+        canonical_identity.get("owner_route_currentness_basis")
+    )
+    if _text(basis.get("work_unit_id")) != current_work_unit_id:
+        return False
+    if _text(basis.get("work_unit_fingerprint")) != current_fingerprint:
+        return False
+    if _text(basis.get("truth_epoch")) is None:
+        return False
+    return _text(basis.get("runtime_health_epoch")) is not None or _text(basis.get("source_eval_id")) is not None
 
 
 def _default_executor_owner_for_action(
