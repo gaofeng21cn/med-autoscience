@@ -7,10 +7,7 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 
-from ..domain_action_request_materializer import (
-    CONSUMER_LATEST_RELATIVE_PATH,
-    DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
-)
+from ..domain_action_request_materializer import CONSUMER_LATEST_RELATIVE_PATH
 
 
 EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_execution")
@@ -69,10 +66,6 @@ def merged_execution_ledger(
     return list(merged.values())[-EXECUTION_LEDGER_LIMIT:]
 
 
-def dispatch_dir(profile: WorkspaceProfile, study_id: str) -> Path:
-    return study_root(profile, study_id) / DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT
-
-
 def _execution_identity(execution: Mapping[str, Any]) -> str:
     return (
         _text(execution.get("execution_id"))
@@ -111,7 +104,6 @@ __all__ = [
     "EXECUTION_RELATIVE_ROOT",
     "append_json_line",
     "consumer_latest_path",
-    "dispatch_dir",
     "execution_history_path",
     "execution_latest_path",
     "merged_execution_ledger",
