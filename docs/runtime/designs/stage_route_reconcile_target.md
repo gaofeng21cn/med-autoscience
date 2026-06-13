@@ -112,6 +112,8 @@ stateDiagram-v2
 
 2026-06-12 追加实现规则：`study_progress.current_owner_ticket` 只有在 `owner_route.source_refs.owner_route_currentness_basis`、`current_executable_owner_action`、`current_work_unit` 或 ticket work-unit 中带 strong source / work-unit / action fingerprint 或 `source_eval_id` 时，才能生成 owner route 和 dispatch。`study-progress-current-owner-ticket::*` 这类 synthetic id 只能作为 action id，不能当作 currentness fingerprint。缺 strong identity 时输出 `fresh_progress_current_owner_ticket_requires_strong_currentness_identity` diagnostic，`default_dispatch_allowed=false`，并由 selector 作为 ignored diagnostic 处理。
 
+2026-06-13 追加实现规则：`gate_clearing_batch_followthrough.actionable_current_work_unit` 产出的 `current_executable_owner_action` 若同时带 `surface_kind=current_executable_owner_action`、`status=ready`、支持的 action type、`work_unit_id` 和 work-unit / action fingerprint，就按强 current owner action 处理，优先于旧 `current_owner_ticket`、旧 typed-blocker ticket 或同 study stale progress ticket。缺身份、unsupported action type 或非 gate followthrough 来源时继续 fail closed；typed blocker 仍不能自授权 provider admission 或 owner action。
+
 ## Anti-loop 预算
 
 同一 `study_id + action_type + work_unit_id + work_unit_fingerprint + source_eval_id` 进入预算桶。以下情况累计 no-progress：

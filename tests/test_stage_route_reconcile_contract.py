@@ -174,6 +174,36 @@ def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_se
     assert progress_ticket["route_generation_policy"] == (
         "do_not_generate_owner_route_from_generated_at_or_source_ref_only"
     )
+    gate_followthrough = identity["gate_followthrough_owner_action_contract"]
+    assert gate_followthrough["source"] == (
+        "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    )
+    assert gate_followthrough["required_fields"] == [
+        "surface_kind=current_executable_owner_action",
+        "status=ready",
+        "supported_action_type",
+        "work_unit_id",
+        "work_unit_fingerprint_or_action_fingerprint",
+    ]
+    assert {
+        "stale_current_owner_ticket",
+        "stale_typed_blocker_ticket",
+        "same_study_stale_progress_ticket",
+    } <= set(gate_followthrough["preempts_stale_surfaces"])
+    assert gate_followthrough["precedence_effect"] == (
+        "project_strong_current_owner_action_before_progress_current_owner_ticket_fallback"
+    )
+    assert gate_followthrough["missing_identity_effect"] == (
+        "fail_closed_to_typed_blocker_currentness_arbiter"
+    )
+    assert gate_followthrough["typed_blocker_self_authorization_allowed"] is False
+    assert gate_followthrough["authority_boundary"] == {
+        "can_project_executable_owner_action": True,
+        "can_authorize_provider_admission_without_provider_identity": False,
+        "can_write_domain_truth": False,
+        "can_create_owner_receipt": False,
+        "can_create_typed_blocker": False,
+    }
 
     handshake = contract["closeout_handshake"]
     assert handshake["required_sequence"] == [

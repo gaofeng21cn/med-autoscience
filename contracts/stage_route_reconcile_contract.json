@@ -215,6 +215,31 @@
       "weak_identity_effect": "diagnostic_only_no_default_executor_dispatch",
       "weak_identity_reason": "fresh_progress_current_owner_ticket_requires_strong_currentness_identity",
       "route_generation_policy": "do_not_generate_owner_route_from_generated_at_or_source_ref_only"
+    },
+    "gate_followthrough_owner_action_contract": {
+      "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+      "required_fields": [
+        "surface_kind=current_executable_owner_action",
+        "status=ready",
+        "supported_action_type",
+        "work_unit_id",
+        "work_unit_fingerprint_or_action_fingerprint"
+      ],
+      "preempts_stale_surfaces": [
+        "stale_current_owner_ticket",
+        "stale_typed_blocker_ticket",
+        "same_study_stale_progress_ticket"
+      ],
+      "precedence_effect": "project_strong_current_owner_action_before_progress_current_owner_ticket_fallback",
+      "missing_identity_effect": "fail_closed_to_typed_blocker_currentness_arbiter",
+      "typed_blocker_self_authorization_allowed": false,
+      "authority_boundary": {
+        "can_project_executable_owner_action": true,
+        "can_authorize_provider_admission_without_provider_identity": false,
+        "can_write_domain_truth": false,
+        "can_create_owner_receipt": false,
+        "can_create_typed_blocker": false
+      }
     }
   },
   "lifecycle_state_machine": {
