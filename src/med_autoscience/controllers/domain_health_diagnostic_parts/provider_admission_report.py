@@ -65,13 +65,19 @@ def materialize_report_provider_admission_current_control_state(
         candidates=candidates,
         scanned_studies=scanned_studies,
     )
+    progress_currentness_candidates = _provider_admission_candidates_from_progress_currentness(
+        profile=profile,
+        progress_currentness=progress_currentness,
+        scanned_studies=scanned_studies,
+    )
     candidates = _merge_provider_admission_candidates(
         candidates,
-        _provider_admission_candidates_from_progress_currentness(
-            profile=profile,
-            progress_currentness=progress_currentness,
-            scanned_studies=scanned_studies,
-        ),
+        progress_currentness_candidates,
+    )
+    scanned_studies = _with_candidate_root_closeout_scans(
+        profile=profile,
+        candidates=progress_currentness_candidates,
+        scanned_studies=scanned_studies,
     )
     return materialize_provider_admission_current_control_state(
         profile=profile,
