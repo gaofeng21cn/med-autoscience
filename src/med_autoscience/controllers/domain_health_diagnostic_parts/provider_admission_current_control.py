@@ -345,6 +345,11 @@ def _arbiter_decision(
     effect: str,
     evidence: Mapping[str, Any],
 ) -> dict[str, Any]:
+    evidence_status = _evidence_status(evidence)
+    no_progress_signal = _arbiter_no_progress_signal(
+        decision=decision,
+        evidence_status=evidence_status,
+    )
     payload: dict[str, Any] = {
         "surface_kind": "mas_opl_stage_route_arbiter_decision",
         "schema_version": ARBITER_SCHEMA_VERSION,
@@ -365,10 +370,40 @@ def _arbiter_decision(
         or _non_empty_text(evidence.get("stage_attempt_id")),
         "active_run_id": _non_empty_text(evidence.get("active_run_id")),
         "active_workflow_id": _non_empty_text(evidence.get("active_workflow_id")),
-        "evidence_status": _evidence_status(evidence),
+        "evidence_status": evidence_status,
+        "no_progress_signal": no_progress_signal,
+        "anti_loop_classification": _arbiter_anti_loop_classification(no_progress_signal),
         "authority_boundary": dict(ARBITER_AUTHORITY_BOUNDARY),
     }
     return {key: value for key, value in payload.items() if value is not None}
+
+
+def _arbiter_no_progress_signal(
+    *,
+    decision: str,
+    evidence_status: str | None,
+) -> str | None:
+    if decision not in {
+        "accepted_closeout_consumed_pending",
+        "terminal_closeout_precedes_live_projection",
+    }:
+        return None
+    if evidence_status == "repeat_suppressed":
+        return "same_work_unit_repeat_suppressed_terminal_stage"
+    if evidence_status in {
+        "owner_output_already_current",
+        "record_only_archive",
+    }:
+        return "idempotent_noop_without_new_owner_delta"
+    return None
+
+
+def _arbiter_anti_loop_classification(no_progress_signal: str | None) -> str | None:
+    if no_progress_signal == "same_work_unit_repeat_suppressed_terminal_stage":
+        return "provider_admission_echo"
+    if no_progress_signal == "idempotent_noop_without_new_owner_delta":
+        return "same_work_unit_no_delta"
+    return None
 
 
 def _stage_route_arbiter_summary(

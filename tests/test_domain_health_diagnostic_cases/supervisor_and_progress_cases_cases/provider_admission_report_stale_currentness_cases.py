@@ -156,6 +156,107 @@ def test_stale_report_provider_admission_candidate_is_suppressed_by_fresh_progre
     assert result["studies"][0]["current_execution_envelope"]["next_work_unit"] == current_work_unit_id
 
 
+def test_same_tick_materialized_candidate_requires_explicit_current_identity(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "write",
+            "required_output_surface": "canonical manuscript story-surface delta",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    result = module._materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        apply=False,
+        report={
+            "scanned_at": "2026-06-13T01:10:00+00:00",
+            "managed_study_opl_provider_admission_candidates": [],
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "current_executable_owner_action": {
+                            "surface_kind": "current_executable_owner_action",
+                            "schema_version": 1,
+                            "status": "ready",
+                            "source": "study_progress.next_forced_delta.owner_action",
+                            "next_owner": "write",
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": "medical_prose_write_repair",
+                            "allowed_actions": ["run_quality_repair_batch"],
+                        },
+                        "current_execution_envelope": {
+                            "state_kind": "executable_owner_action",
+                            "owner": "write",
+                            "next_work_unit": "medical_prose_write_repair",
+                            "source": "progress_currentness.current_executable_owner_action",
+                        },
+                    },
+                },
+            },
+            "developer_supervisor_same_tick": {
+                "stop_reason": "provider_handoff_written_admission_pending",
+                "materialize": {
+                    "default_executor_dispatches": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "run_quality_repair_batch",
+                            "dispatch_status": "ready",
+                            "dispatch_authority": "consumer_default_executor_dispatch",
+                            "dispatch_path": str(dispatch_path),
+                            "next_executable_owner": "write",
+                            "required_output_surface": "canonical manuscript story-surface delta",
+                            "work_unit_id": "medical_prose_write_repair",
+                            "work_unit_fingerprint": "publication-blockers::stale-or-unbound",
+                            "action_fingerprint": "publication-blockers::stale-or-unbound",
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
+    assert result["studies"][0]["study_id"] == study_id
+    assert result["studies"][0]["handoff_scan_status"] == "scanned_no_provider_admission"
+    assert result["current_execution_envelopes"][study_id] | {
+        "typed_blocker": None,
+        "parked_state": None,
+    } == {
+        "state_kind": "executable_owner_action",
+        "owner": "write",
+        "next_work_unit": "medical_prose_write_repair",
+        "typed_blocker": None,
+        "parked_state": None,
+        "source": "progress_currentness.current_executable_owner_action",
+    }
+
+
 def test_provider_admission_current_control_retains_unscanned_handoff_as_audit_only(
     tmp_path: Path,
 ) -> None:

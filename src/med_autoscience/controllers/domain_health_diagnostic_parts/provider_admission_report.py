@@ -766,6 +766,8 @@ def _same_tick_candidate_matches_current_action(
     expected_source_ref = _non_empty_text(current_action_identity.get("source_ref"))
     if expected_source_ref is not None:
         return work_unit_fingerprint is not None and expected_source_ref in work_unit_fingerprint
+    if _same_tick_materialized_candidate(candidate):
+        return False
     return True
 
 

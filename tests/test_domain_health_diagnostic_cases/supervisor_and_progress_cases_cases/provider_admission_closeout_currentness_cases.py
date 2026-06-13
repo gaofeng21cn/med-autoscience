@@ -115,6 +115,84 @@ def test_materialized_current_control_clears_candidate_after_stage_closeout_evid
     assert decision["evidence_status"] == "blocked"
 
 
+def test_materialized_current_control_retains_record_only_closeout_without_currentness(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "gate-replay-route-back::write::publication-blockers::0915410f804b3697"
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "next_executable_owner": "write",
+        "required_output_surface": "canonical manuscript story-surface delta",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "currentness_basis": {
+            "source_eval_id": "publication-eval::003::current",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+        },
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-13T01:15:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "active",
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "accepted_closeout_evidence": [
+                    {
+                        "surface_kind": "stage_attempt_closeout_packet",
+                        "status": "closed_with_domain_owner_refs",
+                        "stage_attempt_id": "sat_record_only_without_currentness",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                        "record_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                        "raw_closeout_work_unit_fingerprint_present": False,
+                        "raw_closeout_action_fingerprint_present": False,
+                    }
+                ],
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert len(result["provider_admission_candidates"]) == 1
+    assert len(result["action_queue"]) == 1
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "pending_provider_admission"
+    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["work_unit_id"] == work_unit_id
+    assert decision["work_unit_fingerprint"] == fingerprint
+
+
 def test_materialized_current_control_prefers_terminal_closeout_over_stale_running_projection_from_evidence_list(
     tmp_path: Path,
 ) -> None:
@@ -400,6 +478,10 @@ def test_report_current_control_suppresses_dm003_repeat_suppressed_gate_replay_f
     decision = result["stage_route_arbiter_decisions"][0]
     assert decision["decision"] == "accepted_closeout_consumed_pending"
     assert decision["evidence_status"] == "repeat_suppressed"
+    assert decision["no_progress_signal"] == "same_work_unit_repeat_suppressed_terminal_stage"
+    assert decision["anti_loop_classification"] == "provider_admission_echo"
+    assert decision["route_identity_key"] == f"provider-admission::{study_id}::{fingerprint}"
+    assert decision["attempt_idempotency_key"] == f"provider-admission::{study_id}::{fingerprint}"
 
 
 def test_report_current_control_retains_dm002_current_pending_over_stale_anti_loop_closeout_file(
