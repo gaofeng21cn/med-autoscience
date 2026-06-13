@@ -5,7 +5,6 @@ from typing import Any
 
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
     consumed_gate_replay_blocker_for_action,
-    gate_replay_consumed_by_source_eval,
     terminal_closeout_blocker_for_action,
 )
 from med_autoscience.controllers.current_work_unit_parts.terminal_routeback_currentness import (
@@ -35,6 +34,9 @@ from med_autoscience.controllers.current_work_unit_parts.currentness_identity im
     action_has_strong_currentness_identity as _action_has_strong_currentness_identity,
     action_matches_next_forced_delta as _action_matches_next_forced_delta,
     action_with_derived_currentness_identity as _action_with_derived_currentness_identity,
+)
+from med_autoscience.controllers.current_work_unit_parts.dispatch_consumption import (
+    action_consumed_by_dispatch_receipt as _action_consumed_by_dispatch_receipt,
 )
 from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
     CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS,
@@ -90,6 +92,16 @@ from med_autoscience.controllers.current_work_unit_parts.typed_blocker_owner_ans
     typed_blocker_is_stage_owner_answer as _typed_blocker_is_stage_owner_answer,
     typed_blocker_precedes_stage_owner_answer as _typed_blocker_precedes_stage_owner_answer,
     typed_blocker_required_output_contract as _typed_blocker_required_output_contract,
+)
+from med_autoscience.controllers.current_work_unit_parts.work_unit_fields import (
+    action_owner as _action_owner,
+    action_source as _action_source,
+    delta_count as _delta_count,
+    pending_provider_admission_evidence as _pending_provider_admission_evidence,
+    provider_admission_pending as _provider_admission_pending,
+    route_work_unit_id as _route_work_unit_id,
+    source_refs as _source_refs,
+    stage_id as _stage_id,
 )
 from med_autoscience.runtime_control.owner_route_attempt_protocol import (
     currentness_basis as owner_route_currentness_basis,
@@ -902,168 +914,6 @@ def _currentness_basis(
         if value is not None and result.get(key) in (None, "", [], {}):
             result[key] = value
     return {key: value for key, value in result.items() if value not in (None, "", [], {})}
-
-
-def _action_consumed_by_dispatch_receipt(
-    *,
-    action: Mapping[str, Any],
-    progress: Mapping[str, Any],
-) -> bool:
-    consumption = _mapping(_mapping(progress.get("progress_first_monitoring_summary")).get("dispatch_consumption"))
-    if not consumption:
-        consumption = _mapping(progress.get("dispatch_consumption"))
-    if _text(consumption.get("consumption_status")) not in {"consumed", "receipt_consumed"}:
-        return False
-    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
-    consumed_work_unit = _work_unit_id(consumption.get("work_unit_id"))
-    if action_work_unit is None or consumed_work_unit != action_work_unit:
-        return False
-    action_fingerprints = {
-        text
-        for value in (
-            action.get("work_unit_fingerprint"),
-            action.get("action_fingerprint"),
-            action.get("fingerprint"),
-        )
-        if (text := _text(value)) is not None
-    }
-    if not action_fingerprints:
-        current_action = _mapping(progress.get("current_executable_owner_action"))
-        current_action_work_unit = _work_unit_id(current_action.get("work_unit_id")) or _work_unit_id(
-            current_action.get("next_work_unit")
-        )
-        if (
-            current_action_work_unit == action_work_unit
-            and _text(current_action.get("action_type")) == _text(action.get("action_type"))
-        ):
-            action_fingerprints.update(
-                text
-                for value in (
-                    current_action.get("work_unit_fingerprint"),
-                    current_action.get("action_fingerprint"),
-                    current_action.get("fingerprint"),
-                )
-                if (text := _text(value)) is not None
-            )
-    consumed_fingerprints = {
-        text
-        for value in (
-            consumption.get("work_unit_fingerprint"),
-            consumption.get("action_fingerprint"),
-            _mapping(consumption.get("canonical_work_unit_identity")).get("work_unit_fingerprint"),
-        )
-        if (text := _text(value)) is not None
-    }
-    if not action_fingerprints or not consumed_fingerprints:
-        return False
-    if action_fingerprints.intersection(consumed_fingerprints):
-        return True
-    return gate_replay_consumed_by_source_eval(
-        action=action,
-        consumption=consumption,
-        mapping=_mapping,
-        text=_text,
-    )
-
-
-def _route_work_unit_id(route: Mapping[str, Any]) -> str | None:
-    payload = _mapping(route)
-    return _work_unit_id(payload.get("work_unit_id")) or _work_unit_id(payload.get("next_work_unit"))
-
-
-def _provider_admission_pending(provider_admission: Mapping[str, Any] | None) -> bool:
-    payload = _mapping(provider_admission)
-    if not payload:
-        return False
-    if payload.get("running_provider_attempt") is True:
-        return False
-    return (
-        payload.get("provider_admission_pending_count") not in (None, 0)
-        or payload.get("provider_attempt_or_lease_required") is True
-        or _text(payload.get("execution_status")) == "handoff_ready"
-        or any(
-            _text(item.get("authority")) in PROVIDER_ADMISSION_AUTHORITIES
-            for item in payload.get("action_queue") or []
-            if isinstance(item, Mapping)
-        )
-    )
-
-
-def _pending_provider_admission_evidence(provider_admission: Mapping[str, Any] | None) -> dict[str, Any]:
-    payload = _mapping(provider_admission)
-    return {
-        "provider_admission_pending_count": payload.get("provider_admission_pending_count"),
-        "execution_status": _text(payload.get("execution_status")),
-        "provider_attempt_or_lease_required": payload.get("provider_attempt_or_lease_required") is True,
-        "running_provider_attempt": payload.get("running_provider_attempt") is True,
-    }
-
-
-def _action_owner(action: Mapping[str, Any], *, next_owner: str | None) -> str:
-    return (
-        _text(action.get("owner"))
-        or _text(action.get("recommended_owner"))
-        or _text(action.get("next_owner"))
-        or _text(next_owner)
-        or "med-autoscience"
-    )
-
-
-def _action_source(action: Mapping[str, Any]) -> str | None:
-    source = _text(action.get("source_surface")) or _text(action.get("source"))
-    if source is not None:
-        return source
-    if (
-        _mapping(action.get("repair_progress_followup")).get("accepted_owner_receipt") is True
-        or _mapping(action.get("repair_progress_precedence")).get("accepted_owner_receipt") is True
-    ):
-        return "repair_progress_projection.mas_owner_repair_execution_evidence"
-    return None
-
-
-def _source_refs(
-    status: Mapping[str, Any],
-    progress: Mapping[str, Any],
-    source_refs: Sequence[str] | None,
-) -> list[str]:
-    refs: list[str] = []
-    for item in source_refs or []:
-        ref = _text(item)
-        if ref is not None:
-            refs.append(ref)
-    refs.extend(_refs_from(_mapping(progress.get("refs"))))
-    refs.extend(_refs_from(_mapping(status.get("refs"))))
-    return sorted(dict.fromkeys(refs))
-
-
-def _refs_from(value: Mapping[str, Any]) -> list[str]:
-    refs: list[str] = []
-    for key in ("controller_decision_path", "publication_eval_path", "runtime_status_summary_path"):
-        if (ref := _text(value.get(key))) is not None:
-            refs.append(ref)
-    return refs
-
-
-def _stage_id(
-    *,
-    action: Mapping[str, Any] | None,
-    progress: Mapping[str, Any],
-    status: Mapping[str, Any],
-) -> str | None:
-    action_payload = _mapping(action)
-    return (
-        _text(action_payload.get("stage_id"))
-        or _text(progress.get("current_stage"))
-        or _text(status.get("current_stage"))
-        or _text(status.get("stage_id"))
-    )
-
-
-def _delta_count(value: Mapping[str, Any]) -> int:
-    try:
-        return int(value.get("count") or 0)
-    except (TypeError, ValueError):
-        return 0
 
 
 __all__ = [
