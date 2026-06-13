@@ -857,6 +857,20 @@ def _live_projection_from_attempt_inspect(
         "provider_kind": _text(attempt.get("provider_kind")) or _text(provider_run.get("provider_kind")),
         "action_type": _text(locator.get("action_type")) or _text(attempt.get("action_type")),
         "work_unit_id": _text(locator.get("work_unit_id")) or _text(attempt.get("work_unit_id")),
+        "work_unit_fingerprint": (
+            _text(locator.get("work_unit_fingerprint"))
+            or _text(locator.get("action_fingerprint"))
+            or _text(locator.get("domain_source_fingerprint"))
+            or _text(attempt.get("work_unit_fingerprint"))
+            or _text(attempt.get("action_fingerprint"))
+        ),
+        "action_fingerprint": (
+            _text(locator.get("action_fingerprint"))
+            or _text(locator.get("work_unit_fingerprint"))
+            or _text(locator.get("domain_source_fingerprint"))
+            or _text(attempt.get("action_fingerprint"))
+            or _text(attempt.get("work_unit_fingerprint"))
+        ),
         "dispatch_ref": _text(locator.get("dispatch_ref")) or _text(attempt.get("dispatch_ref")),
         "current_attempt_state": attempt_state,
         "reconciliation_status": attempt_state,

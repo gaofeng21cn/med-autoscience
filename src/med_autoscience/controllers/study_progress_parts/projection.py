@@ -57,6 +57,9 @@ from .projection_payload_assembly import (
     assemble_study_progress_payload,
     build_projection_refs,
 )
+from .projection_payload_assembly_parts.running_provider_status import (
+    apply_running_provider_attempt_top_level_status,
+)
 from .progress_first_monitoring import build_progress_first_monitoring_summary
 from .provider_admission_projection import provider_admission_projection_fields
 from .projection_quality_surfaces import build_quality_projection_surfaces as _quality_projection_surfaces
@@ -115,9 +118,20 @@ def _refresh_existing_projection_current_owner_surfaces(
     updated = dict(payload)
     if publication_eval_payload is not None:
         updated["publication_eval"] = publication_eval_payload
-    handoff = _mapping_copy(updated.get("opl_current_control_state_handoff"))
+    handoff = _merge_live_attempt_observability_into_handoff(
+        handoff=_mapping_copy(updated.get("opl_current_control_state_handoff")),
+        live_attempt_handoff=_opl_current_control_state_live_attempt_handoff_projection(
+            profile=profile,
+            study_id=_non_empty_text(updated.get("study_id")) or _non_empty_text(status.get("study_id")) or "",
+            runtime_liveness_audit=_mapping_copy(status.get("runtime_liveness_audit")),
+        ),
+    )
+    if handoff is not None:
+        updated["opl_current_control_state_handoff"] = handoff
+    else:
+        handoff = {}
     current_action = build_current_executable_owner_action(updated)
-    if current_action is None:
+    if current_action is None and handoff.get("running_provider_attempt") is not True:
         updated.update(
             provider_admission_projection_fields(
                 payload=updated,
@@ -172,6 +186,7 @@ def _refresh_existing_projection_current_owner_surfaces(
             study_root=study_root,
         )
     )
+    updated = apply_running_provider_attempt_top_level_status(updated)
     updated["user_visible_projection"] = build_user_visible_projection(updated)
     return _attach_delivery_inspection_projection(
         updated,

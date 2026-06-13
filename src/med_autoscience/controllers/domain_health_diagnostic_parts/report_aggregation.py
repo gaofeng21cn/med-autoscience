@@ -319,16 +319,6 @@ def _managed_study_action_with_provider_admission_state(
     recovery = _mapping(paper_recovery_state)
     if recovery:
         result["paper_recovery_state"] = recovery
-    if _text(recovery.get("phase")) == "admission_blocked":
-        result["running_provider_attempt"] = False
-        result["provider_admission_state"] = {
-            "status": "blocked_by_paper_recovery_state",
-            "candidate_count": len(candidates),
-            "running_provider_attempt": False,
-            "paper_recovery_phase": _text(recovery.get("phase")),
-            "paper_recovery_reason": _paper_recovery_reason(recovery),
-        }
-        return result
     gate = _mapping(result.get("execution_gate"))
     if gate.get("blocked") is True:
         result["running_provider_attempt"] = False
@@ -337,6 +327,16 @@ def _managed_study_action_with_provider_admission_state(
             "candidate_count": len(candidates),
             "running_provider_attempt": False,
             "execution_gate_reason": _text(gate.get("reason")),
+        }
+        return result
+    if _text(recovery.get("phase")) == "admission_blocked":
+        result["running_provider_attempt"] = False
+        result["provider_admission_state"] = {
+            "status": "blocked_by_paper_recovery_state",
+            "candidate_count": len(candidates),
+            "running_provider_attempt": False,
+            "paper_recovery_phase": _text(recovery.get("phase")),
+            "paper_recovery_reason": _paper_recovery_reason(recovery),
         }
         return result
     result.setdefault(

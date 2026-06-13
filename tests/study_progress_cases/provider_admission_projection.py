@@ -241,3 +241,226 @@ def test_existing_projection_refresh_clears_stale_provider_admission_on_no_curre
 
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
+
+
+def test_existing_projection_refresh_prefers_live_attempt_over_stale_handoff(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "sha256:446e24afa9bc729b3fc0f43184024d2c95ddbcf71db0d8db0183e4c42467ee30"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    monkeypatch.setattr(
+        module,
+        "_attach_delivery_inspection_projection",
+        lambda payload, **_: dict(payload),
+    )
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        status_payload={
+            "study_id": study_id,
+            "runtime_liveness_audit": {
+                "source": "opl_current_control_state_provider_attempt",
+                "active_run_id": "opl-stage-attempt://sat-live-gate-replay",
+                "active_stage_attempt_id": "sat-live-gate-replay",
+                "active_workflow_id": "wf-live-gate-replay",
+                "running_provider_attempt": True,
+                "runtime_health": {
+                    "health_status": "running",
+                    "runtime_liveness_status": "live",
+                    "provider_status": "running",
+                },
+                "stage_progress_log": {
+                    "surface_kind": "temporal_workflow_stage_progress_log",
+                    "attempt_refs": ["sat-live-gate-replay"],
+                },
+            },
+            "progress_projection": {
+                "study_id": study_id,
+                "provider_admission_pending_count": 1,
+                "provider_admission_candidates": [{"status": "stale"}],
+                "current_executable_owner_action": {
+                    "surface_kind": "current_executable_owner_action",
+                    "status": "ready",
+                    "next_owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "owner_route_currentness_basis": {
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": fingerprint,
+                        "truth_epoch": "truth::current",
+                        "runtime_health_epoch": "runtime::current",
+                    },
+                },
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "typed_blocker",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "one-person-lab",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "state": {
+                        "state_kind": "typed_blocker",
+                        "typed_blocker": {
+                            "blocker_type": "executed",
+                            "owner": "one-person-lab",
+                            "action_type": "run_gate_clearing_batch",
+                            "work_unit_id": "publication_gate_replay",
+                            "work_unit_fingerprint": fingerprint,
+                        },
+                    },
+                },
+                "current_execution_envelope": {
+                    "state_kind": "typed_blocker",
+                    "owner": "one-person-lab",
+                    "typed_blocker": {"blocker_type": "executed", "owner": "one-person-lab"},
+                },
+                "opl_current_control_state_handoff": {
+                    "surface_kind": "opl_current_control_state_study_handoff",
+                    "running_provider_attempt": False,
+                    "active_run_id": None,
+                    "blocked_reason": "provider_admission_current_control_state_required",
+                    "next_owner": "one-person-lab",
+                    "action_queue": [
+                        {
+                            "status": "queued",
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "owner": "gate_clearing_batch",
+                            "action_type": "run_gate_clearing_batch",
+                            "work_unit_id": "publication_gate_replay",
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                        }
+                    ],
+                },
+            },
+        },
+        materialize_read_model_artifacts=False,
+    )
+
+    assert result["active_run_id"] == "opl-stage-attempt://sat-live-gate-replay"
+    assert result["active_stage_attempt_id"] == "sat-live-gate-replay"
+    assert result["active_workflow_id"] == "wf-live-gate-replay"
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["current_work_unit"]["status"] == "running_provider_attempt"
+    assert result["current_execution_envelope"]["state_kind"] == "running_provider_attempt"
+
+
+def test_existing_projection_refresh_rejects_superseded_live_attempt_identity(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    current_fingerprint = "sha256:current-publication-gate-replay"
+    stale_fingerprint = "sha256:stale-publication-gate-replay"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    monkeypatch.setattr(
+        module,
+        "_attach_delivery_inspection_projection",
+        lambda payload, **_: dict(payload),
+    )
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        status_payload={
+            "study_id": study_id,
+            "runtime_liveness_audit": {
+                "source": "opl_current_control_state_provider_attempt",
+                "active_run_id": "opl-stage-attempt://sat-stale-gate-replay",
+                "active_stage_attempt_id": "sat-stale-gate-replay",
+                "active_workflow_id": "wf-stale-gate-replay",
+                "running_provider_attempt": True,
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": stale_fingerprint,
+                "action_fingerprint": stale_fingerprint,
+                "runtime_health": {
+                    "health_status": "running",
+                    "runtime_liveness_status": "live",
+                    "provider_status": "running",
+                },
+            },
+            "progress_projection": {
+                "study_id": study_id,
+                "current_executable_owner_action": {
+                    "surface_kind": "current_executable_owner_action",
+                    "status": "ready",
+                    "next_owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": current_fingerprint,
+                    "action_fingerprint": current_fingerprint,
+                },
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "typed_blocker",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "one-person-lab",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": current_fingerprint,
+                    "action_fingerprint": current_fingerprint,
+                    "state": {
+                        "state_kind": "typed_blocker",
+                        "typed_blocker": {
+                            "blocker_type": "executed",
+                            "owner": "one-person-lab",
+                            "action_type": "run_gate_clearing_batch",
+                            "work_unit_id": "publication_gate_replay",
+                            "work_unit_fingerprint": current_fingerprint,
+                        },
+                    },
+                },
+                "current_execution_envelope": {
+                    "state_kind": "typed_blocker",
+                    "owner": "one-person-lab",
+                    "typed_blocker": {
+                        "blocker_type": "executed",
+                        "owner": "one-person-lab",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": current_fingerprint,
+                    },
+                },
+                "opl_current_control_state_handoff": {
+                    "surface_kind": "opl_current_control_state_study_handoff",
+                    "running_provider_attempt": False,
+                    "active_run_id": None,
+                    "next_owner": "one-person-lab",
+                    "blocked_reason": "executed",
+                    "action_queue": [],
+                },
+            },
+        },
+        materialize_read_model_artifacts=False,
+    )
+
+    handoff = result["opl_current_control_state_handoff"]
+    assert handoff["running_provider_attempt"] is True
+    assert handoff["work_unit_fingerprint"] == stale_fingerprint
+    assert result["current_work_unit"]["status"] == "typed_blocker"
+    assert result["current_execution_envelope"]["state_kind"] == "typed_blocker"
+    monitoring = result["progress_first_monitoring_summary"]
+    assert monitoring["running_provider_attempt"] is False
+    assert monitoring["active_run_id"] is None
+    assert monitoring["worker_liveness"]["stale_active_run_id"] == (
+        "opl-stage-attempt://sat-stale-gate-replay"
+    )
+    assert result["active_run_id"] is None

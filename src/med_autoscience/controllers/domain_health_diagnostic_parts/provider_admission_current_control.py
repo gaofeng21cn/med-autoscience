@@ -1129,10 +1129,6 @@ def _accepted_closeout_matches_candidate_identity(
         return False
     if _receipt_has_opl_execution_authorization_blocker(receipt):
         return False
-    if _source_currentness_precludes_consumption(receipt, identity=identity):
-        return False
-    if provider_attempt_matches_identity(receipt, identity=identity):
-        return _receipt_has_current_admission_consumption_authority(receipt, identity=identity)
     expected_action = _non_empty_text(identity.get("action_type"))
     expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
     expected_fingerprint = _non_empty_text(identity.get("work_unit_fingerprint")) or _non_empty_text(
@@ -1149,6 +1145,16 @@ def _accepted_closeout_matches_candidate_identity(
         _non_empty_text(receipt.get("action_type")) == expected_action
         and _non_empty_text(receipt.get("work_unit_id")) == expected_work_unit
     )
+    if (
+        action_and_work_unit_match
+        and receipt_fingerprint == expected_fingerprint
+        and _receipt_is_explicit_accepted_typed_closeout(receipt)
+    ):
+        return True
+    if _source_currentness_precludes_consumption(receipt, identity=identity):
+        return False
+    if provider_attempt_matches_identity(receipt, identity=identity):
+        return _receipt_has_current_admission_consumption_authority(receipt, identity=identity)
     if (
         action_and_work_unit_match
         and receipt_fingerprint is None

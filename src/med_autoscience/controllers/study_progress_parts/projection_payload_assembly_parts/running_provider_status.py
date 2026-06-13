@@ -85,6 +85,8 @@ def apply_running_provider_attempt_top_level_status(payload: dict[str, Any]) -> 
     updated["current_stage_summary"] = RUNNING_PROVIDER_STAGE_SUMMARY
     updated["next_system_action"] = RUNNING_PROVIDER_NEXT_ACTION
     updated["active_run_id"] = active_run_id
+    updated["active_stage_attempt_id"] = active_stage_attempt_id
+    updated["active_workflow_id"] = active_workflow_id
     updated["current_blockers"] = current_blockers
     updated["auto_runtime_parked"] = _running_provider_superseded_parked_projection(
         updated.get("auto_runtime_parked")
@@ -128,7 +130,10 @@ def _monitoring_suppressed_running_provider_attempt(payload: Mapping[str, Any]) 
     monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
     if monitoring.get("running_provider_attempt") is not False:
         return False
-    if not monitoring.get("current_executable_owner_action"):
+    if not (
+        monitoring.get("current_executable_owner_action")
+        or _monitoring_state_suppresses_running_provider_attempt(payload, monitoring)
+    ):
         return False
     return (
         _non_empty_text(_mapping_copy(payload.get("opl_current_control_state_handoff")).get("active_run_id"))
@@ -136,6 +141,22 @@ def _monitoring_suppressed_running_provider_attempt(payload: Mapping[str, Any]) 
         or _non_empty_text(_mapping_copy(payload.get("supervision")).get("active_run_id"))
         or _non_empty_text(_mapping_copy(payload.get("opl_runtime_refs")).get("active_run_id"))
     ) is not None
+
+
+def _monitoring_state_suppresses_running_provider_attempt(
+    payload: Mapping[str, Any],
+    monitoring: Mapping[str, Any],
+) -> bool:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    execution = _mapping_copy(payload.get("current_execution_envelope"))
+    return (
+        _non_empty_text(monitoring.get("execution_state_kind"))
+        in {"typed_blocker", "blocked_current_work_unit", "executable_owner_action"}
+        or _non_empty_text(current_work_unit.get("status"))
+        in {"typed_blocker", "blocked_current_work_unit", "executable_owner_action"}
+        or _non_empty_text(execution.get("state_kind"))
+        in {"typed_blocker", "blocked_current_work_unit", "executable_owner_action"}
+    )
 
 
 def _clear_stale_running_provider_attempt(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -150,6 +171,8 @@ def _clear_stale_running_provider_attempt(payload: Mapping[str, Any]) -> dict[st
         or _non_empty_text(_mapping_copy(updated.get("opl_runtime_refs")).get("active_run_id"))
     )
     updated["active_run_id"] = None
+    updated["active_stage_attempt_id"] = None
+    updated["active_workflow_id"] = None
     supervision["active_run_id"] = None
     if stale_active_run_id is not None:
         supervision["stale_active_run_id"] = stale_active_run_id
