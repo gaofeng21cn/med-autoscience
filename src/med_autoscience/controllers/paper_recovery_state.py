@@ -4,6 +4,12 @@ import hashlib
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.opl_execution_boundary import (
+    OPL_EXECUTION_AUTHORIZATION_BLOCKER,
+    OPL_EXECUTION_AUTHORIZATION_OWNER,
+    OPL_EXECUTION_AUTHORIZATION_REQUIRED_INPUT,
+)
+
 
 SURFACE_KIND = "paper_recovery_state"
 SCHEMA_VERSION = 1
@@ -38,7 +44,12 @@ def build_paper_recovery_state(
 
     typed_blocker = _current_typed_blocker(current_work_unit)
     if typed_blocker:
-        owner = _text(typed_blocker.get("owner")) or _text(current_work_unit.get("owner")) or "MedAutoScience"
+        blocker_reason = _typed_blocker_reason(typed_blocker)
+        owner = _typed_blocker_recovery_owner(
+            typed_blocker,
+            current_work_unit=current_work_unit,
+            blocker_reason=blocker_reason,
+        )
         return _state(
             progress,
             obligation=obligation,
@@ -46,12 +57,12 @@ def build_paper_recovery_state(
             conditions=[
                 {
                     "condition": "current_work_unit_typed_blocker",
-                    "blocker_type": _typed_blocker_reason(typed_blocker),
+                    "blocker_type": blocker_reason,
                 }
             ],
-            next_safe_action=_next_action(
-                "resolve_typed_blocker",
-                provider_admission_allowed=False,
+            next_safe_action=_typed_blocker_next_action(
+                typed_blocker,
+                blocker_reason=blocker_reason,
                 owner=owner,
             ),
             current_owner=owner,
@@ -77,10 +88,12 @@ def build_paper_recovery_state(
     if terminal_closeout is not None:
         closeout_typed_blocker = _typed_blocker_from_closeout(terminal_closeout, obligation=obligation)
         if closeout_typed_blocker:
-            owner = (
-                _text(closeout_typed_blocker.get("owner"))
-                or _text(obligation.get("owner"))
-                or "MedAutoScience"
+            blocker_reason = _typed_blocker_reason(closeout_typed_blocker)
+            owner = _typed_blocker_recovery_owner(
+                closeout_typed_blocker,
+                current_work_unit=current_work_unit,
+                obligation=obligation,
+                blocker_reason=blocker_reason,
             )
             return _state(
                 progress,
@@ -89,12 +102,12 @@ def build_paper_recovery_state(
                 conditions=[
                     {
                         "condition": "accepted_closeout_typed_blocker",
-                        "blocker_type": _typed_blocker_reason(closeout_typed_blocker),
+                        "blocker_type": blocker_reason,
                     }
                 ],
-                next_safe_action=_next_action(
-                    "resolve_typed_blocker",
-                    provider_admission_allowed=False,
+                next_safe_action=_typed_blocker_next_action(
+                    closeout_typed_blocker,
+                    blocker_reason=blocker_reason,
                     owner=owner,
                 ),
                 current_owner=owner,
@@ -712,6 +725,43 @@ def _typed_blocker_phase(typed_blocker: Mapping[str, Any]) -> str:
     return "domain_blocked"
 
 
+def _typed_blocker_recovery_owner(
+    typed_blocker: Mapping[str, Any],
+    *,
+    current_work_unit: Mapping[str, Any] | None = None,
+    obligation: Mapping[str, Any] | None = None,
+    blocker_reason: str | None = None,
+) -> str:
+    if blocker_reason == OPL_EXECUTION_AUTHORIZATION_BLOCKER:
+        return OPL_EXECUTION_AUTHORIZATION_OWNER
+    return (
+        _text(typed_blocker.get("owner"))
+        or _text(_mapping(current_work_unit).get("owner"))
+        or _text(_mapping(obligation).get("owner"))
+        or "MedAutoScience"
+    )
+
+
+def _typed_blocker_next_action(
+    typed_blocker: Mapping[str, Any],
+    *,
+    blocker_reason: str | None,
+    owner: str,
+) -> dict[str, Any]:
+    if blocker_reason == OPL_EXECUTION_AUTHORIZATION_BLOCKER:
+        return _next_action(
+            "provide_opl_execution_authorization_or_human_gate",
+            provider_admission_allowed=False,
+            owner=owner,
+            required_input=_text(typed_blocker.get("required_input")) or OPL_EXECUTION_AUTHORIZATION_REQUIRED_INPUT,
+        )
+    return _next_action(
+        "resolve_typed_blocker",
+        provider_admission_allowed=False,
+        owner=owner,
+    )
+
+
 def _suppressed_surfaces_for_typed_blocker(progress: Mapping[str, Any]) -> list[str]:
     suppressed: list[str] = []
     if _mapping(progress.get("current_executable_owner_action")):
@@ -726,11 +776,13 @@ def _next_action(
     *,
     provider_admission_allowed: bool,
     owner: str | None = None,
+    required_input: str | None = None,
 ) -> dict[str, Any]:
     payload = {
         "kind": kind,
         "owner": owner,
         "provider_admission_allowed": provider_admission_allowed,
+        "required_input": required_input,
     }
     return {key: value for key, value in payload.items() if value is not None}
 

@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-14：OPL execution authorization blocker 的恢复 owner 是 OPL runtime owner
+
+- 决策：当 `current_work_unit` 或 accepted closeout typed blocker 的 blocker type 是 `opl_execution_authorization_required` 时，`paper_recovery_state.current_authority.owner` 必须投影为 `one-person-lab`，`next_safe_action.kind` 必须是 `provide_opl_execution_authorization_or_human_gate`，并要求 `OPL provider attempt, lease, or closeout receipt binding`。原始 obligation owner（例如 `gate_clearing_batch` / `run_gate_clearing_batch` / `publication_gate_replay`）仍保留在 obligation 字段中，作为被阻塞的 domain work unit 身份；它不能自我解除 OPL execution authorization。
+- 决策：该 blocker 只允许由 OPL runtime owner 提供同一 current identity 的 provider attempt、active lease、execution authorization decision、closeout receipt binding，或由 human gate 明确处理。MAS domain owner、publication gate replay、foreground Codex 文件编辑、provider completion、queue empty、read-model refresh、旧 dispatch 或 docs-only claim 不能把这个 blocker 升级为 admission、running proof、owner receipt 或 paper progress。
+- 理由：DM003 fresh readback 显示 `current_work_unit` 已是 `gate_clearing_batch / run_gate_clearing_batch / publication_gate_replay` 的 `opl_execution_authorization_required` typed blocker，DHD dry-run 同时给出 `provider_admission_pending_count=0`、`codex_dispatch_count=0`、`will_start_llm=false`。旧 `paper_recovery_state` 把当前恢复 owner 仍显示为 `gate_clearing_batch`，会误导监督线程沿 domain owner self-repair 或 repeated admission 路径继续空转。真正缺失的是 OPL execution binding，不是 gate-clearing 论文逻辑本身。
+- 影响：这是 MAS PaperRecovery read-model / owner boundary 修复；不执行 live DHD apply、hydrate、tick、redrive，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。修复后的只读 `study progress` 应显示 DM003 `paper_recovery_state.current_authority.owner=one-person-lab`，`provider_admission_allowed=false`；后续论文推进仍必须等待 OPL owner authorization / human gate / stable typed blocker supersession / owner receipt / canonical changed surface 或同一 current identity strict running proof。
+
 ## 2026-06-13：accepted closeout 只能消费同一 selected stage packet 的 provider admission
 
 - 决策：`default_executor_execution_candidates` 从 stage closeout 构造 accepted closeout evidence 时，必须保留 closeout 原生 `dispatch_ref`、`stage_packet_ref` 和 `stage_packet_refs`，包括 closeout refs 中绑定的 immutable dispatch packet。DHD report scan、provider admission current-control 和 stage-route arbiter 不能丢失这些字段，也不能把当前 candidate 的 stage packet identity 反填到旧 closeout 上。
