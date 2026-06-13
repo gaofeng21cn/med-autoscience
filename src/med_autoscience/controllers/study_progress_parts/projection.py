@@ -106,6 +106,35 @@ def _refresh_existing_projection_user_visible_status(payload: dict[str, Any]) ->
     return payload
 
 
+def _refresh_existing_projection_batch_followthroughs(
+    *,
+    payload: dict[str, Any],
+    status: dict[str, Any],
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+    study_id: str,
+    study_root: Path,
+    publication_eval_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    updated = dict(payload)
+    study_commands = _study_command_surfaces(
+        profile=profile,
+        study_id=study_id,
+        profile_ref=profile_ref,
+    )
+    updated["gate_clearing_batch_followthrough"] = _gate_clearing_batch_followthrough(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        current_eval_ids=_current_gate_clearing_eval_ids(status=status),
+    )
+    updated["quality_repair_batch_followthrough"] = _quality_repair_batch_followthrough(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        recommended_command=study_commands.get("quality_repair_batch"),
+    )
+    return updated
+
+
 def _refresh_existing_projection_current_owner_surfaces(
     *,
     payload: dict[str, Any],
@@ -311,6 +340,15 @@ def build_study_progress_projection(
             study_root=study_root,
             publication_eval_payload=publication_eval_payload,
             payload=normalized_existing,
+        )
+        normalized_existing = _refresh_existing_projection_batch_followthroughs(
+            payload=normalized_existing,
+            status=status,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
         )
         return _attach_existing_autonomy_slo_projection(
             _refresh_existing_projection_user_visible_status(

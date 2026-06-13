@@ -56,6 +56,73 @@ def test_materialized_current_control_suppresses_weak_provider_admission_identit
     assert decision["evidence_status"] == "weak_provider_admission_identity"
 
 
+def test_materialized_current_control_requires_explicit_stage_packet_identity(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "analysis_claim_evidence_repair"
+    fingerprint = "publication-blockers::497d1260db522f01"
+    dispatch_path = (
+        profile.workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[
+            {
+                "surface": "opl_provider_admission_candidate",
+                "schema_version": 1,
+                "status": "provider_admission_pending",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "dispatch_path": str(dispatch_path),
+                "idempotency_key": "idem-from-legacy-current-owner-action",
+                "next_executable_owner": "analysis-campaign",
+                "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+                "provider_attempt_or_lease_required": True,
+                "provider_completion_is_domain_completion": False,
+                "currentness_basis": {
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-current",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+            }
+        ],
+        generated_at="2026-06-13T10:12:00+00:00",
+        apply=False,
+        scanned_studies=[],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "weak_provider_admission_identity"
+    assert set(decision["missing_identity_fields"]) == {
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "stage_packet_ref_or_refs",
+    }
+
+
 def test_materialized_current_control_ignores_stale_not_running_projection(
     tmp_path: Path,
 ) -> None:
@@ -77,6 +144,7 @@ def test_materialized_current_control_ignores_stale_not_running_projection(
         / "default_executor_dispatches"
         / "run_quality_repair_batch.json"
     )
+    route_identity_key = f"provider-admission::{study_id}::{fingerprint}"
     candidate = {
         "surface": "opl_provider_admission_candidate",
         "schema_version": 1,
@@ -97,6 +165,10 @@ def test_materialized_current_control_ignores_stale_not_running_projection(
         "work_unit_fingerprint": fingerprint,
         "action_fingerprint": fingerprint,
         "dispatch_path": str(dispatch_path),
+        "route_identity_key": route_identity_key,
+        "attempt_idempotency_key": route_identity_key,
+        "stage_packet_ref": str(dispatch_path),
+        "stage_packet_refs": [str(dispatch_path)],
         "next_executable_owner": "write",
         "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
         "provider_attempt_or_lease_required": True,
@@ -161,6 +233,7 @@ def test_fingerprintless_stop_loss_closeout_does_not_consume_new_currentness_ide
         / "default_executor_dispatches"
         / "run_gate_clearing_batch.json"
     )
+    route_identity_key = f"provider-admission::{study_id}::{fingerprint}"
     candidate = {
         "surface": "opl_provider_admission_candidate",
         "schema_version": 1,
@@ -172,6 +245,10 @@ def test_fingerprintless_stop_loss_closeout_does_not_consume_new_currentness_ide
         "work_unit_fingerprint": fingerprint,
         "action_fingerprint": fingerprint,
         "dispatch_path": str(dispatch_path),
+        "route_identity_key": route_identity_key,
+        "attempt_idempotency_key": route_identity_key,
+        "stage_packet_ref": str(dispatch_path),
+        "stage_packet_refs": [str(dispatch_path)],
         "next_executable_owner": "gate_clearing_batch",
         "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
         "provider_attempt_or_lease_required": True,

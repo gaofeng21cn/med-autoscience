@@ -406,6 +406,151 @@ def test_gate_clearing_batch_followthrough_accepts_current_publication_blocker_f
     assert result["latest_record_path"] == str(gate_batch_path)
 
 
+def test_existing_projection_refreshes_current_gate_followthrough_before_owner_surfaces(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    current_blocker_fingerprint = "publication-blockers::0915410f804b3697"
+    current_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "003-dpcc-primary-care-phenotype-treatment-gap::2026-06-13T06:55:24+00:00"
+    )
+    prior_reviewer_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        quest_id=study_id,
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational",
+    )
+    monkeypatch.setattr(
+        module,
+        "_attach_delivery_inspection_projection",
+        lambda payload, **_: dict(payload),
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": current_eval_id,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "recommended_actions": [
+                {
+                    "action_type": "route_back_same_line",
+                    "route_target": "write",
+                    "work_unit_fingerprint": current_blocker_fingerprint,
+                    "next_work_unit": {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                    },
+                    "blocking_work_units": [
+                        {
+                            "unit_id": "medical_prose_write_repair",
+                            "lane": "write",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "source_eval_id": prior_reviewer_eval_id,
+            "source_work_unit_fingerprint": current_blocker_fingerprint,
+            "status": "executed",
+            "work_unit_fingerprint": current_blocker_fingerprint,
+            "current_publication_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+                "summary": "Repair structured medical reporting.",
+            },
+            "explicit_publication_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+            },
+            "work_unit_currentness": {
+                "explicit_publication_work_unit_id": "medical_prose_write_repair",
+                "selected_publication_work_unit_id": "medical_prose_write_repair",
+                "current_publication_work_unit_id": "medical_prose_write_repair",
+                "explicit_work_unit_fingerprint": current_blocker_fingerprint,
+                "current_work_unit_fingerprint": current_blocker_fingerprint,
+                "explicit_work_unit_fingerprint_matches_current": True,
+                "lacks_specific_blocker_object": False,
+                "current_actionability_status": "actionable",
+            },
+            "gate_replay": {
+                "status": "blocked",
+                "blockers": ["medical_publication_surface_blocked"],
+            },
+        },
+    )
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        status_payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "progress_projection": {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "current_stage": "queued",
+                "gate_clearing_batch_followthrough": None,
+                "current_executable_owner_action": None,
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "typed_blocker",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "MedAutoScience",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "sha256:stale-gate-replay",
+                    "action_fingerprint": "sha256:stale-gate-replay",
+                    "state": {
+                        "state_kind": "typed_blocker",
+                        "typed_blocker": {
+                            "blocker_type": "no_selected_dispatch_for_requested_action_types",
+                            "owner": "MedAutoScience",
+                            "action_type": "run_gate_clearing_batch",
+                            "work_unit_id": "publication_gate_replay",
+                            "work_unit_fingerprint": "sha256:stale-gate-replay",
+                        },
+                    },
+                },
+                "current_execution_envelope": {
+                    "state_kind": "typed_blocker",
+                    "owner": "MedAutoScience",
+                    "typed_blocker": {
+                        "blocker_type": "no_selected_dispatch_for_requested_action_types",
+                        "owner": "MedAutoScience",
+                    },
+                },
+            },
+        },
+        materialize_read_model_artifacts=False,
+    )
+
+    assert result["gate_clearing_batch_followthrough"]["work_unit_id"] == "medical_prose_write_repair"
+    action = result["current_executable_owner_action"]
+    assert action["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["work_unit_id"] == "medical_prose_write_repair"
+    assert action["work_unit_fingerprint"] == current_blocker_fingerprint
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+
+
 def test_study_progress_projects_quality_repair_batch_followthrough(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)

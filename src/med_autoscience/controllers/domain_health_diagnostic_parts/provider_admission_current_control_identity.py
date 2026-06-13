@@ -153,22 +153,20 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
 
 
 def route_identity_key(payload: Mapping[str, Any]) -> str | None:
-    explicit = _non_empty_text(payload.get("route_identity_key")) or _non_empty_text(
-        payload.get("idempotency_key")
-    )
-    if explicit is not None:
-        return explicit
-    study_id = _non_empty_text(payload.get("study_id"))
-    fingerprint = _non_empty_text(payload.get("work_unit_fingerprint")) or _non_empty_text(
-        payload.get("action_fingerprint")
-    )
-    if study_id is None or fingerprint is None:
-        return None
-    return f"provider-admission::{study_id}::{fingerprint}"
+    return _non_empty_text(payload.get("route_identity_key"))
 
 
 def attempt_idempotency_key(payload: Mapping[str, Any]) -> str | None:
-    return _non_empty_text(payload.get("attempt_idempotency_key")) or route_identity_key(payload)
+    return _non_empty_text(payload.get("attempt_idempotency_key"))
+
+
+def missing_identity_fields(payload: Mapping[str, Any]) -> list[str] | None:
+    result = [
+        item
+        for item in payload.get("missing_identity_fields") or []
+        if _non_empty_text(item) is not None
+    ]
+    return result or None
 
 
 def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
@@ -402,6 +400,17 @@ def weak_provider_admission_identity(identity: Mapping[str, Any]) -> dict[str, A
         and _non_empty_text(identity.get("dispatch_ref")) is None
     ):
         missing.append("dispatch_path_or_ref")
+    if _non_empty_text(identity.get("route_identity_key")) is None:
+        missing.append("route_identity_key")
+    if _non_empty_text(identity.get("attempt_idempotency_key")) is None:
+        missing.append("attempt_idempotency_key")
+    stage_packet_refs = [
+        item
+        for item in identity.get("stage_packet_refs") or []
+        if _non_empty_text(item) is not None
+    ]
+    if _non_empty_text(identity.get("stage_packet_ref")) is None and not stage_packet_refs:
+        missing.append("stage_packet_ref_or_refs")
     if not currentness_basis_strong(_mapping(identity.get("currentness_basis"))):
         missing.append("currentness_basis")
     if not missing:
