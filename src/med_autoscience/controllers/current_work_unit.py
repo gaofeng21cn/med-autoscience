@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from med_autoscience.controllers import control_identity
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
     consumed_gate_replay_blocker_for_action,
     gate_replay_consumed_by_source_eval,
@@ -27,6 +26,11 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
 from med_autoscience.controllers.current_work_unit_parts.current_action_selection import (
     action_from_envelope as _action_from_envelope,
     selected_current_action as _selected_current_action,
+)
+from med_autoscience.controllers.current_work_unit_parts.currentness_identity import (
+    action_has_strong_currentness_identity as _action_has_strong_currentness_identity,
+    action_matches_next_forced_delta as _action_matches_next_forced_delta,
+    action_with_derived_currentness_identity as _action_with_derived_currentness_identity,
 )
 from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
     CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS,
@@ -145,8 +149,15 @@ def build_current_work_unit(
     if action is None:
         action = _action_from_envelope(current_execution_envelope)
     if action is not None:
-        action = _action_with_derived_currentness_identity(action=action, progress=progress_payload)
-        if not _action_has_strong_currentness_identity(action):
+        action = _action_with_derived_currentness_identity(
+            action=action,
+            progress=progress_payload,
+            gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
+        )
+        if not _action_has_strong_currentness_identity(
+            action,
+            gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
+        ):
             action = None
     resolved_typed_blocker = _typed_blocker(
         typed_blocker,
@@ -788,104 +799,6 @@ def action_supersedes_typed_blocker(
     )
 
 
-def _action_has_strong_currentness_identity(action: Mapping[str, Any]) -> bool:
-    if _action_type(action) is None:
-        return False
-    if _work_unit_id(action.get("next_work_unit")) is None and _work_unit_id(action.get("work_unit_id")) is None:
-        return False
-    fingerprint = _action_strong_currentness_fingerprint(action)
-    if fingerprint is None or control_identity.is_synthetic_current_owner_ticket(fingerprint):
-        return False
-    return True
-
-
-def _action_strong_currentness_fingerprint(action: Mapping[str, Any]) -> str | None:
-    basis = _mapping(action.get("owner_route_currentness_basis"))
-    fingerprint = (
-        _text(action.get("work_unit_fingerprint"))
-        or _text(action.get("action_fingerprint"))
-        or _text(action.get("fingerprint"))
-        or _text(basis.get("work_unit_fingerprint"))
-        or _text(basis.get("source_fingerprint"))
-    )
-    if fingerprint is not None:
-        if control_identity.is_synthetic_current_owner_ticket(fingerprint):
-            return None
-        return fingerprint
-    return _route_currentness_fingerprint(action=action, progress={})
-
-
-def _route_currentness_fingerprint(
-    *,
-    action: Mapping[str, Any],
-    progress: Mapping[str, Any],
-) -> str | None:
-    source = _text(action.get("source_surface")) or _text(action.get("source"))
-    if source == "current_executable_owner_action":
-        source = "study_progress.next_forced_delta.owner_action"
-    if source not in {"study_progress.next_forced_delta.owner_action", OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE}:
-        return None
-    for key in ("work_unit_fingerprint", "action_fingerprint", "fingerprint"):
-        if control_identity.is_synthetic_current_owner_ticket(action.get(key)):
-            return None
-    action_type = _action_type(action)
-    work_unit_id = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
-    if action_type is None or work_unit_id is None:
-        return None
-    if action_type == "run_quality_repair_batch":
-        return None
-    if action_type == "run_gate_clearing_batch" and work_unit_id not in GATE_REPLAY_WORK_UNITS:
-        return None
-    if source == OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE and not _action_matches_next_forced_delta(
-        action=action,
-        progress=progress,
-    ):
-        return None
-    if (
-        source == "study_progress.next_forced_delta.owner_action"
-        and _mapping(action.get("target_surface")) == {}
-        and _mapping(progress.get("next_forced_delta")) == {}
-        and _text(action.get("source_eval_id")) is None
-    ):
-        return None
-    target = _mapping(action.get("target_surface"))
-    return control_identity.stable_route_currentness_fingerprint(
-        study_id=_text(progress.get("study_id")),
-        source=source,
-        work_unit_id=work_unit_id,
-        action_type=action_type,
-        next_owner=_text(action.get("next_owner")) or _text(action.get("owner")),
-        source_eval_id=_text(action.get("source_eval_id")),
-        target_surface_ref=_text(target.get("surface_ref")),
-        required_delta_kind=_text(action.get("required_delta_kind")),
-    )
-
-
-def _action_with_derived_currentness_identity(
-    *,
-    action: Mapping[str, Any],
-    progress: Mapping[str, Any],
-) -> dict[str, Any]:
-    payload = dict(action)
-    if _action_strong_currentness_fingerprint(payload) is not None:
-        return payload
-    fingerprint = _route_currentness_fingerprint(action=payload, progress=progress)
-    if fingerprint is None:
-        return payload
-    payload["work_unit_fingerprint"] = fingerprint
-    payload["action_fingerprint"] = fingerprint
-    basis = dict(_mapping(payload.get("owner_route_currentness_basis")))
-    basis["source"] = _text(payload.get("source_surface")) or _text(payload.get("source"))
-    basis["work_unit_id"] = _work_unit_id(payload.get("work_unit_id")) or _work_unit_id(
-        payload.get("next_work_unit")
-    )
-    basis["work_unit_fingerprint"] = fingerprint
-    if source_eval_id := _text(payload.get("source_eval_id")):
-        basis["source_eval_id"] = source_eval_id
-    payload["owner_route_currentness_basis"] = basis
-    return payload
-
-
 def _readiness_action_without_current_authority_binding(action: Mapping[str, Any]) -> bool:
     action_types = {_text(action.get("action_type")), *_text_items(action.get("allowed_actions"))}
     if "complete_medical_paper_readiness_surface" not in action_types:
@@ -935,44 +848,6 @@ def _paper_delta_current_action_supersedes_prior_blocker(
     if action_source == OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE:
         return _action_matches_next_forced_delta(action=action, progress=progress)
     return False
-
-
-def _action_matches_next_forced_delta(
-    *,
-    action: Mapping[str, Any],
-    progress: Mapping[str, Any],
-) -> bool:
-    next_forced_delta = _mapping(progress.get("next_forced_delta"))
-    owner_action = _mapping(next_forced_delta.get("owner_action"))
-    if not owner_action:
-        return False
-    expected_owner = _text(owner_action.get("next_owner")) or _text(owner_action.get("owner"))
-    action_owner = _text(action.get("owner")) or _text(action.get("next_owner"))
-    if expected_owner is None or action_owner != expected_owner:
-        return False
-    expected_work_unit = (
-        _work_unit_id(owner_action.get("next_work_unit"))
-        or _work_unit_id(owner_action.get("work_unit_id"))
-        or _work_unit_id(next_forced_delta.get("work_unit_id"))
-    )
-    action_work_unit = (
-        _work_unit_id(action.get("work_unit_id"))
-        or _work_unit_id(action.get("next_work_unit"))
-        or _work_unit_id(action.get("controller_next_work_unit"))
-    )
-    if expected_work_unit is None or action_work_unit != expected_work_unit:
-        return False
-    if expected_work_unit == "complete_medical_paper_readiness_surface":
-        return False
-    expected_actions = _text_items(owner_action.get("allowed_actions")) or _text_items(
-        next_forced_delta.get("allowed_actions")
-    )
-    owner_action_type = _text(owner_action.get("action_type"))
-    if owner_action_type is not None and owner_action_type not in expected_actions:
-        expected_actions = [owner_action_type, *expected_actions]
-    if not expected_actions:
-        return False
-    return _action_type(action) in set(expected_actions)
 
 
 def _provider_admission_repair_action_supersedes_readiness_blocker(action: Mapping[str, Any]) -> bool:
