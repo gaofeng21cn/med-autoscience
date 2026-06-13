@@ -8,6 +8,10 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_curre
     gate_replay_consumed_by_source_eval,
     terminal_closeout_blocker_for_action,
 )
+from med_autoscience.controllers.current_work_unit_parts.terminal_routeback_currentness import (
+    terminal_routeback_action_from_gate_closeout as _terminal_routeback_action_from_gate_closeout,
+    terminal_routeback_action_supersedes_gate_replay_blocker as _terminal_routeback_action_supersedes_gate_replay_blocker,
+)
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
 )
@@ -457,28 +461,66 @@ def _typed_blocker_work_unit(
         or _text(blocker.get("blocked_reason"))
         or "typed_blocker"
     )
+    effective_blocker = dict(blocker)
     resolved_action = action
     resolved_basis = dict(currentness_basis)
     resolved_work_unit_fingerprint = _text(blocker.get("work_unit_fingerprint"))
     resolved_action_fingerprint = _text(blocker.get("action_fingerprint"))
+    current_identity_action = _stage_packet_blocker_current_identity_action(
+        blocker=effective_blocker,
+        action=resolved_action,
+        progress=progress_payload,
+    )
+    if current_identity_action is not None:
+        resolved_action = resolved_action or current_identity_action
+        action_basis = _action_currentness_basis(current_identity_action)
+        current_work_unit_id = _work_unit_id(current_identity_action.get("work_unit_id")) or _work_unit_id(
+            current_identity_action.get("next_work_unit")
+        )
+        current_work_unit_fingerprint = _work_unit_fingerprint(
+            current_identity_action,
+            currentness_basis=action_basis,
+        )
+        current_action_fingerprint = _action_fingerprint(
+            current_identity_action,
+            currentness_basis=action_basis,
+        )
+        resolved_basis = _currentness_basis_with_current_action_identity(
+            resolved_basis,
+            action=current_identity_action,
+            action_basis=action_basis,
+            work_unit_id=current_work_unit_id,
+            work_unit_fingerprint=current_work_unit_fingerprint,
+            action_fingerprint=current_action_fingerprint,
+        )
+        if current_work_unit_id is not None:
+            effective_blocker["work_unit_id"] = current_work_unit_id
+        if current_work_unit_fingerprint is not None:
+            effective_blocker["work_unit_fingerprint"] = current_work_unit_fingerprint
+            resolved_work_unit_fingerprint = current_work_unit_fingerprint
+        if current_action_fingerprint is not None:
+            effective_blocker["action_fingerprint"] = current_action_fingerprint
+            resolved_action_fingerprint = current_action_fingerprint
     if stage_owner_readiness_blocker_should_own_identity(
-        blocker=blocker,
+        blocker=effective_blocker,
         source=source,
         blocker_type=blocker_type,
     ):
         resolved_action = None
         resolved_basis = readiness_typed_blocker_currentness_basis(
-            blocker=blocker,
+            blocker=effective_blocker,
             progress=progress_payload,
             fallback_basis=currentness_basis,
         )
         resolved_work_unit_fingerprint = _text(resolved_basis.get("work_unit_fingerprint"))
         resolved_action_fingerprint = resolved_work_unit_fingerprint
     enriched_blocker = _owner_answer_typed_blocker(
-        blocker=blocker,
+        blocker=effective_blocker,
         action=resolved_action,
         currentness_basis=resolved_basis,
-        work_unit_id=_work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(blocker.get("next_work_unit")),
+        work_unit_id=_work_unit_id(effective_blocker.get("work_unit_id")) or _work_unit_id(
+            effective_blocker.get("next_work_unit")
+        ),
         work_unit_fingerprint=resolved_work_unit_fingerprint,
         action_fingerprint=resolved_action_fingerprint,
     )
@@ -518,6 +560,87 @@ def _typed_blocker_work_unit(
         progress_payload=progress_payload,
         action=resolved_action,
     )
+
+
+def _stage_packet_blocker_current_identity_action(
+    *,
+    blocker: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+    progress: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    blocker_type = _text(blocker.get("blocker_type")) or _text(blocker.get("blocked_reason"))
+    if blocker_type != "stage_packet_not_current_selected_dispatch":
+        return None
+    blocker_work_unit = _work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(
+        blocker.get("next_work_unit")
+    )
+    blocker_action_type = _text(blocker.get("action_type"))
+    progress_first = _mapping(progress.get("progress_first_monitoring_summary"))
+    candidates = (
+        _mapping(progress_first.get("current_executable_owner_action")),
+        _mapping(progress.get("current_executable_owner_action")),
+        _mapping(action),
+    )
+    for candidate in candidates:
+        if not candidate:
+            continue
+        candidate_work_unit = _work_unit_id(candidate.get("work_unit_id")) or _work_unit_id(
+            candidate.get("next_work_unit")
+        )
+        if (
+            blocker_work_unit is not None
+            and candidate_work_unit is not None
+            and candidate_work_unit != blocker_work_unit
+        ):
+            continue
+        if blocker_action_type is not None and _action_type(candidate) != blocker_action_type:
+            continue
+        if not _action_has_strong_currentness_identity(
+            candidate,
+            gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
+        ):
+            continue
+        return dict(candidate)
+    return None
+
+
+def _action_currentness_basis(action: Mapping[str, Any]) -> dict[str, Any]:
+    source_refs = _mapping(action.get("source_refs"))
+    return (
+        _mapping(action.get("owner_route_currentness_basis"))
+        or _mapping(action.get("currentness_basis"))
+        or _mapping(source_refs.get("owner_route_currentness_basis"))
+    )
+
+
+def _currentness_basis_with_current_action_identity(
+    basis: Mapping[str, Any],
+    *,
+    action: Mapping[str, Any],
+    action_basis: Mapping[str, Any],
+    work_unit_id: str | None,
+    work_unit_fingerprint: str | None,
+    action_fingerprint: str | None,
+) -> dict[str, Any]:
+    merged = dict(basis)
+    for key, value in action_basis.items():
+        if value not in (None, "", [], {}) and key in {
+            "source",
+            "source_eval_id",
+            "explicit_publication_work_unit_id",
+        }:
+            merged[key] = value
+    for key, value in {
+        "source_eval_id": _text(action.get("source_eval_id")),
+        "truth_epoch": _text(action.get("truth_epoch")),
+        "runtime_health_epoch": _text(action.get("runtime_health_epoch")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": action_fingerprint,
+    }.items():
+        if value is not None:
+            merged[key] = value
+    return {key: value for key, value in merged.items() if value not in (None, "", [], {})}
 
 
 def _terminal_action_blocker_has_fresher_identity(
@@ -598,7 +721,11 @@ def _action_supersedes_stage_owner_answer(
         return True
     if _publication_eval_repair_action_supersedes_readiness_blocker(payload):
         return True
-    if _terminal_routeback_action_from_gate_closeout(action=payload, progress=progress):
+    if _terminal_routeback_action_from_gate_closeout(
+        action=payload,
+        progress=progress,
+        gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
+    ):
         return True
     return _paper_delta_current_action_supersedes_prior_blocker(
         action=payload,
@@ -626,6 +753,7 @@ def _action_supersedes_typed_blocker(
         action=action,
         blocker=payload,
         progress=_mapping(progress),
+        gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
     ):
         return True
     if blocker_type in CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS:
@@ -665,153 +793,6 @@ def _action_supersedes_typed_blocker(
         action=action,
         progress=_mapping(progress),
     )
-
-
-def _terminal_routeback_action_supersedes_gate_replay_blocker(
-    *,
-    action: Mapping[str, Any],
-    blocker: Mapping[str, Any],
-    progress: Mapping[str, Any],
-) -> bool:
-    action_source = _text(action.get("source_surface")) or _text(action.get("source"))
-    if action_source != "study_progress.next_forced_delta.owner_action":
-        return False
-    if action.get("terminal_stage_next_forced_delta") is not True:
-        return False
-    if _text(action.get("action_type")) != "run_quality_repair_batch":
-        return False
-    if _text(action.get("next_owner")) != "write" and _text(action.get("owner")) != "write":
-        return False
-    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(
-        action.get("next_work_unit")
-    )
-    if action_work_unit in {None, "publication_gate_replay", "complete_medical_paper_readiness_surface"}:
-        return False
-    blocker_work_unit = _work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(
-        blocker.get("next_work_unit")
-    )
-    blocker_type = (
-        _text(blocker.get("blocker_type"))
-        or _text(blocker.get("blocker_id"))
-        or _text(blocker.get("blocked_reason"))
-    )
-    blocker_action_type = _text(blocker.get("action_type"))
-    if blocker_action_type != "run_gate_clearing_batch":
-        return False
-    source_ref = _text(blocker.get("source_ref"))
-    if source_ref is None:
-        return False
-    if not _terminal_gate_closeout_routes_to_action(
-        progress=progress,
-        action=action,
-        source_ref=source_ref,
-    ):
-        return False
-    if blocker_work_unit in GATE_REPLAY_WORK_UNITS:
-        return True
-    if blocker_work_unit == action_work_unit and blocker_type in {
-        "publication_gate_replay_blocked",
-        "medical_publication_surface_blocked",
-    }:
-        return True
-    return blocker_type == "publication_gate_replay_blocked"
-
-
-def _terminal_routeback_action_from_gate_closeout(
-    *,
-    action: Mapping[str, Any],
-    progress: Mapping[str, Any],
-) -> bool:
-    action_source = _text(action.get("source_surface")) or _text(action.get("source"))
-    if action_source != "study_progress.next_forced_delta.owner_action":
-        return False
-    if action.get("terminal_stage_next_forced_delta") is not True:
-        return False
-    if _text(action.get("action_type")) != "run_quality_repair_batch":
-        return False
-    if _text(action.get("next_owner")) != "write" and _text(action.get("owner")) != "write":
-        return False
-    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(
-        action.get("next_work_unit")
-    )
-    if action_work_unit in {None, "publication_gate_replay", "complete_medical_paper_readiness_surface"}:
-        return False
-    for ref in _acceptance_refs(action):
-        if _terminal_gate_closeout_routes_to_action(
-            progress=progress,
-            action=action,
-            source_ref=ref,
-        ):
-            return True
-    return False
-
-
-def _terminal_gate_closeout_routes_to_action(
-    *,
-    progress: Mapping[str, Any],
-    action: Mapping[str, Any],
-    source_ref: str,
-) -> bool:
-    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(
-        action.get("next_work_unit")
-    )
-    if action_work_unit is None:
-        return False
-    action_refs = set(_acceptance_refs(action))
-    for terminal in _terminal_stage_candidates(progress):
-        if _text(terminal.get("action_type")) != "run_gate_clearing_batch":
-            continue
-        paper_stage_log = _mapping(terminal.get("paper_stage_log"))
-        next_delta = _mapping(terminal.get("next_forced_delta")) or _mapping(
-            paper_stage_log.get("next_forced_delta")
-        )
-        terminal_work_unit = (
-            _work_unit_id(terminal.get("work_unit_id"))
-            or _work_unit_id(terminal.get("next_work_unit"))
-            or _work_unit_id(next_delta.get("work_unit_id"))
-        )
-        if terminal_work_unit not in GATE_REPLAY_WORK_UNITS:
-            continue
-        terminal_ref = _text(terminal.get("source_path")) or _text(terminal.get("record_path"))
-        terminal_refs = set(_text_items(terminal.get("closeout_refs")))
-        if (
-            source_ref != terminal_ref
-            and source_ref not in terminal_refs
-            and terminal_ref not in action_refs
-            and not bool(action_refs.intersection(terminal_refs))
-        ):
-            continue
-        owner_action = _mapping(next_delta.get("owner_action"))
-        next_owner = _text(owner_action.get("next_owner")) or _text(owner_action.get("owner"))
-        raw_action_type = _text(owner_action.get("action_type")) or _text(next_delta.get("action_type"))
-        next_work_unit = _work_unit_id(owner_action.get("work_unit_id")) or _work_unit_id(
-            next_delta.get("work_unit_id")
-        )
-        if next_owner != "write":
-            continue
-        if raw_action_type not in {"return_to_write", "run_quality_repair_batch"}:
-            continue
-        if next_work_unit != action_work_unit:
-            continue
-        return True
-    return False
-
-
-def _terminal_stage_candidates(progress: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
-    progress_first = _mapping(progress.get("progress_first_monitoring_summary"))
-    handoff = _mapping(progress.get("opl_current_control_state_handoff"))
-    candidates: list[dict[str, Any]] = []
-    for value in (
-        progress_first.get("latest_terminal_stage"),
-        progress_first.get("latest_terminal_stage_log"),
-        handoff.get("latest_terminal_stage_log"),
-        progress.get("latest_terminal_stage"),
-        progress.get("latest_terminal_stage_log"),
-    ):
-        terminal = _mapping(value)
-        if terminal:
-            candidates.append(terminal)
-    return tuple(candidates)
 
 
 def action_supersedes_typed_blocker(
