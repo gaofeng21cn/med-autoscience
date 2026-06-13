@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -36,4 +37,24 @@ def _load_optional_object_payload_from_args(
         payload = json.loads(str(payload_json))
     if not isinstance(payload, dict):
         raise SystemExit("JSON payload must be an object")
+    return payload
+
+
+def _load_json_payload_from_args(args: argparse.Namespace) -> dict[str, object]:
+    payload_file = getattr(args, "payload_file", None)
+    payload_json = getattr(args, "payload_json", None)
+    if bool(payload_file) == bool(payload_json):
+        raise SystemExit("Specify exactly one of --payload-file or --payload-json")
+    return _load_optional_object_payload_from_args(
+        payload_file=payload_file,
+        payload_json=payload_json,
+        file_label="--payload-file",
+        json_label="--payload-json",
+    ) or {}
+
+
+def _load_json_object_file(path: str | Path) -> dict[str, object]:
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise SystemExit("JSON payload file must contain an object")
     return payload

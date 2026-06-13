@@ -23,7 +23,12 @@ from med_autoscience.profiles import load_profile, profile_to_dict
 from med_autoscience.cli_parts.authority_operations import handle_authority_operation_command
 from med_autoscience.cli_parts.display_pack_commands import handle_display_pack_command
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
-from med_autoscience.cli_parts.payloads import _load_optional_object_payload_from_args, _parse_key_value_pairs
+from med_autoscience.cli_parts.payloads import (
+    _load_json_object_file,
+    _load_json_payload_from_args,
+    _load_optional_object_payload_from_args,
+    _parse_key_value_pairs,
+)
 from med_autoscience.cli_parts.retention_commands import handle_retention_command
 from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 from med_autoscience.cli_parts.scientific_capability_registry_commands import (
@@ -162,28 +167,6 @@ def _overlay_request_from_args(args: argparse.Namespace) -> dict[str, object]:
         "quest_root": Path(args.quest_root) if getattr(args, "quest_root", None) else None,
         "skill_ids": None,
     }
-
-
-def _load_json_payload_from_args(args: argparse.Namespace) -> dict[str, object]:
-    payload_file = getattr(args, "payload_file", None)
-    payload_json = getattr(args, "payload_json", None)
-    if bool(payload_file) == bool(payload_json):
-        raise SystemExit("Specify exactly one of --payload-file or --payload-json")
-    payload: object
-    if payload_file:
-        payload = json.loads(Path(payload_file).read_text(encoding="utf-8"))
-    else:
-        payload = json.loads(payload_json)
-    if not isinstance(payload, dict):
-        raise SystemExit("JSON payload must be an object")
-    return payload
-
-
-def _load_json_object_file(path: str | Path) -> dict[str, object]:
-    payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise SystemExit("JSON payload file must contain an object")
-    return payload
 
 
 def _serialize_study_runtime_result(result: Any) -> dict[str, Any]:
