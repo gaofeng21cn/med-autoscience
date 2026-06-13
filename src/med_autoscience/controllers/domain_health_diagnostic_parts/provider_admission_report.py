@@ -96,6 +96,16 @@ def sync_report_provider_admission_current_control_state(
     report["managed_study_opl_provider_admission_candidates"] = candidates
     report["provider_admission_pending_count"] = len(candidates)
     current_execution_evidence["provider_admission_candidates"] = candidates
+    synced_actions = _sync_managed_action_provider_admission_candidates(
+        report.get("managed_study_actions"),
+        candidates=candidates,
+    )
+    report["managed_study_actions"] = synced_actions
+    if "managed_study_actions" in current_execution_evidence:
+        current_execution_evidence["managed_study_actions"] = _sync_managed_action_provider_admission_candidates(
+            current_execution_evidence.get("managed_study_actions"),
+            candidates=candidates,
+        )
     report["current_execution_evidence"] = current_execution_evidence
     fingerprints: list[str] = []
     for candidate in candidates:
@@ -105,6 +115,42 @@ def sync_report_provider_admission_current_control_state(
         if fingerprint is not None and fingerprint not in fingerprints:
             fingerprints.append(fingerprint)
     report["action_fingerprints"] = fingerprints
+
+
+def _sync_managed_action_provider_admission_candidates(
+    actions: Any,
+    *,
+    candidates: list[dict[str, Any]],
+) -> list[Any]:
+    candidates_by_study: dict[str, list[dict[str, Any]]] = {}
+    for candidate in candidates:
+        study_id = _non_empty_text(candidate.get("study_id"))
+        if study_id is None:
+            continue
+        candidates_by_study.setdefault(study_id, []).append(dict(candidate))
+    synced_actions: list[Any] = []
+    for action in actions or []:
+        if not isinstance(action, Mapping):
+            synced_actions.append(action)
+            continue
+        synced_action = dict(action)
+        study_id = _non_empty_text(synced_action.get("study_id"))
+        action_candidates = candidates_by_study.get(study_id or "", [])
+        synced_action["provider_admission_candidates"] = [dict(candidate) for candidate in action_candidates]
+        if not action_candidates:
+            synced_action.pop("provider_admission_state", None)
+            synced_actions.append(synced_action)
+            continue
+        synced_action["provider_admission_state"] = {
+            **_mapping(synced_action.get("provider_admission_state")),
+            "status": _non_empty_text(
+                _mapping(synced_action.get("provider_admission_state")).get("status")
+            ) or "pending",
+            "candidate_count": len(action_candidates),
+            "running_provider_attempt": bool(synced_action.get("running_provider_attempt")) is True,
+        }
+        synced_actions.append(synced_action)
+    return synced_actions
 
 
 def _provider_admission_scanned_currentness_studies(

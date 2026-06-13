@@ -181,6 +181,125 @@ def test_provider_admission_report_retains_matching_current_action_candidate_ove
     }
 
 
+def test_provider_admission_report_sync_updates_managed_action_candidate_surface(
+    tmp_path: Path,
+) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    current_candidate = _provider_candidate(
+        profile,
+        study_id,
+        action_fingerprint="sha256:current-ai-reviewer",
+    )
+    stale_candidate = {
+        **_provider_candidate(
+            profile,
+            study_id,
+            action_fingerprint="sha256:stale-gate-replay",
+        ),
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": "publication_gate_replay",
+    }
+    report = {
+        "managed_study_opl_provider_admission_candidates": [stale_candidate],
+        "provider_admission_pending_count": 1,
+        "current_execution_evidence": {
+            "provider_admission_candidates": [stale_candidate],
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "provider_admission_candidates": [stale_candidate],
+                    "provider_admission_state": {
+                        "status": "pending",
+                        "candidate_count": 1,
+                    },
+                }
+            ],
+        },
+        "managed_study_actions": [
+            {
+                "study_id": study_id,
+                "provider_admission_candidates": [stale_candidate],
+                "provider_admission_state": {
+                    "status": "pending",
+                    "candidate_count": 1,
+                },
+            }
+        ],
+    }
+
+    report_module.sync_report_provider_admission_current_control_state(
+        report,
+        current_control_state={
+            "provider_admission_candidates": [current_candidate],
+        },
+    )
+
+    assert report["managed_study_opl_provider_admission_candidates"] == [current_candidate]
+    assert report["current_execution_evidence"]["provider_admission_candidates"] == [current_candidate]
+    action = report["managed_study_actions"][0]
+    assert action["provider_admission_candidates"] == [current_candidate]
+    assert action["provider_admission_state"]["candidate_count"] == 1
+    assert action["provider_admission_state"]["running_provider_attempt"] is False
+    assert action["provider_admission_state"]["status"] == "pending"
+    evidence_action = report["current_execution_evidence"]["managed_study_actions"][0]
+    assert evidence_action["provider_admission_candidates"] == [current_candidate]
+    assert evidence_action["provider_admission_state"]["candidate_count"] == 1
+
+
+def test_provider_admission_report_sync_clears_stale_managed_action_pending_state(
+    tmp_path: Path,
+) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    stale_candidate = _provider_candidate(
+        profile,
+        study_id,
+        action_fingerprint="sha256:stale-ai-reviewer",
+    )
+    stale_action = {
+        "study_id": study_id,
+        "provider_admission_candidates": [stale_candidate],
+        "provider_admission_state": {
+            "status": "pending",
+            "candidate_count": 1,
+        },
+    }
+    report = {
+        "managed_study_opl_provider_admission_candidates": [stale_candidate],
+        "provider_admission_pending_count": 1,
+        "current_execution_evidence": {
+            "provider_admission_candidates": [stale_candidate],
+            "managed_study_actions": [stale_action],
+        },
+        "managed_study_actions": [stale_action],
+    }
+
+    report_module.sync_report_provider_admission_current_control_state(
+        report,
+        current_control_state={
+            "provider_admission_candidates": [],
+        },
+    )
+
+    assert report["managed_study_opl_provider_admission_candidates"] == []
+    assert report["provider_admission_pending_count"] == 0
+    action = report["managed_study_actions"][0]
+    assert action["provider_admission_candidates"] == []
+    assert "provider_admission_state" not in action
+    evidence_action = report["current_execution_evidence"]["managed_study_actions"][0]
+    assert evidence_action["provider_admission_candidates"] == []
+    assert "provider_admission_state" not in evidence_action
+
+
 def test_provider_admission_report_refreshes_scanned_typed_blocker_without_candidates(
     tmp_path: Path,
 ) -> None:
