@@ -164,6 +164,46 @@ def test_paper_recovery_state_requires_identity_phase_conditions_and_next_action
     )
     assert identity["same_id_redrive_without_new_evidence_allowed"] is False
 
+    interface = spec["recovery_obligation_kernel_interface"]
+    assert interface["surface_kind"] == "paper_recovery_obligation_kernel_interface"
+    assert interface["module_role"] == "single_authority_decision_root_for_recovery_obligation"
+    assert interface["input_families"] == [
+        "mas_owner_evidence",
+        "opl_execution_observation",
+        "terminal_closeout_refs",
+        "manual_or_human_gate_refs",
+        "read_model_projection_status",
+    ]
+    assert interface["output_surface"] == "paper_recovery_state"
+    assert interface["output_phases"] == contract["spec"]["phase_state_machine"]["allowed_phases"]
+    assert interface["derived_surfaces_must_consume_output"] == [
+        "current_work_unit",
+        "current_execution_envelope",
+        "study_progress",
+        "domain_health_diagnostic.provider_admission_current_control",
+        "domain_handler_export.pending_family_tasks",
+        "operator_status_card",
+        "OPL admission projection",
+        "human workbench card",
+    ]
+    assert interface["forbidden_derived_surface_behaviors"] == [
+        "select_recovery_obligation",
+        "override_phase_from_transport_status",
+        "derive_provider_admission_from_queue_or_dispatch_residue",
+        "derive_owner_receipt_from_provider_completion",
+        "treat_read_model_refresh_as_domain_progress",
+        "same_obligation_redrive_without_new_evidence",
+    ]
+    assert interface["migration_sequence"] == [
+        "introduce_pure_kernel_decision_fixture",
+        "route_current_work_unit_and_dhd_provider_admission_through_kernel_output",
+        "route_domain_handler_export_through_kernel_admission_output",
+        "retire_duplicate_projection_precedence_logic",
+    ]
+    assert interface["same_write_set_boundary"] == (
+        "implementation_must_not_overlap_live_recovery_reducer_or_provider_admission_lanes_without_fresh_owner"
+    )
+
 
 def test_paper_recovery_phases_are_mutually_exclusive_and_forbid_bad_combinations() -> None:
     contract = _contract()

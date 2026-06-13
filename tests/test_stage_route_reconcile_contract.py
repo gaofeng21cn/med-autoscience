@@ -100,6 +100,46 @@ def test_stage_route_reconcile_contract_declares_single_planning_root() -> None:
         "provider_completion_is_recovery_acceptance": False,
         "observe_only_can_be_pending_recovery_execution": False,
     }
+    projection_guard = paper_recovery["single_kernel_projection_guard"]
+    assert projection_guard["kernel_output"] == "paper_recovery_state"
+    assert projection_guard["decision_owner"] == "MedAutoScience PaperRecovery"
+    assert projection_guard["transport_owner"] == "OPL StageRun substrate"
+    assert projection_guard["derived_surface_policy"] == "consume_only_no_redecide_currentness"
+    assert projection_guard["derived_surfaces"] == [
+        "current_work_unit",
+        "current_execution_envelope",
+        "study_progress",
+        "domain_health_diagnostic.provider_admission_current_control",
+        "domain_handler_export.pending_family_tasks",
+        "operator_status_card",
+        "OPL admission projection",
+        "human workbench card",
+    ]
+    assert projection_guard["derived_surface_required_inputs"] == [
+        "recovery_obligation_id",
+        "phase",
+        "conditions",
+        "next_safe_action",
+        "current_work_unit_identity",
+        "provider_admission_identity",
+        "terminal_closeout_refs",
+        "consumed_or_rejected_refs",
+    ]
+    assert projection_guard["forbidden_inputs_as_authority"] == [
+        "queue_residue",
+        "old_persisted_dispatch",
+        "active_run_id",
+        "transport_status",
+        "operator_card_state",
+        "read_model_refresh_time",
+        "trace_span_ref",
+    ]
+    assert projection_guard["projection_inconsistent_effect"] == (
+        "emit_projection_inconsistent_or_admission_blocked_without_provider_admission"
+    )
+    assert projection_guard["implementation_goal"] == (
+        "single_recovery_obligation_decision_object_consumed_by_all_operator_projections"
+    )
 
     external = contract["external_engineering_principles"]
     assert external["surface_kind"] == "stage_route_external_engineering_principles"

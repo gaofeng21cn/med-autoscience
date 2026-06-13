@@ -198,7 +198,27 @@
         ],
         "record_ref_only_effect": "audit_only_retain_provider_admission_pending",
         "identity_fill_for_candidate_root_closeout": "may_fill_action_type_and_work_unit_id_only; must_not_fill_fingerprint_source_eval_or_epochs_from_candidate"
-      }
+      },
+      "stage_packet_binding_required_fields": [
+        "dispatch_ref",
+        "stage_packet_ref",
+        "selected_dispatch_ref",
+        "stage_packet_refs"
+      ],
+      "generic_idempotency_key_can_replace_attempt_identity": false,
+      "missing_stage_packet_binding_effect": "suppress_provider_admission_pending_with_stage_packet_not_current_selected_dispatch",
+      "opl_substrate_responsibility": [
+        "selected_stage_packet_currentness_identity",
+        "StageRun attempt idempotency",
+        "terminal closeout transport precedence",
+        "worker_source_stale_restart_guard"
+      ],
+      "mas_responsibility": [
+        "emit_complete_provider_admission_identity",
+        "reject_missing_or_weak_identity",
+        "consume_terminal_closeout_into_owner_receipt_or_typed_blocker",
+        "never_sign_opl_runtime_lifecycle_claims"
+      ]
     },
     "progress_current_owner_ticket_contract": {
       "synthetic_fingerprint_prefix_forbidden": "study-progress-current-owner-ticket::",
@@ -1712,6 +1732,43 @@
       "operator_card_can_create_recovery_truth": false,
       "provider_completion_is_recovery_acceptance": false,
       "observe_only_can_be_pending_recovery_execution": false
+    },
+    "single_kernel_projection_guard": {
+      "kernel_output": "paper_recovery_state",
+      "decision_owner": "MedAutoScience PaperRecovery",
+      "transport_owner": "OPL StageRun substrate",
+      "derived_surface_policy": "consume_only_no_redecide_currentness",
+      "derived_surfaces": [
+        "current_work_unit",
+        "current_execution_envelope",
+        "study_progress",
+        "domain_health_diagnostic.provider_admission_current_control",
+        "domain_handler_export.pending_family_tasks",
+        "operator_status_card",
+        "OPL admission projection",
+        "human workbench card"
+      ],
+      "derived_surface_required_inputs": [
+        "recovery_obligation_id",
+        "phase",
+        "conditions",
+        "next_safe_action",
+        "current_work_unit_identity",
+        "provider_admission_identity",
+        "terminal_closeout_refs",
+        "consumed_or_rejected_refs"
+      ],
+      "forbidden_inputs_as_authority": [
+        "queue_residue",
+        "old_persisted_dispatch",
+        "active_run_id",
+        "transport_status",
+        "operator_card_state",
+        "read_model_refresh_time",
+        "trace_span_ref"
+      ],
+      "projection_inconsistent_effect": "emit_projection_inconsistent_or_admission_blocked_without_provider_admission",
+      "implementation_goal": "single_recovery_obligation_decision_object_consumed_by_all_operator_projections"
     }
   },
   "stage_route_conformance_invariants": {

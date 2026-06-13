@@ -31,6 +31,28 @@ def assert_opl_follow_through_and_external_practice_mapping(
     assert provider_identity["action_id_role"] == (
         "action_family_only_not_route_or_attempt_identity"
     )
+    assert provider_identity["stage_packet_binding_required_fields"] == [
+        "dispatch_ref",
+        "stage_packet_ref",
+        "selected_dispatch_ref",
+        "stage_packet_refs",
+    ]
+    assert provider_identity["generic_idempotency_key_can_replace_attempt_identity"] is False
+    assert provider_identity["missing_stage_packet_binding_effect"] == (
+        "suppress_provider_admission_pending_with_stage_packet_not_current_selected_dispatch"
+    )
+    assert provider_identity["opl_substrate_responsibility"] == [
+        "selected_stage_packet_currentness_identity",
+        "StageRun attempt idempotency",
+        "terminal closeout transport precedence",
+        "worker_source_stale_restart_guard",
+    ]
+    assert provider_identity["mas_responsibility"] == [
+        "emit_complete_provider_admission_identity",
+        "reject_missing_or_weak_identity",
+        "consume_terminal_closeout_into_owner_receipt_or_typed_blocker",
+        "never_sign_opl_runtime_lifecycle_claims",
+    ]
     record_only = provider_identity["record_only_closeout_consumption_policy"]
     assert record_only["record_only_owner_refs_are_identity"] is False
     assert record_only["accepted_record_only_closeout_required_any"] == [
