@@ -60,3 +60,50 @@ def test_canonical_current_work_unit_action_rejects_readiness_typed_blocker_iden
     )
 
     assert action is None
+
+
+def test_canonical_current_work_unit_action_allows_identity_different_explicit_owner_action() -> None:
+    action = _module().canonical_current_work_unit_action(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": (
+                    "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+                ),
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_id": "stage_packet_not_current_selected_dispatch",
+                        "owner": "one-person-lab",
+                        "work_unit_id": "publication_gate_replay",
+                    },
+                },
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "next_owner": "analysis-campaign",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                "target_surface": {
+                    "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json"
+                },
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source_surface"] == "current_executable_owner_action"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["owner"] == "analysis-campaign"
+    assert action["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert action["work_unit_fingerprint"] == "publication-blockers::497d1260db522f01"

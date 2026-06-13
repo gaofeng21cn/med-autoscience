@@ -18,7 +18,12 @@ def canonical_current_work_unit_action(study: Mapping[str, Any]) -> dict[str, An
     current_work_unit = _mapping(study.get("current_work_unit"))
     current_action = _mapping(study.get("current_executable_owner_action"))
     if current_work_unit and not _current_work_unit_is_executable_action(current_work_unit):
-        return None
+        if not _current_action_is_identity_different_ready_action(
+            current_action=current_action,
+            current_work_unit=current_work_unit,
+        ):
+            return None
+        current_work_unit = {}
     if not current_work_unit and (
         _text(current_action.get("source")) or _text(current_action.get("source_surface"))
     ) == "stage_kernel_projection.current_owner_delta":
@@ -155,6 +160,36 @@ def _current_work_unit_is_executable_action(current_work_unit: Mapping[str, Any]
     state = _mapping(current_work_unit.get("state"))
     state_kind = _text(state.get("state_kind"))
     return state_kind in {None, "executable_owner_action"}
+
+
+def _current_action_is_identity_different_ready_action(
+    *,
+    current_action: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+) -> bool:
+    if _text(current_action.get("status")) != "ready":
+        return False
+    action_type = _canonical_action_type(source=current_action, current_action=current_action)
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return False
+    action_work_unit_id = _text(current_action.get("work_unit_id")) or _work_unit_id(
+        current_action.get("next_work_unit")
+    )
+    action_fingerprint = _text(current_action.get("work_unit_fingerprint")) or _text(
+        current_action.get("action_fingerprint")
+    )
+    if action_work_unit_id is None or action_fingerprint is None:
+        return False
+    current_work_unit_id = _text(current_work_unit.get("work_unit_id")) or _work_unit_id(
+        current_work_unit.get("next_work_unit")
+    )
+    current_fingerprint = _text(current_work_unit.get("work_unit_fingerprint")) or _text(
+        current_work_unit.get("action_fingerprint")
+    )
+    return (action_work_unit_id, action_fingerprint) != (
+        current_work_unit_id,
+        current_fingerprint,
+    )
 
 
 def _work_unit_id(value: object) -> str | None:
