@@ -159,11 +159,7 @@ def test_installed_medautosci_mcp_calls_artifact_lifecycle_continuous_soak_summa
     assert envelope["tool_mode"] == "artifact_lifecycle_continuous_soak_summary"
     assert envelope["authority_boundary"]["tool_result_envelope_is_authority_outcome"] is False
     assert envelope["authority_boundary"]["can_write_domain_truth"] is False
-    structured = envelope["structured_payload"]
-
-    assert structured["surface_kind"] == "mas_tool_result_envelope"
-    assert structured["tool_id"] == "authority_operations:artifact_lifecycle_continuous_soak_summary"
-    structured_payload = structured["structured_payload"]
+    structured_payload = envelope["structured_payload"]
     assert structured_payload["surface"] == "continuous_soak_summary"
     assert structured_payload["mutating_actions"] == 0
     assert structured_payload["unclassified_authority_surface"] == 0

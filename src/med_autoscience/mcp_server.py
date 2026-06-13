@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-import sys
 from importlib import import_module
 from pathlib import Path
 from typing import Any
@@ -35,6 +33,12 @@ from med_autoscience.mcp_server_parts.handler_adapter import (
 )
 from med_autoscience.mcp_server_parts.agent_tool_arsenal_handler import (
     call_agent_tool_arsenal,
+)
+from med_autoscience.mcp_server_parts.jsonrpc_transport import (
+    error_response as _jsonrpc_error_response,
+    handle_request as _handle_jsonrpc_request,
+    serve as _serve_jsonrpc,
+    success_response as _jsonrpc_success_response,
 )
 from med_autoscience.mcp_server_parts.tool_result_rendering import json_text, tool_text_result
 from med_autoscience.scientific_capability_registry import (
@@ -155,18 +159,13 @@ def _tool_result_envelope(
         is_error=is_error,
         result_summary=text,
     )
-    structured_payload = _structured_payload_for_tool_result_envelope(
-        tool_name=tool_name,
-        tool_mode=tool_mode,
-        payload=payload,
-    )
     envelope: dict[str, Any] = {
         **payload,
         "surface_kind": "mas_tool_result_envelope",
         "tool_id": tool_name,
         **({"tool_mode": tool_mode} if tool_mode else {}),
         "status": "failed" if is_error else "succeeded",
-        "structured_payload": structured_payload,
+        "structured_payload": payload,
         "raw_surface_kind": str(
             payload.get("surface_kind")
             or payload.get("surface")
@@ -218,39 +217,6 @@ def _tool_result_envelope(
     if is_error:
         envelope["error_class"] = "tool_execution_error"
     return envelope
-
-
-def _structured_payload_for_tool_result_envelope(
-    *,
-    tool_name: str,
-    tool_mode: str,
-    payload: dict[str, Any],
-) -> dict[str, Any]:
-    if tool_name != "authority_operations" or not tool_mode:
-        return payload
-    if payload.get("surface_kind") == "mas_tool_result_envelope":
-        return payload
-    return {
-        "surface_kind": "mas_tool_result_envelope",
-        "tool_id": f"{tool_name}:{tool_mode}",
-        "tool_mode": tool_mode,
-        "status": "succeeded",
-        "structured_payload": payload,
-        "raw_surface_kind": str(
-            payload.get("surface")
-            or payload.get("surface_kind")
-            or payload.get("status")
-            or ""
-        ),
-        "authority_boundary": {
-            "tool_result_envelope_is_authority_outcome": False,
-            "can_write_domain_truth": False,
-            "can_authorize_publication_quality": False,
-            "can_authorize_submission_readiness": False,
-            "can_return_owner_receipt": False,
-            "can_return_typed_blocker": False,
-        },
-    }
 
 
 def _tool_result_recovery(
@@ -918,80 +884,32 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, A
 
 
 def _success_response(request_id: Any, result: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "result": result,
-    }
+    return _jsonrpc_success_response(request_id, result)
 
 
 def _error_response(request_id: Any, code: int, message: str) -> dict[str, Any]:
-    return {
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "error": {
-            "code": code,
-            "message": message,
-        },
-    }
+    return _jsonrpc_error_response(request_id, code, message)
 
 
 def handle_request(request: dict[str, Any]) -> dict[str, Any] | None:
-    method = request.get("method")
-    request_id = request.get("id")
-    params = request.get("params") if isinstance(request.get("params"), dict) else {}
-
-    if method == "notifications/initialized":
-        return None
-    if method == "initialize":
-        return _success_response(
-            request_id,
-            {
-                "protocolVersion": PROTOCOL_VERSION,
-                "capabilities": {
-                    "tools": {
-                        "listChanged": False,
-                    }
-                },
-                "serverInfo": {
-                    "name": SERVER_NAME,
-                    "version": __version__,
-                },
-            },
-        )
-    if method == "ping":
-        return _success_response(request_id, {})
-    if method == "tools/list":
-        return _success_response(request_id, {"tools": list_tools()})
-    if method == "tools/call":
-        name = params.get("name")
-        if not isinstance(name, str) or not name:
-            return _error_response(request_id, -32602, "tools/call requires params.name")
-        arguments = params.get("arguments") if isinstance(params.get("arguments"), dict) else {}
-        return _success_response(request_id, call_tool(name, arguments))
-    if request_id is None:
-        return None
-    return _error_response(request_id, -32601, f"Method not found: {method}")
+    return _handle_jsonrpc_request(
+        request,
+        protocol_version=PROTOCOL_VERSION,
+        server_name=SERVER_NAME,
+        server_version=__version__,
+        list_tools=list_tools,
+        call_tool=call_tool,
+    )
 
 
 def serve() -> int:
-    for raw_line in sys.stdin:
-        line = raw_line.strip()
-        if not line:
-            continue
-        try:
-            request = json.loads(line)
-        except json.JSONDecodeError as exc:
-            response = _error_response(None, -32700, f"Parse error: {exc}")
-        else:
-            if not isinstance(request, dict):
-                response = _error_response(None, -32600, "Invalid request")
-            else:
-                response = handle_request(request)
-        if response is not None:
-            sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
-            sys.stdout.flush()
-    return 0
+    return _serve_jsonrpc(
+        protocol_version=PROTOCOL_VERSION,
+        server_name=SERVER_NAME,
+        server_version=__version__,
+        list_tools=list_tools,
+        call_tool=call_tool,
+    )
 
 
 def entrypoint() -> None:
