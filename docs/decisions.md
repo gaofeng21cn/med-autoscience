@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-13：强身份 gate followthrough owner action 必须压过旧 current owner ticket
+
+- 决策：`gate_clearing_batch_followthrough.actionable_current_work_unit` 产出的 `current_executable_owner_action` 只要同时具备 `surface_kind=current_executable_owner_action`、`status=ready`、支持的 action type、`work_unit_id` 和 work-unit/action fingerprint，就按强 current owner action 处理。fresh progress materializer 不得再用旧 `current_owner_ticket`、旧 typed blocker ticket 或同 study 的 stale ticket 改写它的 target surface、authority 或 action selection。
+- 决策：旧 typed blocker 仍然不能自授权 provider admission；本规则只适用于已经由 gate followthrough 产出的强身份 owner action。缺 `work_unit_id`、缺 fingerprint、unsupported action type 或来源不是 `gate_clearing_batch_followthrough.actionable_current_work_unit` 时继续 fail closed，并由 typed blocker/currentness arbiter 处理。
+- 理由：DM002/DM003 类事故中，合法的 identity-different gate followthrough owner action 已经出现，但同一 study 的旧 `current_owner_ticket` / typed blocker ticket 仍能遮蔽 authority source，使 materializer 回到 stale owner surface 或重复解释旧 blocker。这会把“有新 current owner action”误投成“仍被旧 blocker 拦住”，触发空转的 admission/handoff 判断。
+- 影响：这是 MAS fresh progress current-action selection hardening；不执行 live DHD apply、hydrate、tick、redrive，不写 Yang runtime/study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。验证入口是 domain action request materializer current-control focused tests 和 repo-native `scripts/verify.sh`。
+
 ## 2026-06-13：study progress 顶层 admission 必须同步 current work unit / PaperRecovery / DHD
 
 - 决策：`study progress` 的顶层 `owner_action_admission`、`provider_admission_pending_count` 和 `provider_admission_candidates` 必须与同一 current work-unit identity 下的 `progress_first_monitoring_summary`、`paper_recovery_state` 和 DHD provider-admission arbiter 对齐。若 canonical `current_work_unit.status=executable_owner_action` 且 `current_work_unit.state.provider_admission_pending=true`，并且 DHD arbiter 能从同一 `current_executable_owner_action`、dispatch 和 fingerprint 产生合法 candidate，顶层 progress 不得继续显示 `owner_action_admission=null`、`provider_admission_pending_count=0` 或 `provider_admission_candidates=[]`。
