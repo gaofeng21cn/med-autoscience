@@ -157,8 +157,9 @@ def build_current_work_unit(
         action_fingerprint=_action_fingerprint,
     )
     terminal_action_blocker_selected = False
-    if terminal_action_blocker is not None and not _typed_blocker_has_owner_answer_currentness(
-        resolved_typed_blocker
+    if terminal_action_blocker is not None and (
+        not _typed_blocker_has_owner_answer_currentness(resolved_typed_blocker)
+        or _typed_blocker_is_stage_owner_answer(resolved_typed_blocker)
     ):
         resolved_typed_blocker = terminal_action_blocker
         terminal_action_blocker_selected = True
@@ -538,6 +539,20 @@ def _typed_blocker_has_owner_answer_currentness(blocker: Mapping[str, Any] | Non
             or _text(basis.get("source_fingerprint"))
             or _text(basis.get("stage_attempt_id"))
         )
+    )
+
+
+def _typed_blocker_is_stage_owner_answer(blocker: Mapping[str, Any] | None) -> bool:
+    payload = _mapping(blocker)
+    if not payload:
+        return False
+    basis = _mapping(payload.get("currentness_basis")) or _mapping(
+        payload.get("owner_route_currentness_basis")
+    )
+    return (
+        _text(basis.get("source")) == "stage_owner_answer.typed_blocker"
+        or _text(payload.get("latest_owner_answer_kind")) == "typed_blocker"
+        and _text(payload.get("action_type")) == "complete_medical_paper_readiness_surface"
     )
 
 
