@@ -135,6 +135,82 @@ def test_domain_handler_export_suppresses_ordinary_tasks_when_fresh_current_work
     )
 
 
+def test_domain_handler_export_materializes_opl_typed_blocker_owner_resolution_task(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = workspace_root / "studies" / study_id
+    write_profile(profile_path, workspace_root=workspace_root)
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "one-person-lab",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:gate-replay-current",
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "source": "terminal_closeout_typed_blocker",
+                    "typed_blocker": {
+                        "blocker_id": "opl_execution_authorization_required",
+                        "owner": "one-person-lab",
+                        "required_input": (
+                            "OPL provider attempt, lease, or closeout receipt binding"
+                        ),
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "one-person-lab",
+                "next_work_unit": None,
+                "typed_blocker": {
+                    "blocker_id": "opl_execution_authorization_required",
+                    "owner": "one-person-lab",
+                    "required_input": "OPL provider attempt, lease, or closeout receipt binding",
+                },
+            },
+            "current_executable_owner_action": None,
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task.get("payload", {}).get("study_id") == study_id
+    ]
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["task_kind"] == "domain_route/reconcile-apply"
+    assert task["reason"] == "current_work_unit_typed_blocker_owner_resolution"
+    assert task["queue_owner"] == "one-person-lab"
+    assert task["payload"]["current_work_unit"]["work_unit_id"] == "publication_gate_replay"
+    assert task["payload"]["current_work_unit"]["work_unit_fingerprint"] == "sha256:gate-replay-current"
+    assert task["payload"]["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert task["payload"]["authority_boundary"] == "mas_domain_route_refs_only_opl_stage_attempt_owner"
+    assert task["domain_dispatch_evidence_record_payload"]["task_kind"] == "domain_route/reconcile-apply"
+
+
 def test_export_current_owner_action_suppresses_residual_action_under_typed_blocker() -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export")
 

@@ -847,6 +847,143 @@ def test_stage_route_reconcile_contract_declares_dm002_dm003_recovery_acceptance
     } <= set(recovery["forbidden_acceptance_evidence"])
 
 
+def test_stage_route_reconcile_contract_declares_dm002_dm003_conformance_invariants() -> None:
+    contract = _contract()
+
+    conformance = contract["stage_route_conformance_invariants"]
+    assert conformance["surface_kind"] == "mas_opl_stage_route_conformance_invariants"
+    assert conformance["state"] == "active_contract"
+    assert conformance["scope"] == [
+        "DM002",
+        "DM003",
+        "stage-route currentness",
+        "paper-recovery obligation",
+        "OPL StageRun authorization",
+        "terminal closeout accounting",
+    ]
+
+    false_authority = conformance["false_authority_generation_invariant"]
+    assert false_authority["domain_authority_requires_any"] == [
+        "mas_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "canonical_changed_surface_ref_consumed_by_mas",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "mas_closeout_consumption_or_rejection_ref",
+    ]
+    assert {
+        "queue_entry",
+        "queue_empty",
+        "active_run_id",
+        "transport_status",
+        "trace_span_ref",
+        "lineage_ref",
+        "read_model_projection",
+        "stale_persisted_dispatch",
+        "old_route_back_packet",
+        "provider_completion",
+    } <= set(false_authority["forbidden_domain_authority_sources"])
+    assert false_authority["violation_effect"] == (
+        "diagnostic_only_no_owner_delta_no_paper_progress_no_provider_admission"
+    )
+
+    owner_path = conformance["unique_current_owner_path_invariant"]
+    assert owner_path["only_chain"] == [
+        "current_owner_delta",
+        "current_work_unit",
+        "current_execution_envelope",
+        "provider_admission_current_control",
+        "OPLStageRun",
+        "terminal_closeout",
+        "MAS_closeout_consume_or_reject",
+        "next_current_owner_delta",
+    ]
+    assert owner_path["mas_closeout_step"] == "consume_or_reject_required"
+    assert owner_path["same_work_unit_feedback_requires_any"] == [
+        "new_work_unit_identity",
+        "mas_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "canonical_changed_surface_ref_consumed_by_mas",
+        "stable_typed_blocker_ref_with_new_blocker_identity",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "successor_recovery_obligation_ref",
+    ]
+    assert owner_path["forbidden_shortcuts"] == [
+        "current_work_unit_from_active_run_id",
+        "provider_admission_from_typed_blocker_only",
+        "OPLStageRun_from_stale_dispatch",
+        "next_owner_delta_from_provider_completion",
+        "next_owner_delta_from_read_model_or_trace_only",
+    ]
+
+    self_auth = conformance["typed_blocker_self_authorization_invariant"]
+    assert self_auth["typed_blocker_can_self_authorize_provider_admission"] is False
+    assert self_auth["typed_blocker_can_self_authorize_readiness_execution"] is False
+    assert self_auth["typed_blocker_can_become_owner_receipt"] is False
+    assert self_auth["allowed_exits"] == [
+        "specific_mas_owner_callable",
+        "derived_repair_action_with_current_work_unit_binding",
+        "stable_typed_blocker_with_named_missing_ref_family",
+        "human_gate_ref_when_domain_owner_cannot_continue",
+        "route_back_evidence_ref",
+    ]
+
+    selected_dispatch = conformance[
+        "stage_packet_not_current_selected_dispatch_invariant"
+    ]
+    assert selected_dispatch["blocker"] == "stage_packet_not_current_selected_dispatch"
+    assert selected_dispatch["owner"] == "one-person-lab"
+    assert selected_dispatch["blocker_classification"] == "OPL_authorization_blocker"
+    assert selected_dispatch["must_route_through_any"] == [
+        "OPL_authorization_repair_owner_action",
+        "derived_repair_action_with_current_work_unit_binding",
+        "successor_recovery_obligation_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert selected_dispatch["same_work_unit_redrive_allowed"] is False
+    assert selected_dispatch["forbidden_actions"] == [
+        "same_work_unit_default_executor_dispatch",
+        "same_work_unit_provider_admission_redrive",
+        "stale_stage_packet_replay",
+        "foreground_gate_replay_retry_without_owner_binding",
+    ]
+
+    closeout = conformance["terminal_closeout_accounting_invariant"]
+    assert closeout["stage_log_field"] == "paper_stage_log"
+    assert {
+        "stage_name",
+        "stage_goal",
+        "stage_work_done",
+        "paper_work_done",
+        "duration",
+        "token_usage",
+        "cost",
+        "usage_refs",
+        "cost_refs",
+        "progress_delta_classification",
+        "deliverable_progress_delta",
+        "paper_progress_delta",
+        "platform_repair_delta",
+        "next_forced_delta",
+        "evidence_refs",
+    } <= set(closeout["required_or_missing_with_reason_fields"])
+    assert closeout["missing_field_shape"] == {
+        "status": "missing_with_reason",
+        "reason": "explicit_required_field_unavailable",
+        "source_refs": "refs_only",
+    }
+    assert closeout["missing_without_reason_effect"] == (
+        "consume_terminal_closeout_as_typed_blocker"
+    )
+    assert closeout["missing_without_reason_typed_blocker"] == (
+        "domain_closeout_provided_incomplete_user_stage_log"
+    )
+    assert closeout["automatic_redrive_allowed_when_incomplete"] is False
+
+
 def test_stage_route_reconcile_contract_tracks_opl_follow_through_and_external_practice_mapping() -> None:
     contract = _contract()
 

@@ -254,6 +254,15 @@ def _pending_family_tasks(
         )
         ordinary_task_blocker = _ordinary_pending_tasks_blocker(current_progress=current_progress)
         if ordinary_task_blocker and not current_owner_action:
+            resolution_task = _current_typed_blocker_owner_resolution_task(
+                study=study,
+                current_progress=current_progress,
+                profile=profile,
+                profile_ref=profile_ref,
+                study_id=study_id,
+            )
+            if resolution_task is not None:
+                tasks.append(resolution_task)
             continue
         current_work_unit = mapping(current_progress.get("current_work_unit"))
         current_execution_envelope = _export_current_execution_envelope(
@@ -367,6 +376,159 @@ def _ordinary_pending_tasks_blocked_status(status: str | None) -> bool:
         "blocked_typed_owner",
         "parked",
     }
+
+
+def _current_typed_blocker_owner_resolution_task(
+    *,
+    study: Mapping[str, Any],
+    current_progress: Mapping[str, Any],
+    profile: WorkspaceProfile,
+    profile_ref: Path,
+    study_id: str,
+) -> dict[str, Any] | None:
+    current_work_unit = mapping(current_progress.get("current_work_unit"))
+    current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
+    if text(current_work_unit.get("status")) != "typed_blocker":
+        return None
+    owner = _current_owner_for_resolution(
+        current_work_unit=current_work_unit,
+        current_execution_envelope=current_execution_envelope,
+    )
+    if owner not in {"one-person-lab", "opl", "OPL"}:
+        return None
+    typed_blocker = _current_typed_blocker(
+        current_work_unit=current_work_unit,
+        current_execution_envelope=current_execution_envelope,
+    )
+    reason = "current_work_unit_typed_blocker_owner_resolution"
+    source_fingerprint = _fingerprint(
+        {
+            "profile": profile.name,
+            "study_id": study_id,
+            "reason": reason,
+            "current_work_unit": dict(current_work_unit),
+            "typed_blocker": dict(typed_blocker),
+        }
+    )
+    source_refs = _typed_blocker_source_refs(
+        study=study,
+        current_work_unit=current_work_unit,
+        typed_blocker=typed_blocker,
+        profile=profile,
+        study_id=study_id,
+    )
+    evidence_record_payload = build_domain_dispatch_evidence_record_payload(
+        task_kind="domain_route/reconcile-apply",
+        study_id=study_id,
+        reason=reason,
+        evidence_refs=source_refs,
+        source_fingerprint=source_fingerprint,
+        profile_name=profile.name,
+    )
+    return {
+        "domain_id": "medautoscience",
+        "task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "priority": 60,
+        "source": "mas-domain-handler-export",
+        "requires_approval": False,
+        "dedupe_key": f"mas:{profile.name}:{study_id}:current-typed-blocker:{source_fingerprint}",
+        "source_fingerprint": source_fingerprint,
+        "domain_truth_owner": "med-autoscience",
+        "queue_owner": "one-person-lab",
+        "reason": reason,
+        "source_refs": source_refs,
+        "domain_dispatch_evidence_record_payload": evidence_record_payload,
+        "payload": {
+            "profile": str(profile_ref),
+            "study_id": study_id,
+            "source_fingerprint": source_fingerprint,
+            "continuation_reason": reason,
+            "current_work_unit": dict(current_work_unit),
+            "current_execution_envelope": dict(current_execution_envelope),
+            "typed_blocker": dict(typed_blocker),
+            "authority_boundary": "mas_domain_route_refs_only_opl_stage_attempt_owner",
+            "required_owner_action": {
+                "owner": "one-person-lab",
+                "action_type": text(current_work_unit.get("action_type")),
+                "work_unit_id": text(current_work_unit.get("work_unit_id")),
+                "work_unit_fingerprint": (
+                    text(current_work_unit.get("work_unit_fingerprint"))
+                    or text(current_work_unit.get("action_fingerprint"))
+                ),
+                "accepted_resolution_shapes": [
+                    "matching_provider_attempt_or_lease_binding",
+                    "matching_terminal_closeout_receipt",
+                    "identity_different_successor_owner_action",
+                    "stable_typed_blocker",
+                    "human_gate",
+                ],
+            },
+        },
+    }
+
+
+def _current_owner_for_resolution(
+    *,
+    current_work_unit: Mapping[str, Any],
+    current_execution_envelope: Mapping[str, Any],
+) -> str | None:
+    return (
+        text(current_work_unit.get("owner"))
+        or text(mapping(current_work_unit.get("state")).get("owner"))
+        or text(current_execution_envelope.get("owner"))
+        or text(mapping(current_execution_envelope.get("typed_blocker")).get("owner"))
+    )
+
+
+def _current_typed_blocker(
+    *,
+    current_work_unit: Mapping[str, Any],
+    current_execution_envelope: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    work_unit_state = mapping(current_work_unit.get("state"))
+    return (
+        mapping(work_unit_state.get("typed_blocker"))
+        or mapping(current_work_unit.get("typed_blocker"))
+        or mapping(current_execution_envelope.get("typed_blocker"))
+    )
+
+
+def _typed_blocker_source_refs(
+    *,
+    study: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    typed_blocker: Mapping[str, Any],
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> list[dict[str, Any]]:
+    study_root = Path(text(study.get("study_root")) or profile.studies_root / study_id)
+    refs: list[dict[str, Any]] = [
+        {
+            "role": "current_work_unit",
+            "ref": "study_progress.current_work_unit",
+            "exists": True,
+            "status": text(current_work_unit.get("status")),
+            "owner": text(current_work_unit.get("owner")),
+            "action_type": text(current_work_unit.get("action_type")),
+            "work_unit_id": text(current_work_unit.get("work_unit_id")),
+            "work_unit_fingerprint": (
+                text(current_work_unit.get("work_unit_fingerprint"))
+                or text(current_work_unit.get("action_fingerprint"))
+            ),
+        }
+    ]
+    typed_blocker_ref = text(typed_blocker.get("source_ref")) or text(current_work_unit.get("source_ref"))
+    if typed_blocker_ref is not None:
+        refs.append(
+            {
+                "role": "typed_blocker",
+                "ref": typed_blocker_ref,
+                "exists": (profile.workspace_root / typed_blocker_ref).exists()
+                or (study_root / typed_blocker_ref).exists(),
+            }
+        )
+    return refs
 
 
 def _fresh_study_progress(
