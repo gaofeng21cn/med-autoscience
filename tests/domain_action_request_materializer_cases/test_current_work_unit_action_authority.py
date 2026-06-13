@@ -107,3 +107,93 @@ def test_canonical_current_work_unit_action_allows_identity_different_explicit_o
     assert action["owner"] == "analysis-campaign"
     assert action["work_unit_id"] == "analysis_claim_evidence_repair"
     assert action["work_unit_fingerprint"] == "publication-blockers::497d1260db522f01"
+
+
+def test_current_action_selection_does_not_let_typed_blocker_barrier_preempt_identity_different_action(
+    monkeypatch,
+) -> None:
+    selection = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
+    )
+    monkeypatch.setattr(
+        selection.stage_native_next_action,
+        "stage_native_next_actions",
+        lambda **_: [],
+    )
+    monkeypatch.setattr(
+        selection.fresh_progress_current_action,
+        "current_actions",
+        lambda **_: [],
+    )
+
+    actions, ignored = selection.current_actions_for_studies(
+        profile=None,
+        study_ids=("002-dm-china-us-mortality-attribution",),
+        scan_payload={
+            "studies": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "quest_id": "002-dm-china-us-mortality-attribution",
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "typed_blocker",
+                        "owner": "one-person-lab",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": (
+                            "domain-transition::route_back_same_line::"
+                            "ai_reviewer_record_gate_consumption"
+                        ),
+                        "state": {
+                            "state_kind": "typed_blocker",
+                            "typed_blocker": {
+                                "blocker_id": "stage_packet_not_current_selected_dispatch",
+                                "owner": "one-person-lab",
+                                "work_unit_id": "publication_gate_replay",
+                            },
+                        },
+                    },
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "status": "ready",
+                        "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                        "next_owner": "analysis-campaign",
+                        "action_type": "run_quality_repair_batch",
+                        "allowed_actions": ["run_quality_repair_batch"],
+                        "work_unit_id": "analysis_claim_evidence_repair",
+                        "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                        "target_surface": {
+                            "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json"
+                        },
+                    },
+                    "action_queue": [
+                        {
+                            "study_id": "002-dm-china-us-mortality-attribution",
+                            "action_type": "run_gate_clearing_batch",
+                            "action_id": "stale-gate-replay",
+                            "owner": "one-person-lab",
+                            "work_unit_id": "publication_gate_replay",
+                            "work_unit_fingerprint": (
+                                "domain-transition::route_back_same_line::"
+                                "ai_reviewer_record_gate_consumption"
+                            ),
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    assert actions is not None
+    assert [action["action_type"] for action in actions] == ["run_quality_repair_batch"]
+    assert actions[0]["source_surface"] == "current_executable_owner_action"
+    assert actions[0]["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert all(action["action_type"] != "current_execution_envelope_typed_blocker" for action in actions)
+    assert ignored == [
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_gate_clearing_batch",
+            "action_id": "stale-gate-replay",
+            "reason": "superseded_by_canonical_current_work_unit",
+        }
+    ]

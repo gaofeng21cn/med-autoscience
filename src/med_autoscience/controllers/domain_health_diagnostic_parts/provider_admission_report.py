@@ -392,9 +392,11 @@ def _study_root_closeout_evidence(
 def _progress_currentness_current_identity(payload: Mapping[str, Any]) -> dict[str, Any]:
     current_work_unit = _mapping(payload.get("current_work_unit"))
     current_action = _mapping(payload.get("current_executable_owner_action"))
-    currentness_basis = _mapping(current_work_unit.get("currentness_basis")) or _mapping(
-        current_action.get("owner_route_currentness_basis")
+    current_action_basis = _mapping(current_action.get("owner_route_currentness_basis")) or _mapping(
+        current_action.get("currentness_basis")
     )
+    current_work_unit_basis = _mapping(current_work_unit.get("currentness_basis"))
+    currentness_basis = current_action_basis or current_work_unit_basis
     next_forced_delta = _mapping(payload.get("next_forced_delta"))
     owner_action = _mapping(next_forced_delta.get("owner_action"))
     current_owner_ticket = _mapping(next_forced_delta.get("current_owner_ticket")) or _mapping(
@@ -405,24 +407,24 @@ def _progress_currentness_current_identity(payload: Mapping[str, Any]) -> dict[s
         owner_action.get("allowed_actions")
     )
     action_type = (
-        _non_empty_text(current_work_unit.get("action_type"))
-        or _non_empty_text(current_action.get("action_type"))
+        _non_empty_text(current_action.get("action_type"))
+        or _non_empty_text(current_work_unit.get("action_type"))
         or _non_empty_text(owner_action.get("action_type"))
         or (allowed_actions[0] if len(allowed_actions) == 1 else None)
     )
     work_unit_id = (
-        _non_empty_text(current_work_unit.get("work_unit_id"))
-        or _non_empty_text(current_action.get("work_unit_id"))
+        _non_empty_text(current_action.get("work_unit_id"))
+        or _non_empty_text(current_work_unit.get("work_unit_id"))
         or _non_empty_text(owner_action.get("work_unit_id"))
         or _non_empty_text(next_forced_delta.get("work_unit_id"))
         or _non_empty_text(ticket_work_unit.get("work_unit_id"))
         or _non_empty_text(ticket_work_unit.get("unit_id"))
     )
     fingerprint = (
-        _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
-        or _non_empty_text(current_work_unit.get("action_fingerprint"))
-        or _non_empty_text(current_action.get("work_unit_fingerprint"))
+        _non_empty_text(current_action.get("work_unit_fingerprint"))
         or _non_empty_text(current_action.get("action_fingerprint"))
+        or _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+        or _non_empty_text(current_work_unit.get("action_fingerprint"))
         or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
     )
     return {

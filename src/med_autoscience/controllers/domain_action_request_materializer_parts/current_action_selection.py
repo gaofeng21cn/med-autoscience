@@ -135,7 +135,8 @@ def current_actions_for_studies(
         stale_candidate_actions = _unique_actions(stale_candidate_actions)
         transition_barrier = None
         if (
-            readiness_followup is None
+            canonical_current_action is None
+            and readiness_followup is None
             and stage_native_action is None
             and not stage_native_derives_from_readiness_answer
             and not _fresh_progress_is_repair_progress_followup(fresh_progress_action)
