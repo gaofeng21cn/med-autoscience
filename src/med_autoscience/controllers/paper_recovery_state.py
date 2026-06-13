@@ -343,6 +343,7 @@ def _projection_contradiction(
         and _text(operator_status.get("handling_state")) == "explicit_resume_pending"
         and auto_parked.get("parked") is False
         and auto_parked.get("superseded_by_current_owner_action") is True
+        and not _has_current_provider_admission_candidate(progress, obligation=obligation)
     ):
         return {
             "condition": "operator_card_contradicts_auto_runtime_parked",
@@ -359,6 +360,48 @@ def _projection_contradiction(
                 "active_run_id": _text(handoff.get("active_run_id")),
             }
     return None
+
+
+def _has_current_provider_admission_candidate(
+    progress: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> bool:
+    return any(
+        _provider_admission_candidate_matches_obligation(candidate, obligation=obligation)
+        for candidate in progress.get("provider_admission_candidates") or []
+        if isinstance(candidate, Mapping)
+    )
+
+
+def _provider_admission_candidate_matches_obligation(
+    candidate: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> bool:
+    study_id = _text(obligation.get("study_id"))
+    action_type = _text(obligation.get("action_type"))
+    work_unit_id = _text(obligation.get("work_unit_id"))
+    fingerprint = _text(obligation.get("work_unit_fingerprint"))
+    candidate_study_id = _first_text(candidate.get("study_id"), candidate.get("quest_id"))
+    if study_id is None or candidate_study_id != study_id:
+        return False
+    if action_type and _text(candidate.get("action_type")) != action_type:
+        return False
+    if work_unit_id and _text(candidate.get("work_unit_id")) != work_unit_id:
+        return False
+    if fingerprint is None:
+        return False
+    candidate_fingerprints = {
+        value
+        for value in (
+            _text(candidate.get("work_unit_fingerprint")),
+            _text(candidate.get("action_fingerprint")),
+            *_text_items(candidate.get("work_unit_fingerprints")),
+        )
+        if value is not None
+    }
+    return fingerprint in candidate_fingerprints
 
 
 def _matching_terminal_closeout(
