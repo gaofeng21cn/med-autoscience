@@ -51,17 +51,36 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         return None
     domain_transition_action = _from_domain_transition(payload)
     publication_repair_action = _from_publication_eval_readiness_blocker_repair(payload)
-    if action_matches_canonical_executable_work_unit(
-        action=publication_repair_action,
-        current_work_unit=_mapping_copy(payload.get("current_work_unit")),
+    repair_progress_action = _from_repair_progress_projection(payload)
+    repair_progress_consumes_publication_repair = _repair_progress_consumes_publication_repair(
+        repair_progress_action=repair_progress_action,
+        publication_repair_action=publication_repair_action,
+        payload=payload,
+    )
+    if (
+        repair_progress_consumes_publication_repair
+        and repair_progress_action is not None
+        and not _action_consumed_by_dispatch_receipt(
+            action=repair_progress_action,
+            payload=payload,
+        )
+    ):
+        return repair_progress_action
+    if (
+        not repair_progress_consumes_publication_repair
+        and action_matches_canonical_executable_work_unit(
+            action=publication_repair_action,
+            current_work_unit=_mapping_copy(payload.get("current_work_unit")),
+        )
     ):
         return publication_repair_action
-    repair_progress_action = _from_repair_progress_projection(payload)
     if repair_progress_action is not None:
         if not _action_consumed_by_dispatch_receipt(action=repair_progress_action, payload=payload):
             return repair_progress_action
-        if publication_repair_action is not None and _consumed_ai_reviewer_followup_routes_to_write_repair(
-            payload
+        if (
+            publication_repair_action is not None
+            and not repair_progress_consumes_publication_repair
+            and _consumed_ai_reviewer_followup_routes_to_write_repair(payload)
         ):
             return publication_repair_action
         gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
@@ -76,10 +95,10 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
             if _next_forced_delta_is_terminal_routeback_action(next_forced_delta_action):
                 return next_forced_delta_action
-            if publication_repair_action is not None:
+            if publication_repair_action is not None and not repair_progress_consumes_publication_repair:
                 return publication_repair_action
-        if next_forced_delta_action is not None:
-            return next_forced_delta_action
+            if next_forced_delta_action is not None:
+                return next_forced_delta_action
     gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
     next_forced_delta_action = _from_current_next_forced_delta(payload)
     stage_native_action = _from_stage_native_current_owner_action(payload)
@@ -377,13 +396,11 @@ def _terminal_closeout_replays_same_gate_clearing_action(
     if _non_empty_text(terminal.get("action_type")) != GATE_CLEARING_ACTION:
         return False
     if _non_empty_text(terminal.get("status")) not in {
-        "blocked",
         "closed",
         "completed",
         "executed",
         "failed",
         "repeat_suppressed",
-        "typed_blocked",
     }:
         return False
     terminal_work_unit_id = (
@@ -662,6 +679,29 @@ def _from_repair_progress_projection(payload: Mapping[str, Any]) -> dict[str, An
             acceptance_refs=gate_replay_refs,
         )
     return None
+
+
+def _repair_progress_consumes_publication_repair(
+    *,
+    repair_progress_action: Mapping[str, Any] | None,
+    publication_repair_action: Mapping[str, Any] | None,
+    payload: Mapping[str, Any],
+) -> bool:
+    repair_action = _mapping_copy(repair_progress_action)
+    publication_action = _mapping_copy(publication_repair_action)
+    if not repair_action or not publication_action:
+        return False
+    if _non_empty_text(repair_action.get("source")) != REPAIR_PROGRESS_SOURCE:
+        return False
+    progress = _mapping_copy(payload.get("repair_progress_projection"))
+    if progress.get("paper_delta_observed") is not True or progress.get("accepted_owner_receipt") is not True:
+        return False
+    source_work_unit = _non_empty_text(_mapping_copy(repair_action.get("repair_progress_precedence")).get("source_work_unit_id"))
+    if source_work_unit is None:
+        source_work_unit = _non_empty_text(progress.get("work_unit_id"))
+    if source_work_unit is None:
+        return False
+    return source_work_unit == _non_empty_text(publication_action.get("work_unit_id"))
 
 
 def _from_publication_eval_readiness_blocker_repair(payload: Mapping[str, Any]) -> dict[str, Any] | None:

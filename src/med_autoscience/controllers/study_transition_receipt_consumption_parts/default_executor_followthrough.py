@@ -73,6 +73,7 @@ def default_executor_execution_followthrough_receipt_consumption(
             owner_result=owner_result,
             repair_evidence=repair_evidence,
         )
+        currentness_basis = owner_route_currentness_basis(owner_route)
         return {
             "status": "consumed",
             "receipt_kind": "default_executor_execution",
@@ -86,6 +87,10 @@ def default_executor_execution_followthrough_receipt_consumption(
             "consumption_mode": "followthrough_action_transition",
             "followthrough_from_action_type": action_type,
             "followthrough_to_action_type": "current_package_freshness_required",
+            "work_unit_id": _text(currentness_basis.get("work_unit_id")),
+            "work_unit_fingerprint": _text(currentness_basis.get("work_unit_fingerprint")),
+            "canonical_work_unit_identity": currentness_basis,
+            "owner_route_currentness_basis": currentness_basis,
             "consumed_owner_route_idempotency_key": _text(execution.get("idempotency_key")),
             "followthrough_owner_route_idempotency_key": _text(owner_route.get("idempotency_key")),
             "consumed_owner_route_epoch": _text(owner_route.get("route_epoch")),

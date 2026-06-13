@@ -177,6 +177,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             current_work_unit=canonical_current_work_unit,
             require_ready_status=True,
         )
+        and not _repair_progress_consumes_publication_repair(
+            repair_progress_current_action=repair_progress_current_action,
+            publication_eval_current_action=publication_eval_current_action,
+            payload=payload,
+        )
         else {}
     )
     current_action = (
@@ -208,6 +213,14 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         canonical_current_work_unit=canonical_current_work_unit,
         canonical_work_unit_state=canonical_work_unit_state,
         progress=payload,
+    )
+    current_action_supersedes_canonical_work_unit = (
+        current_action_supersedes_canonical_typed_blocker
+        or _repair_progress_consumes_canonical_publication_work_unit(
+            current_action=current_action,
+            canonical_current_work_unit=canonical_current_work_unit,
+            payload=payload,
+        )
     )
     if (
         current_work_unit_status in {"typed_blocker", "blocked_current_work_unit"}
@@ -276,7 +289,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     artifact_first_owner_action = _artifact_first_owner_action(current_action)
     canonical_work_unit_for_aliases = (
         {}
-        if current_action_supersedes_canonical_typed_blocker
+        if current_action_supersedes_canonical_work_unit
         else canonical_current_work_unit
     )
     next_work_unit = (
@@ -392,7 +405,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         state_kind = _text(execution.get("state_kind"))
     if (
         current_work_unit_status in {"executable_owner_action", "running_provider_attempt", "typed_blocker"}
-        and not current_action_supersedes_canonical_typed_blocker
+        and not current_action_supersedes_canonical_work_unit
         and not (
             running_provider_attempt_suppressed_by_unbound_owner_action
             and current_work_unit_status == "running_provider_attempt"
@@ -450,7 +463,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             _explicit_wakeup_hydration_owner(launch_policy)
             or (
                 None
-                if _publication_eval_readiness_blocker_repair_action(current_action)
+                if (
+                    current_action_supersedes_canonical_work_unit
+                    or _publication_eval_readiness_blocker_repair_action(current_action)
+                )
                 else _text(canonical_current_work_unit.get("owner"))
             )
             or _text(current_action.get("next_owner"))
@@ -486,7 +502,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "controller_action": (
             (
                 None
-                if _publication_eval_readiness_blocker_repair_action(current_action)
+                if (
+                    current_action_supersedes_canonical_work_unit
+                    or _publication_eval_readiness_blocker_repair_action(current_action)
+                )
                 else _text(canonical_current_work_unit.get("action_type"))
             )
             or _first_text(current_action.get("allowed_actions"))
@@ -1024,6 +1043,49 @@ def _repair_progress_owner_action(action: Mapping[str, Any]) -> bool:
         _text(action.get("source")) == "repair_progress_projection.mas_owner_repair_execution_evidence"
         and bool(_sequence(action.get("allowed_actions")))
     )
+
+
+def _repair_progress_consumes_publication_repair(
+    *,
+    repair_progress_current_action: Mapping[str, Any],
+    publication_eval_current_action: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> bool:
+    if not _repair_progress_owner_action(repair_progress_current_action):
+        return False
+    if not _publication_eval_readiness_blocker_repair_action(publication_eval_current_action):
+        return False
+    progress = _mapping(payload.get("repair_progress_projection"))
+    if progress.get("paper_delta_observed") is not True or progress.get("accepted_owner_receipt") is not True:
+        return False
+    precedence = _mapping(repair_progress_current_action.get("repair_progress_precedence"))
+    source_work_unit = _text(precedence.get("source_work_unit_id")) or _text(progress.get("work_unit_id"))
+    if source_work_unit is None:
+        return False
+    return source_work_unit == _text(publication_eval_current_action.get("work_unit_id"))
+
+
+def _repair_progress_consumes_canonical_publication_work_unit(
+    *,
+    current_action: Mapping[str, Any],
+    canonical_current_work_unit: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> bool:
+    if not _repair_progress_owner_action(current_action):
+        return False
+    if _text(canonical_current_work_unit.get("status")) != "executable_owner_action":
+        return False
+    state = _mapping(canonical_current_work_unit.get("state"))
+    if _text(state.get("source")) != "publication_eval.recommended_actions.readiness_blocker_repair":
+        return False
+    progress = _mapping(payload.get("repair_progress_projection"))
+    if progress.get("paper_delta_observed") is not True or progress.get("accepted_owner_receipt") is not True:
+        return False
+    precedence = _mapping(current_action.get("repair_progress_precedence"))
+    source_work_unit = _text(precedence.get("source_work_unit_id")) or _text(progress.get("work_unit_id"))
+    if source_work_unit is None:
+        return False
+    return source_work_unit == _text(canonical_current_work_unit.get("work_unit_id"))
 
 
 def _gate_followthrough_owner_action(action: Mapping[str, Any]) -> bool:

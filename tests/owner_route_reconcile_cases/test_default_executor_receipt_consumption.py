@@ -356,6 +356,158 @@ def test_default_executor_consumed_receipt_identity_prevents_same_current_contro
     )
 
 
+def test_stage_closeout_consumes_current_route_from_top_level_currentness_basis(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = tmp_path / "studies" / study_id
+    work_unit_id = "medical_prose_write_repair"
+    work_unit_fingerprint = "publication-blockers::0915410f804b3697"
+    currentness_basis = {
+        "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+        "runtime_health_epoch": "runtime-health-event-006796-4692626fe074f277",
+        "source_eval_id": (
+            "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+            "003-dpcc-primary-care-phenotype-treatment-gap::2026-06-13T05:46:27+00:00"
+        ),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+    }
+    owner_route = {
+        "route_epoch": work_unit_fingerprint,
+        "truth_epoch": currentness_basis["truth_epoch"],
+        "runtime_health_epoch": currentness_basis["runtime_health_epoch"],
+        "source_eval_id": currentness_basis["source_eval_id"],
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "next_owner": "write",
+        "owner_reason": work_unit_id,
+        "allowed_actions": ["run_quality_repair_batch"],
+        "source_refs": {
+            "owner_route_currentness_basis": currentness_basis,
+            "study_truth_epoch": currentness_basis["truth_epoch"],
+            "runtime_health_epoch": currentness_basis["runtime_health_epoch"],
+            "source_eval_id": currentness_basis["source_eval_id"],
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        },
+        "idempotency_key": f"provider-admission::{study_id}::{work_unit_fingerprint}",
+    }
+    closeout_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "sat_1285ddfc9dcac80a5dc1aa55.closeout.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_attempt_id": "sat_1285ddfc9dcac80a5dc1aa55",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "owner": "write",
+            "owner_reason": work_unit_id,
+            "status": "executed",
+            "route_outcome": "progress_delta",
+            "owner_route_currentness_basis": currentness_basis,
+            "owner_receipt_ref": (
+                f"studies/{study_id}/artifacts/controller/quality_repair_batch/latest.json"
+            ),
+            "closeout_refs": [
+                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                "sat_1285ddfc9dcac80a5dc1aa55.closeout.json",
+                f"studies/{study_id}/artifacts/supervision/consumer/stage_attempt_closeouts/"
+                "sat_1285ddfc9dcac80a5dc1aa55.json",
+                f"studies/{study_id}/artifacts/controller/quality_repair_batch/latest.json",
+                f"studies/{study_id}/artifacts/controller/repair_execution_evidence/latest.json",
+                f"studies/{study_id}/paper/draft.md",
+                f"studies/{study_id}/paper/build/review_manuscript.md",
+            ],
+            "artifact_delta": {
+                "status": "fresh",
+                "meaningful_artifact_delta": True,
+                "changed_artifact_refs": [
+                    f"studies/{study_id}/paper/claim_evidence_map.json",
+                    f"studies/{study_id}/paper/evidence_ledger.json",
+                    f"studies/{study_id}/paper/draft.md",
+                    f"studies/{study_id}/paper/build/review_manuscript.md",
+                    f"studies/{study_id}/paper/review/review_ledger.json",
+                ],
+                "story_surface_delta_refs": [
+                    f"studies/{study_id}/paper/draft.md",
+                    f"studies/{study_id}/paper/build/review_manuscript.md",
+                ],
+            },
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "schema_version": 1,
+                "status": "available",
+                "stage_name": "run_quality_repair_batch",
+                "current_owner": "write",
+                "problem_summary": "The current owner route required write-owner repair.",
+                "stage_goal": "Execute the owner-authorized medical prose repair work unit.",
+                "stage_work_done": ["Ran the quality repair batch."],
+                "paper_work_done": ["Recorded a canonical manuscript story-surface delta."],
+                "changed_stage_surfaces": [],
+                "changed_paper_surfaces": [
+                    f"studies/{study_id}/paper/draft.md",
+                    f"studies/{study_id}/paper/build/review_manuscript.md",
+                ],
+                "outcome": "progress_delta",
+                "remaining_blockers": ["publication_gate_replay_blocked"],
+                "duration": {"status": "not_available"},
+                "token_usage": {"status": "not_available", "total_tokens": None},
+                "cost": {"status": "not_available", "usd": None},
+                "usage_refs": [],
+                "cost_refs": [],
+                "progress_delta_classification": "deliverable_progress",
+                "deliverable_progress_delta": {"count": 5, "refs": []},
+                "paper_progress_delta": {"count": 5, "refs": []},
+                "platform_repair_delta": {"count": 0, "refs": []},
+                "next_forced_delta": {
+                    "owner": "review",
+                    "action": "consume_ai_reviewer_recheck_request",
+                    "currentness_basis": currentness_basis,
+                },
+                "evidence_refs": [],
+            },
+        },
+    )
+
+    candidates = [
+        execution
+        for execution, ref in default_executor_execution_candidates(study_root=study_root)
+        if ref == "artifacts/supervision/consumer/default_executor_execution/sat_1285ddfc9dcac80a5dc1aa55.closeout.json"
+    ]
+    assert len(candidates) == 1
+    assert candidates[0]["owner_route_currentness_source"] == "embedded_currentness_basis"
+    assert candidates[0]["work_unit_id"] == work_unit_id
+    assert candidates[0]["work_unit_fingerprint"] == work_unit_fingerprint
+    assert candidates[0]["source_eval_id"] == currentness_basis["source_eval_id"]
+    for key, value in currentness_basis.items():
+        assert candidates[0]["owner_route_currentness_basis"][key] == value
+
+    receipt = default_executor_execution_receipt_consumption(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    )
+
+    assert receipt["status"] == "consumed"
+    assert receipt["action_type"] == "run_quality_repair_batch"
+    assert receipt["work_unit_id"] == work_unit_id
+    assert receipt["work_unit_fingerprint"] == work_unit_fingerprint
+    assert receipt["changed_artifact_ref_count"] == 5
+    assert receipt["next_action"] == "do_not_redrive_consumed_owner_route"
+
+
 def test_scan_does_not_consume_quality_repair_receipt_without_story_surface_delta(
     monkeypatch,
     tmp_path: Path,

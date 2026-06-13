@@ -30,8 +30,16 @@ def owner_route_currentness_matches(
     for key in ("route_epoch", "next_owner"):
         current_value = text(owner_route.get(key))
         execution_value = text(execution_route.get(key))
-        if key == "route_epoch" and current_value and not execution_value:
-            if _route_epoch_missing_allowed(execution_route=execution_route, owner_route=owner_route):
+        if key == "route_epoch" and current_value:
+            if not execution_value and _route_epoch_difference_allowed(
+                execution_route=execution_route,
+                owner_route=owner_route,
+            ):
+                continue
+            if execution_value != current_value and _route_epoch_difference_allowed(
+                execution_route=execution_route,
+                owner_route=owner_route,
+            ):
                 continue
         if current_value and execution_value and current_value != execution_value:
             return False
@@ -65,7 +73,15 @@ def owner_route_work_unit_currentness_matches(
             return False
     current_source_eval_id = text(current_basis.get("source_eval_id"))
     execution_source_eval_id = text(execution_basis.get("source_eval_id"))
-    if current_source_eval_id and execution_source_eval_id and current_source_eval_id != execution_source_eval_id:
+    if (
+        current_source_eval_id
+        and execution_source_eval_id
+        and current_source_eval_id != execution_source_eval_id
+        and not _source_eval_difference_allowed(
+            current_basis=current_basis,
+            execution_basis=execution_basis,
+        )
+    ):
         return False
     if (
         current_source_eval_id
@@ -91,10 +107,18 @@ def _truth_epoch_missing_allowed(
         return False
     current_source_eval_id = text(current_basis.get("source_eval_id"))
     execution_source_eval_id = text(execution_basis.get("source_eval_id"))
-    return not (current_source_eval_id and execution_source_eval_id and current_source_eval_id != execution_source_eval_id)
+    return not (
+        current_source_eval_id
+        and execution_source_eval_id
+        and current_source_eval_id != execution_source_eval_id
+        and not _source_eval_difference_allowed(
+            current_basis=current_basis,
+            execution_basis=execution_basis,
+        )
+    )
 
 
-def _route_epoch_missing_allowed(*, execution_route: Mapping[str, Any], owner_route: Mapping[str, Any]) -> bool:
+def _route_epoch_difference_allowed(*, execution_route: Mapping[str, Any], owner_route: Mapping[str, Any]) -> bool:
     current_basis = owner_route_currentness_basis(owner_route)
     execution_basis = owner_route_currentness_basis(execution_route)
     if not all(
@@ -104,7 +128,27 @@ def _route_epoch_missing_allowed(*, execution_route: Mapping[str, Any], owner_ro
         return False
     current_source_eval_id = text(current_basis.get("source_eval_id"))
     execution_source_eval_id = text(execution_basis.get("source_eval_id"))
-    return not (current_source_eval_id and execution_source_eval_id and current_source_eval_id != execution_source_eval_id)
+    return not (
+        current_source_eval_id
+        and execution_source_eval_id
+        and current_source_eval_id != execution_source_eval_id
+        and not _source_eval_difference_allowed(
+            current_basis=current_basis,
+            execution_basis=execution_basis,
+        )
+    )
+
+
+def _source_eval_difference_allowed(
+    *,
+    current_basis: Mapping[str, Any],
+    execution_basis: Mapping[str, Any],
+) -> bool:
+    return all(
+        text(current_basis.get(key))
+        and text(current_basis.get(key)) == text(execution_basis.get(key))
+        for key in ("truth_epoch", "runtime_health_epoch", "work_unit_fingerprint", "work_unit_id")
+    )
 
 
 def owner_route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:
