@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,6 +21,7 @@ from .domain_owner_action_dispatch_parts import controller_refresh
 from .domain_owner_action_dispatch_parts import current_writer_handoff
 from .domain_owner_action_dispatch_parts import developer_apply_gate
 from .domain_owner_action_dispatch_parts import dispatch_contract
+from .domain_owner_action_dispatch_parts import execution_io
 from .domain_owner_action_dispatch_parts import execution_summary
 from .domain_owner_action_dispatch_parts import output_readiness
 from .domain_owner_action_dispatch_parts import opl_execution_preflight
@@ -37,11 +37,19 @@ from .default_executor_action_policy import SUPPORTED_ACTION_TYPES
 
 
 SCHEMA_VERSION = 1
-EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_execution")
-EXECUTION_LATEST_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "latest.json"
-EXECUTION_HISTORY_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "history.jsonl"
-EXECUTION_LEDGER_LIMIT = 80
+EXECUTION_RELATIVE_ROOT = execution_io.EXECUTION_RELATIVE_ROOT
+EXECUTION_LATEST_RELATIVE_PATH = execution_io.EXECUTION_LATEST_RELATIVE_PATH
+EXECUTION_HISTORY_RELATIVE_PATH = execution_io.EXECUTION_HISTORY_RELATIVE_PATH
+EXECUTION_LEDGER_LIMIT = execution_io.EXECUTION_LEDGER_LIMIT
 SUPERVISION_LATEST_RELATIVE_PATH = persisted_dispatches.SUPERVISION_LATEST_RELATIVE_PATH
+_append_json_line = execution_io.append_json_line
+_consumer_latest_path = execution_io.consumer_latest_path
+_execution_history_path = execution_io.execution_history_path
+_execution_latest_path = execution_io.execution_latest_path
+_merged_execution_ledger = execution_io.merged_execution_ledger
+_read_json_object = execution_io.read_json_object
+_study_root = execution_io.study_root
+_write_json = execution_io.write_json
 
 
 def _utc_now() -> str:
@@ -55,82 +63,6 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def _append_json_line(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(dict(payload), ensure_ascii=False, sort_keys=True) + "\n")
-
-
-def _read_json_object(path: Path) -> dict[str, Any] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    return dict(payload) if isinstance(payload, Mapping) else None
-
-
-def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
-    return profile.studies_root / study_id
-
-
-def _dispatch_dir(profile: WorkspaceProfile, study_id: str) -> Path:
-    return _study_root(profile, study_id) / DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT
-
-
-def _consumer_latest_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / CONSUMER_LATEST_RELATIVE_PATH
-
-
-def _execution_latest_path(profile: WorkspaceProfile, study_id: str) -> Path:
-    return _study_root(profile, study_id) / EXECUTION_LATEST_RELATIVE_PATH
-
-
-def _execution_history_path(profile: WorkspaceProfile, study_id: str) -> Path:
-    return _study_root(profile, study_id) / EXECUTION_HISTORY_RELATIVE_PATH
-
-
-def _execution_identity(execution: Mapping[str, Any]) -> str:
-    return (
-        _text(execution.get("execution_id"))
-        or "::".join(
-            item
-            for item in (
-                _text(execution.get("action_type")),
-                _text(execution.get("idempotency_key")),
-                _text(execution.get("generated_at")),
-            )
-            if item
-        )
-        or json.dumps(dict(execution), ensure_ascii=False, sort_keys=True)
-    )
-
-
-def _mapping_list(value: object) -> list[Mapping[str, Any]]:
-    if not isinstance(value, list):
-        return []
-    return [item for item in value if isinstance(item, Mapping)]
-
-
-def _merged_execution_ledger(
-    *,
-    previous_payload: Mapping[str, Any] | None,
-    study_executions: Iterable[Mapping[str, Any]],
-) -> list[dict[str, Any]]:
-    merged: dict[str, dict[str, Any]] = {}
-    for execution in [
-        *_mapping_list(_mapping(previous_payload).get("execution_ledger")),
-        *_mapping_list(_mapping(previous_payload).get("executions")),
-        *study_executions,
-    ]:
-        merged[_execution_identity(execution)] = dict(execution)
-    return list(merged.values())[-EXECUTION_LEDGER_LIMIT:]
 
 
 def _dispatches(
