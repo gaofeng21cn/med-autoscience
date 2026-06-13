@@ -4,8 +4,23 @@ import importlib
 from pathlib import Path
 
 
+closeout_identity = importlib.import_module(
+    "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity"
+)
+
+
 def _provider_candidate(profile, study_id: str, *, action_fingerprint: str) -> dict[str, object]:
     work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    dispatch_path = (
+        profile.studies_root
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    route_key = f"provider-admission::{study_id}::{action_fingerprint}"
     return {
         "surface": "opl_provider_admission_candidate",
         "schema_version": 1,
@@ -16,15 +31,11 @@ def _provider_candidate(profile, study_id: str, *, action_fingerprint: str) -> d
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": action_fingerprint,
         "action_fingerprint": action_fingerprint,
-        "dispatch_path": str(
-            profile.studies_root
-            / study_id
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "default_executor_dispatches"
-            / "return_to_ai_reviewer_workflow.json"
-        ),
+        "dispatch_path": str(dispatch_path),
+        "stage_packet_ref": str(dispatch_path),
+        "stage_packet_refs": [str(dispatch_path)],
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
         "next_executable_owner": "ai_reviewer",
         "required_output_surface": "artifacts/publication_eval/latest.json",
         "provider_attempt_or_lease_required": True,
@@ -35,6 +46,23 @@ def _provider_candidate(profile, study_id: str, *, action_fingerprint: str) -> d
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": action_fingerprint,
         },
+    }
+
+
+def _with_current_admission_identity(
+    candidate: dict[str, object],
+    *,
+    study_id: str,
+    fingerprint: str,
+    stage_packet_ref: str,
+) -> dict[str, object]:
+    route_key = f"provider-admission::{study_id}::{fingerprint}"
+    return {
+        **candidate,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
     }
 
 
@@ -462,6 +490,12 @@ def test_record_only_closeout_does_not_consume_new_source_eval_write_repair(
             "runtime_health_epoch": "runtime-health-event-006790-ae857144b128100c",
         },
     }
+    candidate = _with_current_admission_identity(
+        candidate,
+        study_id=study_id,
+        fingerprint=fingerprint,
+        stage_packet_ref=str(candidate["dispatch_path"]),
+    )
 
     result = module.materialize_provider_admission_current_control_state(
         profile=profile,
@@ -597,7 +631,7 @@ def test_provider_admission_report_accepts_record_only_owner_refs_closeout_witho
     )
 
     assert closeout.get("identity_binding_status") != "inferred_from_current_work_unit"
-    assert report._closeout_identity_matches_current(closeout, identity=identity)
+    assert closeout_identity.closeout_identity_matches_current(closeout, identity=identity)
 
 
 def test_provider_admission_report_preserves_action_fingerprint_from_owner_route_basis() -> None:
@@ -654,7 +688,7 @@ def test_provider_admission_report_preserves_action_fingerprint_from_owner_route
     assert closeout["action_fingerprint"] == "sha256:current-ai-reviewer"
     assert "work_unit_fingerprint" not in closeout
     assert closeout.get("identity_binding_status") != "inferred_from_current_work_unit"
-    assert report._closeout_identity_matches_current(closeout, identity=identity)
+    assert closeout_identity.closeout_identity_matches_current(closeout, identity=identity)
 
 
 def test_provider_admission_report_identity_prefers_identity_different_current_owner_action() -> None:
@@ -752,6 +786,12 @@ def test_provider_admission_current_control_retains_pending_when_closeout_identi
             "work_unit_fingerprint": action_fingerprint,
         },
     }
+    candidate = _with_current_admission_identity(
+        candidate,
+        study_id=study_id,
+        fingerprint=action_fingerprint,
+        stage_packet_ref=str(dispatch_path),
+    )
 
     result = module.materialize_provider_admission_current_control_state(
         profile=profile,
@@ -856,6 +896,12 @@ def test_provider_admission_current_control_retains_pending_when_legacy_closeout
             "work_unit_fingerprint": action_fingerprint,
         },
     }
+    candidate = _with_current_admission_identity(
+        candidate,
+        study_id=study_id,
+        fingerprint=action_fingerprint,
+        stage_packet_ref=str(dispatch_path),
+    )
     action_only_closeout = report._closeout_evidence_with_identity(
         {
             "surface_kind": "stage_attempt_closeout_packet",

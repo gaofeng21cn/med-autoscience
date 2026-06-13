@@ -123,6 +123,88 @@ def test_materialized_current_control_requires_explicit_stage_packet_identity(
     }
 
 
+def test_unconsumed_closeout_does_not_authorize_weak_provider_admission_identity(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "publication_gate_replay"
+    fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[
+            {
+                "surface": "opl_provider_admission_candidate",
+                "schema_version": 1,
+                "status": "provider_admission_pending",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "dispatch_path": str(
+                    profile.studies_root
+                    / study_id
+                    / "artifacts"
+                    / "supervision"
+                    / "consumer"
+                    / "default_executor_dispatches"
+                    / "run_gate_clearing_batch.json"
+                ),
+                "next_executable_owner": "gate_clearing_batch",
+                "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+                "provider_attempt_or_lease_required": True,
+                "provider_completion_is_domain_completion": False,
+                "currentness_basis": {
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-event-current",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+            }
+        ],
+        generated_at="2026-06-13T19:24:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "running_provider_attempt": False,
+                "accepted_closeout_evidence": [
+                    {
+                        "surface_kind": "stage_attempt_closeout_packet",
+                        "status": "blocked",
+                        "stage_closeout_status": "blocked",
+                        "execution_status": "blocked",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "typed_blocker_reason": "stage_packet_not_current_selected_dispatch",
+                    }
+                ],
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert len(result["provider_admission_candidates"]) == 1
+    assert len(result["action_queue"]) == 1
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "pending_provider_admission"
+    assert decision["effect"] == "retain_provider_admission_pending"
+
+
 def test_materialized_current_control_ignores_stale_not_running_projection(
     tmp_path: Path,
 ) -> None:
