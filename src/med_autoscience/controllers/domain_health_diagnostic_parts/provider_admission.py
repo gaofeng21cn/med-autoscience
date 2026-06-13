@@ -1129,7 +1129,7 @@ def _status_envelope_blocks_provider_admission(
         "blocked_typed_owner",
         "parked",
     }:
-            return True
+        return True
     envelope = _mapping(status_payload.get("current_execution_envelope"))
     state_kind = _execution_state_kind(status_payload)
     if state_kind in {
