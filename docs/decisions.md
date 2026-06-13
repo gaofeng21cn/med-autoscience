@@ -12,6 +12,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002/DM003 连续卡点已经说明问题不只在单个 reducer 分支顺序，而在维护者需要从多个投影、dispatch、DHD、OPL attempt 读面重建调用关系。把图谱和禁止边纳入机器合同后，后续改变 stage-route/currentness 行为必须先更新图和 meta test，再改具体 reducer / selector / projection，降低隐式回环和重复 redrive 风险。
 - 影响：这是合同、generated 文档和 meta test hardening；不修改 live runtime 写集，不执行 DHD apply / hydrate / tick / redrive，不写 Yang runtime/study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。
 
+## 2026-06-13：PaperRecovery 成为 MAS-owned recovery authority kernel
+
+- 决策：新增 `contracts/paper_recovery_kernel_contract.json` 和 `docs/runtime/control/paper_recovery_replay.md`，把 `PaperRecovery` / `paper_recovery_state` 固定为 MAS-owned paper recovery authority。合同定义 `metadata/spec/status`、唯一 `recovery_obligation_id`、互斥 phase、conditions、`next_safe_action`、authority boundaries、accident replay、manual foreground adoption boundary 和 OPL false-authority flags。
+- 决策：stage-route reconcile 只消费 PaperRecovery obligation。`contracts/stage_route_reconcile_contract.json#/paper_recovery_kernel_consumption` 固定 derived surfaces 必须从 `paper_recovery_state` 派生：`study_progress`、DHD provider admission、operator status card、OPL admission 和 human workbench card 都不能从 queue、active run、operator card、transport status 或 docs-only claim 反向生成 recovery truth。
+- 决策：PaperRecovery 合同锁住四条 hard invariant：exactly one current obligation；`pending + observe_only` 禁止并 fail closed；terminal closeout 必须 consume 或 reject；stop-loss 必须有 successor obligation 或 human gate。Projection inconsistency 一律 fail closed，manual foreground output 缺 adoption refs 时只能是 non-authority work product。
+- 理由：DM002/DM003 类事故反复把 provider admission、DHD observe-only、operator card、terminal closeout、typed blocker 和前台 manual work 混读为 recovery 状态。把 PaperRecovery kernel 单独落成机器合同后，MAS 继续持有 paper recovery truth，OPL 只执行 obligation；维护者可以 replay 事故并用 meta tests 防止 false authority 回流。
+- 影响：这是 docs/contracts/tests lane；不修改 runtime/controller 源码，不执行 DHD apply / hydrate / tick / redrive，不写 Yang runtime/study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。合同不声明 live paper-line 已恢复、publication-ready、current package freshness 或 production-ready。
+
 ## 2026-06-13：stage-route 入口必须指向 currentness/reconcile 合同，provider admission 空投影固定为 0 / []
 
 - 决策：`docs/runtime/contracts/stage_route_contract.md` 作为 generated 人读入口，必须同时指向 stage-route YAML 和 `contracts/stage_route_reconcile_contract.json`。YAML 只负责 stage / route selection；currentness precedence、provider admission identity、runtime supervision operator policy、typed blocker 自授权禁令和 DM002/DM003 recovery acceptance 由 reconcile contract 持有。

@@ -23,6 +23,9 @@ def test_stage_route_reconcile_contract_declares_single_planning_root() -> None:
     assert contract["version"] == "stage-route-reconcile.v1"
     assert contract["state"] == "active_contract"
     assert contract["machine_boundary"].startswith("This contract defines route/currentness")
+    assert contract["related_contract_refs"][0] == (
+        "contracts/paper_recovery_kernel_contract.json"
+    )
 
     root = contract["ordinary_planning_root"]
     assert root["root"] == "current_owner_delta"
@@ -47,6 +50,38 @@ def test_stage_route_reconcile_contract_declares_single_planning_root() -> None:
         "advisory_score_or_ranking",
     } <= set(root["forbidden_default_roots"])
     assert root["no_second_truth"] is True
+
+    paper_recovery = contract["paper_recovery_kernel_consumption"]
+    assert paper_recovery["surface_kind"] == "stage_route_paper_recovery_kernel_consumption"
+    assert paper_recovery["kernel_contract_ref"] == (
+        "contracts/paper_recovery_kernel_contract.json"
+    )
+    assert paper_recovery["paper_recovery_state_root"] == "paper_recovery_state"
+    assert paper_recovery["stage_route_role"] == (
+        "consume_paper_recovery_obligation_for_provider_admission_and_closeout_reconcile"
+    )
+    assert {
+        "study_progress",
+        "domain_health_diagnostic.provider_admission_current_control",
+        "operator_status_card",
+        "OPL admission projection",
+        "human workbench card",
+    } <= set(paper_recovery["derived_surfaces_must_read_from_paper_recovery"])
+    assert paper_recovery["required_invariants"] == [
+        "exactly_one_current_recovery_obligation",
+        "pending_plus_observe_only_forbidden",
+        "terminal_closeout_must_consume_or_reject",
+        "stop_loss_must_have_successor_or_human_gate",
+        "projection_inconsistency_fail_closed",
+        "manual_foreground_output_requires_adoption_refs",
+    ]
+    assert paper_recovery["false_authority_flags"] == {
+        "stage_route_can_select_recovery_obligation": False,
+        "opl_can_own_paper_recovery_state": False,
+        "operator_card_can_create_recovery_truth": False,
+        "provider_completion_is_recovery_acceptance": False,
+        "observe_only_can_be_pending_recovery_execution": False,
+    }
 
     external = contract["external_engineering_principles"]
     assert external["surface_kind"] == "stage_route_external_engineering_principles"

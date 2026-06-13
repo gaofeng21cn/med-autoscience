@@ -5,6 +5,7 @@ from typing import Any, Callable
 from collections.abc import Mapping
 
 from med_autoscience.controllers import current_execution_envelope
+from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.controllers import runtime_dispatch_cost
 from med_autoscience.controllers.domain_health_diagnostic_parts.reporting import _attach_family_companion_to_runtime_report
 from med_autoscience.runtime_protocol import quest_state
@@ -63,18 +64,33 @@ def build_runtime_report(
         managed_study_actions=managed_study_actions,
         progress_currentness=managed_study_progress_currentness,
     )
-    managed_study_actions = _managed_study_actions_with_provider_admission_state(
-        managed_study_actions=managed_study_actions,
-        provider_admission_candidates=managed_study_opl_provider_admission_candidates,
-    )
-    managed_study_opl_runtime_owner_handoffs = _managed_handoffs_with_currentness(
-        handoffs=managed_study_opl_runtime_owner_handoffs,
-        progress_currentness=managed_study_progress_currentness,
-    )
     dispatch_counters = _dispatch_counters(
         dispatches=managed_study_outer_loop_dispatches,
         suppressions=managed_study_no_op_suppressions,
         provider_admission_candidates=managed_study_opl_provider_admission_candidates,
+    )
+    report_action_class = "codex_worker_dispatch" if dispatch_counters["codex_dispatch_count"] else (
+        "controller_apply" if managed_study_outer_loop_dispatches else "observe_only"
+    )
+    report_will_start_llm = dispatch_counters["codex_dispatch_count"] > 0
+    paper_recovery_states = _paper_recovery_states(
+        progress_currentness=managed_study_progress_currentness,
+        provider_admission_candidates=managed_study_opl_provider_admission_candidates,
+        diagnostic_report={
+            "action_class": report_action_class,
+            "will_start_llm": report_will_start_llm,
+            "codex_dispatch_count": dispatch_counters["codex_dispatch_count"],
+            "provider_admission_pending_count": len(managed_study_opl_provider_admission_candidates),
+        },
+    )
+    managed_study_actions = _managed_study_actions_with_provider_admission_state(
+        managed_study_actions=managed_study_actions,
+        provider_admission_candidates=managed_study_opl_provider_admission_candidates,
+        paper_recovery_states=paper_recovery_states,
+    )
+    managed_study_opl_runtime_owner_handoffs = _managed_handoffs_with_currentness(
+        handoffs=managed_study_opl_runtime_owner_handoffs,
+        progress_currentness=managed_study_progress_currentness,
     )
     current_execution_envelopes = _current_execution_envelopes(
         managed_study_actions=managed_study_actions,
@@ -102,12 +118,14 @@ def build_runtime_report(
         "managed_study_opl_runtime_owner_handoffs": managed_study_opl_runtime_owner_handoffs,
         "managed_study_opl_provider_admission_candidates": managed_study_opl_provider_admission_candidates,
         "provider_admission_pending_count": len(managed_study_opl_provider_admission_candidates),
+        "paper_recovery_states": paper_recovery_states,
+        "paper_recovery_provider_admission_blocked_count": _paper_recovery_provider_admission_blocked_count(
+            paper_recovery_states
+        ),
         "managed_study_autonomy_slo_statuses": managed_study_autonomy_slo_statuses,
         "managed_study_autonomy_repair_actions": managed_study_autonomy_repair_actions,
-        "action_class": "codex_worker_dispatch" if dispatch_counters["codex_dispatch_count"] else (
-            "controller_apply" if managed_study_outer_loop_dispatches else "observe_only"
-        ),
-        "will_start_llm": dispatch_counters["codex_dispatch_count"] > 0,
+        "action_class": report_action_class,
+        "will_start_llm": report_will_start_llm,
         "codex_dispatch_count": dispatch_counters["codex_dispatch_count"],
         "suppressed_dispatch_count": dispatch_counters["suppressed_dispatch_count"],
         "dispatch_budget_window": dispatch_counters["dispatch_budget_window"],
@@ -144,6 +162,43 @@ def _dispatch_counters(
         "dispatch_budget_window": runtime_dispatch_cost.dispatch_budget_window(),
         "action_fingerprints": list(dict.fromkeys(fingerprints)),
     }
+
+
+def _paper_recovery_states(
+    *,
+    progress_currentness: dict[str, dict[str, Any]],
+    provider_admission_candidates: list[dict[str, Any]],
+    diagnostic_report: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    candidates_by_study = _provider_admission_candidates_by_study(provider_admission_candidates)
+    states: dict[str, dict[str, Any]] = {}
+    study_ids = set(progress_currentness) | set(candidates_by_study)
+    for study_id in sorted(study_ids):
+        progress = dict(_mapping(progress_currentness.get(study_id)))
+        if not progress:
+            progress = {"study_id": study_id}
+        candidates = candidates_by_study.get(study_id, [])
+        progress["provider_admission_pending_count"] = len(candidates)
+        progress["provider_admission_candidates"] = candidates
+        state = build_paper_recovery_state(
+            progress,
+            diagnostic_report={
+                **dict(diagnostic_report),
+                "provider_admission_pending_count": len(candidates),
+            },
+        )
+        states[study_id] = state
+    return states
+
+
+def _paper_recovery_provider_admission_blocked_count(
+    states: Mapping[str, Mapping[str, Any]],
+) -> int:
+    return sum(
+        1
+        for state in states.values()
+        if _text(state.get("phase")) == "admission_blocked"
+    )
 
 
 def _dispatch_starts_worker(dispatch: dict[str, Any]) -> bool:
@@ -225,15 +280,9 @@ def _managed_study_actions_with_provider_admission_state(
     *,
     managed_study_actions: list[dict[str, Any]],
     provider_admission_candidates: list[dict[str, Any]],
+    paper_recovery_states: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    candidates_by_study: dict[str, list[dict[str, Any]]] = {}
-    for candidate in provider_admission_candidates:
-        if not isinstance(candidate, Mapping):
-            continue
-        study_id = _text(candidate.get("study_id"))
-        if study_id is None:
-            continue
-        candidates_by_study.setdefault(study_id, []).append(dict(candidate))
+    candidates_by_study = _provider_admission_candidates_by_study(provider_admission_candidates)
     if not candidates_by_study:
         return [
             dict(action) if isinstance(action, Mapping) else action
@@ -249,7 +298,14 @@ def _managed_study_actions_with_provider_admission_state(
         if not candidates:
             result.append(dict(action))
             continue
-        result.append(_managed_study_action_with_provider_admission_state(action, candidates=candidates))
+        recovery = _mapping(_mapping(paper_recovery_states).get(study_id or ""))
+        result.append(
+            _managed_study_action_with_provider_admission_state(
+                action,
+                candidates=candidates,
+                paper_recovery_state=recovery,
+            )
+        )
     return result
 
 
@@ -257,8 +313,22 @@ def _managed_study_action_with_provider_admission_state(
     action: Mapping[str, Any],
     *,
     candidates: list[dict[str, Any]],
+    paper_recovery_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     result = dict(action)
+    recovery = _mapping(paper_recovery_state)
+    if recovery:
+        result["paper_recovery_state"] = recovery
+    if _text(recovery.get("phase")) == "admission_blocked":
+        result["running_provider_attempt"] = False
+        result["provider_admission_state"] = {
+            "status": "blocked_by_paper_recovery_state",
+            "candidate_count": len(candidates),
+            "running_provider_attempt": False,
+            "paper_recovery_phase": _text(recovery.get("phase")),
+            "paper_recovery_reason": _paper_recovery_reason(recovery),
+        }
+        return result
     gate = _mapping(result.get("execution_gate"))
     if gate.get("blocked") is True:
         result["running_provider_attempt"] = False
@@ -278,6 +348,29 @@ def _managed_study_action_with_provider_admission_state(
         },
     )
     return result
+
+
+def _provider_admission_candidates_by_study(
+    provider_admission_candidates: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    candidates_by_study: dict[str, list[dict[str, Any]]] = {}
+    for candidate in provider_admission_candidates:
+        if not isinstance(candidate, Mapping):
+            continue
+        study_id = _text(candidate.get("study_id"))
+        if study_id is None:
+            continue
+        candidates_by_study.setdefault(study_id, []).append(dict(candidate))
+    return candidates_by_study
+
+
+def _paper_recovery_reason(recovery: Mapping[str, Any]) -> str | None:
+    for condition in recovery.get("conditions") or []:
+        if not isinstance(condition, Mapping):
+            continue
+        if text := _text(condition.get("condition")):
+            return text
+    return _text(recovery.get("phase"))
 
 
 def _current_work_unit_blocker_reason(current_work_unit: Mapping[str, Any]) -> str | None:

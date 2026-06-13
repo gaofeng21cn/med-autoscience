@@ -1,0 +1,390 @@
+{
+  "surface_kind": "mas_paper_recovery_kernel_contract",
+  "version": "paper-recovery-kernel.v1",
+  "owner": "MedAutoScience",
+  "state": "active_contract",
+  "purpose": "Machine-readable contract for the MAS PaperRecovery authority kernel, paper_recovery_state projection, recovery obligation identity, accident replay, and OPL substrate boundary.",
+  "machine_boundary": "This contract defines PaperRecovery authority, obligation state, projection invariants, and replay acceptance. It does not declare publication readiness, submission readiness, current package freshness, quality verdicts, artifact mutation authority, production readiness, or live study truth.",
+  "source_design_ref": "docs/runtime/control/paper_recovery_replay.md",
+  "related_contract_refs": [
+    "contracts/stage_route_reconcile_contract.json",
+    "contracts/stage_run_kernel_profile.json",
+    "contracts/owner_receipt_contract.json",
+    "contracts/progress_first_safety_envelope.json",
+    "contracts/foundry-agent-os-domain-kernel-manifest.json"
+  ],
+  "metadata": {
+    "schema_name": "PaperRecovery",
+    "state_surface": "paper_recovery_state",
+    "canonical_id_field": "recovery_obligation_id",
+    "canonical_state_owner": "MedAutoScience",
+    "execution_substrate_owner": "OPL Framework",
+    "projection_consumers": [
+      "study_progress",
+      "domain_health_diagnostic",
+      "operator_status_card",
+      "DHD provider admission current-control",
+      "OPL admission projection"
+    ],
+    "manual_adoption_policy_ref": "manual_foreground_adoption_boundary"
+  },
+  "spec": {
+    "paper_recovery_state_required_fields": [
+      "surface_kind",
+      "schema_version",
+      "study_id",
+      "recovery_obligation_id",
+      "phase",
+      "current_authority",
+      "conditions",
+      "next_safe_action",
+      "authority_boundary"
+    ],
+    "metadata_required_fields": [
+      "surface_kind",
+      "version",
+      "study_id",
+      "quest_id",
+      "paper_line_id",
+      "source_truth_refs",
+      "generated_at"
+    ],
+    "spec_required_fields": [
+      "recovery_obligation_id",
+      "target_surface",
+      "obligation_kind",
+      "current_owner_delta_ref",
+      "current_work_unit_identity",
+      "acceptance_refs_any",
+      "forbidden_authority_claims"
+    ],
+    "status_required_fields": [
+      "phase",
+      "conditions",
+      "next_safe_action",
+      "observed_projection",
+      "terminal_closeout_refs",
+      "consumed_or_rejected_refs",
+      "human_gate_refs",
+      "successor_obligation_ref"
+    ],
+    "recovery_obligation_id_policy": {
+      "format": "paper-recovery::<study_id>::<action_type>::<work_unit_id>::<work_unit_fingerprint_or_blocker_or_truth_epoch>",
+      "required_identity_fields": [
+        "study_id",
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint_or_blocker_type_or_truth_epoch"
+      ],
+      "exactly_one_current_obligation": true,
+      "multiple_current_obligations_effect": "projection_inconsistency_fail_closed",
+      "missing_current_obligation_effect": "projection_inconsistency_fail_closed",
+      "same_id_redrive_without_new_evidence_allowed": false
+    },
+    "phase_state_machine": {
+      "phase_field": "phase",
+      "mutually_exclusive": true,
+      "allowed_phases": [
+        "owner_action_ready",
+        "admission_pending",
+        "admission_blocked",
+        "attempt_running",
+        "terminal_closeout_ready",
+        "owner_answer_consumed",
+        "domain_blocked",
+        "human_gate",
+        "projection_inconsistent",
+        "manual_foreground_unadopted"
+      ],
+      "terminal_phases": [
+        "owner_answer_consumed",
+        "domain_blocked",
+        "human_gate"
+      ],
+      "phase_order": [
+        "owner_action_ready",
+        "admission_pending",
+        "attempt_running",
+        "terminal_closeout_ready",
+        "owner_answer_consumed"
+      ],
+      "forbidden_phase_combinations": [
+        {
+          "name": "pending_plus_observe_only",
+          "when_all": [
+            "phase=admission_pending",
+            "DHD.action_class=observe_only"
+          ],
+          "effect": "admission_blocked",
+          "reason": "observe_only means no current provider admission can be treated as pending recovery execution"
+        },
+        {
+          "name": "terminal_without_consume_or_reject",
+          "when_all": [
+            "phase=terminal_closeout_ready",
+            "consumed_or_rejected_refs.empty=true"
+          ],
+          "effect": "force_next_safe_action_consume_or_reject_terminal_closeout",
+          "reason": "terminal closeout cannot remain as implicit paper progress or retry authority"
+        },
+        {
+          "name": "stop_loss_without_successor_or_human_gate",
+          "when_all": [
+            "phase=domain_blocked",
+            "blocker=anti_loop_budget_exhausted",
+            "successor_obligation_ref=null",
+            "human_gate_refs.empty=true"
+          ],
+          "effect": "remain_fail_closed_no_redrive",
+          "reason": "stop-loss can only reopen through successor obligation or human gate"
+        },
+        {
+          "name": "manual_foreground_as_governed_recovery",
+          "when_all": [
+            "phase=manual_foreground_unadopted",
+            "adoption_refs.empty=true"
+          ],
+          "effect": "manual_work_product_only_no_mas_opl_recovery_claim",
+          "reason": "foreground output must be adopted by MAS/OPL authority refs before it can affect governed recovery"
+        }
+      ]
+    },
+    "conditions_contract": {
+      "required_condition_types": [
+        "CurrentObligationSelected",
+        "ProjectionConsistent",
+        "ProviderAdmissionAllowed",
+        "TerminalCloseoutConsumedOrRejected",
+        "AuthorityBoundaryPreserved"
+      ],
+      "condition_required_fields": [
+        "type",
+        "status",
+        "reason",
+        "source_refs",
+        "last_transition_time"
+      ],
+      "status_values": [
+        "True",
+        "False",
+        "Unknown"
+      ],
+      "projection_inconsistency_condition": {
+        "type": "ProjectionConsistent",
+        "status": "False",
+        "effect": "fail_closed",
+        "next_safe_action": "inspect_fresh_study_progress_and_dhd_dry_run_then_rebuild_projection"
+      }
+    },
+    "next_safe_action_contract": {
+      "allowed_values": [
+        "consume_terminal_closeout",
+        "reject_terminal_closeout_as_stale",
+        "admit_provider_attempt",
+        "materialize_provider_admission_or_owner_callable",
+        "watch_running_attempt",
+        "resolve_typed_blocker",
+        "record_human_or_owner_gate",
+        "run_admission_apply_or_report_operator_gate",
+        "repair_projection_before_admission",
+        "adopt_manual_delta_through_mas_owner_receipt"
+      ],
+      "terminal_closeout_observed_requires": [
+        "consume_terminal_closeout",
+        "reject_terminal_closeout_as_stale"
+      ],
+      "stop_loss_requires_any": [
+        "create_successor_recovery_obligation",
+        "open_human_gate"
+      ],
+      "projection_inconsistent_requires": [
+        "repair_projection_before_admission"
+      ]
+    }
+  },
+  "status": {
+    "contract_status": "active",
+    "runtime_claim_status": "contract_only_no_live_progress_claim",
+    "implementation_status": "runtime_reducer_projection_and_meta_guard_landed",
+    "required_live_readback_before_use": [
+      "fresh study_progress",
+      "domain-health-diagnostic --dry-run",
+      "OPL current-control / attempt ledger readback",
+      "owner receipt / typed blocker refs"
+    ],
+    "non_authoritative_replay_cases": [
+      "DM002 stage_packet_not_current_selected_dispatch typed blocker",
+      "DM003 medical_publication_surface_blocked typed blocker",
+      "same work-unit stop-loss / anti-loop budget exhausted",
+      "terminal closeout observed but not consumed by MAS authority"
+    ]
+  },
+  "projection_invariants": {
+    "exactly_one_current_obligation": {
+      "required": true,
+      "selector": "paper_recovery_state.status.current=true",
+      "zero_count_effect": "projection_inconsistency_fail_closed",
+      "multiple_count_effect": "projection_inconsistency_fail_closed"
+    },
+    "pending_obligation_requires_executable_intent": {
+      "pending_requires_all": [
+        "phase=admission_pending",
+        "next_safe_action=admit_provider_attempt",
+        "provider_admission_pending_count=1",
+        "DHD.action_class!=observe_only"
+      ],
+      "forbidden_combinations": [
+        "phase=admission_pending + DHD.action_class=observe_only",
+        "phase=admission_pending + provider_admission_pending_count=0",
+        "phase=admission_pending + current_work_unit.status=typed_blocker"
+      ],
+      "violation_effect": "admission_blocked_or_projection_inconsistent"
+    },
+    "terminal_closeout_must_be_consumed_or_rejected": {
+      "terminal_closeout_phase": "terminal_closeout_ready",
+      "requires_next_safe_action_any": [
+        "consume_terminal_closeout",
+        "reject_terminal_closeout_as_stale"
+      ],
+      "forbidden_effects": [
+        "paper_progress_credit",
+        "provider_admission_redrive",
+        "publication_ready_claim"
+      ]
+    },
+    "stop_loss_must_route_to_successor_or_human_gate": {
+      "phase": "domain_blocked",
+      "blocker": "anti_loop_budget_exhausted",
+      "requires_any": [
+        "successor_obligation_ref",
+        "human_gate_refs"
+      ],
+      "same_obligation_redrive_allowed": false,
+      "violation_effect": "remain_fail_closed_no_redrive"
+    },
+    "projection_inconsistency_fail_closed": {
+      "condition": "ProjectionConsistent=False",
+      "effect": "no_provider_admission_no_paper_progress_no_owner_receipt_claim",
+      "required_next_safe_action": "repair_projection_before_admission"
+    }
+  },
+  "authority_boundaries": {
+    "mas_authority": [
+      "PaperRecovery schema and paper_recovery_state truth",
+      "recovery_obligation_id selection",
+      "current owner delta",
+      "owner receipt",
+      "quality gate receipt",
+      "stable typed blocker",
+      "human gate",
+      "route-back evidence",
+      "canonical changed surface adoption"
+    ],
+    "opl_substrate": [
+      "StageRun execution",
+      "attempt ledger",
+      "queue / retry / dead-letter substrate",
+      "provider liveness",
+      "terminal closeout transport",
+      "workbench / operator shell projection"
+    ],
+    "derived_surfaces_must_read_from_paper_recovery": [
+      "study_progress",
+      "DHD provider admission",
+      "operator_status_card",
+      "OPL admission",
+      "human workbench card"
+    ],
+    "opl_false_authority_flags": {
+      "opl_can_select_recovery_obligation": false,
+      "opl_can_mark_paper_progress": false,
+      "opl_can_emit_mas_owner_receipt": false,
+      "opl_can_authorize_publication_ready": false,
+      "opl_can_adopt_manual_foreground_output": false,
+      "provider_completion_is_paper_recovery_acceptance": false,
+      "transport_status_can_create_current_obligation": false,
+      "operator_card_can_be_source_of_truth": false
+    },
+    "forbidden_authority_claims": [
+      "OPL execution substrate owns PaperRecovery",
+      "study_progress derives paper recovery independently from PaperRecovery",
+      "DHD observe_only means pending recovery execution",
+      "operator card status is recovery truth",
+      "provider terminal completion is MAS acceptance",
+      "manual foreground edit is governed recovery without adoption refs"
+    ]
+  },
+  "manual_foreground_adoption_boundary": {
+    "manual_foreground_possible": true,
+    "manual_output_default_effect": "manual_work_product_only_no_mas_opl_recovery_claim",
+    "adoption_requires_any": [
+      "mas_owner_receipt_ref",
+      "quality_gate_receipt_ref",
+      "canonical_changed_surface_ref_consumed_by_mas_or_opl",
+      "stable_typed_blocker_ref",
+      "human_gate_ref",
+      "route_back_evidence_ref"
+    ],
+    "forbidden_without_adoption_refs": [
+      "mark_paper_recovery_accepted",
+      "clear_current_obligation",
+      "admit_opl_stage_run_from_manual_output",
+      "claim_publication_ready",
+      "write_publication_eval_or_controller_decision"
+    ],
+    "foreground_docs_contract_lane_forbidden_writes": [
+      "study truth artifacts",
+      "Yang runtime/study artifacts",
+      "publication_eval/latest.json",
+      "controller_decisions/latest.json",
+      "paper body",
+      "OPL provider attempt"
+    ]
+  },
+  "accident_replay_contract": {
+    "surface_kind": "paper_recovery_accident_replay_contract",
+    "purpose": "Replay paper recovery accidents without using stale projections or transport success as authority.",
+    "replay_read_sequence": [
+      "fresh study_progress",
+      "paper_recovery_state",
+      "domain-health-diagnostic --dry-run",
+      "OPL current-control / attempt ledger",
+      "owner receipt / typed blocker / human gate / route-back refs"
+    ],
+    "replay_cases": [
+      {
+        "case_id": "pending_plus_observe_only",
+        "symptom": "read-model shows pending or actionable owner card while DHD dry-run is observe_only",
+        "required_outcome": "admission_blocked",
+        "next_safe_action": "run_admission_apply_or_report_operator_gate"
+      },
+      {
+        "case_id": "terminal_closeout_not_consumed",
+        "symptom": "OPL/default executor terminal closeout exists but MAS has not consumed or rejected it",
+        "required_outcome": "terminal_closeout_ready",
+        "next_safe_action": "consume_terminal_closeout"
+      },
+      {
+        "case_id": "same_work_unit_stop_loss",
+        "symptom": "same work-unit repeats after anti-loop budget or stop-loss",
+        "required_outcome": "domain_blocked",
+        "next_safe_action": "create_successor_recovery_obligation_or_open_human_gate"
+      },
+      {
+        "case_id": "manual_foreground_unadopted",
+        "symptom": "foreground/manual paper-local output exists without MAS/OPL adoption refs",
+        "required_outcome": "manual_foreground_unadopted",
+        "next_safe_action": "adopt_manual_delta_through_mas_owner_receipt"
+      }
+    ],
+    "forbidden_replay_acceptance_evidence": [
+      "docs_only_claim",
+      "operator_card_status",
+      "queue_empty",
+      "provider_completion_without_mas_consumption",
+      "active_run_id",
+      "transport_status",
+      "manual_foreground_output_without_adoption_refs"
+    ]
+  }
+}

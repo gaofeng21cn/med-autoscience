@@ -7,6 +7,7 @@
   "machine_boundary": "This contract defines route/currentness/reconcile rules. It does not declare study truth, paper closure, publication readiness, submission readiness, quality verdicts, artifact mutation authority, current_package freshness, or production readiness.",
   "source_design_ref": "docs/runtime/designs/stage_route_reconcile_target.md",
   "related_contract_refs": [
+    "contracts/paper_recovery_kernel_contract.json",
     "contracts/stage_run_kernel_profile.json",
     "contracts/progress_first_safety_envelope.json",
     "contracts/foundry_agent_series.json",
@@ -1472,7 +1473,8 @@
     },
     "missing_callable_effect": "governed_recovery_needs_typed_blocker_or_repo_implementation; explicit_manual_work_may_continue_only_as_non_authority_output",
     "route_back_owner_when_platform_binding_missing": "one-person-lab",
-    "route_back_owner_when_domain_readiness_callable_missing": "MedAutoScience"
+    "route_back_owner_when_domain_readiness_callable_missing": "MedAutoScience",
+    "manual_foreground_adoption_boundary_ref": "contracts/paper_recovery_kernel_contract.json#/manual_foreground_adoption_boundary"
   },
   "dm002_dm003_recovery_acceptance_policy": {
     "surface_kind": "mas_opl_dm002_dm003_recovery_acceptance_policy",
@@ -1629,6 +1631,44 @@
       "provider_completion_without_mas_closeout_consumption",
       "stale_runtime_attempt_or_active_run_id",
       "stage_artifact_file_presence_without_owner_receipt"
+    ],
+    "paper_recovery_kernel_ref": "contracts/paper_recovery_kernel_contract.json",
+    "paper_recovery_required_invariants": [
+      "exactly_one_current_recovery_obligation",
+      "pending_plus_observe_only_forbidden",
+      "terminal_closeout_must_consume_or_reject",
+      "stop_loss_must_have_successor_or_human_gate",
+      "projection_inconsistency_fail_closed",
+      "manual_foreground_output_requires_adoption_refs"
     ]
+  },
+  "paper_recovery_kernel_consumption": {
+    "surface_kind": "stage_route_paper_recovery_kernel_consumption",
+    "kernel_contract_ref": "contracts/paper_recovery_kernel_contract.json",
+    "paper_recovery_state_root": "paper_recovery_state",
+    "authority_summary": "MAS owns PaperRecovery and paper_recovery_state; OPL executes recovery obligations as substrate only",
+    "stage_route_role": "consume_paper_recovery_obligation_for_provider_admission_and_closeout_reconcile",
+    "derived_surfaces_must_read_from_paper_recovery": [
+      "study_progress",
+      "domain_health_diagnostic.provider_admission_current_control",
+      "operator_status_card",
+      "OPL admission projection",
+      "human workbench card"
+    ],
+    "required_invariants": [
+      "exactly_one_current_recovery_obligation",
+      "pending_plus_observe_only_forbidden",
+      "terminal_closeout_must_consume_or_reject",
+      "stop_loss_must_have_successor_or_human_gate",
+      "projection_inconsistency_fail_closed",
+      "manual_foreground_output_requires_adoption_refs"
+    ],
+    "false_authority_flags": {
+      "stage_route_can_select_recovery_obligation": false,
+      "opl_can_own_paper_recovery_state": false,
+      "operator_card_can_create_recovery_truth": false,
+      "provider_completion_is_recovery_acceptance": false,
+      "observe_only_can_be_pending_recovery_execution": false
+    }
   }
 }

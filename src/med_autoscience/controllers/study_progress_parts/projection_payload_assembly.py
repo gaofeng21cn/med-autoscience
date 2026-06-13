@@ -12,6 +12,7 @@ from med_autoscience.controllers.production_blocker_impact_projection import (
 import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
 import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
 from med_autoscience.controllers import current_execution_envelope, current_work_unit
+from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 
 from .ai_first_runtime_projection import attach_ai_first_runtime_projection
@@ -617,6 +618,8 @@ def assemble_study_progress_payload(
                 study_root=study_root,
             )
         )
+    payload["paper_recovery_state"] = build_paper_recovery_state(payload)
+    payload = _apply_paper_recovery_state_user_visible_status(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
     payload = _apply_post_user_visible_status_overrides(payload)
     if materialize_sidecar_observation:
@@ -643,9 +646,62 @@ def assemble_study_progress_payload(
 def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[str, Any]:
     updated = apply_running_provider_attempt_top_level_status(payload)
     updated = apply_current_owner_handoff_user_visible_status(updated)
+    updated = _apply_paper_recovery_state_user_visible_status(updated)
     updated = _apply_current_work_unit_typed_blocker_user_visible_status(updated)
     updated = _apply_runtime_medical_publication_surface_user_visible_status(updated)
     return _apply_terminal_delivery_user_visible_status(updated)
+
+
+def _apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    if not recovery:
+        return payload
+    phase = _non_empty_text(recovery.get("phase"))
+    if phase is None:
+        return payload
+    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
+    summary = _paper_recovery_summary(phase=phase, next_safe_action=next_safe_action)
+    if summary is None:
+        return payload
+    updated = dict(payload)
+    if phase in {"admission_blocked", "projection_inconsistent", "manual_foreground_unadopted"}:
+        blockers = list(updated.get("current_blockers") or [])
+        if phase not in blockers:
+            blockers.append(phase)
+        updated["current_blockers"] = blockers
+        updated["next_system_action"] = summary
+    operator_status = _mapping_copy(updated.get("operator_status_card"))
+    if operator_status:
+        operator_status["paper_recovery_phase"] = phase
+        operator_status["current_focus"] = summary
+        operator_status["user_visible_verdict"] = summary
+        updated["operator_status_card"] = operator_status
+    user_visible = _mapping_copy(updated.get("user_visible_projection"))
+    if user_visible:
+        user_visible["paper_recovery_phase"] = phase
+        user_visible["next_step"] = summary
+        user_visible["why_not_progressing"] = phase
+        updated["user_visible_projection"] = user_visible
+    return updated
+
+
+def _paper_recovery_summary(*, phase: str, next_safe_action: Mapping[str, Any]) -> str | None:
+    kind = _non_empty_text(next_safe_action.get("kind"))
+    if phase == "admission_blocked":
+        return "Provider admission is blocked until the current MAS owner obligation can start or reports an operator gate."
+    if phase == "projection_inconsistent":
+        return "Paper recovery projection is inconsistent; repair the MAS recovery state before admission."
+    if phase == "manual_foreground_unadopted":
+        return "Foreground paper edits require MAS owner receipt adoption before they count as recovery progress."
+    if phase == "terminal_closeout_ready":
+        return "Consume the matching terminal closeout through MAS owner authority."
+    if phase == "domain_blocked":
+        return "Resolve the current typed blocker through its owner before starting another provider attempt."
+    if phase == "attempt_running":
+        return "Watch the running provider attempt bound to the current paper recovery obligation."
+    if kind is not None:
+        return kind
+    return None
 
 
 def _current_action_aligned_with_execution_envelope(
