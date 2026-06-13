@@ -156,6 +156,142 @@ def test_stale_report_provider_admission_candidate_is_suppressed_by_fresh_progre
     assert result["studies"][0]["current_execution_envelope"]["next_work_unit"] == current_work_unit_id
 
 
+def test_domain_blocked_recovery_state_suppresses_progress_currentness_provider_admission(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = profile.studies_root / study_id
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "analysis_claim_evidence_repair"
+    fingerprint = "publication-blockers::497d1260db522f01"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{action_type}.json"
+    )
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "analysis-campaign",
+            "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    result = module._materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        apply=False,
+        report={
+            "scanned_at": "2026-06-13T13:18:02+00:00",
+            "managed_study_opl_provider_admission_candidates": [],
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "quest_id": study_id,
+                        "current_work_unit": {
+                            "surface_kind": "current_work_unit",
+                            "schema_version": 1,
+                            "status": "typed_blocker",
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "owner": "analysis-campaign",
+                            "state": {
+                                "state_kind": "typed_blocker",
+                                "typed_blocker": {
+                                    "blocker_type": "stage_packet_not_current_selected_dispatch",
+                                    "owner": "analysis-campaign",
+                                },
+                            },
+                            "currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-current",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": fingerprint,
+                            },
+                        },
+                        "current_executable_owner_action": {
+                            "surface_kind": "current_executable_owner_action",
+                            "schema_version": 1,
+                            "status": "ready",
+                            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                            "next_owner": "analysis-campaign",
+                            "action_type": action_type,
+                            "allowed_actions": [action_type],
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                        },
+                        "current_execution_envelope": {
+                            "state_kind": "typed_blocker",
+                            "owner": "analysis-campaign",
+                            "next_work_unit": None,
+                        },
+                        "paper_recovery_state": {
+                            "phase": "domain_blocked",
+                            "conditions": [
+                                {
+                                    "condition": "current_work_unit_typed_blocker",
+                                    "blocker_type": "stage_packet_not_current_selected_dispatch",
+                                }
+                            ],
+                            "next_safe_action": {
+                                "kind": "resolve_typed_blocker",
+                                "owner": "analysis-campaign",
+                                "provider_admission_allowed": False,
+                            },
+                            "suppressed_surfaces": [
+                                "current_executable_owner_action",
+                                "provider_admission_candidates",
+                            ],
+                        },
+                    },
+                },
+            },
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "decision": "blocked",
+                    "reason": "stage_packet_not_current_selected_dispatch",
+                    "paper_recovery_state": {
+                        "phase": "domain_blocked",
+                        "next_safe_action": {
+                            "kind": "resolve_typed_blocker",
+                            "owner": "analysis-campaign",
+                            "provider_admission_allowed": False,
+                        },
+                        "suppressed_surfaces": [
+                            "current_executable_owner_action",
+                            "provider_admission_candidates",
+                        ],
+                    },
+                }
+            ],
+        },
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
+    assert result["stage_route_arbiter"]["candidate_count"] == 0
+    study = result["studies"][0]
+    assert study["study_id"] == study_id
+    assert study["current_work_unit"]["status"] == "typed_blocker"
+    assert study["current_execution_envelope"]["state_kind"] == "typed_blocker"
+
+
 def test_same_tick_materialized_candidate_requires_explicit_current_identity(
     tmp_path: Path,
 ) -> None:

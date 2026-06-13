@@ -74,6 +74,11 @@ def materialize_report_provider_admission_current_control_state(
         candidates,
         progress_currentness_candidates,
     )
+    candidates = _filter_candidates_blocked_by_paper_recovery_state(
+        candidates,
+        actions=report.get("managed_study_actions"),
+        paper_recovery_states=report.get("paper_recovery_states"),
+    )
     scanned_studies = _with_candidate_root_closeout_scans(
         profile=profile,
         candidates=progress_currentness_candidates,
@@ -130,8 +135,12 @@ def _filter_candidates_blocked_by_paper_recovery_state(
     candidates: list[dict[str, Any]],
     *,
     actions: Any,
+    paper_recovery_states: Any = None,
 ) -> list[dict[str, Any]]:
     blocked_studies = _paper_recovery_provider_admission_blocked_studies(actions)
+    blocked_studies.update(
+        _paper_recovery_provider_admission_blocked_studies_from_states(paper_recovery_states)
+    )
     if not blocked_studies:
         return candidates
     return [
@@ -150,19 +159,34 @@ def _paper_recovery_provider_admission_blocked_studies(actions: Any) -> set[str]
         if study_id is None:
             continue
         recovery = _mapping(action.get("paper_recovery_state"))
-        next_safe_action = _mapping(recovery.get("next_safe_action"))
-        suppressed = {
-            item
-            for item in recovery.get("suppressed_surfaces") or []
-            if isinstance(item, str)
-        }
-        if (
-            _non_empty_text(recovery.get("phase")) == "domain_blocked"
-            and next_safe_action.get("provider_admission_allowed") is False
-            and "provider_admission_candidates" in suppressed
-        ):
+        if _paper_recovery_blocks_provider_admission(recovery):
             blocked.add(study_id)
     return blocked
+
+
+def _paper_recovery_provider_admission_blocked_studies_from_states(states: Any) -> set[str]:
+    blocked: set[str] = set()
+    for study_id, recovery in _mapping(states).items():
+        normalized_study_id = _non_empty_text(study_id)
+        if normalized_study_id is None:
+            continue
+        if _paper_recovery_blocks_provider_admission(_mapping(recovery)):
+            blocked.add(normalized_study_id)
+    return blocked
+
+
+def _paper_recovery_blocks_provider_admission(recovery: Mapping[str, Any]) -> bool:
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    suppressed = {
+        item
+        for item in recovery.get("suppressed_surfaces") or []
+        if isinstance(item, str)
+    }
+    return (
+        _non_empty_text(recovery.get("phase")) == "domain_blocked"
+        and next_safe_action.get("provider_admission_allowed") is False
+        and "provider_admission_candidates" in suppressed
+    )
 
 
 def _sync_managed_action_provider_admission_candidates(
