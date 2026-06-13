@@ -1093,10 +1093,18 @@
       "domain_action_request_materializer",
       "domain_owner_action_dispatch"
     ],
-    "ordinary_executor_route": "MAS owner callable or OPL StageRun provider attempt invokes Codex as an internal executor",
+    "ordinary_executor_route": "MAS/OPL-governed recovery route uses a MAS owner callable, MAS domain-handler dispatch, or OPL StageRun provider attempt that may invoke Codex as an internal executor",
     "enforcement_model": "authority_acceptance_not_filesystem_prevention",
     "human_or_foreground_manual_edits_possible": true,
-    "manual_bypass_adoption_requires": [
+    "explicit_manual_foreground_route_allowed": true,
+    "manual_foreground_route_requirements": [
+      "user explicitly selects foreground/manual editing or fast-lane mode",
+      "agent labels the output as manual foreground work, not MAS/OPL-governed recovery",
+      "agent avoids runtime-owned study truth, OPL queue/attempt artifacts, publication_eval/latest.json, and controller_decisions/latest.json unless a separate MAS owner surface authorizes those writes",
+      "agent states which workspace surfaces were edited and which MAS/OPL truth surfaces were not updated",
+      "subsequent MAS/OPL recovery claim requires intake, owner receipt, quality gate receipt, typed blocker, human gate, route-back evidence, strict running proof, or consumed canonical changed surface ref"
+    ],
+    "manual_foreground_adoption_requires": [
       "mas_owner_receipt_ref",
       "quality_gate_receipt_ref",
       "stable_typed_blocker_ref",
@@ -1105,10 +1113,10 @@
       "same_current_identity_strict_provider_running_proof",
       "canonical_changed_surface_ref_consumed_by_mas_or_opl"
     ],
-    "manual_bypass_without_required_refs_effect": "ignored_diagnostic_no_recovery_claim",
-    "forbidden_foreground_routes": [
-      "paper_local_codex_execution_without_mas_owner_callable",
-      "direct_manuscript_or_package_edit_as_recovery_route",
+    "manual_foreground_without_required_refs_effect": "manual_work_product_only_no_mas_opl_recovery_claim",
+    "not_accepted_as_governed_recovery": [
+      "paper_local_codex_execution_without_mas_owner_callable_or_explicit_manual_mode",
+      "direct_manuscript_or_package_edit_claimed_as_mas_opl_recovery",
       "foreground_replay_of_provider_admission_queue",
       "foreground_domain_health_diagnostic_apply_without_explicit_controller_lane",
       "study_workspace_runtime_artifact_mutation",
@@ -1119,17 +1127,19 @@
       "write_repo_docs_contracts_tests",
       "implement_missing_mas_owner_callable_or_derived_repair_action",
       "run_repo_native_verification",
-      "supervise_opl_stage_run_or_provider_attempt"
+      "supervise_opl_stage_run_or_provider_attempt",
+      "perform_explicit_user_requested_manual_foreground_edit_with_non_authority_label"
     ],
     "codex_direct_execution_authority": {
       "can_act_as_internal_owner_callable_executor": true,
       "requires_mas_owner_callable_or_stage_run_context": true,
-      "can_bypass_mas_or_opl_for_paper_local_recovery": false,
+      "can_perform_explicit_manual_paper_local_work": true,
+      "can_claim_manual_work_as_mas_opl_recovery_without_adoption_refs": false,
       "can_write_study_truth_without_owner_receipt": false,
       "can_write_publication_eval_or_controller_decisions": false,
       "can_mutate_runtime_or_study_artifacts_from_docs_contract_lane": false
     },
-    "missing_callable_effect": "typed_blocker_or_repo_implementation_needed_not_paper_local_shortcut",
+    "missing_callable_effect": "governed_recovery_needs_typed_blocker_or_repo_implementation; explicit_manual_work_may_continue_only_as_non_authority_output",
     "route_back_owner_when_platform_binding_missing": "one-person-lab",
     "route_back_owner_when_domain_readiness_callable_missing": "MedAutoScience"
   },
