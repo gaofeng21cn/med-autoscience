@@ -569,7 +569,7 @@ def _merge_provider_admission_candidates(
     *candidate_groups: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     merged: list[dict[str, Any]] = []
-    seen: set[tuple[str | None, str | None, str | None, str | None]] = set()
+    index_by_key: dict[tuple[str | None, str | None, str | None, str | None], int] = {}
     for group in candidate_groups:
         for candidate in group:
             key = (
@@ -578,11 +578,42 @@ def _merge_provider_admission_candidates(
                 _non_empty_text(candidate.get("work_unit_id")),
                 _non_empty_text(candidate.get("dispatch_path")),
             )
-            if key in seen:
+            if key in index_by_key:
+                existing_index = index_by_key[key]
+                existing = merged[existing_index]
+                if _provider_admission_identity_rank(candidate) > _provider_admission_identity_rank(existing):
+                    merged[existing_index] = dict(candidate)
                 continue
-            seen.add(key)
+            index_by_key[key] = len(merged)
             merged.append(dict(candidate))
     return merged
+
+
+def _provider_admission_identity_rank(candidate: Mapping[str, Any]) -> tuple[int, int, int]:
+    stage_packet_refs = [
+        item
+        for item in candidate.get("stage_packet_refs") or []
+        if _non_empty_text(item) is not None
+    ]
+    has_stage_packet_identity = int(
+        _non_empty_text(candidate.get("stage_packet_ref")) is not None
+        or bool(stage_packet_refs)
+    )
+    has_route_identity = int(
+        _non_empty_text(candidate.get("route_identity_key")) is not None
+        and _non_empty_text(candidate.get("attempt_idempotency_key")) is not None
+    )
+    basis = _mapping(candidate.get("currentness_basis"))
+    has_currentness_basis = int(
+        _non_empty_text(basis.get("work_unit_id")) is not None
+        and _non_empty_text(basis.get("work_unit_fingerprint")) is not None
+        and _non_empty_text(basis.get("truth_epoch")) is not None
+        and (
+            _non_empty_text(basis.get("runtime_health_epoch")) is not None
+            or _non_empty_text(basis.get("source_eval_id")) is not None
+        )
+    )
+    return (has_stage_packet_identity, has_route_identity, has_currentness_basis)
 
 
 def _filter_provider_admission_candidates_by_progress_currentness(
