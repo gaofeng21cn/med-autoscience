@@ -164,6 +164,13 @@ def refresh_existing_projection_current_owner_surfaces(
     )
     updated = sync_progress_first_owner_action_admission(updated)
     updated = apply_running_provider_attempt_top_level_status(updated)
+    updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+        action_queue=envelope_actions,
+        runtime_health=runtime_health_snapshot,
+        extra={
+            "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+        },
+    )
     updated["user_visible_projection"] = build_user_visible_projection(updated)
     return attach_delivery_inspection_projection_fn(
         updated,
