@@ -121,7 +121,14 @@ def _gate_clearing_batch_followthrough(
     source_eval_id = _non_empty_text(record.get("source_eval_id"))
     if source_eval_id is None:
         return None
-    if source_eval_id not in accepted_eval_ids and not _gate_clearing_actionable_route_back_record(record):
+    if (
+        source_eval_id not in accepted_eval_ids
+        and not _gate_clearing_actionable_route_back_record(record)
+        and not _gate_clearing_record_matches_current_publication_blocker(
+            record,
+            publication_eval_payload or {},
+        )
+    ):
         return None
     unit_results = [
         dict(item)
@@ -200,6 +207,63 @@ def _gate_clearing_actionable_route_back_record(record: Mapping[str, Any]) -> bo
         currentness.get("explicit_publication_work_unit_id")
     ) or _non_empty_text(dict(record.get("explicit_publication_work_unit") or {}).get("unit_id"))
     return current_work_unit is not None and current_work_unit != explicit_work_unit
+
+
+def _gate_clearing_record_matches_current_publication_blocker(
+    record: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any],
+) -> bool:
+    currentness = dict(record.get("work_unit_currentness") or {})
+    if _non_empty_text(currentness.get("current_actionability_status")) != "actionable":
+        return False
+    if currentness.get("lacks_specific_blocker_object") is True:
+        return False
+    current_work_unit = _non_empty_text(
+        currentness.get("current_publication_work_unit_id")
+    ) or _non_empty_text(dict(record.get("current_publication_work_unit") or {}).get("unit_id"))
+    selected_work_unit = _non_empty_text(
+        currentness.get("selected_publication_work_unit_id")
+    ) or _non_empty_text(dict(record.get("selected_publication_work_unit") or {}).get("unit_id"))
+    if current_work_unit is None:
+        return False
+    record_fingerprints = {
+        text
+        for value in (
+            record.get("work_unit_fingerprint"),
+            record.get("source_work_unit_fingerprint"),
+            currentness.get("current_work_unit_fingerprint"),
+            currentness.get("explicit_work_unit_fingerprint"),
+        )
+        if (text := _non_empty_text(value)) is not None
+    }
+    if not record_fingerprints:
+        return False
+    for action in publication_eval_payload.get("recommended_actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint"))
+        if action_fingerprint not in record_fingerprints:
+            continue
+        action_work_unit = _publication_eval_action_work_unit(action)
+        if action_work_unit == current_work_unit or (
+            selected_work_unit is not None and action_work_unit == selected_work_unit
+        ):
+            return True
+        for work_unit in action.get("blocking_work_units") or []:
+            if not isinstance(work_unit, Mapping):
+                continue
+            if _non_empty_text(work_unit.get("unit_id")) == current_work_unit:
+                return True
+    return False
+
+
+def _publication_eval_action_work_unit(action: Mapping[str, Any]) -> str | None:
+    next_work_unit = action.get("next_work_unit")
+    if isinstance(next_work_unit, Mapping):
+        text = _non_empty_text(next_work_unit.get("unit_id"))
+        if text is not None:
+            return text
+    return _non_empty_text(action.get("work_unit_id"))
 
 
 def _gate_clearing_current_eval_ids(

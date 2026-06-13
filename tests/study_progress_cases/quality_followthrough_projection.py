@@ -303,6 +303,109 @@ def test_gate_clearing_batch_followthrough_keeps_actionable_route_back_after_mec
     assert result["latest_record_path"] == str(gate_batch_path)
 
 
+def test_gate_clearing_batch_followthrough_accepts_current_publication_blocker_fingerprint_after_eval_refresh(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational",
+    )
+    current_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "003-dpcc-primary-care-phenotype-treatment-gap::2026-06-13T06:55:24+00:00"
+    )
+    prior_reviewer_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    current_blocker_fingerprint = "publication-blockers::0915410f804b3697"
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": current_eval_id,
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "recommended_actions": [
+                {
+                    "action_type": "route_back_same_line",
+                    "route_target": "write",
+                    "work_unit_fingerprint": current_blocker_fingerprint,
+                    "next_work_unit": {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                    },
+                    "blocking_work_units": [
+                        {
+                            "unit_id": "medical_prose_write_repair",
+                            "lane": "write",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    gate_batch_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+    _write_json(
+        gate_batch_path,
+        {
+            "schema_version": 1,
+            "source_eval_id": prior_reviewer_eval_id,
+            "source_work_unit_fingerprint": current_blocker_fingerprint,
+            "status": "executed",
+            "work_unit_fingerprint": current_blocker_fingerprint,
+            "current_publication_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+                "summary": "Repair structured medical reporting.",
+            },
+            "explicit_publication_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+            },
+            "work_unit_currentness": {
+                "explicit_publication_work_unit_id": "medical_prose_write_repair",
+                "selected_publication_work_unit_id": "medical_prose_write_repair",
+                "current_publication_work_unit_id": "medical_prose_write_repair",
+                "explicit_work_unit_fingerprint": current_blocker_fingerprint,
+                "current_work_unit_fingerprint": current_blocker_fingerprint,
+                "explicit_work_unit_fingerprint_matches_current": True,
+                "lacks_specific_blocker_object": False,
+                "current_actionability_status": "actionable",
+            },
+            "gate_replay": {
+                "status": "blocked",
+                "blockers": [
+                    "stale_submission_minimal_authority",
+                    "medical_publication_surface_blocked",
+                    "reviewer_first_concerns_unresolved",
+                    "submission_hardening_incomplete",
+                ],
+            },
+        },
+    )
+
+    result = module._gate_clearing_batch_followthrough(
+        study_root=study_root,
+        publication_eval_payload=json.loads(publication_eval_path.read_text(encoding="utf-8")),
+    )
+
+    assert result is not None
+    assert result["source_eval_id"] == prior_reviewer_eval_id
+    assert result["work_unit_id"] == "medical_prose_write_repair"
+    assert result["work_unit_fingerprint"] == current_blocker_fingerprint
+    assert result["work_unit_currentness"]["current_publication_work_unit_id"] == (
+        "medical_prose_write_repair"
+    )
+    assert result["gate_replay_status"] == "blocked"
+    assert result["latest_record_path"] == str(gate_batch_path)
+
+
 def test_study_progress_projects_quality_repair_batch_followthrough(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)

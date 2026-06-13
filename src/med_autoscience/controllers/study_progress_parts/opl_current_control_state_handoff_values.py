@@ -112,6 +112,17 @@ def _observability_mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
+def _work_unit_identity(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return (
+            _non_empty_text(value.get("unit_id"))
+            or _non_empty_text(value.get("work_unit_id"))
+            or _non_empty_text(value.get("id"))
+            or _non_empty_text(value.get("ref"))
+        )
+    return _non_empty_text(value)
+
+
 def _owner_route_projection(value: object) -> dict[str, Any]:
     return _copy_mapping_keys(value, OWNER_ROUTE_PROJECTION_KEYS)
 
