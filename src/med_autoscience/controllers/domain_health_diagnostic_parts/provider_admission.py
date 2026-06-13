@@ -370,8 +370,15 @@ def _status_blocks_action_queue_self_identity(status_payload: Mapping[str, Any])
     current_identity = _current_action_identity(status_payload)
     if _status_requires_current_identity(status_payload) and not current_identity:
         return True
-    if current_identity and _mapping(status_payload.get("current_executable_owner_action")):
-        return False
+    state_kind = _status_execution_state_kind(status_payload)
+    if state_kind in {
+        "typed_blocker",
+        "running_provider_attempt",
+        "blocked_current_work_unit",
+        "blocked_typed_owner",
+        "parked",
+    }:
+        return True
     current_work_unit = _mapping(status_payload.get("current_work_unit"))
     current_work_unit_status = _non_empty_text(current_work_unit.get("status"))
     if current_work_unit_status in {
@@ -382,14 +389,7 @@ def _status_blocks_action_queue_self_identity(status_payload: Mapping[str, Any])
         "parked",
     }:
         return True
-    state_kind = _status_execution_state_kind(status_payload)
-    return state_kind in {
-        "typed_blocker",
-        "running_provider_attempt",
-        "blocked_current_work_unit",
-        "blocked_typed_owner",
-        "parked",
-    }
+    return False
 
 
 def _status_execution_state_kind(status_payload: Mapping[str, Any]) -> str | None:

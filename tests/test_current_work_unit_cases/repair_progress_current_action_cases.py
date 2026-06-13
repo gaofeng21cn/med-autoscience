@@ -152,6 +152,78 @@ def test_current_work_unit_projects_live_repair_progress_precedence_over_stage_r
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_projects_repair_progress_gate_replay_over_stale_stage_packet_blocker() -> None:
+    module = _module()
+    gate_replay_fingerprint = "sha256:c82b52d55725eb89ed014ff1f805c07d6a6c2ee25a47c5e5713367a54fd88917"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "queued",
+            "paper_stage": "publishability_gate_blocked",
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "next_owner": "gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": gate_replay_fingerprint,
+            "action_fingerprint": gate_replay_fingerprint,
+            "action_type": "run_gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "publication_gate_replay_delta_or_typed_blocker",
+            "source_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+            "acceptance_refs": [
+                "artifacts/controller/repair_execution_evidence/latest.json",
+                "artifacts/controller/repair_execution_receipts/latest.json",
+                "artifacts/controller/gate_clearing_batch/latest.json",
+            ],
+            "repair_progress_precedence": {
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "superseded_stage_native_action": "run_quality_repair_batch",
+                "superseded_readiness_action": "complete_medical_paper_readiness_surface",
+                "source_work_unit_id": "analysis_claim_evidence_repair",
+                "source_fingerprint": gate_replay_fingerprint,
+            },
+        },
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "schema_version": 1,
+            "status": "blocked",
+            "blocker_id": "stage_packet_not_current_selected_dispatch",
+            "blocker_type": "stage_packet_not_current_selected_dispatch",
+            "reason": "stage_packet_not_current_selected_dispatch",
+            "owner": "one-person-lab",
+            "write_permitted": False,
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": (
+                "owner-route::write::manuscript_story_surface_delta_missing::run_quality_repair_batch"
+            ),
+            "typed_blocker_ref": (
+                "artifacts/supervision/consumer/default_executor_execution/"
+                "sat_cfb833131bfa30d6661c26c2.closeout.json"
+            ),
+        },
+        next_owner="one-person-lab",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "gate_clearing_batch"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "publication_gate_replay"
+    assert work_unit["work_unit_fingerprint"] == gate_replay_fingerprint
+    assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_projects_publication_eval_repair_over_stale_gate_selector_blocker() -> None:
     module = _module()
     fingerprint = "publication-blockers::0915410f804b3697"

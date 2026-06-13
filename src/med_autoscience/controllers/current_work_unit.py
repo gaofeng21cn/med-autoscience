@@ -1204,6 +1204,11 @@ def _action_supersedes_typed_blocker(
     if not payload:
         return True
     blocker_type = _text(payload.get("blocker_type"))
+    if _repair_progress_gate_replay_action_supersedes_stage_packet_blocker(
+        action=action,
+        blocker=payload,
+    ):
+        return True
     if _terminal_routeback_action_supersedes_gate_replay_blocker(
         action=action,
         blocker=payload,
@@ -1247,6 +1252,40 @@ def _action_supersedes_typed_blocker(
         action=action,
         progress=_mapping(progress),
     )
+
+
+def _repair_progress_gate_replay_action_supersedes_stage_packet_blocker(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+) -> bool:
+    blocker_type = (
+        _text(blocker.get("blocker_type"))
+        or _text(blocker.get("blocker_id"))
+        or _text(blocker.get("blocked_reason"))
+    )
+    if blocker_type != "stage_packet_not_current_selected_dispatch":
+        return False
+    if (_text(action.get("source_surface")) or _text(action.get("source"))) != (
+        "repair_progress_projection.mas_owner_repair_execution_evidence"
+    ):
+        return False
+    if _text(action.get("action_type")) != "run_gate_clearing_batch":
+        return False
+    if _work_unit_id(action.get("work_unit_id")) not in GATE_REPLAY_WORK_UNITS:
+        return False
+    precedence = _mapping(action.get("repair_progress_precedence"))
+    if precedence.get("paper_delta_observed") is not True:
+        return False
+    if precedence.get("accepted_owner_receipt") is not True:
+        return False
+    superseded_action = _text(precedence.get("superseded_stage_native_action"))
+    blocker_action = _text(blocker.get("action_type"))
+    if superseded_action is not None and blocker_action is not None and superseded_action != blocker_action:
+        return False
+    source_work_unit = _work_unit_id(precedence.get("source_work_unit_id"))
+    blocker_work_unit = _work_unit_id(blocker.get("work_unit_id"))
+    return source_work_unit is not None and source_work_unit == blocker_work_unit
 
 
 def _terminal_routeback_action_supersedes_gate_replay_blocker(
