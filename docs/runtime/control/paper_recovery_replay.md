@@ -56,6 +56,18 @@ Replay 读取顺序固定为：
 
 禁止把 `docs_only_claim`、operator card、queue empty、provider completion、active run id、transport status 或无 adoption refs 的 manual foreground output 当作 recovery acceptance evidence。
 
+## Stage-route conformance replay
+
+DM002 / DM003 类卡点按同一条 governed chain 复盘：
+
+`current_owner_delta -> current_work_unit -> current_execution_envelope -> provider_admission_current_control -> OPL StageRun -> terminal_closeout -> MAS closeout consume_or_reject -> next_current_owner_delta`
+
+任何跳过 `MAS closeout consume_or_reject` 的边都只能是诊断。`queue_empty`、`active_run_id`、transport status、trace/span、read-model projection、stale selected dispatch、old route-back packet 和 provider completion 不能生成 recovery obligation、owner receipt、typed blocker、provider admission 或 paper progress。
+
+`stage_packet_not_current_selected_dispatch` 的 owner 是 OPL。安全出口是 OPL authorization repair owner action、带 current work-unit binding 的 derived repair action、successor recovery obligation、human gate 或 route-back evidence；同一 work unit provider admission redrive、stale stage-packet replay 和 foreground gate replay retry 都必须 fail closed。
+
+Terminal closeout 若缺 `paper_stage_log` 的 duration、token usage、cost 或其它 required field，必须写成 `missing_with_reason` 并带 refs。缺字段且没有 reason 时，MAS 只能 consume 为 `domain_closeout_provided_incomplete_user_stage_log` typed blocker；这不产生 paper-progress credit，也不触发自动 redrive。
+
 ## Authority 边界
 
 MAS 持有：

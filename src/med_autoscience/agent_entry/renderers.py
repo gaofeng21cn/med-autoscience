@@ -66,6 +66,10 @@ def render_stage_route_contract_guide() -> str:
         reconcile_contract.get("runtime_supervision_operator_policy"),
         "runtime_supervision_operator_policy",
     )
+    conformance_invariants = _mapping(
+        reconcile_contract.get("stage_route_conformance_invariants"),
+        "stage_route_conformance_invariants",
+    )
     compatible_agents = _string_list(payload.get("compatible_agents"), field="compatible_agents")
     modes = _mode_payload_list(payload)
     route_contracts = _route_contract_payload_map(payload)
@@ -88,14 +92,26 @@ def render_stage_route_contract_guide() -> str:
         "",
         f"Canonical source: `{STAGE_ROUTE_CONTRACT_REF}`.",
         "",
-        "## Compatible Agents",
-        f"- {', '.join(compatible_agents)}",
+        f"Currentness and recovery-obligation source: `{STAGE_ROUTE_RECONCILE_CONTRACT_REF}`.",
         "",
-        "## Runtime Modes",
-        f"- {', '.join(runtime_modes)}",
-        "",
-        "## Mode Contract",
+        "The YAML route contract selects stages and route families. It does not authorize provider admission, "
+        "OPL StageRun execution, terminal closeout consumption, paper progress, owner receipt, typed blocker, "
+        "publication readiness, or current package truth. Those boundaries are held by the reconcile contract "
+        "and by fresh runtime readback.",
     ]
+    lines.extend(_render_stage_route_conformance_invariants(conformance_invariants))
+    lines.extend(
+        (
+            "",
+            "## Compatible Agents",
+            f"- {', '.join(compatible_agents)}",
+            "",
+            "## Runtime Modes",
+            f"- {', '.join(runtime_modes)}",
+            "",
+            "## Mode Contract",
+        )
+    )
     for mode in modes:
         lines.extend(
             (
@@ -228,6 +244,80 @@ def _stage_route_reconcile_contract_payload() -> dict[str, object]:
     if not isinstance(payload, dict):
         raise ValueError(f"{STAGE_ROUTE_RECONCILE_CONTRACT_REF} must be a JSON object")
     return payload
+
+
+def _render_stage_route_conformance_invariants(conformance: dict[str, object]) -> list[str]:
+    owner_path = _mapping(
+        conformance.get("unique_current_owner_path_invariant"),
+        "stage_route_conformance_invariants.unique_current_owner_path_invariant",
+    )
+    false_authority = _mapping(
+        conformance.get("false_authority_generation_invariant"),
+        "stage_route_conformance_invariants.false_authority_generation_invariant",
+    )
+    selected_dispatch = _mapping(
+        conformance.get("stage_packet_not_current_selected_dispatch_invariant"),
+        "stage_route_conformance_invariants.stage_packet_not_current_selected_dispatch_invariant",
+    )
+    typed_blocker = _mapping(
+        conformance.get("typed_blocker_self_authorization_invariant"),
+        "stage_route_conformance_invariants.typed_blocker_self_authorization_invariant",
+    )
+    terminal_closeout = _mapping(
+        conformance.get("terminal_closeout_accounting_invariant"),
+        "stage_route_conformance_invariants.terminal_closeout_accounting_invariant",
+    )
+    missing_shape = _mapping(
+        terminal_closeout.get("missing_field_shape"),
+        "stage_route_conformance_invariants.terminal_closeout_accounting_invariant.missing_field_shape",
+    )
+    chain = _string_list(
+        owner_path.get("only_chain"),
+        field="stage_route_conformance_invariants.unique_current_owner_path_invariant.only_chain",
+    )
+    forbidden_sources = _string_list(
+        false_authority.get("forbidden_domain_authority_sources"),
+        field="stage_route_conformance_invariants.false_authority_generation_invariant.forbidden_domain_authority_sources",
+    )
+    safe_exits = _string_list(
+        selected_dispatch.get("must_route_through_any"),
+        field="stage_route_conformance_invariants.stage_packet_not_current_selected_dispatch_invariant.must_route_through_any",
+    )
+    return [
+        "",
+        "## Currentness Conformance Invariants",
+        "",
+        "The single governed execution chain is:",
+        "",
+        "```mermaid",
+        "flowchart LR",
+        '  A["current_owner_delta"] --> B["current_work_unit"]',
+        '  B --> C["current_execution_envelope"]',
+        '  C --> D["provider_admission_current_control"]',
+        '  D --> E["OPL StageRun"]',
+        '  E --> F["terminal_closeout"]',
+        '  F --> G["MAS closeout consume or reject"]',
+        '  G --> H["next_current_owner_delta"]',
+        "```",
+        "",
+        "- only_chain: " + " -> ".join(chain),
+        "- forbidden_domain_authority_sources: " + " | ".join(forbidden_sources),
+        f"- false_authority_violation_effect: {false_authority.get('violation_effect')}",
+        f"- stage_packet_blocker: {selected_dispatch.get('blocker')}; owner: {selected_dispatch.get('owner')}; "
+        f"same_work_unit_redrive_allowed: {_render_json_scalar(selected_dispatch.get('same_work_unit_redrive_allowed'))}",
+        "- stage_packet_safe_exits: " + " | ".join(safe_exits),
+        "- typed_blocker_self_authorization: "
+        f"provider_admission={_render_json_scalar(typed_blocker.get('typed_blocker_can_self_authorize_provider_admission'))}, "
+        f"readiness_execution={_render_json_scalar(typed_blocker.get('typed_blocker_can_self_authorize_readiness_execution'))}, "
+        f"owner_receipt={_render_json_scalar(typed_blocker.get('typed_blocker_can_become_owner_receipt'))}",
+        "- terminal_closeout_accounting: required fields under "
+        f"`{terminal_closeout.get('stage_log_field')}` must be present or use "
+        f"`{missing_shape.get('status')}` with refs.",
+        f"- terminal_closeout_missing_without_reason_effect: {terminal_closeout.get('missing_without_reason_effect')}; "
+        f"typed_blocker: {terminal_closeout.get('missing_without_reason_typed_blocker')}; "
+        "paper_progress_credit: false; "
+        f"automatic_redrive_allowed: {_render_json_scalar(terminal_closeout.get('automatic_redrive_allowed_when_incomplete'))}",
+    ]
 
 
 def _render_stage_route_call_graph(reconcile_contract: dict[str, object]) -> list[str]:

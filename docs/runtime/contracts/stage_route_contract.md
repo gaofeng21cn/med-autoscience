@@ -7,6 +7,34 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 
 Canonical source: `agent/stages/stage_route_contract.yaml`.
 
+Currentness and recovery-obligation source: `contracts/stage_route_reconcile_contract.json`.
+
+The YAML route contract selects stages and route families. It does not authorize provider admission, OPL StageRun execution, terminal closeout consumption, paper progress, owner receipt, typed blocker, publication readiness, or current package truth. Those boundaries are held by the reconcile contract and by fresh runtime readback.
+
+## Currentness Conformance Invariants
+
+The single governed execution chain is:
+
+```mermaid
+flowchart LR
+  A["current_owner_delta"] --> B["current_work_unit"]
+  B --> C["current_execution_envelope"]
+  C --> D["provider_admission_current_control"]
+  D --> E["OPL StageRun"]
+  E --> F["terminal_closeout"]
+  F --> G["MAS closeout consume or reject"]
+  G --> H["next_current_owner_delta"]
+```
+
+- only_chain: current_owner_delta -> current_work_unit -> current_execution_envelope -> provider_admission_current_control -> OPLStageRun -> terminal_closeout -> MAS_closeout_consume_or_reject -> next_current_owner_delta
+- forbidden_domain_authority_sources: queue_entry | queue_empty | active_run_id | transport_status | trace_span_ref | lineage_ref | read_model_projection | stale_persisted_dispatch | old_route_back_packet | provider_completion
+- false_authority_violation_effect: diagnostic_only_no_owner_delta_no_paper_progress_no_provider_admission
+- stage_packet_blocker: stage_packet_not_current_selected_dispatch; owner: one-person-lab; same_work_unit_redrive_allowed: false
+- stage_packet_safe_exits: OPL_authorization_repair_owner_action | derived_repair_action_with_current_work_unit_binding | successor_recovery_obligation_ref | human_gate_ref | route_back_evidence_ref
+- typed_blocker_self_authorization: provider_admission=false, readiness_execution=false, owner_receipt=false
+- terminal_closeout_accounting: required fields under `paper_stage_log` must be present or use `missing_with_reason` with refs.
+- terminal_closeout_missing_without_reason_effect: consume_terminal_closeout_as_typed_blocker; typed_blocker: domain_closeout_provided_incomplete_user_stage_log; paper_progress_credit: false; automatic_redrive_allowed: false
+
 ## Compatible Agents
 - Codex, Claude Code, OpenClaw
 

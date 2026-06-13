@@ -118,6 +118,20 @@ def assert_opl_follow_through_and_external_practice_mapping(
         "domain_closeout_provided_incomplete_user_stage_log typed blocker, receives no "
         "paper-progress credit, and cannot trigger automatic redrive"
     )
+    stage_log = contract["stage_log_minimum_viability"]
+    assert stage_log["accounting_status_policy"] == {
+        "duration": "observed_or_explicit_missing_with_reason",
+        "token_usage": "observed_or_explicit_missing_with_reason",
+        "cost": "observed_or_explicit_missing_with_reason",
+    }
+    assert stage_log["missing_accounting_status_effect"] == (
+        "consume_terminal_closeout_as_typed_blocker_without_paper_progress_credit"
+    )
+    assert stage_log["accounting_missing_reason_required_fields"] == [
+        "status",
+        "reason",
+        "source_refs",
+    ]
     assert "no active attempt exists" in capabilities["worker_source_stale_supervisor_projection"][
         "required_effect"
     ]

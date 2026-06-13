@@ -235,7 +235,19 @@ def test_render_stage_route_contract_guide_points_to_currentness_reconcile_contr
     carrier_identity = arbiter["carrier_self_identity_policy"]
     projection_shape = arbiter["provider_admission_projection_shape_policy"]
     dispatch_authority = reconcile_contract["owner_action_dispatch_authority_policy"]
+    conformance = reconcile_contract["stage_route_conformance_invariants"]
+    selected_dispatch = conformance["stage_packet_not_current_selected_dispatch_invariant"]
+    terminal_closeout = conformance["terminal_closeout_accounting_invariant"]
 
+    assert "## Currentness Conformance Invariants" in guide
+    assert "current_owner_delta -> current_work_unit -> current_execution_envelope" in guide
+    assert "queue_empty" in guide
+    assert "provider_completion" in guide
+    assert selected_dispatch["blocker"] in guide
+    assert f"same_work_unit_redrive_allowed: {json.dumps(selected_dispatch['same_work_unit_redrive_allowed'])}" in guide
+    assert terminal_closeout["missing_without_reason_effect"] in guide
+    assert terminal_closeout["missing_without_reason_typed_blocker"] in guide
+    assert "paper_progress_credit: false" in guide
     assert "## Stage-route Reconcile And Currentness Boundary" in guide
     assert "`contracts/stage_route_reconcile_contract.json`" in guide
     assert "`runtime_supervision_operator_policy`" in guide
