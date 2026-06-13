@@ -162,3 +162,46 @@ def test_study_progress_projects_newer_runtime_medical_publication_surface_when_
     assert compact["runtime_medical_publication_surface"]["status"] == "blocked"
     assert compact["runtime_medical_publication_surface"]["study_shadow"]["status"] == "ready"
     assert compact["runtime_medical_publication_surface"]["top_hits"][0]["phrase"] == "F5"
+
+
+def test_runtime_medical_publication_surface_projects_structured_and_invalid_blockers(
+    tmp_path: Path,
+) -> None:
+    surface = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.runtime_medical_publication_surface"
+    )
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
+    runtime_surface_path = quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"
+    _write_json(
+        runtime_surface_path,
+        {
+            "schema_version": 1,
+            "status": "blocked",
+            "blockers": [
+                {
+                    "id": "table_figure_claim_map_missing_or_incomplete",
+                    "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+                },
+                {"source_path": str(study_root / "paper" / "claim_evidence_map.json")},
+            ],
+        },
+    )
+
+    result = surface.build_runtime_medical_publication_surface_projection(
+        study_root=study_root,
+        quest_root=quest_root,
+        domain_health_diagnostic_payload=None,
+    )
+
+    assert result is not None
+    assert result["status"] == "blocked"
+    assert result["blockers"] == [
+        "table_figure_claim_map_missing_or_incomplete",
+        "invalid_blocker_payload",
+    ]
+    assert result["blocker_summaries"] == [
+        "table_figure_claim_map_missing_or_incomplete".replace("_", " "),
+        "invalid_blocker_payload",
+    ]

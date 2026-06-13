@@ -9,6 +9,7 @@ from .shared import _candidate_path, _non_empty_text, _read_json_object, _timest
 
 _BLOCKER_LABELS = {
     "figure_layout_sidecar_missing_or_incomplete": "图表布局 sidecar 仍不完整。",
+    "invalid_blocker_payload": "invalid_blocker_payload",
     "reference_citation_coverage_incomplete": "参考文献引用覆盖仍不完整。",
 }
 
@@ -26,11 +27,11 @@ def build_runtime_medical_publication_surface_projection(
     runtime_payload = _read_json_object(source_path) if source_path is not None else None
     if runtime_payload is None:
         return None
-    if _non_empty_text(runtime_payload.get("gate_kind")) != "medical_publication_surface_control":
+    if not _is_medical_publication_surface_report(runtime_payload, source_path=source_path):
         return None
     study_shadow_path = study_root / "artifacts" / "medical_publication_surface" / "latest.json"
     study_shadow = _read_json_object(study_shadow_path)
-    blockers = _string_list(runtime_payload.get("blockers"))
+    blockers = _blocker_ids(runtime_payload.get("blockers"))
     projection = {
         "surface_kind": "runtime_medical_publication_surface_projection",
         "authority": "runtime_report_projection_only",
@@ -57,8 +58,47 @@ def build_runtime_medical_publication_surface_projection(
 def runtime_medical_publication_surface_blocker_summaries(blockers: object) -> list[str]:
     return [
         _BLOCKER_LABELS.get(item, item.replace("_", " "))
-        for item in _string_list(blockers)
+        for item in _blocker_ids(blockers)
     ]
+
+
+def _blocker_ids(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    blockers: list[str] = []
+    for item in value:
+        if isinstance(item, Mapping):
+            text = (
+                _non_empty_text(item.get("id"))
+                or _non_empty_text(item.get("blocker"))
+                or _non_empty_text(item.get("blocker_id"))
+                or _non_empty_text(item.get("key"))
+                or _non_empty_text(item.get("reason"))
+            )
+            if text is None:
+                text = "invalid_blocker_payload"
+        else:
+            text = _non_empty_text(item)
+        if text is not None and text not in blockers:
+            blockers.append(text)
+    return blockers
+
+
+def _is_medical_publication_surface_report(
+    payload: Mapping[str, Any],
+    *,
+    source_path: Path,
+) -> bool:
+    if _non_empty_text(payload.get("gate_kind")) == "medical_publication_surface_control":
+        return True
+    if source_path.name != "latest.json" or source_path.parent.name != "medical_publication_surface":
+        return False
+    if _non_empty_text(payload.get("status")) not in {"blocked", "clear"}:
+        return False
+    return "blockers" in payload or "recommended_action" in payload
 
 
 def _runtime_surface_path(

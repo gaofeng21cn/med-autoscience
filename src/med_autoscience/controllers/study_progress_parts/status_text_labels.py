@@ -91,6 +91,7 @@ _WATCH_BLOCKER_LABELS = {
     "prediction_performance_reporting_incomplete": "预测性能报告仍不完整，需补齐验证样本、事件数、C-index/校准和高风险尾部结果。",
     "baseline_balance_reporting_incomplete": "基线表平衡报告仍不完整，需补齐变量级缺失和标准化差异。",
     "competing_risk_reporting_incomplete": "竞争风险报告仍不完整，需说明非目标死亡处理和绝对风险敏感性验证。",
+    "invalid_blocker_payload": "invalid_blocker_payload",
 }
 _BLOCKER_LABELS = {
     "active_run_drifting_into_write_without_gate_approval": "当前 live run 已经漂进写作或定稿，但发表门控仍未放行，必须先拉回论文门控主线。",
