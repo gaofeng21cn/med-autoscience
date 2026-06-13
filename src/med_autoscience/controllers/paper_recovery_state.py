@@ -113,7 +113,7 @@ def build_paper_recovery_state(
             current_owner="MedAutoScience",
         )
 
-    if _current_work_unit_status(current_work_unit) == "running_provider_attempt":
+    if _has_running_provider_attempt(progress, current_work_unit=current_work_unit):
         owner = _text(current_work_unit.get("owner")) or _text(obligation.get("owner"))
         return _state(
             progress,
@@ -389,6 +389,10 @@ def _closeout_matches_obligation(
     *,
     obligation: Mapping[str, Any],
 ) -> bool:
+    obligation_id = _text(obligation.get("recovery_obligation_id"))
+    closeout_obligation_id = _text(closeout.get("recovery_obligation_id"))
+    if obligation_id and closeout_obligation_id and closeout_obligation_id != obligation_id:
+        return False
     action_type = _text(obligation.get("action_type"))
     work_unit_id = _text(obligation.get("work_unit_id"))
     fingerprint = _text(obligation.get("work_unit_fingerprint"))
@@ -396,12 +400,17 @@ def _closeout_matches_obligation(
         return False
     if work_unit_id and _text(closeout.get("work_unit_id")) not in {None, work_unit_id}:
         return False
-    if fingerprint and _text(closeout.get("work_unit_fingerprint")) not in {
-        None,
-        fingerprint,
-        _text(closeout.get("action_fingerprint")),
-    }:
-        return False
+    if fingerprint and closeout_obligation_id != obligation_id:
+        closeout_fingerprints = {
+            value
+            for value in (
+                _text(closeout.get("work_unit_fingerprint")),
+                _text(closeout.get("action_fingerprint")),
+            )
+            if value is not None
+        }
+        if closeout_fingerprints and fingerprint not in closeout_fingerprints:
+            return False
     return bool(
         _text(closeout.get("stage_attempt_id"))
         or _text(closeout.get("active_stage_attempt_id"))
@@ -428,17 +437,23 @@ def _running_attempt_has_obligation_identity(
     action_type = _text(obligation.get("action_type"))
     work_unit_id = _text(obligation.get("work_unit_id"))
     fingerprint = _text(obligation.get("work_unit_fingerprint"))
+    obligation_id = _text(obligation.get("recovery_obligation_id"))
+    handoff_obligation_id = _text(handoff.get("recovery_obligation_id"))
+    fingerprint_matches = fingerprint is not None and fingerprint in {
+        _text(handoff.get("work_unit_fingerprint")),
+        _text(handoff.get("action_fingerprint")),
+    }
+    obligation_matches = (
+        obligation_id is not None
+        and handoff_obligation_id is not None
+        and handoff_obligation_id == obligation_id
+    )
     return (
         action_type is not None
         and _text(handoff.get("action_type")) == action_type
         and work_unit_id is not None
         and _text(handoff.get("work_unit_id")) == work_unit_id
-        and fingerprint is not None
-        and fingerprint in {
-            _text(handoff.get("work_unit_fingerprint")),
-            _text(handoff.get("action_fingerprint")),
-            _text(handoff.get("recovery_obligation_id")),
-        }
+        and (fingerprint_matches or obligation_matches)
     )
 
 
@@ -533,6 +548,17 @@ def _clean_conditions(conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _current_work_unit_status(current_work_unit: Mapping[str, Any]) -> str | None:
     return _text(current_work_unit.get("status"))
+
+
+def _has_running_provider_attempt(
+    progress: Mapping[str, Any],
+    *,
+    current_work_unit: Mapping[str, Any],
+) -> bool:
+    if _current_work_unit_status(current_work_unit) == "running_provider_attempt":
+        return True
+    envelope = _mapping(progress.get("current_execution_envelope"))
+    return _text(envelope.get("state_kind")) == "running_provider_attempt"
 
 
 def _study_id(progress: Mapping[str, Any]) -> str | None:

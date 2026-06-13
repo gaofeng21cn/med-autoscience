@@ -317,6 +317,37 @@ def test_running_attempt_requires_strong_identity_binding() -> None:
     assert state["next_safe_action"]["provider_admission_allowed"] is False
 
 
+def test_running_attempt_accepts_matching_recovery_obligation_identity() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(),
+            "current_execution_envelope": {
+                "state_kind": "running_provider_attempt",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": True,
+                "active_run_id": "opl-stage-attempt://sat-current",
+                "active_stage_attempt_id": "sat-current",
+                "active_workflow_id": "wf-current",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "recovery_obligation_id": (
+                    "paper-recovery::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "run_quality_repair_batch::medical_prose_write_repair::"
+                    "publication-blockers::0915410f804b3697"
+                ),
+            },
+        }
+    )
+
+    assert state["phase"] == "attempt_running"
+    assert state["next_safe_action"]["kind"] == "watch_running_attempt"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+
+
 def test_terminal_closeout_matching_obligation_waits_for_owner_consumption() -> None:
     state = _module().build_paper_recovery_state(
         {
@@ -339,6 +370,29 @@ def test_terminal_closeout_matching_obligation_waits_for_owner_consumption() -> 
     assert state["evidence_refs"] == [
         "artifacts/supervision/consumer/default_executor_execution/sat-complete.closeout.json"
     ]
+
+
+def test_terminal_closeout_with_stale_fingerprint_does_not_match_current_obligation() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(),
+            "terminal_closeout_precedence_evidence": {
+                "status": "completed",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::old",
+                "action_fingerprint": "publication-blockers::old",
+                "stage_attempt_id": "sat-stale",
+                "closeout_ref": "artifacts/supervision/consumer/default_executor_execution/sat-stale.closeout.json",
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["next_safe_action"]["kind"] == "materialize_provider_admission_or_owner_callable"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert not state.get("evidence_refs")
 
 
 def test_foreground_file_delta_without_owner_receipt_is_unadopted() -> None:
