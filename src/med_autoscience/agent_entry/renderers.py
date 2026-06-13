@@ -162,6 +162,7 @@ def render_stage_route_contract_guide() -> str:
             f"defined by `runtime_supervision_operator_policy` ({runtime_supervision_policy.get('surface_kind')}); use that policy to distinguish observe-only diagnostics, closeout consumption, worker repair, and provider attempt admission.",
         )
     )
+    lines.extend(_render_stage_route_call_graph(reconcile_contract))
     lines.extend(_render_late_stage_progress_sprint_contract(sprint_contract))
 
     lines.extend(
@@ -227,6 +228,62 @@ def _stage_route_reconcile_contract_payload() -> dict[str, object]:
     if not isinstance(payload, dict):
         raise ValueError(f"{STAGE_ROUTE_RECONCILE_CONTRACT_REF} must be a JSON object")
     return payload
+
+
+def _render_stage_route_call_graph(reconcile_contract: dict[str, object]) -> list[str]:
+    graph = _mapping(reconcile_contract.get("stage_route_call_graph"), "stage_route_call_graph")
+    lines = [
+        "",
+        "### Stage-route Invocation Graph",
+        "",
+        "```mermaid",
+        "flowchart TD",
+    ]
+    labels = {
+        _string_value(node, "id"): _string_value(node, "label")
+        for node in _mapping_list(graph.get("nodes"), "stage_route_call_graph.nodes")
+    }
+    for edge in _mapping_list(graph.get("edges"), "stage_route_call_graph.edges"):
+        source = _string_value(edge, "from")
+        target = _string_value(edge, "to")
+        source_label = labels.get(source, source)
+        target_label = labels.get(target, target)
+        effect = _string_value(edge, "authority_effect")
+        lines.append(
+            f'  {source}["{source_label}"] -->|"{effect}"| {target}["{target_label}"]'
+        )
+    lines.extend(("```", ""))
+    same_identity_order = _string_list(
+        graph.get("acyclic_same_identity_order"),
+        field="acyclic_same_identity_order",
+    )
+    lines.append("- same_identity_order: " + " -> ".join(same_identity_order))
+    feedback_policy = _mapping(
+        graph.get("same_identity_feedback_policy"),
+        "stage_route_call_graph.same_identity_feedback_policy",
+    )
+    lines.append(f"- feedback_edge: {feedback_policy.get('feedback_edge')}")
+    lines.append(_render_list_line("feedback_requires_any", feedback_policy.get("requires_any", [])))
+    lines.append(_render_list_line("feedback_forbidden_when", feedback_policy.get("forbidden_when", [])))
+    forbidden_edges = [
+        f"{_string_value(edge, 'from')} -> {_string_value(edge, 'to')}: {_string_value(edge, 'reason')}"
+        for edge in _mapping_list(graph.get("forbidden_edges"), "stage_route_call_graph.forbidden_edges")
+    ]
+    lines.append(_render_list_line("forbidden_edges", forbidden_edges))
+    risk_guards = [
+        f"{_string_value(item, 'risk')} blocked_by "
+        f"{', '.join(_string_list(item.get('blocked_by'), field='blocked_by'))}"
+        for item in _mapping_list(graph.get("dead_loop_risk_guards"), "stage_route_call_graph.dead_loop_risk_guards")
+    ]
+    lines.append(_render_list_line("dead_loop_risk_guards", risk_guards))
+    boundary = _mapping(graph.get("authority_boundary"), "stage_route_call_graph.authority_boundary")
+    lines.append(
+        "- graph_authority_boundary: "
+        f"can_generate_owner_delta={_render_json_scalar(boundary.get('can_generate_owner_delta'))}, "
+        f"can_authorize_provider_admission={_render_json_scalar(boundary.get('can_authorize_provider_admission'))}, "
+        f"can_mark_paper_progress={_render_json_scalar(boundary.get('can_mark_paper_progress'))}."
+    )
+    return lines
 
 
 def _render_json_scalar(value: object) -> str:
@@ -471,6 +528,24 @@ def _evidence_review_contract_payload(payload: dict[str, object]) -> dict[str, A
 def _mapping(value: object, field: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"{field} must be a mapping")
+    return value
+
+
+def _mapping_list(value: object, field: str) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        raise ValueError(f"{field} must be a list")
+    result: list[dict[str, Any]] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise ValueError(f"{field}[{index}] must be a mapping")
+        result.append(item)
+    return result
+
+
+def _string_value(payload: dict[str, Any], key: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{key} must be a non-empty string")
     return value
 
 

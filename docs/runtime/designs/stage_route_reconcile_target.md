@@ -87,6 +87,8 @@ stateDiagram-v2
 
 `ProviderRunning` 必须同时满足 OPL live proof、同一 current owner identity、无同 stage attempt terminal closeout。`ProviderTerminalCloseoutObserved` 只是 transport terminal；只有 `MASCloseoutConsumed` 后，才能进入 `DomainAcceptedOrTypedBlocked` 或 `NextOwnerDeltaProjected`。
 
+2026-06-13 追加维护规则：stage-route 调用关系的机器入口是 `contracts/stage_route_reconcile_contract.json#/stage_route_call_graph`，人读渲染入口是 `docs/runtime/contracts/stage_route_contract.md#stage-route-invocation-graph`。这张图把 `current_owner_delta -> current_work_unit -> current_execution_envelope -> provider_admission_current_control -> OPL StageRun -> terminal closeout -> DHD apply -> MAS owner receipt / typed blocker -> next current_owner_delta` 固定为同一 identity 的单向链，并把 trace/span、old active run、typed-blocker-only、provider completion 和旧 persisted dispatch 到 authority surface 的反向边列为 forbidden edges。后续修复若要改变 stage-route/currentness 行为，必须先更新这张机器图和 meta test，再落到具体 reducer / selector / projection；不要只靠调整某个分支顺序来隐式改变整体调用图。
+
 ## Currentness 优先级
 
 1. 弱 provider admission identity 直接 fail-closed 为 currentness diagnostic，不进入 pending。

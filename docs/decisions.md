@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-13：stage-route 调用图和死循环防线必须有机器合同入口
+
+- 决策：新增 `contracts/stage_route_reconcile_contract.json#/stage_route_call_graph`，把 MAS/OPL stage-route ordinary path 固定为 `current_owner_delta -> current_work_unit -> current_execution_envelope -> provider_admission_current_control -> OPL StageRun attempt -> provider running -> terminal closeout -> DHD apply / closeout consumer -> MAS owner receipt or stable typed blocker -> next current_owner_delta`。同一 identity 的反馈边只有在新 work-unit identity、owner receipt、quality gate receipt、canonical changed surface、stable typed blocker、human gate、route-back evidence 或 stop-loss 出现后才允许回到新的 `current_owner_delta`。
+- 决策：该图显式列出 forbidden edges：trace/span 不能生成 desired owner state，旧 `active_run_id` / transport status 不能生成 canonical `current_work_unit`，typed-blocker-only 不能自授权 provider admission / readiness execution，provider completion 不能变成 MAS domain acceptance，旧 persisted dispatch 不能绕过 selected-dispatch currentness。`docs/runtime/contracts/stage_route_contract.md` 从同一 contract 渲染 Mermaid 图，`tests/test_stage_route_reconcile_contract.py` 作为 meta guard 锁住节点、边和风险防线。
+- 理由：DM002/DM003 连续卡点已经说明问题不只在单个 reducer 分支顺序，而在维护者需要从多个投影、dispatch、DHD、OPL attempt 读面重建调用关系。把图谱和禁止边纳入机器合同后，后续改变 stage-route/currentness 行为必须先更新图和 meta test，再改具体 reducer / selector / projection，降低隐式回环和重复 redrive 风险。
+- 影响：这是合同、generated 文档和 meta test hardening；不修改 live runtime 写集，不执行 DHD apply / hydrate / tick / redrive，不写 Yang runtime/study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。
+
 ## 2026-06-13：stage-route 入口必须指向 currentness/reconcile 合同，provider admission 空投影固定为 0 / []
 
 - 决策：`docs/runtime/contracts/stage_route_contract.md` 作为 generated 人读入口，必须同时指向 stage-route YAML 和 `contracts/stage_route_reconcile_contract.json`。YAML 只负责 stage / route selection；currentness precedence、provider admission identity、runtime supervision operator policy、typed blocker 自授权禁令和 DM002/DM003 recovery acceptance 由 reconcile contract 持有。

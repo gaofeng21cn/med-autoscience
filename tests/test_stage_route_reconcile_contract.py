@@ -145,6 +145,123 @@ def test_stage_route_reconcile_contract_orders_currentness_and_blocks_transport_
     assert lifecycle["active_run_id_counts_as_paper_progress"] is False
 
 
+def test_stage_route_reconcile_contract_declares_stage_route_call_graph_and_loop_guards() -> None:
+    contract = _contract()
+
+    graph = contract["stage_route_call_graph"]
+    assert graph["surface_kind"] == "mas_opl_stage_route_call_graph"
+    assert graph["source_code_refs"] == [
+        "src/med_autoscience/controllers/study_progress_parts/current_executable_owner_action.py",
+        "src/med_autoscience/controllers/current_work_unit.py",
+        "src/med_autoscience/controllers/current_execution_envelope.py",
+        "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control.py",
+        "src/med_autoscience/controllers/domain_action_request_materializer_parts/current_action_selection.py",
+        "src/med_autoscience/controllers/domain_owner_action_dispatch_parts/persisted_dispatches.py",
+    ]
+
+    nodes = {item["id"]: item for item in graph["nodes"]}
+    assert nodes["current_owner_delta"]["state_role"] == "desired"
+    assert nodes["current_work_unit"]["state_role"] == "desired_projection"
+    assert nodes["provider_admission_current_control"]["state_role"] == "transport_intent"
+    assert nodes["opl_stage_run_attempt"]["state_role"] == "current"
+    assert nodes["terminal_closeout"]["state_role"] == "terminal_current"
+    assert nodes["stage_route_arbiter_decisions"]["state_role"] == "status"
+    assert nodes["trace_span_refs"]["state_role"] == "observability"
+    assert nodes["mas_owner_receipt_or_typed_blocker"]["state_role"] == "domain_authority"
+
+    edges = {(item["from"], item["to"]): item for item in graph["edges"]}
+    assert edges[("current_owner_delta", "current_work_unit")]["authority_effect"] == (
+        "derive_canonical_operator_surface"
+    )
+    assert edges[("current_work_unit", "current_execution_envelope")]["authority_effect"] == (
+        "derive_user_and_operator_execution_state"
+    )
+    assert edges[("current_execution_envelope", "provider_admission_current_control")][
+        "loop_guard"
+    ] == "only_when_executable_owner_action_and_strong_provider_admission_identity"
+    assert edges[("provider_admission_current_control", "opl_stage_run_attempt")][
+        "loop_guard"
+    ] == "materialized_pending_only_no_live_attempt_no_terminal_closeout_no_current_typed_blocker"
+    assert edges[("terminal_closeout", "domain_health_diagnostic_apply")]["authority_effect"] == (
+        "consume_closeout_or_materialize_current_control_for_matching_identity"
+    )
+    assert edges[("domain_health_diagnostic_apply", "mas_owner_receipt_or_typed_blocker")][
+        "loop_guard"
+    ] == "accepted_owner_answer_or_stable_typed_blocker_required"
+    assert edges[("mas_owner_receipt_or_typed_blocker", "next_current_owner_delta")][
+        "authority_effect"
+    ] == "project_successor_or_stop_loss"
+
+    assert graph["acyclic_same_identity_order"] == [
+        "current_owner_delta",
+        "current_work_unit",
+        "current_execution_envelope",
+        "provider_admission_current_control",
+        "opl_stage_run_attempt",
+        "provider_running",
+        "terminal_closeout",
+        "domain_health_diagnostic_apply",
+        "mas_owner_receipt_or_typed_blocker",
+        "next_current_owner_delta",
+    ]
+    assert graph["same_identity_feedback_policy"] == {
+        "feedback_edge": "next_current_owner_delta -> current_owner_delta",
+        "requires_any": [
+            "new_work_unit_identity",
+            "new_owner_receipt_ref",
+            "quality_gate_receipt_ref",
+            "canonical_changed_surface_ref",
+            "stable_typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_evidence_ref",
+            "stop_loss",
+        ],
+        "forbidden_when": [
+            "same_work_unit_without_new_consumed_evidence",
+            "same_identity_terminal_closeout_unconsumed",
+            "same_identity_anti_loop_budget_exhausted",
+            "status_or_observability_only_delta",
+        ],
+    }
+
+    forbidden_edges = {(item["from"], item["to"]): item for item in graph["forbidden_edges"]}
+    assert forbidden_edges[("trace_span_refs", "current_owner_delta")]["reason"] == (
+        "observability refs cannot generate desired owner state"
+    )
+    assert forbidden_edges[("active_run_id_or_transport_status", "current_work_unit")][
+        "reason"
+    ] == "transport status cannot become canonical current work unit"
+    assert forbidden_edges[("typed_blocker_only", "provider_admission_current_control")][
+        "reason"
+    ] == "typed blocker cannot self-authorize provider admission or readiness execution"
+    assert forbidden_edges[("provider_completion", "mas_owner_receipt_or_typed_blocker")][
+        "reason"
+    ] == "provider completion is not MAS domain acceptance"
+    assert forbidden_edges[("old_persisted_dispatch", "provider_admission_current_control")][
+        "reason"
+    ] == "stale dispatch cannot bypass selected-dispatch currentness"
+
+    risks = {item["risk"]: item for item in graph["dead_loop_risk_guards"]}
+    assert risks["typed_blocker_self_authorization"]["blocked_by"] == [
+        "owner_action_dispatch_authority_policy.typed_blocker_can_self_authorize_owner_action=false",
+        "current_typed_blocker_precedes_provider_admission",
+    ]
+    assert risks["stale_running_projection"]["blocked_by"] == [
+        "currentness_precedence.terminal_closeout_for_same_stage_attempt",
+        "identity_policy.minimum_match_for_provider_running",
+    ]
+    assert risks["same_work_unit_redrive_loop"]["blocked_by"] == [
+        "anti_loop_policy.max_same_identity_terminal_without_progress",
+        "dm002_dm003_recovery_acceptance_policy.same_work_unit_stop_loss_policy",
+    ]
+
+    boundary = graph["authority_boundary"]
+    assert boundary["graph_is_explanatory_and_contractual"] is True
+    assert boundary["can_generate_owner_delta"] is False
+    assert boundary["can_authorize_provider_admission"] is False
+    assert boundary["can_mark_paper_progress"] is False
+
+
 def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_split() -> None:
     contract = _contract()
 

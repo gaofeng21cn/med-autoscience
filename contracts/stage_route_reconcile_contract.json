@@ -191,6 +191,262 @@
     "queue_completion_counts_as_next_owner_delta": false,
     "active_run_id_counts_as_paper_progress": false
   },
+  "stage_route_call_graph": {
+    "surface_kind": "mas_opl_stage_route_call_graph",
+    "purpose": "Machine-readable graph for the MAS/OPL stage-route invocation path, authority direction, and same-identity loop guards.",
+    "source_code_refs": [
+      "src/med_autoscience/controllers/study_progress_parts/current_executable_owner_action.py",
+      "src/med_autoscience/controllers/current_work_unit.py",
+      "src/med_autoscience/controllers/current_execution_envelope.py",
+      "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control.py",
+      "src/med_autoscience/controllers/domain_action_request_materializer_parts/current_action_selection.py",
+      "src/med_autoscience/controllers/domain_owner_action_dispatch_parts/persisted_dispatches.py"
+    ],
+    "nodes": [
+      {
+        "id": "current_owner_delta",
+        "label": "MAS current_owner_delta",
+        "state_role": "desired",
+        "authority": "MAS domain owner"
+      },
+      {
+        "id": "current_work_unit",
+        "label": "canonical current_work_unit",
+        "state_role": "desired_projection",
+        "authority": "MAS currentness reducer"
+      },
+      {
+        "id": "current_execution_envelope",
+        "label": "current_execution_envelope",
+        "state_role": "operator_projection",
+        "authority": "MAS projection"
+      },
+      {
+        "id": "provider_admission_current_control",
+        "label": "provider admission current-control",
+        "state_role": "transport_intent",
+        "authority": "MAS DHD arbiter"
+      },
+      {
+        "id": "opl_stage_run_attempt",
+        "label": "OPL StageRun attempt",
+        "state_role": "current",
+        "authority": "OPL StageRun Kernel"
+      },
+      {
+        "id": "provider_running",
+        "label": "strict provider running proof",
+        "state_role": "current",
+        "authority": "OPL liveness plus MAS identity match"
+      },
+      {
+        "id": "terminal_closeout",
+        "label": "terminal closeout",
+        "state_role": "terminal_current",
+        "authority": "OPL/default-executor closeout"
+      },
+      {
+        "id": "domain_health_diagnostic_apply",
+        "label": "DHD apply / closeout consumer",
+        "state_role": "domain_consumer",
+        "authority": "MAS authority consumer"
+      },
+      {
+        "id": "mas_owner_receipt_or_typed_blocker",
+        "label": "MAS owner receipt or stable typed blocker",
+        "state_role": "domain_authority",
+        "authority": "MAS owner surface"
+      },
+      {
+        "id": "next_current_owner_delta",
+        "label": "next current_owner_delta",
+        "state_role": "desired",
+        "authority": "MAS current owner projection"
+      },
+      {
+        "id": "stage_route_arbiter_decisions",
+        "label": "stage_route_arbiter_decisions",
+        "state_role": "status",
+        "authority": "MAS diagnostic projection"
+      },
+      {
+        "id": "trace_span_refs",
+        "label": "trace/span refs",
+        "state_role": "observability",
+        "authority": "observability only"
+      }
+    ],
+    "edges": [
+      {
+        "from": "current_owner_delta",
+        "to": "current_work_unit",
+        "authority_effect": "derive_canonical_operator_surface",
+        "loop_guard": "current owner identity is the only ordinary planning root"
+      },
+      {
+        "from": "current_work_unit",
+        "to": "current_execution_envelope",
+        "authority_effect": "derive_user_and_operator_execution_state",
+        "loop_guard": "read-model projection cannot create a new desired owner"
+      },
+      {
+        "from": "current_execution_envelope",
+        "to": "provider_admission_current_control",
+        "authority_effect": "materialize_transport_intent_candidate",
+        "loop_guard": "only_when_executable_owner_action_and_strong_provider_admission_identity"
+      },
+      {
+        "from": "provider_admission_current_control",
+        "to": "opl_stage_run_attempt",
+        "authority_effect": "request_opl_stagerun_admission",
+        "loop_guard": "materialized_pending_only_no_live_attempt_no_terminal_closeout_no_current_typed_blocker"
+      },
+      {
+        "from": "opl_stage_run_attempt",
+        "to": "provider_running",
+        "authority_effect": "observe_strict_liveness_for_same_identity",
+        "loop_guard": "same_action_work_unit_or_fingerprint_and_no_terminal_closeout"
+      },
+      {
+        "from": "provider_running",
+        "to": "terminal_closeout",
+        "authority_effect": "produce_terminal_closeout_or_typed_closeout",
+        "loop_guard": "terminal event closes running projection for same identity"
+      },
+      {
+        "from": "terminal_closeout",
+        "to": "domain_health_diagnostic_apply",
+        "authority_effect": "consume_closeout_or_materialize_current_control_for_matching_identity",
+        "loop_guard": "dry_run_identity_match_required_before_apply"
+      },
+      {
+        "from": "domain_health_diagnostic_apply",
+        "to": "mas_owner_receipt_or_typed_blocker",
+        "authority_effect": "accept_domain_owner_answer_or_stable_blocker",
+        "loop_guard": "accepted_owner_answer_or_stable_typed_blocker_required"
+      },
+      {
+        "from": "mas_owner_receipt_or_typed_blocker",
+        "to": "next_current_owner_delta",
+        "authority_effect": "project_successor_or_stop_loss",
+        "loop_guard": "new_identity_or_stable_stop_loss_required"
+      },
+      {
+        "from": "provider_admission_current_control",
+        "to": "stage_route_arbiter_decisions",
+        "authority_effect": "explain_retained_or_suppressed_provider_admission",
+        "loop_guard": "diagnostic_only"
+      },
+      {
+        "from": "trace_span_refs",
+        "to": "stage_route_arbiter_decisions",
+        "authority_effect": "correlate_observability_refs",
+        "loop_guard": "observability_only"
+      }
+    ],
+    "acyclic_same_identity_order": [
+      "current_owner_delta",
+      "current_work_unit",
+      "current_execution_envelope",
+      "provider_admission_current_control",
+      "opl_stage_run_attempt",
+      "provider_running",
+      "terminal_closeout",
+      "domain_health_diagnostic_apply",
+      "mas_owner_receipt_or_typed_blocker",
+      "next_current_owner_delta"
+    ],
+    "same_identity_feedback_policy": {
+      "feedback_edge": "next_current_owner_delta -> current_owner_delta",
+      "requires_any": [
+        "new_work_unit_identity",
+        "new_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "canonical_changed_surface_ref",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "stop_loss"
+      ],
+      "forbidden_when": [
+        "same_work_unit_without_new_consumed_evidence",
+        "same_identity_terminal_closeout_unconsumed",
+        "same_identity_anti_loop_budget_exhausted",
+        "status_or_observability_only_delta"
+      ]
+    },
+    "forbidden_edges": [
+      {
+        "from": "trace_span_refs",
+        "to": "current_owner_delta",
+        "reason": "observability refs cannot generate desired owner state"
+      },
+      {
+        "from": "active_run_id_or_transport_status",
+        "to": "current_work_unit",
+        "reason": "transport status cannot become canonical current work unit"
+      },
+      {
+        "from": "typed_blocker_only",
+        "to": "provider_admission_current_control",
+        "reason": "typed blocker cannot self-authorize provider admission or readiness execution"
+      },
+      {
+        "from": "provider_completion",
+        "to": "mas_owner_receipt_or_typed_blocker",
+        "reason": "provider completion is not MAS domain acceptance"
+      },
+      {
+        "from": "old_persisted_dispatch",
+        "to": "provider_admission_current_control",
+        "reason": "stale dispatch cannot bypass selected-dispatch currentness"
+      }
+    ],
+    "dead_loop_risk_guards": [
+      {
+        "risk": "typed_blocker_self_authorization",
+        "blocked_by": [
+          "owner_action_dispatch_authority_policy.typed_blocker_can_self_authorize_owner_action=false",
+          "current_typed_blocker_precedes_provider_admission"
+        ]
+      },
+      {
+        "risk": "stale_running_projection",
+        "blocked_by": [
+          "currentness_precedence.terminal_closeout_for_same_stage_attempt",
+          "identity_policy.minimum_match_for_provider_running"
+        ]
+      },
+      {
+        "risk": "same_work_unit_redrive_loop",
+        "blocked_by": [
+          "anti_loop_policy.max_same_identity_terminal_without_progress",
+          "dm002_dm003_recovery_acceptance_policy.same_work_unit_stop_loss_policy"
+        ]
+      },
+      {
+        "risk": "terminal_closeout_unconsumed",
+        "blocked_by": [
+          "runtime_supervision_operator_policy.operator_actions.terminal_closeout_consumer_gate",
+          "closeout_handshake.required_sequence"
+        ]
+      },
+      {
+        "risk": "stale_dispatch_reselected",
+        "blocked_by": [
+          "owner_action_dispatch_authority_policy.stage_native_next_action_policy",
+          "identity_policy.shared_identity_helper"
+        ]
+      }
+    ],
+    "authority_boundary": {
+      "graph_is_explanatory_and_contractual": true,
+      "can_generate_owner_delta": false,
+      "can_authorize_provider_admission": false,
+      "can_mark_paper_progress": false,
+      "can_write_domain_truth": false
+    }
+  },
   "currentness_precedence": [
     {
       "rank": 1,
