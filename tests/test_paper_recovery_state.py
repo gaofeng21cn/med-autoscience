@@ -358,6 +358,85 @@ def test_provider_admission_without_study_identity_does_not_suppress_projection_
     assert state["next_safe_action"]["provider_admission_allowed"] is False
 
 
+def test_accepted_closeout_typed_blocker_owns_recovery_before_admission_blocked() -> None:
+    fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
+    current_work_unit = _executable_work_unit(
+        owner="gate_clearing_batch",
+        action_type="run_gate_clearing_batch",
+        work_unit_id="publication_gate_replay",
+        fingerprint=fingerprint,
+    )
+    current_work_unit["state"] = {
+        "state_kind": "executable_owner_action",
+        "provider_admission_pending": False,
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": current_work_unit,
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "accepted_closeout_evidence": [
+                {
+                    "surface_kind": "stage_attempt_closeout_packet",
+                    "status": "blocked",
+                    "stage_closeout_status": "blocked",
+                    "stage_attempt_id": "sat_e1063d97901cc3d70424fc5c",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "typed_blocker_ref": (
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                        "supervision/consumer/default_executor_execution/"
+                        "sat_e1063d97901cc3d70424fc5c.closeout.json#domain_blocker"
+                    ),
+                    "typed_blocker": {},
+                    "paper_stage_log": {
+                        "outcome": "typed_blocker",
+                        "progress_delta_classification": "typed_blocker",
+                        "remaining_blockers": ["opl_execution_authorization_required"],
+                    },
+                    "owner_result": {
+                        "status": "blocked",
+                        "blocked_reason": "opl_execution_authorization_required",
+                    },
+                    "closeout_refs": [
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                        "supervision/consumer/default_executor_execution/"
+                        "sat_e1063d97901cc3d70424fc5c.closeout.json"
+                    ],
+                }
+            ],
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "retry_budget_remaining": 0,
+            },
+        },
+        diagnostic_report={
+            "action_class": "observe_only",
+            "will_start_llm": False,
+            "codex_dispatch_count": 0,
+            "provider_admission_pending_count": 0,
+        },
+    )
+
+    assert state["phase"] == "domain_blocked"
+    assert state["conditions"] == [
+        {
+            "condition": "accepted_closeout_typed_blocker",
+            "blocker_type": "opl_execution_authorization_required",
+        }
+    ]
+    assert state["current_authority"]["owner"] == "gate_clearing_batch"
+    assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+
+
 def test_provider_admission_without_current_obligation_fingerprint_does_not_suppress_projection_contradiction() -> None:
     current_work_unit = _executable_work_unit()
     current_work_unit.pop("work_unit_fingerprint")

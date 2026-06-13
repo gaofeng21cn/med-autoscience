@@ -378,6 +378,130 @@ def test_provider_admission_currentness_basis_not_inherited_from_different_curre
     assert decision["effect"] == "suppress_provider_admission_pending"
 
 
+def test_consumed_domain_blocker_closeout_projects_current_typed_blocker(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "publication_gate_replay"
+    fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
+    stage_packet_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+        "consumer/default_executor_dispatches/immutable/run_gate_clearing_batch/"
+        "6e3e5a94951b7c405a834292.json"
+    )
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "source": "opl_current_control_state.study_current_executable_owner_action",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "dispatch_path": str(profile.workspace_root / stage_packet_ref),
+        "dispatch_ref": stage_packet_ref,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+        "route_identity_key": f"owner-route::{study_id}::truth-current::gate_clearing_batch::replay",
+        "attempt_idempotency_key": f"owner-route::{study_id}::truth-current::gate_clearing_batch::replay",
+        "next_executable_owner": "gate_clearing_batch",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "currentness_basis": {
+            "truth_epoch": "truth-current",
+            "runtime_health_epoch": "runtime-current",
+            "source_eval_id": "publication-eval::003::current-gate",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+        },
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-13T20:20:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "running_provider_attempt": False,
+                "current_work_unit": {
+                    "status": "executable_owner_action",
+                    "owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "gate_clearing_batch",
+                    "next_work_unit": work_unit_id,
+                },
+                "accepted_closeout_evidence": [
+                    {
+                        "surface_kind": "stage_attempt_closeout_packet",
+                        "status": "blocked",
+                        "stage_closeout_status": "blocked",
+                        "execution_status": "blocked",
+                        "stage_attempt_id": "sat_e1063d97901cc3d70424fc5c",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "dispatch_ref": stage_packet_ref,
+                        "stage_packet_ref": stage_packet_ref,
+                        "stage_packet_refs": [stage_packet_ref],
+                        "owner_route_currentness_basis": {
+                            "truth_epoch": "truth-current",
+                            "runtime_health_epoch": "runtime-current",
+                            "source_eval_id": "publication-eval::003::current-gate",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                        },
+                        "typed_blocker_ref": (
+                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                            "supervision/consumer/default_executor_execution/"
+                            "sat_e1063d97901cc3d70424fc5c.closeout.json#domain_blocker"
+                        ),
+                        "typed_blocker": {},
+                        "paper_stage_log": {
+                            "outcome": "typed_blocker",
+                            "progress_delta_classification": "typed_blocker",
+                            "remaining_blockers": ["opl_execution_authorization_required"],
+                        },
+                        "owner_result": {
+                            "status": "blocked",
+                            "blocked_reason": "opl_execution_authorization_required",
+                        },
+                    }
+                ],
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "accepted_closeout_consumed_pending": 1,
+    }
+    study = result["studies"][0]
+    assert study["current_work_unit"]["status"] == "typed_blocker"
+    blocker = study["current_work_unit"]["state"]["typed_blocker"]
+    assert blocker["blocker_type"] == "opl_execution_authorization_required"
+    assert blocker["owner"] == "gate_clearing_batch"
+    assert study["current_execution_envelope"]["state_kind"] == "typed_blocker"
+    assert study["blocked_reason"] == "opl_execution_authorization_required"
+
+
 def test_fingerprintless_stop_loss_closeout_does_not_consume_new_source_eval_identity(
     tmp_path: Path,
 ) -> None:

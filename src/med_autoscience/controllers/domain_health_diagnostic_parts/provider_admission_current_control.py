@@ -61,6 +61,15 @@ def materialize_provider_admission_current_control_state(
         )
         for candidate in candidates
     ]
+    scanned_studies = _scanned_studies_with_candidate_closeout_projection(
+        scanned_studies,
+        candidates=candidates,
+    )
+    scanned_studies_by_id = {
+        study_id: dict(study)
+        for study in scanned_studies or []
+        if (study_id := _non_empty_text(study.get("study_id"))) is not None
+    }
     live_studies_by_id = _live_scanned_studies_by_id(scanned_studies)
     arbiter_decisions = _stage_route_arbiter_decisions(
         candidates,
@@ -155,6 +164,7 @@ def materialize_provider_admission_current_control_state(
     payload["stage_route_arbiter_decisions"] = arbiter_decisions
     payload["unscanned_handoff_retention"] = unscanned_audit
     payload["current_control_refresh_source"] = "domain_health_diagnostic.provider_admission_candidates"
+    payload = _payload_with_consumed_closeout_typed_blockers(payload)
     if apply:
         supervision_surfaces.write_json(latest_path, payload)
         supervision_surfaces.append_json_line(
@@ -180,6 +190,60 @@ def materialize_provider_admission_current_control_state(
         )
     payload["written"] = bool(apply)
     return payload
+
+
+def _payload_with_consumed_closeout_typed_blockers(payload: dict[str, Any]) -> dict[str, Any]:
+    closeouts_by_study = _consumed_closeouts_by_study(payload.get("stage_route_arbiter_decisions"))
+    if not closeouts_by_study:
+        return payload
+    studies: list[dict[str, Any]] = []
+    changed = False
+    for study in payload.get("studies") or []:
+        if not isinstance(study, Mapping):
+            continue
+        study_id = _non_empty_text(study.get("study_id"))
+        closeout = closeouts_by_study.get(study_id)
+        if closeout is None:
+            studies.append(dict(study))
+            continue
+        typed_blocker = _typed_blocker_from_closeout(
+            closeout,
+            identity={
+                "action_type": _non_empty_text(closeout.get("action_type")),
+                "work_unit_id": _non_empty_text(closeout.get("work_unit_id")),
+                "work_unit_fingerprint": _non_empty_text(closeout.get("work_unit_fingerprint"))
+                or _non_empty_text(closeout.get("action_fingerprint")),
+                "action_fingerprint": _non_empty_text(closeout.get("action_fingerprint"))
+                or _non_empty_text(closeout.get("work_unit_fingerprint")),
+            },
+        )
+        if not typed_blocker:
+            studies.append(dict(study))
+            continue
+        projected = _study_with_accepted_closeout_typed_blocker(
+            study,
+            typed_blocker=typed_blocker,
+            source="accepted_closeout_consumed_pending",
+        )
+        studies.append(projected)
+        changed = changed or projected != study
+    if not changed:
+        return payload
+    return {**payload, "studies": studies}
+
+
+def _consumed_closeouts_by_study(decisions: object) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for decision in decisions or []:
+        if not isinstance(decision, Mapping):
+            continue
+        if _non_empty_text(decision.get("decision")) != "accepted_closeout_consumed_pending":
+            continue
+        study_id = _non_empty_text(decision.get("study_id"))
+        evidence = _mapping(decision.get("evidence"))
+        if study_id is not None and evidence:
+            result[study_id] = dict(evidence)
+    return result
 
 
 def _audit_only_unscanned_handoff(
@@ -459,6 +523,90 @@ def _scanned_study_with_accepted_closeout_projection(study: Mapping[str, Any]) -
     return payload
 
 
+def _scanned_studies_with_candidate_closeout_projection(
+    studies: list[dict[str, Any]],
+    *,
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    candidates_by_study: dict[str, list[dict[str, Any]]] = {}
+    for candidate in candidates:
+        study_id = _non_empty_text(candidate.get("study_id"))
+        if study_id is None:
+            continue
+        candidates_by_study.setdefault(study_id, []).append(candidate)
+    return [
+        _scanned_study_with_candidate_closeout_projection(
+            study,
+            candidates=candidates_by_study.get(_non_empty_text(study.get("study_id")) or "", []),
+        )
+        for study in studies
+    ]
+
+
+def _scanned_study_with_candidate_closeout_projection(
+    study: Mapping[str, Any],
+    *,
+    candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if not candidates or study.get("running_provider_attempt") is True:
+        return dict(study)
+    for candidate in candidates:
+        accepted_closeout = _matching_accepted_closeout(study, identity=candidate)
+        if not accepted_closeout:
+            continue
+        typed_blocker = _typed_blocker_from_closeout(accepted_closeout, identity=candidate)
+        if typed_blocker:
+            return _study_with_accepted_closeout_typed_blocker(
+                study,
+                typed_blocker=typed_blocker,
+                source="accepted_closeout_consumed_pending",
+            )
+    return dict(study)
+
+
+def _study_with_accepted_closeout_typed_blocker(
+    study: Mapping[str, Any],
+    *,
+    typed_blocker: Mapping[str, Any],
+    source: str,
+) -> dict[str, Any]:
+    payload = dict(study)
+    payload.update(
+        {
+            "action_queue": [],
+            "provider_admission_candidates": [],
+            "provider_admission_pending_count": 0,
+            "blocked_reason": _non_empty_text(typed_blocker.get("blocker_type")),
+            "next_owner": _non_empty_text(typed_blocker.get("owner")),
+            "typed_blocker": dict(typed_blocker),
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": _non_empty_text(typed_blocker.get("owner")) or "med-autoscience",
+                "next_work_unit": None,
+                "typed_blocker": dict(typed_blocker),
+                "parked_state": None,
+                "source": source,
+            },
+        }
+    )
+    current = _mapping(payload.get("current_work_unit"))
+    if current:
+        payload["current_work_unit"] = {
+            **current,
+            "status": "typed_blocker",
+            "owner": _non_empty_text(typed_blocker.get("owner")) or _non_empty_text(current.get("owner")),
+            "state": {
+                **_mapping(current.get("state")),
+                "state_kind": "typed_blocker",
+                "source": source,
+                "typed_blocker": dict(typed_blocker),
+                "blocker_type": _non_empty_text(typed_blocker.get("blocker_type")),
+                "stale_queue_or_handoff_can_override": False,
+            },
+        }
+    return payload
+
+
 def _terminal_precedence_by_study(
     scanned_studies: list[dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
@@ -532,6 +680,7 @@ def _typed_blocker_from_closeout(
 ) -> dict[str, Any]:
     embedded = _mapping(closeout.get("typed_blocker"))
     paper_log = _mapping(closeout.get("paper_stage_log"))
+    owner_result = _mapping(closeout.get("owner_result"))
     explicit_blocker_present = (
         _non_empty_text(embedded.get("surface_kind")) == "mas_domain_typed_blocker"
         or is_anti_loop_stop_loss_closeout(closeout)
@@ -550,9 +699,11 @@ def _typed_blocker_from_closeout(
             for value in (
                 closeout.get("typed_blocker_reason"),
                 closeout.get("typed_blocker_ref"),
+                owner_result.get("blocked_reason"),
                 paper_log.get("progress_delta_classification")
                 if _non_empty_text(paper_log.get("progress_delta_classification")) == "typed_blocker"
                 else None,
+                *list(paper_log.get("remaining_blockers") or []),
             )
         )
     )
@@ -565,13 +716,18 @@ def _typed_blocker_from_closeout(
         or _non_empty_text(embedded.get("reason"))
         or _non_empty_text(closeout.get("typed_blocker_reason"))
         or _non_empty_text(closeout.get("blocked_reason"))
+        or _non_empty_text(owner_result.get("blocked_reason"))
+        or _first_text(paper_log.get("remaining_blockers"))
     )
     if blocker_type is None:
         return {}
     owner = (
         _non_empty_text(embedded.get("owner"))
         or _non_empty_text(embedded.get("next_owner"))
+        or _non_empty_text(owner_result.get("owner"))
         or _non_empty_text(closeout.get("next_owner"))
+        or _non_empty_text(identity.get("next_executable_owner"))
+        or _non_empty_text(identity.get("owner"))
         or "med-autoscience"
     )
     source_ref = (
@@ -611,6 +767,12 @@ def _typed_blocker_from_closeout(
         or _non_empty_text(paper_log.get("progress_delta_classification")),
     }
     return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
+
+
+def _first_text(value: object) -> str | None:
+    for item in _text_items(value):
+        return item
+    return _non_empty_text(value)
 
 
 def _accepted_closeout_for_live_attempt(study: Mapping[str, Any]) -> dict[str, Any]:

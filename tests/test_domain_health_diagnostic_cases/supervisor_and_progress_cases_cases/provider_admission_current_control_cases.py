@@ -789,9 +789,13 @@ def test_materialized_current_control_clears_candidate_after_executed_typed_bloc
     assert decision["work_unit_id"] == work_unit_id
     assert decision["work_unit_fingerprint"] == fingerprint
     envelope = result["current_execution_envelopes"][study_id]
-    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["state_kind"] == "typed_blocker"
     assert envelope["owner"] == "gate_clearing_batch"
-    assert envelope["next_work_unit"] == work_unit_id
+    assert envelope["next_work_unit"] is None
+    assert envelope["typed_blocker"]["blocker_type"] == "publication_gate_replay_blocked"
+    study = result["studies"][0]
+    assert study["current_work_unit"]["status"] == "typed_blocker"
+    assert study["current_work_unit"]["state"]["typed_blocker"]["work_unit_id"] == work_unit_id
 
 
 def test_materialized_current_control_keeps_progress_first_live_attempt_over_old_closeout(

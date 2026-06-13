@@ -24,7 +24,7 @@ def _currentness_basis(
     }
 
 
-def test_materialized_current_control_retains_pending_after_opl_authorization_work_unit_mismatch(
+def test_materialized_current_control_blocks_weak_opl_authorization_successor_without_stage_packet(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
@@ -131,20 +131,19 @@ def test_materialized_current_control_retains_pending_after_opl_authorization_wo
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert len(result["provider_admission_candidates"]) == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
-    assert result["action_queue"][0]["work_unit_id"] == work_unit_id
-    assert result["studies"][0]["provider_admission_pending_count"] == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "weak_provider_admission_identity": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "pending_provider_admission"
-    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["decision"] == "weak_provider_admission_identity"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["missing_identity_fields"] == ["stage_packet_ref_or_refs"]
 
 
-def test_materialized_current_control_retains_pending_after_opl_authorization_blocker_closeout(
+def test_materialized_current_control_blocks_weak_opl_authorization_blocker_without_stage_packet(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
@@ -253,35 +252,21 @@ def test_materialized_current_control_retains_pending_after_opl_authorization_bl
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert len(result["provider_admission_candidates"]) == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
-    assert result["action_queue"][0]["work_unit_id"] == work_unit_id
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
     expected_identity_key = f"provider-admission::{study_id}::{fingerprint}"
-    candidate = result["provider_admission_candidates"][0]
-    assert candidate["route_identity_key"] == expected_identity_key
-    assert candidate["attempt_idempotency_key"] == expected_identity_key
-    action = result["action_queue"][0]
-    assert action["action_id"] == f"provider-admission::{study_id}::run_quality_repair_batch"
-    assert action["route_identity_key"] == expected_identity_key
-    assert action["attempt_idempotency_key"] == expected_identity_key
-    assert action["idempotency_key"] == expected_identity_key
-    assert action["owner_route"]["idempotency_key"] == expected_identity_key
-    assert action["owner_route"]["source_refs"]["route_identity_key"] == expected_identity_key
-    assert action["handoff_packet"]["route_identity_key"] == expected_identity_key
-    assert action["handoff_packet"]["attempt_idempotency_key"] == expected_identity_key
-    assert result["studies"][0]["provider_admission_identity_key"] == expected_identity_key
-    assert result["studies"][0]["current_execution_envelope"]["route_identity_key"] == expected_identity_key
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "weak_provider_admission_identity": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "pending_provider_admission"
-    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["decision"] == "weak_provider_admission_identity"
+    assert decision["effect"] == "suppress_provider_admission_pending"
     assert decision["route_identity_key"] == expected_identity_key
+    assert decision["missing_identity_fields"] == ["stage_packet_ref_or_refs"]
 
 
-def test_report_current_control_retains_pending_after_opl_authorization_work_unit_mismatch(
+def test_report_current_control_blocks_weak_opl_authorization_successor_without_stage_packet(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
@@ -414,16 +399,16 @@ def test_report_current_control_retains_pending_after_opl_authorization_work_uni
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert len(result["provider_admission_candidates"]) == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
-    assert result["action_queue"][0]["work_unit_id"] == work_unit_id
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "weak_provider_admission_identity": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "pending_provider_admission"
-    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["decision"] == "weak_provider_admission_identity"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["missing_identity_fields"] == ["stage_packet_ref_or_refs"]
 
 
 def test_report_current_control_marks_opl_authorization_blocker_closeout_as_mismatch(
@@ -560,8 +545,13 @@ def test_report_current_control_marks_opl_authorization_blocker_closeout_as_mism
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert len(result["provider_admission_candidates"]) == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "weak_provider_admission_identity": 1,
     }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "weak_provider_admission_identity"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["missing_identity_fields"] == ["stage_packet_ref_or_refs"]

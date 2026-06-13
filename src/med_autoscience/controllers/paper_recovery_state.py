@@ -53,6 +53,31 @@ def build_paper_recovery_state(
 
     terminal_closeout = _matching_terminal_closeout(progress, obligation=obligation)
     if terminal_closeout is not None:
+        closeout_typed_blocker = _typed_blocker_from_closeout(terminal_closeout, obligation=obligation)
+        if closeout_typed_blocker:
+            owner = (
+                _text(closeout_typed_blocker.get("owner"))
+                or _text(obligation.get("owner"))
+                or "MedAutoScience"
+            )
+            return _state(
+                progress,
+                obligation=obligation,
+                phase=_typed_blocker_phase(closeout_typed_blocker),
+                conditions=[
+                    {
+                        "condition": "accepted_closeout_typed_blocker",
+                        "blocker_type": _typed_blocker_reason(closeout_typed_blocker),
+                    }
+                ],
+                next_safe_action=_next_action(
+                    "resolve_typed_blocker",
+                    provider_admission_allowed=False,
+                    owner=owner,
+                ),
+                current_owner=owner,
+                evidence_refs=_closeout_refs(terminal_closeout),
+            )
         return _state(
             progress,
             obligation=obligation,
@@ -595,6 +620,78 @@ def _current_typed_blocker(current_work_unit: Mapping[str, Any]) -> dict[str, An
         if key not in typed_blocker and _text(current_work_unit.get(key)) is not None:
             typed_blocker[key] = _text(current_work_unit.get(key))
     return {key: value for key, value in typed_blocker.items() if value not in (None, "", [], {})}
+
+
+def _typed_blocker_from_closeout(
+    closeout: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> dict[str, Any]:
+    embedded = _mapping(closeout.get("typed_blocker"))
+    domain_blocker = _mapping(closeout.get("domain_blocker"))
+    owner_result = _mapping(closeout.get("owner_result"))
+    paper_log = _mapping(closeout.get("paper_stage_log"))
+    blocker_type = _first_text(
+        embedded.get("blocked_reason"),
+        embedded.get("blocker_type"),
+        embedded.get("blocker_kind"),
+        embedded.get("reason"),
+        embedded.get("blocker_id"),
+        domain_blocker.get("blocked_reason"),
+        domain_blocker.get("blocker_type"),
+        domain_blocker.get("blocker_kind"),
+        domain_blocker.get("reason"),
+        domain_blocker.get("blocker_id"),
+        closeout.get("typed_blocker_reason"),
+        closeout.get("blocked_reason"),
+        owner_result.get("blocked_reason"),
+        *_text_items(paper_log.get("remaining_blockers")),
+    )
+    if blocker_type is None:
+        progress_delta = _text(paper_log.get("progress_delta_classification"))
+        if progress_delta != "typed_blocker" and _text(closeout.get("typed_blocker_ref")) is None:
+            return {}
+        blocker_type = "typed_blocker"
+    explicit_typed_signal = any(
+        value is not None
+        for value in (
+            _text(closeout.get("typed_blocker_ref")),
+            _text(closeout.get("typed_blocker_reason")),
+            _text(closeout.get("blocked_reason")),
+            _text(owner_result.get("blocked_reason")),
+            _text(paper_log.get("progress_delta_classification"))
+            if _text(paper_log.get("progress_delta_classification")) == "typed_blocker"
+            else None,
+        )
+    ) or bool(embedded) or bool(domain_blocker) or bool(_text_items(paper_log.get("remaining_blockers")))
+    if not explicit_typed_signal:
+        return {}
+    owner = (
+        _text(embedded.get("owner"))
+        or _text(embedded.get("next_owner"))
+        or _text(domain_blocker.get("owner"))
+        or _text(domain_blocker.get("next_owner"))
+        or _text(owner_result.get("owner"))
+        or _text(closeout.get("next_owner"))
+        or _text(obligation.get("owner"))
+        or "MedAutoScience"
+    )
+    return {
+        key: value
+        for key, value in {
+            **embedded,
+            **domain_blocker,
+            "blocker_type": blocker_type,
+            "blocked_reason": blocker_type,
+            "owner": owner,
+            "action_type": _text(closeout.get("action_type")) or _text(obligation.get("action_type")),
+            "work_unit_id": _text(closeout.get("work_unit_id")) or _text(obligation.get("work_unit_id")),
+            "work_unit_fingerprint": _text(closeout.get("work_unit_fingerprint"))
+            or _text(closeout.get("action_fingerprint"))
+            or _text(obligation.get("work_unit_fingerprint")),
+        }.items()
+        if value not in (None, "", [], {})
+    }
 
 
 def _typed_blocker_reason(typed_blocker: Mapping[str, Any]) -> str | None:
