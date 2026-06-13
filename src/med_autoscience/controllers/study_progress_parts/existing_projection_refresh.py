@@ -1,0 +1,265 @@
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping
+from pathlib import Path
+from typing import Any
+
+from med_autoscience.controllers import current_execution_envelope, current_work_unit
+from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index
+from med_autoscience.profiles import WorkspaceProfile
+
+from .current_executable_owner_action import build_current_executable_owner_action
+from .current_owner_action_projection_reconcile import (
+    current_execution_envelope_actions,
+    reconcile_current_owner_action_projection,
+)
+from .delivery_inspection import attach_delivery_inspection_projection
+from .opl_current_control_state_handoff import (
+    merge_live_attempt_observability_into_handoff,
+    opl_current_control_state_live_attempt_handoff_projection,
+)
+from .operator_view import _study_command_surfaces
+from .progress_first_monitoring import build_progress_first_monitoring_summary
+from .progression import _domain_transition_route_repair
+from .provider_admission_projection import provider_admission_projection_fields
+from .publication_runtime_followthrough import (
+    _gate_clearing_batch_followthrough,
+    _quality_repair_batch_followthrough,
+)
+from .projection_payload_assembly_parts.running_provider_status import (
+    apply_running_provider_attempt_top_level_status,
+)
+from .shared import _mapping_copy, _non_empty_text, _route_repair_summary
+from .user_visible_projection import build_user_visible_projection
+
+
+def refresh_existing_projection_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
+    redrive_next_action = current_redrive_top_level_next_action(payload)
+    if redrive_next_action is not None:
+        updated = dict(payload)
+        updated["user_visible_projection"] = build_user_visible_projection(updated)
+        updated["next_system_action"] = redrive_next_action
+        status_contract = _mapping_copy(updated.get("status_narration_contract"))
+        if status_contract:
+            status_contract["next_step"] = redrive_next_action
+            updated["status_narration_contract"] = status_contract
+        return updated
+    return payload
+
+
+def refresh_existing_projection_batch_followthroughs(
+    *,
+    payload: dict[str, Any],
+    status: dict[str, Any],
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+    study_id: str,
+    study_root: Path,
+    publication_eval_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    updated = dict(payload)
+    study_commands = _study_command_surfaces(
+        profile=profile,
+        study_id=study_id,
+        profile_ref=profile_ref,
+    )
+    updated["gate_clearing_batch_followthrough"] = _gate_clearing_batch_followthrough(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        current_eval_ids=current_gate_clearing_eval_ids(status=status),
+    )
+    updated["quality_repair_batch_followthrough"] = _quality_repair_batch_followthrough(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        recommended_command=study_commands.get("quality_repair_batch"),
+    )
+    return updated
+
+
+def refresh_existing_projection_current_owner_surfaces(
+    *,
+    payload: dict[str, Any],
+    status: dict[str, Any],
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+    study_root: Path,
+    publication_eval_payload: dict[str, Any] | None,
+    attach_delivery_inspection_projection_fn: Callable[..., dict[str, Any]] = attach_delivery_inspection_projection,
+) -> dict[str, Any]:
+    updated = dict(payload)
+    if publication_eval_payload is not None:
+        updated["publication_eval"] = publication_eval_payload
+    handoff = merge_live_attempt_observability_into_handoff(
+        handoff=_mapping_copy(updated.get("opl_current_control_state_handoff")),
+        live_attempt_handoff=opl_current_control_state_live_attempt_handoff_projection(
+            profile=profile,
+            study_id=_non_empty_text(updated.get("study_id")) or _non_empty_text(status.get("study_id")) or "",
+            runtime_liveness_audit=_mapping_copy(status.get("runtime_liveness_audit")),
+        ),
+    )
+    if handoff is not None:
+        updated["opl_current_control_state_handoff"] = handoff
+    else:
+        handoff = {}
+    current_action = build_current_executable_owner_action(updated)
+    if current_action is None and handoff.get("running_provider_attempt") is not True:
+        updated.update(
+            provider_admission_projection_fields(
+                payload=updated,
+                handoff=handoff,
+                study_root=study_root,
+            )
+        )
+        if _mapping_copy(updated.get("current_executable_owner_action")) or _mapping_copy(
+            updated.get("progress_first_monitoring_summary")
+        ):
+            updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+            updated = sync_progress_first_owner_action_admission(updated)
+        return attach_delivery_inspection_projection_fn(
+            updated,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_root=study_root,
+        )
+    if current_action is not None:
+        updated["current_executable_owner_action"] = current_action
+        updated = reconcile_current_owner_action_projection(updated)
+    progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
+    envelope_actions = current_execution_envelope_actions(
+        handoff=handoff,
+        current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
+        paper_progress_delta_counted=progress_state.get("paper_progress_delta_counted") is True,
+    )
+    runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot"))
+    updated["current_work_unit"] = current_work_unit.build_current_work_unit(
+        status=status,
+        progress=updated,
+        actions=envelope_actions,
+        current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
+        provider_admission=handoff,
+        live_provider_attempt=handoff,
+        typed_blocker=_mapping_copy(handoff.get("typed_blocker")),
+        blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
+        next_owner=_non_empty_text(handoff.get("next_owner")),
+        runtime_health=runtime_health_snapshot,
+    )
+    updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+        status=status,
+        progress=updated,
+        actions=envelope_actions,
+        blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
+        next_owner=_non_empty_text(handoff.get("next_owner")),
+        typed_blocker=_mapping_copy(handoff.get("typed_blocker")),
+        runtime_health=runtime_health_snapshot,
+        live_provider_attempt=handoff,
+        current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
+    )
+    updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+    updated.update(
+        provider_admission_projection_fields(
+            payload=updated,
+            handoff=handoff,
+            study_root=study_root,
+        )
+    )
+    updated = sync_progress_first_owner_action_admission(updated)
+    updated = apply_running_provider_attempt_top_level_status(updated)
+    updated["user_visible_projection"] = build_user_visible_projection(updated)
+    return attach_delivery_inspection_projection_fn(
+        updated,
+        profile=profile,
+        profile_ref=profile_ref,
+        study_root=study_root,
+    )
+
+
+def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:
+    monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
+    admission = _mapping_copy(monitoring.get("owner_action_admission"))
+    if not admission:
+        return payload
+    updated = dict(payload)
+    updated["owner_action_admission"] = admission
+    return updated
+
+
+def current_redrive_top_level_next_action(payload: dict[str, Any]) -> str | None:
+    transition = _mapping_copy(payload.get("domain_transition"))
+    if _non_empty_text(transition.get("decision_type")) not in {
+        "ai_reviewer_re_eval",
+        "bundle_stage_finalize",
+        "publication_gate_blocker",
+        "route_back_same_line",
+    }:
+        return None
+    macro_state = _mapping_copy(payload.get("study_macro_state"))
+    if _non_empty_text(macro_state.get("writer_state")) == "live":
+        return None
+    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
+    route_repair = _domain_transition_route_repair(payload)
+    next_work_unit = _mapping_copy(transition.get("next_work_unit"))
+    return (
+        _non_empty_text(intervention_lane.get("route_summary"))
+        or _non_empty_text(intervention_lane.get("summary"))
+        or _route_repair_summary(route_repair)
+        or _non_empty_text(next_work_unit.get("unit_id"))
+    )
+
+
+def current_gate_clearing_eval_ids(
+    *,
+    status: Mapping[str, Any],
+    next_forced_delta: Mapping[str, Any] | None = None,
+) -> list[str]:
+    eval_ids: list[str] = []
+
+    def add(value: object) -> None:
+        text = _non_empty_text(value)
+        if text is not None and text not in eval_ids:
+            eval_ids.append(text)
+
+    transition = _mapping_copy(status.get("domain_transition"))
+    completion = _mapping_copy(transition.get("completion_receipt_consumption"))
+    add(completion.get("eval_id"))
+    add(completion.get("source_eval_id"))
+    completion_basis = _mapping_copy(completion.get("owner_route_currentness_basis"))
+    add(completion_basis.get("source_eval_id"))
+    transition_refs = _mapping_copy(transition.get("source_refs"))
+    add(transition_refs.get("source_eval_id"))
+    if next_forced_delta is not None:
+        delta = _mapping_copy(next_forced_delta)
+        add(delta.get("eval_id"))
+        add(delta.get("source_eval_id"))
+        owner_action = _mapping_copy(delta.get("owner_action"))
+        add(owner_action.get("eval_id"))
+        add(owner_action.get("source_eval_id"))
+        ticket_refs = _mapping_copy(_mapping_copy(delta.get("current_owner_ticket")).get("source_refs"))
+        add(ticket_refs.get("source_eval_id"))
+    return eval_ids
+
+
+def stage_artifact_index_projection(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    build_stage_artifact_index_fn: Callable[..., dict[str, Any] | None] = build_stage_artifact_index,
+) -> dict[str, Any] | None:
+    del profile
+    payload = build_stage_artifact_index_fn(study_id=study_id, study_root=study_root)
+    if not isinstance(payload, dict):
+        return None
+    if _non_empty_text(payload.get("surface_kind")) != "stage_artifact_index":
+        return None
+    return dict(payload)
+
+
+__all__ = [
+    "current_gate_clearing_eval_ids",
+    "current_redrive_top_level_next_action",
+    "refresh_existing_projection_batch_followthroughs",
+    "refresh_existing_projection_current_owner_surfaces",
+    "refresh_existing_projection_user_visible_status",
+    "stage_artifact_index_projection",
+    "sync_progress_first_owner_action_admission",
+]
