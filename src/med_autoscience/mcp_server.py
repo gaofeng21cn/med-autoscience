@@ -155,13 +155,18 @@ def _tool_result_envelope(
         is_error=is_error,
         result_summary=text,
     )
+    structured_payload = _structured_payload_for_tool_result_envelope(
+        tool_name=tool_name,
+        tool_mode=tool_mode,
+        payload=payload,
+    )
     envelope: dict[str, Any] = {
         **payload,
         "surface_kind": "mas_tool_result_envelope",
         "tool_id": tool_name,
         **({"tool_mode": tool_mode} if tool_mode else {}),
         "status": "failed" if is_error else "succeeded",
-        "structured_payload": payload,
+        "structured_payload": structured_payload,
         "raw_surface_kind": str(
             payload.get("surface_kind")
             or payload.get("surface")
@@ -213,6 +218,39 @@ def _tool_result_envelope(
     if is_error:
         envelope["error_class"] = "tool_execution_error"
     return envelope
+
+
+def _structured_payload_for_tool_result_envelope(
+    *,
+    tool_name: str,
+    tool_mode: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    if tool_name != "authority_operations" or not tool_mode:
+        return payload
+    if payload.get("surface_kind") == "mas_tool_result_envelope":
+        return payload
+    return {
+        "surface_kind": "mas_tool_result_envelope",
+        "tool_id": f"{tool_name}:{tool_mode}",
+        "tool_mode": tool_mode,
+        "status": "succeeded",
+        "structured_payload": payload,
+        "raw_surface_kind": str(
+            payload.get("surface")
+            or payload.get("surface_kind")
+            or payload.get("status")
+            or ""
+        ),
+        "authority_boundary": {
+            "tool_result_envelope_is_authority_outcome": False,
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+            "can_return_owner_receipt": False,
+            "can_return_typed_blocker": False,
+        },
+    }
 
 
 def _tool_result_recovery(

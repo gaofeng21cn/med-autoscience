@@ -75,10 +75,79 @@ def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[s
         if status_contract:
             status_contract["next_step"] = next_step
             updated["status_narration_contract"] = status_contract
+        intervention_lane = _mapping_copy(updated.get("intervention_lane"))
+        if _non_empty_text(intervention_lane.get("lane_id")) == "auto_runtime_parked":
+            intervention_lane.update(
+                {
+                    "lane_id": "current_owner_action_ready",
+                    "title": "当前 owner action 已就绪",
+                    "severity": "handoff",
+                    "summary": next_step,
+                    "recommended_action_id": "inspect_current_owner_action",
+                    "parked_state": None,
+                    "parked_owner": None,
+                    "awaiting_explicit_wakeup": False,
+                    "resource_release_expected": False,
+                    "superseded_by_current_owner_action": True,
+                }
+            )
+            updated["intervention_lane"] = {
+                key: value for key, value in intervention_lane.items() if value not in (None, "", [], {})
+            }
+        operator_verdict = _mapping_copy(updated.get("operator_verdict"))
+        if _non_empty_text(operator_verdict.get("decision_mode")) == "auto_runtime_parked":
+            operator_verdict.update(
+                {
+                    "lane_id": "current_owner_action_ready",
+                    "decision_mode": "monitor_only",
+                    "needs_intervention": False,
+                    "summary": next_step,
+                    "reason_summary": next_step,
+                }
+            )
+            updated["operator_verdict"] = {
+                key: value for key, value in operator_verdict.items() if value not in (None, "", [], {})
+            }
+        for key in ("recovery_contract", "autonomy_contract"):
+            surface = _mapping_copy(updated.get(key))
+            if not surface:
+                continue
+            if _non_empty_text(surface.get("action_mode")) == "auto_runtime_parked":
+                surface["action_mode"] = "inspect_current_owner_action"
+            if _non_empty_text(surface.get("autonomy_state")) == "auto_runtime_parked":
+                surface["autonomy_state"] = "autonomous_progress"
+            surface["summary"] = next_step
+            updated[key] = {
+                item_key: item_value
+                for item_key, item_value in surface.items()
+                if item_key
+                not in {
+                    "auto_runtime_parked",
+                    "parked_state",
+                    "resource_release_expected",
+                    "awaiting_explicit_wakeup",
+                    "auto_execution_complete",
+                }
+            }
         operator_status = _mapping_copy(updated.get("operator_status_card"))
         if operator_status:
+            if _non_empty_text(operator_status.get("handling_state")) == "auto_runtime_parked":
+                operator_status["handling_state"] = "scientific_or_quality_repair_in_progress"
+                operator_status["handling_state_label"] = "论文硬阻塞处理中"
             operator_status["current_focus"] = next_step
-            updated["operator_status_card"] = operator_status
+            updated["operator_status_card"] = {
+                key: value
+                for key, value in operator_status.items()
+                if key
+                not in {
+                    "auto_runtime_parked",
+                    "parked_state",
+                    "resource_release_expected",
+                    "awaiting_explicit_wakeup",
+                    "auto_execution_complete",
+                    "reopen_policy",
+                }
+            }
     updated["needs_user_decision"] = False
     updated["needs_physician_decision"] = False
     updated["physician_decision_summary"] = None

@@ -559,6 +559,86 @@ def test_study_progress_does_not_show_explicit_resume_when_runtime_recovery_is_r
     assert "显式恢复" not in result["current_stage_summary"]
 
 
+def test_current_owner_action_supersedes_operator_explicit_resume_lane(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = helpers.write_study(profile.workspace_root, study_id)
+    quest_root = profile.runtime_root / study_id
+
+    monkeypatch.setattr(
+        progress.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_root": str(quest_root),
+            "quest_status": "waiting_for_user",
+            "decision": "blocked",
+            "reason": "quest_waiting_for_user",
+            "continuation_state": {
+                "quest_status": "waiting_for_user",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+                "pending_user_message_count": 12,
+            },
+            "auto_runtime_parked": {
+                "surface_kind": "auto_runtime_parked",
+                "schema_version": 1,
+                "parked": True,
+                "parked_state": "explicit_resume_pending",
+                "parked_state_label": "等待显式恢复",
+                "parked_owner": "user",
+                "resource_release_expected": True,
+                "awaiting_explicit_wakeup": True,
+                "auto_execution_complete": False,
+                "source_reason": "blocked_turn_closeout_waiting_for_owner",
+                "source_decision": "blocked",
+                "source_quest_status": "waiting_for_user",
+            },
+            "gate_clearing_batch_followthrough": {
+                "status": "fresh",
+                "gate_replay_status": "blocked",
+                "work_unit_id": "publication_gate_replay",
+                "source_eval_id": "2026-06-13T00:48:48Z",
+                "latest_record_path": str(
+                    study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+                ),
+                "work_unit_currentness": {
+                    "current_actionability_status": "actionable",
+                    "explicit_publication_work_unit_id": "publication_gate_replay",
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+            },
+            "supervisor_tick_audit": {"required": False, "status": "not_required"},
+        },
+    )
+
+    result = progress.read_study_progress(profile=profile, study_id=study_id)
+
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["auto_runtime_parked"]["superseded_by_current_owner_action"] is True
+    assert result["parked_state"] is None
+    assert result["intervention_lane"]["lane_id"] != "auto_runtime_parked"
+    assert result["operator_status_card"]["handling_state"] != "auto_runtime_parked"
+    assert result["operator_status_card"].get("parked_state") is None
+    assert result["operator_verdict"]["decision_mode"] != "auto_runtime_parked"
+    assert result["recovery_contract"]["action_mode"] != "auto_runtime_parked"
+    assert result["autonomy_contract"]["autonomy_state"] != "auto_runtime_parked"
+    assert "显式" not in result["operator_status_card"]["current_focus"]
+
+
 def test_study_progress_reads_dm002_malformed_publication_surface_blockers(
     tmp_path,
 ) -> None:

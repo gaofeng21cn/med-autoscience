@@ -916,9 +916,24 @@ def _active_run_id_with_live_handoff(
 ) -> str | None:
     if _handoff_has_strict_live_provider_attempt(handoff):
         return _non_empty_text(handoff.get("active_run_id")) or active_run_id
+    if active_run_id is None:
+        observed = _observed_stage_attempt_active_run_id(handoff)
+        if observed is not None:
+            return observed
     if _handoff_disproves_active_run_id(handoff, active_run_id):
         return None
     return active_run_id
+
+
+def _observed_stage_attempt_active_run_id(handoff: Mapping[str, Any]) -> str | None:
+    runtime_health = _mapping_copy(handoff.get("runtime_health"))
+    candidate = (
+        _non_empty_text(handoff.get("active_run_id"))
+        or _non_empty_text(runtime_health.get("last_known_run_id"))
+    )
+    if candidate is None or not candidate.startswith("opl-stage-attempt://"):
+        return None
+    return candidate
 
 
 def _handoff_disproves_active_run_id(
