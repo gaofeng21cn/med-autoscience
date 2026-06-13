@@ -390,16 +390,17 @@ def _current_typed_blocker_owner_resolution_task(
     current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
     if text(current_work_unit.get("status")) != "typed_blocker":
         return None
-    owner = _current_owner_for_resolution(
-        current_work_unit=current_work_unit,
-        current_execution_envelope=current_execution_envelope,
-    )
-    if owner not in {"one-person-lab", "opl", "OPL"}:
-        return None
     typed_blocker = _current_typed_blocker(
         current_work_unit=current_work_unit,
         current_execution_envelope=current_execution_envelope,
     )
+    owner = _current_owner_for_resolution(
+        current_work_unit=current_work_unit,
+        current_execution_envelope=current_execution_envelope,
+    )
+    if not _typed_blocker_owner_resolution_supported(owner=owner, typed_blocker=typed_blocker):
+        return None
+    required_owner = _required_owner_for_typed_blocker_resolution(owner)
     reason = "current_work_unit_typed_blocker_owner_resolution"
     source_fingerprint = _fingerprint(
         {
@@ -449,23 +450,84 @@ def _current_typed_blocker_owner_resolution_task(
             "typed_blocker": dict(typed_blocker),
             "authority_boundary": "mas_domain_route_refs_only_opl_stage_attempt_owner",
             "required_owner_action": {
-                "owner": "one-person-lab",
+                "owner": required_owner,
                 "action_type": text(current_work_unit.get("action_type")),
                 "work_unit_id": text(current_work_unit.get("work_unit_id")),
                 "work_unit_fingerprint": (
                     text(current_work_unit.get("work_unit_fingerprint"))
                     or text(current_work_unit.get("action_fingerprint"))
                 ),
-                "accepted_resolution_shapes": [
-                    "matching_provider_attempt_or_lease_binding",
-                    "matching_terminal_closeout_receipt",
-                    "identity_different_successor_owner_action",
-                    "stable_typed_blocker",
-                    "human_gate",
-                ],
+                "accepted_resolution_shapes": _typed_blocker_resolution_shapes(
+                    owner=required_owner,
+                    typed_blocker=typed_blocker,
+                ),
             },
         },
     }
+
+
+def _typed_blocker_owner_resolution_supported(
+    *,
+    owner: str | None,
+    typed_blocker: Mapping[str, Any],
+) -> bool:
+    if _canonical_owner(owner) == "one-person-lab":
+        return True
+    if _canonical_owner(owner) != "MedAutoScience":
+        return False
+    return _typed_blocker_identity(typed_blocker) == "no_selected_dispatch_for_requested_action_types"
+
+
+def _required_owner_for_typed_blocker_resolution(owner: str | None) -> str | None:
+    if _canonical_owner(owner) == "one-person-lab":
+        return "one-person-lab"
+    return owner
+
+
+def _typed_blocker_resolution_shapes(
+    *,
+    owner: str | None,
+    typed_blocker: Mapping[str, Any],
+) -> list[str]:
+    shapes: list[str] = []
+    if (
+        _canonical_owner(owner) == "MedAutoScience"
+        and _typed_blocker_identity(typed_blocker) == "no_selected_dispatch_for_requested_action_types"
+    ):
+        shapes.extend(
+            [
+                "current_selected_mas_dispatch",
+                "accepted_owner_receipt_for_materialized_gate_artifact",
+            ]
+        )
+    for shape in (
+        "matching_provider_attempt_or_lease_binding",
+        "matching_terminal_closeout_receipt",
+        "identity_different_successor_owner_action",
+        "stable_typed_blocker",
+        "human_gate",
+    ):
+        if shape not in shapes:
+            shapes.append(shape)
+    return shapes
+
+
+def _canonical_owner(owner: str | None) -> str | None:
+    normalized = text(owner)
+    if normalized in {"one-person-lab", "opl", "OPL"}:
+        return "one-person-lab"
+    if normalized in {"MedAutoScience", "med-autoscience", "medautosci", "mas"}:
+        return "MedAutoScience"
+    return normalized
+
+
+def _typed_blocker_identity(typed_blocker: Mapping[str, Any]) -> str | None:
+    return (
+        text(typed_blocker.get("blocker_id"))
+        or text(typed_blocker.get("blocker_type"))
+        or text(typed_blocker.get("reason"))
+        or text(typed_blocker.get("blocked_reason"))
+    )
 
 
 def _current_owner_for_resolution(

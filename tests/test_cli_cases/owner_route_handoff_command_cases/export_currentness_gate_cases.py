@@ -211,6 +211,95 @@ def test_domain_handler_export_materializes_opl_typed_blocker_owner_resolution_t
     assert task["domain_dispatch_evidence_record_payload"]["task_kind"] == "domain_route/reconcile-apply"
 
 
+def test_domain_handler_export_materializes_mas_dispatch_selection_blocker_resolution_task(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = workspace_root / "studies" / study_id
+    work_unit_fingerprint = "sha256:gate-replay-current"
+    write_profile(profile_path, workspace_root=workspace_root)
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "MedAutoScience",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "source": "terminal_closeout_typed_blocker",
+                    "typed_blocker": {
+                        "blocker_id": "no_selected_dispatch_for_requested_action_types",
+                        "blocker_type": "no_selected_dispatch_for_requested_action_types",
+                        "owner": "MedAutoScience",
+                        "required_input": (
+                            "current selected MAS dispatch for action_type run_gate_clearing_batch "
+                            "or an accepted owner receipt for the already materialized "
+                            "gate_clearing_batch artifact"
+                        ),
+                        "source_ref": (
+                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "sat_556faaef7e4a16f309819eb3.closeout.json"
+                        ),
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "next_work_unit": None,
+                "typed_blocker": {
+                    "blocker_id": "no_selected_dispatch_for_requested_action_types",
+                    "blocker_type": "no_selected_dispatch_for_requested_action_types",
+                    "owner": "MedAutoScience",
+                },
+            },
+            "current_executable_owner_action": None,
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task.get("payload", {}).get("study_id") == study_id
+    ]
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["task_kind"] == "domain_route/reconcile-apply"
+    assert task["reason"] == "current_work_unit_typed_blocker_owner_resolution"
+    assert task["queue_owner"] == "one-person-lab"
+    assert task["payload"]["current_work_unit"]["work_unit_id"] == "publication_gate_replay"
+    assert task["payload"]["current_work_unit"]["work_unit_fingerprint"] == work_unit_fingerprint
+    assert task["payload"]["typed_blocker"]["blocker_id"] == "no_selected_dispatch_for_requested_action_types"
+    required_owner_action = task["payload"]["required_owner_action"]
+    assert required_owner_action["owner"] == "MedAutoScience"
+    assert required_owner_action["action_type"] == "run_gate_clearing_batch"
+    assert required_owner_action["work_unit_id"] == "publication_gate_replay"
+    assert required_owner_action["work_unit_fingerprint"] == work_unit_fingerprint
+    assert "current_selected_mas_dispatch" in required_owner_action["accepted_resolution_shapes"]
+    assert task["domain_dispatch_evidence_record_payload"]["task_kind"] == "domain_route/reconcile-apply"
+
+
 def test_export_current_owner_action_suppresses_residual_action_under_typed_blocker() -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export")
 
