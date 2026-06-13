@@ -1,0 +1,236 @@
+{
+  "surface_kind": "mas_standard_opl_agent_completion_acceptance",
+  "version": "standard-opl-agent-completion-acceptance.v1",
+  "owner": "MedAutoScience / One Person Lab",
+  "state": "active_contract",
+  "purpose": "Machine-readable acceptance definition for eliminating MAS legacy platform residue and for making the OPL-standard-agent hardening work verifiable instead of slogan-complete.",
+  "machine_boundary": "This contract defines acceptance gates, false-completion rules, evidence classes, and open evidence tails for MAS standard-OPL-agent completion. It does not declare live DM002/DM003 recovery, paper closure, publication readiness, submission readiness, current package freshness, production readiness, physical delete authorization, or OPL family-wide conformance completion.",
+  "source_design_refs": [
+    "human_doc:mas_ideal_state_gap_plan",
+    "human_doc:mas_status",
+    "human_doc:mas_decisions",
+    "contracts/paper_recovery_kernel_contract.json",
+    "contracts/stage_route_reconcile_contract.json",
+    "/Users/gaofeng/workspace/one-person-lab/contracts/opl-framework/standard-agent-landing-acceptance-contract.json"
+  ],
+  "completion_claim_policy": {
+    "definition_landed_status": "acceptance_definition_landed",
+    "current_completion_status": "evidence_tail_open_not_complete",
+    "definition_landed_can_claim_complete": false,
+    "classification_zero_can_claim_complete": false,
+    "docs_updated_can_claim_complete": false,
+    "contract_tests_green_can_claim_complete": false,
+    "required_final_claim": "all_acceptance_gates_satisfied_with_current_evidence",
+    "completion_requires_all_gate_statuses": [
+      "satisfied",
+      "retired_with_owner_decision",
+      "not_applicable_with_owner_decision"
+    ]
+  },
+  "scope": {
+    "objective_1": {
+      "id": "mas_legacy_baggage_eliminated",
+      "goal": "MAS reads as a standard OPL Agent in active source, default entry, generated surface, owner route, recovery, and operator projection paths.",
+      "non_goal": "Do not delete provenance, fixtures, explicit archive imports, body-free domain refs, or minimal medical authority functions that have a current owner boundary."
+    },
+    "objective_2": {
+      "id": "standard_agent_failure_mode_not_repeated",
+      "goal": "The failure mode found through DM002/DM003 becomes a reusable acceptance standard for future OPL-standard-agent generation and takeover.",
+      "non_goal": "Do not copy MAS-specific paper recovery phases into MAG, RCA, OMA, or OPL substrate."
+    }
+  },
+  "acceptance_gates": [
+    {
+      "gate_id": "single_default_recovery_and_progress_root",
+      "required_status": "satisfied",
+      "source_of_truth": [
+        "contracts/paper_recovery_kernel_contract.json",
+        "contracts/stage_route_reconcile_contract.json",
+        "fresh study_progress and DHD dry-run for live studies"
+      ],
+      "requires": [
+        "ordinary progress root is current_owner_delta",
+        "paper recovery root is paper_recovery_state",
+        "study_progress, DHD provider admission, operator card, intervention lane, operator verdict, recovery/autonomy contract, and user-visible projection derive from the authority root",
+        "queue, active_run_id, transport status, operator card, parked runtime, docs-only claim, and stale dispatch are audit-only unless adopted by an owner answer"
+      ],
+      "cannot_be_satisfied_by": [
+        "old action queue empty",
+        "active_run_id present or absent",
+        "provider completion",
+        "DHD observe_only report",
+        "operator card wording"
+      ]
+    },
+    {
+      "gate_id": "physical_source_morphology_standardized",
+      "required_status": "satisfied_or_explicit_owner_exception",
+      "source_of_truth": [
+        "agent/",
+        "contracts/",
+        "runtime/authority_functions/",
+        "src/",
+        "contracts/authority_kernel_inventory.json",
+        "contracts/functional_privatization_audit.json"
+      ],
+      "requires": [
+        "domain semantics live in agent/ pack refs",
+        "machine contracts live in contracts/",
+        "minimal medical authority functions are inventoried with owner, active callers, allowed writes, forbidden authority, output refs, cannot-lift reason, and retirement or upcollect target",
+        "active src paths do not own generic scheduler, queue, attempt ledger, state-machine runner, generic lifecycle, generic workbench, or generic product wrapper"
+      ],
+      "cannot_be_satisfied_by": [
+        "functional_structure_gap_count=0 alone",
+        "descriptor ready alone",
+        "generated interface ready alone",
+        "history/tombstone prose alone"
+      ]
+    },
+    {
+      "gate_id": "active_caller_migration_and_no_resurrection",
+      "required_status": "satisfied",
+      "source_of_truth": [
+        "domain-handler export/dispatch",
+        "product-entry manifest",
+        "MCP action manifest",
+        "tests/standard_agent_purity_helpers.py",
+        "contracts/runtime/legacy-active-path-tombstones.json"
+      ],
+      "requires": [
+        "default CLI/MCP/Skill/product-entry/status/workbench/domain-handler shells are OPL generated or hosted surfaces, domain handler targets, authority functions, refs-only projections, or tombstone/provenance",
+        "retired aliases, facades, wrappers, local scheduler, legacy runtime transport, and compatibility entrypoints have no active default caller",
+        "new code cannot add compatibility shim, alias, facade, fallback, or private runtime owner"
+      ],
+      "cannot_be_satisfied_by": [
+        "no current live DM002/DM003 work",
+        "queue_len=0",
+        "OPL conformance pass without caller migration proof"
+      ]
+    },
+    {
+      "gate_id": "stage_route_and_stop_loss_have_single_arbiter",
+      "required_status": "satisfied",
+      "source_of_truth": [
+        "contracts/stage_route_reconcile_contract.json",
+        "tests/test_stage_route_reconcile_contract.py",
+        "OPL stage_route_arbiter_substrate_contract"
+      ],
+      "requires": [
+        "provider admission requires strong route identity and attempt idempotency identity",
+        "terminal closeout precedence suppresses stale running projection without swallowing different-identity successor",
+        "same identity no-progress redrive stops at budget",
+        "stop-loss exit requires identity-different successor, owner answer, human gate, route-back evidence, provider hard-gate clearance, or stable typed blocker",
+        "record-only refs remain audit unless current identity matches"
+      ],
+      "cannot_be_satisfied_by": [
+        "same action label match",
+        "record ref alone",
+        "provider heartbeat",
+        "workflow completed",
+        "same work-unit redrive"
+      ]
+    },
+    {
+      "gate_id": "negative_false_completion_tests",
+      "required_status": "satisfied",
+      "source_of_truth": [
+        "tests/test_standard_agent_completion_acceptance_contract.py",
+        "tests/test_paper_recovery_kernel_contract.py",
+        "tests/test_stage_route_reconcile_contract.py",
+        "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py"
+      ],
+      "requires": [
+        "tests forbid classification-zero, descriptor-ready, generated-ready, conformance-pass, provider-completion, queue-empty, active-run, docs-only, and refs-only-ledger from becoming completion claims",
+        "tests assert live recovery needs accepted owner evidence or strict current running proof"
+      ],
+      "cannot_be_satisfied_by": [
+        "docs-only wording",
+        "manual reviewer confidence",
+        "old green test output"
+      ]
+    },
+    {
+      "gate_id": "live_owner_evidence_for_representative_paper_lines",
+      "required_status": "evidence_required",
+      "source_of_truth": [
+        "fresh DM002/DM003 study_progress",
+        "fresh DHD dry-run/apply when delegated",
+        "OPL current-control / attempt ledger",
+        "owner receipt / quality gate receipt / stable typed blocker / human gate / route-back evidence / canonical changed surface refs"
+      ],
+      "requires": [
+        "at least representative DM002/DM003 recovery path exits current blockers through accepted current-identity owner evidence, human/operator gate, or stable typed blocker supersession",
+        "paper/deliverable progress and platform repair are accounted separately",
+        "no hand-written Yang runtime/study artifacts are used as governed recovery truth"
+      ],
+      "cannot_be_satisfied_by": [
+        "repo tests alone",
+        "contract landed",
+        "manual foreground edit not adopted by MAS/OPL",
+        "provider completed without MAS closeout consumption"
+      ]
+    },
+    {
+      "gate_id": "family_standard_agent_feedback_loop",
+      "required_status": "evidence_required",
+      "source_of_truth": [
+        "/Users/gaofeng/workspace/one-person-lab/contracts/opl-framework/standard-agent-landing-acceptance-contract.json",
+        "OPL agents conformance",
+        "OPL private-platform residue owner decisions",
+        "OMA developer work-order receipts"
+      ],
+      "requires": [
+        "DM002/DM003 failure mode is represented as family-level standard-agent acceptance criteria",
+        "OMA and future generated agents must return typed blocker or work order when target owner route, source morphology, generated surface, residue ledger, no-forbidden-write proof, or owner answer shape is missing",
+        "domain-specific kernels stay domain-owned while generic substrate stays OPL-owned"
+      ],
+      "cannot_be_satisfied_by": [
+        "copying MAS paper_recovery_state into OPL",
+        "domain-local selector or always-on sidecar",
+        "suite pass without target owner receipt or typed blocker"
+      ]
+    }
+  ],
+  "false_completion_claims": [
+    "contract_landed",
+    "docs_updated",
+    "classification_gap_count_zero",
+    "functional_structure_gap_count_zero",
+    "generated_interface_ready",
+    "descriptor_ready",
+    "OPL_conformance_passed",
+    "MCP_manifest_ready",
+    "queue_empty",
+    "provider_completed",
+    "workflow_terminal",
+    "active_run_id_present",
+    "active_run_id_null",
+    "DHD_observe_only",
+    "verified_refs_only_ledger",
+    "App_projection_ready",
+    "manual_foreground_edit_without_adoption_refs"
+  ],
+  "allowed_completion_evidence": [
+    "domain_owner_receipt_ref",
+    "quality_gate_receipt_ref",
+    "stable_typed_blocker_ref",
+    "human_gate_ref",
+    "route_back_evidence_ref",
+    "canonical_changed_surface_adopted_ref",
+    "strict_current_identity_provider_running_proof",
+    "OPL_generated_surface_production_consumption_ref",
+    "no_active_caller_scan_ref",
+    "physical_retirement_owner_decision_ref",
+    "no_forbidden_write_proof_ref",
+    "tombstone_or_provenance_ref",
+    "cross_agent_standard_conformance_negative_test_ref"
+  ],
+  "current_open_evidence_tails": [
+    "representative DM002/DM003 governed recovery evidence",
+    "direct/hosted generated surface production consumption",
+    "physical source morphology scan beyond classification-zero",
+    "OPL/OMA family-level standard-agent generation negative conformance",
+    "real owner receipt / typed blocker / human gate / route-back scaleout",
+    "provider long-soak and operator repair loop evidence"
+  ]
+}
