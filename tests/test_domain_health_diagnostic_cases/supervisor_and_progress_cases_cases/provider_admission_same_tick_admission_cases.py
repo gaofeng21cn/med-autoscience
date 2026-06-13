@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-def test_domain_health_diagnostic_rewrites_provider_admission_after_same_tick_owner_route_scan(
+def test_domain_health_diagnostic_keeps_same_tick_provider_admission_closed_without_stage_packet(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -220,15 +220,22 @@ def test_domain_health_diagnostic_rewrites_provider_admission_after_same_tick_ow
     )
 
     current_control_state = result["provider_admission_current_control_state"]
-    assert current_control_state["provider_admission_pending_count"] == 1
-    assert current_control_state["provider_admission_candidates"][0]["dispatch_path"] == str(dispatch_path)
-    assert current_control_state["action_queue"][0]["dispatch_path"] == str(dispatch_path)
+    assert current_control_state["provider_admission_pending_count"] == 0
+    assert current_control_state["provider_admission_candidates"] == []
+    assert current_control_state["action_queue"] == []
+    assert current_control_state["stage_route_arbiter"]["decision_counts"] == {
+        "weak_provider_admission_identity": 1,
+    }
+    decision = current_control_state["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "weak_provider_admission_identity"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["missing_identity_fields"] == ["stage_packet_ref_or_refs"]
     latest_payload = json.loads(
         module.supervision_surfaces.latest_path(profile).read_text(encoding="utf-8")
     )
-    assert latest_payload["provider_admission_pending_count"] == 1
-    assert latest_payload["provider_admission_candidates"][0]["dispatch_path"] == str(dispatch_path)
-    assert latest_payload["action_queue"][0]["dispatch_path"] == str(dispatch_path)
+    assert latest_payload["provider_admission_pending_count"] == 0
+    assert latest_payload["provider_admission_candidates"] == []
+    assert latest_payload["action_queue"] == []
 
 def test_provider_admission_candidate_survives_readiness_typed_blocker_for_publication_eval_repair(
     tmp_path: Path,
