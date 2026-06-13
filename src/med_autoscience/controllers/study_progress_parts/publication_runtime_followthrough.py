@@ -238,23 +238,34 @@ def _gate_clearing_record_matches_current_publication_blocker(
     }
     if not record_fingerprints:
         return False
-    for action in publication_eval_payload.get("recommended_actions") or []:
-        if not isinstance(action, Mapping):
-            continue
-        action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint"))
-        if action_fingerprint not in record_fingerprints:
-            continue
-        action_work_unit = _publication_eval_action_work_unit(action)
-        if action_work_unit == current_work_unit or (
-            selected_work_unit is not None and action_work_unit == selected_work_unit
-        ):
-            return True
-        for work_unit in action.get("blocking_work_units") or []:
-            if not isinstance(work_unit, Mapping):
+    for eval_payload in _publication_eval_payloads_for_action_matching(publication_eval_payload):
+        for action in eval_payload.get("recommended_actions") or []:
+            if not isinstance(action, Mapping):
                 continue
-            if _non_empty_text(work_unit.get("unit_id")) == current_work_unit:
+            action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint"))
+            if action_fingerprint not in record_fingerprints:
+                continue
+            action_work_unit = _publication_eval_action_work_unit(action)
+            if action_work_unit == current_work_unit or (
+                selected_work_unit is not None and action_work_unit == selected_work_unit
+            ):
                 return True
+            for work_unit in action.get("blocking_work_units") or []:
+                if not isinstance(work_unit, Mapping):
+                    continue
+                if _non_empty_text(work_unit.get("unit_id")) == current_work_unit:
+                    return True
     return False
+
+
+def _publication_eval_payloads_for_action_matching(
+    publication_eval_payload: Mapping[str, Any],
+) -> list[Mapping[str, Any]]:
+    payloads: list[Mapping[str, Any]] = [publication_eval_payload]
+    source_publication_eval = publication_eval_payload.get("source_publication_eval")
+    if isinstance(source_publication_eval, Mapping):
+        payloads.append(source_publication_eval)
+    return payloads
 
 
 def _publication_eval_action_work_unit(action: Mapping[str, Any]) -> str | None:
