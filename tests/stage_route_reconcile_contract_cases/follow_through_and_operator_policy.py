@@ -13,6 +13,7 @@ def assert_opl_follow_through_and_external_practice_mapping(
         "work_unit_id",
         "work_unit_fingerprint",
         "dispatch_path_or_ref",
+        "stage_packet_ref_or_refs",
         "currentness_basis",
         "route_identity_key",
         "attempt_idempotency_key",
@@ -30,6 +31,10 @@ def assert_opl_follow_through_and_external_practice_mapping(
     )
     assert provider_identity["action_id_role"] == (
         "action_family_only_not_route_or_attempt_identity"
+    )
+    assert provider_identity["dispatch_ref_can_replace_stage_packet_ref"] is False
+    assert provider_identity["missing_stage_packet_binding_weak_identity_field"] == (
+        "stage_packet_ref_or_refs"
     )
     assert provider_identity["stage_packet_binding_required_fields"] == [
         "dispatch_ref",

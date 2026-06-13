@@ -546,6 +546,8 @@ def test_terminal_closeout_suppresses_stale_running_but_preserves_next_handoff(
         "work_unit_fingerprint": next_fingerprint,
         "action_fingerprint": next_fingerprint,
         "dispatch_path": next_dispatch_path,
+        "stage_packet_ref": next_dispatch_path,
+        "stage_packet_refs": [next_dispatch_path],
         "dispatch_authority": "ai_reviewer_record_production_handoff",
         "next_executable_owner": "ai_reviewer",
         "required_output_surface": "artifacts/publication_eval/latest.json",

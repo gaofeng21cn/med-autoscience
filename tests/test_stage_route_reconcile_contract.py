@@ -458,6 +458,7 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
         "work_unit_fingerprint",
         "route_identity_key",
         "attempt_idempotency_key",
+        "stage_packet_ref_or_refs",
         "evidence_status",
         "authority_boundary",
     ]
@@ -475,6 +476,12 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     ]
     effects = {item["decision"]: item["effect"] for item in arbiter["decision_kinds"]}
     assert effects["weak_provider_admission_identity"] == "suppress_provider_admission_pending"
+    weak_identity_decision = next(
+        item
+        for item in arbiter["decision_kinds"]
+        if item["decision"] == "weak_provider_admission_identity"
+    )
+    assert "missing_stage_packet_ref_or_refs" in weak_identity_decision["required_match"]
     assert effects["terminal_closeout_precedes_live_projection"] == (
         "suppress_provider_admission_pending"
     )
@@ -503,6 +510,7 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
         "work_unit_id",
         "work_unit_fingerprint",
         "dispatch_path_or_ref",
+        "stage_packet_ref_or_refs",
         "currentness_basis",
         "route_identity_key",
         "attempt_idempotency_key",

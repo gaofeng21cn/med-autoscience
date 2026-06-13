@@ -173,6 +173,7 @@
         "work_unit_id",
         "work_unit_fingerprint",
         "dispatch_path_or_ref",
+        "stage_packet_ref_or_refs",
         "currentness_basis",
         "route_identity_key",
         "attempt_idempotency_key"
@@ -187,6 +188,8 @@
       "weak_identity_effect": "suppress_provider_admission_pending",
       "fingerprintless_stop_loss_closeout_match": "requires_same_source_eval_truth_or_runtime_health_epoch",
       "action_id_role": "action_family_only_not_route_or_attempt_identity",
+      "dispatch_ref_can_replace_stage_packet_ref": false,
+      "missing_stage_packet_binding_weak_identity_field": "stage_packet_ref_or_refs",
       "record_only_closeout_consumption_policy": {
         "record_only_owner_refs_are_identity": false,
         "accepted_record_only_closeout_required_any": [
@@ -753,6 +756,7 @@
       "work_unit_fingerprint",
       "route_identity_key",
       "attempt_idempotency_key",
+      "stage_packet_ref_or_refs",
       "evidence_status",
       "authority_boundary"
     ],
@@ -767,6 +771,7 @@
         "required_match": [
           "missing_study_action_work_unit_or_fingerprint",
           "missing_dispatch_path_or_ref",
+          "missing_stage_packet_ref_or_refs",
           "missing_currentness_basis"
         ]
       },
@@ -832,6 +837,7 @@
       "work_unit_id",
       "work_unit_fingerprint",
       "dispatch_path_or_ref",
+      "stage_packet_ref_or_refs",
       "currentness_basis",
       "route_identity_key",
       "attempt_idempotency_key"

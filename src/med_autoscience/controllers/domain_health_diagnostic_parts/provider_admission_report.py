@@ -18,6 +18,10 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     closeout_identity_matches_current as _closeout_identity_matches_current,
     terminal_stage_closeout_evidence as _terminal_stage_closeout_evidence,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_same_tick_identity import (
+    same_tick_candidate_with_stage_run_identity as _same_tick_candidate_with_stage_run_identity,
+    same_tick_text_items as _same_tick_text_items,
+)
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
@@ -648,6 +652,21 @@ def _provider_admission_candidates_from_same_tick_materialize(
         study_id = _non_empty_text(dispatch.get("study_id"))
         action_type = _non_empty_text(dispatch.get("action_type"))
         base = dict(fallback_by_identity.get((study_id, action_type), {}))
+        dispatch_refs = _mapping(dispatch.get("refs"))
+        stage_packet_ref = (
+            _non_empty_text(dispatch.get("stage_packet_ref"))
+            or _non_empty_text(dispatch_refs.get("stage_packet_ref"))
+            or _non_empty_text(dispatch_refs.get("stage_packet_path"))
+            or _non_empty_text(dispatch_refs.get("immutable_dispatch_path"))
+            or _non_empty_text(base.get("stage_packet_ref"))
+        )
+        stage_packet_refs = _same_tick_text_items(dispatch.get("stage_packet_refs")) or _same_tick_text_items(
+            dispatch_refs.get("stage_packet_refs")
+        ) or _same_tick_text_items(
+            base.get("stage_packet_refs")
+        )
+        if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
+            stage_packet_refs.append(stage_packet_ref)
         candidate = {
             **base,
             "surface": "opl_provider_admission_candidate",
@@ -669,6 +688,8 @@ def _provider_admission_candidates_from_same_tick_materialize(
             "dispatch_path": _non_empty_text(dispatch.get("dispatch_path"))
             or _non_empty_text(base.get("dispatch_path"))
             or handoff_dispatch_path(dispatch),
+            "stage_packet_ref": stage_packet_ref,
+            "stage_packet_refs": stage_packet_refs or None,
             "dispatch_authority": _non_empty_text(dispatch.get("dispatch_authority"))
             or _non_empty_text(base.get("dispatch_authority")),
             "blocked_reason": OPL_EXECUTION_AUTHORIZATION_BLOCKER,
@@ -733,49 +754,6 @@ def _candidate_with_current_action_identity(
             "work_unit_fingerprint": _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
             or fingerprint,
         }
-    return payload
-
-
-def _same_tick_candidate_with_stage_run_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    payload = dict(candidate)
-    study_id = _non_empty_text(payload.get("study_id"))
-    fingerprint = _non_empty_text(payload.get("work_unit_fingerprint")) or _non_empty_text(
-        payload.get("action_fingerprint")
-    )
-    route_key = _non_empty_text(payload.get("route_identity_key"))
-    if route_key is None and study_id is not None and fingerprint is not None:
-        route_key = f"provider-admission::{study_id}::{fingerprint}"
-    attempt_key = _non_empty_text(payload.get("attempt_idempotency_key")) or route_key
-    dispatch_ref = _non_empty_text(payload.get("dispatch_ref")) or _non_empty_text(payload.get("dispatch_path"))
-    stage_packet_ref = _non_empty_text(payload.get("stage_packet_ref")) or dispatch_ref
-    stage_packet_refs = _same_tick_text_items(payload.get("stage_packet_refs"))
-    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
-        stage_packet_refs.append(stage_packet_ref)
-    for key, value in {
-        "dispatch_ref": dispatch_ref,
-        "stage_packet_ref": stage_packet_ref,
-        "route_identity_key": route_key,
-        "attempt_idempotency_key": attempt_key,
-        "idempotency_key": attempt_key,
-    }.items():
-        if value is not None:
-            payload[key] = value
-    if stage_packet_refs:
-        payload["stage_packet_refs"] = stage_packet_refs
-        payload.setdefault("checkpoint_refs", list(stage_packet_refs))
-    source_refs = dict(_mapping(payload.get("source_refs")))
-    for key, value in {
-        "dispatch_ref": dispatch_ref,
-        "stage_packet_ref": stage_packet_ref,
-        "route_identity_key": route_key,
-        "attempt_idempotency_key": attempt_key,
-    }.items():
-        if value is not None:
-            source_refs[key] = value
-    if stage_packet_refs:
-        source_refs["stage_packet_refs"] = stage_packet_refs
-    if source_refs:
-        payload["source_refs"] = source_refs
     return payload
 
 
@@ -976,18 +954,6 @@ def _same_tick_candidate_matches_current_action(
     return True
 
 
-def _same_tick_text_items(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = _non_empty_text(value)
-        return [text] if text is not None else []
-    if not isinstance(value, list | tuple | set):
-        return []
-    result: list[str] = []
-    for item in value:
-        text = _non_empty_text(item)
-        if text is not None and text not in result:
-            result.append(text)
-    return result
 
 
 def _mapping(value: object) -> dict[str, Any]:

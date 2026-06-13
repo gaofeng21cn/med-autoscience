@@ -211,18 +211,7 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
         payload["attempt_idempotency_key"] = attempt_key
         payload.setdefault("idempotency_key", attempt_key)
     stage_packet_ref = _non_empty_text(payload.get("stage_packet_ref"))
-    dispatch_ref = _non_empty_text(payload.get("dispatch_ref")) or _non_empty_text(payload.get("dispatch_path"))
-    if can_bind_progress_currentness and stage_packet_ref is None and dispatch_ref is not None:
-        payload["stage_packet_ref"] = dispatch_ref
-        payload["stage_packet_refs"] = [
-            *[
-                item
-                for item in payload.get("stage_packet_refs") or []
-                if _non_empty_text(item) is not None
-            ],
-            dispatch_ref,
-        ]
-    elif stage_packet_ref is not None:
+    if stage_packet_ref is not None:
         refs = [
             item
             for item in payload.get("stage_packet_refs") or []

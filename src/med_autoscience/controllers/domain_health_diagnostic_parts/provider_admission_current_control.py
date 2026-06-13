@@ -494,7 +494,7 @@ def _live_scanned_studies_by_id(
         study_id: dict(study)
         for study in scanned_studies or []
         if (study_id := _non_empty_text(study.get("study_id"))) is not None
-        and study_has_running_provider_attempt(study)
+        and _running_attempt_from_study(study)
     }
 
 
@@ -1103,6 +1103,9 @@ def _current_control_weak_provider_admission_identity(identity: Mapping[str, Any
             "work_unit_id",
             "work_unit_fingerprint",
             "dispatch_path_or_ref",
+            "route_identity_key",
+            "attempt_idempotency_key",
+            "stage_packet_ref_or_refs",
             "currentness_basis",
         }
     ]
