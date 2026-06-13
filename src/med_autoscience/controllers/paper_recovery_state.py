@@ -544,6 +544,18 @@ def _admission_blocked_condition(
 ) -> dict[str, Any] | None:
     if not _provider_admission_pending(progress):
         return None
+    runtime_health = _mapping(progress.get("runtime_health_snapshot"))
+    if (
+        _text(runtime_health.get("canonical_runtime_action")) == "external_supervisor_required"
+        or (
+            runtime_health.get("retry_budget_remaining") is not None
+            and int(runtime_health.get("retry_budget_remaining") or 0) <= 0
+        )
+    ):
+        return {
+            "condition": "provider_admission_pending_without_startable_dispatch",
+            "reason": "runtime_recovery_retry_budget_exhausted",
+        }
     if diagnostic.get("will_start_llm") is False and _text(diagnostic.get("action_class")) == "observe_only":
         return {
             "condition": "provider_admission_pending_without_startable_dispatch",

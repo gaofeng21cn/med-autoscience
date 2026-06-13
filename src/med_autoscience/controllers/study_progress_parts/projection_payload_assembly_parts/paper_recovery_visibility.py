@@ -80,6 +80,8 @@ def _apply_paper_recovery_authority_projection(
     updated = dict(payload)
     action_kind = _non_empty_text(next_safe_action.get("kind")) or "inspect_paper_recovery_state"
     lane_id = f"paper_recovery_{phase}"
+    if next_safe_action.get("provider_admission_allowed") is False:
+        _suppress_active_provider_admission_projection(updated)
     if _non_empty_text(updated.get("current_stage")) == "auto_runtime_parked":
         updated["current_stage"] = "publication_supervision"
     updated["next_step"] = summary
@@ -123,6 +125,35 @@ def _apply_paper_recovery_authority_projection(
         surface["paper_recovery_next_safe_action"] = dict(next_safe_action)
         updated[key] = _drop_stale_parked_fields(surface)
     return updated
+
+
+def _suppress_active_provider_admission_projection(payload: dict[str, Any]) -> None:
+    candidates = [
+        dict(item)
+        for item in payload.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    pending_count = int(payload.get("provider_admission_pending_count") or 0)
+    if candidates:
+        payload["blocked_provider_admission_candidates"] = candidates
+    if pending_count > 0:
+        payload["paper_recovery_provider_admission_blocked_count"] = pending_count
+    payload["provider_admission_candidates"] = []
+    payload["provider_admission_pending_count"] = 0
+    admission = _mapping_copy(payload.get("owner_action_admission"))
+    if admission:
+        admission["admission_pending"] = False
+        admission["provider_attempt_start_requested"] = False
+        admission["blocked_by"] = "paper_recovery_state"
+        payload["owner_action_admission"] = admission
+    monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
+    monitoring_admission = _mapping_copy(monitoring.get("owner_action_admission"))
+    if monitoring_admission:
+        monitoring_admission["admission_pending"] = False
+        monitoring_admission["provider_attempt_start_requested"] = False
+        monitoring_admission["blocked_by"] = "paper_recovery_state"
+        monitoring["owner_action_admission"] = monitoring_admission
+        payload["progress_first_monitoring_summary"] = monitoring
 
 
 def _clear_stale_parked_top_level_fields(
