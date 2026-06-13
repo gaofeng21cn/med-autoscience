@@ -1094,6 +1094,8 @@ def _accepted_closeout_matches_candidate_identity(
         return False
     if _receipt_has_opl_execution_authorization_blocker(receipt):
         return False
+    if _source_currentness_precludes_consumption(receipt, identity=identity):
+        return False
     if provider_attempt_matches_identity(receipt, identity=identity):
         return _receipt_has_current_admission_consumption_authority(receipt, identity=identity)
     expected_action = _non_empty_text(identity.get("action_type"))
@@ -1284,8 +1286,8 @@ def _receipt_route_identity_matches(receipt: Mapping[str, Any], *, identity: Map
 
 
 def _source_currentness_matches(receipt: Mapping[str, Any], *, identity: Mapping[str, Any]) -> bool:
-    receipt_basis = _closeout_owner_route_basis(receipt)
-    identity_basis = _mapping(identity.get("currentness_basis"))
+    receipt_basis = _receipt_currentness_basis(receipt)
+    identity_basis = _identity_currentness_basis(identity)
     if not receipt_basis or not identity_basis:
         return False
     if _basis_conflicts_with_identity(receipt_basis, identity=identity):
@@ -1295,17 +1297,114 @@ def _source_currentness_matches(receipt: Mapping[str, Any], *, identity: Mapping
     receipt_source_eval = _non_empty_text(receipt_basis.get("source_eval_id"))
     identity_source_eval = _non_empty_text(identity_basis.get("source_eval_id"))
     if receipt_source_eval is not None or identity_source_eval is not None:
-        return receipt_source_eval is not None and receipt_source_eval == identity_source_eval
-    compared = False
-    for key in ("truth_epoch", "runtime_health_epoch"):
+        if receipt_source_eval is not None and identity_source_eval is not None:
+            return receipt_source_eval == identity_source_eval
+        return _legacy_currentness_basis_matches(receipt_basis, identity_basis)
+    return _legacy_currentness_basis_matches(receipt_basis, identity_basis)
+
+
+def _source_currentness_precludes_consumption(
+    receipt: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    receipt_basis = _receipt_currentness_basis(receipt)
+    identity_basis = _identity_currentness_basis(identity)
+    identity_source_eval = _non_empty_text(identity_basis.get("source_eval_id"))
+    if identity_source_eval is None:
+        return False
+    receipt_source_eval = _non_empty_text(receipt_basis.get("source_eval_id"))
+    if receipt_source_eval is not None:
+        return receipt_source_eval != identity_source_eval
+    return not _legacy_currentness_basis_matches(receipt_basis, identity_basis)
+
+
+def _receipt_currentness_basis(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    basis = dict(_closeout_owner_route_basis(receipt))
+    nested_owner_route_basis = _mapping(
+        _mapping(_mapping(receipt.get("owner_route")).get("source_refs")).get(
+            "owner_route_currentness_basis"
+        )
+    )
+    direct_owner_route_basis = _mapping(receipt.get("owner_route_currentness_basis"))
+    owner_route_basis = _mapping(receipt.get("owner_route_basis"))
+    for candidate_basis in (nested_owner_route_basis, direct_owner_route_basis, owner_route_basis):
+        for key, value in candidate_basis.items():
+            if basis.get(key) in (None, "", [], {}) and value not in (None, "", [], {}):
+                basis[key] = value
+    for key, value in {
+        "work_unit_id": _non_empty_text(receipt.get("work_unit_id"))
+        or _non_empty_text(basis.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(receipt.get("work_unit_fingerprint"))
+        or _non_empty_text(receipt.get("action_fingerprint"))
+        or _non_empty_text(basis.get("work_unit_fingerprint"))
+        or _non_empty_text(basis.get("action_fingerprint")),
+        "action_fingerprint": _non_empty_text(receipt.get("action_fingerprint"))
+        or _non_empty_text(receipt.get("work_unit_fingerprint"))
+        or _non_empty_text(basis.get("action_fingerprint"))
+        or _non_empty_text(basis.get("work_unit_fingerprint")),
+        "source_eval_id": _non_empty_text(receipt.get("source_eval_id"))
+        or _non_empty_text(basis.get("source_eval_id")),
+        "truth_epoch": _non_empty_text(receipt.get("truth_epoch"))
+        or _non_empty_text(basis.get("truth_epoch")),
+        "runtime_health_epoch": _non_empty_text(receipt.get("runtime_health_epoch"))
+        or _non_empty_text(basis.get("runtime_health_epoch")),
+    }.items():
+        if value is not None:
+            basis[key] = value
+    return {key: value for key, value in basis.items() if value not in (None, "", [], {})}
+
+
+def _identity_currentness_basis(identity: Mapping[str, Any]) -> dict[str, Any]:
+    basis = dict(_mapping(identity.get("currentness_basis")))
+    nested_basis = _mapping(basis.get("owner_route_currentness_basis"))
+    for key, value in nested_basis.items():
+        if basis.get(key) in (None, "", [], {}) and value not in (None, "", [], {}):
+            basis[key] = value
+    for key, value in {
+        "work_unit_id": _non_empty_text(identity.get("work_unit_id"))
+        or _non_empty_text(basis.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(identity.get("work_unit_fingerprint"))
+        or _non_empty_text(identity.get("action_fingerprint"))
+        or _non_empty_text(basis.get("work_unit_fingerprint"))
+        or _non_empty_text(basis.get("action_fingerprint")),
+        "action_fingerprint": _non_empty_text(identity.get("action_fingerprint"))
+        or _non_empty_text(identity.get("work_unit_fingerprint"))
+        or _non_empty_text(basis.get("action_fingerprint"))
+        or _non_empty_text(basis.get("work_unit_fingerprint")),
+        "source_eval_id": _non_empty_text(identity.get("source_eval_id"))
+        or _non_empty_text(basis.get("source_eval_id")),
+        "truth_epoch": _non_empty_text(identity.get("truth_epoch"))
+        or _non_empty_text(basis.get("truth_epoch"))
+        or _non_empty_text(basis.get("study_truth_epoch")),
+        "runtime_health_epoch": _non_empty_text(identity.get("runtime_health_epoch"))
+        or _non_empty_text(basis.get("runtime_health_epoch")),
+    }.items():
+        if value is not None:
+            basis[key] = value
+    return {key: value for key, value in basis.items() if value not in (None, "", [], {})}
+
+
+def _legacy_currentness_basis_matches(
+    receipt_basis: Mapping[str, Any],
+    identity_basis: Mapping[str, Any],
+) -> bool:
+    for key in ("work_unit_id", "truth_epoch", "runtime_health_epoch"):
         receipt_value = _non_empty_text(receipt_basis.get(key))
         identity_value = _non_empty_text(identity_basis.get(key))
-        if receipt_value is None or identity_value is None:
-            continue
-        compared = True
-        if receipt_value != identity_value:
+        if receipt_value is None or identity_value is None or receipt_value != identity_value:
             return False
-    return compared
+    receipt_fingerprint = _non_empty_text(receipt_basis.get("work_unit_fingerprint")) or _non_empty_text(
+        receipt_basis.get("action_fingerprint")
+    )
+    identity_fingerprint = _non_empty_text(identity_basis.get("work_unit_fingerprint")) or _non_empty_text(
+        identity_basis.get("action_fingerprint")
+    )
+    return (
+        receipt_fingerprint is not None
+        and identity_fingerprint is not None
+        and receipt_fingerprint == identity_fingerprint
+    )
 
 
 __all__ = [
