@@ -621,6 +621,7 @@ def assemble_study_progress_payload(
                 study_root=study_root,
             )
         )
+    payload = _sync_progress_first_owner_action_admission(payload)
     payload["paper_recovery_state"] = build_paper_recovery_state(payload)
     payload = _apply_paper_recovery_state_user_visible_status(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
@@ -644,6 +645,16 @@ def assemble_study_progress_payload(
         study_root=study_root,
         generated_at=generated_at,
     )
+
+
+def _sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:
+    monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
+    admission = _mapping_copy(monitoring.get("owner_action_admission"))
+    if not admission:
+        return payload
+    updated = dict(payload)
+    updated["owner_action_admission"] = admission
+    return updated
 
 
 def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[str, Any]:

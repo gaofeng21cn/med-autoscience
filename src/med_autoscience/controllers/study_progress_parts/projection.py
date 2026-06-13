@@ -139,6 +139,11 @@ def _refresh_existing_projection_current_owner_surfaces(
                 study_root=study_root,
             )
         )
+        if _mapping_copy(updated.get("current_executable_owner_action")) or _mapping_copy(
+            updated.get("progress_first_monitoring_summary")
+        ):
+            updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+            updated = _sync_progress_first_owner_action_admission(updated)
         return _attach_delivery_inspection_projection(
             updated,
             profile=profile,
@@ -186,6 +191,7 @@ def _refresh_existing_projection_current_owner_surfaces(
             study_root=study_root,
         )
     )
+    updated = _sync_progress_first_owner_action_admission(updated)
     updated = apply_running_provider_attempt_top_level_status(updated)
     updated["user_visible_projection"] = build_user_visible_projection(updated)
     return _attach_delivery_inspection_projection(
@@ -194,6 +200,16 @@ def _refresh_existing_projection_current_owner_surfaces(
         profile_ref=profile_ref,
         study_root=study_root,
     )
+
+
+def _sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:
+    monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
+    admission = _mapping_copy(monitoring.get("owner_action_admission"))
+    if not admission:
+        return payload
+    updated = dict(payload)
+    updated["owner_action_admission"] = admission
+    return updated
 
 
 def _current_redrive_top_level_next_action(payload: dict[str, Any]) -> str | None:
