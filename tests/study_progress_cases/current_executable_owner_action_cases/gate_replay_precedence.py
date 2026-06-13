@@ -221,6 +221,44 @@ def test_current_owner_action_uses_newer_gate_replay_delta_over_stale_gate_follo
     assert action["source_eval_id"] == current_eval_id
 
 
+def test_terminal_gate_replay_closeout_does_not_reemit_same_gate_clearing_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    fingerprint = "current-ai-reviewer-gate-replay::003::publication_gate_replay::eval-current"
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "latest_terminal_stage_log": {
+                "status": "completed",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": fingerprint,
+                "source_path": (
+                    "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                    "artifacts/stage_runs/sat-gate-replay/closeout.json"
+                ),
+                "next_forced_delta": {
+                    "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                    "work_unit_id": "publication_gate_replay",
+                    "source_eval_id": "eval-current",
+                    "owner_action": {
+                        "next_owner": "gate_clearing_batch",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": fingerprint,
+                        "allowed_actions": ["run_gate_clearing_batch"],
+                        "owner_receipt_required": True,
+                    },
+                },
+            },
+        }
+    )
+
+    assert action is None
+
+
 def test_current_owner_action_prefers_gate_replay_after_ai_reviewer_recheck_done() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"

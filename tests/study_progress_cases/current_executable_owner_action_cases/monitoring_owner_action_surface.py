@@ -213,7 +213,7 @@ def test_current_owner_action_prefers_actionable_gate_followthrough_over_stale_r
     assert action["allowed_actions"] == ["run_quality_repair_batch"]
 
 
-def test_current_owner_action_prefers_terminal_gate_next_delta_over_stale_gate_followthrough() -> None:
+def test_current_owner_action_consumes_terminal_gate_replay_closeout_before_stale_gate_followthrough() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
     )
@@ -279,11 +279,11 @@ def test_current_owner_action_prefers_terminal_gate_next_delta_over_stale_gate_f
     )
 
     assert action is not None
-    assert action["source"] == "study_progress.next_forced_delta.owner_action"
-    assert action["next_owner"] == "gate_clearing_batch"
-    assert action["action_type"] == "run_gate_clearing_batch"
-    assert action["allowed_actions"] == ["run_gate_clearing_batch"]
-    assert action["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    assert action["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    assert action["next_owner"] == "write"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["allowed_actions"] == ["run_quality_repair_batch"]
+    assert action["work_unit_id"] == "medical_prose_write_repair"
 
 
 def test_current_owner_action_prefers_terminal_quality_repair_next_delta_over_stale_gate_followthrough() -> None:

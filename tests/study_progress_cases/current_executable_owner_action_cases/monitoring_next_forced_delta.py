@@ -328,6 +328,91 @@ def test_progress_first_monitoring_requests_admission_for_current_executable_own
     assert admission["source"] == "progress_first_monitoring.current_executable_owner_action"
 
 
+def test_progress_first_monitoring_proves_running_only_with_matching_current_action_fingerprint() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+    current_fingerprint = "sha256:current-gate-replay"
+    stale_fingerprint = "sha256:stale-gate-replay"
+
+    def _monitoring(handoff_action: dict | None) -> dict:
+        return module.build_progress_first_monitoring_summary(
+            {
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "current_executable_owner_action": {
+                    "surface_kind": "current_executable_owner_action",
+                    "schema_version": 1,
+                    "status": "ready",
+                    "source": "study_progress.next_forced_delta.owner_action",
+                    "next_owner": "gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": current_fingerprint,
+                    "action_fingerprint": current_fingerprint,
+                    "owner_route_currentness_basis": {
+                        "source": "study_progress.next_forced_delta.owner_action",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": current_fingerprint,
+                        "truth_epoch": "truth::current",
+                        "runtime_health_epoch": "runtime::current",
+                    },
+                    "action_type": "run_gate_clearing_batch",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+                "opl_current_control_state_handoff": {
+                    "surface_kind": "opl_current_control_state_study_handoff",
+                    "running_provider_attempt": True,
+                    "active_run_id": "opl-stage-attempt://sat-live-gate-replay",
+                    "active_stage_attempt_id": "sat-live-gate-replay",
+                    "active_workflow_id": "wf-live-gate-replay",
+                    "next_owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "action_queue": [
+                        {
+                            "status": "running",
+                            "owner": "gate_clearing_batch",
+                            "action_type": "run_gate_clearing_batch",
+                            "work_unit_id": "publication_gate_replay",
+                            **(handoff_action or {}),
+                        }
+                    ],
+                    **(handoff_action or {}),
+                },
+            }
+        )
+
+    for handoff_action in (
+        {},
+        {"work_unit_fingerprint": stale_fingerprint, "action_fingerprint": stale_fingerprint},
+    ):
+        admission = _monitoring(handoff_action)["owner_action_admission"]
+        assert admission["provider_attempt_running_proven"] is False
+        assert admission["provider_attempt_started"] is False
+        assert admission["admission_pending"] is True
+        assert admission["provider_attempt_proof"] is None
+
+    matching_admission = _monitoring(
+        {
+            "work_unit_fingerprint": current_fingerprint,
+            "action_fingerprint": current_fingerprint,
+            "owner_route_currentness_basis": {
+                "source": "opl_current_control_state_provider_attempt",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": current_fingerprint,
+                "truth_epoch": "truth::current",
+                "runtime_health_epoch": "runtime::current",
+            },
+        }
+    )["owner_action_admission"]
+    assert matching_admission["provider_attempt_running_proven"] is True
+    assert matching_admission["provider_attempt_started"] is True
+    assert matching_admission["admission_pending"] is False
+    assert matching_admission["provider_attempt_proof"]["active_stage_attempt_id"] == (
+        "sat-live-gate-replay"
+    )
+
+
 def test_progress_first_monitoring_does_not_request_gate_replay_admission_without_eval_identity() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

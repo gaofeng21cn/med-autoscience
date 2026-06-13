@@ -270,6 +270,17 @@ def test_existing_projection_refresh_prefers_live_attempt_over_stale_handoff(
                 "active_stage_attempt_id": "sat-live-gate-replay",
                 "active_workflow_id": "wf-live-gate-replay",
                 "running_provider_attempt": True,
+                "next_owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": fingerprint,
+                    "truth_epoch": "truth::current",
+                    "runtime_health_epoch": "runtime::current",
+                },
                 "runtime_health": {
                     "health_status": "running",
                     "runtime_liveness_status": "live",
@@ -292,12 +303,6 @@ def test_existing_projection_refresh_prefers_live_attempt_over_stale_handoff(
                     "work_unit_id": "publication_gate_replay",
                     "work_unit_fingerprint": fingerprint,
                     "action_fingerprint": fingerprint,
-                    "owner_route_currentness_basis": {
-                        "work_unit_id": "publication_gate_replay",
-                        "work_unit_fingerprint": fingerprint,
-                        "truth_epoch": "truth::current",
-                        "runtime_health_epoch": "runtime::current",
-                    },
                 },
                 "current_work_unit": {
                     "surface_kind": "current_work_unit",

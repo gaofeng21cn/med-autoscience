@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-13：current action running proof 和 terminal gate replay closeout 必须绑定同一 current identity
+
+- 决策：`progress_first_monitoring_summary.owner_action_admission.provider_attempt_running_proven` 只能由同一 current action identity 的 running provider attempt 证明。除 owner/action/work-unit 匹配外，若 `current_executable_owner_action` 携带 `work_unit_fingerprint`、`action_fingerprint` 或 `owner_route_currentness_basis`，handoff 或 action queue 必须携带 matching fingerprint / currentness basis；缺失或不匹配时只能保持 `admission_pending=true`，不得提升为 running proof。
+- 决策：terminal stage closeout 的 completed / blocked / repeat_suppressed 等 gate replay closeout 若携带同一 raw `next_forced_delta.owner_action=run_gate_clearing_batch`、同一 work unit 和同一 fingerprint，`current_executable_owner_action` 不得重新生成同一 `run_gate_clearing_batch` executable action。该 closeout 应交给 typed blocker、closeout consumption、gate followthrough 或 successor owner route 消费。
+- 理由：DM002 / DM003 类卡点中，旧 OPL active refs、旧 handoff queue 或 terminal closeout residue 可能与当前 action 共享 owner/action/work-unit，却属于不同 source eval、fingerprint、epoch 或 closeout state。只按三元组匹配会把 stale running / replay closeout 重新升格为当前执行授权，导致重复 redrive 或错误 operator watch。
+- 影响：这是 MAS progress-first/current action read-model hardening；不执行 DHD apply、hydrate、tick、redrive，不写 Yang runtime/study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。验证入口是 current executable owner action focused tests 和 provider admission projection tests；解除条件仍是新 work-unit identity、owner receipt、quality gate receipt、stable typed blocker、human gate、route-back evidence、canonical changed surface，或同一 current identity strict provider running proof。
+
 ## 2026-06-13：标准 OPL Agent 彻底落地必须先有可验收定义
 
 - 决策：新增 `contracts/standard_agent_completion_acceptance.json`，把两个目标分别定义为可验收 gate：一是 MAS 历史包袱彻底清除，二是 DM002/DM003 暴露的标准化智能体失败模式进入 OPL/OMA family-level 防线。合同状态只能先写成 `acceptance_definition_landed_evidence_tail_open`，不得把合同落地、文档更新、分类计数为 0、generated interface ready、OPL conformance pass、queue empty、provider completed、DHD observe-only 或未采纳 foreground edit 写成彻底完成。

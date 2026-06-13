@@ -254,6 +254,8 @@ def test_progress_first_monitoring_keeps_running_provider_proof_when_handoff_ide
                 "next_owner": "write",
                 "action_type": "run_quality_repair_batch",
                 "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "action_fingerprint": "publication-blockers::0915410f804b3697",
                 "active_run_id": "opl-stage-attempt://sat-current",
                 "active_stage_attempt_id": "sat-current",
                 "active_workflow_id": "wf-current",

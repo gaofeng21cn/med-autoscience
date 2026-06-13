@@ -273,6 +273,15 @@ def _from_terminal_stage_next_forced_delta(payload: Mapping[str, Any]) -> dict[s
     )
     if owner is None and work_unit_id is None:
         return None
+    if _terminal_closeout_replays_same_gate_clearing_action(
+        terminal=terminal,
+        paper_stage_log=paper_stage_log,
+        next_forced_delta=next_forced_delta,
+        owner_action=owner_action,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    ):
+        return None
     source_ref = _non_empty_text(terminal.get("source_path"))
     required_delta_kind = (
         _non_empty_text(next_forced_delta.get("required_delta_kind"))
@@ -352,6 +361,56 @@ def _terminal_next_forced_delta_action_type(action_type: str | None) -> str | No
     if action_type == "return_to_write":
         return QUALITY_REPAIR_ACTION
     return action_type
+
+
+def _terminal_closeout_replays_same_gate_clearing_action(
+    *,
+    terminal: Mapping[str, Any],
+    paper_stage_log: Mapping[str, Any],
+    next_forced_delta: Mapping[str, Any],
+    owner_action: Mapping[str, Any],
+    action_type: str | None,
+    work_unit_id: str | None,
+) -> bool:
+    if action_type != GATE_CLEARING_ACTION:
+        return False
+    if _non_empty_text(terminal.get("action_type")) != GATE_CLEARING_ACTION:
+        return False
+    if _non_empty_text(terminal.get("status")) not in {
+        "blocked",
+        "closed",
+        "completed",
+        "executed",
+        "failed",
+        "repeat_suppressed",
+        "typed_blocked",
+    }:
+        return False
+    terminal_work_unit_id = (
+        _non_empty_text(terminal.get("work_unit_id"))
+        or _non_empty_text(paper_stage_log.get("work_unit_id"))
+        or _non_empty_text(next_forced_delta.get("work_unit_id"))
+    )
+    if work_unit_id is None or terminal_work_unit_id != work_unit_id:
+        return False
+    owner = _non_empty_text(owner_action.get("next_owner")) or _non_empty_text(
+        owner_action.get("owner")
+    )
+    if owner not in {None, GATE_CLEARING_OWNER}:
+        return False
+    terminal_fingerprint = (
+        _non_empty_text(terminal.get("work_unit_fingerprint"))
+        or _non_empty_text(terminal.get("action_fingerprint"))
+        or _non_empty_text(paper_stage_log.get("work_unit_fingerprint"))
+        or _non_empty_text(paper_stage_log.get("action_fingerprint"))
+    )
+    owner_action_fingerprint = (
+        _non_empty_text(owner_action.get("work_unit_fingerprint"))
+        or _non_empty_text(owner_action.get("action_fingerprint"))
+        or _non_empty_text(next_forced_delta.get("work_unit_fingerprint"))
+        or _non_empty_text(next_forced_delta.get("action_fingerprint"))
+    )
+    return owner_action_fingerprint is None or terminal_fingerprint == owner_action_fingerprint
 
 
 def _latest_terminal_stage_with_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any]:

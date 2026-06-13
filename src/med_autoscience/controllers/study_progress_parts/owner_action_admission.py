@@ -144,6 +144,76 @@ def _provider_attempt_matches_current_action(
         return False
     if current_work_unit is not None and current_work_unit not in work_unit_candidates:
         return False
+    if not _provider_attempt_currentness_matches_current_action(
+        handoff=handoff,
+        queue_item=queue_item,
+        current_action=current_action,
+    ):
+        return False
+    return True
+
+
+def _provider_attempt_currentness_matches_current_action(
+    *,
+    handoff: Mapping[str, Any],
+    queue_item: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    current_identity = _current_action_identity_values(current_action)
+    attempt_identities = [
+        _current_action_identity_values(handoff),
+        _current_action_identity_values(queue_item),
+    ]
+    for key in ("work_unit_fingerprint", "action_fingerprint"):
+        current_value = current_identity.get(key)
+        if current_value is None:
+            continue
+        if current_value not in {
+            attempt_identity.get(key)
+            for attempt_identity in attempt_identities
+            if attempt_identity.get(key) is not None
+        }:
+            return False
+    current_basis = current_identity.get("owner_route_currentness_basis")
+    if current_basis:
+        matching_basis = [
+            attempt_identity.get("owner_route_currentness_basis")
+            for attempt_identity in attempt_identities
+            if attempt_identity.get("owner_route_currentness_basis")
+        ]
+        if not any(_currentness_basis_matches(current_basis, basis) for basis in matching_basis):
+            return False
+    return True
+
+
+def _current_action_identity_values(value: Mapping[str, Any]) -> dict[str, Any]:
+    basis = _mapping(value.get("owner_route_currentness_basis"))
+    return {
+        "work_unit_fingerprint": _text(value.get("work_unit_fingerprint"))
+        or _text(value.get("fingerprint"))
+        or _text(basis.get("work_unit_fingerprint")),
+        "action_fingerprint": _text(value.get("action_fingerprint"))
+        or _text(value.get("fingerprint"))
+        or _text(basis.get("action_fingerprint")),
+        "owner_route_currentness_basis": basis,
+    }
+
+
+def _currentness_basis_matches(
+    current_basis: Mapping[str, Any],
+    attempt_basis: Mapping[str, Any],
+) -> bool:
+    keys = (
+        "work_unit_fingerprint",
+        "action_fingerprint",
+        "truth_epoch",
+        "runtime_health_epoch",
+        "epoch",
+    )
+    for key in keys:
+        current_value = _text(current_basis.get(key))
+        if current_value is not None and _text(attempt_basis.get(key)) != current_value:
+            return False
     return True
 
 
