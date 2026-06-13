@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 from pathlib import Path
 
@@ -12,6 +13,11 @@ def write_json(path: Path, payload: dict) -> None:
 
 def sha256_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def disable_progress_projection(monkeypatch) -> None:
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
 
 
 def owner_route(
