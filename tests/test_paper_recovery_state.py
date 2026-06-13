@@ -674,6 +674,11 @@ def test_runtime_report_marks_observe_only_provider_admission_as_blocked() -> No
     assert result["paper_recovery_provider_admission_blocked_count"] == 1
     assert result["paper_recovery_states"][study_id]["phase"] == "admission_blocked"
     action = result["managed_study_actions"][0]
+    assert len(action["provider_admission_candidates"]) == 1
+    assert action["provider_admission_candidates"][0]["study_id"] == study_id
+    assert action["provider_admission_candidates"][0]["action_type"] == "run_quality_repair_batch"
+    assert action["provider_admission_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
+    assert action["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
     assert action["paper_recovery_state"]["phase"] == "admission_blocked"
     assert action["current_work_unit"]["status"] == "executable_owner_action"
     assert action["current_execution_envelope"]["state_kind"] == "executable_owner_action"

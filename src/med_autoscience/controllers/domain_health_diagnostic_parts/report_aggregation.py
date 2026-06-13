@@ -323,6 +323,7 @@ def _managed_study_action_with_provider_admission_state(
     paper_recovery_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     result = dict(action)
+    result["provider_admission_candidates"] = [dict(candidate) for candidate in candidates]
     recovery = _mapping(paper_recovery_state)
     if recovery:
         result["paper_recovery_state"] = recovery
