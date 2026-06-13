@@ -217,6 +217,7 @@ def _status_payload_with_fresh_progress_currentness(
         return payload
     if not isinstance(progress, Mapping):
         return payload
+    refreshed = False
     for key in (
         "current_work_unit",
         "current_execution_envelope",
@@ -228,7 +229,35 @@ def _status_payload_with_fresh_progress_currentness(
         value = progress.get(key)
         if isinstance(value, Mapping) and value:
             payload[key] = dict(value)
+            refreshed = True
+    if refreshed and (generated_at := _non_empty_text(progress.get("generated_at"))) is not None:
+        payload["study_progress_generated_at"] = generated_at
     return payload
+
+
+def _mapping_payload(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
+def _status_payload_has_actionable_provider_currentness(status_payload: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping_payload(status_payload.get("current_work_unit"))
+    envelope = _mapping_payload(status_payload.get("current_execution_envelope"))
+    state_kind = _non_empty_text(envelope.get("state_kind")) or _non_empty_text(
+        envelope.get("execution_state_kind")
+    )
+    if (
+        _non_empty_text(current_work_unit.get("status")) != "executable_owner_action"
+        and state_kind != "executable_owner_action"
+    ):
+        return False
+    current = _mapping_payload(status_payload.get("current_executable_owner_action"))
+    action_type = _non_empty_text(current_work_unit.get("action_type")) or _non_empty_text(
+        current.get("action_type")
+    )
+    work_unit_id = _non_empty_text(current_work_unit.get("work_unit_id")) or _non_empty_text(
+        current.get("work_unit_id")
+    )
+    return action_type is not None and work_unit_id is not None
 
 
 def _current_control_provider_admission_candidates(
@@ -264,19 +293,31 @@ def _request_opl_stage_attempt(
     )
     study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
     quest_id = _non_empty_text(status_payload.get("quest_id"))
-    provider_admission_candidates = persisted_provider_admission_candidates(
-        study_root=Path(study_root),
+    candidate_status_payload = _status_payload_with_fresh_progress_currentness(
+        profile=profile,
+        study_root=study_root,
         status_payload=status_payload,
     )
-    if not provider_admission_candidates:
-        candidate_status_payload = _status_payload_with_fresh_progress_currentness(
+    provider_admission_candidates = []
+    fresh_progress_has_actionable_currentness = (
+        _non_empty_text(candidate_status_payload.get("study_progress_generated_at")) is not None
+        and _status_payload_has_actionable_provider_currentness(candidate_status_payload)
+    )
+    if fresh_progress_has_actionable_currentness:
+        provider_admission_candidates = _current_control_provider_admission_candidates(
             profile=profile,
             study_root=study_root,
-            status_payload=status_payload,
+            status_payload=candidate_status_payload,
         )
+        if not provider_admission_candidates:
+            provider_admission_candidates = persisted_provider_admission_candidates(
+                study_root=Path(study_root),
+                status_payload=candidate_status_payload,
+            )
+    else:
         provider_admission_candidates = persisted_provider_admission_candidates(
             study_root=Path(study_root),
-            status_payload=candidate_status_payload,
+            status_payload=status_payload,
         )
         if not provider_admission_candidates:
             provider_admission_candidates = _current_control_provider_admission_candidates(
@@ -284,8 +325,8 @@ def _request_opl_stage_attempt(
                 study_root=study_root,
                 status_payload=candidate_status_payload,
             )
-        if provider_admission_candidates:
-            status_payload = candidate_status_payload
+    if provider_admission_candidates:
+        status_payload = candidate_status_payload
     provider_admission_identity = provider_admission_candidates[0] if provider_admission_candidates else None
     return {
         **status_payload,
