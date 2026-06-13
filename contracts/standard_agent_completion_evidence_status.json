@@ -1,0 +1,291 @@
+{
+  "surface_kind": "mas_standard_agent_completion_evidence_status",
+  "version": "standard-agent-completion-evidence-status.v1",
+  "contract_ref": "contracts/standard_agent_completion_acceptance.json",
+  "owner": "MedAutoScience / One Person Lab",
+  "state": "active_evidence_ledger",
+  "purpose": "Machine-readable evidence ledger for MAS standard OPL Agent completion gates. It records current gate status, accepted evidence ref families, observed repo-native refs, missing evidence tails, and false-completion boundaries.",
+  "machine_boundary": "This ledger is a repo-native acceptance evidence surface. It records evidence status only; it does not create owner receipts, human gates, provider attempts, typed blockers, publication verdicts, paper closure, artifact authority, current package freshness, production readiness, or OPL family-wide conformance completion.",
+  "overall_status": "evidence_tail_open_not_complete",
+  "completion_claim_allowed": false,
+  "completion_claim_policy": {
+    "required_final_claim": "all_acceptance_gates_satisfied_with_current_evidence",
+    "current_completion_status": "evidence_tail_open_not_complete",
+    "completion_requires_all_gate_statuses": [
+      "satisfied",
+      "retired_with_owner_decision",
+      "not_applicable_with_owner_decision"
+    ]
+  },
+  "status_values": {
+    "satisfied_with_repo_evidence": "The repo has machine-readable contracts, tests, or generated surfaces for the gate, while any live tail remains separately listed.",
+    "evidence_required": "The gate still needs external or future machine-verifiable evidence before it can be counted as satisfied.",
+    "blocked_by_live_owner_evidence": "The gate cannot be closed from this repo because the missing evidence must come from a live owner receipt, typed blocker, human gate, route-back evidence, or provider long-soak proof."
+  },
+  "gate_evidence_status": [
+    {
+      "gate_id": "single_default_recovery_and_progress_root",
+      "status": "satisfied_with_repo_evidence",
+      "required_evidence_refs": [
+        "contracts/paper_recovery_kernel_contract.json",
+        "contracts/stage_route_reconcile_contract.json",
+        "tests/test_paper_recovery_kernel_contract.py",
+        "tests/test_stage_route_reconcile_contract.py"
+      ],
+      "observed_refs": [
+        "contracts/paper_recovery_kernel_contract.json#/paper_recovery_authority",
+        "contracts/stage_route_reconcile_contract.json#/paper_recovery_kernel_consumption",
+        "tests/test_paper_recovery_kernel_contract.py::test_paper_recovery_contract_declares_single_authority_root",
+        "tests/test_stage_route_reconcile_contract.py::test_stage_route_reconcile_contract_consumes_paper_recovery_kernel"
+      ],
+      "missing_evidence_tails": [
+        "fresh_DM002_DM003_study_progress_and_DHD_readback_refs"
+      ],
+      "false_completion_boundary": [
+        "old_action_queue_empty",
+        "active_run_id_present_or_absent",
+        "provider_completion",
+        "DHD_observe_only",
+        "operator_card_wording"
+      ]
+    },
+    {
+      "gate_id": "physical_source_morphology_standardized",
+      "status": "evidence_required",
+      "required_evidence_refs": [
+        "contracts/authority_kernel_inventory.json",
+        "contracts/functional_privatization_audit.json",
+        "tests/test_authority_kernel_inventory.py",
+        "tests/standard_agent_purity_helpers.py",
+        "physical_retirement_owner_decision_ref",
+        "no_active_caller_scan_ref",
+        "no_forbidden_write_proof_ref"
+      ],
+      "observed_refs": [
+        "contracts/authority_kernel_inventory.json",
+        "contracts/functional_privatization_audit.json",
+        "tests/test_authority_kernel_inventory.py::test_authority_kernel_inventory_does_not_list_generic_runtime_owner_as_retained_authority"
+      ],
+      "missing_evidence_tails": [
+        "physical_source_morphology_scan_beyond_classification_zero_ref",
+        "direct_or_hosted_generated_surface_production_consumption_ref",
+        "physical_retirement_owner_decision_ref"
+      ],
+      "false_completion_boundary": [
+        "functional_structure_gap_count_zero",
+        "descriptor_ready",
+        "generated_interface_ready",
+        "history_or_tombstone_prose"
+      ]
+    },
+    {
+      "gate_id": "active_caller_migration_and_no_resurrection",
+      "status": "satisfied_with_repo_evidence",
+      "required_evidence_refs": [
+        "contracts/runtime/legacy-active-path-tombstones.json",
+        "tests/standard_agent_purity_helpers.py",
+        "tests/test_adapter_retirement_boundary.py",
+        "tests/test_legacy_ds_retirement.py"
+      ],
+      "observed_refs": [
+        "contracts/runtime/legacy-active-path-tombstones.json",
+        "tests/test_adapter_retirement_boundary.py",
+        "tests/test_legacy_ds_retirement.py"
+      ],
+      "missing_evidence_tails": [
+        "production_generated_surface_consumption_ref"
+      ],
+      "false_completion_boundary": [
+        "no_current_live_DM002_DM003_work",
+        "queue_empty",
+        "OPL_conformance_passed_without_caller_migration_proof",
+        "compatibility_shim_or_alias_added"
+      ]
+    },
+    {
+      "gate_id": "stage_route_and_stop_loss_have_single_arbiter",
+      "status": "satisfied_with_repo_evidence",
+      "required_evidence_refs": [
+        "contracts/stage_route_reconcile_contract.json",
+        "tests/test_stage_route_reconcile_contract.py",
+        "OPL_stage_route_arbiter_substrate_contract_ref"
+      ],
+      "observed_refs": [
+        "contracts/stage_route_reconcile_contract.json#/stage_route_arbiter",
+        "contracts/stage_route_reconcile_contract.json#/runtime_supervision_operator_policy",
+        "tests/test_stage_route_reconcile_contract.py"
+      ],
+      "missing_evidence_tails": [
+        "OPL_stage_route_arbiter_substrate_contract_current_verification_ref",
+        "fresh_same_identity_stop_loss_readback_ref"
+      ],
+      "false_completion_boundary": [
+        "same_action_label_match",
+        "record_ref_alone",
+        "provider_heartbeat",
+        "workflow_completed",
+        "same_work_unit_redrive"
+      ]
+    },
+    {
+      "gate_id": "negative_false_completion_tests",
+      "status": "satisfied_with_repo_evidence",
+      "required_evidence_refs": [
+        "tests/test_standard_agent_completion_acceptance_contract.py",
+        "tests/test_paper_recovery_kernel_contract.py",
+        "tests/test_stage_route_reconcile_contract.py",
+        "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py"
+      ],
+      "observed_refs": [
+        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_acceptance_false_completion_claims_are_explicit",
+        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_keeps_false_claims_rejected",
+        "tests/test_paper_recovery_kernel_contract.py",
+        "tests/test_stage_route_reconcile_contract.py",
+        "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py"
+      ],
+      "missing_evidence_tails": [
+        "cross_agent_standard_conformance_negative_test_ref"
+      ],
+      "false_completion_boundary": [
+        "docs_only_wording",
+        "manual_reviewer_confidence",
+        "old_green_test_output",
+        "verified_refs_only_ledger"
+      ]
+    },
+    {
+      "gate_id": "live_owner_evidence_for_representative_paper_lines",
+      "status": "blocked_by_live_owner_evidence",
+      "required_evidence_refs": [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "canonical_changed_surface_adopted_ref",
+        "strict_current_identity_provider_running_proof",
+        "fresh_DM002_DM003_study_progress_ref",
+        "fresh_DHD_dry_run_or_apply_when_delegated_ref"
+      ],
+      "observed_refs": [],
+      "missing_evidence_tails": [
+        "fresh_DM002_DM003_owner_receipt_or_stable_typed_blocker_ref",
+        "fresh_human_gate_or_route_back_evidence_ref",
+        "fresh_canonical_changed_surface_adopted_ref",
+        "provider_long_soak_same_current_identity_proof_ref",
+        "current_control_attempt_ledger_consumption_ref"
+      ],
+      "false_completion_boundary": [
+        "repo_tests",
+        "contract_landed",
+        "docs_updated",
+        "manual_foreground_edit_without_adoption_refs",
+        "provider_completed_without_mas_closeout_consumption",
+        "DHD_observe_only",
+        "queue_empty"
+      ]
+    },
+    {
+      "gate_id": "family_standard_agent_feedback_loop",
+      "status": "evidence_required",
+      "required_evidence_refs": [
+        "external_repo:one-person-lab/contracts/opl-framework/standard-agent-landing-acceptance-contract.json",
+        "cross_agent_standard_conformance_negative_test_ref",
+        "OPL_generated_agent_typed_blocker_or_work_order_ref",
+        "OPL_OMA_private_residue_owner_decision_ref",
+        "no_forbidden_write_proof_ref"
+      ],
+      "observed_refs": [
+        "contracts/standard_agent_completion_acceptance.json#/scope/objective_2",
+        "contracts/standard_agent_completion_acceptance.json#/acceptance_gates/6"
+      ],
+      "missing_evidence_tails": [
+        "OPL_OMA_family_negative_conformance_receipt_ref",
+        "target_owner_route_missing_returns_typed_blocker_ref",
+        "source_morphology_missing_returns_work_order_ref",
+        "generated_surface_or_private_residue_gap_returns_work_order_ref"
+      ],
+      "false_completion_boundary": [
+        "copying_MAS_paper_recovery_state_into_OPL",
+        "domain_local_selector_or_always_on_sidecar",
+        "suite_pass_without_target_owner_receipt_or_typed_blocker",
+        "MAS_contract_landed_without_OPL_family_consumption"
+      ]
+    }
+  ],
+  "rejected_completion_claims": [
+    "contract_landed",
+    "docs_updated",
+    "classification_gap_count_zero",
+    "functional_structure_gap_count_zero",
+    "generated_interface_ready",
+    "descriptor_ready",
+    "OPL_conformance_passed",
+    "MCP_manifest_ready",
+    "queue_empty",
+    "provider_completed",
+    "workflow_terminal",
+    "active_run_id_present",
+    "active_run_id_null",
+    "DHD_observe_only",
+    "verified_refs_only_ledger",
+    "App_projection_ready",
+    "manual_foreground_edit_without_adoption_refs"
+  ],
+  "latest_read_only_gap_observations": [
+    {
+      "observed_at": "2026-06-13",
+      "source_kind": "live_workspace_read_only",
+      "workspace": "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk",
+      "study_id": "002-dm-china-us-mortality-attribution",
+      "progress_first_outcome": "blocked_with_typed_owner",
+      "current_work_unit": {
+        "status": "typed_blocker",
+        "owner": "one-person-lab",
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": "publication_gate_replay",
+        "work_unit_fingerprint": "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption",
+        "typed_blocker": "stage_packet_not_current_selected_dispatch"
+      },
+      "active_run_id": null,
+      "completion_evidence": false,
+      "can_close_live_owner_gate": false,
+      "reason": "The current owner answer is a typed blocker for a stale/current stage packet identity mismatch; it is evidence for the open live-owner tail, not proof of paper recovery completion."
+    },
+    {
+      "observed_at": "2026-06-13",
+      "source_kind": "live_workspace_read_only",
+      "workspace": "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk",
+      "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+      "progress_first_outcome": "ready_for_owner_action",
+      "current_work_unit": {
+        "status": "executable_owner_action",
+        "owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "provider_admission_pending": true
+      },
+      "active_run_id": null,
+      "domain_health_diagnostic": {
+        "action_class": "observe_only",
+        "will_start_llm": false,
+        "provider_admission_pending_count": 1,
+        "codex_dispatch_count": 0
+      },
+      "completion_evidence": false,
+      "can_close_live_owner_gate": false,
+      "reason": "The work unit is a ready write-owned action with pending admission signal, but the dry-run is observe-only and does not prove a running provider attempt or owner receipt."
+    }
+  ],
+  "non_claims": {
+    "live_DM002_DM003_recovery_complete": false,
+    "paper_closure": false,
+    "publication_ready": false,
+    "submission_ready": false,
+    "current_package_fresh": false,
+    "production_ready": false,
+    "physical_delete_authorized": false,
+    "OPL_family_wide_conformance_complete": false
+  }
+}

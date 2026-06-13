@@ -5,13 +5,14 @@
   "state": "active_contract",
   "purpose": "Machine-readable acceptance definition for eliminating MAS legacy platform residue and for making the OPL-standard-agent hardening work verifiable instead of slogan-complete.",
   "machine_boundary": "This contract defines acceptance gates, false-completion rules, evidence classes, and open evidence tails for MAS standard-OPL-agent completion. It does not declare live DM002/DM003 recovery, paper closure, publication readiness, submission readiness, current package freshness, production readiness, physical delete authorization, or OPL family-wide conformance completion.",
+  "evidence_status_ref": "contracts/standard_agent_completion_evidence_status.json",
   "source_design_refs": [
     "human_doc:mas_ideal_state_gap_plan",
     "human_doc:mas_status",
     "human_doc:mas_decisions",
     "contracts/paper_recovery_kernel_contract.json",
     "contracts/stage_route_reconcile_contract.json",
-    "/Users/gaofeng/workspace/one-person-lab/contracts/opl-framework/standard-agent-landing-acceptance-contract.json"
+    "external_repo:one-person-lab/contracts/opl-framework/standard-agent-landing-acceptance-contract.json"
   ],
   "completion_claim_policy": {
     "definition_landed_status": "acceptance_definition_landed",
@@ -174,7 +175,7 @@
       "gate_id": "family_standard_agent_feedback_loop",
       "required_status": "evidence_required",
       "source_of_truth": [
-        "/Users/gaofeng/workspace/one-person-lab/contracts/opl-framework/standard-agent-landing-acceptance-contract.json",
+        "external_repo:one-person-lab/contracts/opl-framework/standard-agent-landing-acceptance-contract.json",
         "OPL agents conformance",
         "OPL private-platform residue owner decisions",
         "OMA developer work-order receipts"

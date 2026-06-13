@@ -11,13 +11,22 @@ pytestmark = pytest.mark.meta
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "standard_agent_completion_acceptance.json"
+LEDGER_PATH = REPO_ROOT / "contracts" / "standard_agent_completion_evidence_status.json"
 PINNED_HUMAN_DOC_PATH_PATTERN = re.compile(
     r"\b(?:README(?:\.zh-CN)?\.md|AGENTS\.md|docs/[A-Za-z0-9_./-]+\.md(?:#[A-Za-z0-9_-]+)?|contracts/[A-Za-z0-9_./-]+\.md)\b"
 )
+MACHINE_TRUTH_HUMAN_DOC_PATH_PATTERN = re.compile(
+    r"\b(?:README(?:\.zh-CN)?\.md|AGENTS\.md|docs/[A-Za-z0-9_./-]+\.md(?:#[A-Za-z0-9_-]+)?)\b"
+)
+ABSOLUTE_LOCAL_PATH_PATTERN = re.compile(r"(?<!workspace:)/Users/[^ \"]+")
 
 
 def _contract() -> dict[str, object]:
     return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+
+
+def _ledger() -> dict[str, object]:
+    return json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
 
 
 def test_standard_agent_completion_acceptance_declares_non_completion_boundary() -> None:
@@ -133,3 +142,109 @@ def test_standard_agent_completion_acceptance_false_completion_claims_are_explic
         "representative DM002/DM003 governed recovery evidence",
         "OPL/OMA family-level standard-agent generation negative conformance",
     } <= set(contract["current_open_evidence_tails"])
+
+
+def test_standard_agent_completion_evidence_ledger_covers_every_acceptance_gate() -> None:
+    contract = _contract()
+    ledger = _ledger()
+
+    assert ledger["surface_kind"] == "mas_standard_agent_completion_evidence_status"
+    assert ledger["contract_ref"] == "contracts/standard_agent_completion_acceptance.json"
+    assert ledger["state"] == "active_evidence_ledger"
+    assert ledger["overall_status"] == "evidence_tail_open_not_complete"
+    assert ledger["completion_claim_allowed"] is False
+
+    contract_gate_ids = {gate["gate_id"] for gate in contract["acceptance_gates"]}
+    ledger_gate_ids = {gate["gate_id"] for gate in ledger["gate_evidence_status"]}
+    assert ledger_gate_ids == contract_gate_ids
+
+    allowed_statuses = {
+        "satisfied_with_repo_evidence",
+        "evidence_required",
+        "blocked_by_live_owner_evidence",
+    }
+    for gate in ledger["gate_evidence_status"]:
+        assert gate["status"] in allowed_statuses, gate["gate_id"]
+        assert gate["required_evidence_refs"], gate["gate_id"]
+        assert "observed_refs" in gate, gate["gate_id"]
+        assert "missing_evidence_tails" in gate, gate["gate_id"]
+        assert gate["false_completion_boundary"], gate["gate_id"]
+
+
+def test_standard_agent_completion_evidence_ledger_keeps_live_tails_open() -> None:
+    ledger = _ledger()
+    gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
+
+    live = gates["live_owner_evidence_for_representative_paper_lines"]
+    assert live["status"] == "blocked_by_live_owner_evidence"
+    assert live["observed_refs"] == []
+    assert {
+        "fresh_DM002_DM003_owner_receipt_or_stable_typed_blocker_ref",
+        "fresh_human_gate_or_route_back_evidence_ref",
+        "provider_long_soak_same_current_identity_proof_ref",
+    } <= set(live["missing_evidence_tails"])
+    assert {
+        "repo_tests",
+        "contract_landed",
+        "docs_updated",
+        "provider_completed_without_mas_closeout_consumption",
+    } <= set(live["false_completion_boundary"])
+
+    family = gates["family_standard_agent_feedback_loop"]
+    assert family["status"] == "evidence_required"
+    assert "OPL_OMA_family_negative_conformance_receipt_ref" in family[
+        "missing_evidence_tails"
+    ]
+    assert "cross_agent_standard_conformance_negative_test_ref" in family[
+        "required_evidence_refs"
+    ]
+
+    observations = {
+        observation["study_id"]: observation
+        for observation in ledger["latest_read_only_gap_observations"]
+    }
+    assert observations["002-dm-china-us-mortality-attribution"][
+        "progress_first_outcome"
+    ] == "blocked_with_typed_owner"
+    assert observations["003-dpcc-primary-care-phenotype-treatment-gap"][
+        "progress_first_outcome"
+    ] == "ready_for_owner_action"
+    for observation in observations.values():
+        assert observation["completion_evidence"] is False
+        assert observation["can_close_live_owner_gate"] is False
+
+
+def test_standard_agent_completion_evidence_ledger_rejects_docs_as_machine_truth_refs() -> None:
+    ledger = _ledger()
+
+    for gate in ledger["gate_evidence_status"]:
+        machine_refs = gate["required_evidence_refs"] + gate["observed_refs"]
+        for ref in machine_refs:
+            assert not MACHINE_TRUTH_HUMAN_DOC_PATH_PATTERN.search(ref), (
+                gate["gate_id"],
+                ref,
+            )
+            assert not ABSOLUTE_LOCAL_PATH_PATTERN.search(ref), (
+                gate["gate_id"],
+                ref,
+            )
+
+
+def test_standard_agent_completion_evidence_ledger_keeps_false_claims_rejected() -> None:
+    contract = _contract()
+    ledger = _ledger()
+
+    assert set(contract["false_completion_claims"]) <= set(
+        ledger["rejected_completion_claims"]
+    )
+    assert ledger["completion_claim_policy"]["required_final_claim"] == (
+        "all_acceptance_gates_satisfied_with_current_evidence"
+    )
+    assert ledger["completion_claim_policy"]["current_completion_status"] == (
+        "evidence_tail_open_not_complete"
+    )
+    assert ledger["completion_claim_policy"]["completion_requires_all_gate_statuses"] == [
+        "satisfied",
+        "retired_with_owner_decision",
+        "not_applicable_with_owner_decision",
+    ]
