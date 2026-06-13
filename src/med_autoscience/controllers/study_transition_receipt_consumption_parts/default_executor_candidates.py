@@ -185,6 +185,9 @@ def _execution_from_stage_closeout(
         if missing_user_stage_log_fields
         else ""
     )
+    stage_packet_ref = _text(closeout.get("stage_packet_ref")) or _text(closeout.get("stage_packet_path"))
+    stage_packet_refs = _stage_closeout_stage_packet_refs(closeout)
+    dispatch_ref = _text(closeout.get("dispatch_ref")) or stage_packet_ref
     return {
         "surface": "default_executor_dispatch_execution",
         "schema_version": 1,
@@ -203,6 +206,9 @@ def _execution_from_stage_closeout(
         or _text(closeout.get("stage_attempt_id")),
         "source_fingerprint": _text(closeout.get("source_fingerprint")),
         "idempotency_key": _text(closeout.get("idempotency_key")),
+        "dispatch_ref": dispatch_ref,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": stage_packet_refs,
         "current_owner_route": route or None,
         "owner_route": route or None,
         "owner_route_currentness_basis": route_currentness_basis or None,
@@ -618,6 +624,18 @@ def _stage_closeout_immutable_dispatch_refs(closeout: Mapping[str, Any]) -> list
     refs.extend(_text_list(closeout.get("evidence_refs")))
     refs.extend(_text_list(_mapping(closeout.get("domain_execution")).get("closeout_refs")))
     return [ref for ref in refs if _stage_packet_ref_has_immutable_owner_route_identity(ref)]
+
+
+def _stage_closeout_stage_packet_refs(closeout: Mapping[str, Any]) -> list[str]:
+    refs = _text_list(closeout.get("stage_packet_refs"))
+    for ref in (
+        _text(closeout.get("stage_packet_ref")),
+        _text(closeout.get("stage_packet_path")),
+        *_stage_closeout_immutable_dispatch_refs(closeout),
+    ):
+        if ref and ref not in refs:
+            refs.append(ref)
+    return refs
 
 
 def _stage_packet_ref_has_immutable_owner_route_identity(stage_packet_ref: str) -> bool:

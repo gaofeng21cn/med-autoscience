@@ -65,7 +65,12 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
                     "next_work_unit": work_unit_id,
                     "action_fingerprint": action_fingerprint,
                     "work_unit_fingerprint": action_fingerprint,
-                    "refs": {"dispatch_path": str(dispatch_path)},
+                    "stage_packet_ref": str(dispatch_path),
+                    "stage_packet_refs": [str(dispatch_path)],
+                    "refs": {
+                        "dispatch_path": str(dispatch_path),
+                        "stage_packet_path": str(dispatch_path),
+                    },
                 }
             ],
             "studies": [
@@ -77,6 +82,8 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
                         "source_refs": {
                             "work_unit_id": work_unit_id,
                             "work_unit_fingerprint": action_fingerprint,
+                            "stage_packet_ref": str(dispatch_path),
+                            "stage_packet_refs": [str(dispatch_path)],
                             "owner_route_currentness_basis": {
                                 "truth_epoch": "truth-event-current",
                                 "runtime_health_epoch": "runtime-health-current",

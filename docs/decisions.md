@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-13：accepted closeout 只能消费同一 selected stage packet 的 provider admission
+
+- 决策：`default_executor_execution_candidates` 从 stage closeout 构造 accepted closeout evidence 时，必须保留 closeout 原生 `dispatch_ref`、`stage_packet_ref` 和 `stage_packet_refs`，包括 closeout refs 中绑定的 immutable dispatch packet。DHD report scan、provider admission current-control 和 stage-route arbiter 不能丢失这些字段，也不能把当前 candidate 的 stage packet identity 反填到旧 closeout 上。
+- 决策：`accepted_closeout_matches_candidate_identity` 在 action、work-unit 和 fingerprint 匹配之外，必须比较 selected stage packet identity。若 current provider admission candidate 带有 `stage_packet_ref` / `stage_packet_refs`，旧 closeout 也带有 stage packet refs 且二者不等价，该 closeout 只能作为 audit evidence，不能产生 `accepted_closeout_consumed_pending`，不能压住当前 `provider_admission_pending`。
+- 决策：同一 `action_type + work_unit_id + work_unit_fingerprint` 不再足以证明 closeout 已消费当前 admission。MAS 当前 owner obligation 的执行身份必须包含 selected stage packet；OPL 侧 admission / StageRun currentness 也必须把 selected packet 与 route / attempt idempotency 纳入同一 identity。
+- 理由：DM003 fresh dry-run 复现显示，旧 `sat_f8e1cfe49a3aa3cf95d0584d` closeout 绑定的是 mutable `default_executor_dispatches/run_quality_repair_batch.json`，而当前 admission candidate 绑定的是 immutable `.../immutable/run_quality_repair_batch/77fa1796dc1d50c2b7687a9f.json`。旧实现扫描 closeout 后丢掉 `stage_packet_ref`，导致 arbiter 只按 action/work-unit/fingerprint 误判为同一 obligation，输出 `accepted_closeout_consumed_pending`，使 DM003 顶层 provider admission 继续为 0，019eb0e8 只能反复修投影/closeout/worker 读面。
+- 影响：这是 MAS currentness / provider admission / closeout evidence 修复；不执行 live DHD apply、hydrate、tick、redrive，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。修复后的只读 DHD dry-run 应能把 DM003 判为 `pending_provider_admission`，后续是否启动 provider 仍归 OPL / DHD owner path。
+
 ## 2026-06-13：PaperRecovery obligation kernel 成为 stage-route 派生面的唯一决策根
 
 - 决策：`contracts/paper_recovery_kernel_contract.json#/spec/recovery_obligation_kernel_interface` 固定 `RecoveryObligationKernel` 为单一 authority decision root。输入族是 MAS owner evidence、OPL execution observation、terminal closeout refs、manual / human gate refs 和 read-model projection status；输出只能是 `paper_recovery_state`。`contracts/stage_route_reconcile_contract.json#/paper_recovery_kernel_consumption/single_kernel_projection_guard` 固定 `current_work_unit`、`current_execution_envelope`、`study_progress`、DHD provider admission、domain-handler export、operator card 和 OPL admission 只能消费该输出，不能重新从 queue、旧 dispatch、active run、transport status、operator card、read-model refresh 或 trace/span 生成 recovery truth。

@@ -63,6 +63,8 @@ def accepted_closeout_matches_candidate_identity(
         _non_empty_text(receipt.get("action_type")) == expected_action
         and _non_empty_text(receipt.get("work_unit_id")) == expected_work_unit
     )
+    if action_and_work_unit_match and _stage_packet_identity_conflicts(receipt, identity=identity):
+        return False
     if (
         action_and_work_unit_match
         and receipt_fingerprint == expected_fingerprint
@@ -381,6 +383,71 @@ def _receipt_currentness_basis(receipt: Mapping[str, Any]) -> dict[str, Any]:
         if value is not None:
             basis[key] = value
     return {key: value for key, value in basis.items() if value not in (None, "", [], {})}
+
+
+def _stage_packet_identity_conflicts(
+    receipt: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    identity_refs = _stage_packet_refs(identity)
+    if not identity_refs:
+        return False
+    receipt_refs = _stage_packet_refs(receipt)
+    if not receipt_refs:
+        return False
+    return not any(
+        _refs_equivalent(receipt_ref, identity_ref)
+        for receipt_ref in receipt_refs
+        for identity_ref in identity_refs
+    )
+
+
+def _stage_packet_refs(payload: Mapping[str, Any]) -> tuple[str, ...]:
+    refs: list[str] = []
+    for candidate in (
+        payload.get("stage_packet_ref"),
+        payload.get("stage_packet_path"),
+        payload.get("stage_packet"),
+    ):
+        text = _non_empty_text(candidate)
+        if text is not None:
+            refs.append(text)
+    for key in ("stage_packet_refs", "stage_packet_paths"):
+        for candidate in payload.get(key) or []:
+            text = _non_empty_text(candidate)
+            if text is not None:
+                refs.append(text)
+    for nested in (
+        _mapping(payload.get("source_refs")),
+        _mapping(payload.get("refs")),
+        _mapping(payload.get("handoff_packet")),
+        _mapping(payload.get("owner_route")).get("source_refs"),
+    ):
+        nested_payload = _mapping(nested)
+        for candidate in (
+            nested_payload.get("stage_packet_ref"),
+            nested_payload.get("stage_packet_path"),
+        ):
+            text = _non_empty_text(candidate)
+            if text is not None:
+                refs.append(text)
+        for key in ("stage_packet_refs", "stage_packet_paths"):
+            for candidate in nested_payload.get(key) or []:
+                text = _non_empty_text(candidate)
+                if text is not None:
+                    refs.append(text)
+    return tuple(dict.fromkeys(refs))
+
+
+def _refs_equivalent(left: str, right: str) -> bool:
+    if left == right:
+        return True
+    left_norm = left.rstrip("/")
+    right_norm = right.rstrip("/")
+    if left_norm == right_norm:
+        return True
+    return left_norm.endswith(f"/{right_norm}") or right_norm.endswith(f"/{left_norm}")
 
 
 def _identity_currentness_basis(identity: Mapping[str, Any]) -> dict[str, Any]:

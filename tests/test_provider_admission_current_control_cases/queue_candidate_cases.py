@@ -53,7 +53,12 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
                     "next_work_unit": work_unit_id,
                     "action_fingerprint": action_fingerprint,
                     "work_unit_fingerprint": action_fingerprint,
-                    "refs": {"dispatch_path": str(dispatch_path)},
+                    "stage_packet_ref": str(dispatch_path),
+                    "stage_packet_refs": [str(dispatch_path)],
+                    "refs": {
+                        "dispatch_path": str(dispatch_path),
+                        "stage_packet_path": str(dispatch_path),
+                    },
                 }
             ],
             "studies": [
@@ -65,6 +70,8 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
                         "source_refs": {
                             "work_unit_id": work_unit_id,
                             "work_unit_fingerprint": action_fingerprint,
+                            "stage_packet_ref": str(dispatch_path),
+                            "stage_packet_refs": [str(dispatch_path)],
                             "owner_route_currentness_basis": {
                                 "truth_epoch": "truth-event-current",
                                 "runtime_health_epoch": "runtime-health-current",
@@ -106,6 +113,12 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["action_fingerprint"] == action_fingerprint
     assert candidate["dispatch_path"] == str(dispatch_path)
+    expected_stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+    )
+    assert candidate["stage_packet_ref"] == expected_stage_packet_ref
+    assert candidate["stage_packet_refs"] == [expected_stage_packet_ref]
     assert candidate["next_executable_owner"] == "ai_reviewer"
     boundary = candidate["authority_boundary"]
     assert boundary["stage_transition_authority"] == "OPL Stage Transition Authority"

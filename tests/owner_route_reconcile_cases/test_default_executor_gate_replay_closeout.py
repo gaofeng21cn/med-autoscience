@@ -329,3 +329,130 @@ def test_gate_replay_closeout_uses_closeout_bound_immutable_dispatch_not_current
         )
         == {}
     )
+
+
+def test_stage_closeout_candidate_preserves_stage_packet_identity_for_current_control(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = tmp_path / "studies" / study_id
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    mutable_dispatch_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_dispatches/run_quality_repair_batch.json"
+    )
+    old_immutable_dispatch_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "immutable/run_quality_repair_batch/old.json"
+    )
+    current_immutable_dispatch_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "immutable/run_quality_repair_batch/current.json"
+    )
+    owner_route = {
+        "idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+        "truth_epoch": "truth-event-old",
+        "runtime_health_epoch": "runtime-health-old",
+        "source_eval_id": "publication-eval::old",
+        "work_unit_fingerprint": fingerprint,
+        "next_owner": "write",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "source_refs": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "owner_route_currentness_basis": {
+                "truth_epoch": "truth-event-old",
+                "runtime_health_epoch": "runtime-health-old",
+                "source_eval_id": "publication-eval::old",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+    }
+    _write_json(
+        tmp_path / mutable_dispatch_ref,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "executor_kind": "codex_cli_default",
+            "owner_route": owner_route,
+            "refs": {
+                "dispatch_path": str(tmp_path / mutable_dispatch_ref),
+                "immutable_dispatch_path": str(tmp_path / current_immutable_dispatch_ref),
+                "stage_packet_path": str(tmp_path / current_immutable_dispatch_ref),
+            },
+        },
+    )
+    _write_json(
+        tmp_path / old_immutable_dispatch_ref,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "executor_kind": "codex_cli_default",
+            "owner_route": owner_route,
+        },
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "sat_old.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_attempt_id": "sat_old",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "source_eval_id": "publication-eval::old",
+            "stage_packet_ref": mutable_dispatch_ref,
+            "status": "closed_with_domain_owner_refs",
+            "execution_status": "executed",
+            "owner_receipt_ref": (
+                f"studies/{study_id}/artifacts/controller/repair_execution_evidence/latest.json"
+            ),
+            "owner_receipt": {
+                "owner": "write",
+                "status": "executed",
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
+            "domain_execution": {
+                "action_type": "run_quality_repair_batch",
+                "domain_owner": "write",
+                "execution_status": "executed",
+            },
+            "closeout_refs": [
+                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                "sat_old.closeout.json",
+                old_immutable_dispatch_ref,
+            ],
+        },
+    )
+
+    candidates = [
+        execution
+        for execution, _receipt_ref in default_executor_execution_candidates(study_root=study_root)
+        if execution.get("execution_id") == "sat_old"
+    ]
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate["stage_packet_ref"] == mutable_dispatch_ref
+    assert old_immutable_dispatch_ref in candidate["stage_packet_refs"]
+    assert current_immutable_dispatch_ref not in candidate["stage_packet_refs"]

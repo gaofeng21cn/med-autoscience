@@ -44,6 +44,13 @@ def candidate_with_stage_run_admission_identity(
         refs.get("stage_packet_path"),
         refs.get("immutable_dispatch_path"),
     )
+    selected_dispatch_ref = _first_present_text(
+        payload.get("selected_dispatch_ref"),
+        execution.get("selected_dispatch_ref"),
+        dispatch_payload.get("selected_dispatch_ref"),
+        source_refs.get("selected_dispatch_ref"),
+        refs.get("selected_dispatch_ref"),
+    )
     stage_packet_refs = _unique_texts(
         payload.get("stage_packet_refs"),
         execution.get("stage_packet_refs"),
@@ -84,6 +91,7 @@ def candidate_with_stage_run_admission_identity(
         attempt_idempotency_key = route_identity_key
     normalized_dispatch_ref = _workspace_relative_ref(dispatch_ref, study_root=study_root)
     normalized_stage_packet_ref = _workspace_relative_ref(stage_packet_ref, study_root=study_root)
+    normalized_selected_dispatch_ref = _workspace_relative_ref(selected_dispatch_ref, study_root=study_root)
     normalized_stage_packet_refs = [
         ref
         for ref in (
@@ -95,6 +103,7 @@ def candidate_with_stage_run_admission_identity(
     for key, value in {
         "dispatch_ref": normalized_dispatch_ref,
         "stage_packet_ref": normalized_stage_packet_ref,
+        "selected_dispatch_ref": normalized_selected_dispatch_ref,
         "route_identity_key": route_identity_key,
         "attempt_idempotency_key": attempt_idempotency_key,
     }.items():
@@ -109,6 +118,7 @@ def candidate_with_stage_run_admission_identity(
     for key, value in {
         "dispatch_ref": normalized_dispatch_ref,
         "stage_packet_ref": normalized_stage_packet_ref,
+        "selected_dispatch_ref": normalized_selected_dispatch_ref,
         "route_identity_key": route_identity_key,
         "attempt_idempotency_key": attempt_idempotency_key,
     }.items():

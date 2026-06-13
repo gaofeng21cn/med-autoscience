@@ -479,6 +479,9 @@ def test_domain_health_diagnostic_dry_run_aggregates_gate_admission_candidates_f
     dm002_root = profile.studies_root / dm002
     dm003_root = profile.studies_root / dm003
     dm002_fingerprint = "sha256:dm002-current-gate-replay"
+    dm002_dispatch_ref = str(
+        dm002_root / "artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+    )
     dm003_work_unit = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     dm003_fingerprint = f"domain-transition::route_back_same_line::{dm003_work_unit}"
 
@@ -497,7 +500,11 @@ def test_domain_health_diagnostic_dry_run_aggregates_gate_admission_candidates_f
                     "owner_route_current": True,
                     "next_executable_owner": "gate_clearing_batch",
                     "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
-                    "dispatch_path": str(dm002_root / "artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json"),
+                    "dispatch_path": dm002_dispatch_ref,
+                    "dispatch_ref": dm002_dispatch_ref,
+                    "selected_dispatch_ref": dm002_dispatch_ref,
+                    "stage_packet_ref": dm002_dispatch_ref,
+                    "stage_packet_refs": [dm002_dispatch_ref],
                     "dispatch_authority": "consumer_default_executor_dispatch",
                     "action_fingerprint": dm002_fingerprint,
                     "owner_route": {
@@ -506,6 +513,10 @@ def test_domain_health_diagnostic_dry_run_aggregates_gate_admission_candidates_f
                         "source_refs": {
                             "work_unit_id": "publication_gate_replay",
                             "work_unit_fingerprint": dm002_fingerprint,
+                            "dispatch_ref": dm002_dispatch_ref,
+                            "selected_dispatch_ref": dm002_dispatch_ref,
+                            "stage_packet_ref": dm002_dispatch_ref,
+                            "stage_packet_refs": [dm002_dispatch_ref],
                             "owner_route_currentness_basis": {
                                 "work_unit_id": "publication_gate_replay",
                                 "work_unit_fingerprint": dm002_fingerprint,
