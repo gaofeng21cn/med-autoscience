@@ -296,6 +296,20 @@ def build_current_work_unit(
             source="stage_owner_answer_identity",
             status_kind="blocked_current_work_unit",
         )
+    if _typed_blocker_precedes_stage_owner_answer(
+        blocker=resolved_typed_blocker,
+        action=action,
+        progress=progress_payload,
+    ):
+        return _typed_blocker_work_unit(
+            blocker=resolved_typed_blocker,
+            action=action,
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            source_refs=resolved_source_refs,
+            currentness_basis=basis,
+            source="typed_blocker",
+        )
     stage_owner_answer_blocker = _stage_owner_answer_typed_blocker(progress_payload)
     if stage_owner_answer_blocker is not None and not _action_supersedes_stage_owner_answer(
         action=action,
@@ -554,6 +568,46 @@ def _typed_blocker_is_stage_owner_answer(blocker: Mapping[str, Any] | None) -> b
         or _text(payload.get("latest_owner_answer_kind")) == "typed_blocker"
         and _text(payload.get("action_type")) == "complete_medical_paper_readiness_surface"
     )
+
+
+def _typed_blocker_precedes_stage_owner_answer(
+    *,
+    blocker: Mapping[str, Any] | None,
+    action: Mapping[str, Any] | None,
+    progress: Mapping[str, Any],
+) -> bool:
+    payload = _mapping(blocker)
+    if not payload:
+        return False
+    if _typed_blocker_is_stage_owner_answer(payload):
+        return False
+    if action is not None and _action_supersedes_typed_blocker(
+        action=action,
+        blocker=payload,
+        progress=progress,
+    ):
+        return False
+    if not _typed_blocker_has_owner_answer_currentness(payload):
+        return False
+    return (
+        _text(payload.get("stage_attempt_id")) is not None
+        or _text(payload.get("terminal_closeout_status")) is not None
+        or _text(payload.get("terminal_closeout_outcome")) is not None
+        or bool(_text_items(payload.get("closeout_refs")))
+        or _default_executor_closeout_ref(payload)
+    )
+
+
+def _default_executor_closeout_ref(blocker: Mapping[str, Any]) -> bool:
+    for value in (
+        _text(blocker.get("typed_blocker_ref")),
+        _text(blocker.get("source_ref")),
+        _text(blocker.get("latest_owner_answer_ref")),
+        *_text_items(blocker.get("acceptance_refs")),
+    ):
+        if value is not None and "default_executor_execution/" in value:
+            return True
+    return False
 
 
 def _typed_blocker_owner_answer_basis(

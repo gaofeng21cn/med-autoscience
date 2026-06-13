@@ -36,6 +36,28 @@ def build_paper_recovery_state(
     current_work_unit = _mapping(progress.get("current_work_unit"))
     obligation = _obligation(progress, current_work_unit=current_work_unit)
 
+    typed_blocker = _current_typed_blocker(current_work_unit)
+    if typed_blocker:
+        owner = _text(typed_blocker.get("owner")) or _text(current_work_unit.get("owner")) or "MedAutoScience"
+        return _state(
+            progress,
+            obligation=obligation,
+            phase=_typed_blocker_phase(typed_blocker),
+            conditions=[
+                {
+                    "condition": "current_work_unit_typed_blocker",
+                    "blocker_type": _typed_blocker_reason(typed_blocker),
+                }
+            ],
+            next_safe_action=_next_action(
+                "resolve_typed_blocker",
+                provider_admission_allowed=False,
+                owner=owner,
+            ),
+            current_owner=owner,
+            suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
+        )
+
     contradiction = _projection_contradiction(progress, obligation=obligation)
     if contradiction is not None:
         return _state(
@@ -94,28 +116,6 @@ def build_paper_recovery_state(
                 owner="MedAutoScience",
             ),
             evidence_refs=_closeout_refs(terminal_closeout),
-        )
-
-    typed_blocker = _current_typed_blocker(current_work_unit)
-    if typed_blocker:
-        owner = _text(typed_blocker.get("owner")) or _text(current_work_unit.get("owner")) or "MedAutoScience"
-        return _state(
-            progress,
-            obligation=obligation,
-            phase=_typed_blocker_phase(typed_blocker),
-            conditions=[
-                {
-                    "condition": "current_work_unit_typed_blocker",
-                    "blocker_type": _typed_blocker_reason(typed_blocker),
-                }
-            ],
-            next_safe_action=_next_action(
-                "resolve_typed_blocker",
-                provider_admission_allowed=False,
-                owner=owner,
-            ),
-            current_owner=owner,
-            suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
         )
 
     manual_delta = _mapping(progress.get("manual_foreground_delta"))
