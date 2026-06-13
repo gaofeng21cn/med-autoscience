@@ -17,9 +17,6 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_curre
     gate_replay_consumed_by_source_eval,
     terminal_closeout_blocker_for_action,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
-    is_anti_loop_stop_loss_closeout,
-)
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
 )
@@ -42,7 +39,6 @@ from med_autoscience.controllers.current_work_unit_parts.current_action_selectio
 from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
     CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS,
     CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS,
-    LIVE_ATTEMPT_SUPERSEDED_BLOCKERS,
     MEDICAL_READINESS_BLOCKERS,
     OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE,
     PAPER_DELTA_PRIOR_BLOCKER_SUPERSEDING_ACTION_SOURCES,
@@ -50,8 +46,6 @@ from med_autoscience.controllers.current_work_unit_parts.policy_constants import
     PROVIDER_ADMISSION_AUTHORITIES,
     PROVIDER_ADMISSION_REPAIR_ACTIONS,
     REASON_ONLY_TYPED_BLOCKERS,
-    RUNNING_HEALTH_VALUES,
-    TERMINAL_CLOSEOUT_STATUSES,
 )
 from med_autoscience.controllers.current_work_unit_parts.primitives import (
     mapping as _mapping,
@@ -64,6 +58,17 @@ from med_autoscience.controllers.current_work_unit_parts.readiness_identity impo
 )
 from med_autoscience.controllers.current_work_unit_parts.repair_progress_precedence import (
     gate_replay_action_supersedes_stage_packet_blocker,
+)
+from med_autoscience.controllers.current_work_unit_parts.running_provider_attempt import (
+    provider_attempt_proof_state,
+    running_attempt_can_supersede_blocker,
+    running_attempt_invalidated_by_progress,
+    running_attempt_matches_current_action,
+    running_attempt_satisfies_stage_owner_answer,
+    running_required_output_contract,
+    running_work_unit_id,
+    strict_running_provider_attempt,
+    typed_blocker_is_terminal_stop_loss,
 )
 from med_autoscience.runtime_control.owner_route_attempt_protocol import (
     currentness_basis as owner_route_currentness_basis,
@@ -160,22 +165,22 @@ def build_current_work_unit(
     ):
         resolved_typed_blocker = terminal_action_blocker
         terminal_action_blocker_selected = True
-    running_attempt = _strict_running_provider_attempt(
+    running_attempt = strict_running_provider_attempt(
         live_provider_attempt=live_provider_attempt,
         provider_running_proof=provider_running_proof,
         runtime_health=runtime_health_payload,
         owner=next_owner,
     )
     if running_attempt is None:
-        running_attempt = _strict_running_provider_attempt(
+        running_attempt = strict_running_provider_attempt(
             live_provider_attempt=provider_admission,
             provider_running_proof=None,
             runtime_health=runtime_health_payload,
             owner=next_owner,
         )
-    if running_attempt is not None and _running_attempt_invalidated_by_progress(progress_payload):
+    if running_attempt is not None and running_attempt_invalidated_by_progress(progress_payload):
         running_attempt = None
-    if running_attempt is not None and not _running_attempt_matches_current_action(
+    if running_attempt is not None and not running_attempt_matches_current_action(
         running_attempt=running_attempt,
         action=action,
     ):
@@ -183,7 +188,7 @@ def build_current_work_unit(
     if (
         running_attempt is not None
         and stage_owner_answer_action is not None
-        and not _running_attempt_satisfies_stage_owner_answer(
+        and not running_attempt_satisfies_stage_owner_answer(
             running_attempt=running_attempt,
             owner_answer_action=stage_owner_answer_action,
         )
@@ -216,21 +221,21 @@ def build_current_work_unit(
             source="gate_clearing_batch_followthrough",
         )
     if running_attempt is not None:
-        if _running_attempt_can_supersede_blocker(resolved_typed_blocker):
+        if running_attempt_can_supersede_blocker(resolved_typed_blocker):
             return _current_work_unit(
                 status="running_provider_attempt",
                 owner=_text(running_attempt.get("owner")) or _text(next_owner),
                 action_type=_text(running_attempt.get("action_type")),
-                work_unit_id=_running_work_unit_id(running_attempt, currentness_basis=basis, action=action),
+                work_unit_id=running_work_unit_id(running_attempt, currentness_basis=basis, action=action),
                 work_unit_fingerprint=_text(running_attempt.get("work_unit_fingerprint")),
                 action_fingerprint=_text(running_attempt.get("action_fingerprint")),
                 input_refs=resolved_source_refs,
-                required_output_contract=_running_required_output_contract(running_attempt),
+                required_output_contract=running_required_output_contract(running_attempt),
                 acceptance_refs=_text_items(running_attempt.get("acceptance_refs")),
                 currentness_basis=basis,
                 state={
                     "state_kind": "running_provider_attempt",
-                    "provider_attempt_proof": _provider_attempt_proof_state(running_attempt),
+                    "provider_attempt_proof": provider_attempt_proof_state(running_attempt),
                     "strict_running_proof": True,
                     "pending_provider_admission_only": False,
                 },
@@ -262,7 +267,7 @@ def build_current_work_unit(
                 currentness_basis=basis,
                 source="typed_blocker",
             )
-    if resolved_typed_blocker is not None and _typed_blocker_is_terminal_stop_loss(resolved_typed_blocker):
+    if resolved_typed_blocker is not None and typed_blocker_is_terminal_stop_loss(resolved_typed_blocker):
         return _typed_blocker_work_unit(
             blocker=resolved_typed_blocker,
             action=action,
@@ -706,333 +711,6 @@ def _current_work_unit(
         "currentness_basis": basis,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
-
-
-def _strict_running_provider_attempt(
-    *,
-    live_provider_attempt: Mapping[str, Any] | None,
-    provider_running_proof: Mapping[str, Any] | None,
-    runtime_health: Mapping[str, Any],
-    owner: str | None,
-) -> dict[str, Any] | None:
-    attempt = _mapping(provider_running_proof) or _mapping(live_provider_attempt)
-    if attempt.get("running_provider_attempt") is not True:
-        return None
-    if _attempt_has_matching_terminal_closeout(attempt):
-        return None
-    active_stage_attempt_id = _text(attempt.get("active_stage_attempt_id"))
-    active_run_id = _text(attempt.get("active_run_id"))
-    active_workflow_id = _text(attempt.get("active_workflow_id"))
-    if active_stage_attempt_id is None and active_run_id is None and active_workflow_id is None:
-        return None
-    health = _mapping(attempt.get("runtime_health")) or runtime_health
-    if health.get("strict_live") is False:
-        return None
-    if not _has_running_health(health):
-        return None
-    return {
-        **attempt,
-        "owner": _text(owner) or _text(attempt.get("next_owner")) or _text(attempt.get("owner")),
-        "active_stage_attempt_id": active_stage_attempt_id,
-        "active_run_id": active_run_id,
-        "active_workflow_id": active_workflow_id,
-        "runtime_health": health,
-    }
-
-
-def _has_running_health(health: Mapping[str, Any]) -> bool:
-    values = {
-        _text(health.get("health_status")),
-        _text(health.get("runtime_liveness_status")),
-        _text(health.get("provider_status")),
-        _text(health.get("attempt_state")),
-        _text(health.get("status")),
-    }
-    return bool(values.intersection(RUNNING_HEALTH_VALUES))
-
-
-def _running_work_unit_id(
-    running_attempt: Mapping[str, Any],
-    *,
-    currentness_basis: Mapping[str, Any] | None = None,
-    action: Mapping[str, Any] | None = None,
-) -> str | None:
-    health = _mapping(running_attempt.get("runtime_health"))
-    basis = _mapping(currentness_basis)
-    action_payload = _mapping(action)
-    action_source = _text(action_payload.get("source")) or _text(action_payload.get("source_surface"))
-    action_work_unit = None if action_source == OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE else _work_unit_id(basis.get("work_unit_id"))
-    return (
-        _work_unit_id(running_attempt.get("work_unit_id"))
-        or _work_unit_id(running_attempt.get("next_work_unit"))
-        or _work_unit_id(health.get("work_unit_id"))
-        or action_work_unit
-        or _text(running_attempt.get("action_type"))
-    )
-
-
-def _provider_attempt_proof_state(running_attempt: Mapping[str, Any]) -> dict[str, Any]:
-    health = _mapping(running_attempt.get("runtime_health"))
-    return {
-        "running_provider_attempt": True,
-        "active_stage_attempt_id": _text(running_attempt.get("active_stage_attempt_id")),
-        "active_run_id": _text(running_attempt.get("active_run_id")),
-        "active_workflow_id": _text(running_attempt.get("active_workflow_id")),
-        "work_unit_id": _work_unit_id(running_attempt.get("work_unit_id")) or _work_unit_id(health.get("work_unit_id")),
-        "next_work_unit": _work_unit_id(running_attempt.get("next_work_unit")) or _work_unit_id(health.get("next_work_unit")),
-        "runtime_health": _mapping(running_attempt.get("runtime_health")) or None,
-    }
-
-
-def _running_required_output_contract(running_attempt: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "accepted_terminal_results": ["owner_receipt", "typed_blocker", "provider_closeout"],
-        "provider_attempt_running_proof_required": True,
-        "strict_running_proof_observed": True,
-        "owner_receipt_or_typed_blocker_required_for_completion": True,
-        "active_stage_attempt_id": _text(running_attempt.get("active_stage_attempt_id")),
-        "active_workflow_id": _text(running_attempt.get("active_workflow_id")),
-    }
-
-
-def _running_attempt_can_supersede_blocker(blocker: Mapping[str, Any] | None) -> bool:
-    payload = _mapping(blocker)
-    if not payload:
-        return True
-    return bool(_blocker_reason_values(payload).intersection(LIVE_ATTEMPT_SUPERSEDED_BLOCKERS))
-
-
-def _typed_blocker_is_terminal_stop_loss(blocker: Mapping[str, Any]) -> bool:
-    payload = _mapping(blocker)
-    if not payload:
-        return False
-    closeout_like = {
-        "typed_blocker": payload,
-        "blocked_reason": _text(payload.get("blocked_reason"))
-        or _text(payload.get("blocker_type"))
-        or _text(payload.get("blocker_kind"))
-        or _text(payload.get("reason")),
-        "typed_blocker_reason": _text(payload.get("blocker_type"))
-        or _text(payload.get("blocker_kind"))
-        or _text(payload.get("reason")),
-        "stage_closeout_status": _text(payload.get("terminal_closeout_status")),
-        "stage_closeout_outcome": _text(payload.get("terminal_closeout_outcome")),
-        "paper_stage_log": _mapping(payload.get("paper_stage_log")),
-    }
-    return is_anti_loop_stop_loss_closeout(closeout_like)
-
-
-def _blocker_reason_values(blocker: Mapping[str, Any]) -> set[str]:
-    values = {
-        text
-        for value in (
-            blocker.get("blocker_type"),
-            blocker.get("blocker_id"),
-            blocker.get("blocked_reason"),
-            blocker.get("reason"),
-            blocker.get("terminal_closeout_status"),
-            blocker.get("terminal_closeout_outcome"),
-            blocker.get("progress_delta_classification"),
-        )
-        if (text := _text(value)) is not None
-    }
-    return values | {
-        superseded
-        for value in values
-        for superseded in LIVE_ATTEMPT_SUPERSEDED_BLOCKERS
-        if superseded in value
-    }
-
-
-def _running_attempt_satisfies_stage_owner_answer(
-    *,
-    running_attempt: Mapping[str, Any],
-    owner_answer_action: Mapping[str, Any],
-) -> bool:
-    expected_stage_id = _text(owner_answer_action.get("stage_id"))
-    expected_work_unit = _text(owner_answer_action.get("work_unit_id"))
-    expected_fingerprint = _text(owner_answer_action.get("work_unit_fingerprint"))
-    expected_owner_answer_ref = _text(owner_answer_action.get("latest_owner_answer_ref"))
-    expected_lineage_ref = _text(_mapping(owner_answer_action.get("owner_route_currentness_basis")).get("lineage_ref"))
-    attempt_stage_id = _text(running_attempt.get("stage_id"))
-    if expected_stage_id is not None and attempt_stage_id != expected_stage_id:
-        return False
-    attempt_lineage_ref = _text(running_attempt.get("lineage_ref")) or _text(
-        _mapping(running_attempt.get("runtime_health")).get("lineage_ref")
-    )
-    if expected_lineage_ref is not None and attempt_lineage_ref != expected_lineage_ref:
-        return False
-    attempt_work_unit = (
-        _text(running_attempt.get("work_unit_id"))
-        or _text(running_attempt.get("next_work_unit"))
-        or _text(_mapping(running_attempt.get("runtime_health")).get("work_unit_id"))
-    )
-    if expected_work_unit is not None and attempt_work_unit != expected_work_unit:
-        return False
-    if expected_fingerprint is not None:
-        attempt_fingerprints = {
-            text
-            for value in (
-                running_attempt.get("work_unit_fingerprint"),
-                running_attempt.get("action_fingerprint"),
-                running_attempt.get("lineage_ref"),
-                _mapping(running_attempt.get("runtime_health")).get("work_unit_fingerprint"),
-            )
-            if (text := _text(value)) is not None
-        }
-        if expected_fingerprint not in attempt_fingerprints:
-            return False
-    observed_answer_refs = _stage_owner_answer_refs(running_attempt)
-    if expected_owner_answer_ref is None:
-        return False
-    if expected_owner_answer_ref not in observed_answer_refs:
-        return False
-    return any(
-        ref in observed_answer_refs
-        for ref in _text_items(owner_answer_action.get("acceptance_refs")) + [expected_owner_answer_ref]
-    )
-
-
-def _running_attempt_matches_current_action(
-    *,
-    running_attempt: Mapping[str, Any],
-    action: Mapping[str, Any] | None,
-) -> bool:
-    action_payload = _mapping(action)
-    if not action_payload:
-        return True
-    expected_action_type = _action_type(action_payload)
-    expected_work_unit = _work_unit_id(action_payload.get("work_unit_id")) or _work_unit_id(
-        action_payload.get("next_work_unit")
-    )
-    action_source_refs = _mapping(action_payload.get("source_refs"))
-    action_basis = (
-        _mapping(action_payload.get("owner_route_currentness_basis"))
-        or _mapping(action_payload.get("currentness_basis"))
-        or _mapping(action_source_refs.get("owner_route_currentness_basis"))
-    )
-    expected_fingerprint = _work_unit_fingerprint(action_payload, currentness_basis=action_basis)
-    running_health = _mapping(running_attempt.get("runtime_health"))
-    comparable_identity_observed = False
-    if expected_action_type is not None:
-        running_action_types = {
-            text
-            for value in (
-                running_attempt.get("action_type"),
-                running_health.get("action_type"),
-            )
-            if (text := _text(value)) is not None
-        }
-        comparable_identity_observed = comparable_identity_observed or bool(running_action_types)
-        if running_action_types and expected_action_type not in running_action_types:
-            return False
-    if expected_work_unit is not None:
-        running_work_units = {
-            text
-            for value in (
-                running_attempt.get("work_unit_id"),
-                running_attempt.get("next_work_unit"),
-                running_health.get("work_unit_id"),
-                running_health.get("next_work_unit"),
-            )
-            if (text := _work_unit_id(value)) is not None
-        }
-        comparable_identity_observed = comparable_identity_observed or bool(running_work_units)
-        if running_work_units and expected_work_unit not in running_work_units:
-            return False
-    if expected_fingerprint is not None:
-        running_fingerprints = {
-            text
-            for value in (
-                running_attempt.get("work_unit_fingerprint"),
-                running_attempt.get("action_fingerprint"),
-                running_attempt.get("lineage_ref"),
-                running_health.get("work_unit_fingerprint"),
-                running_health.get("action_fingerprint"),
-                running_health.get("lineage_ref"),
-            )
-            if (text := _text(value)) is not None
-        }
-        comparable_identity_observed = comparable_identity_observed or bool(running_fingerprints)
-        if running_fingerprints and expected_fingerprint not in running_fingerprints:
-            return False
-    if (
-        expected_action_type is not None
-        or expected_work_unit is not None
-        or expected_fingerprint is not None
-    ) and not comparable_identity_observed:
-        return False
-    return True
-
-
-def _stage_owner_answer_refs(payload: Mapping[str, Any]) -> set[str]:
-    refs: set[str] = set()
-    for key in (
-        "domain_owner_receipt_ref",
-        "quality_gate_receipt_ref",
-        "typed_blocker_ref",
-        "human_gate_ref",
-        "route_back_evidence_ref",
-    ):
-        if ref := _text(payload.get(key)):
-            refs.add(ref)
-    for key in (
-        "domain_owner_receipt_refs",
-        "quality_gate_receipt_refs",
-        "typed_blocker_refs",
-        "human_gate_refs",
-        "route_back_evidence_refs",
-    ):
-        refs.update(_text_items(payload.get(key)))
-    runtime_health = _mapping(payload.get("runtime_health"))
-    if runtime_health:
-        refs.update(_stage_owner_answer_refs(runtime_health))
-    return refs
-
-
-def _running_attempt_invalidated_by_progress(progress: Mapping[str, Any]) -> bool:
-    runtime_refs = _mapping(progress.get("opl_runtime_refs"))
-    if runtime_refs.get("strict_live") is not False:
-        return False
-    if _text(runtime_refs.get("active_run_id")) is not None:
-        return False
-    auto_parked = _mapping(progress.get("auto_runtime_parked"))
-    if auto_parked.get("superseded_by_current_owner_action") is not True:
-        return False
-    return _text(runtime_refs.get("runtime_liveness_status")) in {
-        "unknown",
-        "none",
-        "not_live",
-        "stale",
-        "parked",
-    }
-
-
-def _attempt_has_matching_terminal_closeout(attempt: Mapping[str, Any]) -> bool:
-    terminal = _mapping(attempt.get("latest_terminal_stage_log"))
-    if not terminal:
-        return False
-    active_attempt_id = _stage_attempt_id_from_handoff(attempt)
-    terminal_attempt_id = _text(terminal.get("stage_attempt_id"))
-    if active_attempt_id is not None and terminal_attempt_id != active_attempt_id:
-        return False
-    if active_attempt_id is None and terminal_attempt_id is None:
-        return False
-    status = _text(terminal.get("status"))
-    if status in TERMINAL_CLOSEOUT_STATUSES:
-        return True
-    return _text(terminal.get("source_path")) is not None and _text(terminal.get("record_path")) is not None
-
-
-def _stage_attempt_id_from_handoff(handoff: Mapping[str, Any]) -> str | None:
-    if text := _text(handoff.get("active_stage_attempt_id")):
-        return text
-    active_run_id = _text(handoff.get("active_run_id"))
-    prefix = "opl-stage-attempt://"
-    if active_run_id is not None and active_run_id.startswith(prefix):
-        attempt_id = active_run_id[len(prefix) :].strip()
-        return attempt_id or None
-    return None
 
 
 def _stage_owner_answer_typed_blocker(progress: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -1760,7 +1438,7 @@ def _currentness_basis(
         "work_unit_id": _work_unit_id(action_payload.get("work_unit_id"))
         or _work_unit_id(action_payload.get("next_work_unit"))
         or _route_work_unit_id(owner_route)
-        or _running_work_unit_id(running),
+        or running_work_unit_id(running),
         "work_unit_fingerprint": _work_unit_fingerprint(action_payload, currentness_basis=result)
         or _text(running.get("work_unit_fingerprint")),
         "truth_epoch": _text(action_payload.get("truth_epoch")) or _text(progress.get("truth_epoch")),
