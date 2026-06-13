@@ -194,15 +194,20 @@ def test_unconsumed_closeout_does_not_authorize_weak_provider_admission_identity
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert len(result["provider_admission_candidates"]) == 1
-    assert len(result["action_queue"]) == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "weak_provider_admission_identity": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "pending_provider_admission"
-    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["decision"] == "weak_provider_admission_identity"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert set(decision["missing_identity_fields"]) == {
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "stage_packet_ref_or_refs",
+    }
 
 
 def test_materialized_current_control_ignores_stale_not_running_projection(
