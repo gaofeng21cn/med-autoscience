@@ -209,6 +209,9 @@ def _fresh_progress_currentness_barrier(
     ) or (
         state_kind == "typed_blocker"
         and repair_progress_currentness.current_action_is_repair_progress_followup(current_action)
+    ) or _typed_blocker_allows_gate_followthrough_owner_action(
+        envelope=envelope,
+        current_action=current_action,
     ):
         return None
     blocker = _mapping(envelope.get("typed_blocker"))
@@ -274,6 +277,11 @@ def _progress_has_executable_owner_action(progress: Mapping[str, Any]) -> bool:
             and _fresh_progress_typed_blocker_reason(envelope) == "medical_paper_readiness_missing"
         ):
             return _text(current_action.get("surface_kind")) == "current_executable_owner_action"
+        if _typed_blocker_allows_gate_followthrough_owner_action(
+            envelope=envelope,
+            current_action=current_action,
+        ):
+            return _text(current_action.get("surface_kind")) == "current_executable_owner_action"
         return state_kind == "executable_owner_action"
     return _text(current_action.get("surface_kind")) == "current_executable_owner_action"
 
@@ -297,6 +305,45 @@ def _fresh_progress_domain_transition_action(
     )
     actions = domain_transition_actions(study_payload)
     return actions[0] if actions else None
+
+
+def _typed_blocker_allows_gate_followthrough_owner_action(
+    *,
+    envelope: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    if state_kind != "typed_blocker":
+        return False
+    if _text(current_action.get("surface_kind")) != "current_executable_owner_action":
+        return False
+    if _text(current_action.get("status")) != "ready":
+        return False
+    if (
+        _text(current_action.get("source"))
+        or _text(current_action.get("source_surface"))
+    ) != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        return False
+    action_type = fresh_progress_arbitration.current_action_supported_action_type(current_action)
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return False
+    action_work_unit_id = _text(current_action.get("work_unit_id"))
+    action_fingerprint = _text(current_action.get("work_unit_fingerprint")) or _text(
+        current_action.get("action_fingerprint")
+    )
+    if action_work_unit_id is None or action_fingerprint is None:
+        return False
+    blocker = _mapping(envelope.get("typed_blocker"))
+    blocker_work_unit_id = _text(blocker.get("work_unit_id")) or _work_unit_id(
+        envelope.get("next_work_unit")
+    )
+    blocker_fingerprint = _text(blocker.get("work_unit_fingerprint")) or _text(
+        blocker.get("action_fingerprint")
+    )
+    return (action_work_unit_id, action_fingerprint) != (
+        blocker_work_unit_id,
+        blocker_fingerprint,
+    )
 
 
 def _fresh_progress_domain_transition_study(

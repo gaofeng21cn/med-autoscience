@@ -367,10 +367,11 @@ def _status_typed_blocker_envelope(status_payload: Mapping[str, Any]) -> bool:
 
 
 def _status_blocks_action_queue_self_identity(status_payload: Mapping[str, Any]) -> bool:
-    if _status_requires_current_identity(status_payload) and not _current_action_identity(
-        status_payload
-    ):
+    current_identity = _current_action_identity(status_payload)
+    if _status_requires_current_identity(status_payload) and not current_identity:
         return True
+    if current_identity and _mapping(status_payload.get("current_executable_owner_action")):
+        return False
     current_work_unit = _mapping(status_payload.get("current_work_unit"))
     current_work_unit_status = _non_empty_text(current_work_unit.get("status"))
     if current_work_unit_status in {
@@ -1188,6 +1189,11 @@ def _typed_blocker_envelope_allows_provider_admission(
     )
     if blocker_reason in PROVIDER_ADMISSION_FAIL_CLOSED_TYPED_BLOCKERS:
         return False
+    if _explicit_current_action_execution_matches_current_action(
+        execution,
+        current_action_identity=current_action_identity,
+    ):
+        return True
     if _authorization_required_execution_matches_current_action(
         execution,
         current_action_identity=current_action_identity,
@@ -1218,6 +1224,34 @@ def _typed_blocker_envelope_allows_provider_admission(
         "medical_paper_readiness_not_ready",
     } and _publication_surface_write_repair_execution_matches_current_action(
         execution,
+        current_action_identity=current_action_identity,
+    )
+
+
+def _explicit_current_action_execution_matches_current_action(
+    execution: Mapping[str, Any],
+    *,
+    current_action_identity: Mapping[str, Any],
+) -> bool:
+    if not current_action_identity:
+        return False
+    if _current_identity_is_opl_authorization_typed_blocker(current_action_identity):
+        return False
+    if _non_empty_text(current_action_identity.get("source")) == "canonical_current_work_unit":
+        return False
+    if not _provider_attempt_required(execution):
+        return False
+    if execution.get("owner_route_current") is False:
+        return False
+    action_type = _non_empty_text(execution.get("action_type"))
+    work_unit_id = handoff_work_unit_id(execution)
+    work_unit_fingerprint = _work_unit_fingerprint(execution)
+    if action_type is None or work_unit_id is None or work_unit_fingerprint is None:
+        return False
+    return _matches_current_action(
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
         current_action_identity=current_action_identity,
     )
 

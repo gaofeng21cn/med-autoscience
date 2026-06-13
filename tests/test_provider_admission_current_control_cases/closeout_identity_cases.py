@@ -657,6 +657,59 @@ def test_provider_admission_report_preserves_action_fingerprint_from_owner_route
     assert report._closeout_identity_matches_current(closeout, identity=identity)
 
 
+def test_provider_admission_report_identity_prefers_identity_different_current_owner_action() -> None:
+    report = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+
+    identity = report._progress_currentness_current_identity(
+        {
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": (
+                    "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+                ),
+                "currentness_basis": {
+                    "truth_epoch": "truth-event-old",
+                    "runtime_health_epoch": "runtime-health-old",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": (
+                        "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+                    ),
+                },
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "next_owner": "analysis-campaign",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                "owner_route_currentness_basis": {
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-current",
+                    "work_unit_id": "analysis_claim_evidence_repair",
+                    "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                },
+            },
+        }
+    )
+
+    assert identity == {
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "analysis_claim_evidence_repair",
+        "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+        "action_fingerprint": "publication-blockers::497d1260db522f01",
+        "truth_epoch": "truth-event-current",
+        "runtime_health_epoch": "runtime-health-current",
+    }
+
+
 def test_provider_admission_current_control_retains_pending_when_closeout_identity_was_inferred(
     tmp_path: Path,
 ) -> None:

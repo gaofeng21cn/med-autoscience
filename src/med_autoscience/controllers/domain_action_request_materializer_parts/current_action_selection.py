@@ -70,6 +70,7 @@ def current_actions_for_studies(
         dict(action) for action in scan_payload.get("action_queue") or [] if isinstance(action, Mapping)
     ]
     matched_requested_study = False
+    matched_scan_study_ids: set[str] = set()
     suppressed_fresh_progress_studies: set[str] = set()
     for study in scan_payload.get("studies") or []:
         study_payload = _mapping(study)
@@ -77,6 +78,7 @@ def current_actions_for_studies(
         if study_id not in requested:
             continue
         matched_requested_study = True
+        matched_scan_study_ids.add(study_id)
         stage_native_action = dispatchable_stage_native_by_study.get(study_id)
         original_stage_native_action = stage_native_action
         diagnostic_stage_native_action = diagnostic_stage_native_by_study.get(study_id)
@@ -504,6 +506,16 @@ def current_actions_for_studies(
         if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
             per_study_actions.append(action)
     for study_id, action in dispatchable_stage_native_by_study.items():
+        if study_id in matched_scan_study_ids:
+            ignored.append(
+                _ignored_action(
+                    action,
+                    stage_native_next_action.diagnostic_blocked_reason(
+                        current_action_authority.stage_native_currentness_diagnostic(action)
+                    ),
+                )
+            )
+            continue
         if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
             per_study_actions.append(action)
     for study_id, action in diagnostic_stage_native_by_study.items():
