@@ -12,6 +12,9 @@ from med_autoscience.controllers.production_blocker_impact_projection import (
 import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
 import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
 from med_autoscience.controllers import current_execution_envelope, current_work_unit
+from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
+    CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS,
+)
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 
@@ -626,6 +629,7 @@ def assemble_study_progress_payload(
     payload = _apply_paper_recovery_state_user_visible_status(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
     payload = _apply_post_user_visible_status_overrides(payload)
+    payload = _sync_study_macro_state_from_user_visible_projection(payload)
     if materialize_sidecar_observation:
         payload["evo_scientist_sidecar_observation"] = (
             evo_scientist_sidecar_refs.observe_current_owner_payload(
@@ -666,6 +670,16 @@ def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[s
     return _apply_terminal_delivery_user_visible_status(updated)
 
 
+def _sync_study_macro_state_from_user_visible_projection(payload: dict[str, Any]) -> dict[str, Any]:
+    user_visible = _mapping_copy(payload.get("user_visible_projection"))
+    macro_state = _mapping_copy(user_visible.get("study_macro_state"))
+    if not macro_state:
+        return payload
+    updated = dict(payload)
+    updated["study_macro_state"] = macro_state
+    return updated
+
+
 def _current_action_aligned_with_execution_envelope(
     *,
     action: Mapping[str, Any],
@@ -676,6 +690,17 @@ def _current_action_aligned_with_execution_envelope(
     if _non_empty_text(action.get("surface_kind")) != "current_executable_owner_action":
         return None
     state_kind = _non_empty_text(envelope.get("state_kind"))
+    if state_kind == "typed_blocker":
+        typed_blocker = _mapping_copy(envelope.get("typed_blocker"))
+        blocker_reason = _typed_blocker_reason(typed_blocker) or _envelope_typed_blocker_reason(envelope)
+        if (
+            blocker_reason not in CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS
+            and not current_work_unit.action_supersedes_typed_blocker(
+                action=action,
+                blocker=typed_blocker,
+            )
+        ):
+            return None
     if _non_empty_text(action.get("source")) == "repair_progress_projection.mas_owner_repair_execution_evidence":
         return dict(action)
     if _non_empty_text(action.get("source")) == "gate_clearing_batch_followthrough.actionable_current_work_unit":

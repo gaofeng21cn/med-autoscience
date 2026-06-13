@@ -85,7 +85,7 @@ def test_study_progress_emits_canonical_user_visible_projection(monkeypatch, tmp
         "package_delivered": "false",
         "actual_write_active": "false",
         "meaningful_artifact_delta": "false",
-        "next_owner": "false",
+        "next_owner": "true",
         "why_not_progressing": "true",
         "blocked": "true",
         "next_action_known": "true",
@@ -242,6 +242,62 @@ def test_user_visible_projection_fails_closed_without_macro_state() -> None:
     assert projection["state"] == "inspect/conflict"
     assert projection["writer_state"] == "conflict"
     assert projection["conflict_reason"] == "missing_macro_state"
+
+
+def test_paper_recovery_visibility_keeps_user_projection_bound_to_macro_state() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."
+        "paper_recovery_visibility"
+    )
+
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_stage": "auto_runtime_parked",
+        "auto_runtime_parked": {
+            "parked": True,
+            "parked_state": "explicit_resume_pending",
+            "parked_owner": "user",
+            "awaiting_explicit_wakeup": True,
+            "auto_execution_complete": True,
+        },
+        "study_macro_state": {
+            "surface": "study_macro_state",
+            "schema_version": 1,
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "writer_state": "parked",
+            "user_next": "resume",
+            "reason": "external_info",
+            "details": {},
+            "conditions": [],
+        },
+        "user_visible_projection": {
+            "surface": "study_progress_user_visible_projection",
+            "schema_version": 2,
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "writer_state": "parked",
+            "user_next": "resume",
+            "reason": "external_info",
+            "current_stage": "parked",
+        },
+        "paper_recovery_state": {
+            "phase": "domain_blocked",
+            "next_safe_action": {
+                "kind": "resolve_typed_blocker",
+                "provider_admission_allowed": False,
+                "owner": "one-person-lab",
+            },
+        },
+    }
+
+    updated = module.apply_paper_recovery_state_user_visible_status(payload)
+
+    user_projection = updated["user_visible_projection"]
+    macro_state = updated["study_macro_state"]
+    assert user_projection["writer_state"] == macro_state["writer_state"]
+    assert user_projection["user_next"] == macro_state["user_next"]
+    assert user_projection["reason"] == macro_state["reason"]
+    assert user_projection["current_stage"] == macro_state["writer_state"]
+    assert updated["auto_runtime_parked"]["parked"] is False
 
 
 def test_user_visible_projection_does_not_call_live_worker_active_without_artifact_delta() -> None:

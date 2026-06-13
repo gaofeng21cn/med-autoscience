@@ -260,3 +260,47 @@ def test_repair_progress_current_action_survives_runtime_recovery_typed_blocker(
     )
 
     assert aligned == action
+
+
+def test_gate_followthrough_action_does_not_survive_identity_mismatched_current_blocker() -> None:
+    assembly = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+    )
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "status": "ready",
+        "next_owner": "analysis-campaign",
+        "work_unit_id": "analysis_claim_evidence_repair",
+        "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+        "action_fingerprint": "publication-blockers::497d1260db522f01",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+    }
+
+    aligned = assembly._current_action_aligned_with_execution_envelope(
+        action=action,
+        envelope={
+            "state_kind": "typed_blocker",
+            "owner": "one-person-lab",
+            "typed_blocker": {
+                "blocker_type": "stage_packet_not_current_selected_dispatch",
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": (
+                    "owner-route::write::manuscript_story_surface_delta_missing::"
+                    "run_quality_repair_batch"
+                ),
+                "currentness_basis": {
+                    "work_unit_id": "analysis_claim_evidence_repair",
+                    "work_unit_fingerprint": (
+                        "owner-route::write::manuscript_story_surface_delta_missing::"
+                        "run_quality_repair_batch"
+                    ),
+                },
+            },
+        },
+    )
+
+    assert aligned is None
