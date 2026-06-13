@@ -20,9 +20,13 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
     mapping as _mapping,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity import (
+    closeout_core_identity_matches_candidate as _closeout_core_identity_matches_candidate,
+)
 
 ARBITER_SURFACE_KIND = "mas_opl_stage_route_arbiter"
 ARBITER_SCHEMA_VERSION = 1
+STALE_STAGE_PACKET_BLOCKER = "stage_packet_not_current_selected_dispatch"
 ARBITER_AUTHORITY_BOUNDARY = {
     "arbiter_surface": "currentness_projection_only",
     "can_write_domain_truth": False,
@@ -84,6 +88,19 @@ def _stage_route_arbiter_decisions(
             continue
         weak_identity = _current_control_weak_provider_admission_identity(candidate)
         if weak_identity:
+            if _unconsumed_closeout_blocks_weak_identity_suppression(
+                scanned_study,
+                identity=candidate,
+            ):
+                decisions.append(
+                    _arbiter_decision(
+                        candidate,
+                        decision="pending_provider_admission",
+                        effect="retain_provider_admission_pending",
+                        evidence={},
+                    )
+                )
+                continue
             decisions.append(
                 _arbiter_decision(
                     candidate,
@@ -401,7 +418,12 @@ def _candidates_not_covered_by_live_attempt(
             continue
         if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
             continue
-        if _current_control_weak_provider_admission_identity(candidate):
+        if _current_control_weak_provider_admission_identity(
+            candidate
+        ) and not _unconsumed_closeout_blocks_weak_identity_suppression(
+            scanned_study,
+            identity=candidate,
+        ):
             continue
         if _current_typed_blocker_precedence_evidence(scanned_study, identity=candidate):
             continue
@@ -517,3 +539,40 @@ def _current_control_weak_provider_admission_identity(identity: Mapping[str, Any
         "status": "weak_provider_admission_identity",
         "missing_identity_fields": current_control_missing,
     }
+
+
+def _unconsumed_closeout_blocks_weak_identity_suppression(
+    study: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    for receipt in _accepted_closeout_receipts(study):
+        if not current_control_receipts.receipt_is_accepted_closeout(receipt):
+            continue
+        if _receipt_has_provider_admission_authorization_blocker(receipt):
+            continue
+        if current_control_receipts.accepted_closeout_matches_candidate_identity(
+            receipt,
+            identity=identity,
+        ):
+            continue
+        if _closeout_core_identity_matches_candidate(receipt, identity=identity):
+            return True
+    return False
+
+
+def _receipt_has_provider_admission_authorization_blocker(
+    receipt: Mapping[str, Any],
+) -> bool:
+    if current_control_receipts.receipt_has_opl_execution_authorization_blocker(receipt):
+        return True
+    typed_blocker = _mapping(receipt.get("typed_blocker"))
+    direct_values = (
+        receipt.get("blocked_reason"),
+        receipt.get("typed_blocker_reason"),
+        typed_blocker.get("blocker_id"),
+        typed_blocker.get("blocker_type"),
+        typed_blocker.get("reason"),
+        typed_blocker.get("blocked_reason"),
+    )
+    return any(_non_empty_text(value) == STALE_STAGE_PACKET_BLOCKER for value in direct_values)
