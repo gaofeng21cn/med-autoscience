@@ -946,6 +946,17 @@ def test_materializer_selects_identity_different_current_owner_action_over_prior
                 "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json"
             },
         },
+        "current_owner_ticket": {
+            "surface_kind": "mas_current_owner_ticket",
+            "owner": "write",
+            "allowed_action": "run_gate_clearing_batch",
+            "work_unit": {
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+            },
+            "target_surface": {
+                "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+            },
+        },
     }
     _write_json(
         profile.workspace_root
@@ -977,6 +988,9 @@ def test_materializer_selects_identity_different_current_owner_action_over_prior
     assert result["request_task_count"] == 1
     assert result["default_executor_dispatch_count"] == 1
     assert result["request_tasks"][0]["action_type"] == "run_quality_repair_batch"
+    assert result["request_tasks"][0]["authority"] == (
+        "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    )
     assert result["default_executor_dispatches"][0]["dispatch_status"] == "dry_run"
     assert result["request_tasks"][0]["handoff_packet"]["work_unit_id"] == "analysis_claim_evidence_repair"
     assert (

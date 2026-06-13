@@ -82,7 +82,14 @@ def _fresh_progress_current_action(
     repair_progress_followup = repair_progress_currentness.current_action_is_repair_progress_followup(
         current_action
     )
-    ticket = {} if repair_progress_followup else _current_owner_ticket(progress)
+    explicit_gate_followthrough_action = _gate_followthrough_owner_action_has_strong_identity(
+        current_action
+    )
+    ticket = (
+        {}
+        if repair_progress_followup or explicit_gate_followthrough_action
+        else _current_owner_ticket(progress)
+    )
     target_surface = _mapping(ticket.get("target_surface")) or _mapping(current_action.get("target_surface"))
     surface_key = (
         _text(ticket.get("surface_key"))
@@ -93,7 +100,7 @@ def _fresh_progress_current_action(
     ticket_action_type = _text(ticket.get("allowed_action"))
     action_type = ticket_action_type if ticket_action_type in SUPPORTED_ACTION_TYPES else None
     source_surface = "study_progress.current_owner_ticket"
-    if repair_progress_followup:
+    if repair_progress_followup or explicit_gate_followthrough_action:
         action_type = fresh_progress_arbitration.current_action_supported_action_type(current_action)
         source_surface = "study_progress.current_executable_owner_action"
     if action_type is None:
@@ -315,17 +322,7 @@ def _typed_blocker_allows_gate_followthrough_owner_action(
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
     if state_kind != "typed_blocker":
         return False
-    if _text(current_action.get("surface_kind")) != "current_executable_owner_action":
-        return False
-    if _text(current_action.get("status")) != "ready":
-        return False
-    if (
-        _text(current_action.get("source"))
-        or _text(current_action.get("source_surface"))
-    ) != "gate_clearing_batch_followthrough.actionable_current_work_unit":
-        return False
-    action_type = fresh_progress_arbitration.current_action_supported_action_type(current_action)
-    if action_type not in SUPPORTED_ACTION_TYPES:
+    if not _gate_followthrough_owner_action_has_strong_identity(current_action):
         return False
     action_work_unit_id = _text(current_action.get("work_unit_id"))
     action_fingerprint = _text(current_action.get("work_unit_fingerprint")) or _text(
@@ -343,6 +340,31 @@ def _typed_blocker_allows_gate_followthrough_owner_action(
     return (action_work_unit_id, action_fingerprint) != (
         blocker_work_unit_id,
         blocker_fingerprint,
+    )
+
+
+def _gate_followthrough_owner_action_has_strong_identity(
+    current_action: Mapping[str, Any],
+) -> bool:
+    if _text(current_action.get("surface_kind")) != "current_executable_owner_action":
+        return False
+    if _text(current_action.get("status")) != "ready":
+        return False
+    if (
+        _text(current_action.get("source"))
+        or _text(current_action.get("source_surface"))
+    ) != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        return False
+    action_type = fresh_progress_arbitration.current_action_supported_action_type(current_action)
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return False
+    return (
+        _text(current_action.get("work_unit_id")) is not None
+        and (
+            _text(current_action.get("work_unit_fingerprint"))
+            or _text(current_action.get("action_fingerprint"))
+        )
+        is not None
     )
 
 
