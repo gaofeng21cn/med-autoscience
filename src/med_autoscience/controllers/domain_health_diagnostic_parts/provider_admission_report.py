@@ -15,8 +15,11 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity import (
     closeout_evidence_with_identity as _closeout_evidence_with_identity,
-    closeout_identity_matches_current as _closeout_identity_matches_current,
     terminal_stage_closeout_evidence as _terminal_stage_closeout_evidence,
+)
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_scan import (
+    study_root_closeout_evidence as _study_root_closeout_evidence,
+    with_candidate_root_closeout_scans as _with_candidate_root_closeout_scans,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_same_tick_identity import (
     same_tick_candidate_with_stage_run_identity as _same_tick_candidate_with_stage_run_identity,
@@ -24,9 +27,6 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
-from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
-    default_executor_execution_candidates,
-)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -354,61 +354,6 @@ def _provider_admission_scanned_report_studies(
     return studies
 
 
-def _with_candidate_root_closeout_scans(
-    *,
-    profile: WorkspaceProfile,
-    candidates: list[dict[str, Any]],
-    scanned_studies: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    studies = [dict(study) for study in scanned_studies]
-    study_index_by_id = {
-        study_id: index
-        for index, study in enumerate(studies)
-        if (study_id := _non_empty_text(study.get("study_id"))) is not None
-    }
-    for candidate in candidates:
-        study_id = _non_empty_text(candidate.get("study_id"))
-        if study_id is None:
-            continue
-        closeout_evidence = _study_root_closeout_evidence(
-            study_root=Path(profile.studies_root) / study_id,
-            identity=candidate,
-        )
-        if not closeout_evidence:
-            continue
-        if study_id in study_index_by_id:
-            study = dict(studies[study_index_by_id[study_id]])
-            study["accepted_closeout_evidence"] = [
-                *_mapping_list(study.get("accepted_closeout_evidence")),
-                *closeout_evidence,
-            ]
-            studies[study_index_by_id[study_id]] = study
-            continue
-        studies.append(
-            {
-                "study_id": study_id,
-                "quest_id": _non_empty_text(candidate.get("quest_id")) or study_id,
-                "handoff_scan_status": "scanned_no_provider_admission",
-                "provider_admission_pending_count": 0,
-                "running_provider_attempt": False,
-                "action_queue": [],
-                "accepted_closeout_evidence": closeout_evidence,
-                "current_execution_envelope": {
-                    "state_kind": "terminal_closeout_observed",
-                    "owner": _non_empty_text(candidate.get("next_executable_owner"))
-                    or _non_empty_text(candidate.get("recommended_owner"))
-                    or _non_empty_text(candidate.get("request_owner")),
-                    "next_work_unit": _non_empty_text(candidate.get("work_unit_id")),
-                    "typed_blocker": None,
-                    "parked_state": None,
-                    "source": "candidate_root_closeout_evidence",
-                },
-            }
-        )
-        study_index_by_id[study_id] = len(studies) - 1
-    return studies
-
-
 def _progress_currentness_closeout_evidence(
     payload: Mapping[str, Any],
     *,
@@ -439,23 +384,6 @@ def _progress_currentness_closeout_evidence(
             mapped = _mapping(item)
             if mapped:
                 evidence.append(_closeout_evidence_with_identity(mapped, identity=identity))
-    return evidence
-
-
-def _study_root_closeout_evidence(
-    *,
-    study_root: Path,
-    identity: Mapping[str, Any],
-) -> list[dict[str, Any]]:
-    if not identity:
-        return []
-    evidence: list[dict[str, Any]] = []
-    for execution, execution_ref in default_executor_execution_candidates(study_root=study_root):
-        closeout = _closeout_evidence_with_identity(execution, identity=identity)
-        if not _closeout_identity_matches_current(closeout, identity=identity):
-            continue
-        closeout["source_path"] = _non_empty_text(closeout.get("source_path")) or execution_ref
-        evidence.append(closeout)
     return evidence
 
 

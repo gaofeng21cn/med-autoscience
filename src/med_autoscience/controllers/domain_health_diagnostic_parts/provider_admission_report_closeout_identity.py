@@ -149,6 +149,23 @@ def closeout_identity_matches_current(
     return closeout_fingerprint is None and is_anti_loop_stop_loss_closeout(closeout)
 
 
+def closeout_core_identity_matches_candidate(
+    closeout: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    expected_action = _non_empty_text(identity.get("action_type"))
+    expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
+    closeout_action = _non_empty_text(closeout.get("action_type"))
+    closeout_work_unit = _non_empty_text(closeout.get("work_unit_id"))
+    return (
+        expected_action is not None
+        and expected_action == closeout_action
+        and expected_work_unit is not None
+        and expected_work_unit == closeout_work_unit
+    )
+
+
 def _terminal_stage_blocker_id(terminal: Mapping[str, Any]) -> str:
     typed_blocker = _mapping(terminal.get("typed_blocker"))
     semantic = _mapping(terminal.get("terminal_closeout_semantic_completeness"))
@@ -252,6 +269,7 @@ def _closeout_has_opl_execution_authorization_blocker(closeout: Mapping[str, Any
 
 
 __all__ = [
+    "closeout_core_identity_matches_candidate",
     "closeout_evidence_with_identity",
     "closeout_identity_matches_current",
     "terminal_stage_closeout_evidence",
