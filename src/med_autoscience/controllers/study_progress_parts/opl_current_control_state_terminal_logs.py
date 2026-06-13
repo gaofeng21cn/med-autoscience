@@ -46,10 +46,24 @@ REQUIRED_USER_PROGRESS_FIELDS = (
 )
 
 
-def _terminal_stage_log_observability(value: Mapping[str, Any]) -> dict[str, Any]:
-    duration = _duration_observability(value)
-    token_usage = _token_usage_observability(value)
-    cost = _cost_observability(value)
+def _terminal_stage_log_observability(
+    value: Mapping[str, Any],
+    *,
+    paper_stage_log: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    stage_log = paper_stage_log or {}
+    duration = _first_observed_observability(
+        _duration_observability(value),
+        _duration_observability(stage_log),
+    )
+    token_usage = _first_observed_observability(
+        _token_usage_observability(value),
+        _token_usage_observability(stage_log),
+    )
+    cost = _first_observed_observability(
+        _cost_observability(value),
+        _cost_observability(stage_log),
+    )
     missing = [
         key
         for key, observed in (
@@ -64,8 +78,8 @@ def _terminal_stage_log_observability(value: Mapping[str, Any]) -> dict[str, Any
         "duration": duration,
         "token_usage": token_usage,
         "cost": cost,
-        "usage_refs": _usage_refs(value),
-        "cost_refs": _cost_refs(value),
+        "usage_refs": _unique_strings([*_usage_refs(value), *_usage_refs(stage_log)]),
+        "cost_refs": _unique_strings([*_cost_refs(value), *_cost_refs(stage_log)]),
         "missing_observability_fields": missing,
     }
 
@@ -109,6 +123,27 @@ def _observability_missing(value: Mapping[str, Any]) -> bool:
     if not value:
         return True
     return _non_empty_text(value.get("status")) == "missing"
+
+
+def _first_observed_observability(
+    primary: dict[str, Any],
+    *fallbacks: dict[str, Any],
+) -> dict[str, Any]:
+    if not _observability_missing(primary):
+        return primary
+    for fallback in fallbacks:
+        if not _observability_missing(fallback):
+            return fallback
+    return primary
+
+
+def _unique_strings(values: list[str]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        text = value.strip()
+        if text and text not in result:
+            result.append(text)
+    return result
 
 
 def _terminal_stage_logs_from_execution_latest(
@@ -180,7 +215,7 @@ def _terminal_stage_log_from_execution_record(
                 "owner_receipt_refs": _string_list(execution.get("owner_receipt_refs")),
                 "typed_blocker_refs": _string_list(execution.get("typed_blocker_refs")),
                 "paper_stage_log": paper_stage_log,
-                **_terminal_stage_log_observability(execution),
+                **_terminal_stage_log_observability(execution, paper_stage_log=paper_stage_log),
                 "closeout_refs": _string_list(execution.get("closeout_refs")),
                 "authority_boundary": _terminal_stage_log_authority_boundary(),
             }
@@ -227,7 +262,7 @@ def _terminal_stage_log_from_closeout(
                 "owner_receipt_refs": _string_list(closeout.get("owner_receipt_refs")),
                 "typed_blocker_refs": _string_list(closeout.get("typed_blocker_refs")),
                 "paper_stage_log": paper_stage_log,
-                **_terminal_stage_log_observability(closeout),
+                **_terminal_stage_log_observability(closeout, paper_stage_log=paper_stage_log),
                 "closeout_refs": _string_list(closeout.get("closeout_refs")),
                 "authority_boundary": _terminal_stage_log_authority_boundary(),
             }

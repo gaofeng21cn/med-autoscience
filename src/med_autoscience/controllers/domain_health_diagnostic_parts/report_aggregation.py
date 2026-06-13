@@ -63,6 +63,10 @@ def build_runtime_report(
         managed_study_actions=managed_study_actions,
         progress_currentness=managed_study_progress_currentness,
     )
+    managed_study_actions = _managed_study_actions_with_provider_admission_state(
+        managed_study_actions=managed_study_actions,
+        provider_admission_candidates=managed_study_opl_provider_admission_candidates,
+    )
     managed_study_opl_runtime_owner_handoffs = _managed_handoffs_with_currentness(
         handoffs=managed_study_opl_runtime_owner_handoffs,
         progress_currentness=managed_study_progress_currentness,
@@ -214,6 +218,65 @@ def _managed_study_action_with_currentness(
             or state_kind
         )
         result["running_provider_attempt"] = False
+    return result
+
+
+def _managed_study_actions_with_provider_admission_state(
+    *,
+    managed_study_actions: list[dict[str, Any]],
+    provider_admission_candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    candidates_by_study: dict[str, list[dict[str, Any]]] = {}
+    for candidate in provider_admission_candidates:
+        if not isinstance(candidate, Mapping):
+            continue
+        study_id = _text(candidate.get("study_id"))
+        if study_id is None:
+            continue
+        candidates_by_study.setdefault(study_id, []).append(dict(candidate))
+    if not candidates_by_study:
+        return [
+            dict(action) if isinstance(action, Mapping) else action
+            for action in managed_study_actions
+        ]
+    result: list[dict[str, Any]] = []
+    for action in managed_study_actions:
+        if not isinstance(action, Mapping):
+            result.append(action)
+            continue
+        study_id = _text(action.get("study_id"))
+        candidates = candidates_by_study.get(study_id or "")
+        if not candidates:
+            result.append(dict(action))
+            continue
+        result.append(_managed_study_action_with_provider_admission_state(action, candidates=candidates))
+    return result
+
+
+def _managed_study_action_with_provider_admission_state(
+    action: Mapping[str, Any],
+    *,
+    candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    result = dict(action)
+    gate = _mapping(result.get("execution_gate"))
+    if gate.get("blocked") is True:
+        result["running_provider_attempt"] = False
+        result["provider_admission_state"] = {
+            "status": "pending_but_execution_gate_blocked",
+            "candidate_count": len(candidates),
+            "running_provider_attempt": False,
+            "execution_gate_reason": _text(gate.get("reason")),
+        }
+        return result
+    result.setdefault(
+        "provider_admission_state",
+        {
+            "status": "pending",
+            "candidate_count": len(candidates),
+            "running_provider_attempt": result.get("running_provider_attempt") is True,
+        },
+    )
     return result
 
 

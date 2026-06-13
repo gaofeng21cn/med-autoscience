@@ -213,4 +213,94 @@ def test_terminal_stage_log_infers_missing_delta_classification_from_paper_surfa
     )
 
 
+def test_terminal_stage_log_observability_reads_contract_stage_log_telemetry(
+    tmp_path: Path,
+) -> None:
+    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    handoff_module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+    )
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
+    closeout_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / "sat-003.closeout.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "stage_attempt_id": "sat-003",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "action_type": "run_quality_repair_batch",
+            "status": "completed",
+            "generated_at": "2026-05-31T01:00:00+00:00",
+            "duration": {"status": "missing", "seconds": None},
+            "token_usage": {"status": "missing", "total_tokens": None},
+            "cost": {"status": "missing", "usd": None},
+            "usage_refs": ["usage://top-level-missing"],
+            "cost_refs": ["cost://top-level-missing"],
+            "closeout_refs": ["artifacts/supervision/consumer/default_executor_execution/sat-003.json"],
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "stage_name": "current_story_surface_repair",
+                "problem_summary": "Story-surface repair produced manuscript-facing changes.",
+                "stage_goal": "Produce a user-readable repair delta or stable blocker.",
+                "stage_work_done": ["Updated manuscript-facing surfaces."],
+                "paper_work_done": ["Updated manuscript-facing surfaces."],
+                "changed_stage_surfaces": [
+                    "studies/001-risk/paper/draft.md",
+                ],
+                "changed_paper_surfaces": [
+                    "studies/001-risk/paper/draft.md",
+                ],
+                "outcome": "completed",
+                "remaining_blockers": [],
+                "duration": {"seconds": 42},
+                "token_usage": {"total_tokens": 1200},
+                "cost": {"usd": 0.04},
+                "usage_refs": ["usage://sat-003"],
+                "cost_refs": ["cost://sat-003"],
+                "evidence_refs": [
+                    "artifacts/supervision/consumer/default_executor_execution/sat-003.json"
+                ],
+                "progress_delta_classification": "deliverable_progress",
+            },
+        },
+    )
+
+    handoff = handoff_module.opl_current_control_state_study_handoff_projection(
+        profile=profile,
+        study_id="001-risk",
+    )
+    result = progress.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert handoff is not None
+    terminal_log = handoff["latest_terminal_stage_log"]
+    assert terminal_log["observability_status"] == "observed"
+    assert terminal_log["missing_observability_fields"] == []
+    assert terminal_log["duration"] == {"seconds": 42}
+    assert terminal_log["token_usage"] == {"total_tokens": 1200}
+    assert terminal_log["cost"] == {"usd": 0.04}
+    assert terminal_log["usage_refs"] == ["usage://top-level-missing", "usage://sat-003"]
+    assert terminal_log["cost_refs"] == ["cost://top-level-missing", "cost://sat-003"]
+    latest_terminal_stage = result["progress_first_monitoring_summary"]["latest_terminal_stage"]
+    assert latest_terminal_stage["observability_status"] == "observed"
+    assert latest_terminal_stage["missing_observability_fields"] == []
+    assert latest_terminal_stage["duration"] == {"seconds": 42}
+    assert latest_terminal_stage["token_usage"] == {"total_tokens": 1200}
+    assert latest_terminal_stage["cost"] == {"usd": 0.04}
+    assert latest_terminal_stage["telemetry_completeness"] == {
+        "status": "complete",
+        "required_fields": ["duration", "token_usage", "cost"],
+        "missing_fields": [],
+    }
+
+
 __all__ = [name for name in globals() if name.startswith("test_")]

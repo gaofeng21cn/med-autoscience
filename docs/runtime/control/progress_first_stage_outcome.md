@@ -74,6 +74,8 @@ paper / deliverable progress 只承认五类 owner delta：
 
 以下内容只能记为 platform repair / observability：telemetry、duration/token/cost 补齐、stage-log accounting、dispatcher hydration、receipt reconciliation、read-model currentness hygiene、OPL refs-only ledger record/verify、provider liveness/projection refresh、Portal wording/card 修复、bounded product-entry refresh。
 
+terminal stage accounting 的 duration / token / cost 可以来自 closeout 顶层，也可以来自合同规定的 `paper_stage_log` / `user_stage_log` / `stage_log_summary`。当顶层 telemetry 缺失但 stage log telemetry 完整时，read-model 可以投影为 observed，并合并顶层与 stage-log refs；这只关闭 observability/read-model 缺口，不改变 owner outcome，不给 paper-progress credit，也不证明 provider running 或 publication readiness。
+
 同一轮同时出现 paper delta 和 platform repair 时，token / time 分账优先归 platform repair；paper / deliverable delta 只记录真实 owner delta 的 surface refs，不把平台修复耗时混报成论文推进。
 
 Stage Operating Layer 分账进一步约束 stage MVP：`stage_kernel_projection` 是 Workbench primary progress 的当前 truth source；`stage_artifact_index` / Stage Deliverable Index 更新本身只算 derived locator/projection，除非它引用了新的 canonical paper / artifact delta、owner receipt、reviewer/gate delta、stable typed blocker、human gate、route-back 或 stop-loss。physical stage folder 只有通过 current pointer promotion、semantic receipt validation、consumability gate、lineage 和 retention / restore 检查后，才可被写成 current artifact progress；仅刷新 currentness、telemetry、read-model、receipt reconcile、provider liveness 或 evidence-tail 分类时，记为 platform repair / observability；不能写成 Stage Operating Layer landed，也不能显示成 primary progress。
@@ -159,6 +161,8 @@ AI-first 的 admission 锚点是 `current_executable_owner_action`，不是 `nex
 
 如果 admission request 已写出但缺 running proof，下一 owner 是 OPL worker / scheduler / provider attempt admission。不要把控制权退回 MAS receipt reconcile、read-model hydration、telemetry completeness、doctor explanation 或 operator wording review。
 
+若同一 study 同时存在 provider admission candidate 与 blocked managed action，必须先读 dispatch / DHD action 上的 `execution_gate`。`execution_gate.gate_kind=developer_supervisor` 且 `blocked=true` 时，provider admission 状态是 `pending_but_execution_gate_blocked`，`running_provider_attempt=false`，解除 owner 是 developer-supervisor / user config / repo-write policy 对应的授权路径；不得把它读成 OPL idle bug、provider running、queue redrive 请求或论文进展。default executor dispatch 应同时暴露 `provider_admission_effect=not_admitted_until_execution_gate_clears`，让 operator 明确 candidate 已存在但不能 hydrate / tick / redrive。
+
 Provider admission pending 必须由强 identity 判断，不能由 `action_id`、action family、旧 queue label 或 handoff 文案判断。强 identity 至少包含 study、action、work-unit id / fingerprint、dispatch ref、`route_identity_key`、`attempt_idempotency_key` 和 strong `owner_route_currentness_basis`。缺这些字段时，operator outcome 是 currentness diagnostic / typed blocker candidate，不是可启动 provider admission。
 
 strict running proof 一旦成立，operator 顶层读面必须进入 `runtime_running_watch`：canonical `current_work_unit` / `current_execution_envelope` / `progress_first_monitoring_summary` 或 OPL handoff 任一面给出 `running_provider_attempt`，且同一 active stage attempt 没有 terminal closeout 时，`current_stage` 应显示 `managed_runtime_active`，`active_run_id` 应保留 provider attempt ref，parked / preflight / release-resource 字段只能作为被 supersede 的诊断，不得留在 `operator_status_card` 的默认面。该状态的唯一动作是监督当前 attempt；不要重复 DHD apply、hydrate、tick 或 queue redrive 同一 work unit。
@@ -199,6 +203,7 @@ recovery 验收必须至少读回以下证据族之一：MAS owner receipt、qua
 preflight 只保留以下 hard gates：
 
 - `human_gate`：需要用户、PI、医生、外部编辑或显式 approval/resume。
+- `developer_supervisor_execution_gate`：当前 owner action / provider admission candidate 已存在，但 developer-supervisor mode、user config、GitHub user gate 或 repo-write policy 未满足 `developer_apply_safe`；解除者是 developer-supervisor 授权路径，不是 OPL hydrate / tick / redrive。
 - `opl_execution_authorization_required`：当前 owner action 已可 dispatch，但缺 OPL provider attempt、attempt lease、execution authorization decision 或 closeout receipt binding；owner=`one-person-lab`，解除者是 OPL provider admission / lease / closeout binding。
 - `forbidden_authority_write`：当前 action 会写 MAS 禁止 surface，例如未授权的 study truth、runtime-owned state、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission/current package 或非当前 owner 的 paper surface。
 - `missing_owner_callable`：当前 owner/action 没有可调用 MAS owner callable、domain-handler dispatch 或 OPL provider entry。
@@ -359,6 +364,8 @@ When validating a docs-only change in this repo, use documentation review plus g
 - 在 `ai_reviewer_record_production_handoff` persisted dispatch 已存在后，继续让 stale `consumer/latest.json` inline dispatch 覆盖它，导致重复写 handoff 而不是把 AI reviewer record-production owner action 交给下一 owner。应优先 persisted record-only handoff，并把旧 inline 当作 read-model lag。
 - 把 provider handoff 写出当作 provider attempt 已启动。缺 running proof 时只能写 `provider_handoff_written_admission_pending`。
 - 把 telemetry、duration/token/cost、Portal card wording、read-model hygiene、refs-only ledger record/verify 当成 paper progress。
+- 把 `provider_admission_pending_count>0` 但 `execution_gate.blocked=true` 的状态当成 running、idle bug 或 hydrate/redrive 请求。应先解除 developer-supervisor / user config / repo-write gate，或记录 typed blocker / human gate。
+- 把 `paper_stage_log` 中补齐的 duration/token/cost 当成论文产出或 quality verdict。它只是 terminal stage accounting 的 observability fallback。
 - 把 `next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`reusable lesson extraction`、`triggered meta-review` 或 `opportunistic knowledge prefetch` 当成 admission gate、route blocking layer、quality closure、publication readiness、artifact authority 或 paper progress。它们只能在当前 owner / gate 明确需要时辅助 route selection、reviewer gap finding 和 failed-path memory reuse。
 - 把 Light 的 skill router、`db09`、知识库、verification log、review score、自审 checklist 或外部 API 表当成 MAS runtime、study truth、source readiness truth、AI reviewer verdict、publication gate、artifact authority、paper progress 或默认 dispatch blocker。Light-derived signal 只能作为 bounded advisory ref；缺失时不得阻塞不相关 owner action。
 - 用显式 `--action-types` 作为正常 Progress-first 必需步骤；它只用于诊断、限流或人工指定，默认 dispatch 必须消费 current ready dispatch。

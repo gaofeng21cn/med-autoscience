@@ -144,3 +144,84 @@ def test_runtime_report_managed_action_uses_running_current_work_unit_over_stale
     assert handoff["previous_status"] == "handoff_required"
     assert handoff["reason"] == "running_provider_attempt"
     assert handoff["refs_only_handoff_superseded"] is True
+
+
+def test_runtime_report_preserves_user_gate_when_provider_admission_is_pending() -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    gate = {
+        "gate_kind": "developer_supervisor",
+        "blocked": True,
+        "reason": "developer_apply_safe_required",
+        "requested_mode": "external_observe",
+        "effective_mode": "external_observe",
+        "required_mode": "developer_apply_safe",
+        "safe_actions_enabled": False,
+    }
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "decision": "blocked",
+                "reason": "quest_waiting_for_user",
+                "execution_gate": gate,
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[
+            {
+                "study_id": study_id,
+                "status": "provider_admission_pending",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            }
+        ],
+        managed_study_progress_currentness={
+            study_id: {
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "write",
+                    "next_work_unit": work_unit_id,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                },
+            }
+        },
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    action = result["managed_study_actions"][0]
+    assert result["provider_admission_pending_count"] == 1
+    assert result["will_start_llm"] is False
+    assert action["decision"] == "blocked"
+    assert action["reason"] == "quest_waiting_for_user"
+    assert action["running_provider_attempt"] is False
+    assert action["execution_gate"] == gate
+    assert action["provider_admission_state"] == {
+        "status": "pending_but_execution_gate_blocked",
+        "candidate_count": 1,
+        "running_provider_attempt": False,
+        "execution_gate_reason": "developer_apply_safe_required",
+    }

@@ -4,12 +4,20 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+@pytest.fixture(autouse=True)
+def _disable_unrelated_fresh_progress(monkeypatch) -> None:
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
 
 
 def _owner_route(
@@ -20,13 +28,19 @@ def _owner_route(
     owner_reason: str,
     allowed_actions: list[str],
 ) -> dict[str, object]:
+    source_fingerprint = f"truth-source::{study_id}::{owner_reason}"
+    truth_epoch = f"truth-epoch::{study_id}"
+    runtime_health_epoch = f"runtime-health::{study_id}::{owner_reason}"
     return {
         "surface": "domain_route_owner_route",
-        "schema_version": 1,
+        "schema_version": 2,
         "study_id": study_id,
         "quest_id": quest_id,
-        "route_epoch": f"truth-epoch::{study_id}",
-        "source_fingerprint": f"truth-source::{study_id}::{owner_reason}",
+        "truth_epoch": truth_epoch,
+        "route_epoch": truth_epoch,
+        "runtime_health_epoch": runtime_health_epoch,
+        "work_unit_fingerprint": source_fingerprint,
+        "source_fingerprint": source_fingerprint,
         "current_owner": "mas_controller",
         "next_owner": next_owner,
         "owner_reason": owner_reason,
@@ -34,6 +48,18 @@ def _owner_route(
         "allowed_actions": allowed_actions,
         "blocked_actions": [],
         "idempotency_key": f"owner-route::{study_id}::{owner_reason}",
+        "source_refs": {
+            "study_truth_epoch": truth_epoch,
+            "runtime_health_epoch": runtime_health_epoch,
+            "work_unit_id": owner_reason,
+            "work_unit_fingerprint": source_fingerprint,
+            "owner_route_currentness_basis": {
+                "runtime_health_epoch": runtime_health_epoch,
+                "truth_epoch": truth_epoch,
+                "work_unit_fingerprint": source_fingerprint,
+                "work_unit_id": owner_reason,
+            },
+        },
     }
 
 
@@ -76,6 +102,56 @@ def _write_consumer_scan(profile, study_id: str, quest_id: str) -> None:
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "action_queue": [_unsupported_domain_action(study_id, quest_id)],
+        },
+    )
+
+
+def _write_executable_current_work_unit_scan(profile, study_id: str, quest_id: str) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    owner_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="write",
+        owner_reason="medical_prose_write_repair",
+        allowed_actions=["run_quality_repair_batch"],
+    )
+    owner_route["source_refs"] = {
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "study_truth_epoch": "truth::dm003::2026-06-12T00:00:00Z",
+        "runtime_health_epoch": "runtime-health::dm003::2026-06-12T00:00:00Z",
+        "owner_route_currentness_basis": {
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "truth_epoch": "truth::dm003::2026-06-12T00:00:00Z",
+            "runtime_health_epoch": "runtime-health::dm003::2026-06-12T00:00:00Z",
+        },
+    }
+    owner_route["work_unit_fingerprint"] = "publication-blockers::0915410f804b3697"
+    owner_route["source_fingerprint"] = "publication-blockers::0915410f804b3697"
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "executable_owner_action",
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                        "owner_route": owner_route,
+                        "state": {"state_kind": "executable_owner_action"},
+                    },
+                    "owner_route": owner_route,
+                }
+            ],
+            "action_queue": [],
         },
     )
 
@@ -123,6 +199,85 @@ def test_materialize_domain_action_requests_allows_user_configured_developer_mod
     assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert not (study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json").exists()
+
+
+def test_blocked_current_work_unit_dispatch_exposes_supervisor_gate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_executable_current_work_unit_scan(profile, study_id, study_id)
+    owner_route = json.loads(
+        (
+            profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH
+        ).read_text(encoding="utf-8")
+    )["studies"][0]["owner_route"]
+    monkeypatch.setattr(
+        progress_module,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "owner_route": owner_route,
+                "state": {"state_kind": "executable_owner_action"},
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+                "typed_blocker": None,
+                "parked_state": None,
+            },
+            "current_executable_owner_action": {
+                "owner": "write",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "owner_route": owner_route,
+            },
+            "owner_route": owner_route,
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="external_observe",
+        apply=True,
+    )
+
+    assert result["apply_allowed"] is False
+    assert result["blocked_default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["dispatch_status"] == "blocked"
+    assert dispatch["blocked_reason"] == "developer_apply_safe_required"
+    assert dispatch["execution_gate"] == {
+        "gate_kind": "developer_supervisor",
+        "blocked": True,
+        "reason": "developer_apply_safe_required",
+        "requested_mode": "external_observe",
+        "effective_mode": "external_observe",
+        "required_mode": "developer_apply_safe",
+        "safe_actions_enabled": False,
+        "authority_gate": result["developer_supervisor_mode"]["authority_gate"],
+        "github_user_gate": result["developer_supervisor_mode"]["github_user_gate"],
+        "repo_write_policy": result["developer_supervisor_mode"]["repo_write_policy"],
+    }
+    assert dispatch["provider_admission_effect"] == "not_admitted_until_execution_gate_clears"
 
 
 def test_materialize_domain_action_requests_honors_user_config_disabled_over_apply_safe_default(
