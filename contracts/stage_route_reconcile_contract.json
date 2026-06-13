@@ -13,6 +13,51 @@
     "contracts/agent_tool_arsenal.json",
     "contracts/stage_control_plane.json"
   ],
+  "external_engineering_principles": {
+    "surface_kind": "stage_route_external_engineering_principles",
+    "purpose": "Map mature distributed workflow, idempotency, read-model, and reliability practice to MAS/OPL stage-route currentness rules.",
+    "source_refs": [
+      {
+        "label": "Temporal Event History / Workflow replay",
+        "url": "https://docs.temporal.io/encyclopedia/event-history/",
+        "mapped_rule": "durable execution history is execution evidence, not MAS domain acceptance"
+      },
+      {
+        "label": "Temporal Activity idempotency",
+        "url": "https://docs.temporal.io/activity-definition",
+        "mapped_rule": "provider activity retries require stable idempotency identity"
+      },
+      {
+        "label": "AWS idempotent APIs / client token",
+        "url": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/",
+        "mapped_rule": "caller intent identity must be explicit before safe retry or redrive"
+      },
+      {
+        "label": "Azure CQRS / read-model lag",
+        "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs",
+        "mapped_rule": "read models can lag and must expose evidence status instead of claiming source truth"
+      },
+      {
+        "label": "Google SRE overload / retry budget",
+        "url": "https://sre.google/sre-book/handling-overload/",
+        "mapped_rule": "automatic retry needs a bounded budget and an actionable stop condition"
+      }
+    ],
+    "design_rules": [
+      "identity_first_not_status_first",
+      "route_identity_key_and_attempt_idempotency_key_required_for_provider_admission",
+      "transport_or_workflow_completion_cannot_mark_mas_domain_progress",
+      "read_model_lag_must_be_observable_with_evidence_status",
+      "same_identity_no_progress_redrive_must_stop_at_budget"
+    ],
+    "forbidden_interpretations": [
+      "heartbeat_or_worker_running_as_paper_progress",
+      "queue_empty_as_completion",
+      "record_only_ref_as_currentness_identity",
+      "same_action_label_as_idempotency_key",
+      "retry_without_same_intent_identity"
+    ]
+  },
   "ordinary_planning_root": {
     "root": "current_owner_delta",
     "derived_operator_surfaces": [
@@ -86,6 +131,20 @@
     ],
     "missing_identity_policy": "fail_closed_to_diagnostic_or_typed_blocker_candidate",
     "weak_label_match_can_authorize_route": false,
+    "same_tick_materialized_dispatch_identity_policy": {
+      "same_action_and_work_unit_label_only_authorizes_provider_admission": false,
+      "required_current_action_identity_any": [
+        "explicit_work_unit_fingerprint",
+        "explicit_action_fingerprint",
+        "source_ref_embedded_in_candidate_fingerprint",
+        "owner_route_currentness_basis_with_source_eval_or_epochs"
+      ],
+      "missing_explicit_current_identity_effect": "suppress_same_tick_provider_admission_candidate",
+      "applies_to": [
+        "developer_supervisor_same_tick.materialize.default_executor_dispatches",
+        "same_tick_materialized_dispatch"
+      ]
+    },
     "shared_identity_helper": {
       "surface": "stage_route_currentness_identity",
       "module": "src/med_autoscience/controllers/stage_route_currentness_identity.py",
@@ -639,6 +698,22 @@
     "producer": "domain-health-diagnostic.provider_admission_current_control",
     "ordinary_planning_root": "current_owner_delta",
     "purpose": "Explain, in one machine-readable place, why each provider-admission identity is retained as pending or suppressed by strict live/terminal evidence.",
+    "decision_payload_required_fields": [
+      "decision",
+      "effect",
+      "study_id",
+      "action_type",
+      "work_unit_id",
+      "work_unit_fingerprint",
+      "route_identity_key",
+      "attempt_idempotency_key",
+      "evidence_status",
+      "authority_boundary"
+    ],
+    "decision_payload_optional_no_progress_fields": [
+      "no_progress_signal",
+      "anti_loop_classification"
+    ],
     "decision_kinds": [
       {
         "decision": "weak_provider_admission_identity",

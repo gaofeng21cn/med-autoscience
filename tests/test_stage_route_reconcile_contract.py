@@ -49,6 +49,35 @@ def test_stage_route_reconcile_contract_declares_single_planning_root() -> None:
     assert root["no_second_truth"] is True
 
 
+def test_stage_route_reconcile_contract_maps_external_engineering_principles() -> None:
+    contract = _contract()
+
+    principles = contract["external_engineering_principles"]
+    assert principles["surface_kind"] == "stage_route_external_engineering_principles"
+    assert {
+        "identity_first_not_status_first",
+        "route_identity_key_and_attempt_idempotency_key_required_for_provider_admission",
+        "transport_or_workflow_completion_cannot_mark_mas_domain_progress",
+        "read_model_lag_must_be_observable_with_evidence_status",
+        "same_identity_no_progress_redrive_must_stop_at_budget",
+    } <= set(principles["design_rules"])
+    assert {
+        "heartbeat_or_worker_running_as_paper_progress",
+        "queue_empty_as_completion",
+        "record_only_ref_as_currentness_identity",
+        "same_action_label_as_idempotency_key",
+        "retry_without_same_intent_identity",
+    } <= set(principles["forbidden_interpretations"])
+    labels = {item["label"] for item in principles["source_refs"]}
+    assert {
+        "Temporal Event History / Workflow replay",
+        "Temporal Activity idempotency",
+        "AWS idempotent APIs / client token",
+        "Azure CQRS / read-model lag",
+        "Google SRE overload / retry budget",
+    } <= labels
+
+
 def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_sequence() -> None:
     contract = _contract()
 
@@ -70,6 +99,17 @@ def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_se
     ]
     assert identity["missing_identity_policy"] == "fail_closed_to_diagnostic_or_typed_blocker_candidate"
     assert identity["weak_label_match_can_authorize_route"] is False
+    same_tick = identity["same_tick_materialized_dispatch_identity_policy"]
+    assert same_tick["same_action_and_work_unit_label_only_authorizes_provider_admission"] is False
+    assert {
+        "explicit_work_unit_fingerprint",
+        "explicit_action_fingerprint",
+        "source_ref_embedded_in_candidate_fingerprint",
+        "owner_route_currentness_basis_with_source_eval_or_epochs",
+    } <= set(same_tick["required_current_action_identity_any"])
+    assert same_tick["missing_explicit_current_identity_effect"] == (
+        "suppress_same_tick_provider_admission_candidate"
+    )
     progress_ticket = identity["progress_current_owner_ticket_contract"]
     assert progress_ticket["synthetic_fingerprint_prefix_forbidden"] == (
         "study-progress-current-owner-ticket::"
@@ -287,6 +327,18 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     assert arbiter["surface_kind"] == "mas_opl_stage_route_arbiter"
     assert arbiter["producer"] == "domain-health-diagnostic.provider_admission_current_control"
     assert arbiter["ordinary_planning_root"] == "current_owner_delta"
+    assert {
+        "decision",
+        "effect",
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "evidence_status",
+        "authority_boundary",
+    } <= set(arbiter["decision_payload_required_fields"])
+    assert {
+        "no_progress_signal",
+        "anti_loop_classification",
+    } <= set(arbiter["decision_payload_optional_no_progress_fields"])
     assert [item["decision"] for item in arbiter["decision_kinds"]] == [
         "weak_provider_admission_identity",
         "terminal_closeout_precedes_live_projection",
