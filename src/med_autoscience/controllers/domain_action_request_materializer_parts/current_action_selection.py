@@ -3,22 +3,15 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from med_autoscience.controllers.default_executor_action_policy import (
-    SUPPORTED_ACTION_TYPES,
-)
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.controllers.owner_route_reconcile_parts import (
-    action_decorators,
-    domain_route_contract,
-    domain_transition_actions,
-)
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_action_authority,
+    current_action_queue,
+    domain_transition_current_actions,
     current_work_unit_action,
     current_typed_blocker_transition_barrier,
     fresh_progress_current_action,
     fresh_progress_arbitration,
-    owner_route_currentness_projection,
     repair_progress_currentness,
     stage_native_next_action,
 )
@@ -26,6 +19,10 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 READINESS_ACTION_TYPE = current_action_authority.READINESS_ACTION_TYPE
+_attach_owner_route_if_missing = current_action_queue.attach_owner_route_if_missing
+_ignored_action = current_action_queue.ignored_action
+_top_level_study_actions = current_action_queue.top_level_study_actions
+_unique_actions = current_action_queue.unique_actions
 
 
 def current_actions_for_studies(
@@ -58,7 +55,7 @@ def current_actions_for_studies(
     fresh_progress_actions = fresh_progress_current_action.current_actions(
         profile=profile,
         study_ids=study_ids,
-        domain_transition_actions=_domain_transition_current_actions,
+        domain_transition_actions=domain_transition_current_actions.current_actions,
         explicit_readiness_action=current_action_authority.explicit_current_readiness_action,
     )
     fresh_progress_by_study = {
@@ -120,7 +117,7 @@ def current_actions_for_studies(
             study=study_payload,
             top_level_actions=top_level_actions,
         )
-        transition_actions = _consumed_domain_transition_actions(study_payload)
+        transition_actions = domain_transition_current_actions.consumed_current_actions(study_payload)
         per_study_queue_actions = [
             dict(item)
             for item in study_payload.get("action_queue") or []
@@ -625,51 +622,11 @@ def _current_study_actions(
     study: Mapping[str, Any],
     top_level_actions: Iterable[Mapping[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    top_level_study_actions = _top_level_study_actions(study=study, top_level_actions=top_level_actions)
-    queue_actions, queue_source = _study_queue_actions(
+    return current_action_queue.current_study_actions(
         study=study,
-        top_level_study_actions=top_level_study_actions,
+        top_level_actions=top_level_actions,
+        readiness_action_type=READINESS_ACTION_TYPE,
     )
-    current_queue_actions = [
-        action for action in queue_actions if _queue_action_allowed_by_current_study_route(action, study)
-    ]
-    if current_queue_actions:
-        return current_queue_actions, _ignored_actions_superseded_by_readiness_blocker_repair(
-            queue_actions=queue_actions,
-            selected_actions=current_queue_actions,
-        )
-    transition_actions = _domain_transition_current_actions(study)
-    if not transition_actions:
-        if queue_source == "per_study_empty":
-            return [], [
-                _ignored_action(action, "superseded_by_current_study_empty_action_queue")
-                for action in top_level_study_actions
-            ]
-        if _current_execution_is_authoritative(study):
-            return [], [
-                _ignored_action(action, "superseded_by_current_execution_envelope")
-                for action in top_level_study_actions
-            ]
-        stale_route_actions = [
-            action for action in queue_actions if _queue_action_disallowed_by_current_study_route(action, study)
-        ]
-        if stale_route_actions:
-            stale_ids = {_action_identity(action) for action in stale_route_actions}
-            remaining_actions = [
-                action for action in queue_actions if _action_identity(action) not in stale_ids
-            ]
-            return remaining_actions, [
-                _ignored_action(action, "superseded_by_current_owner_route_action_queue")
-                for action in stale_route_actions
-            ]
-        return queue_actions, []
-    ignored = [_ignored_action(action, "superseded_by_current_domain_transition") for action in queue_actions]
-    if queue_source == "per_study_empty":
-        ignored.extend(
-            _ignored_action(action, "superseded_by_current_domain_transition")
-            for action in top_level_study_actions
-        )
-    return transition_actions, ignored
 
 
 def _current_owner_route_queue_actions(
@@ -677,19 +634,11 @@ def _current_owner_route_queue_actions(
     study: Mapping[str, Any],
     top_level_actions: Iterable[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
-    queue_actions, _queue_source = _study_queue_actions(
+    return current_action_queue.current_owner_route_queue_actions(
         study=study,
-        top_level_study_actions=_top_level_study_actions(
-            study=study,
-            top_level_actions=top_level_actions,
-        ),
+        top_level_actions=top_level_actions,
+        readiness_action_type=READINESS_ACTION_TYPE,
     )
-    return [
-        action
-        for action in queue_actions
-        if _text(action.get("action_type")) != READINESS_ACTION_TYPE
-        and _queue_action_allowed_by_current_study_route(action, study)
-    ]
 
 
 def _scan_domain_transition_has_current_action(
@@ -699,7 +648,7 @@ def _scan_domain_transition_has_current_action(
 ) -> bool:
     if not _mapping(study.get("domain_transition")):
         return False
-    return bool(_domain_transition_current_actions(study))
+    return bool(domain_transition_current_actions.current_actions(study))
 
 
 def _current_writer_handoff_owner_action(
@@ -822,247 +771,14 @@ def _ignored_reason_for_superseded_action(
     return default
 
 
-def _study_queue_actions(
-    *,
-    study: Mapping[str, Any],
-    top_level_study_actions: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], str]:
-    study_id = _text(study.get("study_id"))
-    quest_id = _text(study.get("quest_id"))
-    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
-    actions: list[dict[str, Any]] = []
-    if "action_queue" in study:
-        for action in study.get("action_queue") or []:
-            if not isinstance(action, Mapping):
-                continue
-            payload = dict(action)
-            if study_id is not None:
-                payload["study_id"] = _text(payload.get("study_id")) or study_id
-            if quest_id is not None:
-                payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
-            actions.append(_attach_owner_route_if_missing(payload, owner_route))
-        return actions, "per_study" if actions else "per_study_empty"
-    if _current_execution_is_authoritative(study):
-        return [], "current_execution_envelope"
-    for action in top_level_study_actions:
-        payload = dict(action)
-        if quest_id is not None:
-            payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
-        actions.append(_attach_owner_route_if_missing(payload, owner_route))
-    return actions, "top_level"
-
-
-def _top_level_study_actions(
-    *,
-    study: Mapping[str, Any],
-    top_level_actions: Iterable[Mapping[str, Any]],
-) -> list[dict[str, Any]]:
-    study_id = _text(study.get("study_id"))
-    return [
-        dict(action)
-        for action in top_level_actions
-        if isinstance(action, Mapping) and _text(action.get("study_id")) == study_id
-    ]
-
-
-def _attach_owner_route_if_missing(action: Mapping[str, Any], owner_route: Mapping[str, Any]) -> dict[str, Any]:
-    payload = dict(action)
-    if not owner_route:
-        return payload
-    handoff = dict(_mapping(payload.get("handoff_packet")))
-    if _mapping(payload.get("owner_route")) or _mapping(handoff.get("owner_route")):
-        return payload
-    payload["owner_route"] = dict(owner_route)
-    handoff["owner_route"] = dict(owner_route)
-    if idempotency_key := _text(owner_route.get("idempotency_key")):
-        handoff["idempotency_key"] = idempotency_key
-    payload["handoff_packet"] = handoff
-    return payload
-
-
-def _domain_transition_current_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
-    study_id = _text(study.get("study_id"))
-    if study_id is None:
-        return []
-    generated = domain_transition_actions.actions(study)
-    if not generated:
-        return []
-    quest_id = _text(study.get("quest_id"))
-    owner_route = _domain_transition_owner_route(study=study, generated=generated, study_id=study_id, quest_id=quest_id)
-    if not owner_route:
-        return []
-    decorated_actions: list[dict[str, Any]] = []
-    for action in generated:
-        if not isinstance(action, Mapping):
-            continue
-        action_type = _text(action.get("action_type"))
-        if action_type not in SUPPORTED_ACTION_TYPES:
-            continue
-        decorated = action_decorators.decorate_action(
-            study_id=study_id,
-            quest_id=quest_id,
-            action=action,
-            request_allowed_write_surfaces=list(domain_route_contract.SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES),
-            control_allowed_write_surfaces=list(domain_route_contract.SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES),
-            forbidden_actions=list(domain_route_contract.SUPERVISION_FORBIDDEN_ACTIONS),
-        )
-        decorated["study_id"] = study_id
-        if quest_id is not None:
-            decorated["quest_id"] = quest_id
-        routed = owner_route_part.decorate_actions(actions=[decorated], owner_route=owner_route)[0]
-        if current_action_authority.action_allowed_by_owner_route(routed, owner_route):
-            decorated_actions.append(routed)
-    return decorated_actions
-
-
-def _consumed_domain_transition_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
-    transition = _mapping(study.get("domain_transition"))
-    completion = _mapping(transition.get("completion_receipt_consumption"))
-    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
-        return []
-    if _text(transition.get("controller_action")) is None:
-        return []
-    if not _mapping(transition.get("next_work_unit")):
-        return []
-    return _domain_transition_current_actions(study)
-
-
-def _domain_transition_owner_route(
-    *,
-    study: Mapping[str, Any],
-    generated: list[dict[str, Any]],
-    study_id: str,
-    quest_id: str | None,
-) -> dict[str, Any]:
-    transition = _mapping(study.get("domain_transition"))
-    completion = _mapping(transition.get("completion_receipt_consumption"))
-    if (
-        _text(completion.get("status")) in {"consumed", "receipt_consumed", "completed"}
-        and _text(transition.get("controller_action")) is not None
-        and _mapping(transition.get("next_work_unit"))
-    ):
-        current_study = owner_route_currentness_projection.study_with_owner_route_currentness(
-            study,
-            generated=generated,
-            ensure_owner_route_v2=owner_route_part.ensure_owner_route_v2,
-            action_allowed_by_owner_route=current_action_authority.action_allowed_by_owner_route,
-        )
-        return owner_route_part.build_owner_route(
-            study_id=study_id,
-            quest_id=quest_id,
-            status=current_study,
-            progress={},
-            actions=generated,
-            blocked_reason=_text(generated[0].get("reason")),
-            next_owner=_text(generated[0].get("owner")) or _text(generated[0].get("request_owner")),
-            active_run_id=_text(current_study.get("active_run_id")),
-        )
-    return owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
-
-
 def domain_transition_owner_route_for_study(study: Mapping[str, Any]) -> dict[str, Any]:
-    study_payload = _mapping(study)
-    study_id = _text(study_payload.get("study_id"))
-    if study_id is None:
-        return {}
-    generated = domain_transition_actions.actions(study_payload)
-    if not generated:
-        return {}
-    return _domain_transition_owner_route(
-        study=study_payload,
-        generated=generated,
-        study_id=study_id,
-        quest_id=_text(study_payload.get("quest_id")),
-    )
-
-
-def _queue_action_allowed_by_current_study_route(action: Mapping[str, Any], study: Mapping[str, Any]) -> bool:
-    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
-    if not owner_route or not current_action_authority.action_allowed_by_owner_route(
-        action,
-        owner_route,
-    ):
-        return False
-    action_route = owner_route_part.ensure_owner_route_v2(
-        _mapping(action.get("owner_route"))
-        or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
-    )
-    return not action_route or owner_route_part.owner_route_matches(
-        dispatch=action,
-        current_route=owner_route,
-    )
-
-
-def _queue_action_disallowed_by_current_study_route(
-    action: Mapping[str, Any],
-    study: Mapping[str, Any],
-) -> bool:
-    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
-    if not owner_route:
-        return False
-    action_type = _text(action.get("action_type"))
-    if action_type not in SUPPORTED_ACTION_TYPES:
-        return False
-    allowed_actions = {_text(item) for item in owner_route.get("allowed_actions") or []}
-    allowed_actions.discard(None)
-    if bool(allowed_actions) and action_type not in allowed_actions:
-        return True
-    action_route = owner_route_part.ensure_owner_route_v2(
-        _mapping(action.get("owner_route"))
-        or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
-    )
-    return bool(action_route) and not owner_route_part.owner_route_matches(
-        dispatch=action,
-        current_route=owner_route,
-    )
-
-
-def _action_identity(action: Mapping[str, Any]) -> tuple[str | None, str | None, str | None]:
-    return (
-        _text(action.get("study_id")),
-        _text(action.get("action_type")),
-        _text(action.get("action_id")),
-    )
-
-
-def _ignored_actions_superseded_by_readiness_blocker_repair(
-    *,
-    queue_actions: list[dict[str, Any]],
-    selected_actions: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    if not any(_readiness_blocker_derived_repair_action(action) for action in selected_actions):
-        return []
-    ignored: list[dict[str, Any]] = []
-    selected_fingerprints = {
-        _text(action.get("work_unit_fingerprint"))
-        for action in selected_actions
-        if _text(action.get("work_unit_fingerprint")) is not None
-    }
-    for action in queue_actions:
-        if _text(action.get("work_unit_fingerprint")) in selected_fingerprints:
-            continue
-        if _text(action.get("action_type")) != READINESS_ACTION_TYPE:
-            continue
-        ignored.append(_ignored_action(action, "superseded_by_readiness_blocker_derived_repair"))
-    return ignored
+    return domain_transition_current_actions.owner_route_for_study(study)
 
 
 def _readiness_blocker_derived_repair_action(action: Mapping[str, Any]) -> bool:
     if _text(action.get("reason")) != "medical_paper_readiness_repair_required":
         return False
     return _text(action.get("readiness_blocker_followup_superseded")) == READINESS_ACTION_TYPE
-
-
-def _current_execution_is_authoritative(study: Mapping[str, Any]) -> bool:
-    envelope = _mapping(study.get("current_execution_envelope"))
-    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
-    return state_kind in {
-        "typed_blocker",
-        "blocked_typed_owner",
-        "parked",
-        "executable_owner_action",
-        "running_provider_attempt",
-    }
 
 
 def _scan_currentness_preempts_fresh_progress(
@@ -1080,7 +796,7 @@ def _scan_currentness_preempts_fresh_progress(
     transition = _mapping(study.get("domain_transition"))
     if _text(transition.get("decision_type")) is not None:
         return True
-    return _current_execution_is_authoritative(study)
+    return current_action_queue.current_execution_is_authoritative(study)
 
 
 def _fresh_repair_progress_action_matches_action_currentness(
@@ -1092,35 +808,6 @@ def _fresh_repair_progress_action_matches_action_currentness(
         fresh_action=fresh_action,
         currentness_action=currentness_action,
     )
-
-
-def _work_unit_id(value: object) -> str | None:
-    if isinstance(value, Mapping):
-        return _text(value.get("unit_id")) or _text(value.get("work_unit_id"))
-    return _text(value)
-
-
-def _ignored_action(action: Mapping[str, Any], reason: str) -> dict[str, Any]:
-    if stage_native_next_action.is_diagnostic_action(action):
-        reason = stage_native_next_action.diagnostic_blocked_reason(action)
-    return {
-        "study_id": _text(action.get("study_id")),
-        "action_type": _text(action.get("action_type")),
-        "action_id": _text(action.get("action_id")),
-        "reason": reason,
-    }
-
-
-def _unique_actions(actions: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    unique: list[dict[str, Any]] = []
-    seen: set[tuple[str | None, str | None, str | None]] = set()
-    for action in actions:
-        identity = _action_identity(action)
-        if identity in seen:
-            continue
-        seen.add(identity)
-        unique.append(dict(action))
-    return unique
 
 
 def _mapping(value: object) -> dict[str, Any]:
