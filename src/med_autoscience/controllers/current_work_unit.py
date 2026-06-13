@@ -35,6 +35,10 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
     work_unit_fingerprint as _work_unit_fingerprint,
     work_unit_id as _work_unit_id,
 )
+from med_autoscience.controllers.current_work_unit_parts.current_action_selection import (
+    action_from_envelope as _action_from_envelope,
+    selected_current_action as _selected_current_action,
+)
 from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
     CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS,
     CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS,
@@ -50,7 +54,6 @@ from med_autoscience.controllers.current_work_unit_parts.policy_constants import
     TERMINAL_CLOSEOUT_STATUSES,
 )
 from med_autoscience.controllers.current_work_unit_parts.primitives import (
-    first_text as _first_text,
     mapping as _mapping,
     text as _text,
     text_items as _text_items,
@@ -61,9 +64,6 @@ from med_autoscience.controllers.current_work_unit_parts.readiness_identity impo
 )
 from med_autoscience.controllers.current_work_unit_parts.repair_progress_precedence import (
     gate_replay_action_supersedes_stage_packet_blocker,
-)
-from med_autoscience.controllers.stage_route_currentness_identity import (
-    currentness_identities_match,
 )
 from med_autoscience.runtime_control.owner_route_attempt_protocol import (
     currentness_basis as owner_route_currentness_basis,
@@ -1808,68 +1808,6 @@ def _action_consumed_by_dispatch_receipt(
 def _route_work_unit_id(route: Mapping[str, Any]) -> str | None:
     payload = _mapping(route)
     return _work_unit_id(payload.get("work_unit_id")) or _work_unit_id(payload.get("next_work_unit"))
-
-
-def _action_from_current_action(current_action: Mapping[str, Any] | None) -> dict[str, Any] | None:
-    current = _mapping(current_action)
-    if _text(current.get("surface_kind")) != "current_executable_owner_action":
-        return None
-    allowed_actions = _text_items(current.get("allowed_actions"))
-    action_type = _text(current.get("action_type")) or (allowed_actions[0] if allowed_actions else None)
-    owner = _text(current.get("next_owner")) or _text(current.get("owner"))
-    work_unit_id = _text(current.get("work_unit_id"))
-    if action_type is None and owner is None and work_unit_id is None:
-        return None
-    return {
-        **current,
-        "action_type": action_type,
-        "owner": owner,
-        "recommended_owner": _text(current.get("recommended_owner")) or owner,
-        "next_owner": owner,
-        "next_work_unit": work_unit_id or action_type,
-        "work_unit_id": work_unit_id,
-        "source_surface": _text(current.get("source")) or _text(current.get("source_surface")),
-    }
-
-
-def _action_from_envelope(envelope: Mapping[str, Any] | None) -> dict[str, Any] | None:
-    payload = _mapping(envelope)
-    if _text(payload.get("state_kind")) != "executable_owner_action":
-        return None
-    work_unit_id = _work_unit_id(payload.get("next_work_unit"))
-    owner = _text(payload.get("owner"))
-    if owner is None and work_unit_id is None:
-        return None
-    return {
-        "owner": owner,
-        "next_owner": owner,
-        "work_unit_id": work_unit_id,
-        "next_work_unit": work_unit_id,
-        "source_surface": "current_execution_envelope",
-    }
-
-
-def _selected_current_action(
-    *,
-    actions: Sequence[Mapping[str, Any]] | None,
-    current_executable_owner_action: Mapping[str, Any] | None,
-) -> dict[str, Any] | None:
-    current_action = _action_from_current_action(current_executable_owner_action)
-    queued_action = _first_action(actions)
-    if current_action is None:
-        return queued_action
-    if queued_action is None:
-        return current_action
-    if currentness_identities_match(current_action, queued_action):
-        return {**queued_action, **current_action}
-    return current_action
-
-
-def _first_action(actions: Sequence[Mapping[str, Any]] | None) -> dict[str, Any] | None:
-    for item in actions or []:
-        if isinstance(item, Mapping):
-            return dict(item)
-    return None
 
 
 def _provider_admission_pending(provider_admission: Mapping[str, Any] | None) -> bool:
