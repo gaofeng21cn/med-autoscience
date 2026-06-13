@@ -21,6 +21,7 @@ from . import consumed_writer_handoff_filter
 from . import current_writer_handoff
 from . import opl_execution_preflight
 from . import persisted_handoff_selection
+from . import progress_blocking_selection
 from . import publication_owner_materialization_currentness
 from . import runtime_current_dispatch_selection
 from . import stage_artifact_publication_handoff_currentness
@@ -168,7 +169,11 @@ def selected_dispatches(
     dispatch_relative_root: Path,
 ) -> list[dict[str, Any]]:
     fresh_progress = _read_fresh_study_progress(profile=profile, study_id=study_id)
-    progress_envelope_blocks_dispatch_selection = _fresh_progress_envelope_blocks_dispatch_selection(fresh_progress)
+    progress_envelope_blocks_dispatch_selection = (
+        progress_blocking_selection.fresh_progress_envelope_blocks_dispatch_selection(
+            fresh_progress
+        )
+    )
     terminal_closeout_owner_answer = _terminal_closeout_owner_answer_required(fresh_progress)
     current_study = _scan_study(scan_payload, study_id)
     current_study = _with_consumed_transition_owner_route(current_study)
@@ -541,7 +546,9 @@ def _dispatch_selectable_despite_blocking_progress(
     current_study: Mapping[str, Any],
     fresh_progress: Mapping[str, Any],
 ) -> bool:
-    if not _blocking_progress_allows_current_dispatch_selection(fresh_progress):
+    if not progress_blocking_selection.blocking_progress_allows_current_dispatch_selection(
+        fresh_progress
+    ):
         return False
     action_type = _text(dispatch.get("action_type")) or ""
     if _dispatch_currentness_score(dispatch, current_study) > (0, 0):
@@ -582,20 +589,6 @@ def _dispatch_selectable_despite_blocking_progress(
     ):
         return True
     return False
-
-
-def _blocking_progress_allows_current_dispatch_selection(progress: Mapping[str, Any]) -> bool:
-    envelope = _mapping(progress.get("current_execution_envelope"))
-    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
-    if state_kind == "parked":
-        return True
-    if state_kind != "typed_blocker":
-        return False
-    return _fresh_progress_typed_blocker_reason(envelope) in {
-        "current_work_unit_unresolved",
-        "no_selected_dispatch_for_requested_action_types",
-        "stage_packet_not_current_selected_dispatch",
-    }
 
 
 def _without_unauthorized_stage_native_dispatches(
@@ -652,67 +645,6 @@ def _current_control_authority_present(current_study: Mapping[str, Any]) -> bool
     )
 
 
-def _fresh_progress_envelope_blocks_dispatch_selection(progress: Mapping[str, Any]) -> bool:
-    envelope = _mapping(progress.get("current_execution_envelope"))
-    current_action = _mapping(progress.get("current_executable_owner_action"))
-    if _typed_blocker_allows_repair_progress_followup(
-        envelope=envelope,
-        current_action=current_action,
-    ):
-        return False
-    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
-    if state_kind == "typed_blocker" and _fresh_progress_typed_blocker_reason(envelope) in {
-        "medical_paper_readiness_missing",
-        "terminal_closeout_owner_answer_required",
-    }:
-        return False
-    return state_kind in {"typed_blocker", "parked"}
-
-
-def _typed_blocker_allows_repair_progress_followup(
-    *,
-    envelope: Mapping[str, Any],
-    current_action: Mapping[str, Any],
-) -> bool:
-    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
-    if state_kind != "typed_blocker":
-        return False
-    if not _is_repair_progress_followup_action(current_action):
-        return False
-    blocker = _mapping(envelope.get("typed_blocker"))
-    if _text(blocker.get("owner")) != "one-person-lab":
-        return False
-    blocker_reasons = {
-        text
-        for value in (
-            blocker.get("blocker_id"),
-            blocker.get("blocker_type"),
-            blocker.get("reason"),
-            blocker.get("blocked_reason"),
-            blocker.get("terminal_closeout_status"),
-            blocker.get("terminal_closeout_outcome"),
-        )
-        if (text := _text(value)) is not None
-    }
-    if not any("opl_execution_authorization_required" in reason for reason in blocker_reasons):
-        return False
-    if _text(current_action.get("action_type")) != _text(blocker.get("action_type")):
-        return False
-    return currentness_identities_match(current_action, blocker, require_fingerprint=True)
-
-
-def _is_repair_progress_followup_action(action: Mapping[str, Any]) -> bool:
-    source = _text(action.get("source")) or _text(action.get("source_surface"))
-    if source != "repair_progress_projection.mas_owner_repair_execution_evidence":
-        return False
-    if _text(action.get("action_type")) not in {
-        "return_to_ai_reviewer_workflow",
-        "run_gate_clearing_batch",
-    }:
-        return False
-    return bool(_mapping(action.get("repair_progress_precedence")) or _text(action.get("source_ref")) is not None)
-
-
 def _terminal_closeout_owner_answer_dispatches_only(
     *,
     progress: Mapping[str, Any],
@@ -732,7 +664,8 @@ def _terminal_closeout_owner_answer_required(progress: Mapping[str, Any]) -> boo
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
     return (
         state_kind == "typed_blocker"
-        and _fresh_progress_typed_blocker_reason(envelope) == "terminal_closeout_owner_answer_required"
+        and progress_blocking_selection.fresh_progress_typed_blocker_reason(envelope)
+        == "terminal_closeout_owner_answer_required"
     )
 
 
@@ -820,15 +753,6 @@ def _normalized_ref(value: object) -> str | None:
     return text.replace("\\", "/").lstrip("./")
 
 
-def _fresh_progress_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | None:
-    blocker = _mapping(envelope.get("typed_blocker"))
-    return (
-        _text(blocker.get("blocker_id"))
-        or _text(blocker.get("blocker_type"))
-        or _text(blocker.get("reason"))
-    )
-
-
 def read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
     return _read_fresh_study_progress(profile=profile, study_id=study_id)
 
@@ -854,7 +778,7 @@ def _stage_native_next_action_superseded_by_current_control(
     route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
     allowed_actions = {_text(item) for item in route.get("allowed_actions") or []}
     allowed_actions.discard(None)
-    if _fresh_progress_typed_blocker_reason(
+    if progress_blocking_selection.fresh_progress_typed_blocker_reason(
         _mapping(_read_fresh_study_progress(profile=profile, study_id=study_id).get("current_execution_envelope"))
     ) == "medical_paper_readiness_missing" and (
         not allowed_actions
