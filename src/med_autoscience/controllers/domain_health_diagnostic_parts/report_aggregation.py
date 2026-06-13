@@ -239,7 +239,12 @@ def _managed_study_action_with_currentness(
     current_execution = _mapping(currentness.get("current_execution_envelope"))
     current_owner_action = _mapping(currentness.get("current_executable_owner_action"))
     state_kind = _text(current_work_unit.get("status")) or _text(current_execution.get("state_kind"))
-    if state_kind not in {"running_provider_attempt", "typed_blocker", "blocked_current_work_unit"}:
+    if state_kind not in {
+        "running_provider_attempt",
+        "typed_blocker",
+        "blocked_current_work_unit",
+        "executable_owner_action",
+    }:
         return dict(action)
 
     result = dict(action)
@@ -272,6 +277,8 @@ def _managed_study_action_with_currentness(
             or _current_execution_blocker_reason(current_execution)
             or state_kind
         )
+        result["running_provider_attempt"] = False
+    if state_kind == "executable_owner_action":
         result["running_provider_attempt"] = False
     return result
 

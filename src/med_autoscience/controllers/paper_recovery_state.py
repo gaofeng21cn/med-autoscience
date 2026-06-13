@@ -367,6 +367,13 @@ def _has_current_provider_admission_candidate(
     *,
     obligation: Mapping[str, Any],
 ) -> bool:
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    if (
+        _current_work_unit_status(current_work_unit) == "executable_owner_action"
+        and _mapping(current_work_unit.get("state")).get("provider_admission_pending") is True
+        and _current_work_unit_matches_obligation(current_work_unit, obligation=obligation)
+    ):
+        return True
     return any(
         _provider_admission_candidate_matches_obligation(candidate, obligation=obligation)
         for candidate in progress.get("provider_admission_candidates") or []
@@ -402,6 +409,37 @@ def _provider_admission_candidate_matches_obligation(
         if value is not None
     }
     return fingerprint in candidate_fingerprints
+
+
+def _current_work_unit_matches_obligation(
+    current_work_unit: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> bool:
+    study_id = _text(obligation.get("study_id"))
+    if study_id is not None and _text(current_work_unit.get("study_id")) != study_id:
+        return False
+    action_type = _text(obligation.get("action_type"))
+    if action_type is not None and _text(current_work_unit.get("action_type")) != action_type:
+        return False
+    work_unit_id = _text(obligation.get("work_unit_id"))
+    if work_unit_id is not None and _text(current_work_unit.get("work_unit_id")) != work_unit_id:
+        return False
+    fingerprint = _text(obligation.get("work_unit_fingerprint"))
+    if fingerprint is None:
+        return False
+    currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
+    current_fingerprints = {
+        value
+        for value in (
+            _text(current_work_unit.get("work_unit_fingerprint")),
+            _text(current_work_unit.get("action_fingerprint")),
+            _text(currentness_basis.get("work_unit_fingerprint")),
+            _text(currentness_basis.get("action_fingerprint")),
+        )
+        if value is not None
+    }
+    return fingerprint in current_fingerprints
 
 
 def _matching_terminal_closeout(
@@ -521,6 +559,12 @@ def _admission_blocked_condition(
 
 def _provider_admission_pending(progress: Mapping[str, Any]) -> bool:
     if int(progress.get("provider_admission_pending_count") or 0) > 0:
+        return True
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    if (
+        _current_work_unit_status(current_work_unit) == "executable_owner_action"
+        and _mapping(current_work_unit.get("state")).get("provider_admission_pending") is True
+    ):
         return True
     return bool([item for item in progress.get("provider_admission_candidates") or [] if isinstance(item, Mapping)])
 

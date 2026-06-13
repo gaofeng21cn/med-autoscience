@@ -194,6 +194,95 @@ def test_matching_provider_admission_supersedes_stale_parked_projection() -> Non
     assert state["current_authority"]["owner"] == "write"
 
 
+def test_current_work_unit_provider_admission_pending_supersedes_stale_parked_projection() -> None:
+    current_work_unit = _executable_work_unit(
+        owner="gate_clearing_batch",
+        action_type="run_gate_clearing_batch",
+        work_unit_id="publication_gate_replay",
+        fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+    )
+    current_work_unit["state"] = {
+        "state_kind": "executable_owner_action",
+        "provider_admission_pending": True,
+        "pending_provider_admission_evidence": {
+            "running_provider_attempt": False,
+            "provider_attempt_or_lease_required": False,
+        },
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": current_work_unit,
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+            },
+        }
+    )
+
+    assert state["phase"] == "admission_pending"
+    assert state["conditions"] == [{"condition": "provider_admission_pending"}]
+    assert state["next_safe_action"]["kind"] == "admit_provider_attempt"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["current_authority"]["owner"] == "gate_clearing_batch"
+
+
+def test_current_work_unit_provider_admission_pending_observe_only_is_admission_blocked() -> None:
+    current_work_unit = _executable_work_unit(
+        owner="gate_clearing_batch",
+        action_type="run_gate_clearing_batch",
+        work_unit_id="publication_gate_replay",
+        fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+    )
+    current_work_unit["state"] = {
+        "state_kind": "executable_owner_action",
+        "provider_admission_pending": True,
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": current_work_unit,
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+            },
+        },
+        diagnostic_report={
+            "action_class": "observe_only",
+            "will_start_llm": False,
+            "codex_dispatch_count": 0,
+            "provider_admission_pending_count": 0,
+        },
+    )
+
+    assert state["phase"] == "admission_blocked"
+    assert state["conditions"] == [
+        {
+            "condition": "provider_admission_pending_without_startable_dispatch",
+            "reason": "dhd_report_observe_only",
+        }
+    ]
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+
+
 def test_provider_admission_without_study_identity_does_not_suppress_projection_contradiction() -> None:
     state = _module().build_paper_recovery_state(
         {
@@ -586,6 +675,8 @@ def test_runtime_report_marks_observe_only_provider_admission_as_blocked() -> No
     assert result["paper_recovery_states"][study_id]["phase"] == "admission_blocked"
     action = result["managed_study_actions"][0]
     assert action["paper_recovery_state"]["phase"] == "admission_blocked"
+    assert action["current_work_unit"]["status"] == "executable_owner_action"
+    assert action["current_execution_envelope"]["state_kind"] == "executable_owner_action"
     assert action["provider_admission_state"] == {
         "status": "blocked_by_paper_recovery_state",
         "candidate_count": 1,
