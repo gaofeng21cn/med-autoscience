@@ -77,6 +77,22 @@ OPL 持有：
 
 Derived surfaces 必须从 `PaperRecovery` 读取，不得自造 recovery truth。尤其是 `study_progress`、DHD provider admission、operator status card 和 OPL admission 都只能投影 `paper_recovery_state` 的当前义务、phase、conditions、next safe action 与 authority boundary。
 
+## 派生可见面收口
+
+`paper_recovery_state` 一旦进入 `admission_blocked`、`projection_inconsistent`、`manual_foreground_unadopted`、`terminal_closeout_ready`、`domain_blocked` 或 `human_gate`，所有用户/操作员可见面都必须改为 PaperRecovery phase 派生：
+
+- `operator_status_card`
+- `intervention_lane`
+- `operator_verdict`
+- `auto_runtime_parked`
+- `recovery_contract`
+- `autonomy_contract`
+- `user_visible_projection`
+
+这些 surface 可以展示 `paper_recovery_state.phase`、`recovery_obligation_id`、`current_authority` 和 `next_safe_action`，但不得继续保留旧的 `auto_runtime_parked`、`explicit_resume_pending`、`awaiting_explicit_wakeup` 或“需要用户显式恢复后才能推进”的残留说法，除非当前 phase 本身就是 `human_gate`。`human_gate` 仍保留用户决策信号，但它的来源是 PaperRecovery owner/human gate，不是旧 parked runtime。
+
+这条规则解决的是 read-model / operator projection 的剩余漂移：旧停驻面只能是被 PaperRecovery 覆盖的诊断背景，不能重新成为 current recovery authority。
+
 ## Manual foreground adoption
 
 前台 Codex 或人工可以在用户明确授权时产出 manual foreground work product，但默认不更新 MAS/OPL truth。它要被 governed recovery 采信，必须至少有以下 adoption refs 之一：

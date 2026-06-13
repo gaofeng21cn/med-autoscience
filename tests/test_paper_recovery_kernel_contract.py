@@ -35,6 +35,12 @@ def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
         "study_progress",
         "domain_health_diagnostic",
         "operator_status_card",
+        "intervention_lane",
+        "operator_verdict",
+        "auto_runtime_parked",
+        "recovery_contract",
+        "autonomy_contract",
+        "user_visible_projection",
         "DHD provider admission current-control",
         "OPL admission projection",
     } <= set(metadata["projection_consumers"])
@@ -63,6 +69,12 @@ def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
         "study_progress",
         "DHD provider admission",
         "operator_status_card",
+        "intervention_lane",
+        "operator_verdict",
+        "auto_runtime_parked",
+        "recovery_contract",
+        "autonomy_contract",
+        "user_visible_projection",
         "OPL admission",
         "human workbench card",
     } <= set(authority["derived_surfaces_must_read_from_paper_recovery"])
@@ -251,6 +263,37 @@ def test_paper_recovery_projection_invariants_fail_closed() -> None:
     )
     assert inconsistent["required_next_safe_action"] == "repair_projection_before_admission"
 
+    visible = invariants["derived_visible_surfaces_must_be_sanitized"]
+    assert visible["required"] is True
+    assert visible["authoritative_source"] == "paper_recovery_state"
+    assert {
+        "admission_blocked",
+        "projection_inconsistent",
+        "manual_foreground_unadopted",
+        "terminal_closeout_ready",
+        "domain_blocked",
+        "human_gate",
+    } <= set(visible["applies_when_phase_any"])
+    assert {
+        "operator_status_card",
+        "intervention_lane",
+        "operator_verdict",
+        "auto_runtime_parked",
+        "recovery_contract",
+        "autonomy_contract",
+        "user_visible_projection",
+    } <= set(visible["derived_surfaces"])
+    assert {
+        "auto_runtime_parked",
+        "explicit_resume_pending",
+        "awaiting_explicit_wakeup",
+        "user_resume_required_for_current_recovery",
+        "provider_admission_allowed_when_next_safe_action_forbids_it",
+    } <= set(visible["forbidden_residual_claims"])
+    assert visible["required_effect"] == (
+        "replace_stale_operator_or_parked_projection_with_paper_recovery_phase_and_next_safe_action"
+    )
+
 
 def test_paper_recovery_conditions_next_safe_action_and_manual_adoption() -> None:
     contract = _contract()
@@ -362,6 +405,16 @@ def test_paper_recovery_accident_replay_documents_forbidden_acceptance_evidence(
     assert cases["manual_foreground_unadopted"]["required_outcome"] == (
         "manual_foreground_unadopted"
     )
+    assert cases["stale_operator_parked_projection"] == {
+        "case_id": "stale_operator_parked_projection",
+        "symptom": (
+            "operator card, intervention lane, or recovery/autonomy contract still shows "
+            "auto_runtime_parked or explicit_resume_pending while paper_recovery_state has "
+            "a current blocking phase"
+        ),
+        "required_outcome": "derived_visible_surfaces_show_paper_recovery_phase",
+        "next_safe_action": "use_paper_recovery_state.next_safe_action",
+    }
     assert {
         "docs_only_claim",
         "operator_card_status",

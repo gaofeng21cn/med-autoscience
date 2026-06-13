@@ -64,6 +64,12 @@ def test_stage_route_reconcile_contract_declares_single_planning_root() -> None:
         "study_progress",
         "domain_health_diagnostic.provider_admission_current_control",
         "operator_status_card",
+        "intervention_lane",
+        "operator_verdict",
+        "auto_runtime_parked",
+        "recovery_contract",
+        "autonomy_contract",
+        "user_visible_projection",
         "OPL admission projection",
         "human workbench card",
     } <= set(paper_recovery["derived_surfaces_must_read_from_paper_recovery"])
@@ -74,6 +80,7 @@ def test_stage_route_reconcile_contract_declares_single_planning_root() -> None:
         "stop_loss_must_have_successor_or_human_gate",
         "projection_inconsistency_fail_closed",
         "manual_foreground_output_requires_adoption_refs",
+        "derived_visible_surfaces_must_be_sanitized",
     ]
     assert paper_recovery["false_authority_flags"] == {
         "stage_route_can_select_recovery_obligation": False,

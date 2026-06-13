@@ -1652,6 +1652,12 @@
       "study_progress",
       "domain_health_diagnostic.provider_admission_current_control",
       "operator_status_card",
+      "intervention_lane",
+      "operator_verdict",
+      "auto_runtime_parked",
+      "recovery_contract",
+      "autonomy_contract",
+      "user_visible_projection",
       "OPL admission projection",
       "human workbench card"
     ],
@@ -1661,7 +1667,8 @@
       "terminal_closeout_must_consume_or_reject",
       "stop_loss_must_have_successor_or_human_gate",
       "projection_inconsistency_fail_closed",
-      "manual_foreground_output_requires_adoption_refs"
+      "manual_foreground_output_requires_adoption_refs",
+      "derived_visible_surfaces_must_be_sanitized"
     ],
     "false_authority_flags": {
       "stage_route_can_select_recovery_obligation": false,

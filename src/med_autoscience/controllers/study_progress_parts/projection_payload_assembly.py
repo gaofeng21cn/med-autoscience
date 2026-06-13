@@ -32,6 +32,9 @@ from .progress_first_monitoring import build_progress_first_monitoring_summary
 from .projection_payload_assembly_parts.progress_delta import (
     progress_delta_metrics as _progress_delta_metrics,
 )
+from .projection_payload_assembly_parts.paper_recovery_visibility import (
+    apply_paper_recovery_state_user_visible_status as _apply_paper_recovery_state_user_visible_status,
+)
 from .projection_payload_assembly_parts.running_provider_status import (
     apply_running_provider_attempt_top_level_status,
 )
@@ -650,58 +653,6 @@ def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[s
     updated = _apply_current_work_unit_typed_blocker_user_visible_status(updated)
     updated = _apply_runtime_medical_publication_surface_user_visible_status(updated)
     return _apply_terminal_delivery_user_visible_status(updated)
-
-
-def _apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
-    recovery = _mapping_copy(payload.get("paper_recovery_state"))
-    if not recovery:
-        return payload
-    phase = _non_empty_text(recovery.get("phase"))
-    if phase is None:
-        return payload
-    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
-    summary = _paper_recovery_summary(phase=phase, next_safe_action=next_safe_action)
-    if summary is None:
-        return payload
-    updated = dict(payload)
-    if phase in {"admission_blocked", "projection_inconsistent", "manual_foreground_unadopted"}:
-        blockers = list(updated.get("current_blockers") or [])
-        if phase not in blockers:
-            blockers.append(phase)
-        updated["current_blockers"] = blockers
-        updated["next_system_action"] = summary
-    operator_status = _mapping_copy(updated.get("operator_status_card"))
-    if operator_status:
-        operator_status["paper_recovery_phase"] = phase
-        operator_status["current_focus"] = summary
-        operator_status["user_visible_verdict"] = summary
-        updated["operator_status_card"] = operator_status
-    user_visible = _mapping_copy(updated.get("user_visible_projection"))
-    if user_visible:
-        user_visible["paper_recovery_phase"] = phase
-        user_visible["next_step"] = summary
-        user_visible["why_not_progressing"] = phase
-        updated["user_visible_projection"] = user_visible
-    return updated
-
-
-def _paper_recovery_summary(*, phase: str, next_safe_action: Mapping[str, Any]) -> str | None:
-    kind = _non_empty_text(next_safe_action.get("kind"))
-    if phase == "admission_blocked":
-        return "Provider admission is blocked until the current MAS owner obligation can start or reports an operator gate."
-    if phase == "projection_inconsistent":
-        return "Paper recovery projection is inconsistent; repair the MAS recovery state before admission."
-    if phase == "manual_foreground_unadopted":
-        return "Foreground paper edits require MAS owner receipt adoption before they count as recovery progress."
-    if phase == "terminal_closeout_ready":
-        return "Consume the matching terminal closeout through MAS owner authority."
-    if phase == "domain_blocked":
-        return "Resolve the current typed blocker through its owner before starting another provider attempt."
-    if phase == "attempt_running":
-        return "Watch the running provider attempt bound to the current paper recovery obligation."
-    if kind is not None:
-        return kind
-    return None
 
 
 def _current_action_aligned_with_execution_envelope(

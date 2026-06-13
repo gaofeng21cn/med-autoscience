@@ -156,6 +156,143 @@ def test_projection_contradiction_fails_closed() -> None:
     assert state["next_safe_action"]["provider_admission_allowed"] is False
 
 
+def test_paper_recovery_state_supersedes_stale_operator_parked_projection() -> None:
+    visibility = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+    )
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+            },
+        }
+    )
+
+    result = visibility.apply_paper_recovery_state_user_visible_status(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "auto_runtime_parked",
+            "current_blockers": [],
+            "next_system_action": "Wait for explicit resume.",
+            "paper_recovery_state": state,
+            "auto_runtime_parked": {
+                "surface_kind": "auto_runtime_parked",
+                "parked": True,
+                "parked_state": "explicit_resume_pending",
+                "parked_owner": "user",
+                "resource_release_expected": True,
+                "awaiting_explicit_wakeup": True,
+                "auto_execution_complete": False,
+                "summary": "Waiting for explicit resume.",
+            },
+            "parked_state": "explicit_resume_pending",
+            "parked_owner": "user",
+            "resource_release_expected": True,
+            "awaiting_explicit_wakeup": True,
+            "auto_execution_complete": False,
+            "needs_user_decision": True,
+            "user_decision_summary": "Resume the parked runtime.",
+            "intervention_lane": {
+                "lane_id": "auto_runtime_parked",
+                "summary": "Waiting for explicit resume.",
+                "parked_state": "explicit_resume_pending",
+                "awaiting_explicit_wakeup": True,
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+                "current_focus": "Waiting for explicit resume.",
+                "parked_state": "explicit_resume_pending",
+                "awaiting_explicit_wakeup": True,
+            },
+            "operator_verdict": {
+                "decision_mode": "auto_runtime_parked",
+                "summary": "Waiting for explicit resume.",
+            },
+            "recovery_contract": {
+                "action_mode": "auto_runtime_parked",
+                "summary": "Waiting for explicit resume.",
+                "parked_state": "explicit_resume_pending",
+            },
+            "autonomy_contract": {
+                "autonomy_state": "auto_runtime_parked",
+                "summary": "Waiting for explicit resume.",
+                "parked_state": "explicit_resume_pending",
+            },
+            "user_visible_projection": {
+                "next_step": "Wait for explicit resume.",
+                "why_not_progressing": "explicit_resume_pending",
+            },
+        }
+    )
+
+    assert result["current_stage"] == "publication_supervision"
+    assert result["current_blockers"] == ["projection_inconsistent"]
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["auto_runtime_parked"]["superseded_by_paper_recovery_state"] is True
+    assert result["parked_state"] is None
+    assert result["parked_owner"] is None
+    assert result["awaiting_explicit_wakeup"] is False
+    assert result["needs_user_decision"] is False
+    assert result["intervention_lane"]["lane_id"] == "paper_recovery_projection_inconsistent"
+    assert "parked_state" not in result["intervention_lane"]
+    assert result["operator_status_card"]["handling_state"] == (
+        "paper_recovery_projection_inconsistent"
+    )
+    assert "parked_state" not in result["operator_status_card"]
+    assert result["operator_verdict"]["decision_mode"] == "paper_recovery_state"
+    assert result["recovery_contract"]["action_mode"] == "repair_projection_before_admission"
+    assert result["autonomy_contract"]["autonomy_state"] == (
+        "paper_recovery_projection_inconsistent"
+    )
+    assert result["user_visible_projection"]["why_not_progressing"] == "projection_inconsistent"
+
+
+def test_paper_recovery_human_gate_keeps_user_decision_signal() -> None:
+    visibility = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+    )
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "002-dm-cvd-mortality-risk",
+            "current_work_unit": _typed_blocker_work_unit(
+                owner="user",
+                blocker_type="human_confirmation_required",
+            ),
+        }
+    )
+
+    result = visibility.apply_paper_recovery_state_user_visible_status(
+        {
+            "study_id": "002-dm-cvd-mortality-risk",
+            "current_blockers": [],
+            "paper_recovery_state": state,
+            "needs_user_decision": False,
+            "needs_physician_decision": False,
+            "operator_status_card": {},
+        }
+    )
+
+    assert result["current_blockers"] == []
+    assert result["needs_user_decision"] is True
+    assert result["needs_physician_decision"] is True
+    assert result["user_decision_summary"] == (
+        "Resolve the current typed blocker through its owner before starting another provider attempt."
+    )
+    assert result["intervention_lane"]["lane_id"] == "paper_recovery_human_gate"
+    assert result["operator_verdict"]["needs_intervention"] is True
+
+
 def test_running_attempt_requires_strong_identity_binding() -> None:
     state = _module().build_paper_recovery_state(
         {
