@@ -65,14 +65,19 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
         user_visible["paper_recovery_phase"] = phase
         user_visible["next_step"] = summary
         user_visible["why_not_progressing"] = phase
+        if _phase_updates_current_blockers(phase=phase, next_safe_action=next_safe_action):
+            user_visible["current_blockers"] = [phase]
+            user_visible["next_system_action"] = summary
+            user_visible["needs_user_decision"] = phase == "human_gate"
+            user_visible["needs_physician_decision"] = phase == "human_gate"
         updated["user_visible_projection"] = user_visible
     return updated
 
 
 def _phase_updates_current_blockers(*, phase: str, next_safe_action: Mapping[str, Any]) -> bool:
-    if phase in PAPER_RECOVERY_BLOCKING_PHASES or phase == "domain_blocked":
+    if phase in PAPER_RECOVERY_BLOCKING_PHASES:
         return True
-    if phase != "human_gate":
+    if phase not in {"domain_blocked", "human_gate"}:
         return False
     return _non_empty_text(next_safe_action.get("kind")) != "resolve_typed_blocker"
 
@@ -94,6 +99,9 @@ def _apply_paper_recovery_authority_projection(
         updated["current_stage"] = "publication_supervision"
     updated["next_step"] = summary
     requires_user_decision = phase == "human_gate"
+    if _phase_updates_current_blockers(phase=phase, next_safe_action=next_safe_action):
+        updated["current_blockers"] = [phase]
+        updated["next_system_action"] = summary
     updated["needs_user_decision"] = requires_user_decision
     updated["user_decision_summary"] = summary if requires_user_decision else None
     updated["needs_physician_decision"] = requires_user_decision
