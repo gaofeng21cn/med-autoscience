@@ -35,6 +35,7 @@ def test_default_executor_execution_dispatch_ref_can_be_stage_packet_authority()
             "owner_route_current": True,
         },
         study_root=study_root,
+        allow_dispatch_ref_stage_packet_authority=True,
     )
 
     expected_ref = (
@@ -46,6 +47,25 @@ def test_default_executor_execution_dispatch_ref_can_be_stage_packet_authority()
     assert candidate["stage_packet_refs"] == [expected_ref]
     assert candidate["source_refs"]["stage_packet_ref"] == "preserved-stage-packet"
     assert candidate["source_refs"]["stage_packet_refs"] == ["preserved-stage-packet"]
+
+
+def test_dispatch_ref_stage_packet_authority_requires_explicit_opt_in() -> None:
+    candidate = candidate_with_stage_run_admission_identity(
+        {
+            "source": "default_executor_execution",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "work_unit_fingerprint": "sha256:current",
+        },
+        execution={
+            "source": "default_executor_execution",
+            "surface": "default_executor_dispatch_execution",
+            "dispatch_path": "/workspace/studies/003/default_executor_dispatches/run.json",
+            "owner_route_current": True,
+        },
+    )
+
+    assert "stage_packet_ref" not in candidate
+    assert "stage_packet_refs" not in candidate
 
 
 def test_dispatch_ref_stage_packet_authority_rejects_stale_owner_route() -> None:

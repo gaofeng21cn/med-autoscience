@@ -222,3 +222,60 @@ def test_opl_authorization_blocked_execution_requires_fingerprint_bound_identity
     )
 
     assert candidate is None
+
+
+def test_provider_admission_candidate_does_not_synthesize_stage_packet_from_dispatch_ref() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_type = "run_gate_clearing_batch"
+    work_unit_id = "publication_gate_replay"
+    fingerprint = "sha256:current-gate-replay"
+
+    candidate = module.provider_admission_candidate_from_execution(
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "dispatch_path": (
+                "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+                "consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+            ),
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "execution_status": "handoff_ready",
+            "provider_attempt_or_lease_required": True,
+            "owner_route_current": True,
+            "next_executable_owner": "gate_clearing_batch",
+            "owner_route": {
+                "source_refs": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "owner_route_currentness_basis": {
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "truth_epoch": "truth-event-current",
+                        "runtime_health_epoch": "runtime-health-current",
+                    },
+                },
+            },
+        },
+        execution_ref="studies/003/default_executor_execution/latest.json",
+        status_study_id=study_id,
+        current_action_identity={
+            "action_ids": [action_type, work_unit_id],
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "work_unit_fingerprints": [fingerprint],
+            "source": "canonical_current_work_unit",
+            "next_owner": "gate_clearing_batch",
+        },
+    )
+
+    assert candidate is not None
+    assert candidate["dispatch_ref"].endswith("default_executor_dispatches/run_gate_clearing_batch.json")
+    assert "stage_packet_ref" not in candidate
+    assert "stage_packet_refs" not in candidate

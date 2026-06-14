@@ -17,6 +17,7 @@ def candidate_with_stage_run_admission_identity(
     dispatch_payload: Mapping[str, Any] | None = None,
     dispatch_path: Path | None = None,
     study_root: Path | None = None,
+    allow_dispatch_ref_stage_packet_authority: bool = False,
 ) -> dict[str, Any]:
     payload = dict(candidate)
     dispatch_payload = _mapping(dispatch_payload) or _mapping(execution)
@@ -44,10 +45,14 @@ def candidate_with_stage_run_admission_identity(
         refs.get("stage_packet_path"),
         refs.get("immutable_dispatch_path"),
     )
-    if stage_packet_ref is None and _dispatch_ref_is_stage_packet_authority(
+    if (
+        stage_packet_ref is None
+        and allow_dispatch_ref_stage_packet_authority
+        and _dispatch_ref_is_stage_packet_authority(
         payload=payload,
         execution=execution,
         dispatch_payload=dispatch_payload,
+        )
     ):
         stage_packet_ref = dispatch_ref
     selected_dispatch_ref = _first_present_text(
