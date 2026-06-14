@@ -811,6 +811,8 @@ def _provider_admission_candidates_for_status(
             study_root=study_root,
             status_payload=status_payload,
         )
+    if _status_has_running_provider_attempt(status_payload):
+        return []
     candidates = provider_admission.persisted_provider_admission_candidates(
         study_root=study_root,
         status_payload=status_payload,
@@ -829,3 +831,15 @@ def _provider_admission_candidates_for_status(
         status_payload=status_payload,
         current_control_ref=str(current_control_path),
     )
+
+
+def _status_has_running_provider_attempt(status_payload: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping(status_payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) == "running_provider_attempt":
+        return True
+    envelope = _mapping(status_payload.get("current_execution_envelope"))
+    return _non_empty_text(envelope.get("state_kind")) == "running_provider_attempt"
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}

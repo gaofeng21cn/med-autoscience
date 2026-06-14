@@ -100,11 +100,14 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
     current_action_basis = _mapping(current.get("owner_route_currentness_basis")) or _mapping(
         current.get("currentness_basis")
     )
+    repair_precedence = _mapping(current.get("repair_progress_precedence"))
     action_fingerprint = (
         eval_bound_fingerprint
         or _first_currentness_fingerprint(
             current.get("action_fingerprint"),
             current.get("work_unit_fingerprint"),
+            current.get("source_fingerprint"),
+            repair_precedence.get("source_fingerprint"),
             current_action_basis.get("work_unit_fingerprint"),
             current_action_basis.get("source_fingerprint"),
             current_work_unit.get("action_fingerprint"),
@@ -334,6 +337,8 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
     fingerprint = _first_currentness_fingerprint(
         current.get("work_unit_fingerprint"),
         current.get("action_fingerprint"),
+        current.get("source_fingerprint"),
+        _mapping(current.get("repair_progress_precedence")).get("source_fingerprint"),
         current_action_basis.get("work_unit_fingerprint"),
         current_action_basis.get("source_fingerprint"),
         study_id=study_id,

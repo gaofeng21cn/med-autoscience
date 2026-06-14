@@ -77,7 +77,7 @@ def _stage_route_arbiter_decisions(
             continue
         live_study = _mapping(live_studies_by_id.get(study_id)) if study_id is not None else {}
         live_attempt = _running_attempt_from_study(live_study)
-        if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
+        if live_attempt and _running_attempt_covers_candidate(live_attempt, candidate=candidate):
             decisions.append(
                 _arbiter_decision(
                     candidate,
@@ -301,6 +301,9 @@ def _running_attempt_from_study(study: Mapping[str, Any]) -> dict[str, Any]:
     nested = _mapping(study.get("opl_provider_attempt"))
     if study_has_running_provider_attempt(nested):
         return nested
+    runtime_health = _live_attempt_from_runtime_health_snapshot(study)
+    if runtime_health:
+        return runtime_health
     progress_first = _live_attempt_from_progress_first_summary(study)
     if progress_first:
         return progress_first
@@ -308,6 +311,33 @@ def _running_attempt_from_study(study: Mapping[str, Any]) -> dict[str, Any]:
     if current_work_unit:
         return current_work_unit
     return {}
+
+
+def _live_attempt_from_runtime_health_snapshot(study: Mapping[str, Any]) -> dict[str, Any]:
+    runtime_health = _mapping(study.get("runtime_health_snapshot")) or _mapping(
+        study.get("runtime_health")
+    )
+    worker_liveness = _mapping(runtime_health.get("worker_liveness_state")) or _mapping(
+        runtime_health.get("worker_liveness")
+    )
+    if worker_liveness.get("worker_running") is False:
+        return {}
+    state = _non_empty_text(worker_liveness.get("state"))
+    runtime_liveness = _non_empty_text(worker_liveness.get("runtime_liveness_status"))
+    if state not in {None, "live", "running"} and runtime_liveness not in {"live", "running"}:
+        return {}
+    return _live_attempt_from_mapping(
+        {
+            **worker_liveness,
+            "runtime_health": {
+                "health_status": _non_empty_text(runtime_health.get("health_status")) or "running",
+                "runtime_liveness_status": runtime_liveness or "live",
+                **({"summary": runtime_health.get("summary")} if runtime_health.get("summary") else {}),
+            },
+        },
+        study=study,
+        source="runtime_health_snapshot.worker_liveness_state",
+    )
 
 
 def _live_attempt_from_progress_first_summary(study: Mapping[str, Any]) -> dict[str, Any]:
@@ -431,7 +461,7 @@ def _candidates_not_covered_by_live_attempt(
             identity=candidate,
         ):
             continue
-        if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
+        if live_attempt and _running_attempt_covers_candidate(live_attempt, candidate=candidate):
             continue
         if _paper_recovery_state_blocks_provider_admission(scanned_study, identity=candidate):
             continue
@@ -475,6 +505,38 @@ def _paper_recovery_state_blocks_provider_admission(
         }.items()
         if value not in (None, "", [], {})
     }
+
+
+def _running_attempt_covers_candidate(
+    live_attempt: Mapping[str, Any],
+    *,
+    candidate: Mapping[str, Any],
+) -> bool:
+    if provider_attempt_matches_identity(live_attempt, identity=candidate):
+        return True
+    expected_fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
+        candidate.get("action_fingerprint")
+    )
+    if expected_fingerprint is None:
+        return False
+    if not _running_attempt_has_live_liveness(live_attempt):
+        return False
+    return _identity_matches(live_attempt, identity=candidate)
+
+
+def _running_attempt_has_live_liveness(live_attempt: Mapping[str, Any]) -> bool:
+    runtime_health = _mapping(live_attempt.get("runtime_health")) or _mapping(
+        live_attempt.get("worker_liveness")
+    )
+    runtime_liveness = _non_empty_text(runtime_health.get("runtime_liveness_status"))
+    health_status = _non_empty_text(runtime_health.get("health_status"))
+    if runtime_liveness in {"live", "running"} or health_status in {"live", "running"}:
+        return True
+    return (
+        runtime_liveness is None
+        and health_status is None
+        and _non_empty_text(live_attempt.get("source")) == "runtime_health_snapshot.worker_liveness_state"
+    )
 
 
 def _paper_recovery_state_matches_identity(

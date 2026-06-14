@@ -37,7 +37,8 @@ def current_control_payload_with_status_currentness(
 
 def _status_currentness_study(status: Mapping[str, Any]) -> dict[str, Any]:
     current_work_unit = _mapping(status.get("current_work_unit"))
-    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+    current_work_unit_status = _non_empty_text(current_work_unit.get("status"))
+    if current_work_unit_status != "executable_owner_action":
         return {}
     current_action = _mapping(status.get("current_executable_owner_action"))
     if not current_action:

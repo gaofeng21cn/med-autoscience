@@ -21,6 +21,12 @@ def action_matches_obligation(
         for value in (
             _text(action.get("work_unit_fingerprint")),
             _text(action.get("action_fingerprint")),
+            _text(action.get("source_fingerprint")),
+            _text(_mapping(action.get("owner_route_currentness_basis")).get("work_unit_fingerprint")),
+            _text(_mapping(action.get("owner_route_currentness_basis")).get("source_fingerprint")),
+            _text(_mapping(action.get("currentness_basis")).get("work_unit_fingerprint")),
+            _text(_mapping(action.get("currentness_basis")).get("source_fingerprint")),
+            _text(_mapping(action.get("repair_progress_precedence")).get("source_fingerprint")),
         )
         if value is not None
     }

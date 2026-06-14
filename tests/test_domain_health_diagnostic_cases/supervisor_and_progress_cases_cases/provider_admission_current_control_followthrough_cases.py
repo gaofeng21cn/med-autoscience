@@ -304,6 +304,183 @@ def test_domain_health_diagnostic_projects_progress_owner_action_without_current
     assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 1
 
 
+def test_domain_health_diagnostic_suppresses_pending_admission_when_fresh_progress_is_running(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "next_executable_owner": "write",
+            "provider_attempt_or_lease_required": True,
+            "provider_completion_is_domain_completion": False,
+            "owner_route_current": True,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+            "refs": {
+                "dispatch_path": str(dispatch_path),
+                "stage_packet_path": str(dispatch_path),
+            },
+        },
+    )
+    dump_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "action_queue": [],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "status": "ready",
+                        "next_owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "allowed_actions": ["run_quality_repair_batch"],
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "target_surface": {
+                            "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                        },
+                    },
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "executable_owner_action",
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                    },
+                    "current_execution_envelope": {
+                        "state_kind": "executable_owner_action",
+                        "owner": "write",
+                        "next_work_unit": work_unit_id,
+                    },
+                }
+            ],
+        },
+    )
+    status_payload = {
+        **make_progress_projection_payload(
+            study_id=study_id,
+            decision="blocked",
+            reason="quest_waiting_for_user",
+        ),
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(profile.runtime_root / "quests" / study_id),
+    }
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    running_envelope = {
+        "state_kind": "running_provider_attempt",
+        "owner": "write",
+        "next_work_unit": work_unit_id,
+        "typed_blocker": None,
+        "parked_state": None,
+        "active_run_id": "opl-stage-attempt://sat_current",
+        "active_stage_attempt_id": "sat_current",
+        "active_workflow_id": "wf_current",
+        "runtime_health": {
+            "runtime_liveness_status": "live",
+            "health_status": "live",
+            "work_unit_id": work_unit_id,
+        },
+    }
+    monkeypatch.setattr(
+        study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "generated_at": "2026-06-14T13:20:00+00:00",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "running_provider_attempt",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "running_provider_attempt",
+                    "provider_attempt_proof": {
+                        "running_provider_attempt": True,
+                        "active_run_id": "opl-stage-attempt://sat_current",
+                        "active_stage_attempt_id": "sat_current",
+                        "active_workflow_id": "wf_current",
+                    },
+                },
+            },
+            "current_execution_envelope": running_envelope,
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+        },
+    )
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=False,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    assert result["provider_admission_pending_count"] == 0
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    action = result["managed_study_actions"][0]
+    assert action["decision"] == "noop"
+    assert action["reason"] == "running_provider_attempt_observed"
+    assert action["running_provider_attempt"] is True
+    assert action["active_stage_attempt_id"] == "sat_current"
+    assert result["current_execution_envelopes"][study_id]["state_kind"] == "running_provider_attempt"
+    assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 0
+
+
 def test_provider_admission_merge_prefers_stage_packet_bound_duplicate() -> None:
     report = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"

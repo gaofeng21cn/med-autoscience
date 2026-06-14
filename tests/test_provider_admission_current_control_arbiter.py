@@ -462,6 +462,150 @@ def test_provider_admission_report_sync_clears_stale_managed_action_pending_stat
     assert "provider_admission_state" not in evidence_action
 
 
+def test_provider_admission_report_sync_clears_pending_when_managed_action_is_running(
+    tmp_path: Path,
+) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    candidate = {
+        **_provider_candidate(
+            profile,
+            study_id,
+            action_fingerprint="publication-blockers::0915410f804b3697",
+        ),
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "action_fingerprint": "publication-blockers::0915410f804b3697",
+    }
+    running_action = {
+        "study_id": study_id,
+        "running_provider_attempt": True,
+        "active_stage_attempt_id": "sat-running",
+        "active_run_id": "opl-stage-attempt://sat-running",
+        "active_workflow_id": "wf-running",
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "running_provider_attempt",
+            "owner": "publication_gate",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        },
+        "provider_admission_candidates": [candidate],
+        "provider_admission_state": {
+            "status": "pending",
+            "candidate_count": 1,
+            "running_provider_attempt": True,
+        },
+        "paper_recovery_state": {
+            "phase": "attempt_running",
+            "next_safe_action": {
+                "kind": "watch_running_attempt",
+                "owner": "publication_gate",
+                "provider_admission_allowed": False,
+            },
+        },
+    }
+    report = {
+        "managed_study_opl_provider_admission_candidates": [candidate],
+        "provider_admission_pending_count": 1,
+        "current_execution_evidence": {
+            "provider_admission_candidates": [candidate],
+            "managed_study_actions": [dict(running_action)],
+        },
+        "managed_study_actions": [dict(running_action)],
+    }
+
+    report_module.sync_report_provider_admission_current_control_state(
+        report,
+        current_control_state={
+            "provider_admission_candidates": [candidate],
+        },
+    )
+
+    assert report["managed_study_opl_provider_admission_candidates"] == []
+    assert report["provider_admission_pending_count"] == 0
+    assert report["current_execution_evidence"]["provider_admission_candidates"] == []
+    synced_action = report["managed_study_actions"][0]
+    assert synced_action["running_provider_attempt"] is True
+    assert synced_action["provider_admission_candidates"] == []
+    assert "provider_admission_state" not in synced_action
+    evidence_action = report["current_execution_evidence"]["managed_study_actions"][0]
+    assert evidence_action["running_provider_attempt"] is True
+    assert evidence_action["provider_admission_candidates"] == []
+    assert "provider_admission_state" not in evidence_action
+
+
+def test_provider_admission_current_control_runtime_health_live_attempt_suppresses_pending(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_fingerprint = "publication-blockers::0915410f804b3697"
+    candidate = {
+        **_provider_candidate(profile, study_id, action_fingerprint=action_fingerprint),
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-14T13:20:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "running_provider_attempt": False,
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": action_fingerprint,
+                    "action_fingerprint": action_fingerprint,
+                },
+                "runtime_health_snapshot": {
+                    "worker_liveness_state": {
+                        "state": "live",
+                        "runtime_liveness_status": "live",
+                        "worker_running": True,
+                        "active_run_id": "opl-stage-attempt://sat-running",
+                        "active_stage_attempt_id": "sat-running",
+                        "active_workflow_id": "wf-running",
+                    },
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "running_identity_observed": 1,
+    }
+    study = result["studies"][0]
+    assert study["running_provider_attempt"] is True
+    assert study["active_stage_attempt_id"] == "sat-running"
+    assert study["current_work_unit"]["status"] == "running_provider_attempt"
+    assert study["current_execution_envelope"]["state_kind"] == "running_provider_attempt"
+
+
 def test_provider_admission_report_sync_clears_domain_blocked_recovery_pending_state(
     tmp_path: Path,
 ) -> None:

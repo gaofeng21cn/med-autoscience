@@ -424,6 +424,10 @@ def _obligation_fingerprint(
     currentness_basis: Mapping[str, Any],
 ) -> str | None:
     action = _mapping(progress.get("current_executable_owner_action"))
+    action_basis = _mapping(action.get("owner_route_currentness_basis")) or _mapping(
+        action.get("currentness_basis")
+    )
+    repair_precedence = _mapping(action.get("repair_progress_precedence"))
     return _first_text(
         current_work_unit.get("work_unit_fingerprint"),
         current_work_unit.get("action_fingerprint"),
@@ -431,6 +435,10 @@ def _obligation_fingerprint(
         currentness_basis.get("source_fingerprint"),
         action.get("work_unit_fingerprint"),
         action.get("action_fingerprint"),
+        action.get("source_fingerprint"),
+        action_basis.get("work_unit_fingerprint"),
+        action_basis.get("source_fingerprint"),
+        repair_precedence.get("source_fingerprint"),
     )
 
 

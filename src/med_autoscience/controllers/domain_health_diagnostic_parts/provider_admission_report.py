@@ -9,6 +9,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     current_control_provider_admission_candidates,
     handoff_dispatch_path,
     handoff_work_unit_id,
+    study_has_running_provider_attempt,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control import (
     materialize_provider_admission_current_control_state,
@@ -152,6 +153,7 @@ def _filter_candidates_blocked_by_paper_recovery_state(
     blocked_studies.update(
         _paper_recovery_provider_admission_blocked_studies_from_states(paper_recovery_states)
     )
+    blocked_studies.update(_running_provider_attempt_studies(actions))
     if not blocked_studies:
         return candidates
     return [
@@ -173,6 +175,64 @@ def _paper_recovery_provider_admission_blocked_studies(actions: Any) -> set[str]
         if _paper_recovery_blocks_provider_admission(recovery):
             blocked.add(study_id)
     return blocked
+
+
+def _running_provider_attempt_studies(actions: Any) -> set[str]:
+    running: set[str] = set()
+    for action in actions or []:
+        if not isinstance(action, Mapping):
+            continue
+        study_id = _non_empty_text(action.get("study_id"))
+        if study_id is None:
+            continue
+        if _action_has_running_provider_attempt(action):
+            running.add(study_id)
+    return running
+
+
+def _action_has_running_provider_attempt(action: Mapping[str, Any]) -> bool:
+    if study_has_running_provider_attempt(action):
+        return True
+    envelope = _mapping(action.get("current_execution_envelope"))
+    if (
+        _non_empty_text(envelope.get("state_kind")) == "running_provider_attempt"
+        and _live_worker_liveness(action)
+    ):
+        return True
+    for key in (
+        "opl_provider_attempt",
+        "provider_attempt_proof",
+        "progress_first_monitoring_summary",
+    ):
+        nested = _mapping(action.get(key))
+        if nested and study_has_running_provider_attempt(nested):
+            return True
+    current_work_unit_state = _mapping(_mapping(action.get("current_work_unit")).get("state"))
+    proof = _mapping(current_work_unit_state.get("provider_attempt_proof"))
+    if proof and study_has_running_provider_attempt(proof):
+        return True
+    return False
+
+
+def _live_worker_liveness(action: Mapping[str, Any]) -> dict[str, Any]:
+    runtime_health = _mapping(action.get("runtime_health_snapshot")) or _mapping(
+        action.get("runtime_health")
+    )
+    worker_liveness = _mapping(runtime_health.get("worker_liveness_state")) or _mapping(
+        runtime_health.get("worker_liveness")
+    )
+    if worker_liveness.get("worker_running") is False:
+        return {}
+    state = _non_empty_text(worker_liveness.get("state"))
+    runtime_liveness = _non_empty_text(worker_liveness.get("runtime_liveness_status"))
+    if state not in {None, "live", "running"} and runtime_liveness not in {"live", "running"}:
+        return {}
+    active = (
+        _non_empty_text(worker_liveness.get("active_stage_attempt_id"))
+        or _non_empty_text(worker_liveness.get("active_run_id"))
+        or _non_empty_text(worker_liveness.get("active_workflow_id"))
+    )
+    return dict(worker_liveness) if active is not None else {}
 
 
 def _paper_recovery_provider_admission_blocked_studies_from_states(states: Any) -> set[str]:
@@ -267,6 +327,7 @@ def _provider_admission_scanned_currentness_studies(
             progress_payload.get("progress_first_monitoring_summary")
         )
         intervention_lane = _mapping(progress_payload.get("intervention_lane"))
+        running_provider_attempt = _running_provider_attempt_projection(progress_payload)
         identity = _progress_currentness_current_identity(progress_payload)
         closeout_evidence = _progress_currentness_closeout_evidence(
             progress_payload,
@@ -284,7 +345,12 @@ def _provider_admission_scanned_currentness_studies(
         work_unit_id = _non_empty_text(current_action.get("work_unit_id")) or _non_empty_text(
             current_work_unit.get("work_unit_id")
         )
-        execution_envelope = dict(current_execution_envelope) if current_execution_envelope else {
+        execution_envelope = (
+            dict(running_provider_attempt)
+            if running_provider_attempt
+            else dict(current_execution_envelope)
+            if current_execution_envelope
+            else {
             "state_kind": "executable_owner_action",
             "owner": next_owner,
             "next_work_unit": work_unit_id,
@@ -292,6 +358,7 @@ def _provider_admission_scanned_currentness_studies(
             "parked_state": None,
             "source": "progress_currentness.current_executable_owner_action",
         }
+        )
         studies.append(
             {
                 "study_id": normalized_study_id,
@@ -310,6 +377,7 @@ def _provider_admission_scanned_currentness_studies(
                    if progress_first_monitoring_summary else {}),
                 **({"intervention_lane": dict(intervention_lane)} if intervention_lane else {}),
                 **({"accepted_closeout_evidence": closeout_evidence} if closeout_evidence else {}),
+                **_running_provider_attempt_study_fields(running_provider_attempt),
                 "current_execution_envelope": execution_envelope,
             }
         )
@@ -514,6 +582,8 @@ def _provider_admission_candidates_from_progress_currentness(
         study_id = _non_empty_text(study.get("study_id"))
         if study_id is None:
             continue
+        if study.get("running_provider_attempt") is True:
+            continue
         study_root = Path(profile.studies_root) / study_id
         status_payload = {
             "study_id": study_id,
@@ -550,6 +620,47 @@ def _provider_admission_candidates_from_progress_currentness(
             )
         )
     return candidates
+
+
+def _running_provider_attempt_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
+    envelope = _mapping(payload.get("current_execution_envelope"))
+    if _non_empty_text(envelope.get("state_kind")) == "running_provider_attempt":
+        return dict(envelope)
+    current_work_unit = _mapping(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) == "running_provider_attempt":
+        state = _mapping(current_work_unit.get("state"))
+        proof = _mapping(state.get("provider_attempt_proof"))
+        return {
+            "state_kind": "running_provider_attempt",
+            "owner": _non_empty_text(current_work_unit.get("owner")),
+            "next_work_unit": _non_empty_text(current_work_unit.get("work_unit_id")),
+            "typed_blocker": None,
+            "parked_state": None,
+            "source": _non_empty_text(state.get("source")) or "progress_currentness.current_work_unit",
+            **({"provider_attempt_proof": proof} if proof else {}),
+        }
+    return {}
+
+
+def _running_provider_attempt_study_fields(envelope: Mapping[str, Any]) -> dict[str, Any]:
+    if not envelope:
+        return {}
+    proof = _mapping(envelope.get("provider_attempt_proof"))
+    return {
+        key: value
+        for key, value in {
+            "running_provider_attempt": True,
+            "active_run_id": _non_empty_text(envelope.get("active_run_id"))
+            or _non_empty_text(proof.get("active_run_id")),
+            "active_stage_attempt_id": _non_empty_text(envelope.get("active_stage_attempt_id"))
+            or _non_empty_text(proof.get("active_stage_attempt_id")),
+            "active_workflow_id": _non_empty_text(envelope.get("active_workflow_id"))
+            or _non_empty_text(proof.get("active_workflow_id")),
+            "runtime_health": _mapping(envelope.get("runtime_health")) or _mapping(proof.get("runtime_health")),
+            "opl_provider_attempt": _mapping(envelope.get("opl_provider_attempt")) or proof,
+        }.items()
+        if value not in (None, "", {}, [])
+    }
 
 
 def _progress_payload_with_owner_gate_route_back_action(
@@ -655,6 +766,8 @@ def _scanned_study_ids_without_provider_admission(
         if study_id is None:
             continue
         if _mapping(study.get("current_executable_owner_action")):
+            continue
+        if study.get("provider_admission_pending_count", 0) > 0 or study.get("provider_admission_candidates"):
             continue
         current_work_unit = _mapping(study.get("current_work_unit"))
         envelope = _mapping(study.get("current_execution_envelope"))
