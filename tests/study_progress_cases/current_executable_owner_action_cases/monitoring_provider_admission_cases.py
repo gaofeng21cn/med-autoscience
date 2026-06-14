@@ -36,6 +36,102 @@ def _supervisor_decision(decision: str) -> dict:
     }
 
 
+def test_progress_first_monitoring_honors_current_control_executable_handoff_over_stale_gate_replay() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    gate_fingerprint = "sha256:bfcf03bacdcb4e58edd085444dda2f3906814c8a1806afb63b8095b90408bac9"
+    repair_fingerprint = "publication-blockers::0915410f804b3697"
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": repair_fingerprint,
+        "action_fingerprint": repair_fingerprint,
+        "owner_receipt_required": True,
+    }
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": repair_fingerprint,
+                "action_fingerprint": repair_fingerprint,
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+            "current_executable_owner_action": action,
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_done": True,
+            },
+            "opl_current_control_state_handoff": {
+                "surface_kind": "opl_current_control_state_study_handoff",
+                "running_provider_attempt": False,
+                "blocked_reason": "publication_gate_replay_blocked",
+                "next_owner": "publication_gate",
+                "typed_blocker": {
+                    "blocker_type": "publication_gate_replay_blocked",
+                    "owner": "publication_gate",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": gate_fingerprint,
+                    "action_fingerprint": gate_fingerprint,
+                },
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "schema_version": 1,
+                    "status": "executable_owner_action",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": repair_fingerprint,
+                    "action_fingerprint": repair_fingerprint,
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "write",
+                    "next_work_unit": "medical_prose_write_repair",
+                },
+                "current_executable_owner_action": action,
+            },
+        }
+    )
+
+    assert monitoring["current_executable_owner_action"] == action
+    assert monitoring["next_owner"] == "write"
+    assert monitoring["controller_action"] == "run_quality_repair_batch"
+    assert monitoring["next_work_unit"] == "medical_prose_write_repair"
+    admission = monitoring["owner_action_admission"]
+    assert admission["admission_pending"] is True
+    assert admission["hard_gate_blocked"] is False
+    assert admission["next_owner"] == "write"
+    assert admission["work_unit_id"] == "medical_prose_write_repair"
+
+
 def test_progress_first_monitoring_requires_running_provider_proof_for_current_write_action_without_queue_identity() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

@@ -17,3 +17,4 @@ from .owner_route_handoff_command_cases.authority_blocker_cases import *  # noqa
 from .owner_route_handoff_command_cases.domain_dispatch_evidence_payload_cases import *  # noqa: F403,F401
 from .owner_route_handoff_command_cases.domain_dispatch_evidence_payload_finalize_gate_replay_cases import *  # noqa: F403,F401
 from .owner_route_handoff_command_cases.stage_evidence_payload_cases import *  # noqa: F403,F401
+from .owner_route_handoff_command_cases.test_paper_recovery_successor_dispatch_cases import *  # noqa: F403,F401
