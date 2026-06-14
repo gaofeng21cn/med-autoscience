@@ -17,6 +17,9 @@ from med_autoscience.controllers.default_executor_action_policy import REQUEST_O
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
 from med_autoscience.controllers.owner_route_handoff_parts import current_dispatch_identity
 from med_autoscience.controllers.owner_route_handoff_parts import provider_admission_identity
+from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
+    provider_admission_supervisor_gate,
+)
 from med_autoscience.controllers.study_transition_receipt_consumption_parts import (
     nonconsumable_redrive_budget,
 )
@@ -41,10 +44,20 @@ def default_executor_dispatch_tasks(
     current_owner_action: Mapping[str, Any] | None = None,
     current_work_unit: Mapping[str, Any] | None = None,
     current_execution_envelope: Mapping[str, Any] | None = None,
+    paper_recovery_state: Mapping[str, Any] | None = None,
     persist_identity: bool = True,
 ) -> list[dict[str, Any]]:
     dispatch_root = profile.studies_root / study_id / DISPATCH_RELATIVE_ROOT
     if not dispatch_root.is_dir():
+        return []
+    status_payload = _provider_admission_status_payload(
+        study_id=study_id,
+        current_owner_action=_mapping(current_owner_action),
+        current_work_unit=_mapping(current_work_unit),
+        current_execution_envelope=_mapping(current_execution_envelope),
+        paper_recovery_state=_mapping(paper_recovery_state),
+    )
+    if provider_admission_supervisor_gate(status_payload).get("blocked") is True:
         return []
     canonical_identity = current_dispatch_identity.canonical_current_dispatch_identity(
         study_id=study_id,
@@ -57,12 +70,7 @@ def default_executor_dispatch_tasks(
     tasks: list[dict[str, Any]] = []
     provider_admission_candidates = provider_admission.persisted_provider_admission_candidates(
         study_root=profile.studies_root / study_id,
-        status_payload=_provider_admission_status_payload(
-            study_id=study_id,
-            current_owner_action=_mapping(current_owner_action),
-            current_work_unit=_mapping(current_work_unit),
-            current_execution_envelope=_mapping(current_execution_envelope),
-        ),
+        status_payload=status_payload,
     )
     provider_admission_candidates = [
         *provider_admission_candidates,
@@ -258,6 +266,7 @@ def _provider_admission_status_payload(
     current_owner_action: Mapping[str, Any],
     current_work_unit: Mapping[str, Any],
     current_execution_envelope: Mapping[str, Any],
+    paper_recovery_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {"study_id": study_id}
     if current_work_unit:
@@ -266,6 +275,8 @@ def _provider_admission_status_payload(
         payload["current_execution_envelope"] = dict(current_execution_envelope)
     if current_owner_action:
         payload["current_executable_owner_action"] = dict(current_owner_action)
+    if paper_recovery_state:
+        payload["paper_recovery_state"] = dict(paper_recovery_state)
     return payload
 
 

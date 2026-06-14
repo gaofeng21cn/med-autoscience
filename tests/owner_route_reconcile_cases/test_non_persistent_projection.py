@@ -15,6 +15,303 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _supervisor_decision(decision: str, *, study_id: str, fingerprint: str) -> dict:
+    return {
+        "surface_kind": "paper_autonomy_supervisor_decision",
+        "decision": decision,
+        "identity_match": True,
+        "paper_autonomy_obligation": {
+            "surface_kind": "paper_autonomy_obligation",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "stage_id": "publication_supervision",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+            "route_identity_key": f"provider-admission::{study_id}::{fingerprint}",
+            "attempt_idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+        },
+        "evidence_refs": [
+            f"provider-admission::{study_id}::{fingerprint}",
+            f"stage-run-identity::{study_id}::{fingerprint}",
+        ],
+        "missing_evidence_refs": [],
+    }
+
+
+def _current_owner_action(*, fingerprint: str) -> dict:
+    return {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "owner_route_currentness_basis": {
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+            "truth_epoch": "truth::current",
+            "runtime_health_epoch": "runtime::current",
+        },
+    }
+
+
+def _current_work_unit(*, study_id: str, fingerprint: str) -> dict:
+    return {
+        "surface_kind": "current_work_unit",
+        "status": "executable_owner_action",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "currentness_basis": {
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+            "truth_epoch": "truth::current",
+            "runtime_health_epoch": "runtime::current",
+        },
+    }
+
+
+def _write_ready_repair_dispatch(study_root: Path, *, study_id: str, fingerprint: str) -> None:
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    stage_packet_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "immutable"
+        / "run_quality_repair_batch"
+        / "stage-packet.json"
+    )
+    dispatch = {
+        "surface": "default_executor_dispatch_request",
+        "dispatch_status": "ready",
+        "action_type": "run_quality_repair_batch",
+        "next_executable_owner": "write",
+        "executor_kind": "codex_cli_default",
+        "dispatch_authority": "consumer_default_executor_dispatch",
+        "refs": {
+            "dispatch_path": str(dispatch_path),
+            "stage_packet_path": str(stage_packet_path),
+        },
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner_route": {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "next_owner": "write",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "source_refs": {
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "route_identity_key": f"provider-admission::{study_id}::{fingerprint}",
+                "attempt_idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                    "truth_epoch": "truth::current",
+                    "runtime_health_epoch": "runtime::current",
+                },
+            },
+            "truth_epoch": "truth::current",
+            "route_epoch": f"route::{fingerprint}",
+            "idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+            "runtime_health_epoch": "runtime::current",
+            "work_unit_fingerprint": fingerprint,
+            "source_fingerprint": fingerprint,
+        },
+        "prompt_contract": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "next_executable_owner": "write",
+            "owner_route": {
+                "surface": "domain_route_owner_route",
+                "schema_version": 2,
+                "study_id": study_id,
+                "quest_id": study_id,
+                "current_owner": "mas_controller",
+                "next_owner": "write",
+                "owner_reason": "manuscript_story_surface_delta_missing",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "source_refs": {
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                },
+                "truth_epoch": "truth::current",
+                "route_epoch": f"route::{fingerprint}",
+                "idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+                "runtime_health_epoch": "runtime::current",
+                "work_unit_fingerprint": fingerprint,
+                "source_fingerprint": fingerprint,
+            },
+            "allowed_write_surfaces": ["artifacts/controller/repair_execution_evidence/latest.json"],
+            "forbidden_surfaces": [
+                "paper/current_package/**",
+                "manuscript/current_package/**",
+                "artifacts/publication_eval/latest.json",
+                "artifacts/controller_decisions/latest.json",
+            ],
+        },
+    }
+    _write_json(dispatch_path, dispatch)
+    _write_json(stage_packet_path, {**dispatch, "immutable_packet_ref": "existing"})
+
+
+def test_domain_handler_export_suppresses_current_action_under_supervisor_materialize_decision() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    action = module._export_current_owner_action(
+        study={},
+        current_progress={
+            "study_id": study_id,
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "admission_pending",
+                "supervisor_decision": _supervisor_decision(
+                    "materialize_recovery_action",
+                    study_id=study_id,
+                    fingerprint=fingerprint,
+                ),
+            },
+            "current_work_unit": _current_work_unit(study_id=study_id, fingerprint=fingerprint),
+            "current_execution_envelope": {"state_kind": "executable_owner_action"},
+            "current_executable_owner_action": _current_owner_action(fingerprint=fingerprint),
+        },
+    )
+
+    assert action == {}
+
+
+def test_domain_handler_export_allows_current_action_under_supervisor_execute_decision() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    action = module._export_current_owner_action(
+        study={},
+        current_progress={
+            "study_id": study_id,
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "admission_pending",
+                "supervisor_decision": _supervisor_decision(
+                    "execute_current_owner_delta",
+                    study_id=study_id,
+                    fingerprint=fingerprint,
+                ),
+            },
+            "current_work_unit": _current_work_unit(study_id=study_id, fingerprint=fingerprint),
+            "current_execution_envelope": {"state_kind": "executable_owner_action"},
+            "current_executable_owner_action": _current_owner_action(fingerprint=fingerprint),
+        },
+    )
+
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["work_unit_fingerprint"] == fingerprint
+
+
+def test_default_executor_dispatch_tasks_block_ready_dispatch_under_supervisor_materialize_decision(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.default_executor_dispatch_tasks"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.toml"
+    profile_ref.write_text("[profile]\n", encoding="utf-8")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_ready_repair_dispatch(study_root, study_id=study_id, fingerprint=fingerprint)
+
+    tasks = module.default_executor_dispatch_tasks(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        current_owner_action=_current_owner_action(fingerprint=fingerprint),
+        current_work_unit=_current_work_unit(study_id=study_id, fingerprint=fingerprint),
+        current_execution_envelope={"state_kind": "executable_owner_action"},
+        paper_recovery_state={
+            "surface_kind": "paper_recovery_state",
+            "phase": "admission_pending",
+            "supervisor_decision": _supervisor_decision(
+                "materialize_recovery_action",
+                study_id=study_id,
+                fingerprint=fingerprint,
+            ),
+        },
+        persist_identity=False,
+    )
+
+    assert tasks == []
+
+
+def test_default_executor_dispatch_tasks_execute_decision_allows_ready_dispatch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.default_executor_dispatch_tasks"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.toml"
+    profile_ref.write_text("[profile]\n", encoding="utf-8")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_ready_repair_dispatch(study_root, study_id=study_id, fingerprint=fingerprint)
+
+    tasks = module.default_executor_dispatch_tasks(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        current_owner_action=_current_owner_action(fingerprint=fingerprint),
+        current_work_unit=_current_work_unit(study_id=study_id, fingerprint=fingerprint),
+        current_execution_envelope={"state_kind": "executable_owner_action"},
+        paper_recovery_state={
+            "surface_kind": "paper_recovery_state",
+            "phase": "admission_pending",
+            "supervisor_decision": _supervisor_decision(
+                "execute_current_owner_delta",
+                study_id=study_id,
+                fingerprint=fingerprint,
+            ),
+        },
+        persist_identity=False,
+    )
+
+    assert [task["payload"]["action_type"] for task in tasks] == ["run_quality_repair_batch"]
+    assert tasks[0]["payload"]["work_unit_fingerprint"] == fingerprint
+
+
 def test_domain_handler_export_does_not_persist_dispatch_identity(
     monkeypatch,
     tmp_path: Path,

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from .paper_autonomy_supervisor_decision import provider_admission_supervisor_gate
+
 
 def build_owner_action_admission_projection(
     *,
@@ -274,6 +276,9 @@ def _handoff_stage_attempt_id(handoff: Mapping[str, Any]) -> str | None:
 
 def _hard_gate_blockers(payload: Mapping[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {}
+    supervisor_decision = _blocking_supervisor_decision(payload)
+    if supervisor_decision:
+        result["paper_autonomy_supervisor_decision"] = supervisor_decision
     interaction = _mapping(payload.get("interaction_arbitration"))
     if interaction.get("requires_user_input") is True or _text(interaction.get("classification")) == "human_gate":
         result["human_gate"] = {
@@ -304,6 +309,19 @@ def _hard_gate_blockers(payload: Mapping[str, Any]) -> dict[str, Any]:
             "reason": _text(irreversible.get("reason")) or _text(irreversible.get("blocked_reason")),
         }
     return result
+
+
+def _blocking_supervisor_decision(payload: Mapping[str, Any]) -> dict[str, Any]:
+    gate = provider_admission_supervisor_gate(payload)
+    if gate.get("blocked") is not True:
+        return {}
+    supervisor_decision = _mapping(gate.get("supervisor_decision"))
+    return {
+        "decision": _text(supervisor_decision.get("decision")),
+        "reason": _text(gate.get("reason"))
+        or "paper_autonomy_supervisor_decision_blocks_provider_admission",
+        "supervisor_decision": supervisor_decision,
+    }
 
 
 def _owner_callable_surface_missing_blocker(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -351,6 +369,7 @@ def _owner_callable_surface_missing_value(value: object) -> bool:
 def _hard_gate_reasons(blocked_by: Mapping[str, Any]) -> list[str]:
     reasons: list[str] = []
     reason_by_surface = {
+        "paper_autonomy_supervisor_decision": "paper_autonomy_supervisor_decision",
         "human_gate": "human_gate_required",
         "forbidden_write_refs": "forbidden_write_refs",
         "owner_callable_surface": "owner_callable_surface_missing",

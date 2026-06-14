@@ -5,6 +5,10 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
 
+from .paper_autonomy_supervisor_decision import (
+    provider_admission_supervisor_gate,
+    supervisor_block_projection,
+)
 from .shared import _mapping_copy, _non_empty_text
 
 
@@ -14,6 +18,15 @@ def provider_admission_projection_fields(
     handoff: Mapping[str, Any],
     study_root: Path,
 ) -> dict[str, Any]:
+    supervisor_gate = provider_admission_supervisor_gate(payload)
+    if supervisor_gate.get("blocked") is True:
+        supervisor_decision = _mapping_copy(supervisor_gate.get("supervisor_decision"))
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "paper_autonomy_supervisor_decision": supervisor_decision,
+            "provider_admission_blocked_by_supervisor_decision": supervisor_block_projection(supervisor_gate),
+        }
     if _handoff_typed_blocker_consumes_current_action(payload=payload, handoff=handoff):
         return {
             "provider_admission_pending_count": 0,

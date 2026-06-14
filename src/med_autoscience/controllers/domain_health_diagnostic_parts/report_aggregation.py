@@ -8,6 +8,9 @@ from med_autoscience.controllers import current_execution_envelope
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.controllers import runtime_dispatch_cost
 from med_autoscience.controllers.domain_health_diagnostic_parts.reporting import _attach_family_companion_to_runtime_report
+from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
+    provider_admission_supervisor_gate,
+)
 from med_autoscience.runtime_protocol import quest_state
 
 
@@ -404,6 +407,9 @@ def _managed_study_action_with_paper_recovery_state(
         return dict(action)
     result = dict(action)
     result["paper_recovery_state"] = dict(recovery)
+    supervisor_decision = _mapping(_mapping(recovery).get("supervisor_decision"))
+    if supervisor_decision:
+        result["supervisor_decision"] = dict(supervisor_decision)
     phase = _text(recovery.get("phase"))
     if phase in {"domain_blocked", "human_gate"}:
         result["decision"] = phase
@@ -463,6 +469,27 @@ def _managed_study_action_with_provider_admission_state(
     recovery = _mapping(paper_recovery_state)
     if recovery:
         result["paper_recovery_state"] = recovery
+        supervisor_decision = _mapping(recovery.get("supervisor_decision"))
+        if supervisor_decision:
+            result["supervisor_decision"] = dict(supervisor_decision)
+    supervisor_decision = _mapping(result.get("supervisor_decision"))
+    supervisor_gate = provider_admission_supervisor_gate(
+        result,
+        paper_recovery_state=recovery,
+    )
+    if supervisor_gate.get("blocked") is True:
+        supervisor_decision = _mapping(supervisor_gate.get("supervisor_decision"))
+        result["running_provider_attempt"] = False
+        result["provider_admission_state"] = {
+            "status": "blocked_by_paper_autonomy_supervisor_decision",
+            "candidate_count": len(candidates),
+            "running_provider_attempt": False,
+            "supervisor_decision": dict(supervisor_decision),
+            "paper_recovery_phase": _text(recovery.get("phase")),
+            "paper_recovery_reason": _paper_recovery_reason(recovery),
+            "next_safe_action": _mapping(recovery.get("next_safe_action")),
+        }
+        return result
     gate = _mapping(result.get("execution_gate"))
     if gate.get("blocked") is True:
         result["running_provider_attempt"] = False

@@ -98,6 +98,35 @@ def _quality_repair_handoff(*, study_id: str, fingerprint: str) -> dict:
     }
 
 
+def _supervisor_decision(decision: str, *, study_id: str, fingerprint: str) -> dict:
+    return {
+        "surface_kind": "paper_autonomy_supervisor_decision",
+        "decision": decision,
+        "identity_match": True,
+        "paper_autonomy_obligation": {
+            "surface_kind": "paper_autonomy_obligation",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "stage_id": "publication_supervision",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+            "route_identity_key": f"provider-admission::{study_id}::{fingerprint}",
+            "attempt_idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+        },
+        "evidence_refs": [
+            f"provider-admission::{study_id}::{fingerprint}",
+            f"stage-run-identity::{study_id}::{fingerprint}",
+        ],
+        "missing_evidence_refs": [],
+        "next_safe_action": {
+            "kind": "admit_or_resume_stage_run"
+            if decision == "execute_current_owner_delta"
+            else "publish_stable_blocker_and_stop_same_identity_redrive",
+        },
+    }
+
+
 def _quality_repair_current_work_unit(*, study_id: str, fingerprint: str, status: str) -> dict:
     return {
         "surface_kind": "current_work_unit",
@@ -207,6 +236,95 @@ def test_provider_admission_projection_emits_candidate_for_current_executable_ac
     assert candidate["attempt_idempotency_key"] == expected_identity
     assert candidate["stage_packet_ref"] == expected_stage_packet_ref
     assert candidate["stage_packet_refs"] == [candidate["stage_packet_ref"]]
+
+
+def test_provider_admission_projection_blocks_queue_residue_under_supervisor_stop_decision(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_ready_quality_repair_dispatch(study_root, study_id=study_id, fingerprint=fingerprint)
+
+    fields = module.provider_admission_projection_fields(
+        payload={
+            "study_id": study_id,
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "admission_pending",
+                "supervisor_decision": _supervisor_decision(
+                    "stop_with_stable_typed_blocker",
+                    study_id=study_id,
+                    fingerprint=fingerprint,
+                ),
+            },
+            "current_work_unit": _quality_repair_current_work_unit(
+                study_id=study_id,
+                fingerprint=fingerprint,
+                status="executable_owner_action",
+            ),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+        },
+        handoff=_quality_repair_handoff(study_id=study_id, fingerprint=fingerprint),
+        study_root=study_root,
+    )
+
+    assert fields["provider_admission_pending_count"] == 0
+    assert fields["provider_admission_candidates"] == []
+    assert fields["paper_autonomy_supervisor_decision"]["decision"] == "stop_with_stable_typed_blocker"
+    assert fields["provider_admission_blocked_by_supervisor_decision"] == {
+        "decision": "stop_with_stable_typed_blocker",
+        "reason": "paper_autonomy_supervisor_decision_blocks_provider_admission",
+    }
+
+
+def test_provider_admission_projection_execute_decision_allows_current_candidate(tmp_path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_ready_quality_repair_dispatch(study_root, study_id=study_id, fingerprint=fingerprint)
+
+    fields = module.provider_admission_projection_fields(
+        payload={
+            "study_id": study_id,
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "admission_pending",
+                "supervisor_decision": _supervisor_decision(
+                    "execute_current_owner_delta",
+                    study_id=study_id,
+                    fingerprint=fingerprint,
+                ),
+            },
+            "current_work_unit": _quality_repair_current_work_unit(
+                study_id=study_id,
+                fingerprint=fingerprint,
+                status="executable_owner_action",
+            ),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+        },
+        handoff=_quality_repair_handoff(study_id=study_id, fingerprint=fingerprint),
+        study_root=study_root,
+    )
+
+    assert fields["provider_admission_pending_count"] == 1
+    assert fields["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
 
 
 def test_provider_admission_projection_materializes_gate_followthrough_owner_action_without_pending_flag(

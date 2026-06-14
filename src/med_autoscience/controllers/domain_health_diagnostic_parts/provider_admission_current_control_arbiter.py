@@ -23,6 +23,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity import (
     closeout_core_identity_matches_candidate as _closeout_core_identity_matches_candidate,
 )
+from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
+    provider_admission_supervisor_gate,
+)
 
 ARBITER_SURFACE_KIND = "mas_opl_stage_route_arbiter"
 ARBITER_SCHEMA_VERSION = 1
@@ -183,6 +186,7 @@ def _arbiter_decision(
         "active_run_id": _non_empty_text(evidence.get("active_run_id")),
         "active_workflow_id": _non_empty_text(evidence.get("active_workflow_id")),
         "missing_identity_fields": _missing_identity_fields(evidence),
+        "evidence": dict(evidence) if evidence else None,
         "evidence_status": evidence_status,
         "no_progress_signal": no_progress_signal,
         "anti_loop_classification": _arbiter_anti_loop_classification(no_progress_signal),
@@ -489,8 +493,15 @@ def _paper_recovery_state_blocks_provider_admission(
     recovery = _mapping(study.get("paper_recovery_state"))
     if not recovery:
         return {}
+    supervisor_gate = provider_admission_supervisor_gate(study, paper_recovery_state=recovery)
+    supervisor_decision = _mapping(supervisor_gate.get("supervisor_decision"))
+    if supervisor_decision and supervisor_gate.get("blocked") is not True:
+        return {}
     next_safe_action = _mapping(recovery.get("next_safe_action"))
-    if next_safe_action.get("provider_admission_allowed") is not False:
+    if (
+        not supervisor_decision
+        and next_safe_action.get("provider_admission_allowed") is not False
+    ):
         return {}
     if not _paper_recovery_state_matches_identity(study, recovery=recovery, identity=identity):
         return {}
@@ -501,6 +512,7 @@ def _paper_recovery_state_blocks_provider_admission(
             **recovery,
             "status": phase,
             "provider_admission_allowed": False,
+            "supervisor_decision": supervisor_decision,
             "next_safe_action": next_safe_action,
         }.items()
         if value not in (None, "", [], {})

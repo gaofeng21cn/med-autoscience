@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from ..paper_autonomy_supervisor_decision import supervisor_decision_blocks_provider_admission
 from ..shared import _mapping_copy, _non_empty_text
 
 
@@ -32,6 +33,7 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
     if phase is None:
         return payload
     next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
+    supervisor_decision = _mapping_copy(recovery.get("supervisor_decision"))
     summary = paper_recovery_summary(phase=phase, next_safe_action=next_safe_action)
     if summary is None:
         return payload
@@ -42,8 +44,10 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
             blockers.append(phase)
         updated["current_blockers"] = blockers
         updated["next_system_action"] = summary
-    if next_safe_action.get("provider_admission_allowed") is False:
-        _suppress_active_provider_admission_projection(updated)
+    if _supervisor_decision_blocks_provider_admission(supervisor_decision) or (
+        next_safe_action.get("provider_admission_allowed") is False
+    ):
+        _suppress_active_provider_admission_projection(updated, blocked_by=_blocked_by(supervisor_decision))
     if phase in PAPER_RECOVERY_AUTHORITY_VISIBLE_PHASES:
         updated = _apply_paper_recovery_authority_projection(
             updated,
@@ -95,8 +99,11 @@ def _apply_paper_recovery_authority_projection(
     updated = dict(payload)
     action_kind = _non_empty_text(next_safe_action.get("kind")) or "inspect_paper_recovery_state"
     lane_id = f"paper_recovery_{phase}"
-    if next_safe_action.get("provider_admission_allowed") is False:
-        _suppress_active_provider_admission_projection(updated)
+    supervisor_decision = _mapping_copy(recovery.get("supervisor_decision"))
+    if _supervisor_decision_blocks_provider_admission(supervisor_decision) or (
+        next_safe_action.get("provider_admission_allowed") is False
+    ):
+        _suppress_active_provider_admission_projection(updated, blocked_by=_blocked_by(supervisor_decision))
     if _non_empty_text(updated.get("current_stage")) == "auto_runtime_parked":
         updated["current_stage"] = "publication_supervision"
     updated["next_step"] = summary
@@ -145,7 +152,11 @@ def _apply_paper_recovery_authority_projection(
     return updated
 
 
-def _suppress_active_provider_admission_projection(payload: dict[str, Any]) -> None:
+def _suppress_active_provider_admission_projection(
+    payload: dict[str, Any],
+    *,
+    blocked_by: str = "paper_recovery_state",
+) -> None:
     candidates = [
         dict(item)
         for item in payload.get("provider_admission_candidates") or []
@@ -163,16 +174,26 @@ def _suppress_active_provider_admission_projection(payload: dict[str, Any]) -> N
     if admission:
         admission["admission_pending"] = False
         admission["provider_attempt_start_requested"] = False
-        admission["blocked_by"] = "paper_recovery_state"
+        admission["blocked_by"] = blocked_by
         payload["owner_action_admission"] = admission
     monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
     monitoring_admission = _mapping_copy(monitoring.get("owner_action_admission"))
     if monitoring_admission:
         monitoring_admission["admission_pending"] = False
         monitoring_admission["provider_attempt_start_requested"] = False
-        monitoring_admission["blocked_by"] = "paper_recovery_state"
+        monitoring_admission["blocked_by"] = blocked_by
         monitoring["owner_action_admission"] = monitoring_admission
         payload["progress_first_monitoring_summary"] = monitoring
+
+
+def _supervisor_decision_blocks_provider_admission(supervisor_decision: Mapping[str, Any]) -> bool:
+    return supervisor_decision_blocks_provider_admission(supervisor_decision)
+
+
+def _blocked_by(supervisor_decision: Mapping[str, Any]) -> str:
+    if _supervisor_decision_blocks_provider_admission(supervisor_decision):
+        return "paper_autonomy_supervisor_decision"
+    return "paper_recovery_state"
 
 
 def _suppress_current_work_unit_provider_admission_pending(payload: dict[str, Any]) -> None:
