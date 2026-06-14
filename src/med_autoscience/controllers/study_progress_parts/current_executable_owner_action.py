@@ -481,7 +481,7 @@ def _gate_followthrough_supersedes_repair_progress(
         return False
     return _ref_sets_intersect(
         _gate_followthrough_action_refs(gate_action),
-        _repair_followup_gate_request_refs(repair_action),
+        _repair_followup_gate_action_refs(repair_action),
     )
 
 
@@ -580,7 +580,7 @@ def _gate_followthrough_consumes_repair_progress_gate_replay(
     if _non_empty_text(gate_followthrough_action.get("action_type")) != QUALITY_REPAIR_ACTION:
         return False
     return _ref_sets_intersect(
-        _repair_followup_gate_request_refs(action),
+        _repair_followup_gate_action_refs(action),
         _gate_followthrough_record_refs(
             followthrough,
             gate_followthrough_action=gate_followthrough_action,
