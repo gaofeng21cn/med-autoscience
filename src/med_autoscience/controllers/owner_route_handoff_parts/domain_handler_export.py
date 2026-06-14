@@ -40,6 +40,9 @@ from .owner_route_handoff_tasks import owner_route_handoff_task
 from .owner_source_refs import owner_controller_decision_refs
 from .substrate_adapter import build_opl_substrate_adapter_projection
 from .task_kinds import ALLOWED_TASK_KINDS
+from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
+    provider_admission_supervisor_gate,
+)
 
 
 def _now_iso() -> str:
@@ -292,6 +295,7 @@ def _pending_family_tasks(
                 current_owner_action=current_owner_action,
                 current_work_unit=current_work_unit,
                 current_execution_envelope=current_execution_envelope,
+                paper_recovery_state=mapping(current_progress.get("paper_recovery_state")),
                 persist_identity=False,
             )
         )
@@ -624,6 +628,8 @@ def _export_current_owner_action(
     study: Mapping[str, Any],
     current_progress: Mapping[str, Any],
 ) -> Mapping[str, Any]:
+    if _supervisor_decision_blocks_owner_action(current_progress):
+        return {}
     current_work_unit = mapping(current_progress.get("current_work_unit"))
     current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
     owner_gate_action = accepted_owner_gate_route_back_action(
@@ -652,6 +658,11 @@ def _export_current_owner_action(
     if text(projection_action.get("source")) == "opl_current_control_state_action_queue":
         return {}
     return projection_action
+
+
+def _supervisor_decision_blocks_owner_action(current_progress: Mapping[str, Any]) -> bool:
+    return provider_admission_supervisor_gate(current_progress).get("blocked") is True
+
 
 def _export_current_execution_envelope(
     *,

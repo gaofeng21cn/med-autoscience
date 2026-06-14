@@ -12,6 +12,30 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 
+def _supervisor_decision(decision: str) -> dict:
+    return {
+        "surface_kind": "paper_autonomy_supervisor_decision",
+        "decision": decision,
+        "identity_match": True,
+        "paper_autonomy_obligation": {
+            "surface_kind": "paper_autonomy_obligation",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "stage_id": "publication_supervision",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "route_identity_key": "provider-admission::003-dpcc::0915410f804b3697",
+            "attempt_idempotency_key": "provider-admission::003-dpcc::0915410f804b3697",
+        },
+        "evidence_refs": [
+            "provider-admission::003-dpcc::0915410f804b3697",
+            "stage-run-identity::003-dpcc::0915410f804b3697",
+        ],
+        "missing_evidence_refs": [],
+    }
+
+
 def test_progress_first_monitoring_requires_running_provider_proof_for_current_write_action_without_queue_identity() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
@@ -62,6 +86,107 @@ def test_progress_first_monitoring_requires_running_provider_proof_for_current_w
     assert admission["admission_pending"] is True
     assert admission["provider_attempt_running_proven"] is False
     assert admission["provider_attempt_proof"] is None
+
+
+def test_progress_first_monitoring_blocks_owner_action_admission_under_supervisor_wait_decision() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "human_gate",
+                "supervisor_decision": _supervisor_decision("wait_for_owner_with_resume_token"),
+            },
+            "current_work_unit": {
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "next_owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "owner_receipt_required": True,
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "action_queue": [
+                    {
+                        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    }
+                ],
+            },
+        }
+    )
+
+    admission = monitoring["owner_action_admission"]
+    assert admission["admission_requested"] is False
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["blocked_by"]["paper_autonomy_supervisor_decision"]["decision"] == (
+        "wait_for_owner_with_resume_token"
+    )
+    assert admission["hard_gate_reasons"] == ["paper_autonomy_supervisor_decision"]
+
+
+def test_progress_first_monitoring_execute_decision_allows_owner_action_admission() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "admission_pending",
+                "supervisor_decision": _supervisor_decision("execute_current_owner_delta"),
+            },
+            "current_work_unit": {
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "next_owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "owner_receipt_required": True,
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "action_queue": [],
+            },
+        }
+    )
+
+    admission = monitoring["owner_action_admission"]
+    assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is True
+    assert admission["provider_attempt_start_requested"] is True
 
 
 def test_progress_first_monitoring_suppresses_running_current_work_unit_when_owner_action_unbound() -> None:
