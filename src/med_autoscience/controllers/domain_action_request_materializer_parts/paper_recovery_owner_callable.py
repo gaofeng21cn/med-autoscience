@@ -12,6 +12,11 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 BRIDGE_AUTHORITY = "domain_action_request_materializer_paper_recovery_owner_callable"
+PUBLISHABILITY_REPAIR_SPRINT_REQUIRED_INPUT = (
+    "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
+)
+PUBLISHABILITY_REPAIR_SPRINT_ACTION_TYPE = "run_quality_repair_batch"
+PUBLISHABILITY_REPAIR_SPRINT_WORK_UNIT_ID = "publishability_repair_sprint"
 
 
 def current_actions(
@@ -67,6 +72,14 @@ def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
             supervisor_decision=supervisor_decision,
             next_action=next_action,
             successor_owner_action=successor_owner_action,
+        )
+    if _text(next_action.get("kind")) == "materialize_successor_owner_gate":
+        return _action_from_successor_owner_gate(
+            study=study,
+            recovery=recovery,
+            supervisor_decision=supervisor_decision,
+            next_action=next_action,
+            successor_owner_gate=_mapping(next_action.get("successor_owner_gate")),
         )
     if _text(next_action.get("kind")) != "run_mas_owner_callable":
         return None
@@ -139,6 +152,125 @@ def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": work_unit_fingerprint,
             "owner_callable_surface": _text(owner_callable.get("callable_surface")),
+            "owner_route": owner_route,
+            "idempotency_key": _text(owner_route.get("idempotency_key")),
+        },
+    }
+    return {key: value for key, value in action.items() if value not in (None, "", [], {})}
+
+
+def _action_from_successor_owner_gate(
+    *,
+    study: Mapping[str, Any],
+    recovery: Mapping[str, Any],
+    supervisor_decision: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+    successor_owner_gate: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    required_input = _text(next_action.get("required_input")) or _text(
+        successor_owner_gate.get("required_input")
+    )
+    if required_input != PUBLISHABILITY_REPAIR_SPRINT_REQUIRED_INPUT:
+        return None
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    study_id = _text(obligation.get("study_id")) or _text(study.get("study_id"))
+    if study_id is None:
+        return None
+    quest_id = _text(obligation.get("quest_id")) or _text(study.get("quest_id"))
+    predecessor = {
+        "action_type": _text(obligation.get("action_type")),
+        "work_unit_id": _text(obligation.get("work_unit_id")) or _text(
+            successor_owner_gate.get("work_unit_id")
+        ),
+        "work_unit_fingerprint": _text(obligation.get("work_unit_fingerprint"))
+        or _text(successor_owner_gate.get("work_unit_fingerprint")),
+        "blocker_type": _text(obligation.get("blocker_type")),
+    }
+    predecessor_work_unit_id = _text(predecessor.get("work_unit_id"))
+    predecessor_fingerprint = _text(predecessor.get("work_unit_fingerprint"))
+    if predecessor_work_unit_id is None or predecessor_fingerprint is None:
+        return None
+    action_type = PUBLISHABILITY_REPAIR_SPRINT_ACTION_TYPE
+    work_unit_id = PUBLISHABILITY_REPAIR_SPRINT_WORK_UNIT_ID
+    work_unit_fingerprint = f"publishability-repair-sprint::anti-loop::{predecessor_work_unit_id}"
+    owner = request_owner_for_action_type(action_type)
+    owner_route = owner_route_part.ensure_owner_route_v2(
+        _owner_route(
+            study_id=study_id,
+            quest_id=quest_id,
+            owner=owner,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+            work_unit_fingerprint=work_unit_fingerprint,
+            blocker_type=_text(predecessor.get("blocker_type")) or required_input,
+            supervisor_decision=supervisor_decision,
+            predecessor=predecessor,
+            source_surface=_text(successor_owner_gate.get("source_surface")),
+            source_ref=_first_text(*_text_items(successor_owner_gate.get("evidence_refs"))),
+        )
+    )
+    supervisor_decision_ref = _text(supervisor_decision.get("decision_id"))
+    evidence_refs = _text_items(successor_owner_gate.get("evidence_refs"))
+    compact_predecessor = {
+        key: value for key, value in predecessor.items() if value not in (None, "", [], {})
+    }
+    action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": action_type,
+        "action_id": f"paper-recovery-owner-gate::{study_id}::{action_type}::{work_unit_id}",
+        "reason": required_input,
+        "owner": owner,
+        "request_owner": owner,
+        "recommended_owner": owner,
+        "next_executable_owner": owner,
+        "authority": "paper_recovery_state",
+        "required_output_surface": request_output_surface_for_action_type(action_type),
+        "source_surface": "paper_recovery_state",
+        "source_ref": _text(recovery.get("recovery_obligation_id")),
+        "supervisor_decision": supervisor_decision or None,
+        "supervisor_decision_ref": supervisor_decision_ref,
+        "supervisor_authority": "paper_autonomy_supervisor_decision" if supervisor_decision else None,
+        "work_unit_id": work_unit_id,
+        "next_work_unit": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
+        "required_delta_kind": required_input,
+        "successor_source_surface": _text(successor_owner_gate.get("source_surface")),
+        "successor_source_ref": evidence_refs[0] if evidence_refs else None,
+        "predecessor_work_unit": compact_predecessor,
+        "owner_gate": {
+            "kind": "materialize_successor_owner_gate",
+            "required_input": required_input,
+            "provider_admission_allowed": next_action.get("provider_admission_allowed") is True,
+            "evidence_refs": evidence_refs,
+        },
+        "owner_route": owner_route,
+        "handoff_packet": {
+            "action_type": action_type,
+            "request_owner": owner,
+            "recommended_owner": owner,
+            "next_executable_owner": owner,
+            "source_surface": "paper_recovery_state",
+            "source_ref": _text(recovery.get("recovery_obligation_id")),
+            "supervisor_decision": supervisor_decision or None,
+            "supervisor_decision_ref": supervisor_decision_ref,
+            "supervisor_authority": (
+                "paper_autonomy_supervisor_decision" if supervisor_decision else None
+            ),
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": work_unit_fingerprint,
+            "required_delta_kind": required_input,
+            "successor_source_surface": _text(successor_owner_gate.get("source_surface")),
+            "successor_source_ref": evidence_refs[0] if evidence_refs else None,
+            "predecessor_work_unit": compact_predecessor,
+            "owner_gate": {
+                "kind": "materialize_successor_owner_gate",
+                "required_input": required_input,
+                "provider_admission_allowed": next_action.get("provider_admission_allowed") is True,
+                "evidence_refs": evidence_refs,
+            },
             "owner_route": owner_route,
             "idempotency_key": _text(owner_route.get("idempotency_key")),
         },
@@ -310,6 +442,22 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        if text := _text(value):
+            return text
+    return None
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [text for item in value if (text := _text(item)) is not None]
 
 
 __all__ = ["action_for_study", "current_actions"]
