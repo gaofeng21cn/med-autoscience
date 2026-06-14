@@ -36,7 +36,7 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
     if summary is None:
         return payload
     updated = dict(payload)
-    if phase in PAPER_RECOVERY_BLOCKING_PHASES:
+    if _phase_updates_current_blockers(phase=phase, next_safe_action=next_safe_action):
         blockers = list(updated.get("current_blockers") or [])
         if phase not in blockers:
             blockers.append(phase)
@@ -67,6 +67,14 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
         user_visible["why_not_progressing"] = phase
         updated["user_visible_projection"] = user_visible
     return updated
+
+
+def _phase_updates_current_blockers(*, phase: str, next_safe_action: Mapping[str, Any]) -> bool:
+    if phase in PAPER_RECOVERY_BLOCKING_PHASES or phase == "domain_blocked":
+        return True
+    if phase != "human_gate":
+        return False
+    return _non_empty_text(next_safe_action.get("kind")) != "resolve_typed_blocker"
 
 
 def _apply_paper_recovery_authority_projection(
@@ -265,6 +273,8 @@ def paper_recovery_summary(*, phase: str, next_safe_action: Mapping[str, Any]) -
     if phase == "terminal_closeout_ready":
         return "Consume the matching terminal closeout through MAS owner authority."
     if phase in {"domain_blocked", "human_gate"}:
+        if kind is not None and kind != "resolve_typed_blocker":
+            return f"Paper recovery is waiting on {kind}."
         return "Resolve the current typed blocker through its owner before starting another provider attempt."
     if phase == "attempt_running":
         return "Watch the running provider attempt bound to the current paper recovery obligation."

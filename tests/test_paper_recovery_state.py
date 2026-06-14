@@ -38,6 +38,65 @@ def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     assert state["suppressed_surfaces"] == ["current_executable_owner_action", "provider_admission_candidates"]
 
 
+def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
+    fingerprint = "publication-blockers::497d1260db522f01"
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_work_unit": _typed_blocker_work_unit(
+                study_id="002-dm-china-us-mortality-attribution",
+                action_type="run_quality_repair_batch",
+                work_unit_id="analysis_claim_evidence_repair",
+                blocker_type="stage_packet_not_current_selected_dispatch",
+            )
+            | {
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "study_intervention_events": [
+                {
+                    "surface": "study_intervention_event",
+                    "intent": "owner_gate_decision",
+                    "event_id": "intervention-event-000001-13263a6ca77a1066",
+                    "recorded_at": "2026-06-14T02:27:19+00:00",
+                    "payload": {
+                        "decision": "route_back_to_mas_packet_materialization_bug",
+                        "current_owner_identity": {
+                            "study_id": "002-dm-china-us-mortality-attribution",
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": "analysis_claim_evidence_repair",
+                            "work_unit_fingerprint": fingerprint,
+                            "blocker_type": "stage_packet_not_current_selected_dispatch",
+                        },
+                        "human_gate_ref": "human_gate:owner-gate-decision:c7027de42ca336cfe0782428",
+                        "owner_gate_decision_ref": "owner-gate-decision:c7027de42ca336cfe0782428",
+                        "route_back_evidence_ref": "route_back:owner-gate-decision:c7027de42ca336cfe0782428",
+                        "provider_admission_allowed": False,
+                    },
+                }
+            ],
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [{"action_type": "run_quality_repair_batch"}],
+        }
+    )
+
+    assert state["phase"] == "human_gate"
+    assert state["conditions"] == [
+        {
+            "condition": "accepted_owner_gate_decision",
+            "decision": "route_back_to_mas_packet_materialization_bug",
+        }
+    ]
+    assert state["current_authority"]["owner"] == "MedAutoScience"
+    assert state["next_safe_action"]["kind"] == "route_back_to_owner_or_repair_materialization"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["evidence_refs"] == [
+        "human_gate:owner-gate-decision:c7027de42ca336cfe0782428",
+        "route_back:owner-gate-decision:c7027de42ca336cfe0782428",
+        "owner-gate-decision:c7027de42ca336cfe0782428",
+    ]
+
+
 def test_observe_only_provider_admission_is_classified_as_blocked_with_reason() -> None:
     state = _module().build_paper_recovery_state(
         {

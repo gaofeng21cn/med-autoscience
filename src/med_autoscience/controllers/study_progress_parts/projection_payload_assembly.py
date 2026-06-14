@@ -12,6 +12,7 @@ from med_autoscience.controllers.production_blocker_impact_projection import (
 import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
 import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
+from med_autoscience.controllers.study_interventions import read_intervention_events
 from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 
 from .ai_first_runtime_projection import attach_ai_first_runtime_projection
@@ -262,6 +263,7 @@ def assemble_study_progress_payload(
         "progress_delta_classification": progress_delta["progress_delta_classification"],
         "research_pack_progress_summary": research_pack_progress_summary,
         "publication_eval": publication_eval_payload,
+        "study_intervention_events": read_intervention_events(study_root=study_root),
         "refs": refs,
     }
     if stage_artifact_index is not None:
@@ -383,6 +385,8 @@ def _sync_study_macro_state_from_user_visible_projection(payload: dict[str, Any]
 
 
 def _apply_current_work_unit_typed_blocker_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
+    if _paper_recovery_suppresses_current_work_unit_typed_blocker(payload):
+        return payload
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
     if _non_empty_text(current_work_unit.get("status")) not in {"typed_blocker", "blocked_current_work_unit"}:
         return payload
@@ -470,6 +474,16 @@ def _apply_current_work_unit_typed_blocker_user_visible_status(payload: dict[str
         operator_status["user_visible_verdict"] = next_step
         updated["operator_status_card"] = operator_status
     return updated
+
+
+def _paper_recovery_suppresses_current_work_unit_typed_blocker(payload: Mapping[str, Any]) -> bool:
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    suppressed = {
+        text
+        for item in recovery.get("suppressed_surfaces") or []
+        if (text := _non_empty_text(item)) is not None
+    }
+    return "current_work_unit_typed_blocker" in suppressed
 
 
 def _current_work_unit_typed_blocker(current_work_unit: Mapping[str, Any]) -> dict[str, Any]:

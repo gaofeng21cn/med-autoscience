@@ -39,6 +39,26 @@ from .terminal_closeout import (
     _terminal_closeout_typed_blocker_projection,
     _terminal_progress_delta_classification,
 )
+from .summary_work_units import (
+    explicit_wakeup_hydration_owner as _explicit_wakeup_hydration_owner,
+    explicit_wakeup_hydration_work_unit as _explicit_wakeup_hydration_work_unit,
+    observability_active_run_id as _observability_active_run_id,
+    owner_from_action as _owner_from_action,
+    owner_handoff_hydration_projection as _owner_handoff_hydration_projection,
+    running_provider_attempt_ref as _running_provider_attempt_ref,
+    source_refs as _source_refs,
+    stale_active_run_id as _stale_active_run_id,
+    work_unit_from_action as _work_unit_from_action,
+    work_unit_from_action_queue as _work_unit_from_action_queue,
+    work_unit_from_current_action as _work_unit_from_current_action,
+    work_unit_id as _work_unit_id,
+    work_unit_projection as _work_unit_projection,
+)
+from .summary_provider_attempts import (
+    canonical_current_work_unit_running_provider_attempt as _canonical_current_work_unit_running_provider_attempt,
+    handoff_identity_conflicts_current_action as _handoff_identity_conflicts_current_action,
+    strict_running_provider_liveness as _strict_running_provider_liveness,
+)
 
 
 def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -802,134 +822,6 @@ def _next_forced_delta_from_current_work_unit(
     return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
 
 
-def _strict_running_provider_liveness(handoff: Mapping[str, Any]) -> bool:
-    if handoff.get("running_provider_attempt") is not True:
-        return False
-    if _text(handoff.get("active_run_id")) is None:
-        return False
-    if _handoff_has_matching_terminal_closeout(handoff):
-        return False
-    runtime_health = _mapping(handoff.get("runtime_health"))
-    runtime_liveness_status = _text(runtime_health.get("runtime_liveness_status"))
-    health_status = _text(runtime_health.get("health_status"))
-    return runtime_liveness_status in {
-        "attempt_running",
-        "provider_admitted",
-        "running",
-        "live",
-    } or health_status in {
-        "attempt_running",
-        "provider_admitted",
-        "running",
-        "live",
-    }
-
-
-def _canonical_current_work_unit_running_provider_attempt(
-    *,
-    current_work_unit: Mapping[str, Any],
-    handoff: Mapping[str, Any],
-) -> bool:
-    if _text(current_work_unit.get("status")) != "running_provider_attempt":
-        return False
-    if not _strict_running_provider_liveness(handoff):
-        return False
-    handoff_attempt_id = _text(handoff.get("active_stage_attempt_id"))
-    if handoff_attempt_id is None:
-        return False
-    state = _mapping(current_work_unit.get("state"))
-    proof = _mapping(state.get("provider_attempt_proof"))
-    proof_attempt_id = _text(proof.get("active_stage_attempt_id"))
-    if proof_attempt_id is not None and proof_attempt_id != handoff_attempt_id:
-        return False
-    work_unit_id = _work_unit_id(current_work_unit.get("work_unit_id"))
-    proof_work_unit_id = _work_unit_id(proof.get("work_unit_id")) or _work_unit_id(
-        proof.get("next_work_unit")
-    )
-    handoff_work_unit_id = _work_unit_id(handoff.get("work_unit_id")) or _work_unit_id(
-        handoff.get("next_work_unit")
-    )
-    comparable_identity_observed = False
-    if work_unit_id is not None and proof_work_unit_id is not None and proof_work_unit_id != work_unit_id:
-        return False
-    comparable_identity_observed = comparable_identity_observed or (
-        work_unit_id is not None and proof_work_unit_id is not None
-    )
-    if work_unit_id is not None:
-        if handoff_work_unit_id is None:
-            return False
-        if handoff_work_unit_id != work_unit_id:
-            return False
-        comparable_identity_observed = True
-    fingerprint = _text(current_work_unit.get("work_unit_fingerprint")) or _text(
-        current_work_unit.get("action_fingerprint")
-    )
-    handoff_fingerprints = {
-        text
-        for value in (
-            handoff.get("work_unit_fingerprint"),
-            handoff.get("action_fingerprint"),
-            _mapping(handoff.get("runtime_health")).get("work_unit_fingerprint"),
-            _mapping(handoff.get("runtime_health")).get("action_fingerprint"),
-        )
-        if (text := _text(value)) is not None
-    }
-    if fingerprint is not None and handoff_fingerprints and fingerprint not in handoff_fingerprints:
-        return False
-    comparable_identity_observed = comparable_identity_observed or (
-        fingerprint is not None and bool(handoff_fingerprints)
-    )
-    return comparable_identity_observed
-
-
-def _handoff_identity_conflicts_current_action(
-    *,
-    handoff: Mapping[str, Any],
-    current_action: Mapping[str, Any],
-) -> bool:
-    if not current_action:
-        return False
-    return provider_attempt_proof_for_current_action(
-        handoff=handoff,
-        current_action=current_action,
-    ) is None
-
-
-def _handoff_has_matching_terminal_closeout(handoff: Mapping[str, Any]) -> bool:
-    terminal = _mapping(handoff.get("latest_terminal_stage_log"))
-    if not terminal:
-        return False
-    active_attempt_id = _handoff_stage_attempt_id(handoff)
-    terminal_attempt_id = _text(terminal.get("stage_attempt_id"))
-    if active_attempt_id is not None and terminal_attempt_id != active_attempt_id:
-        return False
-    if active_attempt_id is None and terminal_attempt_id is None:
-        return False
-    status = _text(terminal.get("status"))
-    if status in {
-        "blocked",
-        "closed",
-        "closed_with_domain_owner_refs",
-        "completed",
-        "failed",
-        "terminal",
-        "typed_blocked",
-    }:
-        return True
-    return _text(terminal.get("source_path")) is not None and _text(terminal.get("record_path")) is not None
-
-
-def _handoff_stage_attempt_id(handoff: Mapping[str, Any]) -> str | None:
-    if text := _text(handoff.get("active_stage_attempt_id")):
-        return text
-    active_run_id = _text(handoff.get("active_run_id"))
-    prefix = "opl-stage-attempt://"
-    if active_run_id is not None and active_run_id.startswith(prefix):
-        attempt_id = active_run_id[len(prefix) :].strip()
-        return attempt_id or None
-    return None
-
-
 def _dispatch_consumption_summary(
     *,
     handoff: Mapping[str, Any],
@@ -1253,182 +1145,6 @@ def _owner_action_admission_typed_blocker_barrier(
         "source_ref": _text(typed_blocker.get("source_ref")),
     }
     return {key: value for key, value in barrier.items() if value is not None}
-
-
-def _work_unit_from_action_queue(value: object) -> dict[str, Any] | str | None:
-    if not isinstance(value, list):
-        return None
-    for item in value:
-        if not isinstance(item, Mapping):
-            continue
-        unit = _work_unit_projection(item.get("next_work_unit"))
-        if unit is not None:
-            return unit
-        for key in ("controller_work_unit_id", "work_unit_id", "action_type"):
-            text = _text(item.get(key))
-            if text is not None:
-                return text
-    return None
-
-
-def _work_unit_from_action(action: Mapping[str, Any] | None) -> dict[str, Any] | str | None:
-    if action is None:
-        return None
-    unit = _work_unit_projection(action.get("next_work_unit"))
-    if unit is not None:
-        return unit
-    for key in ("controller_work_unit_id", "work_unit_id", "action_type"):
-        text = _text(action.get(key))
-        if text is not None:
-            return text
-    return None
-
-
-def _work_unit_from_current_action(action: Mapping[str, Any]) -> dict[str, Any] | str | None:
-    work_unit_id = _text(action.get("work_unit_id"))
-    if work_unit_id is None:
-        return None
-    if _artifact_first_owner_action(action):
-        return {"unit_id": work_unit_id}
-    return work_unit_id
-
-
-def _work_unit_projection(value: object) -> dict[str, Any] | str | None:
-    if isinstance(value, Mapping):
-        return _compact_mapping(
-            value,
-            (
-                "unit_id",
-                "lane",
-                "summary",
-                "owner",
-                "route_target",
-                "action_type",
-            ),
-        ) or dict(value)
-    text = _text(value)
-    return text
-
-
-def _work_unit_id(value: object) -> str | None:
-    if isinstance(value, Mapping):
-        return _text(value.get("unit_id"))
-    return _text(value)
-
-
-def _owner_from_action(action: Mapping[str, Any] | None) -> str | None:
-    if action is None:
-        return None
-    return (
-        _text(action.get("owner"))
-        or _text(action.get("request_owner"))
-        or _text(action.get("recommended_owner"))
-    )
-
-
-def _explicit_wakeup_hydration_work_unit(launch_policy: Mapping[str, Any]) -> str | None:
-    if launch_policy.get("explicit_user_wakeup_recorded") is not True:
-        return None
-    if launch_policy.get("owner_handoff_hydration_required") is not True:
-        return None
-    return _text(launch_policy.get("owner_handoff_hydration_action")) or "hydrate_opl_owner_route_from_explicit_resume"
-
-
-def _explicit_wakeup_hydration_owner(launch_policy: Mapping[str, Any]) -> str | None:
-    if _explicit_wakeup_hydration_work_unit(launch_policy) is None:
-        return None
-    return _text(launch_policy.get("owner_handoff_hydration_owner")) or "one-person-lab"
-
-
-def _owner_handoff_hydration_projection(launch_policy: Mapping[str, Any]) -> dict[str, Any] | None:
-    work_unit = _explicit_wakeup_hydration_work_unit(launch_policy)
-    if work_unit is None:
-        return None
-    return {
-        "required": True,
-        "owner": _explicit_wakeup_hydration_owner(launch_policy),
-        "action": work_unit,
-        "explicit_user_wakeup_ref": _text(launch_policy.get("explicit_user_wakeup_ref")),
-        "study_truth_snapshot_ref": _text(launch_policy.get("study_truth_snapshot_ref")),
-    }
-
-
-def _source_refs(
-    value: object,
-    *,
-    handoff: Mapping[str, Any],
-    latest_terminal_stage_log: Mapping[str, Any],
-) -> list[str]:
-    refs: list[object] = []
-    if isinstance(value, Mapping):
-        refs.extend(value.values())
-    refs.append(handoff.get("source_path"))
-    refs.append(latest_terminal_stage_log.get("source_path"))
-    refs.extend(latest_terminal_stage_log.get("closeout_refs") or [])
-    return _dedupe_text(refs)[:20]
-
-
-def _running_provider_attempt_ref(
-    *,
-    running_provider_attempt: bool | None,
-    handoff: Mapping[str, Any],
-    key: str,
-) -> str | None:
-    if running_provider_attempt is not True:
-        return None
-    return _text(handoff.get(key))
-
-
-def _observability_active_run_id(
-    *,
-    running_provider_attempt: bool | None,
-    handoff: Mapping[str, Any],
-) -> str | None:
-    if running_provider_attempt is True:
-        return None
-    active_run_id = _text(handoff.get("active_run_id"))
-    if active_run_id is None or active_run_id.startswith("opl-stage-attempt://"):
-        return None
-    return active_run_id
-
-
-def _stale_active_run_id(
-    *,
-    running_provider_attempt: bool | None,
-    payload: Mapping[str, Any],
-    supervision: Mapping[str, Any],
-    handoff: Mapping[str, Any],
-) -> str | None:
-    if running_provider_attempt is True:
-        return None
-    observability_active_run_id = _observability_active_run_id(
-        running_provider_attempt=running_provider_attempt,
-        handoff=handoff,
-    )
-    for active_run_id in (
-        _text(supervision.get("active_run_id")),
-        _text(payload.get("active_run_id")),
-        _text(handoff.get("active_run_id")),
-    ):
-        if active_run_id is not None and active_run_id != observability_active_run_id:
-            return active_run_id
-    return None
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

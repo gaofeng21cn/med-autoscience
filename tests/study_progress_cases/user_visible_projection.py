@@ -700,6 +700,77 @@ def test_terminal_delivery_correction_suppresses_stale_top_level_blockers() -> N
     assert payload["status_narration_contract"]["readiness"]["needs_physician_decision"] is False
 
 
+def test_paper_recovery_human_gate_suppresses_typed_blocker_user_visible_override() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection_payload_assembly")
+
+    payload = module._apply_post_user_visible_status_overrides(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "queued",
+            "current_blockers": ["stage_packet_not_current_selected_dispatch"],
+            "next_system_action": "等待 one-person-lab 处理当前 typed blocker。",
+            "current_work_unit": {
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "state": {
+                    "typed_blocker": {
+                        "blocker_type": "stage_packet_not_current_selected_dispatch",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "analysis_claim_evidence_repair",
+                    }
+                },
+            },
+            "paper_recovery_state": {
+                "phase": "human_gate",
+                "suppressed_surfaces": ["current_work_unit_typed_blocker"],
+                "recovery_obligation_id": (
+                    "paper-recovery::002-dm-china-us-mortality-attribution::"
+                    "run_quality_repair_batch::analysis_claim_evidence_repair::"
+                    "stage_packet_not_current_selected_dispatch"
+                ),
+                "current_authority": {"owner": "MedAutoScience"},
+                "next_safe_action": {
+                    "kind": "route_back_to_owner_or_repair_materialization",
+                    "owner": "MedAutoScience",
+                    "provider_admission_allowed": False,
+                },
+                "conditions": [
+                    {
+                        "condition": "accepted_owner_gate_decision",
+                        "decision": "route_back_to_mas_packet_materialization_bug",
+                    }
+                ],
+            },
+            "intervention_lane": {},
+            "operator_verdict": {},
+            "operator_status_card": {},
+            "recovery_contract": {},
+            "autonomy_contract": {},
+            "user_visible_projection": {
+                "next_step": "等待 one-person-lab 处理当前 typed blocker。",
+                "why_not_progressing": "stage_packet_not_current_selected_dispatch",
+            },
+        }
+    )
+
+    assert payload["needs_user_decision"] is True
+    assert payload["next_step"].startswith(
+        "Paper recovery is waiting on route_back_to_owner_or_repair_materialization."
+    )
+    assert "human_gate" in payload["current_blockers"]
+    assert payload["next_system_action"] != "等待 one-person-lab 处理当前 typed blocker。"
+    assert payload["next_system_action"].startswith(
+        "Paper recovery is waiting on route_back_to_owner_or_repair_materialization."
+    )
+    assert payload["user_visible_projection"]["why_not_progressing"] == "human_gate"
+    assert payload["user_visible_projection"]["next_step"].startswith(
+        "Paper recovery is waiting on route_back_to_owner_or_repair_materialization."
+    )
+
+
 def test_user_visible_projection_projects_supervisor_only_live_quality_repair_owner() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 

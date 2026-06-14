@@ -42,6 +42,44 @@ def build_paper_recovery_state(
     current_work_unit = _mapping(progress.get("current_work_unit"))
     obligation = _obligation(progress, current_work_unit=current_work_unit)
 
+    owner_gate_event = _matching_owner_gate_decision_event(progress, obligation=obligation)
+    if owner_gate_event is not None:
+        owner_gate_payload = _mapping(owner_gate_event.get("payload"))
+        decision = _text(owner_gate_payload.get("decision"))
+        phase = "human_gate"
+        next_action_kind = "resolve_owner_gate_decision"
+        current_owner = "MedAutoScience"
+        provider_admission_allowed = False
+        if decision == "route_back_to_mas_packet_materialization_bug":
+            next_action_kind = "route_back_to_owner_or_repair_materialization"
+        elif decision == "admit_identity_bound_stage_packet":
+            phase = "admission_pending"
+            next_action_kind = "admit_identity_bound_stage_packet"
+            current_owner = _text(obligation.get("owner")) or current_owner
+            provider_admission_allowed = True
+        elif decision == "deny_and_stable_typed_blocker":
+            phase = "domain_blocked"
+            next_action_kind = "honor_stable_typed_blocker"
+        return _state(
+            progress,
+            obligation=obligation,
+            phase=phase,
+            conditions=[
+                {
+                    "condition": "accepted_owner_gate_decision",
+                    "decision": decision,
+                }
+            ],
+            next_safe_action=_next_action(
+                next_action_kind,
+                provider_admission_allowed=provider_admission_allowed,
+                owner=current_owner,
+            ),
+            current_owner=current_owner,
+            suppressed_surfaces=_suppressed_surfaces_for_owner_gate_decision(progress),
+            evidence_refs=_owner_gate_decision_refs(owner_gate_payload),
+        )
+
     typed_blocker = _current_typed_blocker(current_work_unit)
     if typed_blocker:
         blocker_reason = _typed_blocker_reason(typed_blocker)
@@ -545,6 +583,61 @@ def _closeout_refs(closeout: Mapping[str, Any]) -> list[str]:
         *_text_items(closeout.get("closeout_refs")),
     ]
     return list(dict.fromkeys(ref for ref in refs if ref is not None))
+
+
+def _matching_owner_gate_decision_event(
+    progress: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    for event in reversed(_owner_gate_decision_events(progress)):
+        payload = _mapping(event.get("payload"))
+        if _owner_gate_identity_matches_obligation(payload, obligation=obligation):
+            return dict(event)
+    return None
+
+
+def _owner_gate_decision_events(progress: Mapping[str, Any]) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for key in ("study_intervention_events", "intervention_events"):
+        for item in progress.get(key) or []:
+            event = _mapping(item)
+            if _text(event.get("intent")) == "owner_gate_decision":
+                events.append(event)
+    return events
+
+
+def _owner_gate_identity_matches_obligation(
+    payload: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> bool:
+    identity = _mapping(payload.get("current_owner_identity"))
+    if not identity:
+        return False
+    for field in ("study_id", "action_type", "work_unit_id", "work_unit_fingerprint", "blocker_type"):
+        expected = _text(obligation.get(field))
+        if expected is not None and _text(identity.get(field)) != expected:
+            return False
+    return _text(payload.get("human_gate_ref")) is not None
+
+
+def _owner_gate_decision_refs(payload: Mapping[str, Any]) -> list[str]:
+    refs = [
+        _text(payload.get("human_gate_ref")),
+        _text(payload.get("route_back_evidence_ref")),
+        _text(payload.get("owner_gate_decision_ref")),
+        _text(payload.get("stable_typed_blocker_ref")),
+        *_text_items(payload.get("stage_packet_refs")),
+    ]
+    return list(dict.fromkeys(ref for ref in refs if ref is not None))
+
+
+def _suppressed_surfaces_for_owner_gate_decision(progress: Mapping[str, Any]) -> list[str]:
+    suppressed = _suppressed_surfaces_for_typed_blocker(progress)
+    if _mapping(progress.get("current_work_unit")):
+        suppressed.append("current_work_unit_typed_blocker")
+    return list(dict.fromkeys(suppressed))
 
 
 def _running_attempt_has_obligation_identity(
