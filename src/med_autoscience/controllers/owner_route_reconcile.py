@@ -12,6 +12,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import action_proje
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer, canonical_inputs
 from med_autoscience.controllers.owner_route_reconcile_parts import block_state as block_state_part, completion_evidence
 from med_autoscience.controllers.owner_route_reconcile_parts import current_controller_followthrough, current_truth_owner
+from med_autoscience.controllers.owner_route_reconcile_parts import current_owner_action_identity
 from med_autoscience.controllers.owner_route_reconcile_parts import default_executor_receipts, domain_authority_handoff
 from med_autoscience.controllers.owner_route_reconcile_parts import evidence_adoption
 from med_autoscience.controllers.owner_route_reconcile_parts import gate_specificity as gate_specificity_part
@@ -176,7 +177,7 @@ def _provider_admission_candidates_from_current_control(
         status_payload = {
             "study_id": study_id,
             "current_execution_envelope": _mapping(study.get("current_execution_envelope")),
-            "current_executable_owner_action": _current_executable_owner_action_identity_from_study(
+            "current_executable_owner_action": current_owner_action_identity.current_executable_owner_action_identity_from_study(
                 study=study,
                 fallback_action=study_actions[0] if study_actions else {},
             ),
@@ -190,238 +191,6 @@ def _provider_admission_candidates_from_current_control(
             )
         )
     return candidates
-
-
-def _current_executable_owner_action_identity_from_study(
-    *,
-    study: Mapping[str, Any],
-    fallback_action: Mapping[str, Any],
-) -> dict[str, Any]:
-    current_work_unit = _mapping(study.get("current_work_unit"))
-    if current_work_unit:
-        return _merge_identity_owner_route_refs(
-            _current_work_unit_owner_action_identity(current_work_unit),
-            _mapping(study.get("owner_route")),
-        )
-    current_action = _mapping(study.get("current_executable_owner_action"))
-    if current_action:
-        return _merge_identity_owner_route_refs(
-            _current_executable_owner_action_identity(current_action),
-            _mapping(study.get("owner_route")),
-        )
-    current_envelope = _mapping(study.get("current_execution_envelope"))
-    if current_envelope:
-        return _current_execution_envelope_owner_action_identity(
-            current_envelope,
-            fallback_action=fallback_action,
-        )
-    return _current_executable_owner_action_identity(fallback_action)
-
-
-def _current_work_unit_owner_action_identity(current_work_unit: Mapping[str, Any]) -> dict[str, Any]:
-    if _text(current_work_unit.get("status")) != "executable_owner_action":
-        return {}
-    action_type = _text(current_work_unit.get("action_type"))
-    work_unit_id = _text(current_work_unit.get("work_unit_id"))
-    source_refs = _mapping(_mapping(current_work_unit.get("currentness_basis")).get("source_refs"))
-    route_source_refs = _mapping(_mapping(current_work_unit.get("owner_route")).get("source_refs"))
-    currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
-    fingerprint = (
-        _text(current_work_unit.get("work_unit_fingerprint"))
-        or _text(current_work_unit.get("action_fingerprint"))
-        or _text(source_refs.get("work_unit_fingerprint"))
-        or _text(route_source_refs.get("work_unit_fingerprint"))
-        or _text(currentness_basis.get("work_unit_fingerprint"))
-    )
-    fingerprints = [
-        item
-        for item in (
-            _text(current_work_unit.get("work_unit_fingerprint")),
-            _text(current_work_unit.get("action_fingerprint")),
-            _text(source_refs.get("work_unit_fingerprint")),
-            _text(route_source_refs.get("work_unit_fingerprint")),
-            _text(currentness_basis.get("work_unit_fingerprint")),
-            _text(currentness_basis.get("source_fingerprint")),
-        )
-        if item is not None
-    ]
-    return {
-        "source": "canonical_current_work_unit",
-        "next_owner": _text(current_work_unit.get("owner")),
-        "action_ids": [item for item in (action_type, work_unit_id) if item is not None],
-        "action_type": action_type,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-        "work_unit_fingerprints": list(dict.fromkeys(fingerprints)),
-    }
-
-
-def _merge_identity_owner_route_refs(
-    identity: Mapping[str, Any],
-    owner_route: Mapping[str, Any],
-) -> dict[str, Any]:
-    route = owner_route_part.ensure_owner_route_v2(_mapping(owner_route))
-    if not identity or not route:
-        return dict(identity)
-    source_refs = _mapping(route.get("source_refs"))
-    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    fingerprints = [
-        *_text_items(identity.get("work_unit_fingerprints")),
-        _text(route.get("work_unit_fingerprint")),
-        _text(route.get("source_fingerprint")),
-        _text(source_refs.get("work_unit_fingerprint")),
-        _text(source_refs.get("source_fingerprint")),
-        _text(basis.get("work_unit_fingerprint")),
-        _text(basis.get("source_fingerprint")),
-    ]
-    work_unit_id = (
-        _text(identity.get("work_unit_id"))
-        or _text(source_refs.get("work_unit_id"))
-        or _text(basis.get("work_unit_id"))
-    )
-    fingerprint = _text(identity.get("work_unit_fingerprint")) or next(
-        (item for item in fingerprints if item is not None),
-        None,
-    )
-    return {
-        **dict(identity),
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-        "work_unit_fingerprints": list(dict.fromkeys(item for item in fingerprints if item is not None)),
-    }
-
-
-def _current_execution_envelope_owner_action_identity(
-    envelope: Mapping[str, Any],
-    *,
-    fallback_action: Mapping[str, Any],
-) -> dict[str, Any]:
-    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
-    if state_kind != "executable_owner_action":
-        return {}
-    work_unit_id = _text(envelope.get("next_work_unit"))
-    identity = {
-        "source": "current_execution_envelope",
-        "next_owner": _text(envelope.get("owner")),
-        "action_ids": [],
-        "work_unit_id": work_unit_id,
-    }
-    fallback_identity = _current_executable_owner_action_identity(fallback_action)
-    if not fallback_identity:
-        return identity
-    fallback_work_unit_id = _text(fallback_identity.get("work_unit_id"))
-    if work_unit_id is not None and fallback_work_unit_id != work_unit_id:
-        return identity
-    next_owner = _text(identity.get("next_owner"))
-    fallback_next_owner = _text(fallback_identity.get("next_owner"))
-    if next_owner is not None and fallback_next_owner is not None and fallback_next_owner != next_owner:
-        return identity
-    fingerprints = [
-        *_text_items(fallback_identity.get("work_unit_fingerprints")),
-        _text(fallback_identity.get("work_unit_fingerprint")),
-    ]
-    return {
-        **identity,
-        "action_type": _text(fallback_identity.get("action_type")),
-        "action_ids": _text_items(fallback_identity.get("action_ids")),
-        "work_unit_fingerprint": _text(fallback_identity.get("work_unit_fingerprint")),
-        "work_unit_fingerprints": list(dict.fromkeys(item for item in fingerprints if item is not None)),
-    }
-
-
-def _current_executable_owner_action_identity(action: Mapping[str, Any]) -> dict[str, Any]:
-    action_type = _text(action.get("action_type"))
-    work_unit_id = (
-        _text(action.get("work_unit_id"))
-        or _text(action.get("next_work_unit"))
-        or _text(action.get("controller_work_unit_id"))
-    )
-    fingerprint = (
-        _text(action.get("action_fingerprint"))
-        or _text(action.get("work_unit_fingerprint"))
-        or _text(action.get("source_fingerprint"))
-    )
-    owner_route = _mapping(action.get("owner_route"))
-    source_refs = _mapping(owner_route.get("source_refs"))
-    if work_unit_id is None:
-        work_unit_id = _text(source_refs.get("work_unit_id"))
-    if fingerprint is None:
-        fingerprint = _text(source_refs.get("work_unit_fingerprint"))
-    source = _text(action.get("source")) or _text(source_refs.get("source"))
-    if (
-        source is None
-        and (
-            _mapping(action.get("repair_progress_followup"))
-            or (_text(action.get("reason")) or "").startswith("repair_progress_")
-        )
-    ):
-        source = "repair_progress_projection.mas_owner_repair_execution_evidence"
-    return {
-        "source": source or "owner_route_reconcile.current_control_action_queue",
-        "next_owner": (
-            _text(action.get("next_executable_owner"))
-            or _text(action.get("owner"))
-            or _text(owner_route.get("next_owner"))
-        ),
-        "action_type": action_type,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-        "allowed_actions": [action_type] if action_type is not None else [],
-        "repair_progress_precedence": {
-            "source_fingerprint": fingerprint,
-        } if fingerprint is not None else {},
-    }
-
-
-def _current_executable_owner_action_from_current_work_unit(
-    current_work_unit_payload: Mapping[str, Any],
-) -> dict[str, Any]:
-    payload = _mapping(current_work_unit_payload)
-    if _text(payload.get("status")) != "executable_owner_action":
-        return {}
-    action_type = _text(payload.get("action_type"))
-    work_unit_id = _text(payload.get("work_unit_id"))
-    owner = _text(payload.get("owner"))
-    contract = _mapping(payload.get("required_output_contract"))
-    target_surface = _mapping(contract.get("target_surface"))
-    required_output_surface = _text(contract.get("required_output_surface"))
-    if not target_surface and required_output_surface is not None:
-        target_surface = {
-            "ref_kind": "mas_owner_surface",
-            "surface_ref": required_output_surface,
-        }
-    return {
-        "surface_kind": "current_executable_owner_action",
-        "schema_version": 1,
-        "status": "ready",
-        "source": "canonical_current_work_unit",
-        "next_owner": owner,
-        "work_unit_id": work_unit_id,
-        "action_type": action_type,
-        "allowed_actions": [action_type] if action_type is not None else [],
-        "work_unit_fingerprint": _text(payload.get("work_unit_fingerprint")),
-        "action_fingerprint": _text(payload.get("action_fingerprint")),
-        "required_output_surface": required_output_surface,
-        "target_surface": target_surface or None,
-        "source_ref": _current_work_unit_source_ref(payload),
-        "authority_boundary": {
-            "refs_only": True,
-            "source_current_work_unit": True,
-            "can_write_runtime_owned_surfaces": False,
-            "can_write_paper_or_package": False,
-            "can_authorize_quality_verdict": False,
-            "can_authorize_publication_ready": False,
-        },
-    }
-
-
-def _current_work_unit_source_ref(current_work_unit_payload: Mapping[str, Any]) -> str | None:
-    for item in current_work_unit_payload.get("input_refs") or []:
-        text = _text(item)
-        if text is not None:
-            return text
-    state = _mapping(current_work_unit_payload.get("state"))
-    return _text(state.get("source_ref"))
 
 
 def _attach_provider_admission_candidates(
@@ -1116,7 +885,7 @@ def _study_projection(
     )
     current_executable_owner_action = _mapping(stage_artifact_projection_fields.get("current_executable_owner_action"))
     if not current_executable_owner_action:
-        current_executable_owner_action = _current_executable_owner_action_from_current_work_unit(
+        current_executable_owner_action = current_owner_action_identity.current_executable_owner_action_from_current_work_unit(
             current_work_unit_payload
         )
     return {
