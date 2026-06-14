@@ -262,6 +262,12 @@ def selected_dispatches(
     )
     requested = set(effective_action_types)
     if not effective_action_types:
+        if paper_recovery_successor_dispatches:
+            return [
+                payload
+                for payload in paper_recovery_successor_dispatches
+                if _text(payload.get("action_type")) in supported_action_types
+            ]
         selected = [
             payload
             for payload in current_dispatches

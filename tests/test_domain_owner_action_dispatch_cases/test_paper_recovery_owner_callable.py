@@ -380,6 +380,61 @@ def test_execute_dispatch_selects_same_tick_paper_recovery_successor_dispatch(
         }
     )
     _write_json(dispatch_path, dispatch_payload)
+    stale_action_type = "complete_medical_paper_readiness_surface"
+    stale_route = _owner_route(
+        study_id=study_id,
+        action_type=stale_action_type,
+        owner="MedAutoScience",
+    )
+    stale_fingerprint = "current-readiness-typed-blocker::003-dm::stale"
+    stale_route.update(
+        {
+            "quest_id": quest_id,
+            "truth_epoch": stale_fingerprint,
+            "route_epoch": stale_fingerprint,
+            "runtime_health_epoch": stale_fingerprint,
+            "work_unit_fingerprint": stale_fingerprint,
+            "source_fingerprint": stale_fingerprint,
+            "source_refs": {
+                "work_unit_id": stale_action_type,
+                "work_unit_fingerprint": stale_fingerprint,
+                "bridge_authority": "domain_action_request_materializer_paper_recovery_owner_callable",
+                "source_surface": "paper_recovery_state",
+            },
+        }
+    )
+    stale_dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{stale_action_type}.json"
+    )
+    stale_dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type=stale_action_type,
+        owner="MedAutoScience",
+        required_output_surface="artifacts/medical_paper/readiness.json",
+        owner_route=stale_route,
+    )
+    stale_dispatch_payload.update(
+        {
+            "work_unit_id": stale_action_type,
+            "work_unit_fingerprint": stale_fingerprint,
+            "action_fingerprint": stale_fingerprint,
+            "refs": {"dispatch_path": str(stale_dispatch_path)},
+            "source_action": {
+                "authority": "paper_recovery_state",
+                "source_surface": "paper_recovery_state",
+                "action_type": stale_action_type,
+                "work_unit_id": stale_action_type,
+                "work_unit_fingerprint": stale_fingerprint,
+                "action_fingerprint": stale_fingerprint,
+            },
+        }
+    )
+    _write_json(stale_dispatch_path, stale_dispatch_payload)
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
@@ -434,7 +489,7 @@ def test_execute_dispatch_selects_same_tick_paper_recovery_successor_dispatch(
         "surface": "domain_action_request_materializer",
         "schema_version": 1,
         "default_executor_dispatch_count": 1,
-        "default_executor_dispatches": [dispatch_payload],
+        "default_executor_dispatches": [stale_dispatch_payload, dispatch_payload],
     }
 
     def fake_read_study_progress(**_: object) -> dict[str, object]:
@@ -516,6 +571,7 @@ def test_execute_dispatch_selects_same_tick_paper_recovery_successor_dispatch(
     assert result["per_study_execution_summary"][0]["zero_dispatch_reason"] is None
     execution = result["executions"][0]
     assert execution["action_type"] == action_type
+    assert {item["action_type"] for item in result["executions"]} == {action_type}
     assert execution["prompt_contract"]["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
     assert execution["owner_route_basis"] == "paper_recovery_owner_callable"
     assert called == [study_id]
