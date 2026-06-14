@@ -23,7 +23,6 @@ from .primitives import (
     _dedupe_text,
     _first_text,
     _mapping,
-    _sequence,
     _text,
 )
 from .summary_dispatch_consumption import (
