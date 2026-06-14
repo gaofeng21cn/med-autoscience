@@ -81,6 +81,7 @@ PROVIDER_ADMISSION_FAIL_CLOSED_TYPED_BLOCKERS = frozenset(
         "stage_packet_superseded_by_current_consumed_domain_transition",
     }
 )
+ACCEPTED_OWNER_GATE_DECISION_SOURCE = "paper_recovery_state.accepted_owner_gate_decision"
 
 
 def persisted_provider_admission_candidates(
@@ -507,6 +508,14 @@ def _typed_blocker_envelope_allows_provider_admission(
         or _non_empty_text(blocker.get("blocker_type"))
         or _non_empty_text(blocker.get("reason"))
     )
+    if (
+        blocker_reason == "stage_packet_not_current_selected_dispatch"
+        and _owner_gate_route_back_execution_matches_current_action(
+            execution,
+            current_action_identity=current_action_identity,
+        )
+    ):
+        return True
     if blocker_reason in PROVIDER_ADMISSION_FAIL_CLOSED_TYPED_BLOCKERS:
         return False
     if _explicit_current_action_execution_matches_current_action(
@@ -543,6 +552,19 @@ def _typed_blocker_envelope_allows_provider_admission(
         "medical_paper_readiness_missing",
         "medical_paper_readiness_not_ready",
     } and _publication_surface_write_repair_execution_matches_current_action(
+        execution,
+        current_action_identity=current_action_identity,
+    )
+
+
+def _owner_gate_route_back_execution_matches_current_action(
+    execution: Mapping[str, Any],
+    *,
+    current_action_identity: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(current_action_identity.get("source")) != ACCEPTED_OWNER_GATE_DECISION_SOURCE:
+        return False
+    return _explicit_current_action_execution_matches_current_action(
         execution,
         current_action_identity=current_action_identity,
     )

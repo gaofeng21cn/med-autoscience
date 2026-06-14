@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
+from . import accepted_owner_gate_decision
 from . import terminal_stall_handoff
 
 
@@ -19,6 +20,7 @@ def diagnostic(
     current_study: Mapping[str, Any] | None,
     current_route: Mapping[str, Any] | None,
     required_output_pending: bool,
+    fresh_progress: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if action_type == "return_to_ai_reviewer_workflow" and owner_route_part.route_allows_action(
         action=dispatch,
@@ -37,6 +39,16 @@ def diagnostic(
         return _stall_diagnostic(status="missing", blocking=False, handoff_allowed=False)
     current_stall = _mapping(_mapping(current_study).get("paper_progress_stall"))
     if not current_stall:
+        if accepted_owner_gate_decision.dispatch_matches_progress(
+            progress=_mapping(fresh_progress),
+            dispatch=dispatch,
+        ):
+            return _stall_diagnostic(
+                status="accepted_owner_gate_decision_bypass",
+                blocking=False,
+                handoff_allowed=True,
+                dispatch_stall=dispatch_stall,
+            )
         if _owner_authorized_readiness_surface_dispatch(
             action_type=action_type,
             dispatch=dispatch,

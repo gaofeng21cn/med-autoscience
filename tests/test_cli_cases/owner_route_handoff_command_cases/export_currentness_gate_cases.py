@@ -300,6 +300,123 @@ def test_domain_handler_export_materializes_mas_dispatch_selection_blocker_resol
     assert task["domain_dispatch_evidence_record_payload"]["task_kind"] == "domain_route/reconcile-apply"
 
 
+def test_domain_handler_export_materializes_owner_gate_route_back_dispatch_under_stage_packet_blocker(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "analysis_claim_evidence_repair"
+    work_unit_fingerprint = "publication-blockers::497d1260db522f01"
+    route_back_ref = "route_back:owner-gate-decision:c7027de42ca336cfe0782428"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="consumer_default_executor_dispatch",
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="write",
+            owner_reason=work_unit_id,
+            action_type="run_quality_repair_batch",
+            work_unit_id=work_unit_id,
+            work_unit_fingerprint=work_unit_fingerprint,
+            runtime_health_epoch=work_unit_fingerprint,
+            blocked_actions=["run_gate_clearing_batch"],
+        ),
+    )
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+                "currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "truth_epoch": work_unit_fingerprint,
+                    "runtime_health_epoch": work_unit_fingerprint,
+                },
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_id": "stage_packet_not_current_selected_dispatch",
+                        "blocker_type": "stage_packet_not_current_selected_dispatch",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": work_unit_fingerprint,
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "one-person-lab",
+                "typed_blocker": {
+                    "blocker_id": "stage_packet_not_current_selected_dispatch",
+                    "owner": "one-person-lab",
+                },
+            },
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_action_ready",
+                "next_safe_action": {
+                    "kind": "route_back_to_owner_or_repair_materialization",
+                    "owner": "MedAutoScience",
+                    "provider_admission_allowed": False,
+                    "accepted_owner_gate_decision": {
+                        "decision": "route_back_to_mas_packet_materialization_bug",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": work_unit_fingerprint,
+                        "route_back_evidence_ref": route_back_ref,
+                    },
+                },
+            },
+            "current_executable_owner_action": None,
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+        and task.get("study_id") == study_id
+    ]
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["action_type"] == "run_quality_repair_batch"
+    assert task["work_unit_id"] == work_unit_id
+    assert task["work_unit_fingerprint"] == work_unit_fingerprint
+    assert task["payload"]["work_unit_id"] == work_unit_id
+    assert task["payload"]["work_unit_fingerprint"] == work_unit_fingerprint
+    assert task["payload"]["owner_route_currentness_basis"]["work_unit_fingerprint"] == (
+        work_unit_fingerprint
+    )
+
+
 def test_export_current_owner_action_suppresses_residual_action_under_typed_blocker() -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export")
 

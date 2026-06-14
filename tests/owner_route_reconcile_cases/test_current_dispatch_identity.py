@@ -47,6 +47,63 @@ def test_canonical_dispatch_identity_suppresses_residual_action_when_current_wor
     }
 
 
+def test_canonical_dispatch_identity_allows_owner_gate_route_back_stage_packet_blocker() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.current_dispatch_identity"
+    )
+
+    identity = module.canonical_current_dispatch_identity(
+        study_id="002-dm-china-us-mortality-attribution",
+        current_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "paper_recovery_state.accepted_owner_gate_decision",
+            "authority": "paper_recovery_state.accepted_owner_gate_decision",
+            "next_owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "work_unit_id": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+            "action_fingerprint": "publication-blockers::497d1260db522f01",
+            "provider_admission_allowed": False,
+            "owner_route_currentness_basis": {
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                "truth_epoch": "publication-blockers::497d1260db522f01",
+                "runtime_health_epoch": "publication-blockers::497d1260db522f01",
+            },
+        },
+        current_work_unit={
+            "surface_kind": "current_work_unit",
+            "status": "typed_blocker",
+            "owner": "one-person-lab",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+            "state": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_id": "stage_packet_not_current_selected_dispatch",
+                    "blocker_type": "stage_packet_not_current_selected_dispatch",
+                    "owner": "one-person-lab",
+                },
+            },
+            "currentness_basis": {
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                "truth_epoch": "publication-blockers::497d1260db522f01",
+                "runtime_health_epoch": "publication-blockers::497d1260db522f01",
+            },
+        },
+        current_execution_envelope={"state_kind": "typed_blocker"},
+    )
+
+    assert identity["source"] == "paper_recovery_state.accepted_owner_gate_decision"
+    assert identity["action_type"] == "run_quality_repair_batch"
+    assert identity["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert identity["work_unit_fingerprint"] == "publication-blockers::497d1260db522f01"
+
+
 def test_canonical_dispatch_identity_prefers_current_work_unit_over_residual_owner_action() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.owner_route_handoff_parts.current_dispatch_identity"

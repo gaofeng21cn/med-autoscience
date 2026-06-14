@@ -27,6 +27,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 ARBITER_SURFACE_KIND = "mas_opl_stage_route_arbiter"
 ARBITER_SCHEMA_VERSION = 1
 STALE_STAGE_PACKET_BLOCKER = "stage_packet_not_current_selected_dispatch"
+ACCEPTED_OWNER_GATE_DECISION_SOURCE = "paper_recovery_state.accepted_owner_gate_decision"
 ARBITER_AUTHORITY_BOUNDARY = {
     "arbiter_surface": "currentness_projection_only",
     "can_write_domain_truth": False,
@@ -110,9 +111,9 @@ def _stage_route_arbiter_decisions(
                 )
             )
             continue
-        typed_blocker_precedence = _current_typed_blocker_precedence_evidence(
+        typed_blocker_precedence = _current_typed_blocker_precedence_evidence_for_candidate(
             scanned_study,
-            identity=candidate,
+            candidate=candidate,
         )
         if typed_blocker_precedence:
             decisions.append(
@@ -425,10 +426,32 @@ def _candidates_not_covered_by_live_attempt(
             identity=candidate,
         ):
             continue
-        if _current_typed_blocker_precedence_evidence(scanned_study, identity=candidate):
+        if _current_typed_blocker_precedence_evidence_for_candidate(
+            scanned_study,
+            candidate=candidate,
+        ):
             continue
         pending.append(dict(candidate))
     return pending
+
+
+def _current_typed_blocker_precedence_evidence_for_candidate(
+    study: Mapping[str, Any],
+    *,
+    candidate: Mapping[str, Any],
+) -> dict[str, Any]:
+    evidence = _current_typed_blocker_precedence_evidence(study, identity=candidate)
+    if not evidence:
+        return {}
+    if (
+        _non_empty_text(evidence.get("blocker_type")) == STALE_STAGE_PACKET_BLOCKER
+        and _non_empty_text(candidate.get("source"))
+        == "opl_current_control_state.study_current_executable_owner_action"
+        and _non_empty_text(_mapping(candidate.get("currentness_basis")).get("source"))
+        == ACCEPTED_OWNER_GATE_DECISION_SOURCE
+    ):
+        return {}
+    return evidence
 
 
 def _current_typed_blocker_precedence_evidence(

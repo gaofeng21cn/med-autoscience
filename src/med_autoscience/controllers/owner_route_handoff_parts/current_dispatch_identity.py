@@ -18,6 +18,14 @@ def canonical_current_dispatch_identity(
     envelope_state = _text(current_execution_envelope.get("state_kind")) or _text(
         current_execution_envelope.get("execution_state_kind")
     )
+    if work_unit_status == "typed_blocker":
+        owner_gate_identity = _accepted_owner_gate_route_back_identity(
+            current_owner_action=current_owner_action,
+            current_work_unit=current_work_unit,
+            study_id=study_id,
+        )
+        if owner_gate_identity:
+            return owner_gate_identity
     if work_unit_status in {
         "typed_blocker",
         "running_provider_attempt",
@@ -59,6 +67,61 @@ def canonical_current_dispatch_identity(
         if identity:
             return identity
     return {}
+
+
+def _accepted_owner_gate_route_back_identity(
+    *,
+    current_owner_action: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    study_id: str,
+) -> dict[str, Any]:
+    if not _current_owner_action_is_accepted_owner_gate_route_back(current_owner_action):
+        return {}
+    typed_blocker = _current_work_unit_typed_blocker(current_work_unit)
+    if _typed_blocker_identity(typed_blocker) != "stage_packet_not_current_selected_dispatch":
+        return {}
+    identity = _current_owner_action_dispatch_identity(current_owner_action, study_id=study_id)
+    work_unit_identity = _current_work_unit_dispatch_identity(current_work_unit, study_id=study_id)
+    if not identity or not work_unit_identity:
+        return {}
+    if _text(identity.get("action_type")) != _text(work_unit_identity.get("action_type")):
+        return {}
+    if not work_unit_ids_equivalent_for_action(
+        action_type=_text(identity.get("action_type")),
+        left=_text(identity.get("work_unit_id")),
+        right=_text(work_unit_identity.get("work_unit_id")),
+    ):
+        return {}
+    if _text(identity.get("work_unit_fingerprint")) != _text(
+        work_unit_identity.get("work_unit_fingerprint")
+    ):
+        return {}
+    identity["source"] = "paper_recovery_state.accepted_owner_gate_decision"
+    return identity
+
+
+def _current_owner_action_is_accepted_owner_gate_route_back(
+    current_owner_action: Mapping[str, Any],
+) -> bool:
+    if _text(current_owner_action.get("source")) == "paper_recovery_state.accepted_owner_gate_decision":
+        return True
+    if _text(current_owner_action.get("authority")) == "paper_recovery_state.accepted_owner_gate_decision":
+        return True
+    return _text(current_owner_action.get("source_surface")) == "paper_recovery_state.accepted_owner_gate_decision"
+
+
+def _current_work_unit_typed_blocker(current_work_unit: Mapping[str, Any]) -> Mapping[str, Any]:
+    state = _mapping(current_work_unit.get("state"))
+    return _mapping(state.get("typed_blocker")) or _mapping(current_work_unit.get("typed_blocker"))
+
+
+def _typed_blocker_identity(typed_blocker: Mapping[str, Any]) -> str | None:
+    return (
+        _text(typed_blocker.get("blocker_id"))
+        or _text(typed_blocker.get("blocker_type"))
+        or _text(typed_blocker.get("reason"))
+        or _text(typed_blocker.get("blocked_reason"))
+    )
 
 
 def dispatch_matches_current_owner_action(

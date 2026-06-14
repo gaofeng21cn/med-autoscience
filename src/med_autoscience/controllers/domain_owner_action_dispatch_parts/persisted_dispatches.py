@@ -10,6 +10,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import domain_route
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 from . import consumed_transition_owner_routes
+from . import accepted_owner_gate_decision
 from . import owner_request_currentness
 from . import owner_request_paths
 from . import consumed_default_executor_dispatch_filter
@@ -113,6 +114,9 @@ def explicit_action_dispatches(
                 dispatch=payload,
             )
             and not scan_route_current
+            and not accepted_owner_gate_decision.dispatch_matches_study_progress(
+                profile=profile, study_id=study_id, dispatch=payload
+            )
             and not live_provider_attempt_owner_route_from_scan_payload(
                 scan_payload=scan_payload,
                 study_id=study_id,
@@ -274,6 +278,10 @@ def selected_dispatches(
                     action_type=action_type,
                     dispatch=payload,
                 )
+                and not accepted_owner_gate_decision.dispatch_matches_progress(
+                    progress=fresh_progress,
+                    dispatch=payload,
+                )
                 and not current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
                     profile=profile,
                     study_id=study_id,
@@ -322,6 +330,10 @@ def selected_dispatches(
                 current_study=current_study,
                 fresh_progress=fresh_progress,
             )
+        if accepted_owner_gate_selected := accepted_owner_gate_decision.dispatches_only(
+            progress=fresh_progress, dispatches=selected
+        ):
+            return accepted_owner_gate_selected
         if runtime_current_selected:
             return runtime_current_selected
         if current_selected:
@@ -436,11 +448,15 @@ def selected_dispatches(
             current_study=current_study,
             fresh_progress=fresh_progress,
         )
-        if runtime_current_selected:
-            return runtime_current_selected
         if current_selected_candidate:
             return current_selected_candidate
+        if runtime_current_selected:
+            return runtime_current_selected
         return []
+    if accepted_owner_gate_selected := accepted_owner_gate_decision.dispatches_only(
+        progress=fresh_progress, dispatches=selected
+    ):
+        return accepted_owner_gate_selected
     if runtime_current_selected:
         return runtime_current_selected
     current_selected = _selected_dispatches_only(
@@ -491,6 +507,12 @@ def _selected_dispatches_only(
         if live_provider_attempt_owner_route_from_scan_payload(
             scan_payload=scan_latest_payload(profile),
             study_id=study_id,
+            dispatch=dispatch,
+        ):
+            selected.append(dispatch)
+            continue
+        if accepted_owner_gate_decision.dispatch_matches_progress(
+            progress=fresh_progress,
             dispatch=dispatch,
         ):
             selected.append(dispatch)
@@ -571,6 +593,11 @@ def _dispatch_selectable_despite_blocking_progress(
     if live_provider_attempt_owner_route_from_scan_payload(
         scan_payload={"studies": [dict(current_study)]},
         study_id=study_id,
+        dispatch=dispatch,
+    ):
+        return True
+    if accepted_owner_gate_decision.dispatch_matches_progress(
+        progress=fresh_progress,
         dispatch=dispatch,
     ):
         return True

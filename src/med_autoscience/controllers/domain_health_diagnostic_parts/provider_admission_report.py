@@ -27,6 +27,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
+from med_autoscience.controllers.owner_route_handoff_parts.accepted_owner_gate_route_back import (
+    accepted_owner_gate_route_back_action as _accepted_owner_gate_route_back_action,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -243,6 +246,7 @@ def _provider_admission_scanned_currentness_studies(
         if normalized_study_id is None:
             continue
         progress_payload = _mapping(payload)
+        progress_payload = _progress_payload_with_owner_gate_route_back_action(progress_payload)
         current_action = _mapping(progress_payload.get("current_executable_owner_action"))
         current_work_unit = _mapping(progress_payload.get("current_work_unit"))
         current_owner_ticket = _mapping(progress_payload.get("current_owner_ticket"))
@@ -464,6 +468,7 @@ def _provider_admission_candidates_from_progress_currentness(
             "study_root": str(study_root),
             **_mapping(progress_by_study.get(study_id)),
         }
+        status_payload = _progress_payload_with_owner_gate_route_back_action(status_payload)
         current_work_unit = _mapping(status_payload.get("current_work_unit"))
         if current_work_unit and _non_empty_text(current_work_unit.get("study_id")) is None:
             status_payload["current_work_unit"] = {
@@ -492,6 +497,22 @@ def _provider_admission_candidates_from_progress_currentness(
             )
         )
     return candidates
+
+
+def _progress_payload_with_owner_gate_route_back_action(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_work_unit = _mapping(payload.get("current_work_unit"))
+    owner_gate_action = _accepted_owner_gate_route_back_action(
+        current_progress=payload,
+        current_work_unit=current_work_unit,
+    )
+    if not owner_gate_action:
+        return dict(payload)
+    return {
+        **dict(payload),
+        "current_executable_owner_action": dict(owner_gate_action),
+    }
 
 
 def _merge_provider_admission_candidates(

@@ -20,6 +20,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
 from ..study_domain_transition_table_parts import family_transition_spec
+from .accepted_owner_gate_route_back import accepted_owner_gate_route_back_action
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
 from .default_executor_dispatch_tasks import default_executor_dispatch_tasks
@@ -625,6 +626,12 @@ def _export_current_owner_action(
 ) -> Mapping[str, Any]:
     current_work_unit = mapping(current_progress.get("current_work_unit"))
     current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
+    owner_gate_action = accepted_owner_gate_route_back_action(
+        current_progress=current_progress,
+        current_work_unit=current_work_unit,
+    )
+    if owner_gate_action:
+        return owner_gate_action
     envelope_state = text(current_execution_envelope.get("state_kind")) or text(
         current_execution_envelope.get("execution_state_kind")
     )
@@ -645,7 +652,6 @@ def _export_current_owner_action(
     if text(projection_action.get("source")) == "opl_current_control_state_action_queue":
         return {}
     return projection_action
-
 
 def _export_current_execution_envelope(
     *,

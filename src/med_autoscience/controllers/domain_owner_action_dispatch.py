@@ -16,7 +16,7 @@ from med_autoscience.runtime_protocol import domain_authority_refs_index
 from . import runtime_dispatch_cost, domain_status_projection, progress_first_blocker_budget
 from .default_executor_stage_log import paper_stage_log_for_default_executor_execution
 from .domain_owner_action_dispatch_parts import action_execution
-from .domain_owner_action_dispatch_parts import action_router
+from .domain_owner_action_dispatch_parts import accepted_owner_gate_decision, action_router
 from .domain_owner_action_dispatch_parts import controller_refresh
 from .domain_owner_action_dispatch_parts import current_writer_handoff
 from .domain_owner_action_dispatch_parts import developer_apply_gate
@@ -274,6 +274,14 @@ def _execution_owner_route(
         and _owner_route_block_reason(dispatch=dispatch, current_route=publication_owner_bridge_route) is None
     ):
         return publication_owner_bridge_route, "bridged_publication_owner_materialization"
+    accepted_owner_gate_route = accepted_owner_gate_decision.dispatch_owner_route_for_progress(
+        persisted_dispatches.read_fresh_study_progress(profile=profile, study_id=study_id), dispatch
+    )
+    if accepted_owner_gate_route and _owner_route_block_reason(
+        dispatch=dispatch,
+        current_route=accepted_owner_gate_route,
+    ) is None:
+        return accepted_owner_gate_route, "accepted_owner_gate_decision"
     if not _dispatch_uses_bridge_authority(dispatch):
         scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
         route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=scan_route)
@@ -593,6 +601,7 @@ def _execute_dispatch(
         current_study=current_study,
         current_route=current_route,
         required_output_pending=required_output_pending,
+        fresh_progress=persisted_dispatches.read_fresh_study_progress(profile=profile, study_id=study_id),
     )
     stall_block_reason, stall_handoff_allowed = paper_progress_stall_diagnostic.block_from_diagnostic(stall_diagnostic)
     repeat_guard = repeat_suppression.execution_repeat_suppression(
