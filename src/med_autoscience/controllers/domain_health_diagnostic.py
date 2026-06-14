@@ -112,6 +112,10 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan imp
     run_domain_health_diagnostic_for_runtime as _run_domain_health_diagnostic_for_runtime_impl,
     utc_now,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.runtime_dry_run_previews import (
+    attach_domain_action_request_materialization_preview,
+    attach_domain_handler_owner_resolution_preview,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan_support import (
     PROGRESS_CURRENTNESS_KEYS,
 )
@@ -574,15 +578,17 @@ def run_domain_health_diagnostic_for_runtime(
             supervisor_tick=supervisor_tick,
         )
     if request_opl_stage_attempts and profile is not None and not apply:
-        _attach_domain_action_request_materialization_preview(
+        attach_domain_action_request_materialization_preview(
             report=report,
             profile=profile,
             study_ids=study_ids,
+            materialize_domain_action_requests=domain_action_request_materializer.materialize_domain_action_requests,
         )
-        _attach_domain_handler_owner_resolution_preview(
+        attach_domain_handler_owner_resolution_preview(
             report=report,
             profile=profile,
             study_ids=study_ids,
+            export_family_domain_handler=owner_route_handoff.export_family_domain_handler,
         )
     if request_opl_stage_attempts and profile is not None:
         current_control_state = _materialize_report_provider_admission_current_control_state(
@@ -597,122 +603,6 @@ def run_domain_health_diagnostic_for_runtime(
                 current_control_state=current_control_state,
             )
     return report
-
-
-def _attach_domain_action_request_materialization_preview(
-    *,
-    report: dict[str, Any],
-    profile: WorkspaceProfile,
-    study_ids: tuple[str, ...],
-) -> None:
-    if not _report_requests_recovery_materialization(report):
-        return
-    preview = domain_action_request_materializer.materialize_domain_action_requests(
-        profile=profile,
-        study_ids=study_ids,
-        mode="developer_apply_safe",
-        apply=False,
-    )
-    report["domain_action_request_materialization_preview"] = preview
-    report["materialization_preview_request_task_count"] = _int_value(
-        preview.get("request_task_count")
-    )
-    report["materialization_preview_default_executor_dispatch_count"] = _int_value(
-        preview.get("default_executor_dispatch_count")
-    )
-    report["materialization_preview_ready_default_executor_dispatch_count"] = _int_value(
-        preview.get("ready_default_executor_dispatch_count")
-    )
-    report["materialization_preview_blocked_default_executor_dispatch_count"] = _int_value(
-        preview.get("blocked_default_executor_dispatch_count")
-    )
-
-
-def _attach_domain_handler_owner_resolution_preview(
-    *,
-    report: dict[str, Any],
-    profile: WorkspaceProfile,
-    study_ids: tuple[str, ...],
-) -> None:
-    if not _report_requests_owner_resolution(report):
-        return
-    profile_ref = profile.profile_ref
-    if profile_ref is None:
-        report["domain_handler_owner_resolution_preview_status"] = "profile_ref_missing"
-        return
-    exported = owner_route_handoff.export_family_domain_handler(
-        profile=profile,
-        profile_ref=profile_ref,
-    )
-    requested = set(_text_items(study_ids))
-    tasks = [
-        dict(task)
-        for task in exported.get("pending_family_tasks") or []
-        if isinstance(task, Mapping)
-        and _non_empty_text(task.get("task_kind")) == "domain_route/reconcile-apply"
-        and (
-            not requested
-            or _non_empty_text(_mapping(task.get("payload")).get("study_id")) in requested
-            or _non_empty_text(task.get("study_id")) in requested
-        )
-    ]
-    report["domain_handler_owner_resolution_preview"] = {
-        "surface": "domain_handler_owner_resolution_preview",
-        "schema_version": 1,
-        "dry_run": True,
-        "task_count": len(tasks),
-        "tasks": tasks,
-    }
-    report["domain_handler_owner_resolution_preview_task_count"] = len(tasks)
-
-
-def _report_requests_owner_resolution(report: Mapping[str, Any]) -> bool:
-    for recovery in _mapping(report.get("paper_recovery_states")).values():
-        if _recovery_requests_owner_resolution(_mapping(recovery)):
-            return True
-    for action in report.get("managed_study_actions") or []:
-        if not isinstance(action, Mapping):
-            continue
-        if _recovery_requests_owner_resolution(_mapping(action.get("paper_recovery_state"))):
-            return True
-    return False
-
-
-def _recovery_requests_owner_resolution(recovery: Mapping[str, Any]) -> bool:
-    if not recovery:
-        return False
-    next_safe_action = _mapping(recovery.get("next_safe_action"))
-    if _non_empty_text(next_safe_action.get("kind")) == "materialize_successor_owner_gate":
-        return True
-    supervisor_decision = _mapping(recovery.get("supervisor_decision"))
-    return _non_empty_text(supervisor_decision.get("decision")) == "stop_with_stable_typed_blocker"
-
-
-def _report_requests_recovery_materialization(report: Mapping[str, Any]) -> bool:
-    for recovery in _mapping(report.get("paper_recovery_states")).values():
-        if _recovery_requests_materialization(_mapping(recovery)):
-            return True
-    for action in report.get("managed_study_actions") or []:
-        if not isinstance(action, Mapping):
-            continue
-        if _recovery_requests_materialization(_mapping(action.get("paper_recovery_state"))):
-            return True
-    return False
-
-
-def _recovery_requests_materialization(recovery: Mapping[str, Any]) -> bool:
-    if not recovery:
-        return False
-    supervisor_decision = _mapping(recovery.get("supervisor_decision"))
-    if _non_empty_text(supervisor_decision.get("decision")) == "materialize_recovery_action":
-        return True
-    next_safe_action = _mapping(recovery.get("next_safe_action"))
-    return _non_empty_text(next_safe_action.get("kind")) in {
-        "run_mas_owner_callable",
-        "materialize_successor_owner_action",
-        "materialize_successor_owner_gate",
-        "materialize_provider_admission_or_owner_callable",
-    }
 
 
 def _materialize_report_provider_admission_current_control_state(

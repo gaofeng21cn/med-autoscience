@@ -16,6 +16,7 @@ from . import owner_request_paths
 from . import consumed_default_executor_dispatch_filter
 from . import consumed_writer_handoff_filter
 from . import current_writer_handoff
+from . import fresh_progress_owner_actions
 from . import opl_execution_preflight
 from . import persisted_handoff_selection
 from . import progress_blocking_selection
@@ -599,6 +600,8 @@ def _consumed_transition_current_dispatches_only(
 ) -> list[dict[str, Any]]:
     if not _consumed_transition_owner_route(current_study):
         return dispatches
+    if stage_artifact_publication_handoff_currentness.is_current(current_study):
+        return dispatches
     return [
         dispatch
         for dispatch in dispatches
@@ -869,17 +872,10 @@ def _dispatch_matches_fresh_progress_current_owner_action(
     progress: Mapping[str, Any],
     dispatch: Mapping[str, Any],
 ) -> bool:
-    route = _dispatch_owner_route(dispatch)
-    if not route or not owner_route_part.route_allows_action(action=dispatch, owner_route=route):
-        return False
-    for action in _fresh_progress_current_owner_actions(progress):
-        if _current_owner_action_identity_matches_dispatch(
-            progress=progress,
-            action=action,
-            dispatch=dispatch,
-        ):
-            return True
-    return False
+    return fresh_progress_owner_actions.dispatch_matches_fresh_progress_current_owner_action(
+        progress=progress,
+        dispatch=dispatch,
+    )
 
 
 def _fresh_progress_owner_action_selectable(
@@ -888,76 +884,10 @@ def _fresh_progress_owner_action_selectable(
     progress: Mapping[str, Any],
     dispatch: Mapping[str, Any],
 ) -> bool:
-    if _consumed_transition_owner_route(current_study):
-        return False
-    return _dispatch_matches_fresh_progress_current_owner_action(
+    return fresh_progress_owner_actions.fresh_progress_owner_action_selectable(
+        current_study=current_study,
         progress=progress,
         dispatch=dispatch,
-    )
-
-
-def _fresh_progress_current_owner_actions(progress: Mapping[str, Any]) -> list[dict[str, Any]]:
-    actions: list[dict[str, Any]] = []
-    current_action = _mapping(progress.get("current_executable_owner_action"))
-    if _text(current_action.get("action_type")) is not None:
-        actions.append(current_action)
-    current_work_unit = _mapping(progress.get("current_work_unit"))
-    if (
-        _text(current_work_unit.get("status")) == "executable_owner_action"
-        and _text(current_work_unit.get("action_type")) is not None
-    ):
-        actions.append(current_work_unit)
-    return actions
-
-
-def _current_owner_action_identity_matches_dispatch(
-    *,
-    progress: Mapping[str, Any],
-    action: Mapping[str, Any],
-    dispatch: Mapping[str, Any],
-) -> bool:
-    action_type = _text(action.get("action_type"))
-    if action_type is None or action_type != _text(dispatch.get("action_type")):
-        return False
-    progress_study_id = _text(action.get("study_id")) or _text(progress.get("study_id"))
-    dispatch_study_id = _text(dispatch.get("study_id"))
-    if progress_study_id is None or dispatch_study_id != progress_study_id:
-        return False
-    action_owner = (
-        _text(action.get("next_owner"))
-        or _text(action.get("owner"))
-        or _text(action.get("next_executable_owner"))
-    )
-    dispatch_owner = (
-        _text(dispatch.get("next_executable_owner"))
-        or _text(dispatch.get("owner"))
-        or _text(_dispatch_owner_route(dispatch).get("next_owner"))
-    )
-    if action_owner is None or dispatch_owner != action_owner:
-        return False
-    action_work_unit = _owner_action_work_unit_id(action)
-    dispatch_work_unit = _dispatch_work_unit_id(dispatch)
-    if action_work_unit is None or dispatch_work_unit != action_work_unit:
-        return False
-    action_fingerprint = _owner_action_work_unit_fingerprint(action)
-    if action_fingerprint is None:
-        return False
-    return action_fingerprint in _dispatch_work_unit_fingerprint_values(dispatch)
-
-
-def _owner_action_work_unit_id(action: Mapping[str, Any]) -> str | None:
-    return (
-        _work_unit_id(action.get("work_unit_id"))
-        or _work_unit_id(action.get("next_work_unit"))
-        or _work_unit_id(action.get("work_unit"))
-    )
-
-
-def _owner_action_work_unit_fingerprint(action: Mapping[str, Any]) -> str | None:
-    return (
-        _text(action.get("work_unit_fingerprint"))
-        or _text(action.get("action_fingerprint"))
-        or _text(action.get("source_fingerprint"))
     )
 
 
@@ -1174,52 +1104,11 @@ def _live_provider_attempt_matches_dispatch(
 
 
 def _dispatch_work_unit_id(dispatch: Mapping[str, Any]) -> str | None:
-    route = _dispatch_owner_route(dispatch)
-    route_refs = _mapping(route.get("source_refs"))
-    route_basis = _mapping(route_refs.get("owner_route_currentness_basis")) or _mapping(
-        _mapping(route.get("currentness_contract")).get("basis")
-    )
-    prompt_contract = _mapping(dispatch.get("prompt_contract"))
-    source_action = _mapping(dispatch.get("source_action"))
-    return (
-        _work_unit_id(route_refs.get("work_unit_id"))
-        or _work_unit_id(route_basis.get("work_unit_id"))
-        or _work_unit_id(prompt_contract.get("next_work_unit"))
-        or _work_unit_id(dispatch.get("next_work_unit"))
-        or _work_unit_id(source_action.get("next_work_unit"))
-    )
-
-
-def _dispatch_work_unit_fingerprint_values(dispatch: Mapping[str, Any]) -> set[str]:
-    route = _dispatch_owner_route(dispatch)
-    route_refs = _mapping(route.get("source_refs"))
-    route_basis = _mapping(route_refs.get("owner_route_currentness_basis")) or _mapping(
-        _mapping(route.get("currentness_contract")).get("basis")
-    )
-    prompt_contract = _mapping(dispatch.get("prompt_contract"))
-    prompt_basis = _mapping(prompt_contract.get("owner_route_currentness_basis"))
-    source_action = _mapping(dispatch.get("source_action"))
-    values = (
-        dispatch.get("work_unit_fingerprint"),
-        dispatch.get("action_fingerprint"),
-        dispatch.get("source_fingerprint"),
-        prompt_contract.get("work_unit_fingerprint"),
-        prompt_contract.get("action_fingerprint"),
-        prompt_basis.get("work_unit_fingerprint"),
-        route.get("work_unit_fingerprint"),
-        route.get("source_fingerprint"),
-        route_refs.get("work_unit_fingerprint"),
-        route_basis.get("work_unit_fingerprint"),
-        source_action.get("work_unit_fingerprint"),
-        source_action.get("action_fingerprint"),
-    )
-    return {text for value in values if (text := _text(value)) is not None}
+    return fresh_progress_owner_actions.dispatch_work_unit_id(dispatch)
 
 
 def _work_unit_id(value: object) -> str | None:
-    if isinstance(value, Mapping):
-        return _text(value.get("unit_id")) or _text(value.get("work_unit_id"))
-    return _text(value)
+    return fresh_progress_owner_actions.work_unit_id(value)
 
 
 def _scan_study(scan_payload: Mapping[str, Any] | None, study_id: str) -> dict[str, Any]:

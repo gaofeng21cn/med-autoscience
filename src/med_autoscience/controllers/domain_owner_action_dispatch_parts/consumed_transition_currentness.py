@@ -20,13 +20,15 @@ def gate_replay_matches_dispatch(
         return False
     route_refs = _mapping(route.get("source_refs"))
     dispatch_refs = _mapping(dispatch_route.get("source_refs"))
+    route_eval_id = _text(route_refs.get("source_eval_id"))
+    dispatch_eval_id = _text(dispatch_refs.get("source_eval_id"))
     return (
         _text(dispatch_route.get("next_owner")) == _text(route.get("next_owner"))
         and {_text(item) for item in dispatch_route.get("allowed_actions") or []}
         == {_text(item) for item in route.get("allowed_actions") or []}
         and _text(dispatch_refs.get("work_unit_id")) == _text(route_refs.get("work_unit_id"))
         and _text(dispatch_refs.get("work_unit_fingerprint")) == _text(route_refs.get("work_unit_fingerprint"))
-        and _text(dispatch_route.get("source_fingerprint")) == _text(route.get("source_fingerprint"))
+        and (not route_eval_id or not dispatch_eval_id or dispatch_eval_id == route_eval_id)
     )
 
 
