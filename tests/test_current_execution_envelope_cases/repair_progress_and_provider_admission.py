@@ -401,6 +401,102 @@ def test_execution_surface_refresh_keeps_repair_progress_action_over_consumed_au
     assert refreshed["current_execution_envelope"]["state_kind"] == "executable_owner_action"
 
 
+def test_execution_surface_refresh_uses_paper_recovery_successor_over_gate_blocker() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    blocker_fingerprint = (
+        "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
+    )
+    successor_fingerprint = "publication-blockers::0915410f804b3697"
+
+    refreshed = module.refresh_current_execution_surfaces(
+        payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "queued",
+            "publication_eval": {"eval_id": source_eval_id},
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_action_ready",
+                "current_authority": {"owner": "write", "authority": "med-autoscience"},
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "provider_admission_allowed": True,
+                    "successor_owner_action": {
+                        "action_type": "run_quality_repair_batch",
+                        "owner": "write",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": successor_fingerprint,
+                        "source_surface": (
+                            "gate_clearing_batch_followthrough.actionable_current_work_unit"
+                        ),
+                        "source_ref": (
+                            f"/workspace/studies/{study_id}/artifacts/controller/"
+                            "gate_clearing_batch/latest.json"
+                        ),
+                    },
+                },
+                "supervisor_decision": {
+                    "decision": "materialize_recovery_action",
+                    "next_owner": "write",
+                    "paper_autonomy_obligation_ref": (
+                        f"paper-autonomy::{study_id}::publication_supervision::"
+                        f"run_gate_clearing_batch::publication_gate_replay::{blocker_fingerprint}"
+                    ),
+                },
+            },
+        },
+        status={"study_id": study_id},
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "running_provider_attempt": False,
+            "blocked_reason": "publication_gate_replay_blocked",
+            "next_owner": "publication_gate",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "publication_gate",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": blocker_fingerprint,
+                "action_fingerprint": blocker_fingerprint,
+                "state": {
+                    "typed_blocker": {
+                        "blocker_type": "publication_gate_replay_blocked",
+                        "owner": "publication_gate",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": blocker_fingerprint,
+                    }
+                },
+            },
+        },
+        runtime_health_snapshot={
+            "runtime_health_epoch": "runtime-health-event-006847-d96308022f0a2c05"
+        },
+    )
+
+    action = refreshed["current_executable_owner_action"]
+    assert action["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
+    assert action["next_owner"] == "write"
+    assert action["work_unit_id"] == "medical_prose_write_repair"
+    assert refreshed["current_work_unit"]["status"] == "executable_owner_action"
+    assert refreshed["current_work_unit"]["owner"] == "write"
+    assert refreshed["current_work_unit"]["action_type"] == "run_quality_repair_batch"
+    assert refreshed["current_work_unit"]["work_unit_id"] == "medical_prose_write_repair"
+    assert refreshed["current_work_unit"]["work_unit_fingerprint"] == successor_fingerprint
+    assert refreshed["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+    assert refreshed["current_execution_envelope"]["owner"] == "write"
+    assert refreshed["current_execution_envelope"]["typed_blocker"] is None
+
+
 def test_envelope_actions_drop_stale_readiness_handoff_queue_after_paper_delta_without_current_action() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"

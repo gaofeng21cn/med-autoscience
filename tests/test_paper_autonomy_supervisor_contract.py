@@ -144,8 +144,11 @@ def test_supervisor_decision_taxonomy_is_closed_and_identity_bound() -> None:
     assert cases["execute_current_owner_delta"]["required_evidence_refs"] == [
         "paper_autonomy_obligation_ref",
         "provider_admission_identity",
-        "stage_run_identity_packet",
         "no_terminal_closeout_for_same_identity",
+    ]
+    assert cases["execute_current_owner_delta"]["post_admission_evidence_refs"] == [
+        "stage_run_identity_packet",
+        "running_proof",
     ]
     assert cases["consume_terminal_closeout"]["next_owner"] == "MedAutoScience"
     assert "terminal_closeout_packet" in cases["consume_terminal_closeout"][

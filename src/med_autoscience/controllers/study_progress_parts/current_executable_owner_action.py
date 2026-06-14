@@ -43,6 +43,10 @@ from .current_executable_owner_action_parts.gate_followthrough import (
     owner_action_from_gate_followthrough_current_work_unit,
 )
 from .current_executable_owner_action_parts import gate_replay_identity
+from .current_executable_owner_action_parts.paper_recovery import (
+    owner_action_from_paper_recovery_state,
+    paper_recovery_successor_supersedes_gate_replay_blocker,
+)
 from .current_executable_owner_action_parts.publication_repair import (
     owner_action_from_publication_eval_readiness_blocker_repair,
 )
@@ -74,7 +78,13 @@ GATE_REPLAY_WORK_UNITS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS | frozenset({READ
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     repair_progress_action = _from_repair_progress_projection(payload)
     gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
+    paper_recovery_action = _from_paper_recovery_state(payload)
     domain_transition_action = _from_domain_transition(payload)
+    if paper_recovery_successor_supersedes_gate_replay_blocker(
+        paper_recovery_action=paper_recovery_action,
+        payload=payload,
+    ):
+        return paper_recovery_action
     if (
         domain_transition_action is not None
         and consumed_closeout_typed_blocker_allows_domain_transition_successor(
@@ -194,7 +204,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         return artifact_action
     if gate_followthrough_action is not None:
         return gate_followthrough_action
-    return next_forced_delta_action or domain_transition_action
+    return next_forced_delta_action or domain_transition_action or paper_recovery_action
 
 
 def _canonical_current_work_unit_has_terminal_stop_loss(
@@ -260,6 +270,10 @@ def _from_gate_followthrough_current_work_unit(payload: Mapping[str, Any]) -> di
         payload,
         surface_kind=SURFACE_KIND,
     )
+
+
+def _from_paper_recovery_state(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    return owner_action_from_paper_recovery_state(payload, surface_kind=SURFACE_KIND)
 
 
 def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[str, Any] | None:

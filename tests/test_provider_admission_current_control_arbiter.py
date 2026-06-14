@@ -214,15 +214,16 @@ def test_provider_admission_current_control_requires_execute_supervisor_decision
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 0
-    assert result["provider_admission_candidates"] == []
+    assert result["provider_admission_pending_count"] == 1
+    assert len(result["provider_admission_candidates"]) == 1
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "paper_recovery_state_blocks_provider_admission": 1,
+        "pending_provider_admission": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "paper_recovery_state_blocks_provider_admission"
-    assert decision["effect"] == "suppress_provider_admission_pending"
-    assert decision["evidence"]["supervisor_decision"]["decision"] == "materialize_recovery_action"
+    assert decision["decision"] == "pending_provider_admission"
+    assert decision["effect"] == "retain_provider_admission_pending"
+    assert result["action_queue"][0]["action_type"] == "run_quality_repair_batch"
+    assert result["action_queue"][0]["work_unit_id"] == work_unit_id
 
 
 def test_provider_admission_report_suppresses_candidate_blocked_by_report_paper_recovery_state(

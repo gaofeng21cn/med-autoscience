@@ -47,6 +47,9 @@ from med_autoscience.controllers.current_work_unit_parts.dispatch_consumption im
 from med_autoscience.controllers.current_work_unit_parts.domain_transition import (
     domain_transition_supersedes_provider_completion_blocker as _domain_transition_supersedes_provider_completion_blocker,
 )
+from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
+    paper_recovery_successor_supersedes_publication_gate_replay_blocker as _paper_recovery_successor_supersedes_publication_gate_replay_blocker,
+)
 from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
     CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS,
     CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS,
@@ -715,6 +718,11 @@ def _action_supersedes_typed_blocker(
         action=action,
         blocker=payload,
         progress=_mapping(progress),
+    ):
+        return True
+    if _paper_recovery_successor_supersedes_publication_gate_replay_blocker(
+        action=action,
+        blocker=payload,
     ):
         return True
     if _domain_transition_supersedes_provider_completion_blocker(

@@ -164,8 +164,11 @@
         "required_evidence_refs": [
           "paper_autonomy_obligation_ref",
           "provider_admission_identity",
-          "stage_run_identity_packet",
           "no_terminal_closeout_for_same_identity"
+        ],
+        "post_admission_evidence_refs": [
+          "stage_run_identity_packet",
+          "running_proof"
         ],
         "paper_progress_classification": "none_until_mas_owner_result",
         "platform_repair_classification": "transport_execution"

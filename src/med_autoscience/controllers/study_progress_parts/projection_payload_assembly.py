@@ -43,6 +43,13 @@ from .projection_payload_assembly_parts.progress_delta import (
 from .projection_payload_assembly_parts.paper_recovery_visibility import (
     apply_paper_recovery_state_user_visible_status as _apply_paper_recovery_state_user_visible_status,
 )
+from .projection_payload_assembly_parts.paper_recovery_execution_refresh import (
+    refresh_after_paper_recovery_state as _refresh_after_paper_recovery_state,
+)
+from .projection_payload_assembly_parts.payload_sync import (
+    sync_progress_first_owner_action_admission as _sync_progress_first_owner_action_admission,
+    sync_study_macro_state_from_user_visible_projection as _sync_study_macro_state_from_user_visible_projection,
+)
 from .projection_payload_assembly_parts.publication_runtime_fields import (
     progress_publication_and_runtime_fields as _progress_publication_and_runtime_fields,
 )
@@ -330,6 +337,18 @@ def assemble_study_progress_payload(
         )
     payload = _sync_progress_first_owner_action_admission(payload)
     payload["paper_recovery_state"] = build_paper_recovery_state(payload)
+    payload = _refresh_after_paper_recovery_state(
+        payload=payload,
+        status=status,
+        handoff=handoff,
+        runtime_health_snapshot=runtime_health_snapshot,
+        study_root=study_root,
+        build_current_executable_owner_action=build_current_executable_owner_action,
+        refresh_current_execution_surfaces=_refresh_current_execution_surfaces,
+        provider_admission_projection_fields=provider_admission_projection_fields,
+        sync_progress_first_owner_action_admission=_sync_progress_first_owner_action_admission,
+        build_paper_recovery_state=build_paper_recovery_state,
+    )
     payload = _apply_paper_recovery_state_user_visible_status(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
     payload = _apply_post_user_visible_status_overrides(payload)
@@ -355,16 +374,6 @@ def assemble_study_progress_payload(
     )
 
 
-def _sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:
-    monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
-    admission = _mapping_copy(monitoring.get("owner_action_admission"))
-    if not admission:
-        return payload
-    updated = dict(payload)
-    updated["owner_action_admission"] = admission
-    return updated
-
-
 def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[str, Any]:
     updated = apply_running_provider_attempt_top_level_status(payload)
     updated = apply_current_owner_handoff_user_visible_status(updated)
@@ -372,16 +381,6 @@ def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[s
     updated = _apply_current_work_unit_typed_blocker_user_visible_status(updated)
     updated = _apply_runtime_medical_publication_surface_user_visible_status(updated)
     return _apply_terminal_delivery_user_visible_status(updated)
-
-
-def _sync_study_macro_state_from_user_visible_projection(payload: dict[str, Any]) -> dict[str, Any]:
-    user_visible = _mapping_copy(payload.get("user_visible_projection"))
-    macro_state = _mapping_copy(user_visible.get("study_macro_state"))
-    if not macro_state:
-        return payload
-    updated = dict(payload)
-    updated["study_macro_state"] = macro_state
-    return updated
 
 
 def _apply_current_work_unit_typed_blocker_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:

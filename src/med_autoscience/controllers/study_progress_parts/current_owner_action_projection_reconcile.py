@@ -18,6 +18,7 @@ CURRENT_OWNER_ACTION_SOURCES = frozenset(
         "study_progress.next_forced_delta.owner_action",
         "domain_transition",
         "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "paper_recovery_state.next_safe_action.successor_owner_action",
         "repair_progress_projection.mas_owner_repair_execution_evidence",
         "publication_eval.recommended_actions.readiness_blocker_repair",
     }
@@ -26,6 +27,7 @@ CURRENT_CONTROL_TYPED_BLOCKER_SUCCESSOR_SOURCES = frozenset(
     {
         "domain_transition",
         "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "paper_recovery_state.next_safe_action.successor_owner_action",
         "repair_progress_projection.mas_owner_repair_execution_evidence",
         "publication_eval.recommended_actions.readiness_blocker_repair",
     }
@@ -235,6 +237,10 @@ def current_control_typed_blocker_successor_action(
             precedence.get("paper_delta_observed") is True
             or precedence.get("accepted_owner_receipt") is True
         ):
+            return False
+    if source == "paper_recovery_state.next_safe_action.successor_owner_action":
+        successor = _mapping_copy(action.get("paper_recovery_successor"))
+        if successor.get("provider_admission_allowed") is not True:
             return False
     return _non_empty_text(action.get("action_type")) is not None and _non_empty_text(
         action.get("work_unit_id")

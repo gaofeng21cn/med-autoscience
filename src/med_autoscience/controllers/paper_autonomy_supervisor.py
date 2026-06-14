@@ -232,9 +232,17 @@ def build_paper_autonomy_obligation(
         currentness_basis.get("work_unit_fingerprint"),
         currentness_basis.get("source_fingerprint"),
     )
+    provider_identity = _provider_admission_identity(
+        progress,
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        fingerprint=fingerprint,
+    )
     route_identity_key = _first_text(
         currentness_basis.get("route_identity_key"),
         current_work_unit.get("route_identity_key"),
+        provider_identity.get("route_identity_key"),
         f"{study_id}:{action_type}:{work_unit_id}:{fingerprint}"
         if study_id and action_type and work_unit_id and fingerprint
         else None,
@@ -244,6 +252,15 @@ def build_paper_autonomy_obligation(
         currentness_basis.get("idempotency_key"),
         current_work_unit.get("attempt_idempotency_key"),
         current_work_unit.get("idempotency_key"),
+        provider_identity.get("attempt_idempotency_key"),
+        provider_identity.get("route_identity_key"),
+    )
+    currentness_basis = _clean_mapping(
+        {
+            **dict(currentness_basis),
+            "route_identity_key": route_identity_key,
+            "attempt_idempotency_key": attempt_idempotency_key,
+        }
     )
     identity = {
         "study_id": study_id,
@@ -341,13 +358,27 @@ def _execute_decision_ready(
     missing: list[str] = []
     if not _provider_admission_refs(progress):
         missing.append("provider_admission_identity")
-    if not _stage_run_identity_refs(progress, recovery):
-        missing.append("stage_run_identity_packet")
+    if not _admission_obligation_identity_complete(obligation):
+        missing.append("complete_paper_autonomy_obligation_identity")
     if _terminal_closeout_refs(progress, recovery):
         missing.append("no_terminal_closeout_for_same_identity")
-    if not _identity_complete(obligation):
-        missing.append("complete_paper_autonomy_obligation_identity")
     return not missing, missing
+
+
+def _admission_obligation_identity_complete(obligation: Mapping[str, Any]) -> bool:
+    return all(
+        _text(obligation.get(key)) is not None
+        for key in (
+            "study_id",
+            "quest_id",
+            "stage_id",
+            "action_type",
+            "work_unit_id",
+            "work_unit_fingerprint",
+            "route_identity_key",
+            "attempt_idempotency_key",
+        )
+    )
 
 
 def _stable_stop_decision(recovery: Mapping[str, Any]) -> bool:
@@ -542,6 +573,52 @@ def _provider_admission_refs(progress: Mapping[str, Any]) -> list[str]:
         if state.get("provider_admission_pending") is True:
             refs.append("current_work_unit.provider_admission_pending")
     return _dedupe(refs)
+
+
+def _provider_admission_identity(
+    progress: Mapping[str, Any],
+    *,
+    study_id: str | None,
+    action_type: str | None,
+    work_unit_id: str | None,
+    fingerprint: str | None,
+) -> Mapping[str, Any]:
+    for candidate in progress.get("provider_admission_candidates") or []:
+        item = _mapping(candidate)
+        if not item:
+            continue
+        candidate_study_id = _first_text(item.get("study_id"), item.get("quest_id"))
+        if study_id is not None and candidate_study_id != study_id:
+            continue
+        if action_type is not None and _text(item.get("action_type")) != action_type:
+            continue
+        if work_unit_id is not None and _text(item.get("work_unit_id")) != work_unit_id:
+            continue
+        candidate_fingerprint = _first_text(
+            item.get("work_unit_fingerprint"),
+            item.get("action_fingerprint"),
+        )
+        if fingerprint is not None and candidate_fingerprint != fingerprint:
+            continue
+        owner_route = _mapping(item.get("owner_route"))
+        source_refs = _mapping(owner_route.get("source_refs"))
+        currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+        return _clean_mapping(
+            {
+                "route_identity_key": _first_text(
+                    item.get("route_identity_key"),
+                    source_refs.get("route_identity_key"),
+                    currentness_basis.get("route_identity_key"),
+                ),
+                "attempt_idempotency_key": _first_text(
+                    item.get("attempt_idempotency_key"),
+                    source_refs.get("attempt_idempotency_key"),
+                    currentness_basis.get("attempt_idempotency_key"),
+                    currentness_basis.get("idempotency_key"),
+                ),
+            }
+        )
+    return {}
 
 
 def _stage_run_identity_refs(progress: Mapping[str, Any], recovery: Mapping[str, Any]) -> list[str]:

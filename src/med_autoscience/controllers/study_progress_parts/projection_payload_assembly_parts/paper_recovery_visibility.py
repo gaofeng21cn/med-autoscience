@@ -44,7 +44,11 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
             blockers.append(phase)
         updated["current_blockers"] = blockers
         updated["next_system_action"] = summary
-    if _supervisor_decision_blocks_provider_admission(supervisor_decision) or (
+    if _supervisor_decision_blocks_provider_admission(
+        supervisor_decision,
+        phase=phase,
+        next_safe_action=next_safe_action,
+    ) or (
         next_safe_action.get("provider_admission_allowed") is False
     ):
         _suppress_active_provider_admission_projection(updated, blocked_by=_blocked_by(supervisor_decision))
@@ -100,7 +104,11 @@ def _apply_paper_recovery_authority_projection(
     action_kind = _non_empty_text(next_safe_action.get("kind")) or "inspect_paper_recovery_state"
     lane_id = f"paper_recovery_{phase}"
     supervisor_decision = _mapping_copy(recovery.get("supervisor_decision"))
-    if _supervisor_decision_blocks_provider_admission(supervisor_decision) or (
+    if _supervisor_decision_blocks_provider_admission(
+        supervisor_decision,
+        phase=phase,
+        next_safe_action=next_safe_action,
+    ) or (
         next_safe_action.get("provider_admission_allowed") is False
     ):
         _suppress_active_provider_admission_projection(updated, blocked_by=_blocked_by(supervisor_decision))
@@ -186,8 +194,34 @@ def _suppress_active_provider_admission_projection(
         payload["progress_first_monitoring_summary"] = monitoring
 
 
-def _supervisor_decision_blocks_provider_admission(supervisor_decision: Mapping[str, Any]) -> bool:
+def _supervisor_decision_blocks_provider_admission(
+    supervisor_decision: Mapping[str, Any],
+    *,
+    phase: str | None = None,
+    next_safe_action: Mapping[str, Any] | None = None,
+) -> bool:
+    if _paper_recovery_allows_provider_admission(
+        phase=phase,
+        next_safe_action=_mapping_copy(next_safe_action),
+    ):
+        return False
     return supervisor_decision_blocks_provider_admission(supervisor_decision)
+
+
+def _paper_recovery_allows_provider_admission(
+    *,
+    phase: str | None,
+    next_safe_action: Mapping[str, Any],
+) -> bool:
+    if phase in {"admission_pending", "attempt_running"}:
+        return True
+    if phase == "owner_action_ready" and next_safe_action.get("provider_admission_allowed") is True:
+        return _non_empty_text(next_safe_action.get("kind")) in {
+            "materialize_provider_admission_or_owner_callable",
+            "materialize_successor_owner_action",
+            "admit_identity_bound_stage_packet",
+        }
+    return False
 
 
 def _blocked_by(supervisor_decision: Mapping[str, Any]) -> str:

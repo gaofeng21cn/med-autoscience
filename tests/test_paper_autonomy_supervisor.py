@@ -69,7 +69,7 @@ def test_execute_decision_requires_provider_and_stage_run_identity() -> None:
     assert decision["paper_progress_classification"] == "none_until_mas_owner_result"
 
 
-def test_admission_pending_without_stage_run_identity_materializes_recovery_not_idle() -> None:
+def test_admission_pending_without_identity_bound_provider_admission_materializes_recovery_not_idle() -> None:
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "current_work_unit": _executable_work_unit(),
@@ -108,8 +108,55 @@ def test_admission_pending_without_stage_run_identity_materializes_recovery_not_
     assert decision["next_safe_action"]["kind"] == "materialize_recovery_work_unit_or_receipt"
     assert decision["next_safe_action"]["recovery_kind"] == "opl_runtime_repair"
     assert decision["missing_evidence_refs"] == [
-        "stage_run_identity_packet",
+        "complete_paper_autonomy_obligation_identity",
     ]
+
+
+def test_identity_bound_admission_pending_executes_without_stage_run_identity() -> None:
+    fingerprint = "publication-blockers::0915410f804b3697"
+    identity = f"provider-admission::003-dpcc::{fingerprint}"
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_work_unit": _executable_work_unit(),
+        "provider_admission_pending_count": 1,
+        "provider_admission_candidates": [
+            {
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "provider_admission_ref": "provider-admission:dm003:repair",
+                "stage_packet_ref": "stage-packet:dm003:repair",
+                "route_identity_key": identity,
+                "attempt_idempotency_key": identity,
+            }
+        ],
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "admission_pending",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_authority": {
+                "owner": "write",
+                "obligation": {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+            "next_safe_action": {"kind": "admit_provider_attempt"},
+        },
+    }
+
+    decision = build_supervisor_decision(payload)
+
+    assert decision["decision"] == "execute_current_owner_delta"
+    assert decision["next_safe_action"]["kind"] == "admit_or_resume_stage_run"
+    assert decision.get("missing_evidence_refs", []) == []
+    assert decision["paper_autonomy_obligation"]["route_identity_key"] == identity
+    assert decision["paper_autonomy_obligation"]["attempt_idempotency_key"] == identity
 
 
 def test_terminal_closeout_phase_consumes_closeout() -> None:

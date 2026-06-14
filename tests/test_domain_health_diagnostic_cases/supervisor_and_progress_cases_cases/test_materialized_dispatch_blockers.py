@@ -147,7 +147,7 @@ def test_domain_health_diagnostic_dry_run_includes_recovery_materialization_prev
                 {
                     "study_id": study_id,
                     "action_type": "run_quality_repair_batch",
-                    "dispatch_status": "dry_run",
+                    "dispatch_status": "ready",
                 }
             ],
         }

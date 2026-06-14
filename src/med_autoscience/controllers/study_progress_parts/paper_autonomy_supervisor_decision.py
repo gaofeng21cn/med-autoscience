@@ -80,6 +80,16 @@ def provider_admission_supervisor_gate(
         }
     decision_kind = _text(decision.get("decision"))
     if decision_kind != EXECUTE_DECISION:
+        if _supervisor_decision_allows_provider_admission_materialization(
+            decision,
+            payload=payload,
+            paper_recovery_state=paper_recovery_state,
+        ):
+            return {
+                "blocked": False,
+                "admission_allowed": True,
+                "supervisor_decision": dict(decision),
+            }
         return _blocked_gate(decision, reason=BLOCK_REASON)
     if not execute_decision_identity_evidence_complete(decision):
         return _blocked_gate(
@@ -115,10 +125,33 @@ def execute_decision_identity_evidence_complete(
     if not all(_text(obligation.get(key)) is not None for key in _REQUIRED_OBLIGATION_FIELDS):
         return False
     evidence_refs = _text_items(decision.get("evidence_refs"))
-    return _has_marker(evidence_refs, _PROVIDER_EVIDENCE_MARKERS) and _has_marker(
-        evidence_refs,
-        _STAGE_RUN_EVIDENCE_MARKERS,
-    )
+    if _has_marker(evidence_refs, _PROVIDER_EVIDENCE_MARKERS):
+        return True
+    return _has_marker(evidence_refs, _STAGE_RUN_EVIDENCE_MARKERS)
+
+
+def _supervisor_decision_allows_provider_admission_materialization(
+    supervisor_decision: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+    paper_recovery_state: Mapping[str, Any] | None,
+) -> bool:
+    if _text(supervisor_decision.get("decision")) != "materialize_recovery_action":
+        return False
+    recovery = _mapping(paper_recovery_state) or _mapping(payload.get("paper_recovery_state"))
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if next_safe_action.get("provider_admission_allowed") is not True:
+        return False
+    phase = _text(recovery.get("phase"))
+    if phase not in {"owner_action_ready", "admission_pending"}:
+        return False
+    action_kind = _text(next_safe_action.get("kind"))
+    return action_kind in {
+        "materialize_provider_admission_or_owner_callable",
+        "materialize_successor_owner_action",
+        "admit_provider_attempt",
+        "admit_identity_bound_stage_packet",
+    }
 
 
 def supervisor_block_projection(gate: Mapping[str, Any]) -> dict[str, Any]:
