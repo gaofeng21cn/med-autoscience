@@ -180,6 +180,14 @@ def test_domain_health_diagnostic_dry_run_includes_recovery_materialization_prev
     assert report["materialization_preview_request_task_count"] == 1
     assert report["materialization_preview_default_executor_dispatch_count"] == 1
     assert report["materialization_preview_ready_default_executor_dispatch_count"] == 1
+    action_preview = report["managed_study_actions"][0]["domain_action_request_materialization_preview"]
+    assert action_preview["study_id"] == study_id
+    assert action_preview["request_task_count"] == 0
+    assert action_preview["default_executor_dispatch_count"] == 1
+    assert action_preview["ready_default_executor_dispatch_count"] == 1
+    assert action_preview["default_executor_dispatches"][0]["action_type"] == (
+        "run_quality_repair_batch"
+    )
     assert report["action_class"] == "observe_only"
 
 
@@ -341,6 +349,10 @@ def test_domain_health_diagnostic_dry_run_includes_owner_resolution_preview(
         "matching_terminal_closeout_receipt",
         "identity_different_successor_owner_action",
     ]
+    action_preview = report["managed_study_actions"][0]["domain_handler_owner_resolution_preview"]
+    assert action_preview["study_id"] == study_id
+    assert action_preview["task_count"] == 1
+    assert action_preview["tasks"][0]["task_kind"] == "domain_route/reconcile-apply"
     assert report["action_class"] == "observe_only"
 
 

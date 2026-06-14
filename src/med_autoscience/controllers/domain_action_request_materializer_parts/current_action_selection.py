@@ -566,12 +566,12 @@ def current_actions_for_studies(
                     stage_native_next_action.diagnostic_blocked_reason(diagnostic_stage_native_action),
                 )
             )
-    for study_id, action in fresh_progress_by_study.items():
+    for study_id, action in fresh_paper_recovery_by_study.items():
         if study_id in suppressed_fresh_progress_studies:
             continue
         if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
             per_study_actions.append(action)
-    for study_id, action in fresh_paper_recovery_by_study.items():
+    for study_id, action in fresh_progress_by_study.items():
         if study_id in suppressed_fresh_progress_studies:
             continue
         if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):

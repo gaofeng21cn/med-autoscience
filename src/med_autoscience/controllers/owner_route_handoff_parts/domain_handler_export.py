@@ -38,6 +38,9 @@ from .export_study_projection import (
 from .guarded_apply_tasks import DEFAULT_GUARDED_APPLY_TARGETS, provider_hosted_guarded_apply_tasks
 from .owner_route_handoff_tasks import owner_route_handoff_task
 from .owner_source_refs import owner_controller_decision_refs
+from .paper_recovery_default_executor_tasks import (
+    paper_recovery_default_executor_dispatch_tasks,
+)
 from .supervisor_typed_blocker_resolution import (
     current_supervisor_decision as _current_supervisor_decision,
     supervisor_stop_decision_matches_current_work_unit as _supervisor_stop_decision_matches_current_work_unit,
@@ -263,6 +266,15 @@ def _pending_family_tasks(
         )
         ordinary_task_blocker = _ordinary_pending_tasks_blocker(current_progress=current_progress)
         if ordinary_task_blocker and not current_owner_action:
+            materialized_dispatch_tasks = paper_recovery_default_executor_dispatch_tasks(
+                current_progress=current_progress,
+                profile=profile,
+                profile_ref=profile_ref,
+                study_id=study_id,
+            )
+            if materialized_dispatch_tasks:
+                tasks.extend(materialized_dispatch_tasks)
+                continue
             resolution_task = _current_typed_blocker_owner_resolution_task(
                 study=study,
                 current_progress=current_progress,

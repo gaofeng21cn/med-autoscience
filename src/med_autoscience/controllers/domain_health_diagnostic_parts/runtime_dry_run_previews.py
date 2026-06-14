@@ -38,6 +38,7 @@ def attach_domain_action_request_materialization_preview(
     report["materialization_preview_blocked_default_executor_dispatch_count"] = _int_value(
         preview.get("blocked_default_executor_dispatch_count")
     )
+    _attach_materialization_preview_to_managed_actions(report=report, preview=preview)
 
 
 def attach_domain_handler_owner_resolution_preview(
@@ -74,6 +75,79 @@ def attach_domain_handler_owner_resolution_preview(
         "tasks": tasks,
     }
     report["domain_handler_owner_resolution_preview_task_count"] = len(tasks)
+    _attach_owner_resolution_preview_to_managed_actions(report=report, tasks=tasks)
+
+
+def _attach_materialization_preview_to_managed_actions(
+    *,
+    report: dict[str, Any],
+    preview: Mapping[str, Any],
+) -> None:
+    actions = report.get("managed_study_actions")
+    if not isinstance(actions, list):
+        return
+    request_tasks_by_study = _items_by_study(preview.get("request_tasks"))
+    dispatches_by_study = _items_by_study(preview.get("default_executor_dispatches"))
+    for index, action in enumerate(actions):
+        if not isinstance(action, Mapping):
+            continue
+        study_id = _non_empty_text(action.get("study_id"))
+        if study_id is None:
+            continue
+        request_tasks = request_tasks_by_study.get(study_id, [])
+        dispatches = dispatches_by_study.get(study_id, [])
+        if not request_tasks and not dispatches:
+            continue
+        updated = dict(action)
+        updated["domain_action_request_materialization_preview"] = {
+            "surface": "domain_action_request_materialization_preview",
+            "schema_version": 1,
+            "dry_run": bool(preview.get("dry_run", True)),
+            "study_id": study_id,
+            "request_task_count": len(request_tasks),
+            "default_executor_dispatch_count": len(dispatches),
+            "ready_default_executor_dispatch_count": sum(
+                _non_empty_text(item.get("dispatch_status")) == "ready"
+                for item in dispatches
+            ),
+            "blocked_default_executor_dispatch_count": sum(
+                _non_empty_text(item.get("dispatch_status")) == "blocked"
+                for item in dispatches
+            ),
+            "request_tasks": request_tasks,
+            "default_executor_dispatches": dispatches,
+        }
+        actions[index] = updated
+
+
+def _attach_owner_resolution_preview_to_managed_actions(
+    *,
+    report: dict[str, Any],
+    tasks: list[dict[str, Any]],
+) -> None:
+    actions = report.get("managed_study_actions")
+    if not isinstance(actions, list):
+        return
+    tasks_by_study = _items_by_study(tasks)
+    for index, action in enumerate(actions):
+        if not isinstance(action, Mapping):
+            continue
+        study_id = _non_empty_text(action.get("study_id"))
+        if study_id is None:
+            continue
+        study_tasks = tasks_by_study.get(study_id, [])
+        if not study_tasks:
+            continue
+        updated = dict(action)
+        updated["domain_handler_owner_resolution_preview"] = {
+            "surface": "domain_handler_owner_resolution_preview",
+            "schema_version": 1,
+            "dry_run": True,
+            "study_id": study_id,
+            "task_count": len(study_tasks),
+            "tasks": study_tasks,
+        }
+        actions[index] = updated
 
 
 def _report_requests_owner_resolution(report: Mapping[str, Any]) -> bool:
@@ -135,6 +209,23 @@ def _text_items(values: object) -> list[str]:
     if not isinstance(values, list | tuple | set):
         return []
     return [text for item in values if (text := _non_empty_text(item)) is not None]
+
+
+def _items_by_study(items: object) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    if not isinstance(items, list):
+        return grouped
+    for item in items:
+        if not isinstance(item, Mapping):
+            continue
+        study_id = (
+            _non_empty_text(item.get("study_id"))
+            or _non_empty_text(_mapping(item.get("payload")).get("study_id"))
+        )
+        if study_id is None:
+            continue
+        grouped.setdefault(study_id, []).append(dict(item))
+    return grouped
 
 
 def _non_empty_text(value: object) -> str | None:
