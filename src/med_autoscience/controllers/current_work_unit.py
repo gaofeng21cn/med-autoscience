@@ -41,6 +41,12 @@ from med_autoscience.controllers.current_work_unit_parts.currentness_identity im
     action_matches_next_forced_delta as _action_matches_next_forced_delta,
     action_with_derived_currentness_identity as _action_with_derived_currentness_identity,
 )
+from med_autoscience.controllers.current_work_unit_parts.contract import (
+    ALLOWED_STATUSES,
+    AUTHORITY_BOUNDARY,
+    SCHEMA_VERSION,
+    SURFACE_KIND,
+)
 from med_autoscience.controllers.current_work_unit_parts.dispatch_consumption import (
     action_consumed_by_dispatch_receipt as _action_consumed_by_dispatch_receipt,
 )
@@ -72,6 +78,9 @@ from med_autoscience.controllers.current_work_unit_parts.readiness_identity impo
 )
 from med_autoscience.controllers.current_work_unit_parts.repair_progress_precedence import (
     gate_replay_action_supersedes_stage_packet_blocker,
+)
+from med_autoscience.controllers.current_work_unit_parts.repair_progress_action import (
+    repair_progress_action_consuming_current_action as _repair_progress_action_consuming_current_action,
 )
 from med_autoscience.controllers.current_work_unit_parts.running_provider_attempt import (
     provider_attempt_proof_state,
@@ -121,31 +130,7 @@ from med_autoscience.runtime_control.owner_route_attempt_protocol import (
 )
 
 
-SURFACE_KIND = "current_work_unit"
-SCHEMA_VERSION = 1
-ALLOWED_STATUSES = (
-    "executable_owner_action",
-    "running_provider_attempt",
-    "typed_blocker",
-    "blocked_current_work_unit",
-)
 GATE_REPLAY_WORK_UNITS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS | frozenset({READINESS_GATE_REPAIR_WORK_UNIT})
-AUTHORITY_BOUNDARY = {
-    "surface_kind": SURFACE_KIND,
-    "authority": "mas_current_work_unit_reducer",
-    "top_level_truth": "status",
-    "stage_transition_authority": "OPL Stage Transition Authority",
-    "stage_authority_role": "non_authoritative_observation_and_intent_producer",
-    "allowed_statuses": list(ALLOWED_STATUSES),
-    "mas_owner_authority_preserved": True,
-    "can_write_stage_current_pointer": False,
-    "can_write_current_owner_delta": False,
-    "can_write_stage_terminal_state": False,
-    "can_write_runtime_owned_surfaces": False,
-    "can_write_paper_or_package": False,
-    "can_authorize_quality_verdict": False,
-    "can_authorize_publication_ready": False,
-}
 
 
 def build_current_work_unit(
@@ -181,6 +166,13 @@ def build_current_work_unit(
         current_executable_owner_action=current_executable_owner_action
         or progress_first_current_action,
     )
+    repair_progress_action = _repair_progress_action_consuming_current_action(
+        progress=progress_payload,
+        current_action=action,
+        surface_kind="current_executable_owner_action",
+    )
+    if repair_progress_action is not None:
+        action = repair_progress_action
     if stage_owner_answer_action is not None and not _action_supersedes_stage_owner_answer(
         action=action,
         progress=progress_payload,
