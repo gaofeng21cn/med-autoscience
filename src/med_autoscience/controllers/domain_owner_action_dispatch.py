@@ -750,7 +750,14 @@ def dispatch_domain_owner_actions(
             scan_payload=study_scan_payload,
             fresh_progress=study_fresh_progress,
         )
-        if not selected_dispatches and consumer_payload is None:
+        if (
+            not selected_dispatches
+            and consumer_payload is None
+            and not persisted_dispatches.consumed_transition_current_control_present(
+                scan_payload=study_scan_payload,
+                study_id=study_id,
+            )
+        ):
             selected_dispatches = (
                 _materialize_current_dispatches_for_apply(
                     profile=profile,

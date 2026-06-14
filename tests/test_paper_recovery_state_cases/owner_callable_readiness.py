@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from tests.test_paper_recovery_state_cases.shared import (
     _executable_work_unit,
     _module,
@@ -361,3 +363,73 @@ def test_terminal_anti_loop_typed_blocker_does_not_rerun_same_owner_callable() -
         "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
     )
     assert "owner_callable" not in state["next_safe_action"]
+
+
+def test_terminal_anti_loop_owner_gate_reads_closeout_ref_before_stale_progress_delta(tmp_path) -> None:
+    fingerprint = "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+    study_id = "002-dm-china-us-mortality-attribution"
+    closeout_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+        "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json"
+    )
+    closeout_path = tmp_path / closeout_ref
+    closeout_path.parent.mkdir(parents=True, exist_ok=True)
+    closeout_path.write_text(
+        json.dumps(
+            {
+                "stage_attempt_id": "sat_67e10efde628859185249aa0",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "paper_stage_log": {
+                    "next_forced_delta": {
+                        "required_delta_kind": (
+                            "publishability_repair_sprint_or_single_typed_blocker_"
+                            "or_human_or_operator_gate"
+                        ),
+                    },
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    current_work_unit = _typed_blocker_work_unit(
+        study_id=study_id,
+        owner="one-person-lab",
+        action_type="run_gate_clearing_batch",
+        work_unit_id="ai_reviewer_record_gate_consumption",
+        blocker_type="anti_loop_budget_exhausted",
+    ) | {
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "currentness_basis": {
+            "work_unit_id": "ai_reviewer_record_gate_consumption",
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "stage_attempt_id": "sat_67e10efde628859185249aa0",
+        },
+    }
+    current_work_unit["state"]["typed_blocker"] |= {
+        "latest_owner_answer_ref": f"{closeout_ref}#typed_blocker",
+        "typed_blocker_ref": f"{closeout_ref}#typed_blocker",
+        "source_ref": f"{closeout_ref}#typed_blocker",
+        "closeout_refs": [closeout_ref],
+        "latest_owner_answer_kind": "typed_blocker",
+        "owner_answer_shape": "typed_blocker_ref",
+        "work_unit_fingerprint": fingerprint,
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": study_id,
+            "study_root": str(tmp_path / "studies" / study_id),
+            "workspace_root": str(tmp_path),
+            "current_work_unit": current_work_unit,
+            "next_forced_delta": {"required_delta_kind": "review_current_paper_delta"},
+        }
+    )
+
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_gate"
+    assert state["next_safe_action"]["required_input"] == (
+        "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
+    )

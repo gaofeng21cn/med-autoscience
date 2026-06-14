@@ -196,6 +196,153 @@ def test_execute_dispatch_defaults_to_same_tick_consumer_payload_dispatch(
     assert result["executions"][0]["dispatch_path"] == str(dispatch_path)
 
 
+def test_execute_dispatch_selects_fresh_progress_current_owner_action_when_current_control_is_stale(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    work_unit_fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{action_type}.json"
+    )
+    route = _owner_route(study_id=study_id, action_type=action_type, owner="write")
+    route.update(
+        {
+            "truth_epoch": work_unit_fingerprint,
+            "route_epoch": work_unit_fingerprint,
+            "runtime_health_epoch": work_unit_fingerprint,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "source_fingerprint": work_unit_fingerprint,
+            "idempotency_key": f"paper-recovery::{study_id}::{action_type}::{work_unit_fingerprint}",
+        }
+    )
+    route["source_refs"] = {
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "owner_route_currentness_basis": {
+            "truth_epoch": work_unit_fingerprint,
+            "runtime_health_epoch": work_unit_fingerprint,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        },
+    }
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type=action_type,
+        owner="write",
+        required_output_surface="artifacts/controller/quality_repair_batch/latest.json",
+        owner_route=route,
+    )
+    dispatch_payload.update(
+        {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": work_unit_fingerprint,
+            "next_work_unit": work_unit_id,
+            "refs": {"dispatch_path": str(dispatch_path)},
+        }
+    )
+    dispatch_payload["prompt_contract"]["next_work_unit"] = work_unit_id
+    dispatch_payload["prompt_contract"]["work_unit_fingerprint"] = work_unit_fingerprint
+    dispatch_payload["prompt_contract"]["owner_route_currentness_basis"] = route["source_refs"][
+        "owner_route_currentness_basis"
+    ]
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "typed_blocker",
+                        "owner": "gate_clearing_batch",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": "sha256:stale-gate-replay",
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatch_count": 1,
+            "default_executor_dispatches": [dispatch_payload],
+        },
+    )
+
+    def fake_read_study_progress(**kwargs) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "current_execution_envelope": {"state_kind": "executable_owner_action"},
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "owner": "write",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "next_owner": "write",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+            },
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", fake_read_study_progress)
+
+    def fake_execute_owner_dispatch_action(**kwargs) -> dict[str, object]:
+        return {
+            "execution_status": "dry_run",
+            "blocked_reason": None,
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+        }
+
+    monkeypatch.setattr(module, "_execute_owner_dispatch_action", fake_execute_owner_dispatch_action)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(action_type,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["dry_run_count"] == 1
+    assert result["blocked_count"] == 0
+    assert result["per_study_execution_summary"][0]["selected_dispatch_count"] == 1
+    assert result["per_study_execution_summary"][0]["zero_dispatch_reason"] is None
+    assert result["executions"][0]["action_type"] == action_type
+    assert result["executions"][0]["dispatch_path"] == str(dispatch_path)
+
+
 def test_execute_dispatch_accepts_single_dispatch_payload_shape(
     monkeypatch,
     tmp_path: Path,

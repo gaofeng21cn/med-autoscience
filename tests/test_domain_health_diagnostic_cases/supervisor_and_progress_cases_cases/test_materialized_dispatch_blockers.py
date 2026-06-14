@@ -93,6 +93,257 @@ def test_domain_health_diagnostic_same_tick_treats_blocked_materialized_dispatch
     assert "repeat_read_model_reconcile_without_owner_delta" in diagnostic["forbidden_next_actions"]
 
 
+def test_domain_health_diagnostic_dry_run_includes_recovery_materialization_preview(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    materialize_calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(
+        module,
+        "_run_domain_health_diagnostic_for_runtime_impl",
+        lambda **kwargs: {
+            "surface": "domain_health_diagnostic",
+            "action_class": "observe_only",
+            "scanned_at": "2026-06-14T00:00:00+00:00",
+            "paper_recovery_states": {
+                study_id: {
+                    "phase": "owner_action_ready",
+                    "next_safe_action": {"kind": "run_mas_owner_callable"},
+                    "supervisor_decision": {"decision": "materialize_recovery_action"},
+                }
+            },
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "reason": "quest_waiting_for_user",
+                    "paper_recovery_state": {
+                        "phase": "owner_action_ready",
+                        "next_safe_action": {"kind": "run_mas_owner_callable"},
+                        "supervisor_decision": {"decision": "materialize_recovery_action"},
+                    },
+                }
+            ],
+        },
+    )
+
+    def fake_materialize_domain_action_requests(**kwargs) -> dict[str, object]:
+        materialize_calls.append(kwargs)
+        return {
+            "surface": "domain_action_request_materializer",
+            "dry_run": True,
+            "request_task_count": 1,
+            "default_executor_dispatch_count": 1,
+            "ready_default_executor_dispatch_count": 1,
+            "blocked_default_executor_dispatch_count": 0,
+            "default_executor_dispatches": [
+                {
+                    "study_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "dispatch_status": "dry_run",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        fake_materialize_domain_action_requests,
+    )
+    monkeypatch.setattr(
+        module,
+        "_materialize_report_provider_admission_current_control_state",
+        lambda **kwargs: None,
+    )
+
+    report = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=False,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    assert len(materialize_calls) == 1
+    assert materialize_calls[0]["apply"] is False
+    assert materialize_calls[0]["mode"] == "developer_apply_safe"
+    assert materialize_calls[0]["study_ids"] == (study_id,)
+    assert report["domain_action_request_materialization_preview"]["request_task_count"] == 1
+    assert report["domain_action_request_materialization_preview"]["default_executor_dispatch_count"] == 1
+    assert report["materialization_preview_request_task_count"] == 1
+    assert report["materialization_preview_default_executor_dispatch_count"] == 1
+    assert report["materialization_preview_ready_default_executor_dispatch_count"] == 1
+    assert report["action_class"] == "observe_only"
+
+
+def test_domain_health_diagnostic_dry_run_includes_owner_resolution_preview(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    profile = profiles.WorkspaceProfile(**{**profile.__dict__, "profile_ref": profile_ref})
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_record_gate_consumption"
+    fingerprint = "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "status": "typed_blocker",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner": "one-person-lab",
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "state": {
+            "state_kind": "typed_blocker",
+            "typed_blocker": {
+                "blocker_id": "anti_loop_budget_exhausted",
+                "blocker_type": "anti_loop_budget_exhausted",
+                "owner": "one-person-lab",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "source_ref": (
+                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "sat_67e10efde628859185249aa0.closeout.json"
+                ),
+            },
+        },
+    }
+    recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "owner_action_ready",
+        "current_authority": {
+            "owner": "one-person-lab",
+            "obligation": {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "one-person-lab",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "blocker_type": "anti_loop_budget_exhausted",
+            },
+        },
+        "next_safe_action": {
+            "kind": "materialize_successor_owner_gate",
+            "owner": "one-person-lab",
+            "provider_admission_allowed": False,
+            "required_input": (
+                "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
+            ),
+            "successor_owner_gate": {
+                "owner": "one-person-lab",
+                "required_input": (
+                    "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
+                ),
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+        "supervisor_decision": {
+            "decision": "materialize_recovery_action",
+            "identity_match": True,
+            "paper_autonomy_obligation": {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+    }
+
+    monkeypatch.setattr(
+        module,
+        "_run_domain_health_diagnostic_for_runtime_impl",
+        lambda **kwargs: {
+            "surface": "domain_health_diagnostic",
+            "action_class": "observe_only",
+            "scanned_at": "2026-06-14T00:00:00+00:00",
+            "paper_recovery_states": {study_id: recovery_state},
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "reason": "anti_loop_budget_exhausted",
+                    "paper_recovery_state": recovery_state,
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        lambda **kwargs: {
+            "surface": "domain_action_request_materializer",
+            "dry_run": True,
+            "request_task_count": 0,
+            "default_executor_dispatch_count": 0,
+            "ready_default_executor_dispatch_count": 0,
+            "blocked_default_executor_dispatch_count": 0,
+            "default_executor_dispatches": [],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_materialize_report_provider_admission_current_control_state",
+        lambda **kwargs: None,
+    )
+
+    def fake_read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": current_work_unit,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "one-person-lab",
+                "typed_blocker": current_work_unit["state"]["typed_blocker"],
+            },
+            "paper_recovery_state": recovery_state,
+            "current_executable_owner_action": None,
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", fake_read_study_progress)
+
+    report = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=False,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    assert report["domain_handler_owner_resolution_preview_task_count"] == 1
+    preview = report["domain_handler_owner_resolution_preview"]
+    task = preview["tasks"][0]
+    assert task["task_kind"] == "domain_route/reconcile-apply"
+    assert task["reason"] == "current_work_unit_typed_blocker_owner_resolution"
+    assert task["queue_owner"] == "one-person-lab"
+    assert task["payload"]["required_owner_action"]["accepted_resolution_shapes"][:3] == [
+        "matching_provider_attempt_or_lease_binding",
+        "matching_terminal_closeout_receipt",
+        "identity_different_successor_owner_action",
+    ]
+    assert report["action_class"] == "observe_only"
+
+
 def test_domain_health_diagnostic_same_tick_treats_opl_authorization_blocker_as_provider_handoff(
     tmp_path: Path,
     monkeypatch,

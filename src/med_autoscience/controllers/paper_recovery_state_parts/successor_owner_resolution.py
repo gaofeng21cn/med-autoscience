@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import json
+from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import current_work_unit as current_work_unit_reducer
@@ -62,14 +64,19 @@ def successor_owner_gate_from_terminal_blocker(
         return None
     if blocker_reason != "anti_loop_budget_exhausted":
         return None
-    closeout = _matching_terminal_closeout(
+    obligation = {
+        "action_type": _text(typed_blocker.get("action_type")),
+        "work_unit_id": _text(typed_blocker.get("work_unit_id")),
+        "work_unit_fingerprint": _text(typed_blocker.get("work_unit_fingerprint")),
+    }
+    closeout = _matching_terminal_closeout(progress, obligation=obligation)
+    closeout_from_ref = _matching_terminal_closeout_from_typed_blocker_refs(
         progress,
-        obligation={
-            "action_type": _text(typed_blocker.get("action_type")),
-            "work_unit_id": _text(typed_blocker.get("work_unit_id")),
-            "work_unit_fingerprint": _text(typed_blocker.get("work_unit_fingerprint")),
-        },
+        typed_blocker=typed_blocker,
+        obligation=obligation,
     )
+    if _next_forced_delta_from_closeout(closeout_from_ref):
+        closeout = closeout_from_ref
     next_forced_delta = _next_forced_delta_from_closeout(closeout) or _next_forced_delta_from_progress(progress)
     required_input = _first_text(
         _mapping(next_forced_delta).get("required_delta_kind"),
@@ -161,6 +168,20 @@ def _matching_terminal_closeout(
     return None
 
 
+def _matching_terminal_closeout_from_typed_blocker_refs(
+    progress: Mapping[str, Any],
+    *,
+    typed_blocker: Mapping[str, Any],
+    obligation: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    for ref in _terminal_closeout_ref_candidates(typed_blocker):
+        closeout = _read_closeout_ref(progress, ref)
+        if closeout and _closeout_matches_obligation(closeout, obligation=obligation):
+            closeout.setdefault("source_path", _strip_ref_fragment(ref))
+            return closeout
+    return None
+
+
 def _closeout_matches_obligation(
     closeout: Mapping[str, Any],
     *,
@@ -209,6 +230,81 @@ def _terminal_owner_answer_present(typed_blocker: Mapping[str, Any]) -> bool:
             typed_blocker.get("source_ref"),
         )
     )
+
+
+def _terminal_closeout_ref_candidates(typed_blocker: Mapping[str, Any]) -> list[str]:
+    return _dedupe(
+        [
+            *_text_items(typed_blocker.get("closeout_refs")),
+            _text(typed_blocker.get("typed_blocker_ref")),
+            _text(typed_blocker.get("latest_owner_answer_ref")),
+            _text(typed_blocker.get("source_ref")),
+        ]
+    )
+
+
+def _read_closeout_ref(progress: Mapping[str, Any], ref: str) -> dict[str, Any]:
+    path_text = _strip_ref_fragment(ref)
+    if path_text is None:
+        return {}
+    for path in _candidate_ref_paths(progress, path_text):
+        payload = _read_json_object(path)
+        if payload:
+            return payload
+    return {}
+
+
+def _candidate_ref_paths(progress: Mapping[str, Any], path_text: str) -> list[Path]:
+    ref_path = Path(path_text).expanduser()
+    if ref_path.is_absolute():
+        return [ref_path]
+    candidates: list[Path] = []
+    workspace_root = _path(progress.get("workspace_root"))
+    study_root = _path(progress.get("study_root"))
+    if workspace_root is not None:
+        candidates.append(workspace_root / ref_path)
+    if study_root is not None:
+        candidates.append(study_root / ref_path)
+        study_id = _text(progress.get("study_id"))
+        if study_id:
+            prefix = f"studies/{study_id}/"
+            if path_text.startswith(prefix):
+                candidates.append(study_root / path_text.removeprefix(prefix))
+        if study_root.name and path_text.startswith(f"{study_root.name}/"):
+            candidates.append(study_root.parent / ref_path)
+    return _dedupe_paths(candidates)
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, NotADirectoryError, OSError, json.JSONDecodeError):
+        return {}
+    return _mapping(payload)
+
+
+def _strip_ref_fragment(ref: str | None) -> str | None:
+    text = _text(ref)
+    if text is None:
+        return None
+    return text.split("#", 1)[0]
+
+
+def _path(value: object) -> Path | None:
+    text = _text(value)
+    return Path(text).expanduser() if text is not None else None
+
+
+def _dedupe_paths(paths: list[Path]) -> list[Path]:
+    result: list[Path] = []
+    seen: set[str] = set()
+    for path in paths:
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(path)
+    return result
 
 
 def _next_forced_delta_from_closeout(closeout: Mapping[str, Any] | None) -> dict[str, Any]:
