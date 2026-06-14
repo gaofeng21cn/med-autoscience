@@ -639,6 +639,7 @@ def _current_action_supersedes_canonical_typed_blocker(
         return False
     if not (
         _next_forced_delta_owner_action(current_action)
+        or _gate_followthrough_owner_action(current_action)
         or _publication_eval_readiness_blocker_repair_action(current_action)
     ):
         return False

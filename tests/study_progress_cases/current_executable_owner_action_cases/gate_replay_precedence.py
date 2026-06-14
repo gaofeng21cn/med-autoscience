@@ -419,6 +419,51 @@ def test_gate_followthrough_action_survives_zero_selected_materialized_dispatch_
     assert aligned == action
 
 
+def test_publication_eval_repair_action_survives_zero_selected_materialized_dispatch_blocker() -> None:
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+    )
+
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source_surface": "publication_eval.recommended_actions.readiness_blocker_repair",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "quality_re_review",
+        "work_unit_fingerprint": "publication-blockers::quality-re-review",
+        "action_fingerprint": "publication-blockers::quality-re-review",
+        "target_surface": {
+            "ref_kind": "publication_eval_recommended_action",
+            "route_target": "write",
+            "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+            "next_work_unit": {
+                "unit_id": "quality_re_review",
+                "lane": "write",
+            },
+        },
+        "target_surface_specificity": "publication_eval_readiness_blocker_derived_repair",
+    }
+
+    aligned = surfaces.current_action_aligned_with_execution_envelope(
+        action=action,
+        envelope={
+            "state_kind": "typed_blocker",
+            "typed_blocker": {
+                "blocker_type": "domain_owner_dispatch_zero_selected_after_materialized_current_request",
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "quality_re_review",
+                "work_unit_fingerprint": "publication-blockers::quality-re-review",
+            },
+        },
+    )
+
+    assert aligned == action
+
+
 def test_existing_projection_refresh_promotes_gate_followthrough_over_terminal_gate_blocker(
     monkeypatch,
     tmp_path,

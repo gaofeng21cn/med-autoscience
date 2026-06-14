@@ -185,25 +185,26 @@ def current_action_aligned_with_execution_envelope(
             )
         ):
             return None
-    if _non_empty_text(action.get("source")) == "repair_progress_projection.mas_owner_repair_execution_evidence":
+    action_source = _non_empty_text(action.get("source_surface")) or _non_empty_text(action.get("source"))
+    if action_source == "repair_progress_projection.mas_owner_repair_execution_evidence":
         return dict(action)
-    if _non_empty_text(action.get("source")) == "gate_clearing_batch_followthrough.actionable_current_work_unit":
+    if action_source == "gate_clearing_batch_followthrough.actionable_current_work_unit":
         return dict(action)
-    if _non_empty_text(action.get("source")) == "publication_eval.recommended_actions.readiness_blocker_repair":
+    if action_source == "publication_eval.recommended_actions.readiness_blocker_repair":
         return dict(action)
     if (
         state_kind == "typed_blocker"
-        and _non_empty_text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
+        and action_source == "study_progress.next_forced_delta.owner_action"
         and _envelope_typed_blocker_reason(envelope) == "gate_clearing_batch_source_eval_currentness_mismatch"
     ):
         return dict(action)
     if (
         state_kind == "typed_blocker"
-        and _non_empty_text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
+        and action_source == "study_progress.next_forced_delta.owner_action"
         and action.get("terminal_stage_next_forced_delta") is True
     ):
         return dict(action)
-    if state_kind == "typed_blocker" and _non_empty_text(action.get("source")) == "stage_native_workspace_next_action":
+    if state_kind == "typed_blocker" and action_source == "stage_native_workspace_next_action":
         return dict(action)
     if state_kind != "executable_owner_action":
         return None

@@ -179,7 +179,7 @@ def _paper_recovery_states(
     candidates_by_study = _provider_admission_candidates_by_study(provider_admission_candidates)
     action_context_by_study = _managed_study_action_context_by_study(managed_study_actions)
     states: dict[str, dict[str, Any]] = {}
-    study_ids = set(progress_currentness) | set(candidates_by_study) | set(action_context_by_study)
+    study_ids = set(progress_currentness) | set(candidates_by_study)
     for study_id in sorted(study_ids):
         progress = dict(_mapping(progress_currentness.get(study_id)))
         progress = _progress_with_managed_study_action_context(
