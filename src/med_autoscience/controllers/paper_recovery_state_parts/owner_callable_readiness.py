@@ -16,10 +16,13 @@ def current_mas_owner_callable(
     obligation: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     current_work_unit = _mapping(progress.get("current_work_unit"))
-    if _current_work_unit_status(current_work_unit) not in {
+    current_status = _current_work_unit_status(current_work_unit)
+    if current_status not in {
         "executable_owner_action",
         "typed_blocker",
     }:
+        return None
+    if current_status == "typed_blocker" and _typed_blocker_has_terminal_owner_answer(current_work_unit):
         return None
     action_type = _text(obligation.get("action_type"))
     if action_type is None:
@@ -35,6 +38,23 @@ def current_mas_owner_callable(
     if not _direct_study_or_paper_execution_allowed(progress):
         return None
     return owner_callable
+
+
+def _typed_blocker_has_terminal_owner_answer(current_work_unit: Mapping[str, Any]) -> bool:
+    state = _mapping(current_work_unit.get("state"))
+    typed_blocker = _mapping(state.get("typed_blocker")) or _mapping(current_work_unit.get("typed_blocker"))
+    owner_answer_binding = _mapping(state.get("owner_answer_binding"))
+    required_output_contract = _mapping(current_work_unit.get("required_output_contract"))
+    return any(
+        _text(value) is not None
+        for value in (
+            owner_answer_binding.get("latest_owner_answer_ref"),
+            owner_answer_binding.get("typed_blocker_ref"),
+            typed_blocker.get("latest_owner_answer_ref"),
+            typed_blocker.get("typed_blocker_ref"),
+            required_output_contract.get("typed_blocker_ref"),
+        )
+    )
 
 
 def _direct_study_or_paper_execution_allowed(progress: Mapping[str, Any]) -> bool:

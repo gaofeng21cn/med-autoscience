@@ -813,6 +813,13 @@ def _provider_admission_candidates_for_status(
         )
     if _status_has_running_provider_attempt(status_payload):
         return []
+    current_progress_candidates = [
+        dict(item)
+        for item in status_payload.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    if current_progress_candidates:
+        return current_progress_candidates
     candidates = provider_admission.persisted_provider_admission_candidates(
         study_root=study_root,
         status_payload=status_payload,

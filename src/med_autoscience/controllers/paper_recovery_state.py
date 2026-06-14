@@ -17,6 +17,10 @@ from med_autoscience.controllers.paper_recovery_state_parts.obligation_matching 
 from med_autoscience.controllers.paper_recovery_state_parts.owner_callable_readiness import (
     current_mas_owner_callable as _current_mas_owner_callable,
 )
+from med_autoscience.controllers.paper_recovery_state_parts.running_attempt_identity import (
+    running_attempt_has_obligation_identity as _running_attempt_has_obligation_identity,
+    running_attempt_identity_surface as _running_attempt_identity_surface,
+)
 from med_autoscience.controllers.paper_recovery_state_parts.typed_blocker_recovery import (
     typed_blocker_next_action as _typed_blocker_next_action,
     typed_blocker_phase as _typed_blocker_phase,
@@ -520,7 +524,7 @@ def _projection_contradiction(
         }
     envelope = _mapping(progress.get("current_execution_envelope"))
     if _text(envelope.get("state_kind")) == "running_provider_attempt":
-        handoff = _mapping(progress.get("opl_current_control_state_handoff"))
+        handoff = _running_attempt_identity_surface(progress)
         if not _running_attempt_has_obligation_identity(handoff, obligation=obligation):
             return {
                 "condition": "running_attempt_missing_obligation_identity",
@@ -710,36 +714,6 @@ def _suppressed_surfaces_for_owner_gate_decision(progress: Mapping[str, Any]) ->
     if _mapping(progress.get("current_work_unit")):
         suppressed.append("current_work_unit_typed_blocker")
     return list(dict.fromkeys(suppressed))
-
-
-def _running_attempt_has_obligation_identity(
-    handoff: Mapping[str, Any],
-    *,
-    obligation: Mapping[str, Any],
-) -> bool:
-    if handoff.get("running_provider_attempt") is not True:
-        return False
-    action_type = _text(obligation.get("action_type"))
-    work_unit_id = _text(obligation.get("work_unit_id"))
-    fingerprint = _text(obligation.get("work_unit_fingerprint"))
-    obligation_id = _text(obligation.get("recovery_obligation_id"))
-    handoff_obligation_id = _text(handoff.get("recovery_obligation_id"))
-    fingerprint_matches = fingerprint is not None and fingerprint in {
-        _text(handoff.get("work_unit_fingerprint")),
-        _text(handoff.get("action_fingerprint")),
-    }
-    obligation_matches = (
-        obligation_id is not None
-        and handoff_obligation_id is not None
-        and handoff_obligation_id == obligation_id
-    )
-    return (
-        action_type is not None
-        and _text(handoff.get("action_type")) == action_type
-        and work_unit_id is not None
-        and _text(handoff.get("work_unit_id")) == work_unit_id
-        and (fingerprint_matches or obligation_matches)
-    )
 
 
 def _admission_blocked_condition(

@@ -53,8 +53,11 @@ def current_actions(
 
 def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
     recovery = _mapping(study.get("paper_recovery_state"))
+    supervisor_decision = _mapping(recovery.get("supervisor_decision"))
     next_action = _mapping(recovery.get("next_safe_action"))
     if _text(recovery.get("phase")) != "owner_action_ready":
+        return None
+    if _text(supervisor_decision.get("decision")) not in {None, "materialize_recovery_action"}:
         return None
     if _text(next_action.get("kind")) != "run_mas_owner_callable":
         return None
@@ -84,8 +87,10 @@ def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
             work_unit_id=work_unit_id,
             work_unit_fingerprint=work_unit_fingerprint,
             blocker_type=_text(obligation.get("blocker_type")),
+            supervisor_decision=supervisor_decision,
         )
     )
+    supervisor_decision_ref = _text(supervisor_decision.get("decision_id"))
     action = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -100,6 +105,9 @@ def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
         "required_output_surface": request_output_surface_for_action_type(action_type),
         "source_surface": "paper_recovery_state",
         "source_ref": _text(recovery.get("recovery_obligation_id")),
+        "supervisor_decision": supervisor_decision or None,
+        "supervisor_decision_ref": supervisor_decision_ref,
+        "supervisor_authority": "paper_autonomy_supervisor_decision" if supervisor_decision else None,
         "work_unit_id": work_unit_id,
         "next_work_unit": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,
@@ -113,6 +121,11 @@ def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
             "next_executable_owner": owner,
             "source_surface": "paper_recovery_state",
             "source_ref": _text(recovery.get("recovery_obligation_id")),
+            "supervisor_decision": supervisor_decision or None,
+            "supervisor_decision_ref": supervisor_decision_ref,
+            "supervisor_authority": (
+                "paper_autonomy_supervisor_decision" if supervisor_decision else None
+            ),
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": work_unit_fingerprint,
@@ -133,7 +146,10 @@ def _owner_route(
     work_unit_id: str,
     work_unit_fingerprint: str,
     blocker_type: str | None,
+    supervisor_decision: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    decision = _mapping(supervisor_decision)
+    supervisor_decision_ref = _text(decision.get("decision_id"))
     return {
         "surface": "domain_route_owner_route",
         "schema_version": 2,
@@ -156,6 +172,8 @@ def _owner_route(
             "work_unit_fingerprint": work_unit_fingerprint,
             "bridge_authority": BRIDGE_AUTHORITY,
             "source_surface": "paper_recovery_state",
+            "supervisor_authority": "paper_autonomy_supervisor_decision" if decision else None,
+            "supervisor_decision_ref": supervisor_decision_ref,
             "owner_route_currentness_basis": {
                 "truth_epoch": work_unit_fingerprint,
                 "runtime_health_epoch": work_unit_fingerprint,

@@ -205,6 +205,21 @@ def test_materializer_dispatches_fresh_paper_recovery_owner_callable_without_sca
     assert dispatch["action_type"] == "run_gate_clearing_batch"
     assert dispatch["next_executable_owner"] == "publication_gate"
     assert dispatch["source_action"]["authority"] == "paper_recovery_state"
+    assert dispatch["source_action"]["supervisor_decision"]["decision"] == (
+        "materialize_recovery_action"
+    )
+    assert dispatch["source_action"]["supervisor_decision_ref"].startswith(
+        "supervisor-decision::materialize_recovery_action::"
+    )
+    assert dispatch["owner_route"]["source_refs"]["bridge_authority"] == (
+        "domain_action_request_materializer_paper_recovery_owner_callable"
+    )
+    assert dispatch["owner_route"]["source_refs"]["supervisor_decision_ref"] == (
+        dispatch["source_action"]["supervisor_decision_ref"]
+    )
+    assert dispatch["owner_route"]["source_refs"]["supervisor_authority"] == (
+        "paper_autonomy_supervisor_decision"
+    )
     assert dispatch["action_fingerprint"] == fingerprint
 
 

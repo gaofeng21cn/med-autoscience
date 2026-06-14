@@ -37,8 +37,11 @@ PROGRESS_CURRENTNESS_KEYS = (
     "current_owner_ticket",
     "domain_transition",
     "progress_first_monitoring_summary",
+    "opl_current_control_state_handoff",
     "intervention_lane",
     "study_intervention_events",
+    "provider_admission_candidates",
+    "provider_admission_pending_count",
     "paper_recovery_state",
 )
 
