@@ -898,3 +898,4 @@ def test_materializer_blocks_stale_provider_admission_when_fresh_progress_is_sto
 
 
 from tests.domain_action_request_materializer_cases.current_control_authority_selection_cases import *  # noqa: F403,F401,E402
+from tests.domain_action_request_materializer_cases.test_paper_recovery_owner_callable import *  # noqa: F403,F401,E402

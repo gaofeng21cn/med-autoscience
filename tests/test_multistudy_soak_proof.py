@@ -27,7 +27,11 @@ def _ready_study(study_id: str, archetype: str) -> dict[str, object]:
         "literature_contract": True,
         "statistical_contract": True,
     }
-    if archetype == "prediction_model/external_validation":
+    if archetype in {
+        "clinical_classifier",
+        "external_validation_model_update",
+        "prediction_model/external_validation",
+    }:
         contracts["external_validation_fixture"] = True
     return {
         "study_id": study_id,
@@ -78,6 +82,53 @@ def test_complete_fixture_is_ready_across_required_archetypes_and_stages() -> No
         assert study["missing_gaps"] == []
         assert study["required_stages"] == list(ALL_STAGES)
         assert study["authority_contract"]["can_authorize_quality"] is False
+
+
+def test_canonical_study_archetypes_cover_legacy_soak_categories() -> None:
+    projection = _module().build_multistudy_soak_matrix_projection(
+        [
+            _ready_study("002-dm", "clinical_classifier"),
+            _ready_study("003-dpcc", "clinical_subtype_reconstruction"),
+            _ready_study("004-real-world", "observational_real_world"),
+        ],
+    )
+
+    assert projection["missing_archetypes"] == []
+    by_id = {study["study_id"]: study for study in projection["studies"]}
+    assert by_id["002-dm"]["study_archetype"] == "clinical_classifier"
+    assert by_id["002-dm"]["soak_archetype"] == "prediction_model/external_validation"
+    assert by_id["002-dm"]["blocking_gaps"] == []
+    assert "archetype:unsupported" not in by_id["002-dm"]["missing_gaps"]
+    assert by_id["003-dpcc"]["study_archetype"] == "clinical_subtype_reconstruction"
+    assert by_id["003-dpcc"]["soak_archetype"] == "subtype_or_triage"
+    assert by_id["003-dpcc"]["blocking_gaps"] == []
+    assert "archetype:unsupported" not in by_id["003-dpcc"]["missing_gaps"]
+    assert projection["coverage_manifest"]["covered_archetypes"] == [
+        "observational_real_world",
+        "prediction_model/external_validation",
+        "subtype_or_triage",
+    ]
+
+
+def test_canonical_classifier_requires_external_validation_fixture_contract() -> None:
+    projection = _module().build_multistudy_soak_matrix_projection(
+        [
+            {
+                **_ready_study("002-dm", "clinical_classifier"),
+                "contracts": {
+                    "literature_contract": True,
+                    "statistical_contract": True,
+                    "external_validation_fixture": False,
+                },
+            },
+            _ready_study("003-dpcc", "clinical_subtype_reconstruction"),
+            _ready_study("004-real-world", "observational_real_world"),
+        ],
+    )
+
+    by_id = {study["study_id"]: study for study in projection["studies"]}
+    assert by_id["002-dm"]["soak_archetype"] == "prediction_model/external_validation"
+    assert "contract:external_validation_fixture" in by_id["002-dm"]["blocking_gaps"]
 
 
 def test_missing_literature_statistics_or_external_validation_blocks_study() -> None:

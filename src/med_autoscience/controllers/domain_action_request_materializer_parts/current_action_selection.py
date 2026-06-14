@@ -12,6 +12,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     current_typed_blocker_transition_barrier,
     fresh_progress_current_action,
     fresh_progress_arbitration,
+    paper_recovery_owner_callable,
     repair_progress_currentness,
     stage_native_next_action,
 )
@@ -63,6 +64,10 @@ def current_actions_for_studies(
         for action in fresh_progress_actions
         if (study_id := _text(action.get("study_id"))) is not None
     }
+    fresh_paper_recovery_by_study = paper_recovery_owner_callable.current_actions(
+        profile=profile,
+        study_ids=study_ids,
+    )
     top_level_actions = [
         dict(action) for action in scan_payload.get("action_queue") or [] if isinstance(action, Mapping)
     ]
@@ -108,6 +113,9 @@ def current_actions_for_studies(
             study=study_payload,
             top_level_actions=top_level_actions,
         )
+        paper_recovery_owner_callable_action = paper_recovery_owner_callable.action_for_study(
+            study_payload
+        ) or fresh_paper_recovery_by_study.get(study_id)
         canonical_current_action = current_work_unit_action.canonical_current_work_unit_action(study_payload)
         writer_handoff_owner_action = _current_writer_handoff_owner_action(
             study=study_payload,
@@ -166,6 +174,19 @@ def current_actions_for_studies(
                     *per_study_queue_actions,
                 ]
                 if action != fresh_progress_action
+            )
+            continue
+        if paper_recovery_owner_callable_action is not None and readiness_followup is None:
+            per_study_actions.append(paper_recovery_owner_callable_action)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_paper_recovery_owner_callable")
+                for action in [
+                    *stale_candidate_actions,
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
+                    *([fresh_progress_action] if fresh_progress_action is not None else []),
+                ]
+                if action != paper_recovery_owner_callable_action
             )
             continue
         if _fresh_progress_is_current_execution_envelope_barrier(fresh_progress_action):
@@ -255,6 +276,7 @@ def current_actions_for_studies(
                 stage_native_action=stage_native_action,
                 top_level_study_actions=top_level_study_actions,
             )
+            and _text(fresh_progress_action.get("action_type")) != READINESS_ACTION_TYPE
             and not current_action_authority.stage_native_action_supersedes_stable_readiness_answer(
                 study=study_payload,
                 readiness_followup=readiness_followup,
@@ -545,6 +567,11 @@ def current_actions_for_studies(
                 )
             )
     for study_id, action in fresh_progress_by_study.items():
+        if study_id in suppressed_fresh_progress_studies:
+            continue
+        if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
+            per_study_actions.append(action)
+    for study_id, action in fresh_paper_recovery_by_study.items():
         if study_id in suppressed_fresh_progress_studies:
             continue
         if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):

@@ -38,6 +38,10 @@ def _readiness_path(study_root: Path) -> Path:
     return study_root / "artifacts" / "medical_paper" / "medical_paper_readiness.json"
 
 
+def _canonical_readiness_path(study_root: Path) -> Path:
+    return study_root / "artifacts" / "medical_paper" / "readiness.json"
+
+
 def _ready_matrix_payload(study_id: str, archetype: str) -> dict[str, object]:
     contracts: dict[str, object] = {
         "literature_contract": True,
@@ -58,6 +62,87 @@ def _ready_matrix_payload(study_id: str, archetype: str) -> dict[str, object]:
             f"{study_id}/progress_projection.json",
         ],
     }
+
+
+def test_real_workspace_soak_monitor_backfills_identity_from_study_yaml_for_canonical_readiness(
+    tmp_path: Path,
+) -> None:
+    risk_root = tmp_path / "002-dm-china-us-mortality-attribution"
+    subtype_root = tmp_path / "003-dpcc-primary-care-phenotype-treatment-gap"
+    real_world_root = tmp_path / "observational-study"
+    (risk_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (risk_root / "study.yaml").write_text(
+        "study_id: 002-dm-china-us-mortality-attribution\n"
+        "study_archetype: clinical_classifier\n",
+        encoding="utf-8",
+    )
+    (subtype_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (subtype_root / "study.yaml").write_text(
+        "study_id: 003-dpcc-primary-care-phenotype-treatment-gap\n"
+        "study_archetype: clinical_subtype_reconstruction\n",
+        encoding="utf-8",
+    )
+    for root in (risk_root, subtype_root):
+        _write_json(
+            _canonical_readiness_path(root),
+            {
+                "surface": "medical_paper_readiness",
+                "overall_status": "blocked",
+                "capability_surfaces": [
+                    {"surface_key": "literature_scout", "status": "present", "evidence_refs": ["lit.json"]},
+                    {
+                        "surface_key": "archetype_analysis_contract",
+                        "status": "present",
+                        "evidence_refs": ["analysis.json"],
+                    },
+                    {
+                        "surface_key": "real_study_soak_matrix_evidence",
+                        "status": "present",
+                        "evidence_refs": ["matrix.json"],
+                    },
+                ],
+            },
+        )
+    _write_json(
+        _matrix_path(real_world_root),
+        _ready_matrix_payload("004-real-world", "observational_real_world"),
+    )
+
+    projection = _module().build_real_workspace_soak_monitor(
+        study_roots=[risk_root, subtype_root, real_world_root],
+    )
+
+    by_id = {study["study_id"]: study for study in projection["studies"]}
+    assert by_id["002-dm-china-us-mortality-attribution"]["study_archetype"] == "clinical_classifier"
+    assert by_id["002-dm-china-us-mortality-attribution"]["soak_archetype"] == (
+        "prediction_model/external_validation"
+    )
+    assert by_id["003-dpcc-primary-care-phenotype-treatment-gap"]["study_archetype"] == (
+        "clinical_subtype_reconstruction"
+    )
+    assert by_id["003-dpcc-primary-care-phenotype-treatment-gap"]["soak_archetype"] == "subtype_or_triage"
+    assert "archetype:unsupported" not in by_id["002-dm-china-us-mortality-attribution"]["blocking_gaps"]
+    assert "archetype:unsupported" not in by_id["003-dpcc-primary-care-phenotype-treatment-gap"]["blocking_gaps"]
+
+
+def test_real_workspace_soak_monitor_backfills_identity_from_study_yaml_when_refs_missing(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "002-dm-china-us-mortality-attribution"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(
+        "study_id: 002-dm-china-us-mortality-attribution\n"
+        "study_archetype: clinical_classifier\n",
+        encoding="utf-8",
+    )
+
+    projection = _module().build_real_workspace_soak_monitor(study_roots=[study_root])
+
+    study = projection["studies"][0]
+    assert study["study_id"] == "002-dm-china-us-mortality-attribution"
+    assert study["study_archetype"] == "clinical_classifier"
+    assert study["soak_archetype"] == "prediction_model/external_validation"
+    assert study["source_surface"] == "missing_durable_ref"
 
 
 def test_real_workspace_soak_monitor_builds_ready_read_only_projection(tmp_path: Path) -> None:

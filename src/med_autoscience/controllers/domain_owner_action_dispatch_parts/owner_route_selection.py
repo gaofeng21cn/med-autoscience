@@ -12,6 +12,11 @@ from . import current_writer_handoff
 from . import persisted_dispatches
 
 
+PAPER_RECOVERY_OWNER_CALLABLE_BRIDGE_AUTHORITY = (
+    "domain_action_request_materializer_paper_recovery_owner_callable"
+)
+
+
 def dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     return owner_route_part.ensure_owner_route_v2(
         _mapping(dispatch.get("owner_route"))
@@ -132,6 +137,12 @@ def execution_owner_route(
         return request_route, "owner_request"
     dispatch_route = dispatch_owner_route(dispatch)
     if (
+        _dispatch_bridge_authority(dispatch) == PAPER_RECOVERY_OWNER_CALLABLE_BRIDGE_AUTHORITY
+        and dispatch_route
+        and owner_route_block_reason(dispatch=dispatch, current_route=dispatch_route) is None
+    ):
+        return dispatch_route, "paper_recovery_owner_callable"
+    if (
         dispatch_uses_bridge_authority(dispatch)
         and dispatch_route
         and owner_route_block_reason(dispatch=dispatch, current_route=dispatch_route) is None
@@ -168,9 +179,13 @@ def execution_owner_route(
 
 
 def dispatch_uses_bridge_authority(dispatch: Mapping[str, Any]) -> bool:
+    return _dispatch_bridge_authority(dispatch) is not None
+
+
+def _dispatch_bridge_authority(dispatch: Mapping[str, Any]) -> str | None:
     route = dispatch_owner_route(dispatch)
     refs = _mapping(route.get("source_refs"))
-    return _text(refs.get("bridge_authority")) is not None
+    return _text(refs.get("bridge_authority"))
 
 
 def _current_owner_route(
