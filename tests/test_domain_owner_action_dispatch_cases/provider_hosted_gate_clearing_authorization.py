@@ -117,7 +117,10 @@ def test_provider_hosted_stage_attempt_identity_authorizes_gate_clearing_batch_d
     assert execution["execution_status"] == "executed"
     assert execution["blocked_reason"] is None
     assert execution["owner_callable_surface"] == "gate_clearing_batch.run_gate_clearing_batch"
-    assert execution["owner_route_basis"] == "scan_latest"
+    assert execution["owner_route_basis"] == "provider_hosted_stage_attempt_dispatch"
     assert called["study_id"] == study_id
     route_context = called["authority_route_context"]["controller_route_context"]
     assert route_context["work_unit_id"] == "publication_gate_replay_after_clean_migration"
+    assert route_context["work_unit_fingerprint"] == (
+        "domain-transition::route_back_same_line::publication_gate_replay_after_clean_migration"
+    )

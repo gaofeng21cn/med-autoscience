@@ -11,6 +11,7 @@ from . import accepted_owner_gate_decision
 from . import consumed_transition_owner_routes
 from . import current_writer_handoff
 from . import fresh_progress_owner_actions
+from . import opl_execution_preflight
 from . import persisted_dispatches
 
 
@@ -70,6 +71,9 @@ def execution_owner_route(
         and owner_route_block_reason(dispatch=dispatch, current_route=stage_native_route) is None
     ):
         return stage_native_route, "stage_native_workspace_next_action"
+    provider_hosted_route = _provider_hosted_stage_attempt_dispatch_route(dispatch)
+    if provider_hosted_route is not None:
+        return provider_hosted_route, "provider_hosted_stage_attempt_dispatch"
     bridged_route = persisted_dispatches.bridged_quality_repair_writer_handoff_route(
         profile=profile,
         study_id=study_id,
@@ -190,6 +194,17 @@ def execution_owner_route(
         scan_payload=scan_payload,
     )
     return diagnostic_route, diagnostic_basis or scan_route_basis or "scan_latest"
+
+
+def _provider_hosted_stage_attempt_dispatch_route(dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
+    if not opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(dispatch):
+        return None
+    route = dispatch_owner_route(dispatch)
+    if not route:
+        return None
+    if owner_route_block_reason(dispatch=dispatch, current_route=route) is not None:
+        return None
+    return route
 
 
 def dispatch_uses_bridge_authority(dispatch: Mapping[str, Any]) -> bool:
