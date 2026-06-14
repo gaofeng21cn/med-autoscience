@@ -111,6 +111,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan imp
     run_domain_health_diagnostic_for_runtime as _run_domain_health_diagnostic_for_runtime_impl,
     utc_now,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan_support import (
+    PROGRESS_CURRENTNESS_KEYS,
+)
 from med_autoscience.controllers.study_progress_parts.runtime_efficiency import (
     _latest_run_telemetry_surface,
 )
@@ -690,18 +693,9 @@ def _fresh_progress_currentness_for_report(
         if not isinstance(progress, Mapping):
             continue
         progress_currentness = {
-            key: dict(value) if isinstance(value, Mapping) else value
-            for key in (
-                "current_work_unit",
-                "current_execution_envelope",
-                "current_executable_owner_action",
-                "current_owner_ticket",
-                "domain_transition",
-                "progress_first_monitoring_summary",
-                "intervention_lane",
-            )
+            key: _copy_progress_currentness_value(progress.get(key))
+            for key in PROGRESS_CURRENTNESS_KEYS
             if key in progress
-            for value in [progress.get(key)]
         }
         if (generated_at := _non_empty_text(progress.get("generated_at"))) is not None:
             progress_currentness["study_progress_generated_at"] = generated_at
@@ -709,6 +703,17 @@ def _fresh_progress_currentness_for_report(
             progress_currentness["quest_id"] = _non_empty_text(progress.get("quest_id")) or study_id
             refreshed[study_id] = progress_currentness
     return refreshed
+
+
+def _copy_progress_currentness_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return dict(value)
+    if isinstance(value, list):
+        return [
+            dict(item) if isinstance(item, Mapping) else item
+            for item in value
+        ]
+    return value
 
 
 def _report_managed_actions_with_progress_currentness(

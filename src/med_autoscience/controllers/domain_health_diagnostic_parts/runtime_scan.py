@@ -34,6 +34,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.reporting import
 from med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan_support import (
     _NO_OP_SUPPRESSION_SUMMARY,
     _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY,
+    PROGRESS_CURRENTNESS_KEYS,
     _attach_no_op_suppression_to_quest_report,
     _blocked_outer_loop_wakeup_audit,
     _managed_study_recovery_failure_payload,
@@ -149,16 +150,7 @@ def run_domain_health_diagnostic_for_runtime(
                 )
                 progress_currentness = {
                     key: status_payload[key]
-                    for key in (
-                        "current_work_unit",
-                        "current_execution_envelope",
-                        "current_executable_owner_action",
-                        "current_owner_ticket",
-                        "domain_transition",
-                        "progress_first_monitoring_summary",
-                        "intervention_lane",
-                        "study_progress_generated_at",
-                    )
+                    for key in (*PROGRESS_CURRENTNESS_KEYS, "study_progress_generated_at")
                     if key in status_payload
                 }
                 study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name

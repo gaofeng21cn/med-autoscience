@@ -251,6 +251,17 @@ def _managed_study_action_with_currentness(
     }:
         return dict(action)
 
+    currentness_reason = (
+        _current_work_unit_blocker_reason(current_work_unit)
+        or _current_execution_blocker_reason(current_execution)
+    )
+    if (
+        state_kind in {"typed_blocker", "blocked_current_work_unit"}
+        and _is_unresolved_current_work_unit_fallback(currentness_reason, current_work_unit)
+        and _text(action.get("reason")) is not None
+    ):
+        return dict(action)
+
     result = dict(action)
     if current_work_unit:
         result["current_work_unit"] = current_work_unit
@@ -258,6 +269,13 @@ def _managed_study_action_with_currentness(
         result["current_execution_envelope"] = current_execution
     if current_owner_action:
         result["current_executable_owner_action"] = current_owner_action
+
+    terminal_reason = _terminal_controller_work_unit_reason(result)
+    if terminal_reason is not None and state_kind in {"typed_blocker", "blocked_current_work_unit"}:
+        result["decision"] = _text(result.get("decision")) or "blocked"
+        result["reason"] = _text(result.get("reason")) or terminal_reason
+        result["running_provider_attempt"] = False
+        return result
 
     if state_kind == "running_provider_attempt":
         result["decision"] = "noop"
@@ -275,16 +293,39 @@ def _managed_study_action_with_currentness(
         return result
 
     if state_kind in {"typed_blocker", "blocked_current_work_unit"}:
+        action_reason = _text(result.get("reason"))
         result["decision"] = "blocked"
-        result["reason"] = (
-            _current_work_unit_blocker_reason(current_work_unit)
-            or _current_execution_blocker_reason(current_execution)
-            or state_kind
-        )
+        if _is_unresolved_current_work_unit_fallback(currentness_reason, current_work_unit) and action_reason:
+            result["reason"] = action_reason
+        else:
+            result["reason"] = currentness_reason or action_reason or state_kind
         result["running_provider_attempt"] = False
     if state_kind == "executable_owner_action":
         result["running_provider_attempt"] = False
     return result
+
+
+def _terminal_controller_work_unit_reason(action: Mapping[str, Any]) -> str | None:
+    lifecycle = _mapping(action.get("controller_work_unit_lifecycle"))
+    if lifecycle.get("terminal_consumed") is not True:
+        return None
+    return (
+        _text(action.get("reason"))
+        or _text(lifecycle.get("block_reason"))
+        or _text(lifecycle.get("lifecycle_state"))
+    )
+
+
+def _is_unresolved_current_work_unit_fallback(
+    reason: str | None,
+    current_work_unit: Mapping[str, Any],
+) -> bool:
+    if reason != "current_work_unit_unresolved":
+        return False
+    return (
+        _text(current_work_unit.get("work_unit_id")) is None
+        and _text(current_work_unit.get("work_unit_fingerprint")) is None
+    )
 
 
 def _managed_study_actions_with_paper_recovery_state(

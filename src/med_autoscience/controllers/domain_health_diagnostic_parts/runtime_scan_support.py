@@ -30,6 +30,16 @@ from med_autoscience.runtime_protocol import quest_state
 
 _NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
 _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY = "同一 controller work unit 已达到有界 redrive 上限，需 OPL runtime handoff后再继续。"
+PROGRESS_CURRENTNESS_KEYS = (
+    "current_work_unit",
+    "current_execution_envelope",
+    "current_executable_owner_action",
+    "current_owner_ticket",
+    "domain_transition",
+    "progress_first_monitoring_summary",
+    "intervention_lane",
+    "study_intervention_events",
+)
 
 
 def utc_now() -> str:
@@ -298,19 +308,16 @@ def _with_fresh_progress_currentness(
         return payload
     if not isinstance(progress, Mapping):
         return payload
-    for key in (
-        "current_work_unit",
-        "current_execution_envelope",
-        "current_executable_owner_action",
-        "current_owner_ticket",
-        "domain_transition",
-        "progress_first_monitoring_summary",
-        "intervention_lane",
-    ):
+    for key in PROGRESS_CURRENTNESS_KEYS:
         if key in progress:
             value = progress.get(key)
             if isinstance(value, Mapping):
                 payload[key] = dict(value)
+            elif isinstance(value, list):
+                payload[key] = [
+                    dict(item) if isinstance(item, Mapping) else item
+                    for item in value
+                ]
             else:
                 payload[key] = value
     if (generated_at := _non_empty_text(progress.get("generated_at"))) is not None:

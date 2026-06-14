@@ -212,11 +212,12 @@ def _sync_managed_action_provider_admission_candidates(
         synced_action = dict(action)
         study_id = _non_empty_text(synced_action.get("study_id"))
         action_candidates = candidates_by_study.get(study_id or "", [])
-        synced_action["provider_admission_candidates"] = [dict(candidate) for candidate in action_candidates]
         if not action_candidates:
+            synced_action["provider_admission_candidates"] = []
             synced_action.pop("provider_admission_state", None)
             synced_actions.append(synced_action)
             continue
+        synced_action["provider_admission_candidates"] = [dict(candidate) for candidate in action_candidates]
         synced_action["provider_admission_state"] = {
             **_mapping(synced_action.get("provider_admission_state")),
             "status": _non_empty_text(
