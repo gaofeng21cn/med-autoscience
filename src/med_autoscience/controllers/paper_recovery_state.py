@@ -17,6 +17,11 @@ from med_autoscience.controllers.paper_recovery_state_parts.obligation_matching 
 from med_autoscience.controllers.paper_recovery_state_parts.owner_callable_readiness import (
     current_mas_owner_callable as _current_mas_owner_callable,
 )
+from med_autoscience.controllers.paper_recovery_state_parts.typed_blocker_recovery import (
+    typed_blocker_next_action as _typed_blocker_next_action,
+    typed_blocker_phase as _typed_blocker_phase,
+    typed_blocker_recovery_owner as _typed_blocker_recovery_owner,
+)
 
 
 SURFACE_KIND = "paper_recovery_state"
@@ -111,6 +116,26 @@ def build_paper_recovery_state(
             current_work_unit=current_work_unit,
             blocker_reason=blocker_reason,
         )
+        owner_callable = _current_mas_owner_callable(progress, obligation=obligation)
+        if owner_callable is not None:
+            return _state(
+                progress,
+                obligation=obligation,
+                phase="owner_action_ready",
+                conditions=[
+                    {
+                        "condition": "current_mas_owner_callable_ready",
+                        "reason": blocker_reason,
+                    }
+                ],
+                next_safe_action=_next_action(
+                    "run_mas_owner_callable",
+                    provider_admission_allowed=False,
+                    owner=owner,
+                    owner_callable=owner_callable,
+                ),
+                current_owner=owner,
+            )
         return _state(
             progress,
             obligation=obligation,
@@ -851,51 +876,6 @@ def _typed_blocker_reason(typed_blocker: Mapping[str, Any]) -> str | None:
     if _text(anti_loop.get("status")) == "exhausted":
         return "anti_loop_budget_exhausted"
     return None
-
-
-def _typed_blocker_phase(typed_blocker: Mapping[str, Any]) -> str:
-    if _text(typed_blocker.get("requires_human_gate")) == "true":
-        return "human_gate"
-    if _text(typed_blocker.get("owner")) in {"user", "human", "PI"}:
-        return "human_gate"
-    return "domain_blocked"
-
-
-def _typed_blocker_recovery_owner(
-    typed_blocker: Mapping[str, Any],
-    *,
-    current_work_unit: Mapping[str, Any] | None = None,
-    obligation: Mapping[str, Any] | None = None,
-    blocker_reason: str | None = None,
-) -> str:
-    if blocker_reason == OPL_EXECUTION_AUTHORIZATION_BLOCKER:
-        return OPL_EXECUTION_AUTHORIZATION_OWNER
-    return (
-        _text(typed_blocker.get("owner"))
-        or _text(_mapping(current_work_unit).get("owner"))
-        or _text(_mapping(obligation).get("owner"))
-        or "MedAutoScience"
-    )
-
-
-def _typed_blocker_next_action(
-    typed_blocker: Mapping[str, Any],
-    *,
-    blocker_reason: str | None,
-    owner: str,
-) -> dict[str, Any]:
-    if blocker_reason == OPL_EXECUTION_AUTHORIZATION_BLOCKER:
-        return _next_action(
-            "provide_opl_execution_authorization_or_human_gate",
-            provider_admission_allowed=False,
-            owner=owner,
-            required_input=_text(typed_blocker.get("required_input")) or OPL_EXECUTION_AUTHORIZATION_REQUIRED_INPUT,
-        )
-    return _next_action(
-        "resolve_typed_blocker",
-        provider_admission_allowed=False,
-        owner=owner,
-    )
 
 
 def _suppressed_surfaces_for_typed_blocker(progress: Mapping[str, Any]) -> list[str]:
