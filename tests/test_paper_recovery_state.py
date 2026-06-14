@@ -80,7 +80,7 @@ def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
         }
     )
 
-    assert state["phase"] == "human_gate"
+    assert state["phase"] == "owner_action_ready"
     assert state["conditions"] == [
         {
             "condition": "accepted_owner_gate_decision",
@@ -89,7 +89,14 @@ def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
     ]
     assert state["current_authority"]["owner"] == "MedAutoScience"
     assert state["next_safe_action"]["kind"] == "route_back_to_owner_or_repair_materialization"
-    assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["accepted_owner_gate_decision"] == {
+        "decision": "route_back_to_mas_packet_materialization_bug",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "analysis_claim_evidence_repair",
+        "work_unit_fingerprint": fingerprint,
+        "route_back_evidence_ref": "route_back:owner-gate-decision:c7027de42ca336cfe0782428",
+    }
     assert state["evidence_refs"] == [
         "human_gate:owner-gate-decision:c7027de42ca336cfe0782428",
         "route_back:owner-gate-decision:c7027de42ca336cfe0782428",

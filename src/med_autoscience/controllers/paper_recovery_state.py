@@ -50,8 +50,12 @@ def build_paper_recovery_state(
         next_action_kind = "resolve_owner_gate_decision"
         current_owner = "MedAutoScience"
         provider_admission_allowed = False
+        accepted_owner_gate_decision: dict[str, Any] | None = None
         if decision == "route_back_to_mas_packet_materialization_bug":
+            phase = "owner_action_ready"
             next_action_kind = "route_back_to_owner_or_repair_materialization"
+            provider_admission_allowed = _provider_admission_pending(progress)
+            accepted_owner_gate_decision = _accepted_owner_gate_decision(owner_gate_payload)
         elif decision == "admit_identity_bound_stage_packet":
             phase = "admission_pending"
             next_action_kind = "admit_identity_bound_stage_packet"
@@ -74,6 +78,7 @@ def build_paper_recovery_state(
                 next_action_kind,
                 provider_admission_allowed=provider_admission_allowed,
                 owner=current_owner,
+                accepted_owner_gate_decision=accepted_owner_gate_decision,
             ),
             current_owner=current_owner,
             suppressed_surfaces=_suppressed_surfaces_for_owner_gate_decision(progress),
@@ -633,6 +638,18 @@ def _owner_gate_decision_refs(payload: Mapping[str, Any]) -> list[str]:
     return list(dict.fromkeys(ref for ref in refs if ref is not None))
 
 
+def _accepted_owner_gate_decision(payload: Mapping[str, Any]) -> dict[str, Any]:
+    identity = _mapping(payload.get("current_owner_identity"))
+    accepted = {
+        "decision": _text(payload.get("decision")),
+        "action_type": _text(identity.get("action_type")),
+        "work_unit_id": _text(identity.get("work_unit_id")),
+        "work_unit_fingerprint": _text(identity.get("work_unit_fingerprint")),
+        "route_back_evidence_ref": _text(payload.get("route_back_evidence_ref")),
+    }
+    return {key: value for key, value in accepted.items() if value not in (None, "", [], {})}
+
+
 def _suppressed_surfaces_for_owner_gate_decision(progress: Mapping[str, Any]) -> list[str]:
     suppressed = _suppressed_surfaces_for_typed_blocker(progress)
     if _mapping(progress.get("current_work_unit")):
@@ -871,14 +888,16 @@ def _next_action(
     provider_admission_allowed: bool,
     owner: str | None = None,
     required_input: str | None = None,
+    accepted_owner_gate_decision: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload = {
         "kind": kind,
         "owner": owner,
         "provider_admission_allowed": provider_admission_allowed,
         "required_input": required_input,
+        "accepted_owner_gate_decision": dict(accepted_owner_gate_decision or {}),
     }
-    return {key: value for key, value in payload.items() if value is not None}
+    return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
 
 
 def _clean_conditions(conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:

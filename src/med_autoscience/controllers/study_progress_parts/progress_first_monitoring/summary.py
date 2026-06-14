@@ -3,12 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers.progress_first_receipt_identity import (
-    canonical_work_unit_identity_from_completion,
-    consumed_ai_reviewer_receipt_matches_transition_work_unit,
-    gate_clearing_batch_receipt_consumption_for_transition,
-)
-
 from ..current_action_identity import action_matches_canonical_executable_work_unit
 from ..current_executable_owner_action import build_current_executable_owner_action
 from ..owner_action_admission import (
@@ -29,9 +23,28 @@ from .primitives import (
     _dedupe_text,
     _first_text,
     _mapping,
-    _numeric,
     _sequence,
     _text,
+)
+from .summary_dispatch_consumption import (
+    dispatch_consumption_summary as _dispatch_consumption_summary,
+    first_current_action_queue_item as _first_current_action_queue_item,
+    gate_clearing_batch_dispatch_consumption as _gate_clearing_batch_dispatch_consumption,
+    transition_consumed_owner_action as _transition_consumed_owner_action,
+    transition_consumed_same_ai_reviewer_work_unit as _transition_consumed_same_ai_reviewer_work_unit,
+    transition_receipt_consumed as _transition_receipt_consumed,
+)
+from .summary_owner_action_predicates import (
+    canonical_ready_owner_action as _canonical_ready_owner_action,
+    envelope_typed_blocker_blocks_current_action as _envelope_typed_blocker_blocks_current_action,
+    gate_followthrough_owner_action as _gate_followthrough_owner_action,
+    next_forced_delta_owner_action as _next_forced_delta_owner_action,
+    publication_eval_readiness_blocker_repair_action as _publication_eval_readiness_blocker_repair_action,
+    repair_progress_consumes_canonical_publication_work_unit as _repair_progress_consumes_canonical_publication_work_unit,
+    repair_progress_consumes_publication_repair as _repair_progress_consumes_publication_repair,
+    repair_progress_owner_action as _repair_progress_owner_action,
+    stage_kernel_owner_action as _stage_kernel_owner_action,
+    stage_native_owner_action as _stage_native_owner_action,
 )
 from .terminal_closeout import (
     NEXT_FORCED_DELTA_SUMMARY_KEYS,
@@ -822,154 +835,6 @@ def _next_forced_delta_from_current_work_unit(
     return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
 
 
-def _dispatch_consumption_summary(
-    *,
-    handoff: Mapping[str, Any],
-    execution: Mapping[str, Any],
-    domain_transition: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    explicit = _mapping(handoff.get("dispatch_consumption")) or _mapping(execution.get("dispatch_consumption"))
-    if explicit:
-        return explicit
-    completion_receipt = _mapping(domain_transition.get("completion_receipt_consumption"))
-    execution_receipt = _mapping(domain_transition.get("default_executor_execution_receipt_consumption"))
-    if completion_receipt or execution_receipt:
-        status = (
-            _text(completion_receipt.get("consumption_status"))
-            or _text(completion_receipt.get("status"))
-            or _text(execution_receipt.get("consumption_status"))
-            or _text(execution_receipt.get("status"))
-            or "receipt_consumed"
-        )
-        identity = canonical_work_unit_identity_from_completion(completion_receipt or execution_receipt)
-        return {
-            "consumption_status": status,
-            "receipt_ref": _text(completion_receipt.get("receipt_ref")) or _text(execution_receipt.get("receipt_ref")),
-            "receipt_kind": _text(completion_receipt.get("receipt_kind")) or _text(execution_receipt.get("receipt_kind")),
-            "execution_status": _text(execution_receipt.get("execution_status")),
-            "action_fingerprint": _text(completion_receipt.get("action_fingerprint"))
-            or _text(execution_receipt.get("action_fingerprint")),
-            "work_unit_id": _text(identity.get("work_unit_id")),
-            "work_unit_fingerprint": _text(identity.get("work_unit_fingerprint")),
-            "canonical_work_unit_identity": identity or None,
-        }
-    queue_item = _first_action_queue_item(handoff.get("action_queue"))
-    if queue_item is None:
-        return None
-    return {
-        "consumption_status": _text(queue_item.get("consumption_status")) or "unconsumed",
-        "action_fingerprint": _text(queue_item.get("action_fingerprint"))
-        or _text(queue_item.get("work_unit_fingerprint"))
-        or _text(queue_item.get("source_fingerprint")),
-        "receipt_ref": _text(queue_item.get("receipt_ref")),
-        "execution_status": _text(queue_item.get("execution_status")),
-        "unconsumed_duration_hours": _numeric(queue_item.get("queue_age_hours"))
-        or _numeric(queue_item.get("unconsumed_duration_hours")),
-    }
-
-
-def _gate_clearing_batch_dispatch_consumption(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    domain_transition = _mapping(payload.get("domain_transition"))
-    followthrough = _mapping(payload.get("gate_clearing_batch_followthrough"))
-    if followthrough:
-        record = {
-            "status": _text(followthrough.get("status")),
-            "source_eval_id": _text(followthrough.get("source_eval_id")),
-            "work_unit_id": _text(followthrough.get("work_unit_id")),
-            "work_unit_fingerprint": _text(followthrough.get("work_unit_fingerprint")),
-            "owner_route_currentness_basis": _mapping(followthrough.get("owner_route_currentness_basis")),
-            "work_unit_currentness": _mapping(followthrough.get("work_unit_currentness")),
-            "explicit_publication_work_unit": _mapping(followthrough.get("explicit_publication_work_unit")),
-        }
-        if record.get("source_eval_id") is None:
-            record["source_eval_id"] = _text(
-                _mapping(_mapping(domain_transition.get("source_refs")).get("owner_route_currentness_basis")).get(
-                    "source_eval_id"
-                )
-            )
-        receipt = gate_clearing_batch_receipt_consumption_for_transition(
-            transition=domain_transition,
-            record=record,
-            receipt_ref=_text(followthrough.get("latest_record_path"))
-            or "artifacts/controller/gate_clearing_batch/latest.json",
-        )
-        if receipt is not None:
-            return receipt
-    return None
-
-
-def _transition_consumed_owner_action(domain_transition: Mapping[str, Any]) -> bool:
-    if _mapping(domain_transition.get("typed_blocker")):
-        return False
-    completion = _mapping(domain_transition.get("completion_receipt_consumption"))
-    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
-        return False
-    if _consumed_receipt_matches_transition_work_unit(domain_transition=domain_transition, completion=completion):
-        return False
-    return (
-        _text(domain_transition.get("owner")) is not None
-        or _text(domain_transition.get("controller_action")) is not None
-        or _work_unit_projection(domain_transition.get("next_work_unit")) is not None
-    )
-
-
-def _transition_receipt_consumed(domain_transition: Mapping[str, Any]) -> bool:
-    completion = _mapping(domain_transition.get("completion_receipt_consumption"))
-    execution = _mapping(domain_transition.get("default_executor_execution_receipt_consumption"))
-    status = (
-        _text(completion.get("consumption_status"))
-        or _text(completion.get("status"))
-        or _text(execution.get("consumption_status"))
-        or _text(execution.get("status"))
-    )
-    return status in {"consumed", "receipt_consumed", "completed"}
-
-
-def _transition_consumed_same_ai_reviewer_work_unit(domain_transition: Mapping[str, Any]) -> bool:
-    completion = _mapping(domain_transition.get("completion_receipt_consumption"))
-    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
-        return False
-    return _consumed_receipt_matches_transition_work_unit(
-        domain_transition=domain_transition,
-        completion=completion,
-    )
-
-
-def _consumed_receipt_matches_transition_work_unit(
-    *,
-    domain_transition: Mapping[str, Any],
-    completion: Mapping[str, Any],
-) -> bool:
-    return consumed_ai_reviewer_receipt_matches_transition_work_unit(
-        transition=domain_transition,
-        completion=completion,
-    )
-
-
-def _first_action_queue_item(value: object) -> dict[str, Any] | None:
-    if not isinstance(value, list):
-        return None
-    for item in value:
-        if isinstance(item, Mapping):
-            return dict(item)
-    return None
-
-
-def _first_current_action_queue_item(value: object) -> dict[str, Any] | None:
-    if not isinstance(value, list):
-        return None
-    for item in value:
-        if not isinstance(item, Mapping):
-            continue
-        payload = dict(item)
-        consumption = _mapping(payload.get("consumption"))
-        status = _text(payload.get("consumption_status")) or _text(consumption.get("status"))
-        if status in {"consumed", "receipt_consumed", "completed"}:
-            continue
-        return payload
-    return None
-
-
 def _foreground_write_policy(value: object) -> dict[str, Any]:
     guard = _mapping(value)
     supervisor_only = bool(guard.get("supervisor_only"))
@@ -982,123 +847,6 @@ def _foreground_write_policy(value: object) -> dict[str, Any]:
             else "follow_mas_owner_controller_runtime_path"
         ),
     }
-
-
-def _stage_kernel_owner_action(action: Mapping[str, Any]) -> bool:
-    return (
-        _text(action.get("source")) == "stage_kernel_projection.current_owner_delta"
-        and bool(_sequence(action.get("allowed_actions")))
-    )
-
-
-def _stage_native_owner_action(action: Mapping[str, Any]) -> bool:
-    return (
-        _text(action.get("source")) == "stage_native_workspace_next_action"
-        and bool(_sequence(action.get("allowed_actions")))
-    )
-
-
-def _repair_progress_owner_action(action: Mapping[str, Any]) -> bool:
-    return (
-        _text(action.get("source")) == "repair_progress_projection.mas_owner_repair_execution_evidence"
-        and bool(_sequence(action.get("allowed_actions")))
-    )
-
-
-def _repair_progress_consumes_publication_repair(
-    *,
-    repair_progress_current_action: Mapping[str, Any],
-    publication_eval_current_action: Mapping[str, Any],
-    payload: Mapping[str, Any],
-) -> bool:
-    if not _repair_progress_owner_action(repair_progress_current_action):
-        return False
-    if not _publication_eval_readiness_blocker_repair_action(publication_eval_current_action):
-        return False
-    progress = _mapping(payload.get("repair_progress_projection"))
-    if progress.get("paper_delta_observed") is not True or progress.get("accepted_owner_receipt") is not True:
-        return False
-    precedence = _mapping(repair_progress_current_action.get("repair_progress_precedence"))
-    source_work_unit = _text(precedence.get("source_work_unit_id")) or _text(progress.get("work_unit_id"))
-    if source_work_unit is None:
-        return False
-    return source_work_unit == _text(publication_eval_current_action.get("work_unit_id"))
-
-
-def _repair_progress_consumes_canonical_publication_work_unit(
-    *,
-    current_action: Mapping[str, Any],
-    canonical_current_work_unit: Mapping[str, Any],
-    payload: Mapping[str, Any],
-) -> bool:
-    if not _repair_progress_owner_action(current_action):
-        return False
-    if _text(canonical_current_work_unit.get("status")) != "executable_owner_action":
-        return False
-    state = _mapping(canonical_current_work_unit.get("state"))
-    if _text(state.get("source")) != "publication_eval.recommended_actions.readiness_blocker_repair":
-        return False
-    progress = _mapping(payload.get("repair_progress_projection"))
-    if progress.get("paper_delta_observed") is not True or progress.get("accepted_owner_receipt") is not True:
-        return False
-    precedence = _mapping(current_action.get("repair_progress_precedence"))
-    source_work_unit = _text(precedence.get("source_work_unit_id")) or _text(progress.get("work_unit_id"))
-    if source_work_unit is None:
-        return False
-    return source_work_unit == _text(canonical_current_work_unit.get("work_unit_id"))
-
-
-def _gate_followthrough_owner_action(action: Mapping[str, Any]) -> bool:
-    return (
-        _text(action.get("source")) == "gate_clearing_batch_followthrough.actionable_current_work_unit"
-        and bool(_sequence(action.get("allowed_actions")))
-    )
-
-
-def _publication_eval_readiness_blocker_repair_action(action: Mapping[str, Any]) -> bool:
-    return (
-        _text(action.get("source")) == "publication_eval.recommended_actions.readiness_blocker_repair"
-        and bool(_sequence(action.get("allowed_actions")))
-    )
-
-
-def _next_forced_delta_owner_action(action: Mapping[str, Any]) -> bool:
-    return (
-        _text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
-        and bool(_sequence(action.get("allowed_actions")))
-    )
-
-
-def _canonical_ready_owner_action(action: Mapping[str, Any]) -> bool:
-    return (
-        _text(action.get("surface_kind")) == "current_executable_owner_action"
-        and _text(action.get("status")) == "ready"
-        and bool(_sequence(action.get("allowed_actions")))
-    )
-
-
-def _envelope_typed_blocker_blocks_current_action(
-    *,
-    execution: Mapping[str, Any],
-    raw_typed_blocker: Mapping[str, Any],
-    artifact_first_supersedes_blocker: bool,
-    current_action: Mapping[str, Any],
-) -> bool:
-    if artifact_first_supersedes_blocker:
-        return False
-    if _stage_native_owner_action(current_action):
-        return False
-    if _repair_progress_owner_action(current_action):
-        return False
-    if _gate_followthrough_owner_action(current_action):
-        return False
-    if _publication_eval_readiness_blocker_repair_action(current_action):
-        return False
-    if _next_forced_delta_owner_action(current_action):
-        return _text(execution.get("state_kind")) == "typed_blocker" and bool(raw_typed_blocker)
-    if _text(execution.get("state_kind")) != "typed_blocker":
-        return False
-    return bool(raw_typed_blocker)
 
 
 def _current_blockers(
