@@ -137,6 +137,110 @@ def test_provider_admission_current_control_prefers_live_attempt_over_pending_ca
     }
 
 
+def test_provider_admission_current_control_uses_worker_liveness_as_running_gate(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    live_work_unit_id = "medical_prose_write_repair"
+    live_fingerprint = "publication-blockers::0915410f804b3697"
+    stale_work_unit_id = "publication_gate_replay"
+    stale_fingerprint = "sha256:stale-gate-replay"
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": stale_work_unit_id,
+        "work_unit_fingerprint": stale_fingerprint,
+        "action_fingerprint": stale_fingerprint,
+        "dispatch_path": (
+            "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+            "artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+        ),
+        "next_executable_owner": "gate_clearing_batch",
+        "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "currentness_basis": {
+            "work_unit_id": stale_work_unit_id,
+            "work_unit_fingerprint": stale_fingerprint,
+        },
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-14T19:50:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned_no_provider_admission",
+                "provider_admission_pending_count": 0,
+                "action_queue": [],
+                "runtime_health_snapshot": {
+                    "runtime_health_epoch": "runtime-health-event-live",
+                    "attempt_state": "live",
+                    "worker_liveness_state": {
+                        "state": "live",
+                        "runtime_liveness_status": "live",
+                        "worker_running": True,
+                        "active_run_id": "opl-stage-attempt://sat-live",
+                        "active_stage_attempt_id": "sat-live",
+                        "active_workflow_id": "wf-live",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": live_work_unit_id,
+                        "work_unit_fingerprint": live_fingerprint,
+                        "action_fingerprint": live_fingerprint,
+                    },
+                },
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": stale_work_unit_id,
+                    "work_unit_fingerprint": stale_fingerprint,
+                    "action_fingerprint": stale_fingerprint,
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "gate_clearing_batch",
+                    "next_work_unit": stale_work_unit_id,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
+    study = result["studies"][0]
+    assert study["running_provider_attempt"] is True
+    assert study["active_run_id"] == "opl-stage-attempt://sat-live"
+    assert study["active_stage_attempt_id"] == "sat-live"
+    assert study["current_work_unit"]["status"] == "running_provider_attempt"
+    assert study["current_work_unit"]["action_type"] == "run_quality_repair_batch"
+    assert study["current_work_unit"]["work_unit_id"] == live_work_unit_id
+    assert study["current_work_unit"]["work_unit_fingerprint"] == live_fingerprint
+    assert study["current_execution_envelope"]["state_kind"] == "running_provider_attempt"
+    assert study["current_execution_envelope"]["next_work_unit"] == live_work_unit_id
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "running_identity_observed": 1,
+    }
+
+
 def test_provider_admission_prefers_canonical_current_work_unit_over_stale_current_action(
     tmp_path: Path,
 ) -> None:

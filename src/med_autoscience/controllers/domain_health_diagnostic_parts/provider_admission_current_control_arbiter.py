@@ -80,7 +80,13 @@ def _stage_route_arbiter_decisions(
             continue
         live_study = _mapping(live_studies_by_id.get(study_id)) if study_id is not None else {}
         live_attempt = _running_attempt_from_study(live_study)
-        if live_attempt and _running_attempt_covers_candidate(live_attempt, candidate=candidate):
+        if live_attempt and (
+            _running_attempt_covers_candidate(live_attempt, candidate=candidate)
+            or _strict_running_attempt_owns_current_execution_slot(
+                live_attempt,
+                candidate=candidate,
+            )
+        ):
             decisions.append(
                 _arbiter_decision(
                     candidate,
@@ -467,6 +473,11 @@ def _candidates_not_covered_by_live_attempt(
             continue
         if live_attempt and _running_attempt_covers_candidate(live_attempt, candidate=candidate):
             continue
+        if live_attempt and _strict_running_attempt_owns_current_execution_slot(
+            live_attempt,
+            candidate=candidate,
+        ):
+            continue
         if _paper_recovery_state_blocks_provider_admission(scanned_study, identity=candidate):
             continue
         if _current_control_weak_provider_admission_identity(
@@ -553,6 +564,35 @@ def _running_attempt_has_live_liveness(live_attempt: Mapping[str, Any]) -> bool:
         runtime_liveness is None
         and health_status is None
         and _non_empty_text(live_attempt.get("source")) == "runtime_health_snapshot.worker_liveness_state"
+    )
+
+
+def _strict_running_attempt_owns_current_execution_slot(
+    live_attempt: Mapping[str, Any],
+    *,
+    candidate: Mapping[str, Any],
+) -> bool:
+    if not _running_attempt_has_live_liveness(live_attempt):
+        return False
+    live_action = _non_empty_text(live_attempt.get("action_type"))
+    live_work_unit = _non_empty_text(live_attempt.get("work_unit_id")) or _non_empty_text(
+        live_attempt.get("next_work_unit")
+    )
+    candidate_action = _non_empty_text(candidate.get("action_type"))
+    candidate_work_unit = _non_empty_text(candidate.get("work_unit_id")) or _non_empty_text(
+        candidate.get("next_work_unit")
+    )
+    return bool(
+        (
+            live_action is not None
+            and candidate_action is not None
+            and live_action != candidate_action
+        )
+        or (
+            live_work_unit is not None
+            and candidate_work_unit is not None
+            and live_work_unit != candidate_work_unit
+        )
     )
 
 
