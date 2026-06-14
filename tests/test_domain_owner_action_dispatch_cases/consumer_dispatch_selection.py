@@ -115,6 +115,87 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
     assert [item["action_type"] for item in latest["executions"]] == ["publication_gate_specificity_required"]
 
 
+def test_execute_dispatch_defaults_to_same_tick_consumer_payload_dispatch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    action_type = "run_quality_repair_batch"
+    _patch_dispatchable_study_progress(
+        monkeypatch,
+        default_study_id=study_id,
+        actions_by_study={
+            study_id: {
+                "action_type": action_type,
+                "next_owner": "write",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::current",
+            }
+        },
+    )
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{action_type}.json"
+    )
+    route = _owner_route(study_id=study_id, action_type=action_type, owner="write")
+    route["source_refs"] = {
+        "work_unit_id": "analysis_claim_evidence_repair",
+        "work_unit_fingerprint": "publication-blockers::current",
+        "owner_route_currentness_basis": {
+            "work_unit_id": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": "publication-blockers::current",
+            "truth_epoch": route["truth_epoch"],
+            "runtime_health_epoch": route["runtime_health_epoch"],
+        },
+    }
+    route["work_unit_fingerprint"] = "publication-blockers::current"
+    route["source_fingerprint"] = "publication-blockers::current"
+    route["idempotency_key"] = "paper-recovery-owner-gate::002::run_quality_repair_batch::current"
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type=action_type,
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=route,
+    )
+    dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, dispatch_payload)
+    _write_scan_latest(profile, study_id, route)
+    consumer_payload = {
+        "surface": "domain_action_request_materializer",
+        "default_executor_dispatch_count": 1,
+        "default_executor_dispatches": [dispatch_payload],
+    }
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=False,
+        consumer_payload=consumer_payload,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["dry_run_count"] == 1
+    assert result["blocked_count"] == 0
+    assert result["per_study_execution_summary"][0]["selected_dispatch_count"] == 1
+    assert result["per_study_execution_summary"][0]["zero_dispatch_reason"] is None
+    assert result["executions"][0]["action_type"] == action_type
+    assert result["executions"][0]["dispatch_path"] == str(dispatch_path)
+
+
 def test_execute_dispatch_accepts_single_dispatch_payload_shape(
     monkeypatch,
     tmp_path: Path,
