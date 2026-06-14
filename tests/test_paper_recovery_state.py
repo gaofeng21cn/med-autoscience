@@ -705,6 +705,21 @@ def test_paper_recovery_admission_blocked_suppresses_active_provider_admission_p
                 "admission_pending": True,
                 "provider_attempt_start_requested": True,
             },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "provider_admission_pending": True,
+                    "pending_provider_admission_evidence": {
+                        "provider_admission_pending_count": 1,
+                    },
+                },
+            },
             "user_visible_projection": {
                 "next_step": "admit_provider_attempt",
                 "why_not_progressing": "admission_pending",
@@ -718,6 +733,8 @@ def test_paper_recovery_admission_blocked_suppresses_active_provider_admission_p
     assert len(result["blocked_provider_admission_candidates"]) == 1
     assert result["owner_action_admission"]["admission_pending"] is False
     assert result["owner_action_admission"]["provider_attempt_start_requested"] is False
+    assert result["current_work_unit"]["state"]["provider_admission_pending"] is False
+    assert "pending_provider_admission_evidence" not in result["current_work_unit"]["state"]
     assert result["user_visible_projection"]["why_not_progressing"] == "admission_blocked"
 
 

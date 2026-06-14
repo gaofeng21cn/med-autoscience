@@ -262,6 +262,7 @@ def _provider_admission_scanned_currentness_studies(
         current_owner_ticket = _mapping(progress_payload.get("current_owner_ticket"))
         current_execution_envelope = _mapping(progress_payload.get("current_execution_envelope"))
         domain_transition = _mapping(progress_payload.get("domain_transition"))
+        paper_recovery_state = _mapping(progress_payload.get("paper_recovery_state"))
         progress_first_monitoring_summary = _mapping(
             progress_payload.get("progress_first_monitoring_summary")
         )
@@ -304,6 +305,7 @@ def _provider_admission_scanned_currentness_studies(
                 **({"current_work_unit": dict(current_work_unit)} if current_work_unit else {}),
                 **({"current_owner_ticket": dict(current_owner_ticket)} if current_owner_ticket else {}),
                 **({"domain_transition": dict(domain_transition)} if domain_transition else {}),
+                **({"paper_recovery_state": dict(paper_recovery_state)} if paper_recovery_state else {}),
                 **({"progress_first_monitoring_summary": dict(progress_first_monitoring_summary)}
                    if progress_first_monitoring_summary else {}),
                 **({"intervention_lane": dict(intervention_lane)} if intervention_lane else {}),
@@ -335,6 +337,7 @@ def _provider_admission_scanned_report_studies(
         current_work_unit = _mapping(study.get("current_work_unit"))
         current_action = _mapping(study.get("current_executable_owner_action"))
         current_execution_envelope = _mapping(study.get("current_execution_envelope"))
+        paper_recovery_state = _mapping(study.get("paper_recovery_state"))
         if not any((current_work_unit, current_action, current_execution_envelope)):
             continue
         work_unit_id = _non_empty_text(current_action.get("work_unit_id")) or _non_empty_text(
@@ -363,6 +366,7 @@ def _provider_admission_scanned_report_studies(
                 "action_queue": [],
                 **({"current_executable_owner_action": dict(current_action)} if current_action else {}),
                 **({"current_work_unit": dict(current_work_unit)} if current_work_unit else {}),
+                **({"paper_recovery_state": dict(paper_recovery_state)} if paper_recovery_state else {}),
                 "current_execution_envelope": dict(current_execution_envelope) if current_execution_envelope else fallback_envelope,
             }
         )

@@ -87,6 +87,20 @@ def _stage_route_arbiter_decisions(
                 )
             )
             continue
+        paper_recovery_block = _paper_recovery_state_blocks_provider_admission(
+            scanned_study,
+            identity=candidate,
+        )
+        if paper_recovery_block:
+            decisions.append(
+                _arbiter_decision(
+                    candidate,
+                    decision="paper_recovery_state_blocks_provider_admission",
+                    effect="suppress_provider_admission_pending",
+                    evidence=paper_recovery_block,
+                )
+            )
+            continue
         weak_identity = _current_control_weak_provider_admission_identity(candidate)
         if weak_identity:
             if _unconsumed_closeout_blocks_weak_identity_suppression(
@@ -419,6 +433,8 @@ def _candidates_not_covered_by_live_attempt(
             continue
         if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
             continue
+        if _paper_recovery_state_blocks_provider_admission(scanned_study, identity=candidate):
+            continue
         if _current_control_weak_provider_admission_identity(
             candidate
         ) and not _unconsumed_closeout_blocks_weak_identity_suppression(
@@ -433,6 +449,70 @@ def _candidates_not_covered_by_live_attempt(
             continue
         pending.append(dict(candidate))
     return pending
+
+
+def _paper_recovery_state_blocks_provider_admission(
+    study: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    recovery = _mapping(study.get("paper_recovery_state"))
+    if not recovery:
+        return {}
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if next_safe_action.get("provider_admission_allowed") is not False:
+        return {}
+    if not _paper_recovery_state_matches_identity(study, recovery=recovery, identity=identity):
+        return {}
+    phase = _non_empty_text(recovery.get("phase")) or "paper_recovery_state_blocks_provider_admission"
+    return {
+        key: value
+        for key, value in {
+            **recovery,
+            "status": phase,
+            "provider_admission_allowed": False,
+            "next_safe_action": next_safe_action,
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _paper_recovery_state_matches_identity(
+    study: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+    identity: Mapping[str, Any],
+) -> bool:
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    sources = [obligation, current_work_unit]
+    return any(_identity_matches(source, identity=identity) for source in sources if source)
+
+
+def _identity_matches(source: Mapping[str, Any], *, identity: Mapping[str, Any]) -> bool:
+    expected_action = _non_empty_text(identity.get("action_type"))
+    expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
+    expected_fingerprint = _non_empty_text(identity.get("work_unit_fingerprint")) or _non_empty_text(
+        identity.get("action_fingerprint")
+    )
+    source_action = _non_empty_text(source.get("action_type"))
+    source_work_unit = _non_empty_text(source.get("work_unit_id")) or _non_empty_text(source.get("next_work_unit"))
+    source_fingerprint = _non_empty_text(source.get("work_unit_fingerprint")) or _non_empty_text(
+        source.get("action_fingerprint")
+    )
+    comparisons = (
+        (expected_action, source_action),
+        (expected_work_unit, source_work_unit),
+        (expected_fingerprint, source_fingerprint),
+    )
+    matched = False
+    for expected, actual in comparisons:
+        if expected is None:
+            continue
+        if actual is None or actual != expected:
+            return False
+        matched = True
+    return matched
 
 
 def _current_typed_blocker_precedence_evidence_for_candidate(

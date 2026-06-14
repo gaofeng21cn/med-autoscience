@@ -9,6 +9,44 @@ globals().update({
 })
 
 
+def _identity_key(study_id: str, fingerprint: str) -> str:
+    return f"provider-admission::{study_id}::{fingerprint}"
+
+
+def _dispatch_refs(
+    profile,
+    *,
+    study_id: str,
+    action_type: str,
+    packet_name: str,
+    fingerprint: str,
+) -> dict[str, object]:
+    stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"immutable/{action_type}/{packet_name}.json"
+    )
+    identity_key = _identity_key(study_id, fingerprint)
+    return {
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+        "route_identity_key": identity_key,
+        "attempt_idempotency_key": identity_key,
+        "refs": {
+            "dispatch_path": str(
+                profile.studies_root
+                / study_id
+                / "artifacts"
+                / "supervision"
+                / "consumer"
+                / "default_executor_dispatches"
+                / f"{action_type}.json"
+            ),
+            "stage_packet_path": str(profile.workspace_root / stage_packet_ref),
+            "immutable_dispatch_path": str(profile.workspace_root / stage_packet_ref),
+        },
+    }
+
+
 def test_materialized_currentness_current_action_becomes_provider_admission_candidate(
     tmp_path: Path,
 ) -> None:
@@ -38,7 +76,13 @@ def test_materialized_currentness_current_action_becomes_provider_admission_cand
             "dispatch_authority": "consumer_default_executor_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
-            "refs": {"dispatch_path": str(dispatch_path)},
+            **_dispatch_refs(
+                profile,
+                study_id=study_id,
+                action_type="run_gate_clearing_batch",
+                packet_name="current",
+                fingerprint=action_fingerprint,
+            ),
         },
     )
 
@@ -145,7 +189,13 @@ def test_materialized_currentness_ignores_study_root_closeout_without_native_cur
             "dispatch_authority": "consumer_default_executor_dispatch",
             "next_executable_owner": "write",
             "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
-            "refs": {"dispatch_path": str(dispatch_path)},
+            **_dispatch_refs(
+                profile,
+                study_id=study_id,
+                action_type="run_quality_repair_batch",
+                packet_name="current",
+                fingerprint=action_fingerprint,
+            ),
         },
     )
     dump_json(
@@ -301,7 +351,13 @@ def test_opl_route_owner_gate_current_action_becomes_provider_admission_candidat
             "dispatch_authority": "consumer_default_executor_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
-            "refs": {"dispatch_path": str(dispatch_path)},
+            **_dispatch_refs(
+                profile,
+                study_id=study_id,
+                action_type="run_gate_clearing_batch",
+                packet_name="owner-gate-current",
+                fingerprint=action_fingerprint,
+            ),
         },
     )
 
@@ -396,7 +452,13 @@ def test_domain_health_diagnostic_syncs_materialized_currentness_candidate_to_to
             "dispatch_authority": "consumer_default_executor_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
-            "refs": {"dispatch_path": str(dispatch_path)},
+            **_dispatch_refs(
+                profile,
+                study_id=study_id,
+                action_type="run_gate_clearing_batch",
+                packet_name="top-level-current",
+                fingerprint=action_fingerprint,
+            ),
         },
     )
 
@@ -552,6 +614,16 @@ def test_domain_health_diagnostic_retains_pending_over_stale_authorization_close
             "work_unit_fingerprint": fingerprint,
             "action_fingerprint": fingerprint,
             "dispatch_path": str(dispatch_path),
+            "stage_packet_ref": (
+                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+                "immutable/run_quality_repair_batch/current.json"
+            ),
+            "stage_packet_refs": [
+                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+                "immutable/run_quality_repair_batch/current.json"
+            ],
+            "route_identity_key": _identity_key(study_id, fingerprint),
+            "attempt_idempotency_key": _identity_key(study_id, fingerprint),
             "currentness_basis": {
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": fingerprint,

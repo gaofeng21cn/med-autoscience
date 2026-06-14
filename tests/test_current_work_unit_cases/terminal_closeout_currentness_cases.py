@@ -259,6 +259,82 @@ def test_current_work_unit_uses_remaining_blocker_for_executed_typed_closeout() 
     assert work_unit["state"]["typed_blocker"]["terminal_closeout_outcome"] == "typed_blocker"
 
 
+def test_current_work_unit_preserves_same_identity_gate_replay_typed_closeout_over_admission() -> None:
+    module = _module()
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "publication_gate_replay"
+    fingerprint = "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"
+    closeout_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
+        "default_executor_execution/sat_eb4ae953c9b1fd3ada29360f.closeout.json"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_attempt_id": "sat_eb4ae953c9b1fd3ada29360f",
+                    "action_type": "run_gate_clearing_batch",
+                    "status": "closed_with_domain_owner_refs",
+                    "stage_name": work_unit_id,
+                    "outcome": "typed_blocker",
+                    "progress_delta_classification": "typed_blocker",
+                    "remaining_blockers": ["publication_gate_replay_blocked"],
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "source_path": closeout_ref,
+                    "typed_blocker": {
+                        "surface_kind": "mas_domain_typed_blocker",
+                        "owner": "gate_clearing_batch",
+                        "blocker_type": "publication_gate_replay_blocked",
+                        "reason": "publication_gate_replay_blocked",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "owner_receipt_ref": f"{closeout_ref}#owner_receipt",
+                    },
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "next_owner": "gate_clearing_batch",
+            "action_type": "run_gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_eval_id": (
+                "publication-eval::002-dm-china-us-mortality-attribution::"
+                "002-dm-china-us-mortality-attribution::stage-attempt-sat_a9b2ffcc8f97a24837d729bf::"
+                "2026-06-11T12:41:21+00:00"
+            ),
+        },
+        provider_admission={
+            "provider_admission_pending_count": 1,
+            "provider_attempt_or_lease_required": True,
+        },
+        next_owner="gate_clearing_batch",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "gate_clearing_batch"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["source"] == "terminal_closeout_typed_blocker"
+    assert work_unit["state"]["blocker_type"] == "publication_gate_replay_blocked"
+    assert work_unit["state"]["typed_blocker"]["owner_receipt_ref"] == f"{closeout_ref}#owner_receipt"
+
+
 def test_current_work_unit_terminal_quality_repair_next_delta_blocks_stale_gate_followthrough_identity() -> None:
     module = _module()
     study_id = "002-dm-china-us-mortality-attribution"

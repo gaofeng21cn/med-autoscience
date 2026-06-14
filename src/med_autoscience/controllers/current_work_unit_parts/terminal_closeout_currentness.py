@@ -112,6 +112,7 @@ def terminal_closeout_blocker_for_action(
     return {
         key: value
         for key, value in {
+            **structured_blocker,
             "blocker_type": blocker_type,
             "blocker_id": blocker_type,
             "blocked_reason": blocker_type,

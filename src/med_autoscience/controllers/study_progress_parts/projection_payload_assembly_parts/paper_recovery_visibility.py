@@ -158,6 +158,7 @@ def _suppress_active_provider_admission_projection(payload: dict[str, Any]) -> N
         payload["paper_recovery_provider_admission_blocked_count"] = pending_count
     payload["provider_admission_candidates"] = []
     payload["provider_admission_pending_count"] = 0
+    _suppress_current_work_unit_provider_admission_pending(payload)
     admission = _mapping_copy(payload.get("owner_action_admission"))
     if admission:
         admission["admission_pending"] = False
@@ -172,6 +173,18 @@ def _suppress_active_provider_admission_projection(payload: dict[str, Any]) -> N
         monitoring_admission["blocked_by"] = "paper_recovery_state"
         monitoring["owner_action_admission"] = monitoring_admission
         payload["progress_first_monitoring_summary"] = monitoring
+
+
+def _suppress_current_work_unit_provider_admission_pending(payload: dict[str, Any]) -> None:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    state = _mapping_copy(current_work_unit.get("state"))
+    if not state or state.get("provider_admission_pending") is not True:
+        return
+    state["provider_admission_pending"] = False
+    state["paper_recovery_provider_admission_blocked"] = True
+    state.pop("pending_provider_admission_evidence", None)
+    current_work_unit["state"] = state
+    payload["current_work_unit"] = current_work_unit
 
 
 def _clear_stale_parked_top_level_fields(
