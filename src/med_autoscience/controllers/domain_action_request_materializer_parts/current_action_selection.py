@@ -849,6 +849,14 @@ def _scan_currentness_preempts_fresh_progress(
     *,
     fresh_action: Mapping[str, Any],
 ) -> bool:
+    if fresh_progress_arbitration.can_preempt_scan(
+        study=study,
+        fresh_action=fresh_action,
+        readiness_followup=None,
+        stage_native_action=None,
+        top_level_study_actions=[],
+    ):
+        return False
     if fresh_progress_arbitration.gate_followthrough_owner_action_has_strong_identity(fresh_action):
         return False
     if repair_progress_currentness.generated_action_matches_scan_currentness(

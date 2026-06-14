@@ -689,6 +689,129 @@ def test_materialize_domain_action_requests_prefers_fresh_readiness_action_over_
     assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
 
 
+def test_materialize_domain_action_requests_routes_publication_eval_recommended_repair_without_ticket(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "run_quality_repair_batch",
+                            "authority": "stage_native_workspace_next_action",
+                            "reason": "stale_stage_native_write_repair",
+                            "owner": "write",
+                            "work_unit_id": "medical_prose_write_repair",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    publication_eval_id = f"publication-eval::{study_id}::2026-06-14T08:02:57+00:00"
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "generated_at": "2026-06-14T08:03:00+00:00",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "currentness_basis": {
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                    "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+                    "runtime_health_epoch": "runtime-health-event-006839-87fcfd5b5277d89f",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "source_ref": "runtime/quests/003/artifacts/reports/publishability_gate/latest.json",
+                "next_owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "publication_eval_id": publication_eval_id,
+                "target_surface": {
+                    "ref_kind": "publication_eval_recommended_action",
+                    "publication_eval_id": publication_eval_id,
+                    "next_work_unit": {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                    },
+                },
+            },
+            "current_owner_ticket": None,
+            "owner_route": None,
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+        "run_quality_repair_batch"
+    ]
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["study_id"] == study_id
+    assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["owner_route"]["work_unit_fingerprint"] == fingerprint
+    assert dispatch["owner_route"]["source_fingerprint"] == publication_eval_id
+    assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"] == {
+        "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+        "runtime_health_epoch": "runtime-health-event-006839-87fcfd5b5277d89f",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": fingerprint,
+        "source_eval_id": publication_eval_id,
+    }
+    assert any(
+        item["reason"] == "superseded_by_fresh_study_progress_current_owner_ticket"
+        and item["action_type"] == "run_quality_repair_batch"
+        for item in result["ignored_actions"]
+    )
+
+
 def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_queue_is_empty(
     monkeypatch,
     tmp_path: Path,

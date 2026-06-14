@@ -31,7 +31,9 @@ def owner_route_values(
     work_unit_id: str,
 ) -> dict[str, str]:
     current_work_unit = _mapping(progress.get("current_work_unit"))
+    current_work_unit_basis = _mapping(current_work_unit.get("currentness_basis"))
     ticket_work_unit = _mapping(ticket.get("work_unit"))
+    current_action_target = _mapping(current_action.get("target_surface"))
     owner_route = _mapping(progress.get("owner_route"))
     route_refs = _mapping(owner_route.get("source_refs"))
     route_basis = _mapping(route_refs.get("owner_route_currentness_basis"))
@@ -39,7 +41,12 @@ def owner_route_values(
     runtime_health = _mapping(progress.get("runtime_health_snapshot"))
     source_eval_id = _first_strong_text(
         current_action.get("source_eval_id"),
+        current_action.get("publication_eval_id"),
+        current_action_target.get("publication_eval_id"),
         current_work_unit.get("source_eval_id"),
+        current_work_unit.get("publication_eval_id"),
+        current_work_unit_basis.get("source_eval_id"),
+        current_work_unit_basis.get("publication_eval_id"),
         ticket.get("source_eval_id"),
         ticket_work_unit.get("source_eval_id"),
         route_basis.get("source_eval_id"),
@@ -49,6 +56,7 @@ def owner_route_values(
     source_fingerprint = _first_strong_text(
         current_action.get("source_fingerprint"),
         current_work_unit.get("source_fingerprint"),
+        current_work_unit_basis.get("source_fingerprint"),
         ticket.get("source_fingerprint"),
         ticket_work_unit.get("source_fingerprint"),
         route_basis.get("source_fingerprint"),
@@ -61,6 +69,8 @@ def owner_route_values(
         current_action.get("action_fingerprint"),
         current_work_unit.get("work_unit_fingerprint"),
         current_work_unit.get("action_fingerprint"),
+        current_work_unit_basis.get("work_unit_fingerprint"),
+        current_work_unit_basis.get("action_fingerprint"),
         ticket.get("work_unit_fingerprint"),
         ticket.get("action_fingerprint"),
         ticket_work_unit.get("work_unit_fingerprint"),
@@ -74,6 +84,7 @@ def owner_route_values(
     truth_epoch = _first_strong_text(
         progress.get("truth_epoch"),
         truth.get("truth_epoch"),
+        current_work_unit_basis.get("truth_epoch"),
         route_basis.get("truth_epoch"),
         route_refs.get("study_truth_epoch"),
         owner_route.get("truth_epoch"),
@@ -82,6 +93,7 @@ def owner_route_values(
     runtime_health_epoch = _first_strong_text(
         progress.get("runtime_health_epoch"),
         runtime_health.get("runtime_health_epoch"),
+        current_work_unit_basis.get("runtime_health_epoch"),
         route_basis.get("runtime_health_epoch"),
         route_refs.get("runtime_health_epoch"),
         owner_route.get("runtime_health_epoch"),

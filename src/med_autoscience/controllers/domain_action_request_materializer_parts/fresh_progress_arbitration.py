@@ -49,6 +49,11 @@ def can_preempt_scan(
         queue_actions=queue_actions,
     ):
         return True
+    if _publication_eval_recommended_repair_supersedes_previous_repair_queue(
+        fresh_action=fresh_action,
+        queue_actions=queue_actions,
+    ):
+        return True
     if _terminal_next_forced_write_supersedes_previous_ai_reviewer_queue(
         fresh_action=fresh_action,
         queue_actions=queue_actions,
@@ -129,6 +134,28 @@ def _fresh_repair_followup_supersedes_previous_repair_queue(
     ):
         return False
     return any(_scan_action_is_previous_repair_or_provider_admission(action) for action in queue_actions)
+
+
+def _publication_eval_recommended_repair_supersedes_previous_repair_queue(
+    *,
+    fresh_action: Mapping[str, Any],
+    queue_actions: list[dict[str, Any]],
+) -> bool:
+    if _text(fresh_action.get("current_action_source")) != (
+        "publication_eval.recommended_actions.readiness_blocker_repair"
+    ):
+        return False
+    if _text(fresh_action.get("authority")) != "study_progress.current_executable_owner_action":
+        return False
+    if _text(fresh_action.get("action_type")) not in {"run_quality_repair_batch", "run_gate_clearing_batch"}:
+        return False
+    if not _action_currentness_fingerprints(fresh_action):
+        return False
+    return bool(queue_actions) and all(
+        _scan_action_is_previous_repair_or_provider_admission(action)
+        or _scan_action_is_readiness_or_stage_native_write(action)
+        for action in queue_actions
+    )
 
 
 def _terminal_next_forced_write_supersedes_previous_ai_reviewer_queue(
@@ -304,7 +331,10 @@ def fresh_action_supersedes_currentness_action(
     fresh_action: Mapping[str, Any],
     currentness_action: Mapping[str, Any],
 ) -> bool:
-    return _terminal_next_forced_write_supersedes_previous_ai_reviewer_queue(
+    return _publication_eval_recommended_repair_supersedes_previous_repair_queue(
+        fresh_action=fresh_action,
+        queue_actions=[dict(currentness_action)],
+    ) or _terminal_next_forced_write_supersedes_previous_ai_reviewer_queue(
         fresh_action=fresh_action,
         queue_actions=[dict(currentness_action)],
     )
