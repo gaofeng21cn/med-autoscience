@@ -22,6 +22,7 @@ from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layo
 
 from .opl_current_control_state_handoff_values import (
     _copy_mapping_keys,
+    _current_control_currentness_fields,
     _first_present_mapping_value,
     _observability_mapping,
     _owner_route_projection,
@@ -374,6 +375,7 @@ def opl_current_control_state_study_handoff_projection(
         "external_supervisor_required": bool(matching.get("external_supervisor_required")),
         "blocked_reason": _non_empty_text(matching.get("blocked_reason")),
     }
+    projection.update(_current_control_currentness_fields(matching))
     if _typed_closeout_supersedes_terminal(
         typed_closeout=latest_typed_closeout,
         terminal_stage_log=latest_terminal_stage_log or matching_terminal_stage_log,

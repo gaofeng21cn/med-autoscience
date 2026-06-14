@@ -237,6 +237,10 @@ def _fresh_progress_currentness_barrier(
     ) or _typed_blocker_allows_gate_followthrough_owner_action(
         envelope=envelope,
         current_action=current_action,
+    ) or _typed_blocker_allows_domain_transition_owner_action(
+        progress=progress,
+        envelope=envelope,
+        current_action=current_action,
     ):
         return None
     blocker = _mapping(envelope.get("typed_blocker"))
@@ -335,6 +339,12 @@ def _progress_has_executable_owner_action(progress: Mapping[str, Any]) -> bool:
             current_action=current_action,
         ):
             return _text(current_action.get("surface_kind")) == "current_executable_owner_action"
+        if _typed_blocker_allows_domain_transition_owner_action(
+            progress=progress,
+            envelope=envelope,
+            current_action=current_action,
+        ):
+            return _text(current_action.get("surface_kind")) == "current_executable_owner_action"
         return state_kind == "executable_owner_action"
     return _text(current_action.get("surface_kind")) == "current_executable_owner_action"
 
@@ -388,6 +398,82 @@ def _typed_blocker_allows_gate_followthrough_owner_action(
     return (action_work_unit_id, action_fingerprint) != (
         blocker_work_unit_id,
         blocker_fingerprint,
+    )
+
+
+def _typed_blocker_allows_domain_transition_owner_action(
+    *,
+    progress: Mapping[str, Any],
+    envelope: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    if state_kind != "typed_blocker":
+        return False
+    if _fresh_progress_typed_blocker_reason(envelope) == OPL_EXECUTION_AUTHORIZATION_BLOCKER:
+        return False
+    if not _domain_transition_owner_action_has_strong_identity(current_action):
+        return False
+    blocker = _mapping(envelope.get("typed_blocker"))
+    if _text(blocker.get("blocker_type")) != "provider_completion_is_not_domain_ready" and _text(
+        blocker.get("reason")
+    ) != "provider_completion_is_not_domain_ready":
+        return False
+    if _text(envelope.get("source")) != "accepted_closeout_consumed_pending":
+        current_work_unit = _mapping(progress.get("current_work_unit"))
+        current_work_unit_state = _mapping(current_work_unit.get("state"))
+        if _text(current_work_unit_state.get("source")) != "accepted_closeout_consumed_pending":
+            return False
+    transition = _mapping(progress.get("domain_transition"))
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return False
+    if not _mapping(transition.get("next_work_unit")):
+        return False
+    action_work_unit_id = _text(current_action.get("work_unit_id")) or _work_unit_id(
+        current_action.get("next_work_unit")
+    )
+    action_fingerprint = _text(current_action.get("work_unit_fingerprint")) or _text(
+        current_action.get("action_fingerprint")
+    )
+    blocker_work_unit_id = _text(blocker.get("work_unit_id")) or _work_unit_id(
+        envelope.get("next_work_unit")
+    )
+    blocker_fingerprint = _text(blocker.get("work_unit_fingerprint")) or _text(
+        blocker.get("action_fingerprint")
+    )
+    return (action_work_unit_id, action_fingerprint) != (
+        blocker_work_unit_id,
+        blocker_fingerprint,
+    )
+
+
+def _domain_transition_owner_action_has_strong_identity(
+    current_action: Mapping[str, Any],
+) -> bool:
+    if _text(current_action.get("surface_kind")) != "current_executable_owner_action":
+        return False
+    if _text(current_action.get("status")) not in {None, "ready"}:
+        return False
+    if (
+        _text(current_action.get("source"))
+        or _text(current_action.get("source_surface"))
+    ) != "domain_transition":
+        return False
+    action_type = fresh_progress_arbitration.current_action_supported_action_type(current_action)
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return False
+    return (
+        (
+            _text(current_action.get("work_unit_id"))
+            or _work_unit_id(current_action.get("next_work_unit"))
+        )
+        is not None
+        and (
+            _text(current_action.get("work_unit_fingerprint"))
+            or _text(current_action.get("action_fingerprint"))
+        )
+        is not None
     )
 
 

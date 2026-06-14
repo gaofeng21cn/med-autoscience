@@ -112,6 +112,30 @@ def _observability_mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
+def _current_control_currentness_fields(matching: Mapping[str, Any]) -> dict[str, Any]:
+    projection: dict[str, Any] = {}
+    for key in (
+        "current_work_unit",
+        "current_execution_envelope",
+        "current_executable_owner_action",
+        "typed_blocker",
+    ):
+        value = _observability_mapping(matching.get(key))
+        if value:
+            projection[key] = value
+    if "provider_admission_pending_count" in matching:
+        projection["provider_admission_pending_count"] = int(
+            matching.get("provider_admission_pending_count") or 0
+        )
+    if "provider_admission_candidates" in matching:
+        projection["provider_admission_candidates"] = [
+            dict(item)
+            for item in matching.get("provider_admission_candidates") or []
+            if isinstance(item, Mapping)
+        ]
+    return projection
+
+
 def _work_unit_identity(value: object) -> str | None:
     if isinstance(value, Mapping):
         return (

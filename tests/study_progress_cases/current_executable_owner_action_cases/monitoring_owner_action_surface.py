@@ -147,6 +147,98 @@ def test_current_owner_action_prefers_actionable_gate_followthrough_over_consume
     assert action["allowed_actions"] == ["run_quality_repair_batch"]
 
 
+def test_current_owner_action_prefers_gate_successor_over_completed_repair_progress_gate_replay() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    source_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "stage-attempt-sat_a9b2ffcc8f97a24837d729bf::2026-06-11T12:41:21+00:00"
+    )
+    gate_ref = (
+        "/workspace/studies/002-dm-china-us-mortality-attribution/"
+        "artifacts/controller/gate_clearing_batch/latest.json"
+    )
+    repair_fingerprint = "sha256:completed-analysis-claim-evidence-repair"
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "source_fingerprint": repair_fingerprint,
+                "source_eval_id": source_eval_id,
+                "repair_execution_evidence_ref": (
+                    "/workspace/studies/002-dm-china-us-mortality-attribution/"
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "owner_receipt_ref": (
+                    "/workspace/studies/002-dm-china-us-mortality-attribution/"
+                    "artifacts/controller/repair_execution_receipts/latest.json"
+                ),
+                "gate_replay_refs": [
+                    "/workspace/runtime/quests/002-dm-china-us-mortality-attribution/"
+                    "artifacts/reports/publishability_gate/2026-06-14T050810Z.json",
+                    gate_ref,
+                    "/workspace/studies/002-dm-china-us-mortality-attribution/"
+                    "artifacts/controller/gate_replay_requests/latest.json",
+                ],
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_done": True,
+            },
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": source_eval_id,
+                "latest_record_path": gate_ref,
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                "work_unit_currentness": {
+                    "explicit_publication_work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "current_publication_work_unit_id": "analysis_claim_evidence_repair",
+                    "current_work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                },
+                "gate_replay_status": "blocked",
+                "gate_replay_blockers": ["claim_evidence_consistency_failed"],
+            },
+            "current_work_unit": {
+                "status": "typed_blocker",
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": repair_fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "owner": "gate_clearing_batch",
+                        "reason": "publication_gate_replay_blocked",
+                        "blocker_type": "publication_gate_replay_blocked",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": repair_fingerprint,
+                    },
+                },
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    assert action["next_owner"] == "analysis-campaign"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert action["work_unit_fingerprint"] == "publication-blockers::497d1260db522f01"
+
+
 def test_current_owner_action_keeps_gate_replay_followup_when_stale_ai_reviewer_receipt_exists() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"

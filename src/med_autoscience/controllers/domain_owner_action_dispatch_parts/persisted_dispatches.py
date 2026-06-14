@@ -168,8 +168,13 @@ def selected_dispatches(
     consumer_payload: Mapping[str, Any] | None, consumer_latest_path: Path,
     scan_payload: Mapping[str, Any] | None, supported_action_types: frozenset[str],
     dispatch_relative_root: Path,
+    fresh_progress: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    fresh_progress = stage_native_dispatch_selection.read_fresh_study_progress(profile=profile, study_id=study_id)
+    fresh_progress = (
+        dict(fresh_progress)
+        if isinstance(fresh_progress, Mapping)
+        else stage_native_dispatch_selection.read_fresh_study_progress(profile=profile, study_id=study_id)
+    )
     progress_envelope_blocks_dispatch_selection = (
         progress_blocking_selection.fresh_progress_envelope_blocks_dispatch_selection(
             fresh_progress
@@ -452,6 +457,13 @@ def selected_dispatches(
             return current_selected_candidate
         if runtime_current_selected:
             return runtime_current_selected
+        diagnostic_selected = runtime_current_dispatch_selection.diagnostic_dispatches_only(
+            dispatches=selected,
+            current_control_authority_present=_current_control_authority_present(current_study),
+            dispatch_owner_route=_dispatch_owner_route,
+        )
+        if diagnostic_selected:
+            return diagnostic_selected
         return []
     if accepted_owner_gate_selected := accepted_owner_gate_decision.dispatches_only(
         progress=fresh_progress, dispatches=selected
@@ -468,11 +480,19 @@ def selected_dispatches(
     )
     if current_selected:
         return current_selected
+    diagnostic_selected = runtime_current_dispatch_selection.diagnostic_dispatches_only(
+        dispatches=selected,
+        current_control_authority_present=_current_control_authority_present(current_study),
+        dispatch_owner_route=_dispatch_owner_route,
+    )
+    if diagnostic_selected:
+        return diagnostic_selected
     if progress_envelope_blocks_dispatch_selection:
         return []
     if _current_control_authority_present(current_study):
         return []
     return selected
+
 
 def _selected_dispatches_only(
     *,

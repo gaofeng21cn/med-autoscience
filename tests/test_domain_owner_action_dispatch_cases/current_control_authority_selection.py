@@ -272,6 +272,51 @@ def test_accepted_owner_gate_quality_repair_dispatch_supersedes_stale_gate_repla
     assert explicit_result["executions"][0]["blocked_reason"] is None
 
 
+def test_dispatch_dry_run_materializes_current_owner_action_when_no_dispatch_is_persisted(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _patch_owner_gate_ready_progress(monkeypatch, study_id=study_id)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id}],
+            "action_queue": [],
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["execution_count"] == 1
+    execution = result["executions"][0]
+    assert execution["action_type"] == "run_quality_repair_batch"
+    assert execution["execution_status"] == "dry_run"
+    assert execution["blocked_reason"] is None
+    assert execution["owner_route_basis"] == "accepted_owner_gate_decision"
+    assert execution["dispatch_path"] == str(
+        profile.studies_root
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+
+
 def test_accepted_owner_gate_quality_repair_apply_invokes_mas_materialization(
     monkeypatch,
     tmp_path: Path,

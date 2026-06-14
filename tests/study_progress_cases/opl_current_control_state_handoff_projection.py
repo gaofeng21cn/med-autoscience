@@ -946,4 +946,5 @@ def test_supervisor_tick_audit_uses_workspace_opl_current_control_state(
     assert audit["managed_worker_source_current"] is True
 
 
+from .opl_current_control_state_handoff_projection_cases.current_control_current_work_unit import *  # noqa: F403,F401,E402
 from .opl_current_control_state_handoff_projection_cases.running_attempt_identity import *  # noqa: F403,F401,E402

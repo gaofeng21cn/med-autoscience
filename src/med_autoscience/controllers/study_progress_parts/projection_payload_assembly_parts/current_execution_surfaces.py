@@ -15,6 +15,7 @@ from ..current_owner_action_projection_reconcile import (
     current_execution_envelope_actions,
     current_execution_handoff_consumes_current_action,
 )
+from ..current_executable_owner_action import build_current_executable_owner_action
 from ..shared import _mapping_copy, _non_empty_text
 
 
@@ -26,6 +27,43 @@ def refresh_current_execution_surfaces(
     runtime_health_snapshot: Mapping[str, Any],
 ) -> dict[str, Any]:
     updated = dict(payload)
+    handoff_work_unit = _canonical_current_control_typed_blocker_work_unit(handoff)
+    if handoff_work_unit:
+        updated["current_work_unit"] = handoff_work_unit
+        handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+        if handoff_envelope:
+            updated["current_execution_envelope"] = handoff_envelope
+        successor_action = build_current_executable_owner_action(updated)
+        if _typed_blocker_successor_action(successor_action):
+            updated["current_executable_owner_action"] = successor_action
+            handoff_work_unit = {}
+        else:
+            updated["current_executable_owner_action"] = None
+    if handoff_work_unit:
+        updated["current_executable_owner_action"] = None
+        handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+        if handoff_envelope:
+            updated["current_execution_envelope"] = handoff_envelope
+        else:
+            updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+                status=status,
+                progress=updated,
+                actions=[],
+                blocked_reason=_non_empty_text(handoff_work_unit.get("blocker_type")),
+                next_owner=_non_empty_text(handoff_work_unit.get("owner")),
+                typed_blocker=_canonical_typed_blocker_for_execution_refresh(handoff),
+                runtime_health=runtime_health_snapshot,
+                live_provider_attempt=handoff,
+                current_work_unit_payload=handoff_work_unit,
+            )
+        updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+            action_queue=[],
+            runtime_health=runtime_health_snapshot,
+            extra={
+                "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+            },
+        )
+        return updated
     actions = _canonical_actions_for_execution_refresh(payload=updated, handoff=handoff)
     evidence_actions = _execution_evidence_actions_for_payload(payload=updated, handoff=handoff)
     current_action = _current_action_for_execution_refresh(payload=updated, handoff=handoff)
@@ -104,6 +142,25 @@ def refresh_current_execution_surfaces(
         },
     )
     return updated
+
+
+def _canonical_current_control_typed_blocker_work_unit(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    if handoff.get("running_provider_attempt") is True:
+        return {}
+    current = _mapping_copy(handoff.get("current_work_unit"))
+    if _non_empty_text(current.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
+        return current
+    return {}
+
+
+def _typed_blocker_successor_action(action: Mapping[str, Any] | None) -> bool:
+    if not isinstance(action, Mapping):
+        return False
+    if _non_empty_text(action.get("source")) != "domain_transition":
+        return False
+    return _non_empty_text(action.get("action_type")) is not None and _non_empty_text(
+        action.get("work_unit_id")
+    ) is not None
 
 
 def _canonical_actions_for_execution_refresh(

@@ -34,10 +34,15 @@ from .current_executable_owner_action_parts.ai_reviewer_followup import (
     consumed_ai_reviewer_followup_allows_publication_repair,
     terminal_stage_closeout_consumes_repair_followup,
 )
+from .current_executable_owner_action_parts.domain_transition import (
+    consumed_closeout_typed_blocker_allows_domain_transition_successor,
+    owner_action_from_domain_transition,
+)
 from .current_executable_owner_action_parts.gate_followthrough import (
     GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES,
     owner_action_from_gate_followthrough_current_work_unit,
 )
+from .current_executable_owner_action_parts import gate_replay_identity
 from .current_executable_owner_action_parts.publication_repair import (
     owner_action_from_publication_eval_readiness_blocker_repair,
 )
@@ -69,6 +74,16 @@ GATE_REPLAY_WORK_UNITS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS | frozenset({READ
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     repair_progress_action = _from_repair_progress_projection(payload)
     gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
+    domain_transition_action = _from_domain_transition(payload)
+    if (
+        domain_transition_action is not None
+        and consumed_closeout_typed_blocker_allows_domain_transition_successor(
+            payload=payload,
+            domain_transition_action=domain_transition_action,
+            repair_progress_action=repair_progress_action,
+        )
+    ):
+        return domain_transition_action
     if _gate_followthrough_supersedes_repair_progress(
         gate_followthrough_action=gate_followthrough_action,
         repair_progress_action=repair_progress_action,
@@ -79,7 +94,6 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         repair_progress_action=repair_progress_action,
     ):
         return None
-    domain_transition_action = _from_domain_transition(payload)
     publication_repair_action = _from_publication_eval_readiness_blocker_repair(payload)
     repair_progress_consumes_publication_repair = _repair_progress_consumes_publication_repair(
         repair_progress_action=repair_progress_action,
@@ -481,6 +495,7 @@ def _gate_followthrough_supersedes_repair_progress(
     if _repair_progress_consumes_gate_followthrough_work_unit(
         gate_action=gate_action,
         repair_action=repair_action,
+        payload=None,
     ):
         return False
     repair_precedence = _mapping_copy(repair_action.get("repair_progress_precedence"))
@@ -501,6 +516,7 @@ def _repair_progress_consumes_gate_followthrough_work_unit(
     *,
     gate_action: Mapping[str, Any],
     repair_action: Mapping[str, Any],
+    payload: Mapping[str, Any] | None,
 ) -> bool:
     repair_precedence = _mapping_copy(repair_action.get("repair_progress_precedence"))
     source_work_unit = _non_empty_text(repair_precedence.get("source_work_unit_id"))
@@ -511,6 +527,22 @@ def _repair_progress_consumes_gate_followthrough_work_unit(
     if gate_eval is None or repair_eval is None or gate_eval != repair_eval:
         return False
     if _non_empty_text(gate_action.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    repair_fingerprint = _non_empty_text(
+        repair_precedence.get("source_fingerprint")
+    ) or gate_replay_identity.action_fingerprint(repair_action)
+    gate_fingerprint = gate_replay_identity.action_fingerprint(gate_action)
+    if (
+        gate_replay_identity.canonical_gate_replay_typed_blocker_matches_repair_progress(
+            payload=payload,
+            repair_action=repair_action,
+            repair_fingerprint=repair_fingerprint,
+            gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
+        )
+        and gate_fingerprint is not None
+        and repair_fingerprint is not None
+        and gate_fingerprint != repair_fingerprint
+    ):
         return False
     return _non_empty_text(repair_action.get("action_type")) == GATE_CLEARING_ACTION
 
@@ -612,6 +644,7 @@ def _gate_followthrough_consumes_repair_progress_gate_replay(
     if _repair_progress_consumes_gate_followthrough_work_unit(
         gate_action=gate_followthrough_action,
         repair_action=action,
+        payload=payload,
     ):
         return False
     return _ref_sets_intersect(
@@ -874,26 +907,7 @@ def _from_stage_native_current_owner_action(payload: Mapping[str, Any]) -> dict[
 
 
 def _from_domain_transition(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    transition = _mapping_copy(payload.get("domain_transition"))
-    next_work_unit = _mapping_copy(transition.get("next_work_unit"))
-    owner = _non_empty_text(transition.get("owner")) or _non_empty_text(transition.get("route_target"))
-    work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
-    action = _non_empty_text(transition.get("controller_action"))
-    if owner is None and work_unit_id is None and action is None:
-        return None
-    return _compact(
-        {
-            "surface_kind": SURFACE_KIND,
-            "schema_version": 1,
-            "status": "ready",
-            "source": "domain_transition",
-            "next_owner": owner,
-            "work_unit_id": work_unit_id,
-            "allowed_actions": [action] if action is not None else [],
-            "owner_receipt_required": True,
-            "authority_boundary": _authority_boundary(),
-        }
-    )
+    return owner_action_from_domain_transition(payload, surface_kind=SURFACE_KIND)
 
 
 def _mapping_items(value: object) -> list[dict[str, Any]]:

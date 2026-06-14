@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.runtime_protocol import quest_state
 
+from . import developer_apply_gate
 from .. import domain_status_projection
 from .. import domain_transition_currentness
 from ..owner_route_reconcile_parts import current_controller_authorization, pending_user_messages
@@ -84,6 +86,83 @@ def refresh_controller_decision_after_ai_reviewer_eval(
         tick_request=tick_request,
         source=source,
     )
+
+
+def refresh_controller_decisions_for_current_publication_eval(
+    *,
+    profile: WorkspaceProfile,
+    study_ids: Iterable[str],
+    mode: str,
+    apply: bool,
+    generated_at: str,
+    schema_version: int,
+    resolve_study_ids,
+    study_root,
+) -> dict[str, Any]:
+    developer_mode = resolve_developer_supervisor_mode(
+        profile=profile,
+        requested_mode=mode,
+        apply_safe_actions=apply,
+        scheduler_owner="controller_decision_refresh",
+    )
+    developer_mode_payload = developer_mode.to_dict()
+    if apply and developer_apply_gate.blocked(developer_mode_payload):
+        return {
+            "surface": "domain_owner_action_controller_decision_refresh",
+            "schema_version": schema_version,
+            "generated_at": generated_at,
+            "workspace_root": str(profile.workspace_root),
+            "dry_run": False,
+            "requested_mode": mode,
+            "effective_mode": developer_mode.mode,
+            "developer_supervisor_mode": developer_mode_payload,
+            "refresh_count": 0,
+            "materialized_count": 0,
+            "blocked_count": 1,
+            "skipped_count": 0,
+            "refreshes": [
+                {
+                    "refresh_status": "blocked",
+                    "blocked_reason": developer_apply_gate.block_reason(developer_mode_payload)
+                    or "developer_apply_safe_required",
+                }
+            ],
+        }
+    resolved_study_ids = resolve_study_ids(profile, study_ids)
+    refreshes = [
+        {
+            "study_id": study_id,
+            **refresh_controller_decision_after_ai_reviewer_eval(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root(profile, study_id),
+                apply=apply,
+                source="domain_owner_action_controller_decision_refresh",
+            ),
+        }
+        for study_id in resolved_study_ids
+    ]
+    return {
+        "surface": "domain_owner_action_controller_decision_refresh",
+        "schema_version": schema_version,
+        "generated_at": generated_at,
+        "workspace_root": str(profile.workspace_root),
+        "dry_run": not apply,
+        "requested_mode": mode,
+        "effective_mode": developer_mode.mode,
+        "developer_supervisor_mode": developer_mode_payload,
+        "requested_studies": list(resolved_study_ids),
+        "refresh_count": len(refreshes),
+        "materialized_count": sum(item.get("refresh_status") == "materialized" for item in refreshes),
+        "blocked_count": sum(item.get("refresh_status") == "blocked" for item in refreshes),
+        "skipped_count": sum(item.get("refresh_status") == "skipped" for item in refreshes),
+        "dry_run_count": sum(item.get("refresh_status") == "dry_run" for item in refreshes),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "refreshes": refreshes,
+    }
 
 
 def _dry_run_refresh(*, study_id: str, tick_request: Mapping[str, Any]) -> dict[str, Any]:

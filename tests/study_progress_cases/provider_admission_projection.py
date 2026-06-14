@@ -848,3 +848,6 @@ def test_existing_projection_refresh_rejects_superseded_live_attempt_identity(
         "opl-stage-attempt://sat-stale-gate-replay"
     )
     assert result["active_run_id"] is None
+
+
+from .provider_admission_projection_cases.current_control_typed_blocker import *  # noqa: F403,F401,E402

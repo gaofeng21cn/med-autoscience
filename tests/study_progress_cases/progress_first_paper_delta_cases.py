@@ -345,6 +345,82 @@ def test_repair_progress_gate_replay_survives_identity_different_terminal_handof
     assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
 
 
+def test_consumed_provider_completion_blocker_promotes_domain_transition_successor() -> None:
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    result = surfaces.refresh_current_execution_surfaces(
+        payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "next_work_unit": {
+                    "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "lane": "review",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+        },
+        status={"study_id": study_id, "quest_id": study_id},
+        handoff={
+            "running_provider_attempt": False,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "med-autoscience",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "source": "accepted_closeout_consumed_pending",
+                    "typed_blocker": {
+                        "blocker_type": "provider_completion_is_not_domain_ready",
+                        "owner": "med-autoscience",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "med-autoscience",
+                "source": "accepted_closeout_consumed_pending",
+                "typed_blocker": {
+                    "blocker_type": "provider_completion_is_not_domain_ready",
+                    "owner": "med-autoscience",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+        },
+        runtime_health_snapshot={},
+    )
+
+    action = result["current_executable_owner_action"]
+    assert action["source"] == "domain_transition"
+    assert action["next_owner"] == "ai_reviewer"
+    assert action["action_type"] == "return_to_ai_reviewer_workflow"
+    assert action["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+    assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+
+
 def test_gate_followthrough_action_does_not_survive_identity_mismatched_current_blocker() -> None:
     assembly = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"

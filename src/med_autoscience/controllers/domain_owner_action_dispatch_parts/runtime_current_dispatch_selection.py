@@ -8,6 +8,7 @@ CurrentnessScore = Callable[[Mapping[str, Any], Mapping[str, Any]], tuple[int, i
 LiveProviderRoute = Callable[..., Mapping[str, Any] | None]
 CurrentRouteForDispatch = Callable[[Mapping[str, Any], Mapping[str, Any]], Mapping[str, Any] | None]
 RouteAllowsAction = Callable[[Mapping[str, Any], Mapping[str, Any]], bool]
+DispatchOwnerRoute = Callable[[Mapping[str, Any]], Mapping[str, Any]]
 
 
 def current_dispatches_only(
@@ -61,8 +62,20 @@ def runtime_current_dispatches_only(
     return selected
 
 
+def diagnostic_dispatches_only(
+    *,
+    dispatches: list[dict[str, Any]],
+    current_control_authority_present: bool,
+    dispatch_owner_route: DispatchOwnerRoute,
+) -> list[dict[str, Any]]:
+    if current_control_authority_present:
+        return []
+    return [dispatch for dispatch in dispatches if dispatch_owner_route(dispatch)]
+
+
 __all__ = [
     "current_dispatches_only",
     "current_route_allows_dispatch_action",
+    "diagnostic_dispatches_only",
     "runtime_current_dispatches_only",
 ]

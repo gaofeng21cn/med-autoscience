@@ -16,6 +16,7 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     ai_reviewer_record_handoff,
+    current_default_executor_dispatches as current_default_executor_dispatches_part,
     current_action_selection,
     current_writer_handoff,
     execution_gate,
@@ -826,6 +827,33 @@ def _dispatch_status_count(dispatches: list[dict[str, Any]], status: str) -> int
     return sum(_text(dispatch.get("dispatch_status")) == status for dispatch in dispatches)
 
 
+def current_default_executor_dispatches(
+    *,
+    profile: WorkspaceProfile,
+    study_ids: Iterable[str],
+    mode: str,
+    apply: bool,
+    dispatch_ready_for_execution: bool = False,
+) -> dict[str, Any]:
+    return current_default_executor_dispatches_part.current_default_executor_dispatches(
+        profile=profile,
+        study_ids=study_ids,
+        mode=mode,
+        apply=apply,
+        generated_at=_utc_now(),
+        supported_mode=SUPPORTED_MODE,
+        dispatch_ready_for_execution=dispatch_ready_for_execution,
+        read_json_object=persistence.read_json_object,
+        scan_latest_path=_scan_latest_path,
+        resolve_study_ids_from_scan=_resolve_study_ids_from_scan,
+        selected_actions=_selected_actions,
+        default_executor_dispatch=_default_executor_dispatch,
+        owner_from_action=_owner_from_action,
+        required_output_surface=_required_output_surface,
+        text=_text,
+    )
+
+
 def materialize_domain_action_requests(
     *,
     profile: WorkspaceProfile,
@@ -959,5 +987,6 @@ __all__ = [
     "RETIRED_ABSENT_SURFACES",
     "SCHEMA_VERSION",
     "SUPPORTED_REQUEST_ACTION_TYPES",
+    "current_default_executor_dispatches",
     "materialize_domain_action_requests",
 ]

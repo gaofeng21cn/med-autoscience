@@ -364,6 +364,124 @@ def test_current_action_does_not_reopen_write_repair_after_consumed_gate_replay_
     assert action["terminal_stage_next_forced_delta"] is True
 
 
+def test_current_action_routes_consumed_write_repair_closeout_to_ai_reviewer_successor() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "typed_blocker",
+                "owner": "med-autoscience",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "source": "accepted_closeout_consumed_pending",
+                    "typed_blocker": {
+                        "blocker_type": "provider_completion_is_not_domain_ready",
+                        "owner": "med-autoscience",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": fingerprint,
+                        "typed_blocker_ref": (
+                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "sat_f8e1cfe49a3aa3cf95d0584d.closeout.json"
+                        ),
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "med-autoscience",
+                "source": "accepted_closeout_consumed_pending",
+                "typed_blocker": {
+                    "blocker_type": "provider_completion_is_not_domain_ready",
+                    "owner": "med-autoscience",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+            "repair_progress_projection": {
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "source_fingerprint": fingerprint,
+                "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "gate_replay_refs": ["artifacts/controller/gate_clearing_batch/latest.json"],
+                "ai_reviewer_recheck_done": True,
+                "paper_delta_refs": [
+                    "paper/draft.md",
+                    "paper/build/review_manuscript.md",
+                    "paper/evidence_ledger.json",
+                ],
+            },
+            "publication_eval": {
+                "eval_id": "publication-eval::003::still-recommends-write",
+                "verdict": {"overall_verdict": "blocked"},
+                "recommended_actions": [
+                    {
+                        "action_type": "route_back_same_line",
+                        "priority": "now",
+                        "route_target": "write",
+                        "work_unit_fingerprint": fingerprint,
+                        "next_work_unit": {
+                            "unit_id": "medical_prose_write_repair",
+                            "lane": "write",
+                            "summary": "Repair structured medical reporting.",
+                        },
+                    }
+                ],
+            },
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "next_work_unit": {
+                    "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "lane": "review",
+                },
+                "guard_boundary": {
+                    "required_owner_surface": "artifacts/publication_eval/latest.json",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "eval_id": "publication-eval::003::post-write-repair",
+                    "action_fingerprint": fingerprint,
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "domain_transition"
+    assert action["next_owner"] == "ai_reviewer"
+    assert action["action_type"] == "return_to_ai_reviewer_workflow"
+    assert action["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert action["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert action["work_unit_fingerprint"] == (
+        "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review"
+    )
+    assert action["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "review",
+        "surface_ref": "artifacts/publication_eval/latest.json",
+    }
+
+
 def test_progress_first_monitoring_derives_repair_action_from_stable_readiness_blocker_publication_eval() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

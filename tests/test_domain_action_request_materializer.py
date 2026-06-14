@@ -370,6 +370,128 @@ def test_materialize_domain_action_requests_blocks_stage_native_write_when_fresh
     )
 
 
+def test_materialize_domain_action_requests_routes_consumed_write_closeout_to_ai_reviewer(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm003")
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "status": "ready_for_owner_action",
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": "control/next_action.json",
+            "current_stage_id": "08-publication_package_handoff",
+        },
+    )
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id="quest-dm003",
+        next_owner="write",
+        owner_reason="medical_prose_write_repair",
+        allowed_actions=["run_quality_repair_batch"],
+    )
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": "quest-dm003", "owner_route": stale_route}],
+        },
+    )
+    consumed_fingerprint = "publication-blockers::0915410f804b3697"
+    successor_fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review"
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": "quest-dm003",
+            "generated_at": "2026-06-14T02:30:00+00:00",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "med-autoscience",
+                "source": "accepted_closeout_consumed_pending",
+                "typed_blocker": {
+                    "blocker_type": "provider_completion_is_not_domain_ready",
+                    "owner": "med-autoscience",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": consumed_fingerprint,
+                },
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "domain_transition",
+                "source_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "next_owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                "work_unit_fingerprint": successor_fingerprint,
+                "action_fingerprint": successor_fingerprint,
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "domain_transition_decision_type": "ai_reviewer_re_eval",
+                "next_work_unit": {
+                    "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "lane": "review",
+                },
+                "target_surface": {
+                    "surface_key": "publication_eval_latest",
+                    "surface_ref": "artifacts/publication_eval/latest.json",
+                },
+            },
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "next_work_unit": {
+                    "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "lane": "review",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "action_fingerprint": consumed_fingerprint,
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": consumed_fingerprint,
+                },
+            },
+            "owner_route": stale_route,
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+        "return_to_ai_reviewer_workflow"
+    ]
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["next_executable_owner"] == "ai_reviewer"
+    assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    assert not any(
+        item["action_type"] == "current_execution_envelope_typed_blocker"
+        for item in result["ignored_actions"]
+    )
+
+
 def test_materialize_domain_action_requests_blocks_readiness_and_stage_native_when_current_action_missing(
     monkeypatch,
     tmp_path: Path,

@@ -138,7 +138,35 @@ def refresh_existing_projection_current_owner_surfaces(
     else:
         updated["opl_current_control_state_handoff"] = None
         handoff = {}
-    current_action = build_current_executable_owner_action(updated)
+    updated = _apply_current_control_currentness_to_existing_projection(updated, handoff=handoff)
+    typed_blocker_successor_action = build_current_executable_owner_action(updated)
+    if _current_control_handoff_is_typed_blocker(handoff) and not _typed_blocker_successor_action(
+        typed_blocker_successor_action
+    ):
+        updated["current_executable_owner_action"] = None
+        updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+        updated.update(
+            provider_admission_projection_fields(
+                payload=updated,
+                handoff=handoff,
+                study_root=study_root,
+            )
+        )
+        updated["owner_action_admission"] = {
+            "admission_pending": False,
+            "reason": "current_control_typed_blocker",
+        }
+        updated = sync_current_execution_evidence(updated, handoff=handoff)
+        updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+        updated = apply_paper_recovery_state_user_visible_status(updated)
+        updated["user_visible_projection"] = build_user_visible_projection(updated)
+        return attach_delivery_inspection_projection_fn(
+            updated,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_root=study_root,
+        )
+    current_action = typed_blocker_successor_action
     if current_action is None and handoff.get("running_provider_attempt") is not True:
         updated.update(
             provider_admission_projection_fields(
@@ -216,6 +244,62 @@ def refresh_existing_projection_current_owner_surfaces(
         profile_ref=profile_ref,
         study_root=study_root,
     )
+
+
+def _apply_current_control_currentness_to_existing_projection(
+    payload: dict[str, Any],
+    *,
+    handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    if handoff.get("running_provider_attempt") is True:
+        return payload
+    handoff_work_unit = _mapping_copy(handoff.get("current_work_unit"))
+    handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+    if _non_empty_text(handoff_work_unit.get("status")) not in {"typed_blocker", "blocked_current_work_unit"}:
+        if _non_empty_text(handoff_envelope.get("state_kind")) != "typed_blocker":
+            return payload
+    updated = dict(payload)
+    if handoff_work_unit:
+        updated["current_work_unit"] = handoff_work_unit
+    if handoff_envelope:
+        updated["current_execution_envelope"] = handoff_envelope
+    if _mapping_copy(handoff.get("typed_blocker")):
+        updated["current_executable_owner_action"] = None
+    elif "current_executable_owner_action" in handoff:
+        updated["current_executable_owner_action"] = _mapping_copy(
+            handoff.get("current_executable_owner_action")
+        ) or None
+    if "provider_admission_pending_count" in handoff:
+        updated["provider_admission_pending_count"] = int(
+            handoff.get("provider_admission_pending_count") or 0
+        )
+    if "provider_admission_candidates" in handoff:
+        updated["provider_admission_candidates"] = [
+            dict(item)
+            for item in handoff.get("provider_admission_candidates") or []
+            if isinstance(item, Mapping)
+        ]
+    return updated
+
+
+def _current_control_handoff_is_typed_blocker(handoff: Mapping[str, Any]) -> bool:
+    if handoff.get("running_provider_attempt") is True:
+        return False
+    handoff_work_unit = _mapping_copy(handoff.get("current_work_unit"))
+    if _non_empty_text(handoff_work_unit.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
+        return True
+    handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+    return _non_empty_text(handoff_envelope.get("state_kind")) == "typed_blocker"
+
+
+def _typed_blocker_successor_action(action: Mapping[str, Any] | None) -> bool:
+    if not isinstance(action, Mapping):
+        return False
+    if _non_empty_text(action.get("source")) != "domain_transition":
+        return False
+    return _non_empty_text(action.get("action_type")) is not None and _non_empty_text(
+        action.get("work_unit_id")
+    ) is not None
 
 
 def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:

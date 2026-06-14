@@ -7,8 +7,6 @@ from typing import Any
 
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_control import owner_route as owner_route_part
-from med_autoscience.runtime_control import owner_route_attempt_protocol
 from med_autoscience.runtime_control import paper_work_unit_lifecycle_for_action
 from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import domain_authority_refs_index
@@ -16,15 +14,16 @@ from med_autoscience.runtime_protocol import domain_authority_refs_index
 from . import runtime_dispatch_cost, domain_status_projection, progress_first_blocker_budget
 from .default_executor_stage_log import paper_stage_log_for_default_executor_execution
 from .domain_owner_action_dispatch_parts import action_execution
-from .domain_owner_action_dispatch_parts import accepted_owner_gate_decision, action_router
+from .domain_owner_action_dispatch_parts import action_router
 from .domain_owner_action_dispatch_parts import controller_refresh
-from .domain_owner_action_dispatch_parts import current_writer_handoff
+from .domain_owner_action_dispatch_parts import current_dispatch_materialization
 from .domain_owner_action_dispatch_parts import developer_apply_gate
 from .domain_owner_action_dispatch_parts import dispatch_contract
 from .domain_owner_action_dispatch_parts import execution_io
 from .domain_owner_action_dispatch_parts import execution_summary
 from .domain_owner_action_dispatch_parts import output_readiness
 from .domain_owner_action_dispatch_parts import opl_execution_preflight
+from .domain_owner_action_dispatch_parts import owner_route_selection
 from .domain_owner_action_dispatch_parts import paper_progress_stall_diagnostic
 from .domain_owner_action_dispatch_parts import persisted_dispatches
 from .domain_owner_action_dispatch_parts import record_only_handoff
@@ -32,6 +31,8 @@ from .domain_action_request_materializer import (
     CONSUMER_LATEST_RELATIVE_PATH,
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
     FORBIDDEN_SURFACES,
+    current_default_executor_dispatches,
+    materialize_domain_action_requests,
 )
 from .default_executor_action_policy import SUPPORTED_ACTION_TYPES
 
@@ -65,12 +66,22 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
+def _scan_study(scan_payload: Mapping[str, Any] | None, study_id: str) -> dict[str, Any] | None:
+    for study in _mapping(scan_payload).get("studies") or []:
+        payload = _mapping(study)
+        if _text(payload.get("study_id")) == study_id:
+            return payload
+    return None
+
+
 def _dispatches(
     profile: WorkspaceProfile,
     study_id: str,
     action_types: tuple[str, ...],
     *,
     consumer_payload: Mapping[str, Any] | None = None,
+    scan_payload: Mapping[str, Any] | None = None,
+    fresh_progress: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     return persisted_dispatches.selected_dispatches(
         profile=profile,
@@ -78,9 +89,50 @@ def _dispatches(
         action_types=action_types,
         consumer_payload=consumer_payload,
         consumer_latest_path=_consumer_latest_path(profile),
-        scan_payload=persisted_dispatches.scan_latest_payload(profile),
+        scan_payload=scan_payload
+        if scan_payload is not None
+        else persisted_dispatches.scan_latest_payload(profile),
+        fresh_progress=fresh_progress,
         supported_action_types=SUPPORTED_ACTION_TYPES,
         dispatch_relative_root=DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
+    )
+
+
+def _current_materialized_dispatches(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_types: tuple[str, ...],
+    mode: str,
+    apply: bool,
+) -> list[dict[str, Any]]:
+    return current_dispatch_materialization.current_materialized_dispatches(
+        profile=profile,
+        study_id=study_id,
+        action_types=action_types,
+        mode=mode,
+        apply=apply,
+        current_default_executor_dispatches=current_default_executor_dispatches,
+        text=_text,
+    )
+
+
+def _materialize_current_dispatches_for_apply(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_types: tuple[str, ...],
+    mode: str,
+) -> list[dict[str, Any]]:
+    return current_dispatch_materialization.materialize_current_dispatches_for_apply(
+        profile=profile,
+        study_id=study_id,
+        action_types=action_types,
+        mode=mode,
+        materialize_domain_action_requests=materialize_domain_action_requests,
+        dispatches=_dispatches,
+        current_default_executor_dispatches=current_default_executor_dispatches,
+        text=_text,
     )
 
 
@@ -120,8 +172,12 @@ def _resolve_study_ids(
     return tuple(dict.fromkeys(resolved))
 
 
-def _contract_guard(dispatch: Mapping[str, Any]) -> tuple[bool, str | None]:
-    dispatch_error = _dispatch_contract_error(dispatch)
+def _contract_guard(dispatch: Mapping[str, Any], *, apply: bool) -> tuple[bool, str | None]:
+    dispatch_error = dispatch_contract.dispatch_contract_error(
+        dispatch,
+        apply=apply,
+        supported_action_types=SUPPORTED_ACTION_TYPES,
+    )
     if dispatch_error is not None:
         return False, dispatch_error
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
@@ -134,21 +190,6 @@ def _contract_guard(dispatch: Mapping[str, Any]) -> tuple[bool, str | None]:
     if prompt_contract_error is not None:
         return False, prompt_contract_error
     return True, None
-
-
-def _dispatch_contract_error(dispatch: Mapping[str, Any]) -> str | None:
-    if _text(dispatch.get("surface")) != "default_executor_dispatch_request":
-        return "unsupported_dispatch_surface"
-    if _text(dispatch.get("dispatch_status")) != "ready":
-        return "dispatch_not_ready"
-    if _text(dispatch.get("executor_kind")) != "codex_cli_default":
-        return "unsupported_executor_kind"
-    if dispatch.get("chat_completion_only_executor_forbidden") is not True:
-        return "chat_completion_only_guard_missing"
-    action_type = _text(dispatch.get("action_type"))
-    if action_type not in SUPPORTED_ACTION_TYPES:
-        return "unsupported_action_type"
-    return None
 
 
 def _executor_boundary(dispatch: Mapping[str, Any]) -> dict[str, Any]:
@@ -175,211 +216,6 @@ def _prompt_contract_error(prompt_contract: Mapping[str, Any], *, dispatch_autho
     )
 
 
-def _current_owner_route(
-    profile: WorkspaceProfile,
-    study_id: str,
-    *,
-    dispatch: Mapping[str, Any] | None = None,
-) -> tuple[dict[str, Any] | None, str | None]:
-    return persisted_dispatches.current_owner_route_from_scan_payload(
-        scan_payload=persisted_dispatches.scan_latest_payload(profile),
-        study_id=study_id,
-        dispatch=dispatch,
-    )
-
-
-def _diagnostic_owner_route(
-    profile: WorkspaceProfile,
-    study_id: str,
-    *,
-    dispatch: Mapping[str, Any] | None = None,
-) -> tuple[dict[str, Any] | None, str | None]:
-    return persisted_dispatches.diagnostic_owner_route_from_scan_payload(
-        scan_payload=persisted_dispatches.scan_latest_payload(profile),
-        study_id=study_id,
-        dispatch=dispatch,
-    )
-
-
-def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
-    return owner_route_part.ensure_owner_route_v2(
-        _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
-    )
-
-
-def _owner_route_block_reason(*, dispatch: Mapping[str, Any], current_route: Mapping[str, Any] | None) -> str | None:
-    if not _dispatch_owner_route(dispatch):
-        return "owner_route_missing"
-    if current_route is None:
-        return "current_owner_route_missing"
-    if not owner_route_part.owner_route_matches(dispatch=dispatch, current_route=current_route):
-        return "owner_route_stale"
-    if not owner_route_part.route_allows_action(action=dispatch, owner_route=current_route):
-        return "owner_route_next_owner_mismatch"
-    if not owner_route_attempt_protocol.route_protocol_dispatchable(
-        current_route,
-        action_type=_text(dispatch.get("action_type")),
-    ):
-        return "owner_route_currentness_basis_missing"
-    return None
-
-
-def _execution_owner_route(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    action_type: str,
-    dispatch: Mapping[str, Any],
-    ) -> tuple[dict[str, Any] | None, str | None]:
-    terminal_closeout_owner_answer_route = _terminal_closeout_owner_answer_dispatch_route(
-        profile=profile,
-        study_id=study_id,
-        dispatch=dispatch,
-    )
-    if terminal_closeout_owner_answer_route is not None:
-        return terminal_closeout_owner_answer_route, "terminal_closeout_owner_answer_dispatch"
-    stage_native_route = _stage_native_dispatch_owner_route(dispatch)
-    if (
-        stage_native_route is not None
-        and _owner_route_block_reason(dispatch=dispatch, current_route=stage_native_route) is None
-    ):
-        return stage_native_route, "stage_native_workspace_next_action"
-    bridged_route = persisted_dispatches.bridged_quality_repair_writer_handoff_route(
-        profile=profile,
-        study_id=study_id,
-        dispatch=dispatch,
-    )
-    if (
-        bridged_route is not None
-        and _owner_route_block_reason(dispatch=dispatch, current_route=bridged_route) is None
-    ):
-        return bridged_route, "bridged_writer_handoff"
-    current_writer_handoff_route = current_writer_handoff.current_quality_repair_writer_handoff_route(
-        profile=profile,
-        study_id=study_id,
-        dispatch=dispatch,
-    )
-    if (
-        current_writer_handoff_route is not None
-        and _owner_route_block_reason(dispatch=dispatch, current_route=current_writer_handoff_route) is None
-    ):
-        return current_writer_handoff_route, "current_writer_handoff"
-    publication_owner_bridge_route = persisted_dispatches.bridged_publication_owner_materialization_route(
-        profile=profile,
-        study_id=study_id,
-        dispatch=dispatch,
-    )
-    if (
-        publication_owner_bridge_route is not None
-        and _owner_route_block_reason(dispatch=dispatch, current_route=publication_owner_bridge_route) is None
-    ):
-        return publication_owner_bridge_route, "bridged_publication_owner_materialization"
-    accepted_owner_gate_route = accepted_owner_gate_decision.dispatch_owner_route_for_progress(
-        persisted_dispatches.read_fresh_study_progress(profile=profile, study_id=study_id), dispatch
-    )
-    if accepted_owner_gate_route and _owner_route_block_reason(
-        dispatch=dispatch,
-        current_route=accepted_owner_gate_route,
-    ) is None:
-        return accepted_owner_gate_route, "accepted_owner_gate_decision"
-    if not _dispatch_uses_bridge_authority(dispatch):
-        scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
-        route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=scan_route)
-        if scan_route_basis != "dispatch_owner_route" and route_block_reason is None:
-            return scan_route, scan_route_basis or "scan_latest"
-        live_attempt_route = persisted_dispatches.live_provider_attempt_owner_route_from_scan_payload(
-            scan_payload=persisted_dispatches.scan_latest_payload(profile),
-            study_id=study_id,
-            dispatch=dispatch,
-        )
-        if (
-            live_attempt_route is not None
-            and _owner_route_block_reason(dispatch=dispatch, current_route=live_attempt_route) is None
-        ):
-            return live_attempt_route, "live_provider_attempt_dispatch"
-    request_route = persisted_dispatches.owner_request_route(
-        profile=profile,
-        study_id=study_id,
-        action_type=action_type,
-        dispatch=dispatch,
-    )
-    if request_route is not None:
-        return request_route, "owner_request"
-    dispatch_route = _dispatch_owner_route(dispatch)
-    if (
-        _dispatch_uses_bridge_authority(dispatch)
-        and dispatch_route
-        and _owner_route_block_reason(dispatch=dispatch, current_route=dispatch_route) is None
-    ):
-        return dispatch_route, "dispatch_owner_route_bridge"
-    if _dispatch_uses_bridge_authority(dispatch):
-        return None, "bridge_currentness_failed"
-    scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
-    route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=scan_route)
-    if scan_route_basis != "dispatch_owner_route" and route_block_reason is None:
-        return scan_route, scan_route_basis or "scan_latest"
-    live_attempt_route = persisted_dispatches.live_provider_attempt_owner_route_from_scan_payload(
-        scan_payload=persisted_dispatches.scan_latest_payload(profile),
-        study_id=study_id,
-        dispatch=dispatch,
-    )
-    if (
-        live_attempt_route is not None
-            and _owner_route_block_reason(dispatch=dispatch, current_route=live_attempt_route) is None
-    ):
-        return live_attempt_route, "live_provider_attempt_dispatch"
-    diagnostic_route, diagnostic_basis = _diagnostic_owner_route(profile, study_id, dispatch=dispatch)
-    return diagnostic_route, diagnostic_basis or scan_route_basis or "scan_latest"
-
-
-def _terminal_closeout_owner_answer_dispatch_route(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    dispatch: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    progress = persisted_dispatches.read_fresh_study_progress(profile=profile, study_id=study_id)
-    if not persisted_dispatches.dispatch_matches_terminal_closeout_owner_answer(
-        progress=progress,
-        dispatch=dispatch,
-    ):
-        return None
-    dispatch_route = _dispatch_owner_route(dispatch)
-    if not dispatch_route:
-        return None
-    if _owner_route_block_reason(dispatch=dispatch, current_route=dispatch_route) is not None:
-        return None
-    return dispatch_route
-
-
-def _dispatch_uses_bridge_authority(dispatch: Mapping[str, Any]) -> bool:
-    route = _dispatch_owner_route(dispatch)
-    refs = _mapping(route.get("source_refs"))
-    return _text(refs.get("bridge_authority")) is not None
-
-
-def _stage_native_dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
-    source_action = _mapping(dispatch.get("source_action"))
-    prompt_contract = _mapping(dispatch.get("prompt_contract"))
-    source_surface = _text(source_action.get("source_surface")) or _text(
-        _mapping(_dispatch_owner_route(dispatch).get("source_refs")).get("source_surface")
-    )
-    if _text(source_action.get("authority")) != "stage_native_workspace_next_action":
-        return None
-    if source_surface not in {
-        "artifacts/supervision/paper_clean_room_rebuild/latest.json",
-        "artifacts/reports/medical_publication_surface/latest.json",
-    }:
-        return None
-    route = _dispatch_owner_route(dispatch)
-    currentness = _mapping(_mapping(route.get("source_refs")).get("owner_route_currentness_basis"))
-    if not currentness:
-        currentness = _mapping(prompt_contract.get("owner_route_currentness_basis"))
-    if not currentness:
-        return None
-    return route or None
-
-
 def _progress_first_closeout_block_reason(dispatch: Mapping[str, Any]) -> str | None:
     admission = _mapping(dispatch.get("progress_first_closeout_admission"))
     if _text(admission.get("admission_status")) != "blocked":
@@ -397,7 +233,7 @@ def _progress_first_typed_blocker(
     source = _mapping(admission.get("typed_blocker"))
     if not source and _text(admission.get("blocked_reason")) is None:
         return None
-    owner_route = _dispatch_owner_route(dispatch)
+    owner_route = owner_route_selection.dispatch_owner_route(dispatch)
     source_refs = _mapping(owner_route.get("source_refs"))
     return progress_first_blocker_budget.enrich_typed_blocker(
         source
@@ -483,70 +319,16 @@ def refresh_controller_decisions_for_current_publication_eval(
     mode: str,
     apply: bool,
 ) -> dict[str, Any]:
-    generated_at = _utc_now()
-    developer_mode = resolve_developer_supervisor_mode(
+    return controller_refresh.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
-        requested_mode=mode,
-        apply_safe_actions=apply,
-        scheduler_owner="controller_decision_refresh",
+        study_ids=study_ids,
+        mode=mode,
+        apply=apply,
+        generated_at=_utc_now(),
+        schema_version=SCHEMA_VERSION,
+        resolve_study_ids=_resolve_study_ids,
+        study_root=_study_root,
     )
-    developer_mode_payload = developer_mode.to_dict()
-    if apply and developer_apply_gate.blocked(developer_mode_payload):
-        return {
-            "surface": "domain_owner_action_controller_decision_refresh",
-            "schema_version": SCHEMA_VERSION,
-            "generated_at": generated_at,
-            "workspace_root": str(profile.workspace_root),
-            "dry_run": False,
-            "requested_mode": mode,
-            "effective_mode": developer_mode.mode,
-            "developer_supervisor_mode": developer_mode_payload,
-            "refresh_count": 0,
-            "materialized_count": 0,
-            "blocked_count": 1,
-            "skipped_count": 0,
-            "refreshes": [
-                {
-                    "refresh_status": "blocked",
-                    "blocked_reason": developer_apply_gate.block_reason(developer_mode_payload) or "developer_apply_safe_required",
-                }
-            ],
-        }
-    resolved_study_ids = _resolve_study_ids(profile, study_ids)
-    refreshes = [
-        {
-            "study_id": study_id,
-            **_refresh_controller_decision_after_ai_reviewer_eval(
-                profile=profile,
-                study_id=study_id,
-                study_root=_study_root(profile, study_id),
-                apply=apply,
-                source="domain_owner_action_controller_decision_refresh",
-            ),
-        }
-        for study_id in resolved_study_ids
-    ]
-    return {
-        "surface": "domain_owner_action_controller_decision_refresh",
-        "schema_version": SCHEMA_VERSION,
-        "generated_at": generated_at,
-        "workspace_root": str(profile.workspace_root),
-        "dry_run": not apply,
-        "requested_mode": mode,
-        "effective_mode": developer_mode.mode,
-        "developer_supervisor_mode": developer_mode_payload,
-        "requested_studies": list(resolved_study_ids),
-        "refresh_count": len(refreshes),
-        "materialized_count": sum(item.get("refresh_status") == "materialized" for item in refreshes),
-        "blocked_count": sum(item.get("refresh_status") == "blocked" for item in refreshes),
-        "skipped_count": sum(item.get("refresh_status") == "skipped" for item in refreshes),
-        "dry_run_count": sum(item.get("refresh_status") == "dry_run" for item in refreshes),
-        "paper_package_mutation_allowed": False,
-        "quality_gate_relaxation_allowed": False,
-        "manual_study_patch_allowed": False,
-        "medical_claim_authoring_allowed": False,
-        "refreshes": refreshes,
-    }
 
 
 def _execute_dispatch(
@@ -556,8 +338,15 @@ def _execute_dispatch(
     dispatch_payload: Mapping[str, Any],
     developer_mode_payload: Mapping[str, Any],
     apply: bool,
+    scan_payload: Mapping[str, Any] | None = None,
+    fresh_progress: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     generated_at = _utc_now()
+    progress_payload = (
+        fresh_progress
+        if fresh_progress is not None
+        else persisted_dispatches.read_fresh_study_progress(profile=profile, study_id=study_id)
+    )
     dispatch = _mapping(dispatch_payload)
     dispatch_path = _dispatch_path(dispatch)
     if not dispatch:
@@ -579,16 +368,25 @@ def _execute_dispatch(
         dispatch_path=dispatch_path,
     )
     dispatch = opl_execution_preflight.with_provider_hosted_opl_authorization(dispatch)
-    guard_ok, guard_reason = _contract_guard(dispatch)
-    current_route, owner_route_basis = _execution_owner_route(
+    guard_ok, guard_reason = _contract_guard(dispatch, apply=apply)
+    current_route, owner_route_basis = owner_route_selection.execution_owner_route(
         profile=profile,
         study_id=study_id,
         action_type=action_type,
         dispatch=dispatch,
+        scan_payload=scan_payload,
+        fresh_progress=progress_payload,
     )
-    owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
+    owner_route_block_reason = owner_route_selection.owner_route_block_reason(
+        dispatch=dispatch,
+        current_route=current_route,
+    )
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
-    current_study = persisted_dispatches.current_scan_study(profile=profile, study_id=study_id)
+    current_study = (
+        _scan_study(scan_payload, study_id)
+        if scan_payload is not None
+        else persisted_dispatches.current_scan_study(profile=profile, study_id=study_id)
+    )
     required_output_pending = output_readiness.required_output_pending(
         profile=profile,
         study_id=study_id,
@@ -601,11 +399,15 @@ def _execute_dispatch(
         current_study=current_study,
         current_route=current_route,
         required_output_pending=required_output_pending,
-        fresh_progress=persisted_dispatches.read_fresh_study_progress(profile=profile, study_id=study_id),
+        fresh_progress=progress_payload,
     )
     stall_block_reason, stall_handoff_allowed = paper_progress_stall_diagnostic.block_from_diagnostic(stall_diagnostic)
     repeat_guard = repeat_suppression.execution_repeat_suppression(
-        dispatch={**dict(dispatch), "owner_route": _dispatch_owner_route(dispatch), "prompt_contract": prompt_contract},
+        dispatch={
+            **dict(dispatch),
+            "owner_route": owner_route_selection.dispatch_owner_route(dispatch),
+            "prompt_contract": prompt_contract,
+        },
         current_study=current_study,
         previous_execution_latest=_read_json_object(_execution_latest_path(profile, study_id)),
         required_output_pending=required_output_pending,
@@ -655,6 +457,7 @@ def _execute_dispatch(
         action_cost=action_cost,
         stall_handoff_allowed=stall_handoff_allowed,
         stall_diagnostic=stall_diagnostic,
+        current_study=current_study,
         apply=apply,
         developer_mode_payload=developer_mode_payload,
         execution=execution,
@@ -784,6 +587,7 @@ def _dispatch_execution_payload(
     action_cost: Mapping[str, Any],
     stall_handoff_allowed: bool,
     stall_diagnostic: Mapping[str, Any],
+    current_study: Mapping[str, Any] | None,
     apply: bool,
     developer_mode_payload: Mapping[str, Any],
     execution: Mapping[str, Any],
@@ -805,7 +609,7 @@ def _dispatch_execution_payload(
         "dispatch_contract_valid": guard_ok,
         "dispatch_contract_blocked_reason": guard_reason,
         "executor_boundary": _executor_boundary(dispatch),
-        "owner_route": _dispatch_owner_route(dispatch) or None,
+        "owner_route": owner_route_selection.dispatch_owner_route(dispatch) or None,
         "owner_route_current": owner_route_block_reason is None if guard_ok else None,
         "owner_route_basis": owner_route_basis,
         "current_owner_route": current_route,
@@ -813,7 +617,7 @@ def _dispatch_execution_payload(
         "paper_progress_stall": _mapping(dispatch.get("paper_progress_stall"))
         or _mapping(prompt_contract.get("paper_progress_stall"))
         or None,
-        "current_paper_progress_stall": persisted_dispatches.current_scan_stall(profile=profile, study_id=study_id) or None,
+        "current_paper_progress_stall": _mapping(current_study).get("paper_progress_stall") or None,
         "paper_progress_stall_handoff_allowed": bool(stall_handoff_allowed),
         "paper_progress_stall_diagnostic": dict(stall_diagnostic),
         "paper_work_unit_lifecycle": paper_work_unit_lifecycle,
@@ -933,18 +737,45 @@ def dispatch_domain_owner_actions(
     per_study_execution_summary: list[dict[str, Any]] = []
     written_files: list[str] = []
     for study_id in resolved_study_ids:
-        for dispatch in _dispatches(
+        study_scan_payload = persisted_dispatches.scan_latest_payload(profile)
+        study_fresh_progress = persisted_dispatches.read_fresh_study_progress(
+            profile=profile,
+            study_id=study_id,
+        )
+        selected_dispatches = _dispatches(
             profile,
             study_id,
             resolved_action_types,
             consumer_payload=consumer_payload,
-        ):
+            scan_payload=study_scan_payload,
+            fresh_progress=study_fresh_progress,
+        )
+        if not selected_dispatches and consumer_payload is None:
+            selected_dispatches = (
+                _materialize_current_dispatches_for_apply(
+                    profile=profile,
+                    study_id=study_id,
+                    action_types=resolved_action_types,
+                    mode=mode,
+                )
+                if apply
+                else _current_materialized_dispatches(
+                    profile=profile,
+                    study_id=study_id,
+                    action_types=resolved_action_types,
+                    mode=mode,
+                    apply=False,
+                )
+            )
+        for dispatch in selected_dispatches:
             execution = _execute_dispatch(
                 profile=profile,
                 study_id=study_id,
                 dispatch_payload=dispatch,
                 developer_mode_payload=developer_mode_payload,
                 apply=apply,
+                scan_payload=study_scan_payload,
+                fresh_progress=study_fresh_progress,
             )
             executions.append(execution)
         study_executions = [execution for execution in executions if execution["study_id"] == study_id]

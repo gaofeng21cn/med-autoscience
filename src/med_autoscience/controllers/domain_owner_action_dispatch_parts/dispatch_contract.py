@@ -55,6 +55,27 @@ def prompt_contract_error(
     return None
 
 
+def dispatch_contract_error(
+    dispatch: Mapping[str, Any],
+    *,
+    apply: bool,
+    supported_action_types: frozenset[str],
+) -> str | None:
+    if _text(dispatch.get("surface")) != "default_executor_dispatch_request":
+        return "unsupported_dispatch_surface"
+    dispatch_status = _text(dispatch.get("dispatch_status"))
+    if dispatch_status != "ready" and not (dispatch_status == "dry_run" and not apply):
+        return "dispatch_not_ready"
+    if _text(dispatch.get("executor_kind")) != "codex_cli_default":
+        return "unsupported_executor_kind"
+    if dispatch.get("chat_completion_only_executor_forbidden") is not True:
+        return "chat_completion_only_guard_missing"
+    action_type = _text(dispatch.get("action_type"))
+    if action_type not in supported_action_types:
+        return "unsupported_action_type"
+    return None
+
+
 def _story_surface_write_handoff_prompt_contract(
     prompt_contract: Mapping[str, Any],
     *,
@@ -198,4 +219,4 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["prompt_contract_error"]
+__all__ = ["dispatch_contract_error", "prompt_contract_error"]
