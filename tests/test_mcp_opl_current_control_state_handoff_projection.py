@@ -745,6 +745,59 @@ def test_live_attempt_merge_replaces_stale_handoff_stage_attempt_identity() -> N
     assert merged["active_workflow_id"] == "wf-current"
 
 
+def test_live_attempt_merge_replaces_stale_handoff_work_unit_identity() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+
+    merged = module.merge_live_attempt_observability_into_handoff(
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "active_run_id": "opl-stage-attempt://sat-current",
+            "active_stage_attempt_id": "sat-current",
+            "active_workflow_id": "wf-current",
+            "running_provider_attempt": True,
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": "sha256:stale-gate-replay",
+            "action_fingerprint": "sha256:stale-gate-replay",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:stale-gate-replay",
+                "action_fingerprint": "sha256:stale-gate-replay",
+            },
+        },
+        live_attempt_handoff={
+            "surface_kind": "opl_current_control_state_provider_attempt_handoff",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "active_run_id": "opl-stage-attempt://sat-current",
+            "active_stage_attempt_id": "sat-current",
+            "active_workflow_id": "wf-current",
+            "running_provider_attempt": True,
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "action_fingerprint": "publication-blockers::0915410f804b3697",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+        },
+    )
+
+    assert merged is not None
+    assert merged["running_provider_attempt"] is True
+    assert merged["action_type"] == "run_quality_repair_batch"
+    assert merged["work_unit_id"] == "medical_prose_write_repair"
+    assert merged["work_unit_fingerprint"] == "publication-blockers::0915410f804b3697"
+    assert merged["action_fingerprint"] == "publication-blockers::0915410f804b3697"
+    assert merged["runtime_health"]["action_type"] == "run_quality_repair_batch"
+    assert merged["runtime_health"]["work_unit_id"] == "medical_prose_write_repair"
+    assert merged["runtime_health"]["work_unit_fingerprint"] == "publication-blockers::0915410f804b3697"
+
+
 def test_live_attempt_merge_keeps_running_over_prior_same_work_unit_terminal_closeout() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
 

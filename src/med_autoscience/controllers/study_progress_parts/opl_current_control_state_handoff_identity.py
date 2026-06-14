@@ -20,7 +20,7 @@ def bind_live_attempt_to_handoff_identity(
     live_attempt_handoff: Mapping[str, Any],
 ) -> dict[str, Any]:
     merged = dict(handoff)
-    identity = _live_attempt_identity_candidate(
+    identity, replace_existing = _live_attempt_identity_binding(
         handoff=handoff,
         live_attempt_handoff=live_attempt_handoff,
     )
@@ -28,16 +28,30 @@ def bind_live_attempt_to_handoff_identity(
         return merged
     for key in IDENTITY_BINDING_KEYS:
         value = _non_empty_text(identity.get(key))
-        if value is not None and _non_empty_text(merged.get(key)) is None:
+        if value is not None and (replace_existing or _non_empty_text(merged.get(key)) is None):
             merged[key] = value
     runtime_health = _observability_mapping(merged.get("runtime_health"))
     for key in IDENTITY_BINDING_KEYS:
         value = _non_empty_text(merged.get(key))
-        if value is not None and _non_empty_text(runtime_health.get(key)) is None:
+        if value is not None and (replace_existing or _non_empty_text(runtime_health.get(key)) is None):
             runtime_health[key] = value
     if runtime_health:
         merged["runtime_health"] = runtime_health
     return merged
+
+
+def _live_attempt_identity_binding(
+    *,
+    handoff: Mapping[str, Any],
+    live_attempt_handoff: Mapping[str, Any],
+) -> tuple[dict[str, Any] | None, bool]:
+    direct = _identity_fields(live_attempt_handoff)
+    if _identity_has_action_and_work_unit(direct):
+        return direct, True
+    return _live_attempt_identity_candidate(
+        handoff=handoff,
+        live_attempt_handoff=live_attempt_handoff,
+    ), False
 
 
 def _live_attempt_identity_candidate(
