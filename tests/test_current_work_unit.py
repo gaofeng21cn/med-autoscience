@@ -320,6 +320,70 @@ def test_current_work_unit_binds_anti_loop_typed_blocker_as_owner_answer_ref() -
     assert work_unit["required_output_contract"]["domain_ready_authorized"] is False
 
 
+def test_current_work_unit_binds_owner_route_identity_for_typed_blocker_owner_answer() -> None:
+    module = _module()
+    typed_blocker_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/"
+        "default_executor_execution/sat_e1063d97901cc3d70424fc5c.closeout.json"
+    )
+    idempotency_key = (
+        "owner-route::003-dpcc-primary-care-phenotype-treatment-gap::truth-event-000035-39f0b8e96689a623::"
+        "gate_clearing_batch::repair_progress_gate_replay_required::6c520342c1c99c25"
+    )
+    source_fingerprint = "truth-snapshot::eb10e8316639d4839970dc15"
+    work_unit_fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+        },
+        actions=[
+            {
+                "source": "default_executor_dispatch.stage_packet",
+                "action_type": "run_gate_clearing_batch",
+                "next_owner": "gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+                "allowed_actions": ["run_gate_clearing_batch"],
+            }
+        ],
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "schema_version": 1,
+            "blocker_kind": "default_executor_execution_blocked",
+            "reason": "opl_execution_authorization_required",
+            "blocker_type": "opl_execution_authorization_required",
+            "owner": "one-person-lab",
+            "next_owner": "gate_clearing_batch",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": work_unit_fingerprint,
+            "source_fingerprint": source_fingerprint,
+            "idempotency_key": idempotency_key,
+            "typed_blocker_ref": typed_blocker_ref,
+            "stage_attempt_id": "sat_e1063d97901cc3d70424fc5c",
+        },
+        runtime_health={"runtime_health_epoch": "runtime-health-event-006823-878a71cce3cb272e"},
+        next_owner="one-person-lab",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    blocker = work_unit["state"]["typed_blocker"]
+    assert blocker["currentness_basis"]["source_fingerprint"] == source_fingerprint
+    assert blocker["currentness_basis"]["idempotency_key"] == idempotency_key
+    binding = work_unit["state"]["owner_answer_binding"]
+    assert binding["source_fingerprint"] == source_fingerprint
+    assert binding["idempotency_key"] == idempotency_key
+    assert binding["currentness_basis"]["source_fingerprint"] == source_fingerprint
+    assert binding["currentness_basis"]["idempotency_key"] == idempotency_key
+
+
 def test_current_work_unit_projects_gate_consumption_action_over_stale_currentness_mismatch_blocker() -> None:
     module = _module()
     source_eval_id = (

@@ -204,8 +204,9 @@ def _execution_from_stage_closeout(
         "execution_id": _text(closeout.get("execution_id"))
         or _text(closeout.get("closeout_id"))
         or _text(closeout.get("stage_attempt_id")),
-        "source_fingerprint": _text(closeout.get("source_fingerprint")),
-        "idempotency_key": _text(closeout.get("idempotency_key")),
+        "source_fingerprint": _text(closeout.get("source_fingerprint"))
+        or _text(route.get("source_fingerprint")),
+        "idempotency_key": _text(closeout.get("idempotency_key")) or _text(route.get("idempotency_key")),
         "dispatch_ref": dispatch_ref,
         "stage_packet_ref": stage_packet_ref,
         "stage_packet_refs": stage_packet_refs,
@@ -534,6 +535,8 @@ def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path
             "runtime_health_epoch": _text(basis.get("runtime_health_epoch")),
             "source_eval_id": _text(basis.get("source_eval_id")),
             "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint")),
+            "source_fingerprint": _text(stage_packet_route.get("source_fingerprint")),
+            "idempotency_key": _text(stage_packet_route.get("idempotency_key")),
             "next_owner": "write" if owner in {"quality_repair_batch", "write"} else owner,
             "owner_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
             "allowed_actions": [action_type] if action_type else [],

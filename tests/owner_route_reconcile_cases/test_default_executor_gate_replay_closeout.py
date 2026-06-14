@@ -26,6 +26,7 @@ def test_default_executor_consumes_executed_gate_replay_typed_blocker_closeout(
     )
     owner_route = {
         "idempotency_key": f"owner-route::{study_id}::gate-replay",
+        "source_fingerprint": f"truth-snapshot::{study_id}::gate-replay",
         "route_epoch": "truth-event-000032-097fe584ce2a78fb",
         "truth_epoch": "truth-event-000032-097fe584ce2a78fb",
         "runtime_health_epoch": "runtime-health-event-006596-c5963ea7240e495b",
@@ -102,6 +103,16 @@ def test_default_executor_consumes_executed_gate_replay_typed_blocker_closeout(
             "quest_id": study_id,
             "action_type": "run_gate_clearing_batch",
             "stage_packet_ref": mutable_dispatch_ref,
+            "owner_route_currentness": {
+                "truth_epoch": "truth-event-000032-097fe584ce2a78fb",
+                "runtime_health_epoch": "runtime-health-event-006596-c5963ea7240e495b",
+                "source_eval_id": (
+                    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "ai-reviewer-record::20260610T215426Z::sat_55f14ca934dd33c5287aecff"
+                ),
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
             "domain_owner": "gate_clearing_batch",
             "owner_receipt_ref": (
                 f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
@@ -163,6 +174,8 @@ def test_default_executor_consumes_executed_gate_replay_typed_blocker_closeout(
     assert receipt["typed_blocker_ref"].endswith("2026-06-10T233125Z.json")
     assert receipt["work_unit_id"] == work_unit_id
     assert receipt["work_unit_fingerprint"] == fingerprint
+    assert receipt["consumed_owner_route_source_fingerprint"] == owner_route["source_fingerprint"]
+    assert receipt["consumed_owner_route_idempotency_key"] == owner_route["idempotency_key"]
     assert receipt["next_action"] == "honor_typed_blocker_without_redrive"
     assert redrive == {}
 
@@ -352,6 +365,7 @@ def test_stage_closeout_candidate_preserves_stage_packet_identity_for_current_co
     )
     owner_route = {
         "idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+        "source_fingerprint": f"truth-snapshot::{study_id}::{fingerprint}",
         "truth_epoch": "truth-event-old",
         "runtime_health_epoch": "runtime-health-old",
         "source_eval_id": "publication-eval::old",
@@ -456,3 +470,5 @@ def test_stage_closeout_candidate_preserves_stage_packet_identity_for_current_co
     assert candidate["stage_packet_ref"] == mutable_dispatch_ref
     assert old_immutable_dispatch_ref in candidate["stage_packet_refs"]
     assert current_immutable_dispatch_ref not in candidate["stage_packet_refs"]
+    assert candidate["source_fingerprint"] == owner_route["source_fingerprint"]
+    assert candidate["idempotency_key"] == owner_route["idempotency_key"]
