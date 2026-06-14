@@ -76,6 +76,7 @@ def build_runtime_report(
     paper_recovery_states = _paper_recovery_states(
         progress_currentness=managed_study_progress_currentness,
         provider_admission_candidates=managed_study_opl_provider_admission_candidates,
+        managed_study_actions=managed_study_actions,
         diagnostic_report={
             "action_class": report_action_class,
             "will_start_llm": report_will_start_llm,
@@ -173,12 +174,18 @@ def _paper_recovery_states(
     progress_currentness: dict[str, dict[str, Any]],
     provider_admission_candidates: list[dict[str, Any]],
     diagnostic_report: Mapping[str, Any],
+    managed_study_actions: list[dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
     candidates_by_study = _provider_admission_candidates_by_study(provider_admission_candidates)
+    action_context_by_study = _managed_study_action_context_by_study(managed_study_actions)
     states: dict[str, dict[str, Any]] = {}
-    study_ids = set(progress_currentness) | set(candidates_by_study)
+    study_ids = set(progress_currentness) | set(candidates_by_study) | set(action_context_by_study)
     for study_id in sorted(study_ids):
         progress = dict(_mapping(progress_currentness.get(study_id)))
+        progress = _progress_with_managed_study_action_context(
+            progress,
+            action_context=action_context_by_study.get(study_id, {}),
+        )
         if not progress:
             progress = {"study_id": study_id}
         candidates = candidates_by_study.get(study_id, [])
@@ -193,6 +200,47 @@ def _paper_recovery_states(
         )
         states[study_id] = state
     return states
+
+
+def _managed_study_action_context_by_study(
+    managed_study_actions: list[dict[str, Any]] | None,
+) -> dict[str, dict[str, Any]]:
+    contexts: dict[str, dict[str, Any]] = {}
+    for action in managed_study_actions or []:
+        if not isinstance(action, Mapping):
+            continue
+        study_id = _text(action.get("study_id"))
+        if study_id is None:
+            continue
+        context = {
+            key: dict(value)
+            for key in (
+                "runtime_health_snapshot",
+                "study_truth_snapshot",
+                "authority_snapshot",
+                "resume_postcondition",
+            )
+            if isinstance((value := action.get(key)), Mapping)
+        }
+        if context:
+            contexts[study_id] = context
+    return contexts
+
+
+def _progress_with_managed_study_action_context(
+    progress: Mapping[str, Any],
+    *,
+    action_context: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not action_context:
+        return dict(progress)
+    merged = dict(progress)
+    for key, value in action_context.items():
+        if not isinstance(value, Mapping):
+            continue
+        existing = _mapping(merged.get(key))
+        merged[key] = {**dict(value), **existing} if existing else dict(value)
+    return merged
 
 
 def _paper_recovery_provider_admission_blocked_count(

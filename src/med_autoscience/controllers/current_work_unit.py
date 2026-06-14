@@ -259,7 +259,13 @@ def build_current_work_unit(
         text=_text,
         text_items=_text_items,
     )
-    if gate_replay_blocker is not None:
+    if (
+        gate_replay_blocker is not None
+        and not (
+            running_attempt is not None
+            and running_attempt_can_supersede_blocker(gate_replay_blocker)
+        )
+    ):
         return _typed_blocker_work_unit(
             blocker=gate_replay_blocker,
             action=action,
@@ -833,7 +839,9 @@ def _publication_eval_repair_action_supersedes_readiness_blocker(action: Mapping
 
 
 def _gate_followthrough_actionable_repair_action(action: Mapping[str, Any]) -> bool:
-    if _text(action.get("source")) != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+    if (_text(action.get("source_surface")) or _text(action.get("source"))) != (
+        "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    ):
         return False
     work_unit = _text(action.get("work_unit_id"))
     if work_unit in {None, "complete_medical_paper_readiness_surface"}:

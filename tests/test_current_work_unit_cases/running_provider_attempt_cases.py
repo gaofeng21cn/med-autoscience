@@ -260,6 +260,88 @@ def test_current_work_unit_running_attempt_supersedes_prior_dispatch_zero_blocke
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_running_attempt_supersedes_consumed_gate_replay_blocker() -> None:
+    module = _module()
+    study_id = "002-dm-china-us-mortality-attribution"
+    source_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "002-dm-china-us-mortality-attribution::stage-attempt-sat_a9b2ffcc8f97a24837d729bf::"
+        "2026-06-11T12:41:21+00:00"
+    )
+    fingerprint = "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_currentness": {
+                    "explicit_publication_work_unit_id": "publication_gate_replay",
+                    "current_publication_work_unit_id": "publication_gate_replay",
+                    "current_work_unit_fingerprint": fingerprint,
+                    "current_actionability_status": "blocked",
+                    "lacks_specific_blocker_object": False,
+                },
+                "gate_replay_status": "blocked",
+                "gate_replay_blockers": ["publication_gate_replay_blocked"],
+                "latest_record_path": (
+                    f"/workspace/studies/{study_id}/artifacts/controller/"
+                    "gate_clearing_batch/latest.json"
+                ),
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "paper_recovery_state.accepted_owner_gate_decision",
+            "next_owner": "gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_eval_id": source_eval_id,
+            "action_type": "run_gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+            "owner_receipt_required": True,
+        },
+        next_owner="one-person-lab",
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat_1f960e7aa4017019d0be2c5b",
+            "active_stage_attempt_id": "sat_1f960e7aa4017019d0be2c5b",
+            "active_workflow_id": "wf_bf3700ffa605ac9f8f911316",
+            "owner": "one-person-lab",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "running_provider_attempt"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "publication_gate_replay"
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["strict_running_proof"] is True
+    assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == (
+        "sat_1f960e7aa4017019d0be2c5b"
+    )
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_ignores_terminal_log_without_matching_attempt_id() -> None:
     module = _module()
 

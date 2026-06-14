@@ -13,6 +13,7 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
         "provider_admission_current_control_state_required",
+        "publication_gate_replay_blocked",
         "quest_waiting_opl_runtime_owner_route",
         "repair_progress_ai_reviewer_recheck_required",
         "run_quality_repair_batch_not_visible_in_current_opl_control_state",
@@ -45,6 +46,7 @@ CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS = frozenset(
     {
         "domain_owner_action_dispatch_execution_count_zero",
         "domain_owner_action_dispatch_zero_selected_dispatch",
+        "domain_owner_dispatch_zero_selected_after_materialized_current_request",
         "current_work_unit_already_typed_closeout_packet_required",
         "gate_clearing_batch_source_eval_currentness_mismatch",
         "no_selected_dispatch_for_requested_action_types",
