@@ -18,7 +18,18 @@ from .current_executable_owner_action_parts.action_types import (
     GATE_CLEARING_OWNER,
     GATE_CLEARING_WORK_UNIT,
     QUALITY_REPAIR_ACTION,
+    REPAIR_PROGRESS_SOURCE,
     TERMINAL_NEXT_FORCED_DELTA_ACTIONS,
+)
+from .current_executable_owner_action_parts.gate_followthrough import (
+    owner_action_from_gate_followthrough_current_work_unit,
+)
+from .current_executable_owner_action_parts.publication_repair import (
+    owner_action_from_publication_eval_readiness_blocker_repair,
+)
+from .current_executable_owner_action_parts.repair_progress import (
+    owner_action_from_repair_progress_projection,
+    repair_progress_consumes_publication_repair,
 )
 from .current_executable_owner_action_parts.stage_artifact_index import (
     owner_action_from_stage_artifact_index,
@@ -38,17 +49,6 @@ from .current_action_identity import action_matches_canonical_executable_work_un
 from .shared import _mapping_copy, _non_empty_text
 
 SURFACE_KIND = "current_executable_owner_action"
-REPAIR_PROGRESS_SOURCE = "repair_progress_projection.mas_owner_repair_execution_evidence"
-GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES = frozenset(
-    {
-        "closed",
-        "completed",
-        "executed",
-        "fresh",
-        "skipped_duplicate_eval",
-        "skipped_stale_gate_replay_closed",
-    }
-)
 
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -84,8 +84,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
             return repair_progress_action
         if (
             publication_repair_action is not None
-            and not repair_progress_consumes_publication_repair
-            and _consumed_ai_reviewer_followup_routes_to_write_repair(payload)
+            and _consumed_ai_reviewer_followup_allows_publication_repair(payload)
         ):
             return publication_repair_action
         gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
@@ -100,7 +99,13 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
             if _next_forced_delta_is_terminal_routeback_action(next_forced_delta_action):
                 return next_forced_delta_action
-            if publication_repair_action is not None and not repair_progress_consumes_publication_repair:
+            if (
+                publication_repair_action is not None
+                and (
+                    not repair_progress_consumes_publication_repair
+                    or _consumed_ai_reviewer_followup_allows_publication_repair(payload)
+                )
+            ):
                 return publication_repair_action
             if next_forced_delta_action is not None:
                 return next_forced_delta_action
@@ -191,83 +196,71 @@ def _consumed_ai_reviewer_followup_routes_to_write_repair(payload: Mapping[str, 
     next_forced_delta = _mapping_copy(terminal.get("next_forced_delta")) or _mapping_copy(
         paper_stage_log.get("next_forced_delta")
     )
-    return _terminal_stage_semantically_consumes_ai_reviewer_followup(
+    if _terminal_stage_semantically_consumes_ai_reviewer_followup(
         terminal=terminal,
         paper_stage_log=paper_stage_log,
+        next_forced_delta=next_forced_delta,
+    ):
+        return True
+    return _record_only_ai_reviewer_closeout_routes_to_write_repair(
+        terminal=terminal,
         next_forced_delta=next_forced_delta,
     )
 
 
+def _consumed_ai_reviewer_followup_allows_publication_repair(payload: Mapping[str, Any]) -> bool:
+    return _consumed_ai_reviewer_followup_routes_to_write_repair(
+        payload
+    ) or _record_only_ai_reviewer_closeout_routes_to_publication_repair(payload)
+
+
+def _record_only_ai_reviewer_closeout_routes_to_publication_repair(payload: Mapping[str, Any]) -> bool:
+    terminal = _latest_ai_reviewer_terminal_stage(payload)
+    if _non_empty_text(terminal.get("action_type")) != AI_REVIEWER_ACTION:
+        return False
+    status = _non_empty_text(terminal.get("status"))
+    outcome = _non_empty_text(terminal.get("outcome"))
+    if status not in {
+        "closed_with_domain_owner_refs",
+        "completed_with_domain_owner_record_only_archive",
+        "completed_with_record_only_artifact_delta",
+        "executed_record_only",
+        "executed_record_only_archive_materialized",
+        "record_only_archive_materialized",
+    } and outcome not in {"closed_with_domain_owner_refs"}:
+        return False
+    paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
+    next_forced_delta = _mapping_copy(terminal.get("next_forced_delta")) or _mapping_copy(
+        paper_stage_log.get("next_forced_delta")
+    )
+    owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
+    next_owner = (
+        _non_empty_text(next_forced_delta.get("owner"))
+        or _non_empty_text(owner_action.get("next_owner"))
+        or _non_empty_text(owner_action.get("owner"))
+    )
+    next_action_type = _non_empty_text(owner_action.get("action_type")) or _non_empty_text(
+        next_forced_delta.get("action_type")
+    )
+    if next_owner != "mas_controller":
+        return False
+    if next_action_type != "consume_record_only_ai_reviewer_closeout_or_route_next_owner":
+        return False
+    if _non_empty_text(next_forced_delta.get("required_delta_kind")) != (
+        "mas_owner_route_reconcile_or_typed_blocker_consumption"
+    ):
+        return False
+    reviewer_record_ref = _non_empty_text(next_forced_delta.get("reviewer_record_ref"))
+    source_eval_id = _non_empty_text(next_forced_delta.get("source_eval_id"))
+    return (reviewer_record_ref is not None and "publication_eval" in reviewer_record_ref) or (
+        source_eval_id is not None and "publication-eval" in source_eval_id
+    )
+
+
 def _from_gate_followthrough_current_work_unit(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    followthrough = _mapping_copy(payload.get("gate_clearing_batch_followthrough"))
-    if _non_empty_text(followthrough.get("status")) not in GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES:
-        return None
-    if _non_empty_text(followthrough.get("gate_replay_status")) != "blocked":
-        return None
-    currentness = _mapping_copy(followthrough.get("work_unit_currentness"))
-    if _non_empty_text(currentness.get("current_actionability_status")) != "actionable":
-        return None
-    if currentness.get("lacks_specific_blocker_object") is True:
-        return None
-    followthrough_work_unit_id = _non_empty_text(followthrough.get("work_unit_id"))
-    explicit_work_unit_id = (
-        _non_empty_text(currentness.get("explicit_publication_work_unit_id"))
-        or followthrough_work_unit_id
-        or _non_empty_text(_mapping_copy(followthrough.get("explicit_publication_work_unit")).get("unit_id"))
-    )
-    current_publication_work_unit = _mapping_copy(followthrough.get("current_publication_work_unit"))
-    current_work_unit_id = (
-        _non_empty_text(currentness.get("current_publication_work_unit_id"))
-        or _non_empty_text(current_publication_work_unit.get("unit_id"))
-    )
-    if current_work_unit_id is None:
-        return None
-    if current_work_unit_id == explicit_work_unit_id:
-        selected_work_unit_id = _non_empty_text(currentness.get("selected_publication_work_unit_id"))
-        if current_work_unit_id not in {followthrough_work_unit_id, selected_work_unit_id}:
-            return None
-    lane = _non_empty_text(current_publication_work_unit.get("lane"))
-    next_owner = lane if lane in {"write", "analysis-campaign", "finalize"} else "write"
-    work_unit_fingerprint = _non_empty_text(currentness.get("current_work_unit_fingerprint"))
-    source_eval_id = _non_empty_text(followthrough.get("source_eval_id"))
-    source_ref = _non_empty_text(followthrough.get("latest_record_path"))
-    owner_route_currentness_basis = _compact(
-        {
-            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
-            "source_eval_id": source_eval_id,
-            "work_unit_id": current_work_unit_id,
-            "work_unit_fingerprint": work_unit_fingerprint,
-            "explicit_publication_work_unit_id": explicit_work_unit_id,
-        }
-    )
-    return _compact(
-        {
-            "surface_kind": SURFACE_KIND,
-            "schema_version": 1,
-            "status": "ready",
-            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
-            "next_owner": next_owner,
-            "work_unit_id": current_work_unit_id,
-            "work_unit_fingerprint": work_unit_fingerprint,
-            "action_fingerprint": work_unit_fingerprint,
-            "source_eval_id": source_eval_id,
-            "owner_route_currentness_basis": owner_route_currentness_basis or None,
-            "action_type": QUALITY_REPAIR_ACTION,
-            "allowed_actions": [QUALITY_REPAIR_ACTION],
-            "owner_receipt_required": True,
-            "required_delta_kind": "publication_gate_actionable_repair_delta_or_typed_blocker",
-            "target_surface": {
-                "ref_kind": "publication_work_unit",
-                "route_target": next_owner,
-                "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
-                "gate_clearing_batch_ref": source_ref,
-                "gate_replay_blockers": _text_items(followthrough.get("gate_replay_blockers")),
-                "current_publication_work_unit": current_publication_work_unit or None,
-            },
-            "target_surface_specificity": "gate_followthrough_actionable_publication_work_unit",
-            "acceptance_refs": [ref for ref in [source_ref] if ref],
-            "authority_boundary": _authority_boundary(),
-        }
+    return owner_action_from_gate_followthrough_current_work_unit(
+        payload,
+        surface_kind=SURFACE_KIND,
     )
 
 
@@ -276,66 +269,7 @@ def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[st
 
 
 def _from_repair_progress_projection(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    repair_progress = _mapping_copy(payload.get("repair_progress_projection"))
-    if repair_progress.get("paper_delta_observed") is not True:
-        return None
-    if repair_progress.get("accepted_owner_receipt") is not True:
-        return None
-    source_ref = _non_empty_text(repair_progress.get("repair_execution_evidence_ref")) or _non_empty_text(
-        repair_progress.get("owner_receipt_ref")
-    )
-    ai_reviewer_request_ref = _non_empty_text(repair_progress.get("ai_reviewer_recheck_request_ref"))
-    gate_replay_refs = _text_items(repair_progress.get("gate_replay_refs"))
-    if gate_replay_refs and repair_progress.get("ai_reviewer_recheck_done") is True:
-        return _repair_followup_action(
-            repair_progress=repair_progress,
-            source_ref=source_ref,
-            next_owner=GATE_CLEARING_OWNER,
-            work_unit_id=GATE_CLEARING_WORK_UNIT,
-            action_type=GATE_CLEARING_ACTION,
-            required_delta_kind="publication_gate_replay_delta_or_typed_blocker",
-            target_surface={
-                "ref_kind": "route_obligation",
-                "route_target": "finalize",
-                "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
-                "request_ref": gate_replay_refs[0],
-            },
-            acceptance_refs=gate_replay_refs,
-        )
-    if ai_reviewer_request_ref is not None:
-        return _repair_followup_action(
-            repair_progress=repair_progress,
-            source_ref=source_ref,
-            next_owner=AI_REVIEWER_OWNER,
-            work_unit_id=AI_REVIEWER_WORK_UNIT,
-            action_type=AI_REVIEWER_ACTION,
-            required_delta_kind="ai_reviewer_publication_eval_delta_or_typed_blocker",
-            target_surface={
-                "ref_kind": "route_obligation",
-                "route_target": "review",
-                "surface_ref": "artifacts/publication_eval/latest.json",
-                "request_ref": ai_reviewer_request_ref,
-                "gate_replay_request_ref": gate_replay_refs[0] if gate_replay_refs else None,
-            },
-            acceptance_refs=[ai_reviewer_request_ref, *gate_replay_refs],
-        )
-    if gate_replay_refs:
-        return _repair_followup_action(
-            repair_progress=repair_progress,
-            source_ref=source_ref,
-            next_owner=GATE_CLEARING_OWNER,
-            work_unit_id=GATE_CLEARING_WORK_UNIT,
-            action_type=GATE_CLEARING_ACTION,
-            required_delta_kind="publication_gate_replay_delta_or_typed_blocker",
-            target_surface={
-                "ref_kind": "route_obligation",
-                "route_target": "finalize",
-                "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
-                "request_ref": gate_replay_refs[0],
-            },
-            acceptance_refs=gate_replay_refs,
-        )
-    return None
+    return owner_action_from_repair_progress_projection(payload, surface_kind=SURFACE_KIND)
 
 
 def _repair_progress_consumes_publication_repair(
@@ -344,188 +278,17 @@ def _repair_progress_consumes_publication_repair(
     publication_repair_action: Mapping[str, Any] | None,
     payload: Mapping[str, Any],
 ) -> bool:
-    repair_action = _mapping_copy(repair_progress_action)
-    publication_action = _mapping_copy(publication_repair_action)
-    if not repair_action or not publication_action:
-        return False
-    if _non_empty_text(repair_action.get("source")) != REPAIR_PROGRESS_SOURCE:
-        return False
-    progress = _mapping_copy(payload.get("repair_progress_projection"))
-    if progress.get("paper_delta_observed") is not True or progress.get("accepted_owner_receipt") is not True:
-        return False
-    source_work_unit = _non_empty_text(_mapping_copy(repair_action.get("repair_progress_precedence")).get("source_work_unit_id"))
-    if source_work_unit is None:
-        source_work_unit = _non_empty_text(progress.get("work_unit_id"))
-    if source_work_unit is None:
-        return False
-    return source_work_unit == _non_empty_text(publication_action.get("work_unit_id"))
+    return repair_progress_consumes_publication_repair(
+        repair_progress_action=repair_progress_action,
+        publication_repair_action=publication_repair_action,
+        payload=payload,
+    )
 
 
 def _from_publication_eval_readiness_blocker_repair(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    publication_eval = _mapping_copy(payload.get("publication_eval"))
-    action = _publication_eval_route_back_action(publication_eval)
-    if not action:
-        source_publication_eval = _mapping_copy(publication_eval.get("source_publication_eval"))
-        action = _publication_eval_route_back_action(source_publication_eval)
-        if action:
-            publication_eval = source_publication_eval
-    if not action:
-        return None
-    current_owner_delta = _current_owner_delta(payload)
-    next_work_unit = _mapping_copy(action.get("next_work_unit"))
-    work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
-    lane = _non_empty_text(next_work_unit.get("lane")) or _non_empty_text(action.get("route_target"))
-    if work_unit_id is None or lane not in {"write", "analysis-campaign"}:
-        return None
-    action_type = QUALITY_REPAIR_ACTION
-    source_ref = _text_items(action.get("evidence_refs"))[0] if _text_items(action.get("evidence_refs")) else None
-    work_unit_fingerprint = _non_empty_text(action.get("work_unit_fingerprint"))
-    stage_typed_blocker_ref = (
-        _non_empty_text(current_owner_delta.get("source_ref"))
-        or _non_empty_text(_mapping_copy(current_owner_delta.get("hard_gate")).get("owner_answer_ref"))
-    )
-    publication_eval_id = (
-        _non_empty_text(publication_eval.get("eval_id"))
-        or _non_empty_text(publication_eval.get("publication_eval_id"))
-        or _non_empty_text(action.get("source_eval_id"))
-    )
-    gaps = [
-        _compact(
-            {
-                "gap_id": _non_empty_text(gap.get("gap_id")),
-                "gap_type": _non_empty_text(gap.get("gap_type")),
-                "severity": _non_empty_text(gap.get("severity")),
-                "summary": _non_empty_text(gap.get("summary")),
-            }
-        )
-        for gap in _mapping_items(publication_eval.get("gaps"))
-    ]
-    gap_ids = [gap["gap_id"] for gap in gaps if _non_empty_text(gap.get("gap_id")) is not None]
-    required_output_contract = {
-        "accepted_outputs_any": [
-            "canonical_manuscript_story_surface_delta",
-            "claim_evidence_semantic_delta",
-            "review_ledger_delta",
-            "publication_gate_delta",
-            "stage_owner_receipt_ref",
-            "stable_typed_blocker_for_the_specific_repair_work_unit",
-        ],
-        "forbidden_outputs": [
-            "publication_ready_claim",
-            "submission_ready_claim",
-            "current_package_authority",
-            "publication_eval_latest_manual_write",
-            "controller_decision_manual_write",
-        ],
-    }
-    return _compact(
-        {
-            "surface_kind": SURFACE_KIND,
-            "schema_version": 1,
-            "status": "ready",
-            "source": "publication_eval.recommended_actions.readiness_blocker_repair",
-            "next_owner": lane,
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": work_unit_fingerprint,
-            "action_fingerprint": work_unit_fingerprint,
-            "action_type": action_type,
-            "allowed_actions": [action_type],
-            "owner_receipt_required": True,
-            "required_delta_kind": "publication_eval_recommended_repair_delta_or_typed_blocker",
-            "required_output_contract": required_output_contract,
-            "stage_typed_blocker_ref": stage_typed_blocker_ref,
-            "publication_eval_id": publication_eval_id,
-            "gap_ids": gap_ids,
-            "target_surface": {
-                "ref_kind": "publication_eval_recommended_action",
-                "route_target": lane,
-                "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
-                "recommended_action_id": _non_empty_text(action.get("action_id")),
-                "route_key_question": _non_empty_text(action.get("route_key_question")),
-                "route_rationale": _non_empty_text(action.get("route_rationale")),
-                "stage_typed_blocker_ref": stage_typed_blocker_ref,
-                "publication_eval_id": publication_eval_id,
-                "gap_ids": gap_ids,
-                "required_output_contract": required_output_contract,
-                "next_work_unit": next_work_unit or None,
-                "blocking_work_units": _mapping_items(action.get("blocking_work_units")),
-                "gaps": [gap for gap in gaps if gap],
-            },
-            "target_surface_specificity": "publication_eval_readiness_blocker_derived_repair",
-            "source_ref": source_ref,
-            "acceptance_refs": _dedupe_text(_text_items(action.get("evidence_refs"))),
-            "readiness_blocker_precedence": {
-                "superseded_readiness_action": READINESS_ACTION,
-                "reason": "superseded_by_readiness_blocker_derived_repair",
-                "publication_eval_verdict": _non_empty_text(
-                    _mapping_copy(publication_eval.get("verdict")).get("overall_verdict")
-                ),
-            },
-            "authority_boundary": _authority_boundary(),
-        }
-    )
-
-
-def _publication_eval_route_back_action(publication_eval: Mapping[str, Any]) -> dict[str, Any]:
-    for action in _mapping_items(publication_eval.get("recommended_actions")):
-        if _non_empty_text(action.get("action_type")) != "route_back_same_line":
-            continue
-        if _non_empty_text(action.get("priority")) not in {"now", "high", "required"}:
-            continue
-        if not _mapping_copy(action.get("next_work_unit")):
-            continue
-        return action
-    return {}
-
-
-def _repair_followup_action(
-    *,
-    repair_progress: Mapping[str, Any],
-    source_ref: str | None,
-    next_owner: str,
-    work_unit_id: str,
-    action_type: str,
-    required_delta_kind: str,
-    target_surface: Mapping[str, Any],
-    acceptance_refs: list[str],
-) -> dict[str, Any]:
-    owner_receipt_ref = _non_empty_text(repair_progress.get("owner_receipt_ref"))
-    repair_evidence_ref = _non_empty_text(repair_progress.get("repair_execution_evidence_ref"))
-    work_unit_fingerprint = _non_empty_text(repair_progress.get("source_fingerprint"))
-    return _compact(
-        {
-            "surface_kind": SURFACE_KIND,
-            "schema_version": 1,
-            "status": "ready",
-            "source": REPAIR_PROGRESS_SOURCE,
-            "next_owner": next_owner,
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": work_unit_fingerprint,
-            "action_fingerprint": work_unit_fingerprint,
-            "action_type": action_type,
-            "allowed_actions": [action_type],
-            "owner_receipt_required": True,
-            "required_delta_kind": required_delta_kind,
-            "target_surface": _compact(target_surface),
-            "target_surface_specificity": "repair_progress_followup_owner_surface",
-            "source_ref": source_ref,
-            "acceptance_refs": _dedupe_text(
-                [
-                    repair_evidence_ref,
-                    owner_receipt_ref,
-                    *acceptance_refs,
-                ]
-            ),
-            "repair_progress_precedence": {
-                "paper_delta_observed": True,
-                "accepted_owner_receipt": True,
-                "superseded_stage_native_action": "run_quality_repair_batch",
-                "superseded_readiness_action": READINESS_ACTION,
-                "source_work_unit_id": _non_empty_text(repair_progress.get("work_unit_id")),
-                "source_fingerprint": _non_empty_text(repair_progress.get("source_fingerprint")),
-            },
-            "authority_boundary": _authority_boundary(),
-        }
+    return owner_action_from_publication_eval_readiness_blocker_repair(
+        payload,
+        surface_kind=SURFACE_KIND,
     )
 
 
@@ -1013,6 +776,34 @@ def _terminal_stage_semantically_consumes_ai_reviewer_followup(
         ]
     )
     return any("publication_eval/ai_reviewer_responses" in ref for ref in refs)
+
+
+def _record_only_ai_reviewer_closeout_routes_to_write_repair(
+    *,
+    terminal: Mapping[str, Any],
+    next_forced_delta: Mapping[str, Any],
+) -> bool:
+    status = _non_empty_text(terminal.get("status"))
+    outcome = _non_empty_text(terminal.get("outcome"))
+    if status != "closed_with_domain_owner_refs" and outcome != "closed_with_domain_owner_refs":
+        return False
+    if _non_empty_text(next_forced_delta.get("required_delta_kind")) != "mas_owner_route_reconcile_or_typed_blocker_consumption":
+        return False
+    next_owner = _non_empty_text(next_forced_delta.get("owner"))
+    if next_owner != "mas_controller":
+        return False
+    if _non_empty_text(next_forced_delta.get("action_type")) != "consume_record_only_ai_reviewer_closeout_or_route_next_owner":
+        return False
+    terminal_stage_attempt = _non_empty_text(terminal.get("stage_attempt_id")) or _stage_attempt_id_from_refs(
+        [terminal.get("source_path")]
+    )
+    source_eval_id = _non_empty_text(next_forced_delta.get("source_eval_id"))
+    if terminal_stage_attempt is None or source_eval_id is None or terminal_stage_attempt not in source_eval_id:
+        return False
+    if "ai-reviewer-record" in source_eval_id:
+        return True
+    reviewer_record_ref = _non_empty_text(next_forced_delta.get("reviewer_record_ref"))
+    return reviewer_record_ref is not None and "publication_eval/ai_reviewer_responses" in reviewer_record_ref
 
 
 def _latest_ai_reviewer_terminal_stage(payload: Mapping[str, Any]) -> dict[str, Any]:

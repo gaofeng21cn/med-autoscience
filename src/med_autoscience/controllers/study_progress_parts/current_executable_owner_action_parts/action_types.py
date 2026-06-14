@@ -7,6 +7,7 @@ GATE_CLEARING_ACTION = "run_gate_clearing_batch"
 GATE_CLEARING_OWNER = "gate_clearing_batch"
 GATE_CLEARING_WORK_UNIT = "publication_gate_replay"
 QUALITY_REPAIR_ACTION = "run_quality_repair_batch"
+REPAIR_PROGRESS_SOURCE = "repair_progress_projection.mas_owner_repair_execution_evidence"
 TERMINAL_NEXT_FORCED_DELTA_ACTIONS = frozenset(
     {
         GATE_CLEARING_ACTION,
@@ -23,5 +24,6 @@ __all__ = [
     "GATE_CLEARING_OWNER",
     "GATE_CLEARING_WORK_UNIT",
     "QUALITY_REPAIR_ACTION",
+    "REPAIR_PROGRESS_SOURCE",
     "TERMINAL_NEXT_FORCED_DELTA_ACTIONS",
 ]
