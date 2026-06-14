@@ -42,6 +42,7 @@ from .family_stage_artifact_index_projection import (
     STAGE_ARTIFACT_INDEX_PROJECTION_REF,
     stage_artifact_index_projection_descriptor,
 )
+from .family_stage_pack import FAMILY_STAGE_PACK
 from .progress_first_policies import PROGRESS_DELTA_POLICY, TYPED_BLOCKER_LINEAGE_POLICY
 from .stage_throughput_contracts import (
     human_gate_progress_evidence_contract,
@@ -88,102 +89,6 @@ FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "paper/manuscript/current_package",
     "current_package.zip",
 )
-
-FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
-    {
-        "stage_id": "direction_and_route_selection",
-        "stage_kind": "planning",
-        "title": "Direction and route selection",
-        "domain_stage_refs": ["scout", "idea", "decision"],
-        "allowed_action_refs": ["study_progress", "study_state_matrix", "authority_operations"],
-        "requires": ["study_direction_request_received"],
-        "ensures": ["direction_route_selected"],
-        "next_stage_refs": ["baseline_and_evidence_setup"],
-        "trust_lane": "ai_decision",
-        "independent_gate_receipt_required": True,
-        "runtime_event_refs": [
-            "runtime_event:domain_route_owner_route.direction_route_selected",
-            "runtime_event:controller_decisions.direction_route_selected",
-        ],
-    },
-    {
-        "stage_id": "baseline_and_evidence_setup",
-        "stage_kind": "source_preparation",
-        "title": "Baseline and evidence setup",
-        "domain_stage_refs": ["baseline", "experiment"],
-        "allowed_action_refs": ["submit_study_task", "launch_study", "study_progress"],
-        "requires": ["direction_route_selected"],
-        "ensures": ["baseline_evidence_ready"],
-        "next_stage_refs": ["bounded_analysis_campaign"],
-        "trust_lane": "domain_agent",
-        "runtime_event_refs": [
-            "runtime_event:controller_decisions.baseline_evidence_ready",
-            "runtime_event:evidence_ledger.baseline_evidence_ready",
-        ],
-    },
-    {
-        "stage_id": "bounded_analysis_campaign",
-        "stage_kind": "creation",
-        "title": "Bounded analysis campaign",
-        "domain_stage_refs": ["analysis-campaign"],
-        "allowed_action_refs": ["launch_study", "study_progress", "study_state_matrix"],
-        "requires": ["baseline_evidence_ready"],
-        "ensures": ["bounded_analysis_evidence_ready"],
-        "next_stage_refs": ["manuscript_authoring"],
-        "trust_lane": "codex_executor",
-        "runtime_event_refs": [
-            "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
-            "runtime_event:evidence_ledger.bounded_analysis_evidence_ready",
-        ],
-    },
-    {
-        "stage_id": "manuscript_authoring",
-        "stage_kind": "creation",
-        "title": "Manuscript authoring",
-        "domain_stage_refs": ["write"],
-        "allowed_action_refs": ["launch_study", "submit_study_task", "study_progress"],
-        "requires": ["bounded_analysis_evidence_ready"],
-        "ensures": ["manuscript_draft_reviewable"],
-        "next_stage_refs": ["review_and_quality_gate"],
-        "trust_lane": "codex_executor",
-        "runtime_event_refs": [
-            "runtime_event:controller_decisions.manuscript_draft_reviewable",
-            "runtime_event:canonical_manuscript.manuscript_draft_reviewable",
-        ],
-    },
-    {
-        "stage_id": "review_and_quality_gate",
-        "stage_kind": "review",
-        "title": "Review and quality gate",
-        "domain_stage_refs": ["review", "decision"],
-        "allowed_action_refs": ["study_progress", "authority_operations", "export_inspection_package"],
-        "requires": ["manuscript_draft_reviewable"],
-        "ensures": ["ai_reviewer_gate_receipt_recorded"],
-        "next_stage_refs": ["finalize_and_publication_handoff"],
-        "trust_lane": "ai_decision",
-        "independent_gate_receipt_required": True,
-        "runtime_event_refs": [
-            "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
-            "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded",
-        ],
-    },
-    {
-        "stage_id": "finalize_and_publication_handoff",
-        "stage_kind": "packaging",
-        "title": "Finalize and publication handoff",
-        "domain_stage_refs": ["finalize", "journal-resolution", "decision"],
-        "allowed_action_refs": ["study_progress", "authority_operations", "publication_aftercare_plan"],
-        "requires": ["ai_reviewer_gate_receipt_recorded"],
-        "ensures": ["publication_handoff_ready_or_route_back_recorded"],
-        "next_stage_refs": [],
-        "trust_lane": "domain_agent",
-        "runtime_event_refs": [
-            "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
-            "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded",
-        ],
-    },
-)
-
 
 def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     route_contract_payload = load_stage_route_contract_payload()
