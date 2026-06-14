@@ -82,6 +82,91 @@ def test_runtime_report_owner_gate_event_supersedes_managed_action_typed_blocker
     assert action["running_provider_attempt"] is False
 
 
+def test_runtime_report_preserves_gate_followthrough_successor_owner_action() -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    gate_fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
+    repair_fingerprint = "publication-blockers::0915410f804b3697"
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "decision": "domain_blocked",
+                "reason": "current_work_unit_typed_blocker",
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[],
+        managed_study_progress_currentness={
+            study_id: {
+                "study_id": study_id,
+                "current_work_unit": _typed_blocker_work_unit(
+                    study_id=study_id,
+                    action_type="run_gate_clearing_batch",
+                    work_unit_id="publication_gate_replay",
+                    blocker_type="publication_gate_replay_blocked",
+                )
+                | {
+                    "owner": "publication_gate",
+                    "work_unit_fingerprint": gate_fingerprint,
+                    "action_fingerprint": gate_fingerprint,
+                    "currentness_basis": {
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": gate_fingerprint,
+                        "truth_epoch": "truth-event-current",
+                        "runtime_health_epoch": "runtime-health-event-current",
+                    },
+                },
+                "gate_clearing_batch_followthrough": {
+                    "surface_kind": "gate_clearing_batch_followthrough",
+                    "status": "executed",
+                    "gate_replay_status": "blocked",
+                    "latest_record_path": "/workspace/studies/003/artifacts/controller/gate_clearing_batch/latest.json",
+                    "work_unit_currentness": {
+                        "current_actionability_status": "actionable",
+                        "explicit_publication_work_unit_id": "medical_prose_write_repair",
+                        "explicit_work_unit_fingerprint": repair_fingerprint,
+                        "lacks_specific_blocker_object": False,
+                    },
+                    "explicit_publication_work_unit": {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                    },
+                },
+            }
+        },
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    recovery = result["paper_recovery_states"][study_id]
+    assert recovery["phase"] == "owner_action_ready"
+    assert recovery["next_safe_action"]["kind"] == "materialize_successor_owner_action"
+    assert recovery["next_safe_action"]["successor_owner_action"] == {
+        "action_type": "run_quality_repair_batch",
+        "owner": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": repair_fingerprint,
+        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "source_ref": "/workspace/studies/003/artifacts/controller/gate_clearing_batch/latest.json",
+    }
+    action = result["managed_study_actions"][0]
+    assert action["paper_recovery_state"]["phase"] == "owner_action_ready"
+    assert action["decision"] == "blocked"
+    assert action["reason"] == "publication_gate_replay_blocked"
+
+
 def test_owner_gate_route_back_suppresses_residual_provider_admission_projection() -> None:
     visibility = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
@@ -308,3 +393,37 @@ def test_same_tick_report_currentness_carries_owner_gate_events(monkeypatch) -> 
 
     assert result[study_id]["study_intervention_events"] == [event]
     assert result[study_id]["paper_recovery_state"] == recovery
+
+
+def test_same_tick_report_currentness_carries_gate_followthrough(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    followthrough = {
+        "surface_kind": "gate_clearing_batch_followthrough",
+        "gate_replay_status": "blocked",
+        "work_unit_currentness": {
+            "current_actionability_status": "actionable",
+        },
+    }
+
+    def fake_read_study_progress(**kwargs):
+        assert kwargs["study_id"] == study_id
+        return {
+            "generated_at": "2026-06-14T02:30:00+00:00",
+            "study_id": study_id,
+            "current_work_unit": {
+                "status": "typed_blocker",
+                "study_id": study_id,
+            },
+            "gate_clearing_batch_followthrough": followthrough,
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", fake_read_study_progress)
+
+    result = module._fresh_progress_currentness_for_report(
+        profile=object(),
+        study_ids=(study_id,),
+    )
+
+    assert result[study_id]["gate_clearing_batch_followthrough"] == followthrough
