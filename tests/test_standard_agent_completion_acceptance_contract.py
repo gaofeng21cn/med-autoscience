@@ -214,6 +214,62 @@ def test_standard_agent_completion_evidence_ledger_keeps_live_tails_open() -> No
         assert observation["can_close_live_owner_gate"] is False
 
 
+def test_standard_agent_completion_evidence_ledger_records_lifecycle_owner_followthrough_without_ready_claim() -> None:
+    ledger = _ledger()
+    gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
+
+    followthrough = ledger["latest_owner_followthrough_evidence"][0]
+    assert followthrough["surface_kind"] == "mas_memory_artifact_lifecycle_owner_followthrough"
+    assert followthrough["status"] == "typed_blocker_followthrough_recorded_not_ready"
+    assert followthrough["source_lane_id"] == "memory_artifact_lifecycle_apply"
+    assert followthrough["source_readiness_status"] == "typed_blocker_work_order_required_not_ready"
+    assert followthrough["typed_blocker_reason"] == (
+        "canonical-regeneration-required-before-projection-removal"
+    )
+    assert followthrough["typed_blocker_ref_count"] == 25
+    assert len(followthrough["typed_blocker_refs"]) == 25
+    assert all(
+        ref.startswith(
+            "mas-artifact-lifecycle-typed-blocker:medautoscience:"
+            "canonical-regeneration-required-before-projection-removal:"
+        )
+        for ref in followthrough["typed_blocker_refs"]
+    )
+    assert followthrough["blocked_decision_count"] == 25
+    assert followthrough["safe_decision_count"] == 0
+    assert followthrough["closes_work_order_followthrough"] is True
+    assert followthrough["closes_artifact_lifecycle_receipt_scaleout"] is False
+    assert followthrough["closes_memory_or_artifact_ready"] is False
+    assert followthrough["ready_claim_authorized"] is False
+    assert followthrough["authority_boundary"] == {
+        "mas_writes_domain_truth": False,
+        "mas_writes_memory_body": False,
+        "mas_mutates_artifact_body": False,
+        "mas_authorizes_package_readiness": False,
+        "mas_authorizes_export_readiness": False,
+        "opl_cleanup_apply_can_execute": True,
+        "opl_can_claim_domain_ready": False,
+        "opl_can_claim_production_ready": False,
+    }
+
+    family = gates["family_standard_agent_feedback_loop"]
+    assert family["status"] == "evidence_required"
+    assert followthrough["source_work_order_ref"] in family["observed_refs"]
+    assert (
+        "contracts/functional_privatization_audit.json#/functional_followthrough_gap_summary/"
+        "owner_followthrough_evidence/0"
+    ) in family["observed_refs"]
+
+    assert ledger["completion_claim_allowed"] is False
+    assert ledger["non_claims"]["memory_artifact_ready"] is False
+    assert ledger["non_claims"]["artifact_ready"] is False
+    assert ledger["non_claims"]["package_export_ready"] is False
+    assert (
+        ledger["non_claims"]["memory_or_artifact_lifecycle_work_order_complete_means_ready"]
+        is False
+    )
+
+
 def test_standard_agent_completion_evidence_ledger_rejects_docs_as_machine_truth_refs() -> None:
     ledger = _ledger()
 

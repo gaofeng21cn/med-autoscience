@@ -275,6 +275,15 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "artifact_lifecycle_receipt_scaleout",
         "provider_slo_long_soak",
     }
+    owner_followthrough = followthrough["owner_followthrough_evidence"][0]
+    assert owner_followthrough["surface_kind"] == (
+        "mas_memory_artifact_lifecycle_owner_followthrough"
+    )
+    assert owner_followthrough["status"] == "typed_blocker_followthrough_recorded_not_ready"
+    assert owner_followthrough["typed_blocker_ref_count"] == 25
+    assert owner_followthrough["closes_work_order_followthrough"] is True
+    assert owner_followthrough["closes_artifact_lifecycle_receipt_scaleout"] is False
+    assert owner_followthrough["ready_claim_authorized"] is False
 
     lifecycle_role = boundary["domain_authority_refs_index_role"]
     assert lifecycle_role["classification"] == "domain_authority_refs"

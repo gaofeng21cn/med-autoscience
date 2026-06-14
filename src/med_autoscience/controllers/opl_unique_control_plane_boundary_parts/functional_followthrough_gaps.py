@@ -14,6 +14,83 @@ SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS = (
     "owner_route_reconcile_materialize_dispatch_shell",
     "workbench_portal_generic_shell",
 )
+MEMORY_ARTIFACT_LIFECYCLE_TYPED_BLOCKER_REFS = (
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:03e1b65c724fc91f",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:0a79716a4521d4e7",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:0eddcbbdc5562e85",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:0f60da7b33a944c1",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:19fa86de7ad80bed",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:1c4669a3d231cc2c",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:491c4337a5e681da",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:6bfabaa6003c4b81",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:6fddc0536a914bee",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:7396b830d92bc7dd",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:754b9b392635185d",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:756cc134178fc352",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:77c62f01a68769cb",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:7c79b10711ac8196",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:85eb3bad050dd032",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:89cb33e8b8e7ed40",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:a657c0b52dc8b8f6",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:b2559106748cdf75",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:b35e7e741683d0b2",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:d9ddaca76a5e9922",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:db76ae5f690d9285",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:dbc1de0fecfaf084",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:df7ac9400b641e86",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:e5ccb4e804e5c97f",
+    "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:ee885717be533f07",
+)
+
+MEMORY_ARTIFACT_LIFECYCLE_OWNER_FOLLOWTHROUGH = {
+    "surface_kind": "mas_memory_artifact_lifecycle_owner_followthrough",
+    "status": "typed_blocker_followthrough_recorded_not_ready",
+    "source_work_order_ref": (
+        "opl:runtime/app-operator-drilldown/memory_artifact_lifecycle/"
+        "memory-artifact-lifecycle-owner-decision"
+    ),
+    "source_lane_id": "memory_artifact_lifecycle_apply",
+    "source_readiness_status": "typed_blocker_work_order_required_not_ready",
+    "source_projection_policy": (
+        "refs_only_counts_from_memory_artifact_package_export_domain_dispatch_"
+        "and_lifecycle_surfaces_no_body_or_mutation_authority"
+    ),
+    "observed_ref_count": 126,
+    "source_open_count": 0,
+    "open_count_zero_can_claim_ready": False,
+    "typed_blocker_reason": "canonical-regeneration-required-before-projection-removal",
+    "typed_blocker_ref_count": len(MEMORY_ARTIFACT_LIFECYCLE_TYPED_BLOCKER_REFS),
+    "typed_blocker_refs": list(MEMORY_ARTIFACT_LIFECYCLE_TYPED_BLOCKER_REFS),
+    "safe_decision_count": 0,
+    "blocked_decision_count": len(MEMORY_ARTIFACT_LIFECYCLE_TYPED_BLOCKER_REFS),
+    "accepted_owner_result_shape": "typed_blocker_ref",
+    "owner_followthrough_kind": "stable_typed_blocker_refs",
+    "closes_work_order_followthrough": True,
+    "closes_artifact_lifecycle_receipt_scaleout": False,
+    "closes_memory_or_artifact_ready": False,
+    "domain_repo_physical_delete_authorized": False,
+    "ready_claim_authorized": False,
+    "forbidden_claims": [
+        "memory_body_saved_or_accepted",
+        "artifact_body_mutated",
+        "artifact_ready",
+        "package_ready",
+        "export_ready",
+        "domain_ready",
+        "production_ready",
+        "domain_physical_delete_authorization",
+    ],
+    "authority_boundary": {
+        "mas_writes_domain_truth": False,
+        "mas_writes_memory_body": False,
+        "mas_mutates_artifact_body": False,
+        "mas_authorizes_package_readiness": False,
+        "mas_authorizes_export_readiness": False,
+        "opl_cleanup_apply_can_execute": True,
+        "opl_can_claim_domain_ready": False,
+        "opl_can_claim_production_ready": False,
+    },
+}
 
 FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
     {
@@ -222,6 +299,9 @@ def build_functional_followthrough_gap_summary(
         "classification_counts": dict(classification_counts),
         "remaining_evidence_gate_ids": evidence_gate_ids,
         "remaining_evidence_gates": [dict(item) for item in REMAINING_EVIDENCE_GATES],
+        "owner_followthrough_evidence": [
+            dict(MEMORY_ARTIFACT_LIFECYCLE_OWNER_FOLLOWTHROUGH),
+        ],
         "cleared_by_surfaces": [
             "functional_module_inventory",
             "declarative_pack_compiler_input",

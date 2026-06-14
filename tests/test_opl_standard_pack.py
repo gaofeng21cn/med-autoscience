@@ -643,6 +643,22 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         "artifact_lifecycle_receipt_scaleout",
         "provider_slo_long_soak",
     ]
+    owner_followthrough = followthrough["owner_followthrough_evidence"][0]
+    assert owner_followthrough["surface_kind"] == (
+        "mas_memory_artifact_lifecycle_owner_followthrough"
+    )
+    assert owner_followthrough["status"] == "typed_blocker_followthrough_recorded_not_ready"
+    assert owner_followthrough["source_lane_id"] == "memory_artifact_lifecycle_apply"
+    assert owner_followthrough["source_readiness_status"] == (
+        "typed_blocker_work_order_required_not_ready"
+    )
+    assert owner_followthrough["typed_blocker_ref_count"] == 25
+    assert len(owner_followthrough["typed_blocker_refs"]) == 25
+    assert owner_followthrough["closes_work_order_followthrough"] is True
+    assert owner_followthrough["closes_artifact_lifecycle_receipt_scaleout"] is False
+    assert owner_followthrough["closes_memory_or_artifact_ready"] is False
+    assert owner_followthrough["ready_claim_authorized"] is False
+    assert "domain_ready" in owner_followthrough["forbidden_claims"]
     audit = generated["functional_privatization_audit"]
     assert audit["classification_buckets"] == [
         "declarative_pack_generated_surface",

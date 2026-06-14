@@ -197,7 +197,10 @@
       ],
       "observed_refs": [
         "contracts/standard_agent_completion_acceptance.json#/scope/objective_2",
-        "contracts/standard_agent_completion_acceptance.json#/acceptance_gates/6"
+        "contracts/standard_agent_completion_acceptance.json#/acceptance_gates/6",
+        "contracts/functional_privatization_audit.json#/functional_followthrough_gap_summary/owner_followthrough_evidence/0",
+        "contracts/functional_privatization_audit.json#/functional_consumer_boundary/functional_followthrough_gap_summary/owner_followthrough_evidence/0",
+        "opl:runtime/app-operator-drilldown/memory_artifact_lifecycle/memory-artifact-lifecycle-owner-decision"
       ],
       "missing_evidence_tails": [
         "OPL_OMA_family_negative_conformance_receipt_ref",
@@ -286,6 +289,81 @@
     "current_package_fresh": false,
     "production_ready": false,
     "physical_delete_authorized": false,
-    "OPL_family_wide_conformance_complete": false
-  }
+    "OPL_family_wide_conformance_complete": false,
+    "memory_artifact_ready": false,
+    "artifact_ready": false,
+    "package_export_ready": false,
+    "memory_or_artifact_lifecycle_work_order_complete_means_ready": false
+  },
+  "latest_owner_followthrough_evidence": [
+    {
+      "accepted_owner_result_shape": "typed_blocker_ref",
+      "authority_boundary": {
+        "mas_authorizes_export_readiness": false,
+        "mas_authorizes_package_readiness": false,
+        "mas_mutates_artifact_body": false,
+        "mas_writes_domain_truth": false,
+        "mas_writes_memory_body": false,
+        "opl_can_claim_domain_ready": false,
+        "opl_can_claim_production_ready": false,
+        "opl_cleanup_apply_can_execute": true
+      },
+      "blocked_decision_count": 25,
+      "closes_artifact_lifecycle_receipt_scaleout": false,
+      "closes_memory_or_artifact_ready": false,
+      "closes_work_order_followthrough": true,
+      "domain_repo_physical_delete_authorized": false,
+      "forbidden_claims": [
+        "memory_body_saved_or_accepted",
+        "artifact_body_mutated",
+        "artifact_ready",
+        "package_ready",
+        "export_ready",
+        "domain_ready",
+        "production_ready",
+        "domain_physical_delete_authorization"
+      ],
+      "observed_ref_count": 126,
+      "open_count_zero_can_claim_ready": false,
+      "owner_followthrough_kind": "stable_typed_blocker_refs",
+      "ready_claim_authorized": false,
+      "safe_decision_count": 0,
+      "source_lane_id": "memory_artifact_lifecycle_apply",
+      "source_open_count": 0,
+      "source_projection_policy": "refs_only_counts_from_memory_artifact_package_export_domain_dispatch_and_lifecycle_surfaces_no_body_or_mutation_authority",
+      "source_readiness_status": "typed_blocker_work_order_required_not_ready",
+      "source_work_order_ref": "opl:runtime/app-operator-drilldown/memory_artifact_lifecycle/memory-artifact-lifecycle-owner-decision",
+      "status": "typed_blocker_followthrough_recorded_not_ready",
+      "surface_kind": "mas_memory_artifact_lifecycle_owner_followthrough",
+      "typed_blocker_reason": "canonical-regeneration-required-before-projection-removal",
+      "typed_blocker_ref_count": 25,
+      "typed_blocker_refs": [
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:03e1b65c724fc91f",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:0a79716a4521d4e7",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:0eddcbbdc5562e85",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:0f60da7b33a944c1",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:19fa86de7ad80bed",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:1c4669a3d231cc2c",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:491c4337a5e681da",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:6bfabaa6003c4b81",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:6fddc0536a914bee",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:7396b830d92bc7dd",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:754b9b392635185d",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:756cc134178fc352",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:77c62f01a68769cb",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:7c79b10711ac8196",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:85eb3bad050dd032",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:89cb33e8b8e7ed40",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:a657c0b52dc8b8f6",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:b2559106748cdf75",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:b35e7e741683d0b2",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:d9ddaca76a5e9922",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:db76ae5f690d9285",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:dbc1de0fecfaf084",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:df7ac9400b641e86",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:e5ccb4e804e5c97f",
+        "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:ee885717be533f07"
+      ]
+    }
+  ]
 }
