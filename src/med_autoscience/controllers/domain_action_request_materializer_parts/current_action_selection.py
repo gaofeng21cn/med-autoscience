@@ -113,9 +113,11 @@ def current_actions_for_studies(
             study=study_payload,
             top_level_actions=top_level_actions,
         )
-        paper_recovery_owner_callable_action = paper_recovery_owner_callable.action_for_study(
-            study_payload
-        ) or fresh_paper_recovery_by_study.get(study_id)
+        fresh_paper_recovery_action = fresh_paper_recovery_by_study.get(study_id)
+        scan_paper_recovery_action = paper_recovery_owner_callable.action_for_study(study_payload)
+        paper_recovery_owner_callable_action = (
+            fresh_paper_recovery_action or scan_paper_recovery_action
+        )
         canonical_current_action = current_work_unit_action.canonical_current_work_unit_action(study_payload)
         writer_handoff_owner_action = _current_writer_handoff_owner_action(
             study=study_payload,
@@ -181,6 +183,11 @@ def current_actions_for_studies(
             ignored.extend(
                 _ignored_action(action, "superseded_by_paper_recovery_owner_callable")
                 for action in [
+                    *(
+                        [scan_paper_recovery_action]
+                        if scan_paper_recovery_action is not None
+                        else []
+                    ),
                     *stale_candidate_actions,
                     *([stage_native_action] if stage_native_action is not None else []),
                     *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
