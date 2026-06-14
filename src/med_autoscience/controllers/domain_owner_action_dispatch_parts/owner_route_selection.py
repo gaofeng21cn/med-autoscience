@@ -143,6 +143,11 @@ def execution_owner_route(
         dispatch=dispatch,
     )
     if request_route is not None:
+        if _paper_recovery_owner_callable_route(
+            dispatch=dispatch,
+            current_route=request_route,
+        ):
+            return request_route, "paper_recovery_owner_callable"
         return request_route, "owner_request"
     dispatch_route = dispatch_owner_route(dispatch)
     if (
@@ -195,6 +200,18 @@ def _dispatch_bridge_authority(dispatch: Mapping[str, Any]) -> str | None:
     route = dispatch_owner_route(dispatch)
     refs = _mapping(route.get("source_refs"))
     return _text(refs.get("bridge_authority"))
+
+
+def _paper_recovery_owner_callable_route(
+    *,
+    dispatch: Mapping[str, Any],
+    current_route: Mapping[str, Any],
+) -> bool:
+    route_refs = _mapping(current_route.get("source_refs"))
+    return PAPER_RECOVERY_OWNER_CALLABLE_BRIDGE_AUTHORITY in {
+        _dispatch_bridge_authority(dispatch),
+        _text(route_refs.get("bridge_authority")),
+    }
 
 
 def _current_owner_route(
