@@ -27,6 +27,8 @@ def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     )
 
     assert state["surface_kind"] == "paper_recovery_state"
+    assert state["supervisor_decision"]["surface_kind"] == "paper_autonomy_supervisor_decision"
+    assert state["supervisor_decision"]["decision"] == "stop_with_stable_typed_blocker"
     assert state["phase"] == "domain_blocked"
     assert state["recovery_obligation_id"] == (
         "paper-recovery::002-dm-cvd-mortality-risk::run_gate_clearing_batch::"
@@ -81,6 +83,7 @@ def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
     )
 
     assert state["phase"] == "owner_action_ready"
+    assert state["supervisor_decision"]["decision"] == "materialize_recovery_action"
     assert state["conditions"] == [
         {
             "condition": "accepted_owner_gate_decision",

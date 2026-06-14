@@ -366,7 +366,18 @@ def _state(
         "evidence_refs": list(evidence_refs or []),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
-    return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
+    cleaned = {key: value for key, value in payload.items() if value not in (None, "", [], {})}
+    cleaned["supervisor_decision"] = _supervisor_decision(progress, cleaned)
+    return cleaned
+
+
+def _supervisor_decision(
+    progress: Mapping[str, Any],
+    recovery_state: Mapping[str, Any],
+) -> dict[str, Any]:
+    from med_autoscience.controllers.paper_autonomy_supervisor import build_supervisor_decision
+
+    return build_supervisor_decision(progress, paper_recovery_state=recovery_state)
 
 
 def _obligation(
