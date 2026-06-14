@@ -14,6 +14,17 @@ def provider_admission_projection_fields(
     handoff: Mapping[str, Any],
     study_root: Path,
 ) -> dict[str, Any]:
+    supervisor_decision = _supervisor_decision(payload)
+    if _supervisor_decision_blocks_provider_admission(supervisor_decision):
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "paper_autonomy_supervisor_decision": supervisor_decision,
+            "provider_admission_blocked_by_supervisor_decision": {
+                "decision": _non_empty_text(supervisor_decision.get("decision")),
+                "reason": "paper_autonomy_supervisor_decision_blocks_provider_admission",
+            },
+        }
     if _handoff_typed_blocker_consumes_current_action(payload=payload, handoff=handoff):
         return {
             "provider_admission_pending_count": 0,
@@ -97,6 +108,19 @@ def _same_action_identity(left: Mapping[str, Any], right: Mapping[str, Any]) -> 
         and left_fingerprint is not None
         and right_fingerprint is not None
     )
+
+
+def _supervisor_decision(payload: Mapping[str, Any]) -> dict[str, Any]:
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    decision = _mapping_copy(recovery.get("supervisor_decision"))
+    if decision:
+        return decision
+    return _mapping_copy(payload.get("paper_autonomy_supervisor_decision"))
+
+
+def _supervisor_decision_blocks_provider_admission(supervisor_decision: Mapping[str, Any]) -> bool:
+    decision = _non_empty_text(supervisor_decision.get("decision"))
+    return bool(decision and decision != "execute_current_owner_delta")
 
 
 def _current_control_payload_for_provider_admission(

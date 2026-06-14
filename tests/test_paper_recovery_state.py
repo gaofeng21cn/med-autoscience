@@ -960,8 +960,12 @@ def test_runtime_report_keeps_observe_only_provider_admission_pending() -> None:
     assert action["paper_recovery_state"]["phase"] == "admission_pending"
     assert action["current_work_unit"]["status"] == "executable_owner_action"
     assert action["current_execution_envelope"]["state_kind"] == "executable_owner_action"
-    assert action["provider_admission_state"] == {
-        "status": "pending",
-        "candidate_count": 1,
-        "running_provider_attempt": False,
-    }
+    assert action["supervisor_decision"]["decision"] == "materialize_recovery_action"
+    assert action["provider_admission_state"]["status"] == (
+        "blocked_by_paper_autonomy_supervisor_decision"
+    )
+    assert action["provider_admission_state"]["candidate_count"] == 1
+    assert action["provider_admission_state"]["running_provider_attempt"] is False
+    assert action["provider_admission_state"]["supervisor_decision"]["decision"] == (
+        "materialize_recovery_action"
+    )

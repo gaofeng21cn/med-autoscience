@@ -183,6 +183,7 @@ def _arbiter_decision(
         "active_run_id": _non_empty_text(evidence.get("active_run_id")),
         "active_workflow_id": _non_empty_text(evidence.get("active_workflow_id")),
         "missing_identity_fields": _missing_identity_fields(evidence),
+        "evidence": dict(evidence) if evidence else None,
         "evidence_status": evidence_status,
         "no_progress_signal": no_progress_signal,
         "anti_loop_classification": _arbiter_anti_loop_classification(no_progress_signal),
@@ -489,8 +490,14 @@ def _paper_recovery_state_blocks_provider_admission(
     recovery = _mapping(study.get("paper_recovery_state"))
     if not recovery:
         return {}
+    supervisor_decision = _mapping(recovery.get("supervisor_decision"))
+    if supervisor_decision and _non_empty_text(supervisor_decision.get("decision")) == "execute_current_owner_delta":
+        return {}
     next_safe_action = _mapping(recovery.get("next_safe_action"))
-    if next_safe_action.get("provider_admission_allowed") is not False:
+    if (
+        not supervisor_decision
+        and next_safe_action.get("provider_admission_allowed") is not False
+    ):
         return {}
     if not _paper_recovery_state_matches_identity(study, recovery=recovery, identity=identity):
         return {}
@@ -501,6 +508,7 @@ def _paper_recovery_state_blocks_provider_admission(
             **recovery,
             "status": phase,
             "provider_admission_allowed": False,
+            "supervisor_decision": supervisor_decision,
             "next_safe_action": next_safe_action,
         }.items()
         if value not in (None, "", [], {})

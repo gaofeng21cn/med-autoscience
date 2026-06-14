@@ -404,6 +404,9 @@ def _managed_study_action_with_paper_recovery_state(
         return dict(action)
     result = dict(action)
     result["paper_recovery_state"] = dict(recovery)
+    supervisor_decision = _mapping(_mapping(recovery).get("supervisor_decision"))
+    if supervisor_decision:
+        result["supervisor_decision"] = dict(supervisor_decision)
     phase = _text(recovery.get("phase"))
     if phase in {"domain_blocked", "human_gate"}:
         result["decision"] = phase
@@ -463,6 +466,22 @@ def _managed_study_action_with_provider_admission_state(
     recovery = _mapping(paper_recovery_state)
     if recovery:
         result["paper_recovery_state"] = recovery
+        supervisor_decision = _mapping(recovery.get("supervisor_decision"))
+        if supervisor_decision:
+            result["supervisor_decision"] = dict(supervisor_decision)
+    supervisor_decision = _mapping(result.get("supervisor_decision"))
+    if _supervisor_decision_blocks_provider_admission(supervisor_decision):
+        result["running_provider_attempt"] = False
+        result["provider_admission_state"] = {
+            "status": "blocked_by_paper_autonomy_supervisor_decision",
+            "candidate_count": len(candidates),
+            "running_provider_attempt": False,
+            "supervisor_decision": dict(supervisor_decision),
+            "paper_recovery_phase": _text(recovery.get("phase")),
+            "paper_recovery_reason": _paper_recovery_reason(recovery),
+            "next_safe_action": _mapping(recovery.get("next_safe_action")),
+        }
+        return result
     gate = _mapping(result.get("execution_gate"))
     if gate.get("blocked") is True:
         result["running_provider_attempt"] = False
@@ -493,6 +512,11 @@ def _managed_study_action_with_provider_admission_state(
         },
     )
     return result
+
+
+def _supervisor_decision_blocks_provider_admission(supervisor_decision: Mapping[str, Any]) -> bool:
+    decision = _text(supervisor_decision.get("decision"))
+    return bool(decision and decision != "execute_current_owner_delta")
 
 
 def _provider_admission_candidates_by_study(

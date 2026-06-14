@@ -156,10 +156,79 @@ def test_owner_gate_route_back_suppresses_residual_provider_admission_projection
     assert result["paper_recovery_provider_admission_blocked_count"] == 1
     assert len(result["blocked_provider_admission_candidates"]) == 1
     assert result["owner_action_admission"]["admission_pending"] is False
-    assert result["owner_action_admission"]["blocked_by"] == "paper_recovery_state"
+    assert result["owner_action_admission"]["blocked_by"] == "paper_autonomy_supervisor_decision"
     monitoring = result["progress_first_monitoring_summary"]["owner_action_admission"]
     assert monitoring["admission_pending"] is False
-    assert monitoring["blocked_by"] == "paper_recovery_state"
+    assert monitoring["blocked_by"] == "paper_autonomy_supervisor_decision"
+
+
+def test_user_visible_projection_blocks_provider_admission_by_supervisor_decision() -> None:
+    visibility = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+    )
+    fingerprint = "publication-blockers::497d1260db522f01"
+    state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "admission_pending",
+        "current_authority": {
+            "owner": "write",
+            "obligation": {
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "quest_id": "002-dm-china-us-mortality-attribution",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+        "next_safe_action": {
+            "kind": "admit_provider_attempt",
+            "provider_admission_allowed": True,
+        },
+        "supervisor_decision": {
+            "surface_kind": "paper_autonomy_supervisor_decision",
+            "decision": "materialize_recovery_action",
+            "next_safe_action": {
+                "kind": "materialize_recovery_work_unit_or_receipt",
+                "recovery_kind": "opl_runtime_repair",
+            },
+        },
+    }
+
+    result = visibility.apply_paper_recovery_state_user_visible_status(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "queued",
+            "paper_recovery_state": state,
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "analysis_claim_evidence_repair",
+                    "work_unit_fingerprint": fingerprint,
+                }
+            ],
+            "owner_action_admission": {
+                "admission_pending": True,
+                "provider_attempt_start_requested": True,
+            },
+            "progress_first_monitoring_summary": {
+                "owner_action_admission": {
+                    "admission_pending": True,
+                    "provider_attempt_start_requested": True,
+                }
+            },
+        }
+    )
+
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["owner_action_admission"]["admission_pending"] is False
+    assert result["owner_action_admission"]["blocked_by"] == "paper_autonomy_supervisor_decision"
+    monitoring = result["progress_first_monitoring_summary"]["owner_action_admission"]
+    assert monitoring["admission_pending"] is False
+    assert monitoring["blocked_by"] == "paper_autonomy_supervisor_decision"
 
 
 def test_runtime_scan_fresh_currentness_carries_owner_gate_events(monkeypatch, tmp_path) -> None:
