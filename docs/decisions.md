@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-14：Paper Autonomy Supervisor 成为 MAS / OPL 自动论文推进的一等监督协议
+
+- 决策：`contracts/paper_autonomy_supervisor_contract.json` 固定 MAS / OPL 自动论文推进监督协议。每个 `current_owner_delta` 必须生成一个 `paper_autonomy_obligation`，并由 supervisor 输出五类闭合集合之一：`execute_current_owner_delta`、`consume_terminal_closeout`、`materialize_recovery_action`、`wait_for_owner_with_resume_token`、`stop_with_stable_typed_blocker`。`operator_decision_required`、`human_gate`、`typed_blocker`、`provider_admission_pending_count=0` 和 `action_queue=[]` 都只是可解释状态，不能作为自动推进终点。
+- 决策：stage-route reconcile / DHD / study_progress / owner-gate materializer 都是该 supervisor 的 decision source 或 projection consumer，不能继续作为平行控制面各自重算 currentness。OPL 持有 `StageRunIdentityPacket`、`HumanGateTransport`、`RecoveryObligationStore`、`SupervisorDecisionEngine`、`StateIndexKernel`、Workbench Shell 和 Observability Plane；MAS 持有 `PaperAutonomyAuthorityKernel`、`RecoveryMaterializer`、`PaperProgressLedger` 和 `AuthorityResultEnvelope`。
+- 决策：所有输出必须分账为 `paper_semantic_delta`、`platform_repair_delta`、`migration_delta` 或 `observability_delta`。Yang 历史 artifact 修复只能是 `study_workspace_migration` / `migration_receipt`，不计 paper progress；代码提交、docs 更新、contract landed、test green、trace/span、provider transport success 也不能替代 owner receipt、quality gate receipt、canonical paper/evidence/review/package delta、human gate resume、route-back evidence 或 stable typed blocker。
+- 理由：019eb0e8 / 019eba3b 暴露的根因是 MAS 与 OPL 缺少一个把“没有继续推进论文”的状态强制解释成可执行、可消费、可恢复、可等待或可停止决策的一等协议。没有该协议时，修 DHD、queue、owner gate 或 read-model 都容易只把症状移动到另一个 surface，导致修复方案无法稳定收敛。
+- 影响：这是机器合同、meta test 和文档入口 hardening，不执行 live DHD apply、hydrate、tick、redrive，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。真实论文推进仍必须按 fresh `study_progress`、OPL current-control、owner receipt、typed blocker、human gate、route-back evidence、canonical changed surface 或同一 current identity strict running proof 读取。
+
 ## 2026-06-14：OPL owner gate request 必须有正式 human gate / owner decision 记录入口
 
 - 决策：MAS 提供 `study-owner-gate-decision` 作为 `stage_packet_not_current_selected_dispatch` 等 OPL owner blocker 的正式 operator / human gate 记录入口。入口必须携带 `study_id`、`action_type`、`work_unit_id`、`work_unit_fingerprint`、`blocker_type`、`decision` 和 `reason`；允许结果固定为 `admit_identity_bound_stage_packet`、`deny_and_stable_typed_blocker`、`route_back_to_mas_packet_materialization_bug`。`admit_identity_bound_stage_packet` 还必须携带 `stage_packet_ref(s)`、`route_identity_key` 和 `attempt_idempotency_key`，缺任一项即 fail closed。

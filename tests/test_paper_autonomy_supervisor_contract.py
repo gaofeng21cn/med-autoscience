@@ -1,0 +1,273 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+
+pytestmark = pytest.mark.meta
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+CONTRACT_PATH = REPO_ROOT / "contracts" / "paper_autonomy_supervisor_contract.json"
+
+
+def _contract() -> dict[str, object]:
+    return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+
+
+def test_paper_autonomy_supervisor_declares_schema_external_patterns_and_boundary() -> None:
+    contract = _contract()
+
+    assert contract["surface_kind"] == "mas_opl_paper_autonomy_supervisor_contract"
+    assert contract["version"] == "paper-autonomy-supervisor.v1"
+    assert contract["owner"] == "MedAutoScience / OPL Framework"
+    assert contract["state"] == "active_contract"
+    assert contract["machine_boundary"].startswith(
+        "This contract defines the MAS/OPL Paper Autonomy Supervisor"
+    )
+    assert contract["source_design_ref"] == (
+        "docs/runtime/designs/paper_autonomy_supervisor_target.md"
+    )
+    assert {
+        "contracts/stage_route_reconcile_contract.json",
+        "contracts/paper_recovery_kernel_contract.json",
+        "contracts/stage_run_kernel_profile.json",
+        "contracts/progress_first_safety_envelope.json",
+    } <= set(contract["related_contract_refs"])
+
+    patterns = contract["external_engineering_patterns"]
+    assert patterns["surface_kind"] == "paper_autonomy_external_engineering_patterns"
+    assert [item["label"] for item in patterns["source_refs"]] == [
+        "Temporal Workflow message passing",
+        "AWS Step Functions callback task token",
+        "Azure Scheduler Agent Supervisor",
+        "LangGraph interrupts and persistence",
+    ]
+    assert patterns["adoption_mode"] == "pattern_only_no_foreign_runtime_dependency"
+    assert patterns["adopted_rules"] == [
+        "query_signal_update_split",
+        "durable_callback_resume_token",
+        "scheduler_agent_supervisor_state_store",
+        "persistent_interrupt_resume_same_identity",
+        "identity_bound_idempotent_redrive",
+    ]
+    assert patterns["forbidden_imports"] == [
+        "Temporal runtime as MAS-owned scheduler",
+        "Step Functions state machine as MAS authority",
+        "LangGraph graph state as publication truth",
+        "Azure pattern prose as machine contract",
+    ]
+
+
+def test_obligation_contract_requires_identity_timeout_and_nonterminal_pending_states() -> None:
+    contract = _contract()
+
+    root = contract["planning_root"]
+    assert root["desired_root"] == "current_owner_delta"
+    assert root["obligation_surface"] == "paper_autonomy_obligation"
+    assert root["decision_surface"] == "supervisor_decision"
+    assert root["one_obligation_per_current_owner_delta"] is True
+    assert root["read_models_can_create_obligations"] is False
+
+    obligation = contract["paper_autonomy_obligation"]
+    assert obligation["surface_kind"] == "paper_autonomy_obligation_contract"
+    assert obligation["required_identity_fields"] == [
+        "study_id",
+        "quest_id",
+        "stage_id",
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "owner_route_currentness_basis",
+    ]
+    assert obligation["desired_delta_required_fields"] == [
+        "owner",
+        "target_surface",
+        "required_output_ref_family",
+    ]
+    assert {
+        "provider_admission_identity",
+        "running_proof",
+        "terminal_closeout",
+        "owner_receipt",
+        "typed_blocker",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "migration_receipt",
+    } == set(obligation["expected_next_evidence_allowed"])
+    assert obligation["timeout_policy_required_fields"] == [
+        "heartbeat_budget",
+        "wall_clock_budget_seconds",
+        "on_timeout",
+    ]
+    assert obligation["pending_states_forbidden_as_terminal"] == [
+        "operator_decision_required",
+        "human_gate",
+        "typed_blocker",
+        "provider_admission_pending_count=0",
+        "action_queue=[]",
+    ]
+    assert obligation["same_identity_no_progress_effect"] == (
+        "supervisor_must_emit_recovery_human_gate_or_stable_blocker"
+    )
+
+
+def test_supervisor_decision_taxonomy_is_closed_and_identity_bound() -> None:
+    contract = _contract()
+    taxonomy = contract["supervisor_decision_taxonomy"]
+
+    assert taxonomy["decision_field"] == "decision"
+    assert taxonomy["allowed_decisions"] == [
+        "execute_current_owner_delta",
+        "consume_terminal_closeout",
+        "materialize_recovery_action",
+        "wait_for_owner_with_resume_token",
+        "stop_with_stable_typed_blocker",
+    ]
+    assert "operator_decision_required" not in taxonomy["allowed_decisions"]
+    assert taxonomy["decision_required_fields"] == [
+        "identity_match",
+        "evidence_refs",
+        "forbidden_interpretations",
+        "next_owner",
+        "next_safe_action",
+        "paper_progress_classification",
+        "platform_repair_classification",
+    ]
+
+    cases = {item["decision"]: item for item in taxonomy["decision_cases"]}
+    assert set(cases) == set(taxonomy["allowed_decisions"])
+    assert cases["execute_current_owner_delta"]["next_owner"] == "OPL Framework"
+    assert cases["execute_current_owner_delta"]["required_evidence_refs"] == [
+        "paper_autonomy_obligation_ref",
+        "provider_admission_identity",
+        "stage_run_identity_packet",
+        "no_terminal_closeout_for_same_identity",
+    ]
+    assert cases["consume_terminal_closeout"]["next_owner"] == "MedAutoScience"
+    assert "terminal_closeout_packet" in cases["consume_terminal_closeout"][
+        "required_evidence_refs"
+    ]
+    assert cases["wait_for_owner_with_resume_token"]["required_resume_fields"] == [
+        "human_gate_ref",
+        "resume_token",
+        "allowed_decisions",
+        "timeout_policy",
+        "default_safe_branch",
+        "current_identity",
+    ]
+    assert cases["stop_with_stable_typed_blocker"]["required_evidence_refs"] == [
+        "paper_autonomy_obligation_ref",
+        "stable_typed_blocker_ref",
+        "budget_or_missing_evidence_ref",
+    ]
+
+
+def test_recovery_action_and_progress_accounting_keep_platform_repair_out_of_paper_progress() -> None:
+    contract = _contract()
+
+    recovery = contract["recovery_action_contract"]
+    assert recovery["decision"] == "materialize_recovery_action"
+    assert recovery["allowed_kinds"] == [
+        "mas_control_plane_repair",
+        "opl_runtime_repair",
+        "study_workspace_migration",
+        "operator_policy_materialization",
+    ]
+    assert recovery["kind_owner_map"] == {
+        "mas_control_plane_repair": "MedAutoScience repo",
+        "opl_runtime_repair": "OPL Framework repo",
+        "study_workspace_migration": "MedAutoScience owner callable",
+        "operator_policy_materialization": "MedAutoScience / OPL Framework",
+    }
+    assert recovery["required_output_refs_any"] == [
+        "recovery_receipt_ref",
+        "migration_receipt_ref",
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+    ]
+
+    accounting = contract["progress_accounting"]
+    assert accounting["classes"] == [
+        "paper_semantic_delta",
+        "platform_repair_delta",
+        "migration_delta",
+        "observability_delta",
+    ]
+    assert accounting["paper_progress_credit_refs"] == [
+        "mas_owner_receipt",
+        "quality_gate_receipt",
+        "ai_reviewer_or_publication_gate_delta",
+        "canonical_paper_evidence_review_or_package_delta",
+        "human_gate_resume",
+        "route_back_evidence",
+        "stable_typed_blocker",
+    ]
+    assert accounting["non_credit_refs"] == [
+        "code_commit",
+        "docs_update",
+        "contract_landed",
+        "test_green",
+        "state_index_refresh",
+        "migration_receipt",
+        "observability_trace",
+        "provider_transport_success",
+    ]
+    assert accounting["yang_artifact_repair_class"] == "migration_delta"
+    assert accounting["yang_artifact_repair_counts_as_paper_progress"] is False
+
+
+def test_opl_foundation_and_mas_authority_split_forbid_read_model_authority() -> None:
+    contract = _contract()
+
+    authority = contract["authority_split"]
+    assert authority["mas_authority_surfaces"] == [
+        "PaperAutonomyAuthorityKernel",
+        "RecoveryMaterializer",
+        "PaperProgressLedger",
+        "AuthorityResultEnvelope",
+    ]
+    assert authority["opl_substrate_surfaces"] == [
+        "StageRunIdentityPacket",
+        "HumanGateTransport",
+        "RecoveryObligationStore",
+        "SupervisorDecisionEngine",
+        "StateIndexKernel",
+        "Workbench Shell",
+        "Observability Plane",
+    ]
+    assert authority["forbidden_authority_claims"] == [
+        "OPL queue or attempt ledger owns medical truth",
+        "DHD read-model can close owner receipt",
+        "Portal or workbench text can resume human gate",
+        "trace span can close quality gate",
+        "provider admission or completion is paper progress",
+        "migration receipt updates publication readiness",
+    ]
+
+    opl = {item["surface"]: item for item in contract["opl_foundation_requirements"]}
+    assert set(opl) == set(authority["opl_substrate_surfaces"])
+    assert opl["RecoveryObligationStore"]["query_can_mutate"] is False
+    assert opl["SupervisorDecisionEngine"]["allowed_outputs"] == (
+        contract["supervisor_decision_taxonomy"]["allowed_decisions"]
+    )
+    assert opl["StateIndexKernel"]["forbidden_payloads"] == [
+        "study truth",
+        "publication verdict",
+        "artifact body",
+        "memory body",
+        "paper body",
+        "owner receipt body",
+    ]
+    assert opl["HumanGateTransport"]["required_fields"] == [
+        "resume_token",
+        "owner",
+        "allowed_decisions",
+        "timeout_policy",
+        "default_safe_branch",
+        "same_current_identity",
+    ]

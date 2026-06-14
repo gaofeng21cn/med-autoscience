@@ -160,6 +160,8 @@ Temporal / queue / workflow state 中只放小 payload：
 
 ## OPL 基座优化
 
+Stage-route reconcile 是 Paper Autonomy Supervisor 的 decision source，不再作为平行的顶层控制面存在。长期读法是：MAS 先生成 `current_owner_delta` 和 `paper_autonomy_obligation`，stage-route arbiter 只负责把 provider admission identity、StageRun current/currentness、terminal closeout、typed blocker、owner gate 和 read-model lag 转译成 supervisor 可消费证据；最终可执行结论必须落到 `execute_current_owner_delta`、`consume_terminal_closeout`、`materialize_recovery_action`、`wait_for_owner_with_resume_token` 或 `stop_with_stable_typed_blocker`。机器入口见 `contracts/paper_autonomy_supervisor_contract.json`；本文件和 `contracts/stage_route_reconcile_contract.json` 继续持有 stage-route identity / currentness / closeout 细则，但不得单独声明论文推进、human gate resume、quality verdict 或 owner receipt closure。
+
 OPL 侧应把以下能力做成一等基座接口：
 
 - `StageRun Kernel`：attempt identity、lease、retry、dead-letter、resume、terminal closeout hook。
