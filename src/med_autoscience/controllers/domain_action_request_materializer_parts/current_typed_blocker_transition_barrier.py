@@ -33,7 +33,8 @@ def current_typed_blocker_barrier_for_actions(
     if fresh_action is not None and (
         _text(fresh_action.get("action_type")) or ""
     ).startswith("current_execution_envelope_"):
-        return dict(fresh_action)
+        if _text(fresh_action.get("reason")) == OPL_EXECUTION_AUTHORIZATION_BLOCKER:
+            return dict(fresh_action)
     if fresh_action is not None and repair_progress_currentness.generated_action_is_repair_progress_followup(
         fresh_action
     ):

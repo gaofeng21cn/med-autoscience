@@ -11,6 +11,8 @@ from med_autoscience.controllers.stage_route_currentness_identity import (
 def blocking_progress_allows_current_dispatch_selection(
     progress: Mapping[str, Any],
 ) -> bool:
+    if _paper_recovery_materialization_ready(progress):
+        return True
     envelope = _mapping(progress.get("current_execution_envelope"))
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
     if state_kind == "parked":
@@ -94,6 +96,22 @@ def fresh_progress_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | No
         or _text(blocker.get("blocker_type"))
         or _text(blocker.get("reason"))
     )
+
+
+def _paper_recovery_materialization_ready(progress: Mapping[str, Any]) -> bool:
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    if _text(recovery.get("phase")) != "owner_action_ready":
+        return False
+    supervisor_decision = _mapping(recovery.get("supervisor_decision"))
+    if _text(supervisor_decision.get("decision")) not in {None, "materialize_recovery_action"}:
+        return False
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    return _text(next_safe_action.get("kind")) in {
+        "run_mas_owner_callable",
+        "materialize_successor_owner_action",
+        "materialize_successor_owner_gate",
+        "materialize_recovery_work_unit_or_receipt",
+    }
 
 
 def _mapping(value: object) -> dict[str, Any]:

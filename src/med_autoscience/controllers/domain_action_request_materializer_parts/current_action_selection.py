@@ -16,6 +16,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     repair_progress_currentness,
     stage_native_next_action,
 )
+from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
@@ -196,7 +197,7 @@ def current_actions_for_studies(
                 if action != paper_recovery_owner_callable_action
             )
             continue
-        if _fresh_progress_is_current_execution_envelope_barrier(fresh_progress_action):
+        if _fresh_progress_is_hard_current_execution_envelope_barrier(fresh_progress_action):
             per_study_actions.append(fresh_progress_action)
             ignored.extend(
                 _ignored_action(action, "superseded_by_current_work_unit_typed_blocker")
@@ -485,8 +486,13 @@ def current_actions_for_studies(
                 )
                 continue
             per_study_actions.append(fresh_progress_action)
+            fresh_progress_superseded_reason = (
+                "superseded_by_current_work_unit_typed_blocker"
+                if _fresh_progress_is_current_execution_envelope_barrier(fresh_progress_action)
+                else "superseded_by_fresh_study_progress_current_owner_ticket"
+            )
             ignored.extend(
-                _ignored_action(action, "superseded_by_fresh_study_progress_current_owner_ticket")
+                _ignored_action(action, fresh_progress_superseded_reason)
                 for action in [
                     *([readiness_followup] if readiness_followup is not None else []),
                     *([stage_native_action] if stage_native_action is not None else []),
@@ -580,6 +586,12 @@ def current_actions_for_studies(
             per_study_actions.append(action)
     for study_id, action in fresh_progress_by_study.items():
         if study_id in suppressed_fresh_progress_studies:
+            continue
+        if (
+            _fresh_progress_is_current_execution_envelope_barrier(action)
+            and not _fresh_progress_is_hard_current_execution_envelope_barrier(action)
+        ):
+            ignored.append(_ignored_action(action, "unsupported_action_type"))
             continue
         if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
             per_study_actions.append(action)
@@ -704,6 +716,12 @@ def _fresh_progress_is_current_execution_envelope_barrier(action: Mapping[str, A
     return action is not None and (_text(action.get("action_type")) or "").startswith(
         "current_execution_envelope_"
     )
+
+
+def _fresh_progress_is_hard_current_execution_envelope_barrier(action: Mapping[str, Any] | None) -> bool:
+    return _fresh_progress_is_current_execution_envelope_barrier(action) and _text(
+        action.get("reason")
+    ) == OPL_EXECUTION_AUTHORIZATION_BLOCKER
 
 
 def _requires_manuscript_story_surface_delta(value: object) -> bool:

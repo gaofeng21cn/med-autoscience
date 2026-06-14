@@ -44,7 +44,7 @@ def current_actions(
             continue
         if not isinstance(progress, Mapping):
             continue
-        recovery = build_paper_recovery_state(progress)
+        recovery = _current_recovery_state(progress, build_paper_recovery_state)
         action = action_for_study(
             {
                 **dict(progress),
@@ -157,6 +157,81 @@ def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
         },
     }
     return {key: value for key, value in action.items() if value not in (None, "", [], {})}
+
+
+def dispatch_matches_progress_successor(
+    *,
+    progress: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    if _text(recovery.get("phase")) != "owner_action_ready":
+        return False
+    supervisor_decision = _mapping(recovery.get("supervisor_decision"))
+    if _text(supervisor_decision.get("decision")) not in {None, "materialize_recovery_action"}:
+        return False
+    action = action_for_study(
+        {
+            **dict(progress),
+            "paper_recovery_state": recovery,
+        }
+    )
+    if action is None:
+        return False
+    if _text(action.get("action_type")) != _text(dispatch.get("action_type")):
+        return False
+    if _text(action.get("study_id")) != _text(dispatch.get("study_id")):
+        return False
+    action_owner = (
+        _text(action.get("next_executable_owner"))
+        or _text(action.get("owner"))
+        or _text(action.get("next_owner"))
+    )
+    route = _dispatch_owner_route(dispatch)
+    dispatch_owner = (
+        _text(dispatch.get("next_executable_owner"))
+        or _text(dispatch.get("owner"))
+        or _text(route.get("next_owner"))
+    )
+    if action_owner is None or dispatch_owner != action_owner:
+        return False
+    source_refs = _mapping(route.get("source_refs"))
+    if _text(source_refs.get("bridge_authority")) != BRIDGE_AUTHORITY:
+        return False
+    action_work_unit = _text(action.get("work_unit_id")) or _text(action.get("next_work_unit"))
+    dispatch_work_unit = (
+        _text(dispatch.get("work_unit_id"))
+        or _text(dispatch.get("next_work_unit"))
+        or _text(source_refs.get("work_unit_id"))
+    )
+    if action_work_unit is None or dispatch_work_unit != action_work_unit:
+        return False
+    action_fingerprint = _text(action.get("work_unit_fingerprint")) or _text(
+        action.get("action_fingerprint")
+    )
+    dispatch_fingerprints = {
+        text
+        for value in (
+            dispatch.get("work_unit_fingerprint"),
+            dispatch.get("action_fingerprint"),
+            dispatch.get("source_fingerprint"),
+            route.get("work_unit_fingerprint"),
+            route.get("source_fingerprint"),
+            source_refs.get("work_unit_fingerprint"),
+        )
+        if (text := _text(value)) is not None
+    }
+    if action_fingerprint is None or action_fingerprint not in dispatch_fingerprints:
+        return False
+    action_decision_ref = _text(action.get("supervisor_decision_ref")) or _text(
+        supervisor_decision.get("decision_id")
+    )
+    dispatch_decision_ref = _text(source_refs.get("supervisor_decision_ref")) or _text(
+        _mapping(dispatch.get("source_action")).get("supervisor_decision_ref")
+    )
+    if action_decision_ref or dispatch_decision_ref:
+        return action_decision_ref is not None and dispatch_decision_ref == action_decision_ref
+    return True
 
 
 def _action_from_successor_owner_gate(
@@ -292,10 +367,44 @@ def _action_from_successor_owner_action(
     if action_type is None or work_unit_id is None or work_unit_fingerprint is None:
         return None
     obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
-    study_id = _text(obligation.get("study_id")) or _text(study.get("study_id"))
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    typed_blocker = _mapping(_mapping(current_work_unit.get("state")).get("typed_blocker"))
+    study_id = (
+        _text(obligation.get("study_id"))
+        or _text(study.get("study_id"))
+        or _text(current_work_unit.get("study_id"))
+        or _text(typed_blocker.get("study_id"))
+    )
     if study_id is None:
         return None
-    quest_id = _text(obligation.get("quest_id")) or _text(study.get("quest_id"))
+    quest_id = (
+        _text(obligation.get("quest_id"))
+        or _text(study.get("quest_id"))
+        or _text(current_work_unit.get("quest_id"))
+        or _text(typed_blocker.get("quest_id"))
+    )
+    predecessor_action_type = (
+        _text(obligation.get("action_type"))
+        or _text(current_work_unit.get("action_type"))
+        or _text(typed_blocker.get("action_type"))
+    )
+    predecessor_work_unit_id = (
+        _text(obligation.get("work_unit_id"))
+        or _text(current_work_unit.get("work_unit_id"))
+        or _text(typed_blocker.get("work_unit_id"))
+    )
+    predecessor_work_unit_fingerprint = (
+        _text(obligation.get("work_unit_fingerprint"))
+        or _text(current_work_unit.get("work_unit_fingerprint"))
+        or _text(current_work_unit.get("action_fingerprint"))
+        or _text(typed_blocker.get("work_unit_fingerprint"))
+        or _text(typed_blocker.get("action_fingerprint"))
+    )
+    predecessor_blocker_type = (
+        _text(obligation.get("blocker_type"))
+        or _text(typed_blocker.get("blocker_type"))
+        or _text(current_work_unit.get("blocker_type"))
+    )
     owner = (
         _text(successor_owner_action.get("owner"))
         or _text(successor_owner_action.get("next_owner"))
@@ -303,10 +412,10 @@ def _action_from_successor_owner_action(
         or request_owner_for_action_type(action_type)
     )
     predecessor = {
-        "action_type": _text(obligation.get("action_type")),
-        "work_unit_id": _text(obligation.get("work_unit_id")),
-        "work_unit_fingerprint": _text(obligation.get("work_unit_fingerprint")),
-        "blocker_type": _text(obligation.get("blocker_type")),
+        "action_type": predecessor_action_type,
+        "work_unit_id": predecessor_work_unit_id,
+        "work_unit_fingerprint": predecessor_work_unit_fingerprint,
+        "blocker_type": predecessor_blocker_type,
     }
     owner_route = owner_route_part.ensure_owner_route_v2(
         _owner_route(
@@ -316,7 +425,7 @@ def _action_from_successor_owner_action(
             action_type=action_type,
             work_unit_id=work_unit_id,
             work_unit_fingerprint=work_unit_fingerprint,
-            blocker_type=_text(obligation.get("blocker_type")),
+            blocker_type=predecessor_blocker_type,
             supervisor_decision=supervisor_decision,
             predecessor=predecessor,
             source_surface=_text(successor_owner_action.get("source_surface")),
@@ -324,6 +433,8 @@ def _action_from_successor_owner_action(
         )
     )
     supervisor_decision_ref = _text(supervisor_decision.get("decision_id"))
+    successor_source_ref = _text(successor_owner_action.get("source_ref"))
+    source_ref = _text(recovery.get("recovery_obligation_id")) or successor_source_ref
     action = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -337,7 +448,7 @@ def _action_from_successor_owner_action(
         "authority": "paper_recovery_state",
         "required_output_surface": request_output_surface_for_action_type(action_type),
         "source_surface": "paper_recovery_state",
-        "source_ref": _text(recovery.get("recovery_obligation_id")),
+        "source_ref": source_ref,
         "supervisor_decision": supervisor_decision or None,
         "supervisor_decision_ref": supervisor_decision_ref,
         "supervisor_authority": "paper_autonomy_supervisor_decision" if supervisor_decision else None,
@@ -346,7 +457,7 @@ def _action_from_successor_owner_action(
         "work_unit_fingerprint": work_unit_fingerprint,
         "action_fingerprint": work_unit_fingerprint,
         "successor_source_surface": _text(successor_owner_action.get("source_surface")),
-        "successor_source_ref": _text(successor_owner_action.get("source_ref")),
+        "successor_source_ref": successor_source_ref,
         "predecessor_work_unit": {key: value for key, value in predecessor.items() if value not in (None, "", [], {})},
         "owner_route": owner_route,
         "handoff_packet": {
@@ -355,7 +466,7 @@ def _action_from_successor_owner_action(
             "recommended_owner": owner,
             "next_executable_owner": owner,
             "source_surface": "paper_recovery_state",
-            "source_ref": _text(recovery.get("recovery_obligation_id")),
+            "source_ref": source_ref,
             "supervisor_decision": supervisor_decision or None,
             "supervisor_decision_ref": supervisor_decision_ref,
             "supervisor_authority": (
@@ -365,7 +476,7 @@ def _action_from_successor_owner_action(
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": work_unit_fingerprint,
             "successor_source_surface": _text(successor_owner_action.get("source_surface")),
-            "successor_source_ref": _text(successor_owner_action.get("source_ref")),
+            "successor_source_ref": successor_source_ref,
             "predecessor_work_unit": {
                 key: value for key, value in predecessor.items() if value not in (None, "", [], {})
             },
@@ -435,6 +546,21 @@ def _owner_route(
     }
 
 
+def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    return _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+
+
+def _current_recovery_state(
+    progress: Mapping[str, Any],
+    build_paper_recovery_state: Any,
+) -> dict[str, Any]:
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    if _text(recovery.get("phase")) is not None and _mapping(recovery.get("next_safe_action")):
+        return recovery
+    return build_paper_recovery_state(progress)
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -460,4 +586,4 @@ def _text_items(value: object) -> list[str]:
     return [text for item in value if (text := _text(item)) is not None]
 
 
-__all__ = ["action_for_study", "current_actions"]
+__all__ = ["action_for_study", "current_actions", "dispatch_matches_progress_successor"]

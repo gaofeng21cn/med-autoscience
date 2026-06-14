@@ -24,6 +24,7 @@ def attach_domain_action_request_materialization_preview(
         study_ids=study_ids,
         mode="developer_apply_safe",
         apply=False,
+        dispatch_ready_for_execution=True,
     )
     report["domain_action_request_materialization_preview"] = preview
     report["materialization_preview_request_task_count"] = _int_value(

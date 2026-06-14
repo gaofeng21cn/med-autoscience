@@ -230,6 +230,12 @@ def selected_dispatches(
         progress=fresh_progress,
         dispatches=consumer_dispatches,
     )
+    paper_recovery_successor_dispatches = _paper_recovery_successor_dispatches(
+        progress=fresh_progress,
+        dispatches=consumer_dispatches,
+    )
+    if paper_recovery_successor_dispatches:
+        stage_native_next_action = None
     if stage_native_next_action is not None and stage_native_dispatch_selection.next_action_superseded_by_current_control(
         profile=profile,
         study_id=study_id,
@@ -265,6 +271,14 @@ def selected_dispatches(
             (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type"))): index
             for index, payload in enumerate(selected)
         }
+        for payload in paper_recovery_successor_dispatches:
+            if _text(payload.get("action_type")) not in supported_action_types:
+                continue
+            key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
+            if key in selected_by_key:
+                continue
+            selected_by_key[key] = len(selected)
+            selected.append(payload)
         for payload in consumed_default_executor_dispatch_filter.without_consumed_default_executor_dispatches(
             profile=profile,
             study_id=study_id,
@@ -761,6 +775,21 @@ def _fresh_progress_owner_action_selectable(
         progress=progress,
         dispatch=dispatch,
     )
+
+
+def _paper_recovery_successor_dispatches(
+    *,
+    progress: Mapping[str, Any],
+    dispatches: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        dispatch
+        for dispatch in dispatches
+        if fresh_progress_owner_actions.dispatch_matches_paper_recovery_successor(
+            progress=progress,
+            dispatch=dispatch,
+        )
+    ]
 
 
 def _current_control_authority_present(current_study: Mapping[str, Any]) -> bool:

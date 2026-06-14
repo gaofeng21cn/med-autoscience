@@ -4,6 +4,9 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.domain_action_request_materializer_parts import (
+    paper_recovery_owner_callable,
+)
 
 from . import consumed_transition_owner_routes
 from . import stage_artifact_publication_handoff_currentness
@@ -26,6 +29,17 @@ def fresh_progress_current_owner_action_route(
         ):
             return route
     return None
+
+
+def dispatch_matches_paper_recovery_successor(
+    *,
+    progress: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    return paper_recovery_owner_callable.dispatch_matches_progress_successor(
+        progress=progress,
+        dispatch=dispatch,
+    )
 
 
 def dispatch_matches_fresh_progress_current_owner_action(
@@ -51,6 +65,9 @@ def fresh_progress_owner_action_selectable(
     ):
         return False
     return dispatch_matches_fresh_progress_current_owner_action(
+        progress=progress,
+        dispatch=dispatch,
+    ) or dispatch_matches_paper_recovery_successor(
         progress=progress,
         dispatch=dispatch,
     )
@@ -242,6 +259,7 @@ def _first_text(value: object) -> str | None:
 __all__ = [
     "action_type_from_owner_action",
     "dispatch_matches_fresh_progress_current_owner_action",
+    "dispatch_matches_paper_recovery_successor",
     "dispatch_source_eval_id",
     "dispatch_work_unit_id",
     "dispatch_work_unit_fingerprint_values",

@@ -175,6 +175,7 @@ def test_domain_health_diagnostic_dry_run_includes_recovery_materialization_prev
     assert materialize_calls[0]["apply"] is False
     assert materialize_calls[0]["mode"] == "developer_apply_safe"
     assert materialize_calls[0]["study_ids"] == (study_id,)
+    assert materialize_calls[0]["dispatch_ready_for_execution"] is True
     assert report["domain_action_request_materialization_preview"]["request_task_count"] == 1
     assert report["domain_action_request_materialization_preview"]["default_executor_dispatch_count"] == 1
     assert report["materialization_preview_request_task_count"] == 1

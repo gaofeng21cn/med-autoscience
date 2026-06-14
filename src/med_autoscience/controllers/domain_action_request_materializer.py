@@ -864,6 +864,7 @@ def materialize_domain_action_requests(
     study_ids: Iterable[str],
     mode: str,
     apply: bool,
+    dispatch_ready_for_execution: bool = False,
 ) -> dict[str, Any]:
     generated_at = _utc_now()
     developer_mode = resolve_developer_supervisor_mode(
@@ -897,7 +898,16 @@ def materialize_domain_action_requests(
             next_executable_owner=_owner_from_action(action, _text(action.get("action_type")) or "unknown_action"),
             required_output_surface=_required_output_surface(action, _text(action.get("action_type")) or "unknown_action"),
             apply=apply,
-            developer_mode_payload=developer_mode_payload,
+            developer_mode_payload=(
+                {
+                    **developer_mode_payload,
+                    "mode": SUPPORTED_MODE,
+                    "safe_actions_enabled": True,
+                    "dry_run_executor_dispatch": True,
+                }
+                if dispatch_ready_for_execution and not apply
+                else developer_mode_payload
+            ),
             scan_payload=scan_payload,
             generated_at=generated_at,
         )
@@ -947,6 +957,7 @@ def materialize_domain_action_requests(
         "github_gate": dict(developer_mode.github_user_gate),
         "developer_supervisor_mode": developer_mode_payload,
         "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
+        "dispatch_ready_for_execution_preview": bool(dispatch_ready_for_execution and not apply),
         "runtime_control_owner": "one-person-lab",
         "request_task_count": len(request_tasks),
         "request_tasks": request_tasks,

@@ -781,3 +781,105 @@ def test_current_default_dispatch_for_execution_marks_paper_recovery_callable_re
 
     assert observe_payload["default_executor_dispatches"][0]["dispatch_status"] == "dry_run"
     assert execution_payload["default_executor_dispatches"][0]["dispatch_status"] == "ready"
+
+
+def test_materialize_dry_run_reports_paper_recovery_callable_as_would_be_ready(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    fingerprint = "sha256:paper-recovery-successor-ready"
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [],
+            "action_queue": [],
+        },
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "owner": "one-person-lab",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "current_owner_route_missing",
+                        "owner": "one-person-lab",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                },
+            },
+            "paper_recovery_state": {
+                "phase": "owner_action_ready",
+                "current_authority": {
+                    "owner": "one-person-lab",
+                    "obligation": {
+                        "study_id": study_id,
+                        "quest_id": quest_id,
+                        "owner": "one-person-lab",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": fingerprint,
+                        "blocker_type": "current_owner_route_missing",
+                    },
+                },
+                "supervisor_decision": {
+                    "decision": "materialize_recovery_action",
+                    "decision_id": "supervisor-decision::materialize_recovery_action::dm003",
+                },
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "gate_clearing_batch",
+                    "provider_admission_allowed": True,
+                    "successor_owner_action": {
+                        "action_type": "run_gate_clearing_batch",
+                        "owner": "gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": fingerprint,
+                        "source_surface": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                        "source_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                    },
+                },
+            },
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+        dispatch_ready_for_execution=True,
+    )
+
+    assert result["dry_run"] is True
+    assert result["dispatch_ready_for_execution_preview"] is True
+    assert result["written_files"] == []
+    assert result["default_executor_dispatch_count"] == 1
+    assert result["ready_default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["work_unit_id"] == "publication_gate_replay"
+    assert dispatch["work_unit_fingerprint"] == fingerprint
