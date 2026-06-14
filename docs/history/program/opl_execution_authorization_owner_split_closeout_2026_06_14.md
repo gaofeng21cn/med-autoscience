@@ -8,9 +8,9 @@ Machine boundary: 本文是人读 closeout ledger。当前 truth 继续归 MAS s
 ## Snapshot
 
 - `RUN_SNAPSHOT_TS=2026-06-14T00:56:48Z`.
-- Repo scope: `/Users/gaofeng/workspace/med-autoscience` at `main@3edd02c8c`, synced with `origin/main`.
+- Repo scope: `/Users/gaofeng/workspace/med-autoscience` started from `main@3edd02c8c`; during this verification window the coherent docs/source-test foldback was already linearly landed through `07c02803c` and `de6502bfc`, with `origin/main` at `de6502bfc` before this ledger commit.
 - Frozen dirty write set before absorption: `docs/decisions.md`, `docs/status.md`.
-- Post-snapshot activity: the dirty docs were already a coherent owner-split foldback from the recent MAS current-work-unit / paper-recovery commits `3a9a177df` and `3edd02c8c`; this lane verified and absorbed that foldback instead of overwriting it.
+- Post-snapshot activity: the dirty docs were a coherent owner-split foldback from the MAS current-work-unit / paper-recovery commits `3a9a177df`, `3edd02c8c`, `07c02803c`, and `de6502bfc`; this lane verified and recorded that foldback instead of overwriting it.
 
 ## Candidate Gate
 
@@ -60,11 +60,18 @@ Read source/tests/docs evidence:
   - `running_provider_attempt=false`, `active_run_id=null`, worker liveness `not_live` / `parked`.
 - Fresh DHD dry-run was observe-only with `will_start_llm=false`, `codex_dispatch_count=0`, `provider_admission_pending_count=0`.
 
-## Changed Files
+## Landed And Recorded Files
 
-- `docs/decisions.md`: rewrote the durable decision so canonical `current_work_unit.owner`, `current_execution_envelope.owner`, and `paper_recovery_state.current_authority.owner` are `one-person-lab` for this blocker, while embedded obligation owner remains `gate_clearing_batch`.
-- `docs/status.md`: added compact current-state foldback with the same owner split and explicit non-claims.
+Already landed before this ledger commit:
+
+- `docs/decisions.md` in `07c02803c`: rewrote the durable decision so canonical `current_work_unit.owner`, `current_execution_envelope.owner`, and `paper_recovery_state.current_authority.owner` are `one-person-lab` for this blocker, while embedded obligation owner remains `gate_clearing_batch`.
+- `docs/status.md` in `07c02803c`: added compact current-state foldback with the same owner split and explicit non-claims.
+- Focused test split in `de6502bfc`: kept authorization blocker current-work-unit tests isolated.
+
+Recorded by this ledger commit:
+
 - `docs/history/program/opl_execution_authorization_owner_split_closeout_2026_06_14.md`: this provenance ledger.
+- `docs/history/program/README.md`: compact history index row.
 
 No source, tests, contracts, workflows, package metadata, runtime workspace artifact, publication artifact, owner receipt, typed blocker, human gate, or OPL provider attempt was changed in this lane.
 
