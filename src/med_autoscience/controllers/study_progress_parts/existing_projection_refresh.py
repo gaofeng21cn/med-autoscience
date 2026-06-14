@@ -23,6 +23,9 @@ from .opl_current_control_state_handoff import (
 )
 from .operator_view import _study_command_surfaces
 from .progress_first_monitoring import build_progress_first_monitoring_summary
+from .projection_payload_assembly_parts.current_execution_surfaces import (
+    refresh_current_execution_surfaces,
+)
 from .projection_payload_assembly_parts.progress_delta import progress_delta_metrics
 from .projection_payload_assembly_parts.paper_recovery_visibility import (
     apply_paper_recovery_state_user_visible_status,
@@ -161,6 +164,12 @@ def refresh_existing_projection_current_owner_surfaces(
         }
         updated = sync_current_execution_evidence(updated, handoff=handoff)
         updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+        updated = refresh_paper_recovery_successor_surfaces(
+            payload=updated,
+            status=status,
+            handoff=handoff,
+            study_root=study_root,
+        )
         updated = apply_paper_recovery_state_user_visible_status(updated)
         updated["user_visible_projection"] = build_user_visible_projection(updated)
         return attach_delivery_inspection_projection_fn(
@@ -239,6 +248,12 @@ def refresh_existing_projection_current_owner_surfaces(
         action_queue=envelope_actions,
     )
     updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+    updated = refresh_paper_recovery_successor_surfaces(
+        payload=updated,
+        status=status,
+        handoff=handoff,
+        study_root=study_root,
+    )
     updated = apply_paper_recovery_state_user_visible_status(updated)
     updated["user_visible_projection"] = build_user_visible_projection(updated)
     return attach_delivery_inspection_projection_fn(
@@ -309,6 +324,41 @@ def _current_control_typed_blocker_for_successor_check(handoff: Mapping[str, Any
     if envelope_blocker:
         return envelope_blocker
     return {}
+
+
+def refresh_paper_recovery_successor_surfaces(
+    *,
+    payload: dict[str, Any],
+    status: dict[str, Any],
+    handoff: Mapping[str, Any],
+    study_root: Path,
+) -> dict[str, Any]:
+    current_action = build_current_executable_owner_action(payload)
+    if _non_empty_text(_mapping_copy(current_action).get("source")) != (
+        "paper_recovery_state.next_safe_action.successor_owner_action"
+    ):
+        return payload
+    runtime_health_snapshot = _mapping_copy(payload.get("runtime_health_snapshot")) or _mapping_copy(
+        status.get("runtime_health_snapshot")
+    )
+    updated = refresh_current_execution_surfaces(
+        payload={**payload, "current_executable_owner_action": current_action},
+        status=status,
+        handoff=handoff,
+        runtime_health_snapshot=runtime_health_snapshot,
+    )
+    updated.update(
+        provider_admission_projection_fields(
+            payload=updated,
+            handoff=handoff,
+            study_root=study_root,
+        )
+    )
+    updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+    updated = sync_progress_first_owner_action_admission(updated)
+    updated = sync_current_execution_evidence(updated, handoff=handoff)
+    updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+    return updated
 
 
 def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:
