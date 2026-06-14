@@ -194,6 +194,9 @@ def _paper_recovery_states(
         candidates = candidates_by_study.get(study_id, [])
         progress["provider_admission_pending_count"] = len(candidates)
         progress["provider_admission_candidates"] = candidates
+        if canonical_state := _mapping(progress.get("paper_recovery_state")):
+            states[study_id] = dict(canonical_state)
+            continue
         state = build_paper_recovery_state(
             progress,
             diagnostic_report={
@@ -320,6 +323,9 @@ def _managed_study_action_with_currentness(
         result["current_execution_envelope"] = current_execution
     if current_owner_action:
         result["current_executable_owner_action"] = current_owner_action
+    if _is_opl_stage_attempt_admission_action(result):
+        result["running_provider_attempt"] = False
+        return result
 
     terminal_reason = _terminal_controller_work_unit_reason(result)
     if terminal_reason is not None and state_kind in {"typed_blocker", "blocked_current_work_unit"}:
@@ -411,11 +417,23 @@ def _managed_study_action_with_paper_recovery_state(
     if supervisor_decision:
         result["supervisor_decision"] = dict(supervisor_decision)
     phase = _text(recovery.get("phase"))
+    if _is_opl_stage_attempt_admission_action(result):
+        return result
     if phase in {"domain_blocked", "human_gate"}:
         result["decision"] = phase
         result["reason"] = _paper_recovery_reason(recovery) or phase
         result["running_provider_attempt"] = False
     return result
+
+
+def _is_opl_stage_attempt_admission_action(action: Mapping[str, Any]) -> bool:
+    resume_postcondition = _mapping(action.get("resume_postcondition"))
+    return (
+        _text(action.get("decision")) == "blocked"
+        and _text(action.get("reason")) == "quest_waiting_opl_runtime_owner_route"
+        and _text(action.get("status")) == "opl_stage_attempt_admission_required"
+        and resume_postcondition.get("status") == "opl_stage_attempt_admission_required"
+    )
 
 
 def _managed_study_actions_with_provider_admission_state(

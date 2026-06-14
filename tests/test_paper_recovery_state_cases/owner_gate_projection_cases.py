@@ -167,6 +167,129 @@ def test_runtime_report_preserves_gate_followthrough_successor_owner_action() ->
     assert action["reason"] == "publication_gate_replay_blocked"
 
 
+def test_runtime_report_uses_fresh_canonical_paper_recovery_state() -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    repair_fingerprint = "publication-blockers::0915410f804b3697"
+    canonical_recovery = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "owner_action_ready",
+        "current_authority": {"owner": "write"},
+        "next_safe_action": {
+            "kind": "materialize_successor_owner_action",
+            "provider_admission_allowed": True,
+            "owner": "write",
+            "successor_owner_action": {
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": repair_fingerprint,
+            },
+        },
+        "supervisor_decision": {
+            "decision": "materialize_recovery_action",
+        },
+    }
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "decision": "domain_blocked",
+                "reason": "current_work_unit_typed_blocker",
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[],
+        managed_study_progress_currentness={
+            study_id: {
+                "study_id": study_id,
+                "current_work_unit": _typed_blocker_work_unit(
+                    study_id=study_id,
+                    owner="gate_clearing_batch",
+                    action_type="run_gate_clearing_batch",
+                    work_unit_id="publication_gate_replay",
+                    blocker_type="current_owner_route_missing",
+                ),
+                "paper_recovery_state": canonical_recovery,
+            }
+        },
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    assert result["paper_recovery_states"][study_id] == canonical_recovery
+    action = result["managed_study_actions"][0]
+    assert action["paper_recovery_state"] == canonical_recovery
+    assert action["supervisor_decision"] == canonical_recovery["supervisor_decision"]
+    assert action["decision"] == "domain_blocked"
+    assert action["reason"] == "current_owner_route_missing"
+
+
+def test_runtime_report_preserves_opl_stage_attempt_admission_action() -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "decision": "blocked",
+                "reason": "quest_waiting_opl_runtime_owner_route",
+                "status": "opl_stage_attempt_admission_required",
+                "resume_postcondition": {
+                    "status": "opl_stage_attempt_admission_required",
+                },
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[],
+        managed_study_progress_currentness={
+            study_id: {
+                "study_id": study_id,
+                "current_work_unit": _typed_blocker_work_unit(
+                    study_id=study_id,
+                    owner="gate_clearing_batch",
+                    action_type="run_gate_clearing_batch",
+                    work_unit_id="publication_gate_replay",
+                    blocker_type="opl_execution_authorization_required",
+                ),
+            }
+        },
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    action = result["managed_study_actions"][0]
+    assert action["paper_recovery_state"]["phase"] == "domain_blocked"
+    assert action["decision"] == "blocked"
+    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["status"] == "opl_stage_attempt_admission_required"
+    assert action["resume_postcondition"] == {
+        "status": "opl_stage_attempt_admission_required",
+    }
+
+
 def test_owner_gate_route_back_suppresses_residual_provider_admission_projection() -> None:
     visibility = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
