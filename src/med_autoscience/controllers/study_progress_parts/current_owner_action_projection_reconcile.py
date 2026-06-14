@@ -18,6 +18,14 @@ CURRENT_OWNER_ACTION_SOURCES = frozenset(
         "publication_eval.recommended_actions.readiness_blocker_repair",
     }
 )
+CURRENT_CONTROL_TYPED_BLOCKER_SUCCESSOR_SOURCES = frozenset(
+    {
+        "domain_transition",
+        "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "publication_eval.recommended_actions.readiness_blocker_repair",
+    }
+)
 READINESS_ACTION = "complete_medical_paper_readiness_surface"
 OWNER_ACTION_SUPERSEDABLE_PARKED_STATES = frozenset(
     {
@@ -192,6 +200,16 @@ def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[s
         ],
     }
     return updated
+
+
+def current_control_typed_blocker_successor_action(action: Mapping[str, Any] | None) -> bool:
+    if not isinstance(action, Mapping):
+        return False
+    if _non_empty_text(action.get("source")) not in CURRENT_CONTROL_TYPED_BLOCKER_SUCCESSOR_SOURCES:
+        return False
+    return _non_empty_text(action.get("action_type")) is not None and _non_empty_text(
+        action.get("work_unit_id")
+    ) is not None
 
 
 def current_owner_action_supersedes_stale_user_park(

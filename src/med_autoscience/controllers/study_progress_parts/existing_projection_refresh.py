@@ -13,6 +13,7 @@ from .current_executable_owner_action import build_current_executable_owner_acti
 from .current_owner_action_projection_reconcile import (
     current_execution_evidence_actions,
     current_execution_envelope_actions,
+    current_control_typed_blocker_successor_action,
     reconcile_current_owner_action_projection,
 )
 from .delivery_inspection import attach_delivery_inspection_projection
@@ -140,7 +141,7 @@ def refresh_existing_projection_current_owner_surfaces(
         handoff = {}
     updated = _apply_current_control_currentness_to_existing_projection(updated, handoff=handoff)
     typed_blocker_successor_action = build_current_executable_owner_action(updated)
-    if _current_control_handoff_is_typed_blocker(handoff) and not _typed_blocker_successor_action(
+    if _current_control_handoff_is_typed_blocker(handoff) and not current_control_typed_blocker_successor_action(
         typed_blocker_successor_action
     ):
         updated["current_executable_owner_action"] = None
@@ -290,16 +291,6 @@ def _current_control_handoff_is_typed_blocker(handoff: Mapping[str, Any]) -> boo
         return True
     handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
     return _non_empty_text(handoff_envelope.get("state_kind")) == "typed_blocker"
-
-
-def _typed_blocker_successor_action(action: Mapping[str, Any] | None) -> bool:
-    if not isinstance(action, Mapping):
-        return False
-    if _non_empty_text(action.get("source")) != "domain_transition":
-        return False
-    return _non_empty_text(action.get("action_type")) is not None and _non_empty_text(
-        action.get("work_unit_id")
-    ) is not None
 
 
 def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:

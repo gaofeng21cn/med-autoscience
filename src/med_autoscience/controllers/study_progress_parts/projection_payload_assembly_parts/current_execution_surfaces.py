@@ -11,6 +11,7 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_curre
 )
 
 from ..current_owner_action_projection_reconcile import (
+    current_control_typed_blocker_successor_action,
     current_execution_evidence_actions,
     current_execution_envelope_actions,
     current_execution_handoff_consumes_current_action,
@@ -34,7 +35,7 @@ def refresh_current_execution_surfaces(
         if handoff_envelope:
             updated["current_execution_envelope"] = handoff_envelope
         successor_action = build_current_executable_owner_action(updated)
-        if _typed_blocker_successor_action(successor_action):
+        if current_control_typed_blocker_successor_action(successor_action):
             updated["current_executable_owner_action"] = successor_action
             handoff_work_unit = {}
         else:
@@ -151,16 +152,6 @@ def _canonical_current_control_typed_blocker_work_unit(handoff: Mapping[str, Any
     if _non_empty_text(current.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
         return current
     return {}
-
-
-def _typed_blocker_successor_action(action: Mapping[str, Any] | None) -> bool:
-    if not isinstance(action, Mapping):
-        return False
-    if _non_empty_text(action.get("source")) != "domain_transition":
-        return False
-    return _non_empty_text(action.get("action_type")) is not None and _non_empty_text(
-        action.get("work_unit_id")
-    ) is not None
 
 
 def _canonical_actions_for_execution_refresh(
