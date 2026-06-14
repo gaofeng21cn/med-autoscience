@@ -245,19 +245,21 @@ def _supervisor_decision_allows_provider_admission(
         return False
     decision_action = _mapping_copy(supervisor_decision.get("next_safe_action"))
     decision_action_kind = _non_empty_text(decision_action.get("kind"))
-    if decision_action_kind is None:
-        return recovery_action_kind in {
-            "materialize_provider_admission_or_owner_callable",
-            "materialize_successor_owner_action",
-            "admit_provider_attempt",
-            "admit_identity_bound_stage_packet",
-        }
-    return decision_action_kind in {
+    allowed_action_kinds = {
         "materialize_provider_admission_or_owner_callable",
         "materialize_successor_owner_action",
         "admit_provider_attempt",
         "admit_identity_bound_stage_packet",
     }
+    if decision_action_kind is None:
+        return recovery_action_kind in allowed_action_kinds
+    if decision_action_kind in allowed_action_kinds:
+        return True
+    if decision_action_kind != "materialize_recovery_work_unit_or_receipt":
+        return False
+    source_action = _mapping_copy(decision_action.get("source_next_safe_action"))
+    source_action_kind = _non_empty_text(source_action.get("kind"))
+    return source_action_kind in allowed_action_kinds
 
 
 def _blocked_by(supervisor_decision: Mapping[str, Any]) -> str:

@@ -126,6 +126,16 @@
           "reason": "observe_only cannot create pending recovery execution without an identity-bound provider admission candidate or count"
         },
         {
+          "name": "successor_owner_action_precedes_stale_admission_blocked_residue",
+          "when_all": [
+            "verified_successor_owner_action_present",
+            "provider_admission_residue_observe_only_or_retry_exhausted",
+            "successor_action_identity_complete"
+          ],
+          "effect": "owner_action_ready",
+          "reason": "verified successor owner action is the current PaperRecovery authority and must not be swallowed by stale provider-admission residue"
+        },
+        {
           "name": "terminal_without_consume_or_reject",
           "when_all": [
             "phase=terminal_closeout_ready",
@@ -466,6 +476,12 @@
         "symptom": "provider admission retry is exhausted but the current identity-bound MAS owner action has a direct study or paper callable",
         "required_outcome": "owner_action_ready",
         "next_safe_action": "run_mas_owner_callable"
+      },
+      {
+        "case_id": "successor_owner_action_shadowed_by_stale_observe_only_admission",
+        "symptom": "repair and gate replay evidence prove a successor owner action, but stale provider-admission residue and DHD observe_only would otherwise return admission_blocked",
+        "required_outcome": "owner_action_ready",
+        "next_safe_action": "materialize_successor_owner_action"
       },
       {
         "case_id": "terminal_closeout_not_consumed",

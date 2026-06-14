@@ -355,6 +355,25 @@ def build_paper_recovery_state(
             current_owner=owner,
         )
 
+    successor_action = _current_owner_successor_action(progress, current_action=current_action)
+    if successor_action is not None:
+        successor_owner = _text(successor_action.get("owner")) or _text(
+            successor_action.get("next_owner")
+        )
+        return _state(
+            progress,
+            obligation=obligation,
+            phase="owner_action_ready",
+            conditions=[{"condition": "current_owner_action_successor_materialization"}],
+            next_safe_action=_next_action(
+                "materialize_successor_owner_action",
+                provider_admission_allowed=True,
+                owner=successor_owner,
+                successor_owner_action=successor_action,
+            ),
+            current_owner=successor_owner,
+        )
+
     admission_blocked = _admission_blocked_condition(progress, diagnostic)
     if admission_blocked is not None:
         owner = _text(obligation.get("owner"))
@@ -390,25 +409,6 @@ def build_paper_recovery_state(
                 required_input="OPL transport recovery authorization, current identity-bound provider start, or stable typed blocker",
             ),
             current_owner=owner,
-        )
-
-    successor_action = _current_owner_successor_action(progress, current_action=current_action)
-    if successor_action is not None:
-        successor_owner = _text(successor_action.get("owner")) or _text(
-            successor_action.get("next_owner")
-        )
-        return _state(
-            progress,
-            obligation=obligation,
-            phase="owner_action_ready",
-            conditions=[{"condition": "current_owner_action_successor_materialization"}],
-            next_safe_action=_next_action(
-                "materialize_successor_owner_action",
-                provider_admission_allowed=True,
-                owner=successor_owner,
-                successor_owner_action=successor_action,
-            ),
-            current_owner=successor_owner,
         )
 
     if _provider_admission_pending(progress):

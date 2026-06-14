@@ -316,6 +316,50 @@ def test_user_visible_projection_blocks_provider_admission_by_supervisor_decisio
     assert monitoring["blocked_by"] == "paper_autonomy_supervisor_decision"
 
 
+def test_successor_recovery_visibility_keeps_provider_admission_projection() -> None:
+    visibility = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+    )
+    result = visibility.apply_paper_recovery_state_user_visible_status(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                }
+            ],
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_action_ready",
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "provider_admission_allowed": True,
+                    "owner": "write",
+                },
+                "supervisor_decision": {
+                    "decision": "materialize_recovery_action",
+                    "next_safe_action": {
+                        "kind": "materialize_recovery_work_unit_or_receipt",
+                        "source_next_safe_action": {
+                            "kind": "materialize_successor_owner_action",
+                            "provider_admission_allowed": True,
+                        },
+                    },
+                },
+            },
+        }
+    )
+
+    assert result["provider_admission_pending_count"] == 1
+    assert result["provider_admission_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
+    assert "blocked_provider_admission_candidates" not in result
+    assert "paper_recovery_provider_admission_blocked_count" not in result
+
+
 def test_runtime_scan_fresh_currentness_carries_owner_gate_events(monkeypatch, tmp_path) -> None:
     runtime_scan_support = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan_support"

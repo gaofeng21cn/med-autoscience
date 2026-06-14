@@ -261,6 +261,16 @@ def test_paper_recovery_phases_are_mutually_exclusive_and_forbid_bad_combination
     assert forbidden["pending_without_identity_bound_provider_admission"]["effect"] == (
         "admission_blocked"
     )
+    assert forbidden["successor_owner_action_precedes_stale_admission_blocked_residue"][
+        "when_all"
+    ] == [
+        "verified_successor_owner_action_present",
+        "provider_admission_residue_observe_only_or_retry_exhausted",
+        "successor_action_identity_complete",
+    ]
+    assert forbidden["successor_owner_action_precedes_stale_admission_blocked_residue"][
+        "effect"
+    ] == "owner_action_ready"
     assert forbidden["terminal_without_consume_or_reject"]["effect"] == (
         "force_next_safe_action_consume_or_reject_terminal_closeout"
     )
@@ -481,6 +491,16 @@ def test_paper_recovery_accident_replay_documents_forbidden_acceptance_evidence(
         ),
         "required_outcome": "owner_action_ready",
         "next_safe_action": "run_mas_owner_callable",
+    }
+    assert cases["successor_owner_action_shadowed_by_stale_observe_only_admission"] == {
+        "case_id": "successor_owner_action_shadowed_by_stale_observe_only_admission",
+        "symptom": (
+            "repair and gate replay evidence prove a successor owner action, but stale "
+            "provider-admission residue and DHD observe_only would otherwise return "
+            "admission_blocked"
+        ),
+        "required_outcome": "owner_action_ready",
+        "next_safe_action": "materialize_successor_owner_action",
     }
     assert cases["terminal_closeout_not_consumed"]["next_safe_action"] == (
         "consume_terminal_closeout"
