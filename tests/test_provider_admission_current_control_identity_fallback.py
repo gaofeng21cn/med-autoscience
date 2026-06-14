@@ -383,3 +383,116 @@ def test_current_control_provider_admission_filters_synthetic_current_owner_tick
     candidate = result[0]
     assert candidate["work_unit_fingerprint"] == strong_fingerprint
     assert ticket not in candidate["work_unit_fingerprints"]
+
+
+def test_opl_authorization_typed_blocker_without_fingerprint_matches_current_work_unit(
+    tmp_path: Path,
+) -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = tmp_path / "studies" / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    work_unit_id = "manuscript_story_repair"
+    execution_fingerprint = "publication-blockers::497d1260db522f01"
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "write",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    result = provider_admission.provider_admission_candidates_from_execution_payload(
+        {
+            "surface": "domain_owner_action_dispatch",
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "blocked",
+                    "blocked_reason": "opl_execution_authorization_required",
+                    "provider_attempt_or_lease_required": True,
+                    "provider_completion_is_domain_completion": False,
+                    "owner_route_current": True,
+                    "dispatch_path": str(dispatch_path),
+                    "action_fingerprint": execution_fingerprint,
+                    "next_executable_owner": "write",
+                    "required_output_surface": (
+                        "canonical manuscript story-surface delta or "
+                        "typed blocker:manuscript_story_surface_delta_missing"
+                    ),
+                    "owner_route": {
+                        "next_owner": "write",
+                        "allowed_actions": ["run_quality_repair_batch"],
+                        "source_refs": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": execution_fingerprint,
+                            "owner_route_currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-current",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": execution_fingerprint,
+                            },
+                        },
+                    },
+                }
+            ],
+        },
+        status_payload={
+            "study_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "state": {
+                    "source": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "opl_execution_authorization_required",
+                        "input_refs": [
+                            "artifacts/supervision/opl/current-owner-ticket.json",
+                        ],
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_type": "opl_execution_authorization_required",
+                },
+            },
+        },
+    )
+
+    assert len(result) == 1
+    candidate = result[0]
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["work_unit_fingerprint"] == execution_fingerprint
+    assert candidate["currentness_basis"] == {
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": execution_fingerprint,
+        "truth_epoch": "truth-event-current",
+        "runtime_health_epoch": "runtime-health-current",
+    }

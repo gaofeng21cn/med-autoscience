@@ -30,17 +30,20 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
 
 DEFAULT_EXECUTOR_DISPATCHES = Path("artifacts/supervision/consumer/default_executor_dispatches")
 CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS = {
+    "complete_medical_paper_readiness_surface": {"MedAutoScience"},
     "return_to_ai_reviewer_workflow": {"ai_reviewer"},
     "run_quality_repair_batch": {"analysis-campaign", "write"},
     "run_gate_clearing_batch": {"finalize", "gate_clearing_batch", "write"},
 }
 CURRENT_CONTROL_PROVIDER_ADMISSION_DEFAULT_EXECUTABLE_OWNERS = {
+    "complete_medical_paper_readiness_surface": "MedAutoScience",
     "return_to_ai_reviewer_workflow": "ai_reviewer",
     "run_quality_repair_batch": "write",
     "run_gate_clearing_batch": "gate_clearing_batch",
 }
 OPL_RUNTIME_ROUTE_OWNERS = {"one-person-lab"}
 CURRENT_CONTROL_PROVIDER_ADMISSION_DISPATCH_AUTHORITIES = {
+    "complete_medical_paper_readiness_surface": {"consumer_default_executor_dispatch"},
     "return_to_ai_reviewer_workflow": {"ai_reviewer_record_production_handoff"},
     "run_quality_repair_batch": {None, "quality_repair_batch_writer_handoff", "consumer_default_executor_dispatch"},
     "run_gate_clearing_batch": {None, "consumer_default_executor_dispatch"},
@@ -512,8 +515,7 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": fingerprint,
         "work_unit_fingerprints": list(dict.fromkeys(fingerprints)),
-        "source_ref": _first_text(current_work_unit.get("input_refs"))
-        or _non_empty_text(state.get("source_ref")),
+        "source_ref": _non_empty_text(state.get("source_ref")),
         "source": _non_empty_text(state.get("source")) or "canonical_current_work_unit",
         "next_owner": _non_empty_text(current_work_unit.get("owner")),
         "opl_execution_authorization_required": opl_authorization_typed_blocker,

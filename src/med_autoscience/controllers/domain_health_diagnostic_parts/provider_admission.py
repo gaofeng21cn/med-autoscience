@@ -760,6 +760,16 @@ def _authorization_required_execution_matches_current_action(
     work_unit_fingerprint = _work_unit_fingerprint(execution)
     if action_type is None or work_unit_id is None or work_unit_fingerprint is None:
         return False
+    if (
+        _current_identity_is_opl_authorization_typed_blocker(current_action_identity)
+        and _non_empty_text(current_action_identity.get("work_unit_fingerprint")) is None
+        and not _text_items(current_action_identity.get("work_unit_fingerprints"))
+    ):
+        return _matches_current_action_without_fingerprint(
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+            current_action_identity=current_action_identity,
+        )
     return _matches_current_action(
         action_type=action_type,
         work_unit_id=work_unit_id,
