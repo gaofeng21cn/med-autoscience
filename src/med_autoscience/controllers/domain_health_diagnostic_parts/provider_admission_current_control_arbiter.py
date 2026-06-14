@@ -23,6 +23,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity import (
     closeout_core_identity_matches_candidate as _closeout_core_identity_matches_candidate,
 )
+from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
+    provider_admission_supervisor_gate,
+)
 
 ARBITER_SURFACE_KIND = "mas_opl_stage_route_arbiter"
 ARBITER_SCHEMA_VERSION = 1
@@ -490,8 +493,9 @@ def _paper_recovery_state_blocks_provider_admission(
     recovery = _mapping(study.get("paper_recovery_state"))
     if not recovery:
         return {}
-    supervisor_decision = _mapping(recovery.get("supervisor_decision"))
-    if supervisor_decision and _non_empty_text(supervisor_decision.get("decision")) == "execute_current_owner_delta":
+    supervisor_gate = provider_admission_supervisor_gate(study, paper_recovery_state=recovery)
+    supervisor_decision = _mapping(supervisor_gate.get("supervisor_decision"))
+    if supervisor_decision and supervisor_gate.get("blocked") is not True:
         return {}
     next_safe_action = _mapping(recovery.get("next_safe_action"))
     if (

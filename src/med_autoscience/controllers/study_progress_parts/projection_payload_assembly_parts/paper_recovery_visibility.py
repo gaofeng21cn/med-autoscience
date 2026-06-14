@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from ..paper_autonomy_supervisor_decision import supervisor_decision_blocks_provider_admission
 from ..shared import _mapping_copy, _non_empty_text
 
 
@@ -186,8 +187,7 @@ def _suppress_active_provider_admission_projection(
 
 
 def _supervisor_decision_blocks_provider_admission(supervisor_decision: Mapping[str, Any]) -> bool:
-    decision = _non_empty_text(supervisor_decision.get("decision"))
-    return bool(decision and decision != "execute_current_owner_delta")
+    return supervisor_decision_blocks_provider_admission(supervisor_decision)
 
 
 def _blocked_by(supervisor_decision: Mapping[str, Any]) -> str:

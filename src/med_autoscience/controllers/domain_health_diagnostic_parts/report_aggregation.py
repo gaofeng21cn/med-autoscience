@@ -8,6 +8,9 @@ from med_autoscience.controllers import current_execution_envelope
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.controllers import runtime_dispatch_cost
 from med_autoscience.controllers.domain_health_diagnostic_parts.reporting import _attach_family_companion_to_runtime_report
+from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
+    provider_admission_supervisor_gate,
+)
 from med_autoscience.runtime_protocol import quest_state
 
 
@@ -470,7 +473,12 @@ def _managed_study_action_with_provider_admission_state(
         if supervisor_decision:
             result["supervisor_decision"] = dict(supervisor_decision)
     supervisor_decision = _mapping(result.get("supervisor_decision"))
-    if _supervisor_decision_blocks_provider_admission(supervisor_decision):
+    supervisor_gate = provider_admission_supervisor_gate(
+        result,
+        paper_recovery_state=recovery,
+    )
+    if supervisor_gate.get("blocked") is True:
+        supervisor_decision = _mapping(supervisor_gate.get("supervisor_decision"))
         result["running_provider_attempt"] = False
         result["provider_admission_state"] = {
             "status": "blocked_by_paper_autonomy_supervisor_decision",
@@ -512,11 +520,6 @@ def _managed_study_action_with_provider_admission_state(
         },
     )
     return result
-
-
-def _supervisor_decision_blocks_provider_admission(supervisor_decision: Mapping[str, Any]) -> bool:
-    decision = _text(supervisor_decision.get("decision"))
-    return bool(decision and decision != "execute_current_owner_delta")
 
 
 def _provider_admission_candidates_by_study(
