@@ -471,6 +471,11 @@ def _gate_followthrough_supersedes_repair_progress(
         return False
     if _non_empty_text(repair_action.get("action_type")) != GATE_CLEARING_ACTION:
         return False
+    if _repair_progress_consumes_gate_followthrough_work_unit(
+        gate_action=gate_action,
+        repair_action=repair_action,
+    ):
+        return False
     repair_precedence = _mapping_copy(repair_action.get("repair_progress_precedence"))
     source_work_unit = _non_empty_text(repair_precedence.get("source_work_unit_id"))
     if source_work_unit is not None and source_work_unit != _non_empty_text(gate_action.get("work_unit_id")):
@@ -483,6 +488,24 @@ def _gate_followthrough_supersedes_repair_progress(
         _gate_followthrough_action_refs(gate_action),
         _repair_followup_gate_action_refs(repair_action),
     )
+
+
+def _repair_progress_consumes_gate_followthrough_work_unit(
+    *,
+    gate_action: Mapping[str, Any],
+    repair_action: Mapping[str, Any],
+) -> bool:
+    repair_precedence = _mapping_copy(repair_action.get("repair_progress_precedence"))
+    source_work_unit = _non_empty_text(repair_precedence.get("source_work_unit_id"))
+    if source_work_unit is None or source_work_unit != _non_empty_text(gate_action.get("work_unit_id")):
+        return False
+    gate_eval = _non_empty_text(gate_action.get("source_eval_id"))
+    repair_eval = _non_empty_text(repair_action.get("source_eval_id"))
+    if gate_eval is None or repair_eval is None or gate_eval != repair_eval:
+        return False
+    if _non_empty_text(gate_action.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    return _non_empty_text(repair_action.get("action_type")) == GATE_CLEARING_ACTION
 
 
 def _gate_followthrough_action_refs(action: Mapping[str, Any]) -> set[str]:
@@ -578,6 +601,11 @@ def _gate_followthrough_consumes_repair_progress_gate_replay(
     ):
         return False
     if _non_empty_text(gate_followthrough_action.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    if _repair_progress_consumes_gate_followthrough_work_unit(
+        gate_action=gate_followthrough_action,
+        repair_action=action,
+    ):
         return False
     return _ref_sets_intersect(
         _repair_followup_gate_action_refs(action),

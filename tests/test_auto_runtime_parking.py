@@ -639,6 +639,76 @@ def test_current_owner_action_supersedes_operator_explicit_resume_lane(
     assert "显式" not in result["operator_status_card"]["current_focus"]
 
 
+def test_gate_followthrough_owner_action_supersedes_explicit_resume_operator_residue() -> None:
+    reconcile = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+    )
+
+    result = reconcile.reconcile_current_owner_action_projection(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "auto_runtime_parked",
+            "auto_runtime_parked": {
+                "surface_kind": "auto_runtime_parked",
+                "schema_version": 1,
+                "parked": True,
+                "parked_state": "explicit_resume_pending",
+                "parked_state_label": "等待显式恢复",
+                "parked_owner": "user",
+                "resource_release_expected": True,
+                "awaiting_explicit_wakeup": True,
+                "auto_execution_complete": False,
+                "source_reason": "blocked_turn_closeout_waiting_for_owner",
+                "source_decision": "blocked",
+                "source_quest_status": "waiting_for_user",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "intervention_lane": {
+                "lane_id": "auto_runtime_parked",
+                "summary": "等待显式 resume、rerun 或 relaunch。",
+            },
+            "operator_verdict": {
+                "decision_mode": "auto_runtime_parked",
+                "summary": "等待显式 resume、rerun 或 relaunch。",
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+                "handling_state_label": "等待显式恢复",
+                "current_focus": "等待显式 resume、rerun 或 relaunch。",
+            },
+            "recovery_contract": {
+                "action_mode": "auto_runtime_parked",
+                "summary": "等待显式 resume、rerun 或 relaunch。",
+            },
+            "autonomy_contract": {
+                "autonomy_state": "auto_runtime_parked",
+                "summary": "等待显式 resume、rerun 或 relaunch。",
+            },
+        }
+    )
+
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["auto_runtime_parked"]["superseded_by_current_owner_action"] is True
+    assert result["current_stage"] == "publication_supervision"
+    assert result["awaiting_explicit_wakeup"] is False
+    assert result["intervention_lane"]["lane_id"] == "current_owner_action_ready"
+    assert result["operator_verdict"]["decision_mode"] == "monitor_only"
+    assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
+    assert result["recovery_contract"]["action_mode"] == "inspect_current_owner_action"
+    assert result["autonomy_contract"]["autonomy_state"] == "autonomous_progress"
+    assert "显式" not in result["next_system_action"]
+
+
 def test_study_progress_reads_dm002_malformed_publication_surface_blockers(
     tmp_path,
 ) -> None:

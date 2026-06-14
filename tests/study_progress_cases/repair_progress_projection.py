@@ -78,6 +78,144 @@ def test_repair_progress_projection_carries_recheck_and_gate_done_flags(tmp_path
     assert repair_progress["gate_replay_refs"] == [str(gate_request)]
 
 
+def test_repair_progress_projection_accepts_executed_quality_batch_owner_result(
+    tmp_path: Path,
+) -> None:
+    repair_projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.repair_progress_projection"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    paper_root = study_root / "paper"
+    draft = paper_root / "draft.md"
+    review = paper_root / "build" / "review_manuscript.md"
+    for path in (draft, review):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("current\n", encoding="utf-8")
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    quality_batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    gate_report = study_root / "runtime" / "quests" / "003-dpcc-primary-care-phenotype-treatment-gap" / "artifacts" / "reports" / "publishability_gate" / "2026-06-14T075221Z.json"
+    gate_record = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+    ai_request = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    _write_json(
+        evidence_path,
+        {
+            "surface": "repair_execution_evidence",
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "repair_work_unit": {"unit_id": "medical_prose_write_repair"},
+            "review_finding": {"source_eval_id": "eval-current"},
+            "source_fingerprint": "sha256:repair-evidence-current",
+            "canonical_artifact_delta": {
+                "status": "fresh",
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+                    {"path": str(review), "artifact_role": "canonical_manuscript_story_surface"},
+                ],
+            },
+            "changed_artifact_refs": [
+                {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+            ],
+            "gate_replay_done": True,
+            "gate_replay_refs": [str(gate_report), str(gate_record)],
+            "ai_reviewer_recheck_required": True,
+            "ai_reviewer_recheck_done": True,
+            "ai_reviewer_recheck_request_ref": str(ai_request),
+            "quality_authorized": False,
+            "submission_authorized": False,
+            "current_package_write_authorized": False,
+            "blockers": [],
+        },
+    )
+    _write_json(
+        quality_batch_path,
+        {
+            "schema_version": 1,
+            "status": "executed",
+            "ok": True,
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "source_eval_id": "eval-current",
+            "repair_execution_evidence_path": str(evidence_path),
+            "blocked_reason": None,
+            "typed_blocker": None,
+            "authority_route_gate": {
+                "authorized": True,
+                "allowed": True,
+                "controller_route_gate": {
+                    "authorized": True,
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                },
+            },
+        },
+    )
+
+    repair_progress = repair_projection.build_repair_progress_projection(study_root=study_root)
+
+    assert repair_progress["paper_delta_observed"] is True
+    assert repair_progress["accepted_owner_receipt"] is True
+    assert repair_progress["owner_receipt_ref"] == str(quality_batch_path)
+    assert repair_progress["work_unit_id"] == "medical_prose_write_repair"
+    assert repair_progress["source_eval_id"] == "eval-current"
+    assert repair_progress["changed_artifact_refs"] == [
+        {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+        {"path": str(review), "artifact_role": "canonical_manuscript_story_surface"},
+    ]
+
+
+def test_repair_progress_projection_rejects_quality_batch_without_current_eval_identity(
+    tmp_path: Path,
+) -> None:
+    repair_projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.repair_progress_projection"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    draft = study_root / "paper" / "draft.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text("current\n", encoding="utf-8")
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    quality_batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    _write_json(
+        evidence_path,
+        {
+            "surface": "repair_execution_evidence",
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "repair_work_unit": {"unit_id": "medical_prose_write_repair"},
+            "canonical_artifact_delta": {
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+                ],
+            },
+            "quality_authorized": False,
+            "submission_authorized": False,
+            "current_package_write_authorized": False,
+            "blockers": [],
+        },
+    )
+    _write_json(
+        quality_batch_path,
+        {
+            "schema_version": 1,
+            "status": "executed",
+            "ok": True,
+            "source_eval_id": "eval-current",
+            "repair_execution_evidence_path": str(evidence_path),
+            "blocked_reason": None,
+            "typed_blocker": None,
+            "authority_route_gate": {"authorized": True, "allowed": True},
+        },
+    )
+
+    repair_progress = repair_projection.build_repair_progress_projection(study_root=study_root)
+
+    assert repair_progress["paper_delta_observed"] is False
+    assert repair_progress["accepted_owner_receipt"] is False
+    assert repair_progress["owner_receipt_ref"] is None
+
+
 def test_existing_progress_projection_refreshes_stable_repair_delta_over_old_stage_packet_blocker(
     tmp_path: Path,
 ) -> None:

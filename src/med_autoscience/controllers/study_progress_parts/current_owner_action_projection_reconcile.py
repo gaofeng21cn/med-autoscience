@@ -13,6 +13,7 @@ CURRENT_OWNER_ACTION_SOURCES = frozenset(
         "stage_artifact_index.next_owner_action",
         "study_progress.next_forced_delta.owner_action",
         "domain_transition",
+        "gate_clearing_batch_followthrough.actionable_current_work_unit",
         "repair_progress_projection.mas_owner_repair_execution_evidence",
         "publication_eval.recommended_actions.readiness_blocker_repair",
     }
@@ -131,7 +132,10 @@ def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[s
             }
         operator_status = _mapping_copy(updated.get("operator_status_card"))
         if operator_status:
-            if _non_empty_text(operator_status.get("handling_state")) == "auto_runtime_parked":
+            if _non_empty_text(operator_status.get("handling_state")) in {
+                "auto_runtime_parked",
+                "explicit_resume_pending",
+            }:
                 operator_status["handling_state"] = "scientific_or_quality_repair_in_progress"
                 operator_status["handling_state_label"] = "论文硬阻塞处理中"
             operator_status["current_focus"] = next_step

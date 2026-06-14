@@ -140,6 +140,7 @@ def _repair_followup_action(
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": work_unit_fingerprint,
+            "source_eval_id": _non_empty_text(repair_progress.get("source_eval_id")),
             "action_type": action_type,
             "allowed_actions": [action_type],
             "owner_receipt_required": True,

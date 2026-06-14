@@ -8,18 +8,27 @@ from typing import Any
 
 EVIDENCE_RELATIVE_PATH = Path("artifacts/controller/repair_execution_evidence/latest.json")
 RECEIPT_RELATIVE_PATH = Path("artifacts/controller/repair_execution_receipts/latest.json")
+QUALITY_REPAIR_BATCH_RELATIVE_PATH = Path("artifacts/controller/quality_repair_batch/latest.json")
 
 
 def build_repair_progress_projection(*, study_root: Path) -> dict[str, Any]:
     root = Path(study_root).expanduser().resolve()
     evidence_path = root / EVIDENCE_RELATIVE_PATH
     receipt_path = root / RECEIPT_RELATIVE_PATH
+    quality_batch_path = root / QUALITY_REPAIR_BATCH_RELATIVE_PATH
     evidence = _read_json_object(evidence_path)
     receipt = _read_json_object(receipt_path)
+    quality_batch = _read_json_object(quality_batch_path)
     changed_refs = _progress_changed_refs(evidence=evidence, receipt=receipt)
-    accepted = _accepted_progress_receipt(receipt=receipt)
+    accepted = _accepted_progress_receipt(receipt=receipt) or _accepted_quality_batch_owner_result(
+        quality_batch=quality_batch,
+        quality_batch_path=quality_batch_path,
+        evidence=evidence,
+        evidence_path=evidence_path,
+    )
     progress_delta_candidate = _progress_delta_candidate(evidence=evidence)
     paper_delta_observed = bool(changed_refs) and progress_delta_candidate and accepted
+    owner_receipt_ref = str(receipt_path) if receipt else str(quality_batch_path) if accepted and quality_batch else None
     return {
         "surface_kind": "repair_progress_projection",
         "schema_version": 1,
@@ -35,7 +44,7 @@ def build_repair_progress_projection(*, study_root: Path) -> dict[str, Any]:
         "source_eval_id": _text(_mapping(evidence.get("repair_work_unit")).get("source_eval_id"))
         or _text(_mapping(evidence.get("review_finding")).get("source_eval_id")),
         "repair_execution_evidence_ref": str(evidence_path) if evidence else None,
-        "owner_receipt_ref": str(receipt_path) if receipt else None,
+        "owner_receipt_ref": owner_receipt_ref,
         "gate_replay_refs": _dedupe(
             [
                 *_ref_items(evidence.get("gate_replay_refs")),
@@ -74,6 +83,73 @@ def _accepted_progress_receipt(*, receipt: Mapping[str, Any]) -> bool:
     if receipt.get("quality_authorized") is True or receipt.get("submission_authorized") is True:
         return False
     return _text(receipt.get("typed_blocker")) is None and _text(receipt.get("blocked_reason")) is None
+
+
+def _accepted_quality_batch_owner_result(
+    *,
+    quality_batch: Mapping[str, Any],
+    quality_batch_path: Path,
+    evidence: Mapping[str, Any],
+    evidence_path: Path,
+) -> bool:
+    if not quality_batch:
+        return False
+    if quality_batch.get("ok") is not True:
+        return False
+    if _text(quality_batch.get("status")) not in {"executed", "handoff_ready"}:
+        return False
+    if _text(quality_batch.get("typed_blocker")) is not None:
+        return False
+    if _text(quality_batch.get("blocked_reason")) is not None:
+        return False
+    if not _quality_batch_refs_current_evidence(
+        quality_batch=quality_batch,
+        quality_batch_path=quality_batch_path,
+        evidence=evidence,
+        evidence_path=evidence_path,
+    ):
+        return False
+    if evidence.get("quality_authorized") is True or evidence.get("submission_authorized") is True:
+        return False
+    if evidence.get("current_package_write_authorized") is True:
+        return False
+    blockers = [item for item in _ref_items(evidence.get("blockers")) if item]
+    if blockers:
+        return False
+    return _quality_batch_authority_allows_owner_receipt(quality_batch)
+
+
+def _quality_batch_refs_current_evidence(
+    *,
+    quality_batch: Mapping[str, Any],
+    quality_batch_path: Path,
+    evidence: Mapping[str, Any],
+    evidence_path: Path,
+) -> bool:
+    if not evidence:
+        return False
+    evidence_ref = _text(quality_batch.get("repair_execution_evidence_path"))
+    if evidence_ref is None:
+        return False
+    if Path(evidence_ref).expanduser().resolve() != evidence_path:
+        return False
+    source_eval_id = _text(quality_batch.get("source_eval_id"))
+    evidence_eval_id = _text(_mapping(evidence.get("repair_work_unit")).get("source_eval_id")) or _text(
+        _mapping(evidence.get("review_finding")).get("source_eval_id")
+    )
+    return source_eval_id is not None and evidence_eval_id is not None and source_eval_id == evidence_eval_id
+
+
+def _quality_batch_authority_allows_owner_receipt(quality_batch: Mapping[str, Any]) -> bool:
+    route_gate = _mapping(quality_batch.get("authority_route_gate"))
+    if not route_gate:
+        return False
+    if route_gate.get("authorized") is not True or route_gate.get("allowed") is not True:
+        return False
+    controller_gate = _mapping(route_gate.get("controller_route_gate"))
+    if controller_gate and controller_gate.get("authorized") is False:
+        return False
+    return True
 
 
 def _progress_changed_refs(
