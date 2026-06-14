@@ -117,6 +117,12 @@ def gate_followthrough_action_supersedes_publication_gate_replay_blocker(
     ):
         return False
     action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
+    if not _gate_followthrough_successor_identity_is_current(
+        action_work_unit=action_work_unit,
+        currentness=currentness,
+        followthrough=followthrough,
+    ):
+        return False
     followthrough_work_unit = _work_unit_id(currentness.get("current_publication_work_unit_id")) or _work_unit_id(
         _mapping(followthrough.get("current_publication_work_unit")).get("unit_id")
     )
@@ -139,6 +145,35 @@ def gate_followthrough_action_supersedes_publication_gate_replay_blocker(
         and followthrough_source_eval is not None
         and action_source_eval != followthrough_source_eval
     )
+
+
+def _gate_followthrough_successor_identity_is_current(
+    *,
+    action_work_unit: str | None,
+    currentness: Mapping[str, Any],
+    followthrough: Mapping[str, Any],
+) -> bool:
+    if action_work_unit is None:
+        return False
+    current_publication_work_unit = _mapping(followthrough.get("current_publication_work_unit"))
+    explicit_work_unit = _work_unit_id(currentness.get("explicit_publication_work_unit_id")) or _work_unit_id(
+        followthrough.get("work_unit_id")
+    )
+    selected_work_unit = _work_unit_id(currentness.get("selected_publication_work_unit_id"))
+    current_work_unit = _work_unit_id(currentness.get("current_publication_work_unit_id")) or _work_unit_id(
+        current_publication_work_unit.get("unit_id")
+    )
+    observed_units = [unit for unit in (explicit_work_unit, selected_work_unit, current_work_unit) if unit]
+    if not observed_units or any(unit != action_work_unit for unit in observed_units):
+        return False
+
+    explicit_fingerprint = _text(currentness.get("explicit_work_unit_fingerprint"))
+    current_fingerprint = _text(currentness.get("current_work_unit_fingerprint"))
+    if explicit_fingerprint is not None and current_fingerprint is not None:
+        return explicit_fingerprint == current_fingerprint
+    if currentness.get("explicit_work_unit_fingerprint_matches_current") is False:
+        return False
+    return True
 
 
 def _terminal_gate_closeout_routes_to_action(

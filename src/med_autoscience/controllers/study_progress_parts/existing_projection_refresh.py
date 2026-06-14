@@ -142,7 +142,9 @@ def refresh_existing_projection_current_owner_surfaces(
     updated = _apply_current_control_currentness_to_existing_projection(updated, handoff=handoff)
     typed_blocker_successor_action = build_current_executable_owner_action(updated)
     if _current_control_handoff_is_typed_blocker(handoff) and not current_control_typed_blocker_successor_action(
-        typed_blocker_successor_action
+        typed_blocker_successor_action,
+        typed_blocker=_current_control_typed_blocker_for_successor_check(handoff),
+        progress=updated,
     ):
         updated["current_executable_owner_action"] = None
         updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
@@ -291,6 +293,22 @@ def _current_control_handoff_is_typed_blocker(handoff: Mapping[str, Any]) -> boo
         return True
     handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
     return _non_empty_text(handoff_envelope.get("state_kind")) == "typed_blocker"
+
+
+def _current_control_typed_blocker_for_successor_check(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    typed_blocker = _mapping_copy(handoff.get("typed_blocker"))
+    if typed_blocker:
+        return typed_blocker
+    current = _mapping_copy(handoff.get("current_work_unit"))
+    state = _mapping_copy(current.get("state"))
+    current_blocker = _mapping_copy(state.get("typed_blocker"))
+    if current_blocker:
+        return current_blocker
+    envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+    envelope_blocker = _mapping_copy(envelope.get("typed_blocker"))
+    if envelope_blocker:
+        return envelope_blocker
+    return {}
 
 
 def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:

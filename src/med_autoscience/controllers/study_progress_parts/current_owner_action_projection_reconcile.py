@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers.current_work_unit_parts.terminal_routeback_currentness import (
+    gate_followthrough_action_supersedes_publication_gate_replay_blocker,
+)
+
 from .current_executable_owner_action import owner_action_next_step
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .shared import _mapping_copy, _non_empty_text
@@ -202,14 +206,26 @@ def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[s
     return updated
 
 
-def current_control_typed_blocker_successor_action(action: Mapping[str, Any] | None) -> bool:
+def current_control_typed_blocker_successor_action(
+    action: Mapping[str, Any] | None,
+    *,
+    typed_blocker: Mapping[str, Any] | None = None,
+    progress: Mapping[str, Any] | None = None,
+) -> bool:
     if not isinstance(action, Mapping):
         return False
     source = _non_empty_text(action.get("source"))
     if source not in CURRENT_CONTROL_TYPED_BLOCKER_SUCCESSOR_SOURCES:
         return False
+    if source == "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        if not _gate_followthrough_action_has_exact_current_identity(action):
+            return False
+        return gate_followthrough_action_supersedes_publication_gate_replay_blocker(
+            action=action,
+            blocker=_mapping_copy(typed_blocker),
+            progress=_mapping_copy(progress),
+        )
     if source in {
-        "gate_clearing_batch_followthrough.actionable_current_work_unit",
         "publication_eval.recommended_actions.readiness_blocker_repair",
     }:
         return False
@@ -223,6 +239,23 @@ def current_control_typed_blocker_successor_action(action: Mapping[str, Any] | N
     return _non_empty_text(action.get("action_type")) is not None and _non_empty_text(
         action.get("work_unit_id")
     ) is not None
+
+
+def _gate_followthrough_action_has_exact_current_identity(action: Mapping[str, Any]) -> bool:
+    basis = _mapping_copy(action.get("owner_route_currentness_basis"))
+    explicit_work_unit = _non_empty_text(basis.get("explicit_publication_work_unit_id"))
+    action_work_unit = _non_empty_text(action.get("work_unit_id"))
+    if explicit_work_unit is None or action_work_unit is None:
+        return False
+    if explicit_work_unit != action_work_unit:
+        return False
+    basis_fingerprint = _non_empty_text(basis.get("work_unit_fingerprint"))
+    action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(
+        action.get("action_fingerprint")
+    )
+    if basis_fingerprint is None or action_fingerprint is None:
+        return False
+    return basis_fingerprint == action_fingerprint
 
 
 def current_owner_action_supersedes_stale_user_park(

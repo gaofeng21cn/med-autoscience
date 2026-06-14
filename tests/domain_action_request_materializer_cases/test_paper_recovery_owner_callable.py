@@ -223,6 +223,121 @@ def test_materializer_dispatches_fresh_paper_recovery_owner_callable_without_sca
     assert dispatch["action_fingerprint"] == fingerprint
 
 
+def test_materializer_dispatches_identity_different_paper_recovery_successor_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    gate_fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
+    successor_fingerprint = "publication-blockers::0915410f804b3697"
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [],
+            "action_queue": [],
+        },
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "owner": "publication_gate",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": gate_fingerprint,
+                "action_fingerprint": gate_fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "owner_answer_binding": {
+                        "latest_owner_answer_ref": (
+                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "sat_d2b4c700b31294ab17c225d4.closeout.json"
+                        )
+                    },
+                    "typed_blocker": {
+                        "blocker_type": "publication_gate_replay_blocked",
+                        "owner": "publication_gate",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": gate_fingerprint,
+                        "latest_owner_answer_ref": (
+                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "sat_d2b4c700b31294ab17c225d4.closeout.json"
+                        ),
+                    },
+                },
+            },
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": "publication-eval::003::current",
+                "gate_replay_status": "blocked",
+                "work_unit_currentness": {
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": successor_fingerprint,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "latest_record_path": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                    "controller/gate_clearing_batch/latest.json"
+                ),
+            },
+            "authority_snapshot": {
+                "allowed_controller_actions": [
+                    "record_user_decision",
+                    "direct_study_execution",
+                    "direct_paper_line_write",
+                ],
+            },
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["action_type"] == "run_quality_repair_batch"
+    assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["work_unit_id"] == "medical_prose_write_repair"
+    assert dispatch["work_unit_fingerprint"] == successor_fingerprint
+    assert dispatch["source_action"]["authority"] == "paper_recovery_state"
+    assert dispatch["source_action"]["reason"] == "publication_gate_replay_blocked"
+    assert dispatch["source_action"]["supervisor_decision"]["decision"] == (
+        "materialize_recovery_action"
+    )
+    assert dispatch["owner_route"]["source_refs"]["predecessor_work_unit_id"] == (
+        "publication_gate_replay"
+    )
+    assert dispatch["owner_route"]["source_refs"]["predecessor_work_unit_fingerprint"] == (
+        gate_fingerprint
+    )
+
+
 def test_current_default_dispatch_for_execution_marks_paper_recovery_callable_ready(
     monkeypatch,
     tmp_path: Path,

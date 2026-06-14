@@ -168,9 +168,15 @@ def build_current_work_unit(
     runtime_health_payload = _mapping(runtime_health)
     resolved_source_refs = _source_refs(status_payload, progress_payload, source_refs)
     stage_owner_answer_action = _stage_owner_answer_missing_action(progress_payload)
+    progress_first_current_action = _mapping(
+        _mapping(progress_payload.get("progress_first_monitoring_summary")).get(
+            "current_executable_owner_action"
+        )
+    )
     action = _selected_current_action(
         actions=actions,
-        current_executable_owner_action=current_executable_owner_action,
+        current_executable_owner_action=current_executable_owner_action
+        or progress_first_current_action,
     )
     if stage_owner_answer_action is not None and not _action_supersedes_stage_owner_answer(
         action=action,

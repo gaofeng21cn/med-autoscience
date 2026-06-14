@@ -545,6 +545,9 @@ def _default_executor_dispatch_payload(
         "action_id": _text(action.get("action_id")),
         "next_executable_owner": next_executable_owner,
         "required_output_surface": required_output_surface,
+        "work_unit_id": _text(action.get("work_unit_id")) or _text(action.get("next_work_unit")),
+        "work_unit_fingerprint": _text(action.get("work_unit_fingerprint"))
+        or _text(action.get("action_fingerprint")),
         **dict(readiness_dispatch),
         **(
             {"required_output_target_surface": dict(prompt_contract["required_output_target_surface"])}

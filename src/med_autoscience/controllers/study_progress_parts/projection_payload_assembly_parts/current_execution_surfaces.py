@@ -35,7 +35,11 @@ def refresh_current_execution_surfaces(
         if handoff_envelope:
             updated["current_execution_envelope"] = handoff_envelope
         successor_action = build_current_executable_owner_action(updated)
-        if current_control_typed_blocker_successor_action(successor_action):
+        if current_control_typed_blocker_successor_action(
+            successor_action,
+            typed_blocker=_canonical_current_control_typed_blocker(handoff),
+            progress=updated,
+        ):
             updated["current_executable_owner_action"] = successor_action
             handoff_work_unit = {}
         else:
@@ -151,6 +155,22 @@ def _canonical_current_control_typed_blocker_work_unit(handoff: Mapping[str, Any
     current = _mapping_copy(handoff.get("current_work_unit"))
     if _non_empty_text(current.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
         return current
+    return {}
+
+
+def _canonical_current_control_typed_blocker(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    typed_blocker = _mapping_copy(handoff.get("typed_blocker"))
+    if typed_blocker:
+        return typed_blocker
+    current = _mapping_copy(handoff.get("current_work_unit"))
+    state = _mapping_copy(current.get("state"))
+    current_blocker = _mapping_copy(state.get("typed_blocker"))
+    if current_blocker:
+        return current_blocker
+    envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+    envelope_blocker = _mapping_copy(envelope.get("typed_blocker"))
+    if envelope_blocker:
+        return envelope_blocker
     return {}
 
 

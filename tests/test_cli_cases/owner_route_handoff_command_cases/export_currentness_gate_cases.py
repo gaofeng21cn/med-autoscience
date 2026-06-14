@@ -300,6 +300,181 @@ def test_domain_handler_export_materializes_mas_dispatch_selection_blocker_resol
     assert task["domain_dispatch_evidence_record_payload"]["task_kind"] == "domain_route/reconcile-apply"
 
 
+def test_domain_handler_export_materializes_supervisor_stable_blocker_owner_resolution_task(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = workspace_root / "studies" / study_id
+    work_unit_id = "publication_gate_replay"
+    work_unit_fingerprint = "sha256:current-publication-gate-replay"
+    decision_id = (
+        "supervisor-decision::stop_with_stable_typed_blocker::"
+        f"{study_id}::{work_unit_id}"
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        currentness_basis = {
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": work_unit_fingerprint,
+            "idempotency_key": "idem-current-publication-gate-replay",
+            "stage_attempt_id": "sat_current_publication_gate_replay",
+        }
+        supervisor_decision = {
+            "surface_kind": "paper_autonomy_supervisor_decision",
+            "schema_version": 1,
+            "decision_id": decision_id,
+            "decision": "stop_with_stable_typed_blocker",
+            "identity_match": True,
+            "paper_autonomy_obligation": {
+                "surface_kind": "paper_autonomy_obligation",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "stage_id": "publication_supervision",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "route_identity_key": (
+                    f"{study_id}:run_gate_clearing_batch:{work_unit_id}:"
+                    f"{work_unit_fingerprint}"
+                ),
+                "attempt_idempotency_key": "idem-current-publication-gate-replay",
+                "desired_delta": {
+                    "owner": "publication_gate",
+                    "required_output_ref_family": [
+                        "domain_owner_receipt_ref",
+                        "quality_gate_receipt_ref",
+                        "typed_blocker_ref",
+                        "human_gate_ref",
+                        "route_back_evidence_ref",
+                    ],
+                },
+            },
+            "paper_autonomy_obligation_ref": (
+                f"paper-autonomy::{study_id}::publication_supervision::"
+                f"run_gate_clearing_batch::{work_unit_id}::{work_unit_fingerprint}"
+            ),
+            "evidence_refs": [
+                "artifacts/supervision/consumer/default_executor_execution/"
+                "sat_current_publication_gate_replay.closeout.json"
+            ],
+            "next_owner": "publication_gate",
+            "next_safe_action": {
+                "kind": "publish_stable_blocker_and_stop_same_identity_redrive"
+            },
+        }
+        typed_blocker = {
+            "blocker_id": "publication_gate_replay_blocked",
+            "blocker_type": "publication_gate_replay_blocked",
+            "owner": "publication_gate",
+            "source_ref": (
+                "artifacts/supervision/consumer/default_executor_execution/"
+                "sat_current_publication_gate_replay.closeout.json"
+            ),
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        }
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "publication_gate",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+                "currentness_basis": currentness_basis,
+                "required_output_contract": {
+                    "owner_receipt_required": True,
+                    "typed_blocker_accepted": True,
+                    "accepted_return_shape": [
+                        "domain_owner_receipt_ref",
+                        "quality_gate_receipt_ref",
+                        "typed_blocker_ref",
+                        "human_gate_ref",
+                        "route_back_evidence_ref",
+                    ],
+                    "provider_completion_is_domain_completion": False,
+                    "domain_ready_authorized": False,
+                },
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": typed_blocker,
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "publication_gate",
+                "next_work_unit": None,
+                "typed_blocker": typed_blocker,
+            },
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "domain_blocked",
+                "next_safe_action": {
+                    "kind": "resolve_typed_blocker",
+                    "owner": "publication_gate",
+                    "provider_admission_allowed": False,
+                },
+                "supervisor_decision": supervisor_decision,
+            },
+            "current_executable_owner_action": None,
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task.get("payload", {}).get("study_id") == study_id
+    ]
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["task_kind"] == "domain_route/reconcile-apply"
+    assert task["reason"] == "current_work_unit_typed_blocker_owner_resolution"
+    assert task["payload"]["paper_autonomy_supervisor_decision"]["decision"] == (
+        "stop_with_stable_typed_blocker"
+    )
+    assert task["payload"]["paper_autonomy_supervisor_decision"]["decision_id"] == decision_id
+    required_owner_action = task["payload"]["required_owner_action"]
+    assert required_owner_action["owner"] == "publication_gate"
+    assert required_owner_action["work_unit_id"] == work_unit_id
+    assert required_owner_action["work_unit_fingerprint"] == work_unit_fingerprint
+    assert required_owner_action["accepted_resolution_shapes"][:5] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert any(
+        ref["role"] == "paper_autonomy_supervisor_decision" and ref["decision"] == (
+            "stop_with_stable_typed_blocker"
+        )
+        for ref in task["source_refs"]
+    )
+    assert task["domain_dispatch_evidence_record_payload"]["task_kind"] == "domain_route/reconcile-apply"
+
+
 def test_domain_handler_export_materializes_owner_gate_route_back_dispatch_under_stage_packet_blocker(
     tmp_path: Path,
     capsys,

@@ -14,12 +14,23 @@ from med_autoscience.controllers.paper_recovery_state_parts.obligation_matching 
     action_matches_obligation as _current_action_matches_obligation,
     current_work_unit_matches_obligation as _current_work_unit_matches_obligation,
 )
+from med_autoscience.controllers.paper_recovery_state_parts.owner_gate_decision import (
+    accepted_owner_gate_decision as _accepted_owner_gate_decision,
+    matching_owner_gate_decision_event as _matching_owner_gate_decision_event,
+    owner_gate_decision_refs as _owner_gate_decision_refs,
+)
 from med_autoscience.controllers.paper_recovery_state_parts.owner_callable_readiness import (
     current_mas_owner_callable as _current_mas_owner_callable,
 )
 from med_autoscience.controllers.paper_recovery_state_parts.running_attempt_identity import (
     running_attempt_has_obligation_identity as _running_attempt_has_obligation_identity,
     running_attempt_identity_surface as _running_attempt_identity_surface,
+)
+from med_autoscience.controllers.paper_recovery_state_parts.successor_owner_resolution import (
+    current_executable_owner_action as _current_executable_owner_action,
+    successor_owner_action_from_current_action as _successor_owner_action_from_current_action,
+    successor_owner_action_from_terminal_blocker as _successor_owner_action_from_terminal_blocker,
+    successor_owner_gate_from_terminal_blocker as _successor_owner_gate_from_terminal_blocker,
 )
 from med_autoscience.controllers.paper_recovery_state_parts.typed_blocker_recovery import (
     typed_blocker_next_action as _typed_blocker_next_action,
@@ -103,7 +114,7 @@ def build_paper_recovery_state(
         )
 
     typed_blocker = _current_typed_blocker(current_work_unit)
-    current_action = _mapping(progress.get("current_executable_owner_action"))
+    current_action = _current_executable_owner_action(progress)
     typed_blocker_superseded_by_current_action = bool(
         typed_blocker
         and current_action
@@ -120,6 +131,90 @@ def build_paper_recovery_state(
             current_work_unit=current_work_unit,
             blocker_reason=blocker_reason,
         )
+        successor_action = _successor_owner_action_from_terminal_blocker(
+            progress,
+            typed_blocker=typed_blocker,
+            blocker_reason=blocker_reason,
+        )
+        if successor_action is not None:
+            successor_owner = _text(successor_action.get("owner")) or _text(
+                successor_action.get("next_owner")
+            )
+            return _state(
+                progress,
+                obligation=obligation,
+                phase="owner_action_ready",
+                conditions=[
+                    {
+                        "condition": "terminal_typed_blocker_successor_evidence",
+                        "blocker_type": blocker_reason,
+                    }
+                ],
+                next_safe_action=_next_action(
+                    "materialize_successor_owner_action",
+                    provider_admission_allowed=True,
+                    owner=successor_owner,
+                    successor_owner_action=successor_action,
+                ),
+                current_owner=successor_owner,
+                suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
+            )
+        owner_gate = _successor_owner_gate_from_terminal_blocker(
+            progress,
+            typed_blocker=typed_blocker,
+            blocker_reason=blocker_reason,
+            owner=owner,
+        )
+        if owner_gate is not None:
+            return _state(
+                progress,
+                obligation=obligation,
+                phase="owner_action_ready",
+                conditions=[
+                    {
+                        "condition": "terminal_typed_blocker_owner_gate_required",
+                        "blocker_type": blocker_reason,
+                    }
+                ],
+                next_safe_action=_next_action(
+                    "materialize_successor_owner_gate",
+                    provider_admission_allowed=False,
+                    owner=owner,
+                    required_input=_text(owner_gate.get("required_input")),
+                    successor_owner_gate=owner_gate,
+                ),
+                current_owner=owner,
+                suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
+                evidence_refs=_text_items(owner_gate.get("evidence_refs")),
+            )
+        if current_action and current_work_unit_reducer.action_supersedes_typed_blocker(
+            action=current_action,
+            blocker=typed_blocker,
+            progress=progress,
+        ):
+            successor_action = _successor_owner_action_from_current_action(current_action)
+            successor_owner = _text(successor_action.get("owner")) or _text(
+                successor_action.get("next_owner")
+            )
+            return _state(
+                progress,
+                obligation=obligation,
+                phase="owner_action_ready",
+                conditions=[
+                    {
+                        "condition": "current_owner_action_supersedes_terminal_typed_blocker",
+                        "blocker_type": blocker_reason,
+                    }
+                ],
+                next_safe_action=_next_action(
+                    "materialize_successor_owner_action",
+                    provider_admission_allowed=True,
+                    owner=successor_owner,
+                    successor_owner_action=successor_action,
+                ),
+                current_owner=successor_owner,
+                suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
+            )
         owner_callable = _current_mas_owner_callable(progress, obligation=obligation)
         if owner_callable is not None:
             return _state(
@@ -649,66 +744,6 @@ def _closeout_refs(closeout: Mapping[str, Any]) -> list[str]:
     return list(dict.fromkeys(ref for ref in refs if ref is not None))
 
 
-def _matching_owner_gate_decision_event(
-    progress: Mapping[str, Any],
-    *,
-    obligation: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    for event in reversed(_owner_gate_decision_events(progress)):
-        payload = _mapping(event.get("payload"))
-        if _owner_gate_identity_matches_obligation(payload, obligation=obligation):
-            return dict(event)
-    return None
-
-
-def _owner_gate_decision_events(progress: Mapping[str, Any]) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
-    for key in ("study_intervention_events", "intervention_events"):
-        for item in progress.get(key) or []:
-            event = _mapping(item)
-            if _text(event.get("intent")) == "owner_gate_decision":
-                events.append(event)
-    return events
-
-
-def _owner_gate_identity_matches_obligation(
-    payload: Mapping[str, Any],
-    *,
-    obligation: Mapping[str, Any],
-) -> bool:
-    identity = _mapping(payload.get("current_owner_identity"))
-    if not identity:
-        return False
-    for field in ("study_id", "action_type", "work_unit_id", "work_unit_fingerprint", "blocker_type"):
-        expected = _text(obligation.get(field))
-        if expected is not None and _text(identity.get(field)) != expected:
-            return False
-    return _text(payload.get("human_gate_ref")) is not None
-
-
-def _owner_gate_decision_refs(payload: Mapping[str, Any]) -> list[str]:
-    refs = [
-        _text(payload.get("human_gate_ref")),
-        _text(payload.get("route_back_evidence_ref")),
-        _text(payload.get("owner_gate_decision_ref")),
-        _text(payload.get("stable_typed_blocker_ref")),
-        *_text_items(payload.get("stage_packet_refs")),
-    ]
-    return list(dict.fromkeys(ref for ref in refs if ref is not None))
-
-
-def _accepted_owner_gate_decision(payload: Mapping[str, Any]) -> dict[str, Any]:
-    identity = _mapping(payload.get("current_owner_identity"))
-    accepted = {
-        "decision": _text(payload.get("decision")),
-        "action_type": _text(identity.get("action_type")),
-        "work_unit_id": _text(identity.get("work_unit_id")),
-        "work_unit_fingerprint": _text(identity.get("work_unit_fingerprint")),
-        "route_back_evidence_ref": _text(payload.get("route_back_evidence_ref")),
-    }
-    return {key: value for key, value in accepted.items() if value not in (None, "", [], {})}
-
-
 def _suppressed_surfaces_for_owner_gate_decision(progress: Mapping[str, Any]) -> list[str]:
     suppressed = _suppressed_surfaces_for_typed_blocker(progress)
     if _mapping(progress.get("current_work_unit")):
@@ -865,7 +900,7 @@ def _typed_blocker_reason(typed_blocker: Mapping[str, Any]) -> str | None:
 
 def _suppressed_surfaces_for_typed_blocker(progress: Mapping[str, Any]) -> list[str]:
     suppressed: list[str] = []
-    if _mapping(progress.get("current_executable_owner_action")):
+    if _current_executable_owner_action(progress):
         suppressed.append("current_executable_owner_action")
     if _provider_admission_pending(progress):
         suppressed.append("provider_admission_candidates")
@@ -880,6 +915,8 @@ def _next_action(
     required_input: str | None = None,
     accepted_owner_gate_decision: Mapping[str, Any] | None = None,
     owner_callable: Mapping[str, Any] | None = None,
+    successor_owner_action: Mapping[str, Any] | None = None,
+    successor_owner_gate: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload = {
         "kind": kind,
@@ -888,6 +925,8 @@ def _next_action(
         "required_input": required_input,
         "accepted_owner_gate_decision": dict(accepted_owner_gate_decision or {}),
         "owner_callable": dict(owner_callable or {}),
+        "successor_owner_action": dict(successor_owner_action or {}),
+        "successor_owner_gate": dict(successor_owner_gate or {}),
     }
     return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
 

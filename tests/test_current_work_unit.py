@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from tests.test_current_work_unit_cases.guarded_apply_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.gate_followthrough_currentness_cases import *  # noqa: F403,F401
+from tests.test_current_work_unit_cases.progress_first_embedded_action_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.readiness_identity_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.repair_progress_current_action_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.running_provider_attempt_cases import *  # noqa: F403,F401

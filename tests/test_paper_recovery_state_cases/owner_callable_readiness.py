@@ -163,6 +163,7 @@ def test_publication_gate_typed_blocker_with_registered_callable_is_owner_action
 
 def test_terminal_publication_gate_typed_blocker_does_not_rerun_same_owner_callable() -> None:
     fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
+    successor_fingerprint = "publication-blockers::0915410f804b3697"
     current_work_unit = _typed_blocker_work_unit(
         study_id="003-dpcc-primary-care-phenotype-treatment-gap",
         owner="publication_gate",
@@ -207,6 +208,35 @@ def test_terminal_publication_gate_typed_blocker_does_not_rerun_same_owner_calla
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
             "current_work_unit": current_work_unit,
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": "publication-eval::003::current",
+                "gate_replay_status": "blocked",
+                "gate_replay_blockers": [
+                    "medical_publication_surface_blocked",
+                    "reviewer_first_concerns_unresolved",
+                    "submission_hardening_incomplete",
+                ],
+                "work_unit_currentness": {
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": successor_fingerprint,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "selected_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "latest_record_path": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                    "controller/gate_clearing_batch/latest.json"
+                ),
+            },
             "study_truth_snapshot": {
                 "allowed_controller_actions": [
                     "record_user_decision",
@@ -217,16 +247,27 @@ def test_terminal_publication_gate_typed_blocker_does_not_rerun_same_owner_calla
         }
     )
 
-    assert state["phase"] == "domain_blocked"
+    assert state["phase"] == "owner_action_ready"
     assert state["conditions"] == [
         {
-            "condition": "current_work_unit_typed_blocker",
+            "condition": "terminal_typed_blocker_successor_evidence",
             "blocker_type": "publication_gate_replay_blocked",
         }
     ]
-    assert state["current_authority"]["owner"] == "publication_gate"
-    assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
-    assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["current_authority"]["owner"] == "write"
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["successor_owner_action"] == {
+        "action_type": "run_quality_repair_batch",
+        "owner": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": successor_fingerprint,
+        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "source_ref": (
+            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+            "controller/gate_clearing_batch/latest.json"
+        ),
+    }
     assert "owner_callable" not in state["next_safe_action"]
 
 
@@ -276,6 +317,26 @@ def test_terminal_anti_loop_typed_blocker_does_not_rerun_same_owner_callable() -
         {
             "study_id": "002-dm-china-us-mortality-attribution",
             "current_work_unit": current_work_unit,
+            "terminal_closeout_precedence_evidence": {
+                "stage_attempt_id": "sat_67e10efde628859185249aa0",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "work_unit_fingerprint": fingerprint,
+                "source_path": (
+                    "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+                    "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json"
+                ),
+                "paper_stage_log": {
+                    "progress_delta_classification": "typed_blocker",
+                    "remaining_blockers": ["anti_loop_budget_exhausted"],
+                    "next_forced_delta": {
+                        "required_delta": (
+                            "publishability_repair_sprint_or_single_typed_blocker_"
+                            "or_human_or_operator_gate"
+                        ),
+                    },
+                },
+            },
             "study_truth_snapshot": {
                 "allowed_controller_actions": [
                     "record_user_decision",
@@ -286,14 +347,17 @@ def test_terminal_anti_loop_typed_blocker_does_not_rerun_same_owner_callable() -
         }
     )
 
-    assert state["phase"] == "domain_blocked"
+    assert state["phase"] == "owner_action_ready"
     assert state["conditions"] == [
         {
-            "condition": "current_work_unit_typed_blocker",
+            "condition": "terminal_typed_blocker_owner_gate_required",
             "blocker_type": "anti_loop_budget_exhausted",
         }
     ]
     assert state["current_authority"]["owner"] == "one-person-lab"
-    assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_gate"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["next_safe_action"]["required_input"] == (
+        "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
+    )
     assert "owner_callable" not in state["next_safe_action"]

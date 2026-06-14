@@ -38,6 +38,11 @@ from .export_study_projection import (
 from .guarded_apply_tasks import DEFAULT_GUARDED_APPLY_TARGETS, provider_hosted_guarded_apply_tasks
 from .owner_route_handoff_tasks import owner_route_handoff_task
 from .owner_source_refs import owner_controller_decision_refs
+from .supervisor_typed_blocker_resolution import (
+    current_supervisor_decision as _current_supervisor_decision,
+    supervisor_stop_decision_matches_current_work_unit as _supervisor_stop_decision_matches_current_work_unit,
+    supervisor_stop_decision_resolution_shapes as _supervisor_stop_decision_resolution_shapes,
+)
 from .substrate_adapter import build_opl_substrate_adapter_projection
 from .task_kinds import ALLOWED_TASK_KINDS
 from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
@@ -399,11 +404,17 @@ def _current_typed_blocker_owner_resolution_task(
         current_work_unit=current_work_unit,
         current_execution_envelope=current_execution_envelope,
     )
+    supervisor_decision = _current_supervisor_decision(current_progress)
     owner = _current_owner_for_resolution(
         current_work_unit=current_work_unit,
         current_execution_envelope=current_execution_envelope,
     )
-    if not _typed_blocker_owner_resolution_supported(owner=owner, typed_blocker=typed_blocker):
+    if not _typed_blocker_owner_resolution_supported(
+        owner=owner,
+        typed_blocker=typed_blocker,
+        current_work_unit=current_work_unit,
+        supervisor_decision=supervisor_decision,
+    ):
         return None
     required_owner = _required_owner_for_typed_blocker_resolution(owner)
     reason = "current_work_unit_typed_blocker_owner_resolution"
@@ -414,12 +425,14 @@ def _current_typed_blocker_owner_resolution_task(
             "reason": reason,
             "current_work_unit": dict(current_work_unit),
             "typed_blocker": dict(typed_blocker),
+            "supervisor_decision_id": text(supervisor_decision.get("decision_id")),
         }
     )
     source_refs = _typed_blocker_source_refs(
         study=study,
         current_work_unit=current_work_unit,
         typed_blocker=typed_blocker,
+        supervisor_decision=supervisor_decision,
         profile=profile,
         study_id=study_id,
     )
@@ -453,6 +466,16 @@ def _current_typed_blocker_owner_resolution_task(
             "current_work_unit": dict(current_work_unit),
             "current_execution_envelope": dict(current_execution_envelope),
             "typed_blocker": dict(typed_blocker),
+            **(
+                {
+                    "paper_autonomy_supervisor_decision": dict(supervisor_decision),
+                    "paper_autonomy_obligation": dict(
+                        mapping(supervisor_decision.get("paper_autonomy_obligation"))
+                    ),
+                }
+                if supervisor_decision
+                else {}
+            ),
             "authority_boundary": "mas_domain_route_refs_only_opl_stage_attempt_owner",
             "required_owner_action": {
                 "owner": required_owner,
@@ -465,6 +488,8 @@ def _current_typed_blocker_owner_resolution_task(
                 "accepted_resolution_shapes": _typed_blocker_resolution_shapes(
                     owner=required_owner,
                     typed_blocker=typed_blocker,
+                    current_work_unit=current_work_unit,
+                    supervisor_decision=supervisor_decision,
                 ),
             },
         },
@@ -475,8 +500,15 @@ def _typed_blocker_owner_resolution_supported(
     *,
     owner: str | None,
     typed_blocker: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    supervisor_decision: Mapping[str, Any],
 ) -> bool:
     if _canonical_owner(owner) == "one-person-lab":
+        return True
+    if _supervisor_stop_decision_matches_current_work_unit(
+        supervisor_decision=supervisor_decision,
+        current_work_unit=current_work_unit,
+    ):
         return True
     if _canonical_owner(owner) != "MedAutoScience":
         return False
@@ -493,8 +525,18 @@ def _typed_blocker_resolution_shapes(
     *,
     owner: str | None,
     typed_blocker: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    supervisor_decision: Mapping[str, Any],
 ) -> list[str]:
     shapes: list[str] = []
+    if _supervisor_stop_decision_matches_current_work_unit(
+        supervisor_decision=supervisor_decision,
+        current_work_unit=current_work_unit,
+    ):
+        shapes.extend(_supervisor_stop_decision_resolution_shapes(
+            current_work_unit=current_work_unit,
+            supervisor_decision=supervisor_decision,
+        ))
     if (
         _canonical_owner(owner) == "MedAutoScience"
         and _typed_blocker_identity(typed_blocker) == "no_selected_dispatch_for_requested_action_types"
@@ -566,6 +608,7 @@ def _typed_blocker_source_refs(
     study: Mapping[str, Any],
     current_work_unit: Mapping[str, Any],
     typed_blocker: Mapping[str, Any],
+    supervisor_decision: Mapping[str, Any],
     profile: WorkspaceProfile,
     study_id: str,
 ) -> list[dict[str, Any]]:
@@ -593,6 +636,18 @@ def _typed_blocker_source_refs(
                 "ref": typed_blocker_ref,
                 "exists": (profile.workspace_root / typed_blocker_ref).exists()
                 or (study_root / typed_blocker_ref).exists(),
+            }
+        )
+    if supervisor_decision:
+        refs.append(
+            {
+                "role": "paper_autonomy_supervisor_decision",
+                "ref": text(supervisor_decision.get("decision_id"))
+                or text(supervisor_decision.get("paper_autonomy_obligation_ref"))
+                or "study_progress.paper_recovery_state.supervisor_decision",
+                "exists": True,
+                "decision": text(supervisor_decision.get("decision")),
+                "identity_match": supervisor_decision.get("identity_match") is True,
             }
         )
     return refs

@@ -390,6 +390,8 @@ def test_paper_recovery_conditions_next_safe_action_and_manual_adoption() -> Non
         "admit_identity_bound_stage_packet",
         "authorize_opl_transport_recovery_or_stable_typed_blocker",
         "honor_stable_typed_blocker",
+        "materialize_successor_owner_action",
+        "materialize_successor_owner_gate",
         "materialize_provider_admission_or_owner_callable",
         "provide_opl_execution_authorization_or_human_gate",
         "resolve_owner_gate_decision",
