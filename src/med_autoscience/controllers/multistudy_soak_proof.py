@@ -13,6 +13,13 @@ REQUIRED_ARCHETYPES = (
     "observational_real_world",
     "subtype_or_triage",
 )
+SOAK_ARCHETYPE_ALIASES = {
+    "clinical_classifier": "prediction_model/external_validation",
+    "external_validation_model_update": "prediction_model/external_validation",
+    "survey_trend_analysis": "observational_real_world",
+    "clinical_subtype_reconstruction": "subtype_or_triage",
+    "gray_zone_triage": "subtype_or_triage",
+}
 REQUIRED_STAGES = (
     "literature_scout",
     "line_selection",
@@ -97,9 +104,13 @@ def _contract_present(study: Mapping[str, Any], key: str) -> bool:
 
 def _required_contracts(study_archetype: str) -> tuple[str, ...]:
     contracts = ["literature_contract", "statistical_contract"]
-    if study_archetype == "prediction_model/external_validation":
+    if _soak_archetype(study_archetype) == "prediction_model/external_validation":
         contracts.append("external_validation_fixture")
     return tuple(contracts)
+
+
+def _soak_archetype(study_archetype: str) -> str:
+    return SOAK_ARCHETYPE_ALIASES.get(study_archetype, study_archetype)
 
 
 def _result_strength(study: Mapping[str, Any]) -> str:
@@ -215,6 +226,7 @@ def _proof_observation(study: Mapping[str, Any]) -> dict[str, bool]:
 
 def _missing_gaps(study: Mapping[str, Any]) -> list[str]:
     study_archetype = _text(study.get("study_archetype"))
+    soak_archetype = _soak_archetype(study_archetype)
     present_stages = _stage_set(study)
     gaps = [f"stage:{stage}" for stage in REQUIRED_STAGES if stage not in present_stages]
     gaps.extend(
@@ -222,7 +234,7 @@ def _missing_gaps(study: Mapping[str, Any]) -> list[str]:
         for contract in _required_contracts(study_archetype)
         if not _contract_present(study, contract)
     )
-    if study_archetype not in REQUIRED_ARCHETYPES:
+    if soak_archetype not in REQUIRED_ARCHETYPES:
         gaps.append("archetype:unsupported")
     if _result_strength(study) == "weak" and _route_action(study) not in WEAK_RESULT_ALLOWED_ACTIONS:
         gaps.append("route:weak_result_requires_stop_loss_or_switch_line")
@@ -273,6 +285,7 @@ def _study_next_action(
 def _build_study_projection(study: Mapping[str, Any]) -> dict[str, Any]:
     study_id = _text(study.get("study_id"))
     study_archetype = _text(study.get("study_archetype"))
+    soak_archetype = _soak_archetype(study_archetype)
     present_stages = sorted(_stage_set(study))
     gaps = _missing_gaps(study)
     blocked = _blocking_gaps(gaps)
@@ -286,6 +299,7 @@ def _build_study_projection(study: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "study_id": study_id,
         "study_archetype": study_archetype,
+        "soak_archetype": soak_archetype,
         "status": status,
         "present_stages": present_stages,
         "required_stages": list(REQUIRED_STAGES),
@@ -306,7 +320,7 @@ def _coverage_manifest(studies: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         "required_archetypes": list(REQUIRED_ARCHETYPES),
         "covered_archetypes": sorted(
             {
-                _text(study.get("study_archetype"))
+                _text(study.get("soak_archetype") or study.get("study_archetype"))
                 for study in studies
                 if _text(study.get("study_id")) != "multistudy_matrix"
             }
@@ -349,7 +363,7 @@ def build_multistudy_soak_matrix_projection(
     studies: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     study_items = [_build_study_projection(study) for study in studies]
-    covered_archetypes = sorted({study["study_archetype"] for study in study_items})
+    covered_archetypes = sorted({study["soak_archetype"] for study in study_items})
     missing_archetypes = [
         archetype for archetype in REQUIRED_ARCHETYPES if archetype not in covered_archetypes
     ]
@@ -357,6 +371,7 @@ def build_multistudy_soak_matrix_projection(
         synthetic_gap_item = {
             "study_id": "multistudy_matrix",
             "study_archetype": "matrix_coverage",
+            "soak_archetype": "matrix_coverage",
             "status": "partial",
             "present_stages": [],
             "required_stages": list(REQUIRED_STAGES),

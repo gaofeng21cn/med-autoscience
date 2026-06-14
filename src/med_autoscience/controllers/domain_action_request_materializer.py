@@ -448,9 +448,10 @@ def _default_executor_dispatch(
     owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
         dispatch=dispatch_shell
     )
+    execution_ready_dispatch_requested = developer_mode_payload.get("dry_run_executor_dispatch") is True
     dispatch_status = (
         "ready"
-        if apply
+        if (apply or execution_ready_dispatch_requested)
         and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
         and developer_mode_payload.get("safe_actions_enabled") is True
         and owner_route_attempt_envelope.get("dispatchable") is True

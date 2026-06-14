@@ -5,6 +5,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from med_autoscience.controllers import multistudy_soak_proof
 from med_autoscience.controllers.real_workspace_soak_monitor_parts.read_model import (
     blocked_reason_summary as _blocked_reason_summary,
@@ -177,10 +179,11 @@ def _study_from_readiness_payload(
     source_path: Path,
     payload: Mapping[str, Any],
 ) -> dict[str, Any]:
+    study_identity = _study_yaml_identity(study_root)
     return {
         "study_root": str(study_root),
-        "study_id": _text(payload.get("study_id"), study_root.name),
-        "study_archetype": _text(payload.get("study_archetype")),
+        "study_id": _text(payload.get("study_id") or study_identity.get("study_id"), study_root.name),
+        "study_archetype": _text(payload.get("study_archetype") or study_identity.get("study_archetype")),
         "stages": _stages_from_readiness(payload),
         "contracts": _contract_flags_from_readiness(payload),
         "result_strength": _text(payload.get("result_strength"), "adequate"),
@@ -190,6 +193,15 @@ def _study_from_readiness_payload(
         "source_surface": _text(payload.get("surface"), "medical_paper_readiness"),
         "source_path": str(source_path.resolve()),
     }
+
+
+def _study_yaml_identity(study_root: Path) -> Mapping[str, Any]:
+    path = study_root / "study.yaml"
+    try:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return {}
+    return payload if isinstance(payload, Mapping) else {}
 
 
 def _study_from_catalog_entry(
@@ -229,10 +241,11 @@ def _study_from_catalog_entry(
 
 
 def _study_from_missing_refs(study_root: Path) -> dict[str, Any]:
+    study_identity = _study_yaml_identity(study_root)
     return {
         "study_root": str(study_root),
-        "study_id": study_root.name,
-        "study_archetype": "unknown",
+        "study_id": _text(study_identity.get("study_id"), study_root.name),
+        "study_archetype": _text(study_identity.get("study_archetype"), "unknown"),
         "stages": [],
         "contracts": {},
         "result_strength": "unknown",
