@@ -39,6 +39,14 @@ GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES = frozenset(
         "skipped_stale_gate_replay_closed",
     }
 )
+OPL_RUNTIME_TERMINAL_BLOCKERS = frozenset(
+    {
+        "domain_closeout_provided_incomplete_user_stage_log",
+        "medical_prose_review_request_rehydrate_required",
+        "stage_packet_not_current_selected_dispatch",
+        "typed_closeout_packet_required",
+    }
+)
 
 
 def terminal_closeout_blocker_for_action(
@@ -586,6 +594,8 @@ def _terminal_stage_blocker_owner(
         or text(terminal.get("owner"))
         or text(terminal.get("current_owner"))
     )
+    if blocker_reason in OPL_RUNTIME_TERMINAL_BLOCKERS:
+        return "one-person-lab"
     contract = owner_reason_contract(reason=blocker_reason, owner=explicit_owner)
     return (
         explicit_owner

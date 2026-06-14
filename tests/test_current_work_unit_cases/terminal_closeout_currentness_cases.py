@@ -455,6 +455,65 @@ def test_current_work_unit_normalizes_structured_terminal_authorization_blocker(
     assert work_unit["state"]["typed_blocker"]["blocked_reason"] == "opl_execution_authorization_required"
 
 
+def test_current_work_unit_terminal_rehydrate_blocker_keeps_opl_owner_over_domain_next_owner() -> None:
+    module = _module()
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_medical_prose_quality_review"
+    fingerprint = "ai-reviewer::rehydrate-required::current"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "status": "blocked",
+                    "blocked_reason": "medical_prose_review_request_rehydrate_required",
+                    "stage_name": work_unit_id,
+                    "progress_delta_classification": "typed_blocker",
+                    "typed_blocker": {
+                        "blocked_reason": "medical_prose_review_request_rehydrate_required",
+                        "next_owner": "ai_reviewer",
+                        "write_permitted": False,
+                    },
+                    "paper_stage_log": {
+                        "stage_name": work_unit_id,
+                        "current_owner": "ai_reviewer",
+                        "remaining_blockers": [
+                            "medical_prose_review_request_rehydrate_required",
+                        ],
+                        "progress_delta_classification": "typed_blocker",
+                    },
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "study_progress.next_forced_delta.owner_action",
+            "next_owner": "ai_reviewer",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        },
+        next_owner="ai_reviewer",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["action_type"] == "return_to_ai_reviewer_workflow"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["state"]["source"] == "terminal_closeout_typed_blocker"
+    assert work_unit["state"]["blocker_type"] == "medical_prose_review_request_rehydrate_required"
+    assert work_unit["state"]["typed_blocker"]["owner"] == "one-person-lab"
+
+
 def test_current_work_unit_terminal_quality_repair_next_delta_blocks_stale_gate_followthrough_identity() -> None:
     module = _module()
     study_id = "002-dm-china-us-mortality-attribution"

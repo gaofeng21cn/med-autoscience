@@ -64,3 +64,7 @@ def test_progress_projection_recomputes_actions_after_consumed_closeout_typed_bl
     assert payload["current_work_unit"]["state"]["source"] == "typed_blocker"
     assert payload["current_execution_envelope"]["state_kind"] == "typed_blocker"
     assert payload["current_executable_owner_action"] is None
+    assert payload["current_execution_evidence"]["action_queue"] == []
+    assert payload["current_execution_evidence"]["opl_current_control_state_handoff"]["typed_blocker"] == (
+        handoff["typed_blocker"]
+    )

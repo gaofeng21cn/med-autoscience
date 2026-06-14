@@ -8,6 +8,9 @@ from med_autoscience.controllers import autonomy_ai_doctor
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
+from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
+    OPL_RUNTIME_TERMINAL_BLOCKERS,
+)
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
     default_executor_execution_candidates,
 )
@@ -876,6 +879,8 @@ def _typed_closeout_blocker_projection(
         or _non_empty_text(embedded.get("phase_owner"))
         or _non_empty_text(typed_closeout.get("next_owner"))
     )
+    if blocked_reason in OPL_RUNTIME_TERMINAL_BLOCKERS:
+        owner = "one-person-lab"
     action = _observability_mapping(matching_action)
     blocker = {
         **embedded,

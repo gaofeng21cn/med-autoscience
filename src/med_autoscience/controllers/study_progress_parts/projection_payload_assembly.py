@@ -11,10 +11,6 @@ from med_autoscience.controllers.production_blocker_impact_projection import (
 )
 import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
 import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
-from med_autoscience.controllers import current_execution_envelope, current_work_unit
-from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
-    CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS,
-)
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 
@@ -25,7 +21,6 @@ from .current_owner_handoff_projection import (
 )
 from .current_executable_owner_action import build_current_executable_owner_action
 from .current_owner_action_projection_reconcile import (
-    current_execution_envelope_actions,
     reconcile_current_owner_action_projection,
 )
 from .macro_state_projection import compact_study_macro_state_from_payload
@@ -37,6 +32,11 @@ from .projection_payload_assembly_parts.progress_delta import (
 )
 from .projection_payload_assembly_parts.paper_recovery_visibility import (
     apply_paper_recovery_state_user_visible_status as _apply_paper_recovery_state_user_visible_status,
+)
+from .projection_payload_assembly_parts.current_execution_surfaces import (
+    current_action_aligned_with_execution_envelope as _current_action_aligned_with_execution_envelope,
+    refresh_current_execution_surfaces as _refresh_current_execution_surfaces,
+    typed_blocker_reason as _typed_blocker_reason,
 )
 from .projection_payload_assembly_parts.running_provider_status import (
     apply_running_provider_attempt_top_level_status,
@@ -578,121 +578,6 @@ def _sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict
     return updated
 
 
-def _execution_actions_for_payload(
-    *,
-    payload: Mapping[str, Any],
-    handoff: Mapping[str, Any],
-) -> list[dict[str, Any]]:
-    return current_execution_envelope_actions(
-        handoff=handoff,
-        current_executable_owner_action=_mapping_copy(payload.get("current_executable_owner_action")),
-        paper_progress_delta_counted=_mapping_copy(payload.get("progress_first_sprint_state")).get(
-            "paper_progress_delta_counted"
-        )
-        is True,
-    )
-
-
-def _refresh_current_execution_surfaces(
-    *,
-    payload: dict[str, Any],
-    status: Mapping[str, Any],
-    handoff: Mapping[str, Any],
-    runtime_health_snapshot: Mapping[str, Any],
-) -> dict[str, Any]:
-    updated = dict(payload)
-    actions = _execution_actions_for_payload(payload=updated, handoff=handoff)
-    current_action = _current_action_for_execution_refresh(payload=updated, handoff=handoff)
-    updated["current_work_unit"] = current_work_unit.build_current_work_unit(
-        status=status,
-        progress=updated,
-        actions=actions,
-        current_executable_owner_action=current_action,
-        provider_admission=handoff,
-        live_provider_attempt=handoff,
-        typed_blocker=_mapping_copy(handoff.get("typed_blocker")),
-        blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
-        next_owner=_non_empty_text(handoff.get("next_owner")),
-        runtime_health=runtime_health_snapshot,
-    )
-    updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-        status=status,
-        progress=updated,
-        actions=actions,
-        blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
-        next_owner=_non_empty_text(handoff.get("next_owner")),
-        typed_blocker=_mapping_copy(handoff.get("typed_blocker")),
-        runtime_health=runtime_health_snapshot,
-        live_provider_attempt=handoff,
-        current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
-    )
-    aligned_action = _current_action_aligned_with_execution_envelope(
-        action=current_action,
-        envelope=_mapping_copy(updated.get("current_execution_envelope")),
-    )
-    if aligned_action != _mapping_copy(updated.get("current_executable_owner_action")):
-        updated["current_executable_owner_action"] = aligned_action
-        actions = _execution_actions_for_payload(payload=updated, handoff=handoff)
-        current_action = _current_action_for_execution_refresh(payload=updated, handoff=handoff)
-        updated["current_work_unit"] = current_work_unit.build_current_work_unit(
-            status=status,
-            progress=updated,
-            actions=actions,
-            current_executable_owner_action=current_action,
-            provider_admission=handoff,
-            live_provider_attempt=handoff,
-            typed_blocker=_mapping_copy(handoff.get("typed_blocker")),
-            blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
-            next_owner=_non_empty_text(handoff.get("next_owner")),
-            runtime_health=runtime_health_snapshot,
-        )
-        updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-            status=status,
-            progress=updated,
-            actions=actions,
-            blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
-            next_owner=_non_empty_text(handoff.get("next_owner")),
-            typed_blocker=_mapping_copy(handoff.get("typed_blocker")),
-            runtime_health=runtime_health_snapshot,
-            live_provider_attempt=handoff,
-            current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
-        )
-    updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
-        action_queue=actions,
-        runtime_health=runtime_health_snapshot,
-        extra={
-            "opl_current_control_state_handoff": dict(handoff) if handoff else None,
-        },
-    )
-    return updated
-
-
-def _current_action_for_execution_refresh(
-    *,
-    payload: Mapping[str, Any],
-    handoff: Mapping[str, Any],
-) -> dict[str, Any]:
-    if _handoff_terminal_typed_blocker_consumed(handoff):
-        return {}
-    return _mapping_copy(payload.get("current_executable_owner_action"))
-
-
-def _handoff_terminal_typed_blocker_consumed(handoff: Mapping[str, Any]) -> bool:
-    if handoff.get("running_provider_attempt") is True:
-        return False
-    blocker = _mapping_copy(handoff.get("typed_blocker"))
-    if blocker:
-        return True
-    latest_closeout = _mapping_copy(handoff.get("latest_typed_default_executor_closeout"))
-    if _non_empty_text(latest_closeout.get("status")) == "typed_blocker":
-        return True
-    return (
-        _non_empty_text(latest_closeout.get("terminal_closeout_outcome")) == "typed_blocker"
-        or _non_empty_text(latest_closeout.get("progress_delta_classification")) == "typed_blocker"
-        or _non_empty_text(latest_closeout.get("terminal_closeout_status")) == "blocked"
-    )
-
-
 def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[str, Any]:
     updated = apply_running_provider_attempt_top_level_status(payload)
     updated = apply_current_owner_handoff_user_visible_status(updated)
@@ -710,73 +595,6 @@ def _sync_study_macro_state_from_user_visible_projection(payload: dict[str, Any]
     updated = dict(payload)
     updated["study_macro_state"] = macro_state
     return updated
-
-
-def _current_action_aligned_with_execution_envelope(
-    *,
-    action: Mapping[str, Any],
-    envelope: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if not action:
-        return None
-    if _non_empty_text(action.get("surface_kind")) != "current_executable_owner_action":
-        return None
-    state_kind = _non_empty_text(envelope.get("state_kind"))
-    if state_kind == "typed_blocker":
-        typed_blocker = _mapping_copy(envelope.get("typed_blocker"))
-        blocker_reason = _typed_blocker_reason(typed_blocker) or _envelope_typed_blocker_reason(envelope)
-        if (
-            blocker_reason not in CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS
-            and not current_work_unit.action_supersedes_typed_blocker(
-                action=action,
-                blocker=typed_blocker,
-            )
-        ):
-            return None
-    if _non_empty_text(action.get("source")) == "repair_progress_projection.mas_owner_repair_execution_evidence":
-        return dict(action)
-    if _non_empty_text(action.get("source")) == "gate_clearing_batch_followthrough.actionable_current_work_unit":
-        return dict(action)
-    if _non_empty_text(action.get("source")) == "publication_eval.recommended_actions.readiness_blocker_repair":
-        return dict(action)
-    if (
-        state_kind == "typed_blocker"
-        and _non_empty_text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
-        and _envelope_typed_blocker_reason(envelope) == "gate_clearing_batch_source_eval_currentness_mismatch"
-    ):
-        return dict(action)
-    if (
-        state_kind == "typed_blocker"
-        and _non_empty_text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
-        and action.get("terminal_stage_next_forced_delta") is True
-    ):
-        return dict(action)
-    if state_kind == "typed_blocker" and _non_empty_text(action.get("source")) == "stage_native_workspace_next_action":
-        return dict(action)
-    if state_kind != "executable_owner_action":
-        return None
-    envelope_work_unit = _work_unit_identity(envelope.get("next_work_unit"))
-    action_work_units = {
-        item
-        for item in (
-            _non_empty_text(action.get("work_unit_id")),
-            _non_empty_text(action.get("action_type")),
-            *_text_list(action.get("allowed_actions")),
-        )
-        if item is not None
-    }
-    if envelope_work_unit is not None and action_work_units and envelope_work_unit not in action_work_units:
-        return None
-    return dict(action)
-
-
-def _text_list(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = value.strip()
-        return [text] if text else []
-    if not isinstance(value, list | tuple | set):
-        return []
-    return [text for item in value if (text := _non_empty_text(item)) is not None]
 
 
 def _apply_current_work_unit_typed_blocker_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
@@ -885,16 +703,6 @@ def _current_work_unit_typed_blocker(current_work_unit: Mapping[str, Any]) -> di
     return {key: value for key, value in typed_blocker.items() if value not in (None, "", [], {})}
 
 
-def _typed_blocker_reason(typed_blocker: Mapping[str, Any]) -> str | None:
-    for key in ("blocked_reason", "blocker_type", "blocker_kind", "reason", "blocker_id"):
-        if text := _non_empty_text(typed_blocker.get(key)):
-            return text
-    anti_loop_budget = _mapping_copy(typed_blocker.get("anti_loop_budget"))
-    if _non_empty_text(anti_loop_budget.get("status")) == "exhausted":
-        return "anti_loop_budget_exhausted"
-    return None
-
-
 def _typed_blocker_blockers(typed_blocker: Mapping[str, Any], *, reason: str) -> list[str]:
     values: list[str] = [reason]
     for item in typed_blocker.get("remaining_blockers") or []:
@@ -917,14 +725,6 @@ def _typed_blocker_next_step(
     subject = f" work unit {work_unit_id}" if work_unit_id is not None else ""
     action = f" / {action_type}" if action_type is not None else ""
     return f"等待 {owner_text} 处理当前 typed blocker：{reason}{subject}{action}。"
-
-
-def _envelope_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | None:
-    blocker = _mapping_copy(envelope.get("typed_blocker"))
-    for key in ("blocker_type", "blocker_id", "blocked_reason", "reason"):
-        if text := _non_empty_text(blocker.get(key)):
-            return text
-    return None
 
 
 def _stage_native_current_owner_action(*, study_root: Path) -> dict[str, Any] | None:
@@ -976,12 +776,6 @@ def _stage_native_current_owner_action(*, study_root: Path) -> dict[str, Any] | 
             "stage_native_next_action_is_control_projection": True,
         },
     }
-
-
-def _work_unit_identity(value: object) -> str | None:
-    if isinstance(value, Mapping):
-        return _non_empty_text(value.get("unit_id")) or _non_empty_text(value.get("work_unit_id"))
-    return _non_empty_text(value)
 
 
 def _active_run_id_with_live_handoff(

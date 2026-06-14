@@ -10,6 +10,7 @@ from med_autoscience.profiles import WorkspaceProfile
 
 from .current_executable_owner_action import build_current_executable_owner_action
 from .current_owner_action_projection_reconcile import (
+    current_execution_evidence_actions,
     current_execution_envelope_actions,
     reconcile_current_owner_action_projection,
 )
@@ -115,6 +116,7 @@ def refresh_existing_projection_current_owner_surfaces(
         ):
             updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
             updated = sync_progress_first_owner_action_admission(updated)
+        updated = sync_current_execution_evidence(updated, handoff=handoff)
         return attach_delivery_inspection_projection_fn(
             updated,
             profile=profile,
@@ -164,12 +166,10 @@ def refresh_existing_projection_current_owner_surfaces(
     )
     updated = sync_progress_first_owner_action_admission(updated)
     updated = apply_running_provider_attempt_top_level_status(updated)
-    updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+    updated = sync_current_execution_evidence(
+        updated,
+        handoff=handoff,
         action_queue=envelope_actions,
-        runtime_health=runtime_health_snapshot,
-        extra={
-            "opl_current_control_state_handoff": dict(handoff) if handoff else None,
-        },
     )
     updated["user_visible_projection"] = build_user_visible_projection(updated)
     return attach_delivery_inspection_projection_fn(
@@ -187,6 +187,34 @@ def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[
         return payload
     updated = dict(payload)
     updated["owner_action_admission"] = admission
+    return updated
+
+
+def sync_current_execution_evidence(
+    payload: dict[str, Any],
+    *,
+    handoff: Mapping[str, Any],
+    action_queue: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    updated = dict(payload)
+    runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot"))
+    progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
+    evidence_actions = (
+        action_queue
+        if action_queue is not None
+        else current_execution_evidence_actions(
+            handoff=handoff,
+            current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
+            paper_progress_delta_counted=progress_state.get("paper_progress_delta_counted") is True,
+        )
+    )
+    updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+        action_queue=evidence_actions,
+        runtime_health=runtime_health_snapshot,
+        extra={
+            "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+        },
+    )
     return updated
 
 

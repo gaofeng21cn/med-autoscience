@@ -254,6 +254,62 @@ def current_execution_envelope_actions(
     return [current_action] if current_action is not None else []
 
 
+def current_execution_evidence_actions(
+    *,
+    handoff: Mapping[str, Any],
+    current_executable_owner_action: Mapping[str, Any],
+    paper_progress_delta_counted: bool = False,
+) -> list[dict[str, Any]]:
+    if handoff.get("terminal_closeout_consumed") is True:
+        return []
+    if current_execution_handoff_consumes_current_action(handoff) or _handoff_has_consumed_action_queue(handoff):
+        current_action = _current_executable_owner_action_as_envelope_action(current_executable_owner_action)
+        if _non_empty_text(_mapping_copy(current_action).get("source_surface")) != (
+            "study_progress.next_forced_delta.owner_action"
+        ):
+            return []
+        if _current_action_consumed_by_handoff(current_action, handoff):
+            return []
+        return [current_action] if current_action is not None else []
+    return current_execution_envelope_actions(
+        handoff=handoff,
+        current_executable_owner_action=current_executable_owner_action,
+        paper_progress_delta_counted=paper_progress_delta_counted,
+    )
+
+
+def current_execution_handoff_consumes_current_action(handoff: Mapping[str, Any]) -> bool:
+    if handoff.get("running_provider_attempt") is True:
+        return False
+    blocker = _mapping_copy(handoff.get("typed_blocker"))
+    if blocker:
+        return True
+    latest_closeout = _mapping_copy(handoff.get("latest_typed_default_executor_closeout"))
+    if _non_empty_text(latest_closeout.get("status")) == "typed_blocker":
+        return True
+    return (
+        _non_empty_text(latest_closeout.get("terminal_closeout_outcome")) == "typed_blocker"
+        or _non_empty_text(latest_closeout.get("progress_delta_classification")) == "typed_blocker"
+        or _non_empty_text(latest_closeout.get("terminal_closeout_status")) == "blocked"
+    )
+
+
+def _current_action_consumed_by_handoff(
+    current_action: Mapping[str, Any] | None,
+    handoff: Mapping[str, Any],
+) -> bool:
+    if current_action is None:
+        return False
+    return any(
+        isinstance(item, Mapping) and currentness_identities_match(current_action, item)
+        for item in handoff.get("consumed_action_queue") or []
+    )
+
+
+def _handoff_has_consumed_action_queue(handoff: Mapping[str, Any]) -> bool:
+    return any(isinstance(item, Mapping) for item in handoff.get("consumed_action_queue") or [])
+
+
 def _current_executable_owner_action_as_envelope_action(
     current_executable_owner_action: Mapping[str, Any],
 ) -> dict[str, Any] | None:
@@ -413,7 +469,9 @@ def _surface_has_human_gate_ref(surface: Mapping[str, Any]) -> bool:
 
 
 __all__ = [
+    "current_execution_evidence_actions",
     "current_execution_envelope_actions",
+    "current_execution_handoff_consumes_current_action",
     "current_owner_action_supersedes_stale_user_park",
     "reconcile_current_owner_action_projection",
 ]
