@@ -144,6 +144,24 @@ def paper_recovery_successor_supersedes_gate_replay_blocker(
     )
 
 
+def paper_recovery_successor_action_ready(
+    paper_recovery_action: Mapping[str, Any] | None,
+) -> bool:
+    action = _mapping_copy(paper_recovery_action)
+    if not action:
+        return False
+    if _non_empty_text(action.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
+        return False
+    successor = _mapping_copy(action.get("paper_recovery_successor"))
+    if successor.get("provider_admission_allowed") is not True:
+        return False
+    return (
+        _non_empty_text(action.get("action_type")) is not None
+        and _non_empty_text(action.get("work_unit_id")) is not None
+        and _non_empty_text(action.get("work_unit_fingerprint")) is not None
+    )
+
+
 def _required_output_surface(action_type: str) -> str:
     if action_type == "run_quality_repair_batch":
         return "artifacts/controller/repair_execution_evidence/latest.json"
@@ -193,5 +211,6 @@ def _compact(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 __all__ = [
     "owner_action_from_paper_recovery_state",
+    "paper_recovery_successor_action_ready",
     "paper_recovery_successor_supersedes_gate_replay_blocker",
 ]

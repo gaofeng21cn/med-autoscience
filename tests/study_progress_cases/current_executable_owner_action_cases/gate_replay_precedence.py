@@ -876,7 +876,7 @@ def test_same_eval_repair_delta_routes_to_gate_replay_not_repeat_write_repair() 
         "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
         "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
     )
-    fingerprint = "publication-blockers::0915410f804b3697"
+    fingerprint = "sha256:repair-execution-evidence-current"
     gate_record = (
         "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
         "artifacts/controller/gate_clearing_batch/latest.json"
@@ -896,6 +896,7 @@ def test_same_eval_repair_delta_routes_to_gate_replay_not_repeat_write_repair() 
                     "explicit_publication_work_unit_id": "medical_prose_write_repair",
                     "selected_publication_work_unit_id": "medical_prose_write_repair",
                     "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "explicit_work_unit_fingerprint": fingerprint,
                     "current_work_unit_fingerprint": fingerprint,
                     "explicit_work_unit_fingerprint_matches_current": True,
                     "lacks_specific_blocker_object": False,
@@ -921,7 +922,7 @@ def test_same_eval_repair_delta_routes_to_gate_replay_not_repeat_write_repair() 
                 "accepted_owner_receipt": True,
                 "work_unit_id": "medical_prose_write_repair",
                 "source_eval_id": source_eval_id,
-                "source_fingerprint": "sha256:repair-execution-evidence-current",
+                "source_fingerprint": fingerprint,
                 "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
                 "owner_receipt_ref": "artifacts/controller/quality_repair_batch/latest.json",
                 "gate_replay_done": True,

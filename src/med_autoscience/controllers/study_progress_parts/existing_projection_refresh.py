@@ -333,7 +333,9 @@ def refresh_paper_recovery_successor_surfaces(
     handoff: Mapping[str, Any],
     study_root: Path,
 ) -> dict[str, Any]:
-    current_action = build_current_executable_owner_action(payload)
+    recovery_payload = dict(payload)
+    recovery_payload["paper_recovery_state"] = build_paper_recovery_state(recovery_payload)
+    current_action = build_current_executable_owner_action(recovery_payload)
     if _non_empty_text(_mapping_copy(current_action).get("source")) != (
         "paper_recovery_state.next_safe_action.successor_owner_action"
     ):

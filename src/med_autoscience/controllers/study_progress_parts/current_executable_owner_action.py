@@ -45,6 +45,7 @@ from .current_executable_owner_action_parts.gate_followthrough import (
 from .current_executable_owner_action_parts import gate_replay_identity
 from .current_executable_owner_action_parts.paper_recovery import (
     owner_action_from_paper_recovery_state,
+    paper_recovery_successor_action_ready,
     paper_recovery_successor_supersedes_gate_replay_blocker,
 )
 from .current_executable_owner_action_parts.publication_repair import (
@@ -84,6 +85,8 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         paper_recovery_action=paper_recovery_action,
         payload=payload,
     ):
+        return paper_recovery_action
+    if paper_recovery_successor_action_ready(paper_recovery_action):
         return paper_recovery_action
     if (
         domain_transition_action is not None

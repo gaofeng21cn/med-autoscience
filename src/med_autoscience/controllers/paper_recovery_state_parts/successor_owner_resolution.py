@@ -53,6 +53,55 @@ def successor_owner_action_from_current_action(action: Mapping[str, Any]) -> dic
     }
 
 
+def current_owner_successor_action(
+    progress: Mapping[str, Any],
+    *,
+    current_action: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    action = _mapping(current_action) or current_executable_owner_action(progress)
+    source = _text(action.get("source")) or _text(action.get("source_surface"))
+    if source != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        return None
+    if not _gate_followthrough_has_consumed_repair_progress(progress, action=action):
+        return None
+    successor = successor_owner_action_from_current_action(action)
+    if (
+        _text(successor.get("action_type")) is None
+        or _text(successor.get("owner")) is None
+        or _text(successor.get("work_unit_id")) is None
+        or _text(successor.get("work_unit_fingerprint")) is None
+    ):
+        return None
+    return successor
+
+
+def _gate_followthrough_has_consumed_repair_progress(
+    progress: Mapping[str, Any],
+    *,
+    action: Mapping[str, Any],
+) -> bool:
+    repair = _mapping(progress.get("repair_progress_projection"))
+    if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
+        return False
+    if repair.get("accepted_owner_receipt") is not True:
+        return False
+    if repair.get("gate_replay_done") is not True:
+        return False
+    action_work_unit = _text(action.get("work_unit_id"))
+    repair_work_unit = _text(repair.get("work_unit_id"))
+    if action_work_unit is None or repair_work_unit != action_work_unit:
+        return False
+    action_eval = _text(action.get("source_eval_id"))
+    repair_eval = _text(repair.get("source_eval_id"))
+    if action_eval is not None and repair_eval is not None and action_eval != repair_eval:
+        return False
+    return bool(
+        _text(repair.get("repair_execution_evidence_ref"))
+        or _text(repair.get("owner_receipt_ref"))
+        or _text_items(repair.get("gate_replay_refs"))
+    )
+
+
 def successor_owner_gate_from_terminal_blocker(
     progress: Mapping[str, Any],
     *,
@@ -366,6 +415,7 @@ def _dedupe(values: list[str | None]) -> list[str]:
 
 __all__ = [
     "current_executable_owner_action",
+    "current_owner_successor_action",
     "successor_owner_action_from_current_action",
     "successor_owner_action_from_terminal_blocker",
     "successor_owner_gate_from_terminal_blocker",

@@ -26,6 +26,8 @@ _PROVIDER_EVIDENCE_MARKERS = (
     "selected_dispatch",
 )
 _STAGE_RUN_EVIDENCE_MARKERS = (
+    "default_executor_dispatches",
+    "default-executor-dispatch",
     "stage-run",
     "stage_run",
     "stage-attempt",

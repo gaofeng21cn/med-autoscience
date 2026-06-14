@@ -261,6 +261,8 @@ def current_action_aligned_with_execution_envelope(
         return dict(action)
     if action_source == "publication_eval.recommended_actions.readiness_blocker_repair":
         return dict(action)
+    if action_source == "paper_recovery_state.next_safe_action.successor_owner_action":
+        return dict(action)
     if (
         state_kind == "typed_blocker"
         and action_source == "study_progress.next_forced_delta.owner_action"

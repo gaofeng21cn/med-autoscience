@@ -203,6 +203,7 @@ def _supervisor_decision_blocks_provider_admission(
     if _paper_recovery_allows_provider_admission(
         phase=phase,
         next_safe_action=_mapping_copy(next_safe_action),
+        supervisor_decision=supervisor_decision,
     ):
         return False
     return supervisor_decision_blocks_provider_admission(supervisor_decision)
@@ -212,7 +213,13 @@ def _paper_recovery_allows_provider_admission(
     *,
     phase: str | None,
     next_safe_action: Mapping[str, Any],
+    supervisor_decision: Mapping[str, Any],
 ) -> bool:
+    if not _supervisor_decision_allows_provider_admission(
+        supervisor_decision,
+        recovery_action_kind=_non_empty_text(next_safe_action.get("kind")),
+    ):
+        return False
     if phase in {"admission_pending", "attempt_running"}:
         return True
     if phase == "owner_action_ready" and next_safe_action.get("provider_admission_allowed") is True:
@@ -222,6 +229,35 @@ def _paper_recovery_allows_provider_admission(
             "admit_identity_bound_stage_packet",
         }
     return False
+
+
+def _supervisor_decision_allows_provider_admission(
+    supervisor_decision: Mapping[str, Any],
+    *,
+    recovery_action_kind: str | None,
+) -> bool:
+    if not supervisor_decision:
+        return True
+    decision = _non_empty_text(supervisor_decision.get("decision"))
+    if decision == "execute_current_owner_delta":
+        return True
+    if decision != "materialize_recovery_action":
+        return False
+    decision_action = _mapping_copy(supervisor_decision.get("next_safe_action"))
+    decision_action_kind = _non_empty_text(decision_action.get("kind"))
+    if decision_action_kind is None:
+        return recovery_action_kind in {
+            "materialize_provider_admission_or_owner_callable",
+            "materialize_successor_owner_action",
+            "admit_provider_attempt",
+            "admit_identity_bound_stage_packet",
+        }
+    return decision_action_kind in {
+        "materialize_provider_admission_or_owner_callable",
+        "materialize_successor_owner_action",
+        "admit_provider_attempt",
+        "admit_identity_bound_stage_packet",
+    }
 
 
 def _blocked_by(supervisor_decision: Mapping[str, Any]) -> str:
