@@ -16,6 +16,10 @@ from ..current_owner_action_projection_reconcile import (
     current_execution_envelope_actions,
     current_execution_handoff_consumes_current_action,
 )
+from ..current_control_executable_handoff import (
+    current_control_executable_currentness_handoff,
+    current_control_executable_owner_action,
+)
 from ..current_executable_owner_action import build_current_executable_owner_action
 from ..shared import _mapping_copy, _non_empty_text
 
@@ -28,6 +32,13 @@ def refresh_current_execution_surfaces(
     runtime_health_snapshot: Mapping[str, Any],
 ) -> dict[str, Any]:
     updated = dict(payload)
+    handoff_executable_action = current_control_executable_owner_action(handoff)
+    if handoff_executable_action:
+        updated["current_executable_owner_action"] = handoff_executable_action
+        handoff = current_control_executable_currentness_handoff(
+            handoff,
+            current_control_executable_action=handoff_executable_action,
+        )
     handoff_work_unit = _canonical_current_control_typed_blocker_work_unit(handoff)
     if handoff_work_unit:
         updated["current_work_unit"] = handoff_work_unit

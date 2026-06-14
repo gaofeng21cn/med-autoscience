@@ -16,7 +16,10 @@ from .current_owner_action_projection_reconcile import (
     current_control_typed_blocker_successor_action,
     reconcile_current_owner_action_projection,
 )
-from .current_action_identity import action_matches_canonical_executable_work_unit
+from .current_control_executable_handoff import (
+    current_control_executable_currentness_handoff,
+    current_control_executable_owner_action,
+)
 from .delivery_inspection import attach_delivery_inspection_projection
 from .opl_current_control_state_handoff import (
     merge_live_attempt_observability_into_handoff,
@@ -143,10 +146,8 @@ def refresh_existing_projection_current_owner_surfaces(
     else:
         updated["opl_current_control_state_handoff"] = None
         handoff = {}
-    current_control_executable_action = _current_control_executable_owner_action_for_existing_projection(
-        handoff
-    )
-    currentness_handoff = _currentness_handoff_for_existing_projection(
+    current_control_executable_action = current_control_executable_owner_action(handoff)
+    currentness_handoff = current_control_executable_currentness_handoff(
         handoff,
         current_control_executable_action=current_control_executable_action,
     )
@@ -284,9 +285,7 @@ def _apply_current_control_currentness_to_existing_projection(
         return payload
     handoff_work_unit = _mapping_copy(handoff.get("current_work_unit"))
     handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
-    handoff_executable_action = _current_control_executable_owner_action_for_existing_projection(
-        handoff
-    )
+    handoff_executable_action = current_control_executable_owner_action(handoff)
     if _non_empty_text(handoff_work_unit.get("status")) not in {"typed_blocker", "blocked_current_work_unit"}:
         if (
             _non_empty_text(handoff_envelope.get("state_kind")) != "typed_blocker"
@@ -317,106 +316,6 @@ def _apply_current_control_currentness_to_existing_projection(
             if isinstance(item, Mapping)
         ]
     return updated
-
-
-def _current_control_executable_owner_action_for_existing_projection(
-    handoff: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if handoff.get("running_provider_attempt") is True:
-        return None
-    handoff_work_unit = _mapping_copy(handoff.get("current_work_unit"))
-    handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
-    if _non_empty_text(handoff_work_unit.get("status")) != "executable_owner_action":
-        return None
-    envelope_state = _non_empty_text(handoff_envelope.get("state_kind"))
-    if handoff_envelope and envelope_state != "executable_owner_action":
-        return None
-    action = _mapping_copy(handoff.get("current_executable_owner_action"))
-    if _non_empty_text(action.get("surface_kind")) != "current_executable_owner_action":
-        return None
-    if not action_matches_canonical_executable_work_unit(
-        action=action,
-        current_work_unit=handoff_work_unit,
-        require_ready_status=True,
-    ):
-        return None
-    if not _envelope_matches_current_control_executable_action(
-        envelope=handoff_envelope,
-        current_work_unit=handoff_work_unit,
-        action=action,
-    ):
-        return None
-    return action
-
-
-def _currentness_handoff_for_existing_projection(
-    handoff: Mapping[str, Any],
-    *,
-    current_control_executable_action: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    if not current_control_executable_action:
-        return dict(handoff)
-    current_work_unit = _mapping_copy(handoff.get("current_work_unit"))
-    current_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
-    updated = dict(handoff)
-    updated["typed_blocker"] = None
-    updated["blocked_reason"] = None
-    updated["next_owner"] = _non_empty_text(current_control_executable_action.get("next_owner")) or _non_empty_text(
-        current_work_unit.get("owner")
-    )
-    if _non_empty_text(current_work_unit.get("status")) == "executable_owner_action":
-        updated["current_work_unit"] = current_work_unit
-    if _non_empty_text(current_envelope.get("state_kind")) == "executable_owner_action":
-        updated["current_execution_envelope"] = current_envelope
-    updated["current_executable_owner_action"] = dict(current_control_executable_action)
-    return updated
-
-
-def _envelope_matches_current_control_executable_action(
-    *,
-    envelope: Mapping[str, Any],
-    current_work_unit: Mapping[str, Any],
-    action: Mapping[str, Any],
-) -> bool:
-    if not envelope:
-        return True
-    envelope_owner = _non_empty_text(envelope.get("owner"))
-    canonical_owner = _non_empty_text(current_work_unit.get("owner")) or _non_empty_text(
-        action.get("next_owner")
-    )
-    if envelope_owner is not None and canonical_owner is not None and envelope_owner != canonical_owner:
-        return False
-    envelope_work_unit = _non_empty_text(envelope.get("next_work_unit")) or _non_empty_text(
-        envelope.get("work_unit_id")
-    )
-    canonical_work_unit = _non_empty_text(current_work_unit.get("work_unit_id")) or _non_empty_text(
-        action.get("work_unit_id")
-    )
-    if (
-        envelope_work_unit is not None
-        and canonical_work_unit is not None
-        and envelope_work_unit != canonical_work_unit
-    ):
-        return False
-    envelope_action = _non_empty_text(envelope.get("action_type"))
-    canonical_action = _non_empty_text(current_work_unit.get("action_type")) or _non_empty_text(
-        action.get("action_type")
-    )
-    if envelope_action is not None and canonical_action is not None and envelope_action != canonical_action:
-        return False
-    envelope_fingerprint = _non_empty_text(envelope.get("work_unit_fingerprint")) or _non_empty_text(
-        envelope.get("action_fingerprint")
-    )
-    canonical_fingerprint = _non_empty_text(current_work_unit.get("work_unit_fingerprint")) or _non_empty_text(
-        current_work_unit.get("action_fingerprint")
-    ) or _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(action.get("action_fingerprint"))
-    if (
-        envelope_fingerprint is not None
-        and canonical_fingerprint is not None
-        and envelope_fingerprint != canonical_fingerprint
-    ):
-        return False
-    return True
 
 
 def _current_control_handoff_is_typed_blocker(handoff: Mapping[str, Any]) -> bool:
@@ -452,9 +351,7 @@ def refresh_paper_recovery_successor_surfaces(
     handoff: Mapping[str, Any],
     study_root: Path,
 ) -> dict[str, Any]:
-    current_control_executable_action = _current_control_executable_owner_action_for_existing_projection(
-        handoff
-    )
+    current_control_executable_action = current_control_executable_owner_action(handoff)
     if current_control_executable_action:
         return payload
     recovery_payload = dict(payload)

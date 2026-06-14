@@ -140,6 +140,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     if terminal_domain_blocker and not raw_typed_blocker:
         raw_typed_blocker = terminal_domain_blocker
     payload_current_action = _mapping(payload.get("current_executable_owner_action"))
+    payload_action_matches_canonical_work_unit = action_matches_canonical_executable_work_unit(
+        action=payload_current_action,
+        current_work_unit=canonical_current_work_unit,
+        require_ready_status=True,
+    )
     non_artifact_current_action = _mapping(
         build_current_executable_owner_action({**payload, "stage_artifact_index": {}})
     )
@@ -217,7 +222,9 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         else {}
     )
     current_action = (
-        stage_kernel_current_action
+        payload_current_action
+        if payload_action_matches_canonical_work_unit
+        else stage_kernel_current_action
         or canonical_current_owner_action
         or repair_progress_current_action
         or gate_followthrough_current_action
