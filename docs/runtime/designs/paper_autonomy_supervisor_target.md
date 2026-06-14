@@ -221,7 +221,7 @@ MAS 侧应收敛为四个 authority / adapter 面：
 - 在 `docs/runtime/designs/stage_route_reconcile_target.md` 中把 stage-route arbiter 下沉为 supervisor 的一个 decision source。
 - 在 `docs/active/mas-ideal-state-gap-plan.md` 增加 Paper Autonomy Supervisor lane。
 
-完成门：meta test 能证明 five-decision taxonomy、identity fields、paper/platform 分账、read-model forbidden authority 都存在。
+完成门：meta test 能证明 five-decision taxonomy、identity fields、paper/platform 分账、read-model forbidden authority 都存在；该门只关闭合同入口，不关闭 runtime tail。
 
 ### Lane 1：OPL 基座
 
@@ -237,7 +237,7 @@ MAS 侧应收敛为四个 authority / adapter 面：
 - owner gate route-back event 被 materialize 成具体 recovery action 或 typed blocker，不停留在人读 human_gate。
 - OPL execution authorization 缺口统一转为 OPL-owned `wait_for_owner_with_resume_token` 或 `stop_with_stable_typed_blocker`。
 
-完成门：DM002 / DM003 类 fixture 不再出现 `operator_decision_required` 长停；必须有 recovery receipt、human token、stable blocker、admission/running 或 owner delta。
+完成门：DM002 / DM003 类 fixture 不再出现 `operator_decision_required` 长停；`paper_recovery_state` 必须内嵌同一 identity 的 `supervisor_decision`，且 DHD / study_progress / domain-handler / operator projection 只能消费该 decision，不能从 queue、provider count、stage index 或 docs text 重算 currentness。DM002 / DM003 live-shape canary 必须证明 `provider_admission_pending_count=0` 与 `action_queue=[]` 只进入 `forbidden_interpretations`，并且每篇 exactly one supervisor decision 映射到 recovery action、human token、stable blocker、admission/running 或 owner delta。
 
 ### Lane 3：Yang workspace migration lane
 
@@ -266,7 +266,7 @@ MAS 侧应收敛为四个 authority / adapter 面：
 - 每轮 supervisor tick 必须产生五类 decision 之一。
 - 连续 heartbeat 无论文 delta 时，必须自动升级到 recovery action、human token 或 stable blocker。
 
-完成门：至少一次真实论文链路从 current owner delta 进入 running / terminal / consume closeout / next owner delta，并保留 paper/platform 分账。
+完成门：至少一次真实论文链路从 current owner delta 进入 running / terminal / consume closeout / next owner delta，并保留 paper/platform 分账；同时必须有 fresh `supervisor_decision` readout、derived surfaces consume-only 证明、OPL substrate 对同 obligation 的 readback，以及 DM002/DM003 live-shape canary 持续通过。
 
 ## 不做的事
 
@@ -289,3 +289,5 @@ MAS 侧应收敛为四个 authority / adapter 面：
 6. 同一 identity 重复 no-progress 到预算后，系统自动 stop-loss 或 route-back，不重复 redrive。
 7. operator 默认读面不需要倒查 DHD/queue/stage index 就能判断下一步。
 8. OPL substrate 可以处理 durable execution 和 human-gate transport，MAS authority kernel 可以消费结果并生成 owner receipt / typed blocker / next delta。
+9. `provider_admission_pending_count=0`、`action_queue=[]`、`observe_only` 和 `queue_empty` 只允许作为 `forbidden_interpretations` 或诊断证据，不能作为 terminal/idle supervisor decision。
+10. 完整完成声明必须同时具备 fresh `supervisor_decision` readout、derived surfaces consume-only、OPL substrate readback、DM002/DM003 live-shape canary 和真实 paper-line tick evidence；contract landed、docs updated、tests green 或 read-model projection landed 都不能替代这些门。
