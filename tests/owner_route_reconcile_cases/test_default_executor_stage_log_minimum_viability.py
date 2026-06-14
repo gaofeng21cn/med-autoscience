@@ -144,6 +144,126 @@ def test_gate_replay_closeout_with_incomplete_stage_log_consumes_as_typed_blocke
     assert redrive == {}
 
 
+def test_quality_repair_stage_packet_currentness_closeout_consumes_as_typed_blocker(
+    tmp_path: Path,
+) -> None:
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = tmp_path / "studies" / study_id
+    work_unit_id = "analysis_claim_evidence_repair"
+    fingerprint = "publication-blockers::497d1260db522f01"
+    owner_route = {
+        "truth_epoch": "truth-event-000041-dm002",
+        "route_epoch": "truth-event-000041-dm002",
+        "runtime_health_epoch": "runtime-health-event-006950-dm002",
+        "work_unit_fingerprint": fingerprint,
+        "next_owner": "write",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+        "source_refs": {
+            "owner_route_currentness_basis": {
+                "truth_epoch": "truth-event-000041-dm002",
+                "runtime_health_epoch": "runtime-health-event-006950-dm002",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+        },
+    }
+    closeout_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+        "sat_stage_packet_currentness.closeout.json"
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "sat_stage_packet_currentness.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_attempt_id": "sat_stage_packet_currentness",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "outcome": "typed_blocker",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "typed_blocker": {
+                "surface_kind": "mas_domain_typed_blocker",
+                "schema_version": 1,
+                "status": "blocked",
+                "blocker_id": "domain_owner_dispatch_zero_selected_after_materialized_current_request",
+                "blocker_type": "stage_packet_not_current_selected_dispatch",
+                "reason": "domain_owner_dispatch_zero_selected_after_materialized_current_request",
+                "owner": "one-person-lab",
+                "write_permitted": False,
+            },
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "schema_version": 1,
+                "status": "available",
+                "stage_name": "default-executor-dispatch:run_quality_repair_batch",
+                "problem_summary": "The supplied quality repair stage packet was not current-selected.",
+                "stage_goal": "Return an owner receipt or typed blocker for the selected quality repair packet.",
+                "stage_work_done": ["Checked the current dispatch identity."],
+                "paper_work_done": ["No paper surfaces were changed."],
+                "changed_stage_surfaces": [closeout_ref],
+                "changed_paper_surfaces": [],
+                "outcome": "typed_blocker",
+                "remaining_blockers": ["stage_packet_not_current_selected_dispatch"],
+                "duration": {"status": "missing", "seconds": None},
+                "token_usage": {"status": "missing", "total_tokens": None},
+                "cost": {"status": "missing", "usd": None},
+                "usage_refs": [],
+                "cost_refs": [],
+                "progress_delta_classification": "typed_blocker",
+                "deliverable_progress_delta": {"count": 0, "refs": [], "token_usage_total": None},
+                "paper_progress_delta": {"count": 0, "refs": [], "token_usage_total": None},
+                "platform_repair_delta": {"count": 1, "refs": [closeout_ref], "token_usage_total": None},
+                "next_forced_delta": {
+                    "required_delta_kind": "owner_receipt_or_typed_blocker_selected_by_mas_domain_owner_dispatch",
+                    "work_unit_id": work_unit_id,
+                    "owner_action": {
+                        "next_owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                    "reason": "typed_blocker::stage_packet_not_current_selected_dispatch",
+                },
+                "evidence_refs": [closeout_ref],
+            },
+            "closeout_refs": [closeout_ref],
+        },
+    )
+
+    receipt = default_executor_execution_receipt_consumption(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    )
+    redrive = default_executor_execution_nonconsumable_closeout(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    )
+
+    assert receipt["status"] == "consumed"
+    assert receipt["action_type"] == "run_quality_repair_batch"
+    assert receipt["outcome"] == "typed_blocker"
+    assert receipt["blocked_reason"] == "stage_packet_not_current_selected_dispatch"
+    assert receipt["typed_blocker"]["blocker_type"] == "stage_packet_not_current_selected_dispatch"
+    assert receipt["work_unit_id"] == work_unit_id
+    assert receipt["work_unit_fingerprint"] == fingerprint
+    assert receipt["changed_artifact_ref_count"] == 0
+    assert receipt["next_action"] == "honor_typed_blocker_without_redrive"
+    assert redrive == {}
+
+
 def test_stage_log_workbench_projection_is_refs_only_body_free_read_model(
     monkeypatch,
     tmp_path: Path,

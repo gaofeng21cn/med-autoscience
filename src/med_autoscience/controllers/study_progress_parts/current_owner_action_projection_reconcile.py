@@ -205,8 +205,21 @@ def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[s
 def current_control_typed_blocker_successor_action(action: Mapping[str, Any] | None) -> bool:
     if not isinstance(action, Mapping):
         return False
-    if _non_empty_text(action.get("source")) not in CURRENT_CONTROL_TYPED_BLOCKER_SUCCESSOR_SOURCES:
+    source = _non_empty_text(action.get("source"))
+    if source not in CURRENT_CONTROL_TYPED_BLOCKER_SUCCESSOR_SOURCES:
         return False
+    if source in {
+        "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "publication_eval.recommended_actions.readiness_blocker_repair",
+    }:
+        return False
+    if source == "repair_progress_projection.mas_owner_repair_execution_evidence":
+        precedence = _mapping_copy(action.get("repair_progress_precedence"))
+        if not (
+            precedence.get("paper_delta_observed") is True
+            or precedence.get("accepted_owner_receipt") is True
+        ):
+            return False
     return _non_empty_text(action.get("action_type")) is not None and _non_empty_text(
         action.get("work_unit_id")
     ) is not None

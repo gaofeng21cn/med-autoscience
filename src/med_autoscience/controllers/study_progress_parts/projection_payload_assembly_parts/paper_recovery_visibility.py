@@ -42,6 +42,8 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
             blockers.append(phase)
         updated["current_blockers"] = blockers
         updated["next_system_action"] = summary
+    if next_safe_action.get("provider_admission_allowed") is False:
+        _suppress_active_provider_admission_projection(updated)
     if phase in PAPER_RECOVERY_AUTHORITY_VISIBLE_PHASES:
         updated = _apply_paper_recovery_authority_projection(
             updated,

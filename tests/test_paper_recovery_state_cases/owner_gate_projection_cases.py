@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-from tests.test_paper_recovery_state_cases.shared import _typed_blocker_work_unit
+from tests.test_paper_recovery_state_cases.shared import _module, _typed_blocker_work_unit
 
 
 def test_runtime_report_owner_gate_event_supersedes_managed_action_typed_blocker() -> None:
@@ -80,6 +80,86 @@ def test_runtime_report_owner_gate_event_supersedes_managed_action_typed_blocker
     assert action["decision"] == "blocked"
     assert action["reason"] == "stage_packet_not_current_selected_dispatch"
     assert action["running_provider_attempt"] is False
+
+
+def test_owner_gate_route_back_suppresses_residual_provider_admission_projection() -> None:
+    visibility = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+    )
+    fingerprint = "publication-blockers::497d1260db522f01"
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_work_unit": _typed_blocker_work_unit(
+                study_id="002-dm-china-us-mortality-attribution",
+                action_type="run_quality_repair_batch",
+                work_unit_id="analysis_claim_evidence_repair",
+                blocker_type="stage_packet_not_current_selected_dispatch",
+            )
+            | {
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "study_intervention_events": [
+                {
+                    "surface": "study_intervention_event",
+                    "intent": "owner_gate_decision",
+                    "payload": {
+                        "decision": "route_back_to_mas_packet_materialization_bug",
+                        "current_owner_identity": {
+                            "study_id": "002-dm-china-us-mortality-attribution",
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": "analysis_claim_evidence_repair",
+                            "work_unit_fingerprint": fingerprint,
+                            "blocker_type": "stage_packet_not_current_selected_dispatch",
+                        },
+                        "human_gate_ref": "human_gate:owner-gate-decision:c7027de42ca336cfe0782428",
+                        "owner_gate_decision_ref": "owner-gate-decision:c7027de42ca336cfe0782428",
+                        "route_back_evidence_ref": "route_back:owner-gate-decision:c7027de42ca336cfe0782428",
+                        "provider_admission_allowed": False,
+                    },
+                }
+            ],
+        }
+    )
+
+    result = visibility.apply_paper_recovery_state_user_visible_status(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "queued",
+            "current_blockers": [],
+            "paper_recovery_state": state,
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "analysis_claim_evidence_repair",
+                    "work_unit_fingerprint": fingerprint,
+                }
+            ],
+            "owner_action_admission": {
+                "admission_pending": True,
+                "provider_attempt_start_requested": True,
+            },
+            "progress_first_monitoring_summary": {
+                "owner_action_admission": {
+                    "admission_pending": True,
+                    "provider_attempt_start_requested": True,
+                }
+            },
+        }
+    )
+
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["paper_recovery_provider_admission_blocked_count"] == 1
+    assert len(result["blocked_provider_admission_candidates"]) == 1
+    assert result["owner_action_admission"]["admission_pending"] is False
+    assert result["owner_action_admission"]["blocked_by"] == "paper_recovery_state"
+    monitoring = result["progress_first_monitoring_summary"]["owner_action_admission"]
+    assert monitoring["admission_pending"] is False
+    assert monitoring["blocked_by"] == "paper_recovery_state"
 
 
 def test_runtime_scan_fresh_currentness_carries_owner_gate_events(monkeypatch, tmp_path) -> None:

@@ -132,6 +132,48 @@ def default_executor_execution_receipt_consumption(
                 )
             )
             continue
+        if blocked_typed_closeout and _blocked_typed_closeout_consumes_without_redrive(execution):
+            blocked_reason = _typed_blocker_reason(execution) or default_executor_consumed_blocked_reason(
+                action_type=action_type,
+                owner_result=owner_result,
+                repair_evidence=repair_evidence,
+            )
+            owner_route_currentness_basis = build_owner_route_currentness_basis(owner_route)
+            outcomes.append(
+                _default_executor_execution_outcome(
+                    kind="consumed",
+                    receipt_ref=receipt_ref,
+                    sequence_index=index,
+                    payload={
+                        "status": "consumed",
+                        "receipt_kind": "default_executor_execution",
+                        "receipt_ref": str(receipt_ref),
+                        "execution_id": _text(execution.get("execution_id"))
+                        or _text(execution.get("stage_attempt_id")),
+                        "action_type": action_type,
+                        "execution_status": _text(execution.get("execution_status")) or "blocked",
+                        "owner_result_status": _text(owner_result.get("status")) or "blocked",
+                        "repair_execution_evidence_status": _text(repair_evidence.get("status"))
+                        or "typed_blocker",
+                        **({"blocked_reason": blocked_reason} if blocked_reason else {}),
+                        **_typed_blocker_consumption_fields(execution, blocked_reason=blocked_reason),
+                        "work_unit_id": _text(owner_route_currentness_basis.get("work_unit_id")),
+                        "work_unit_fingerprint": _text(owner_route_currentness_basis.get("work_unit_fingerprint")),
+                        "canonical_work_unit_identity": owner_route_currentness_basis,
+                        "owner_route_currentness_basis": owner_route_currentness_basis,
+                        "consumed_owner_route_idempotency_key": _text(owner_route.get("idempotency_key")),
+                        "consumed_owner_route_epoch": _text(owner_route.get("route_epoch")),
+                        "consumed_owner_route_source_fingerprint": _text(owner_route.get("source_fingerprint")),
+                        "changed_artifact_ref_count": len(_mapping_list(repair_evidence.get("changed_artifact_refs"))),
+                        "quality_authorized": False,
+                        "submission_authorized": False,
+                        "current_package_write_authorized": False,
+                        "next_action": "honor_typed_blocker_without_redrive",
+                    },
+                    study_root=study_root,
+                )
+            )
+            continue
         if not default_executor_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
@@ -226,13 +268,17 @@ def _typed_blocker_consumption_fields(
 ) -> dict[str, Any]:
     if _text(execution.get("stage_closeout_outcome")) != "typed_blocker":
         return {}
-    reason = (
-        _text(execution.get("typed_blocker_reason"))
-        or _text(blocked_reason)
-        or "default_executor_typed_blocker"
-    )
+    source_typed_blocker = _source_typed_blocker(execution)
+    reason = _typed_blocker_reason(execution) or _text(blocked_reason) or "default_executor_typed_blocker"
     typed_blocker_ref = _text(execution.get("typed_blocker_ref"))
     owner_receipt_ref = _text(execution.get("owner_receipt_ref"))
+    owner = _text(source_typed_blocker.get("owner"))
+    next_owner = (
+        _text(source_typed_blocker.get("next_owner"))
+        or _text(source_typed_blocker.get("required_next_owner"))
+        or owner
+        or "med-autoscience"
+    )
     return {
         key: value
         for key, value in {
@@ -247,12 +293,43 @@ def _typed_blocker_consumption_fields(
                 "blocker_type": reason,
                 "source_ref": typed_blocker_ref,
                 "owner_receipt_ref": owner_receipt_ref,
-                "next_owner": "med-autoscience",
+                **({"owner": owner} if owner else {}),
+                "next_owner": next_owner,
                 "write_permitted": False,
             },
         }.items()
         if value is not None
     }
+
+
+def _blocked_typed_closeout_consumes_without_redrive(execution: Mapping[str, Any]) -> bool:
+    if _text(execution.get("stage_closeout_outcome")) != "typed_blocker":
+        return False
+    return bool(_source_typed_blocker(execution))
+
+
+def _source_typed_blocker(execution: Mapping[str, Any]) -> Mapping[str, Any]:
+    stage_closeout = _mapping(execution.get("stage_closeout"))
+    return _mapping(execution.get("typed_blocker")) or _mapping(stage_closeout.get("typed_blocker"))
+
+
+def _typed_blocker_reason(execution: Mapping[str, Any]) -> str:
+    typed_blocker = _source_typed_blocker(execution)
+    paper_stage_log = _mapping(execution.get("paper_stage_log"))
+    for value in (
+        execution.get("typed_blocker_reason"),
+        typed_blocker.get("blocker_type"),
+        typed_blocker.get("blocker_kind"),
+        typed_blocker.get("reason"),
+        typed_blocker.get("blocked_reason"),
+        typed_blocker.get("blocker_id"),
+        execution.get("blocked_reason"),
+    ):
+        if text := _text(value):
+            return text
+    if _text(paper_stage_log.get("progress_delta_classification")) == "typed_blocker":
+        return _text(paper_stage_log.get("outcome")) or "typed_blocker"
+    return ""
 
 
 def default_executor_execution_nonconsumable_closeout(
@@ -297,7 +374,7 @@ def default_executor_execution_nonconsumable_closeout(
             )
         )
         dispatch_zero_execution_blocker = default_executor_dispatch_zero_execution_blocker(owner_result)
-        if missing_refs_typed_closeout_packet:
+        if missing_refs_typed_closeout_packet or _blocked_typed_closeout_consumes_without_redrive(execution):
             continue
         if not recovered_stage_packet_currentness and default_executor_owner_result_consumable(
             action_type=action_type,
