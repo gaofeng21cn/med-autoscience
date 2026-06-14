@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 
-def test_provider_admission_report_derives_owner_gate_route_back_candidate(
+def test_provider_admission_report_derives_owner_gate_route_back_candidate_from_report_recovery_state(
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
@@ -151,26 +151,28 @@ def test_provider_admission_report_derives_owner_gate_route_back_candidate(
                                 "owner": "one-person-lab",
                             },
                         },
-                        "paper_recovery_state": {
-                            "surface_kind": "paper_recovery_state",
-                            "phase": "owner_action_ready",
-                            "next_safe_action": {
-                                "kind": "route_back_to_owner_or_repair_materialization",
-                                "owner": "MedAutoScience",
-                                "provider_admission_allowed": False,
-                                "accepted_owner_gate_decision": {
-                                    "decision": "route_back_to_mas_packet_materialization_bug",
-                                    "action_type": "run_quality_repair_batch",
-                                    "work_unit_id": work_unit_id,
-                                    "work_unit_fingerprint": fingerprint,
-                                    "route_back_evidence_ref": (
-                                        "route_back:owner-gate-decision:c7027de42ca336cfe0782428"
-                                    ),
-                                },
-                            },
-                        },
                     },
                 },
+            },
+            "paper_recovery_states": {
+                study_id: {
+                    "surface_kind": "paper_recovery_state",
+                    "phase": "owner_action_ready",
+                    "next_safe_action": {
+                        "kind": "route_back_to_owner_or_repair_materialization",
+                        "owner": "MedAutoScience",
+                        "provider_admission_allowed": False,
+                        "accepted_owner_gate_decision": {
+                            "decision": "route_back_to_mas_packet_materialization_bug",
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "route_back_evidence_ref": (
+                                "route_back:owner-gate-decision:c7027de42ca336cfe0782428"
+                            ),
+                        },
+                    },
+                }
             },
             "managed_study_actions": [
                 {

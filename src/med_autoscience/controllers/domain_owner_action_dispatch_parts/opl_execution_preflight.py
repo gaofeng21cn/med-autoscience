@@ -16,6 +16,7 @@ _CLEAN_ROOM_DESCRIPTOR_SURFACE = "artifacts/supervision/paper_clean_room_rebuild
 _QUALITY_REPAIR_ACTION = "run_quality_repair_batch"
 _PUBLICATION_SURFACE_DESCRIPTOR = "artifacts/reports/medical_publication_surface/latest.json"
 _PUBLICATION_HANDOFF_STAGE_ID = "08-publication_package_handoff"
+_ACCEPTED_OWNER_GATE_DECISION_AUTHORITY = "paper_recovery_state.accepted_owner_gate_decision"
 
 
 def block_if_missing_authorization(
@@ -67,6 +68,11 @@ def _authorized(
     ):
         return True
     if _stage_native_quality_repair_owner_action_authorized(
+        dispatch=dispatch,
+        owner_route_basis=owner_route_basis,
+    ):
+        return True
+    if _accepted_owner_gate_materialization_authorized(
         dispatch=dispatch,
         owner_route_basis=owner_route_basis,
     ):
@@ -156,6 +162,64 @@ def _stage_native_quality_repair_owner_action_authorized(
         and _text(binding.get("work_unit_id")) == _QUALITY_REPAIR_ACTION
         and _text(binding.get("work_unit_fingerprint")) is not None
     )
+
+
+def _accepted_owner_gate_materialization_authorized(
+    *,
+    dispatch: Mapping[str, Any],
+    owner_route_basis: str | None,
+) -> bool:
+    if owner_route_basis != "accepted_owner_gate_decision":
+        return False
+    if _text(dispatch.get("action_type")) != _QUALITY_REPAIR_ACTION:
+        return False
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(
+        _mapping(dispatch.get("prompt_contract")).get("owner_route")
+    )
+    if (_text(dispatch.get("next_executable_owner")) or _text(owner_route.get("next_owner"))) != "write":
+        return False
+    source_action = _mapping(dispatch.get("source_action"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    if _ACCEPTED_OWNER_GATE_DECISION_AUTHORITY not in {
+        _text(source_action.get("authority")),
+        _text(source_action.get("source_surface")),
+        _text(source_refs.get("source_surface")),
+        _text(prompt_contract.get("source_surface")),
+    }:
+        return False
+    stall = _mapping(dispatch.get("paper_progress_stall")) or _mapping(
+        prompt_contract.get("paper_progress_stall")
+    )
+    if _text(stall.get("kind")) != "owner_gate_route_back":
+        return False
+    if stall.get("provider_admission_allowed") is not False:
+        return False
+    route_back_ref = _text(stall.get("route_back_evidence_ref"))
+    if route_back_ref is None:
+        return False
+    if route_back_ref not in {
+        _text(source_action.get("source_ref")),
+        _text(source_refs.get("source_ref")),
+        _text(prompt_contract.get("source_ref")),
+    }:
+        return False
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
+        _mapping(owner_route.get("currentness_contract")).get("basis")
+    )
+    work_unit_id = (
+        _work_unit_id(source_action.get("work_unit_id"))
+        or _work_unit_id(source_refs.get("work_unit_id"))
+        or _work_unit_id(currentness_basis.get("work_unit_id"))
+    )
+    fingerprint = (
+        _text(source_action.get("work_unit_fingerprint"))
+        or _text(dispatch.get("work_unit_fingerprint"))
+        or _text(dispatch.get("action_fingerprint"))
+        or _text(source_refs.get("work_unit_fingerprint"))
+        or _text(currentness_basis.get("work_unit_fingerprint"))
+    )
+    return work_unit_id is not None and fingerprint is not None
 
 
 def with_provider_hosted_opl_authorization(dispatch: Mapping[str, Any]) -> dict[str, Any]:

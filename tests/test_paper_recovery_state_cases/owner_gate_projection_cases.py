@@ -94,6 +94,10 @@ def test_runtime_scan_fresh_currentness_carries_owner_gate_events(monkeypatch, t
         "event_id": "intervention-event-000001",
         "payload": {"decision": "route_back_to_mas_packet_materialization_bug"},
     }
+    recovery = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "owner_action_ready",
+    }
 
     def fake_read_study_progress(**kwargs):
         assert kwargs["study_id"] == study_id
@@ -104,6 +108,7 @@ def test_runtime_scan_fresh_currentness_carries_owner_gate_events(monkeypatch, t
                 "study_id": study_id,
             },
             "study_intervention_events": [event],
+            "paper_recovery_state": recovery,
         }
 
     monkeypatch.setattr(study_progress, "read_study_progress", fake_read_study_progress)
@@ -115,6 +120,7 @@ def test_runtime_scan_fresh_currentness_carries_owner_gate_events(monkeypatch, t
     )
 
     assert result["study_intervention_events"] == [event]
+    assert result["paper_recovery_state"] == recovery
 
 
 def test_same_tick_report_currentness_carries_owner_gate_events(monkeypatch) -> None:
@@ -127,6 +133,10 @@ def test_same_tick_report_currentness_carries_owner_gate_events(monkeypatch) -> 
         "event_id": "intervention-event-000001",
         "payload": {"decision": "route_back_to_mas_packet_materialization_bug"},
     }
+    recovery = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "owner_action_ready",
+    }
 
     def fake_read_study_progress(**kwargs):
         assert kwargs["study_id"] == study_id
@@ -137,6 +147,7 @@ def test_same_tick_report_currentness_carries_owner_gate_events(monkeypatch) -> 
                 "study_id": study_id,
             },
             "study_intervention_events": [event],
+            "paper_recovery_state": recovery,
         }
 
     monkeypatch.setattr(study_progress, "read_study_progress", fake_read_study_progress)
@@ -147,3 +158,4 @@ def test_same_tick_report_currentness_carries_owner_gate_events(monkeypatch) -> 
     )
 
     assert result[study_id]["study_intervention_events"] == [event]
+    assert result[study_id]["paper_recovery_state"] == recovery

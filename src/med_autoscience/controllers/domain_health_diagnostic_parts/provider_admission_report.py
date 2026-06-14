@@ -48,6 +48,10 @@ def materialize_report_provider_admission_current_control_state(
     progress_currentness = _mapping(
         _mapping(report.get("current_execution_evidence")).get("progress_currentness")
     )
+    progress_currentness = _progress_currentness_with_report_recovery_states(
+        progress_currentness,
+        report=report,
+    )
     supervisor_tick = _mapping(report.get("developer_supervisor_same_tick"))
     if supervisor_tick.get("stop_reason") == "provider_handoff_written_admission_pending":
         terminal_materialize = _mapping(supervisor_tick.get("materialize"))
@@ -357,6 +361,45 @@ def _provider_admission_scanned_report_studies(
             }
         )
     return studies
+
+
+def _progress_currentness_with_report_recovery_states(
+    progress_currentness: Mapping[str, Any] | None,
+    *,
+    report: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    merged = {
+        study_id: dict(payload)
+        for study_id, payload in _mapping(progress_currentness).items()
+        if isinstance(payload, Mapping)
+    }
+    for study_id, recovery in _report_paper_recovery_states(report).items():
+        if _mapping(merged.get(study_id)).get("paper_recovery_state"):
+            continue
+        merged[study_id] = {
+            **_mapping(merged.get(study_id)),
+            "study_id": study_id,
+            "paper_recovery_state": dict(recovery),
+        }
+    return merged
+
+
+def _report_paper_recovery_states(
+    report: Mapping[str, Any] | None,
+) -> dict[str, dict[str, Any]]:
+    states: dict[str, dict[str, Any]] = {}
+    for study_id, recovery in _mapping(_mapping(report).get("paper_recovery_states")).items():
+        normalized_study_id = _non_empty_text(study_id)
+        recovery_payload = _mapping(recovery)
+        if normalized_study_id is not None and recovery_payload:
+            states[normalized_study_id] = dict(recovery_payload)
+    for action in _mapping(report).get("managed_study_actions") or []:
+        action_payload = _mapping(action)
+        study_id = _non_empty_text(action_payload.get("study_id"))
+        recovery = _mapping(action_payload.get("paper_recovery_state"))
+        if study_id is not None and recovery and study_id not in states:
+            states[study_id] = dict(recovery)
+    return states
 
 
 def _progress_currentness_closeout_evidence(

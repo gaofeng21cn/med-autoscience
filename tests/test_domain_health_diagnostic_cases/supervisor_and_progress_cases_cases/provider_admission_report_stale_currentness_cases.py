@@ -25,8 +25,19 @@ def test_stale_report_provider_admission_candidate_is_suppressed_by_fresh_progre
         / "default_executor_dispatches"
         / "run_quality_repair_batch.json"
     )
+    write_stage_packet_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "immutable"
+        / "run_quality_repair_batch"
+        / "current-write-repair.json"
+    )
     current_work_unit_id = "medical_prose_write_repair"
     current_fingerprint = "gate-replay-route-back::write::publication-blockers::0915410f804b3697"
+    current_identity_key = f"provider-admission::{study_id}::{current_fingerprint}"
     dump_json(
         write_dispatch_path,
         {
@@ -41,6 +52,31 @@ def test_stale_report_provider_admission_candidate_is_suppressed_by_fresh_progre
                 "canonical manuscript story-surface delta or "
                 "typed blocker:manuscript_story_surface_delta_missing"
             ),
+            "stage_packet_ref": str(write_stage_packet_path),
+            "stage_packet_refs": [str(write_stage_packet_path)],
+            "route_identity_key": current_identity_key,
+            "attempt_idempotency_key": current_identity_key,
+            "refs": {"dispatch_path": str(write_dispatch_path)},
+        },
+    )
+    dump_json(
+        write_stage_packet_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "write",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+            "stage_packet_ref": str(write_stage_packet_path),
+            "stage_packet_refs": [str(write_stage_packet_path)],
+            "route_identity_key": current_identity_key,
+            "attempt_idempotency_key": current_identity_key,
             "refs": {"dispatch_path": str(write_dispatch_path)},
         },
     )
@@ -494,6 +530,7 @@ def test_domain_health_diagnostic_suppresses_stale_candidate_when_fresh_current_
     )
     work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     stale_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    stale_identity_key = f"provider-admission::{study_id}::{stale_fingerprint}"
     dump_json(
         dispatch_path,
         {
@@ -505,6 +542,10 @@ def test_domain_health_diagnostic_suppresses_stale_candidate_when_fresh_current_
             "dispatch_authority": "consumer_default_executor_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "stage_packet_ref": str(dispatch_path),
+            "stage_packet_refs": [str(dispatch_path)],
+            "route_identity_key": stale_identity_key,
+            "attempt_idempotency_key": stale_identity_key,
             "refs": {"dispatch_path": str(dispatch_path)},
         },
     )
@@ -530,6 +571,10 @@ def test_domain_health_diagnostic_suppresses_stale_candidate_when_fresh_current_
             "work_unit_fingerprint": stale_fingerprint,
             "action_fingerprint": stale_fingerprint,
             "dispatch_path": str(dispatch_path),
+            "stage_packet_ref": str(dispatch_path),
+            "stage_packet_refs": [str(dispatch_path)],
+            "route_identity_key": stale_identity_key,
+            "attempt_idempotency_key": stale_identity_key,
             "currentness_basis": {
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": stale_fingerprint,

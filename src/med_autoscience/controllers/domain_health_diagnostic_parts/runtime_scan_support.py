@@ -39,6 +39,7 @@ PROGRESS_CURRENTNESS_KEYS = (
     "progress_first_monitoring_summary",
     "intervention_lane",
     "study_intervention_events",
+    "paper_recovery_state",
 )
 
 

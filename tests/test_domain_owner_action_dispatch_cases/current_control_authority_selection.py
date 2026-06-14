@@ -272,6 +272,76 @@ def test_accepted_owner_gate_quality_repair_dispatch_supersedes_stale_gate_repla
     assert explicit_result["executions"][0]["blocked_reason"] is None
 
 
+def test_accepted_owner_gate_quality_repair_apply_invokes_mas_materialization(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _patch_owner_gate_ready_progress(monkeypatch, study_id=study_id)
+    quality_dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    quality_dispatch = _accepted_owner_gate_quality_repair_dispatch(study_id=study_id)
+    quality_dispatch["refs"] = {"dispatch_path": str(quality_dispatch_path)}
+    _write_json(quality_dispatch_path, quality_dispatch)
+    _write_owner_gate_quality_repair_request(
+        study_root,
+        study_id=study_id,
+        dispatch=quality_dispatch,
+    )
+    _write_json(
+        profile.workspace_root / module.CONSUMER_LATEST_RELATIVE_PATH,
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [quality_dispatch],
+        },
+    )
+    calls: list[dict[str, object]] = []
+
+    def run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        calls.append(dict(kwargs))
+        return {"ok": True, "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json")}
+
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        run_quality_repair_batch,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert len(calls) == 1
+    execution = result["executions"][0]
+    assert execution["owner_route_basis"] == "accepted_owner_gate_decision"
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+    assert calls[0]["source"] == "domain_owner_action_dispatch"
+    assert calls[0]["authority_route_context"]["controller_route_context"] == {
+        "control_surface": "quality_repair_batch",
+        "controller_action_type": "run_quality_repair_batch",
+        "work_unit_id": "analysis_claim_evidence_repair",
+        "requires_human_confirmation": False,
+        "source_eval_id": None,
+        "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+    }
+
+
 def test_execute_dispatch_rejects_consumer_dispatch_disallowed_by_current_route(
     monkeypatch,
     tmp_path: Path,
