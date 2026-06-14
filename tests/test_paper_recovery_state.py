@@ -211,6 +211,37 @@ def test_runtime_retry_exhausted_provider_admission_fails_closed() -> None:
     assert state["next_safe_action"]["provider_admission_allowed"] is False
 
 
+def test_runtime_retry_exhausted_without_admission_candidate_keeps_owner_action_ready() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(
+                owner="gate_clearing_batch",
+                action_type="run_gate_clearing_batch",
+                work_unit_id="publication_gate_replay",
+                fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+            ),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [{"condition": "current_owner_action_ready"}]
+    assert state["next_safe_action"]["kind"] == "materialize_provider_admission_or_owner_callable"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+
+
 def test_projection_contradiction_fails_closed() -> None:
     state = _module().build_paper_recovery_state(
         {
