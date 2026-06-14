@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.controllers import stage_native_next_action_admission
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -21,6 +20,7 @@ from . import persisted_handoff_selection
 from . import progress_blocking_selection
 from . import publication_owner_materialization_currentness
 from . import runtime_current_dispatch_selection
+from . import stage_native_dispatch_selection
 from . import stage_artifact_publication_handoff_currentness
 from . import terminal_closeout_owner_answer_dispatch
 from . import writer_handoff_currentness
@@ -73,9 +73,9 @@ def explicit_action_dispatches(
             continue
         refs = _mapping(payload.get("refs"))
         payload["refs"] = {**refs, "dispatch_path": str(path)}
-        if stage_native_next_action_admission.dispatch_uses_stage_native_next_action(
+        if stage_native_dispatch_selection.dispatch_uses_stage_native_next_action(
             payload
-        ) and not _stage_native_next_action_matches_dispatch(
+        ) and not stage_native_dispatch_selection.next_action_matches_dispatch(
             profile=profile,
             study_id=study_id,
             dispatch=payload,
@@ -92,12 +92,12 @@ def explicit_action_dispatches(
             consumer_dispatch_current
             and _dispatch_currentness_score(payload, current_study) > (0, 0)
         )
-        stage_native_next_action_current = _stage_native_next_action_matches_dispatch(
+        stage_native_next_action_current = stage_native_dispatch_selection.next_action_matches_dispatch(
             profile=profile,
             study_id=study_id,
             dispatch=payload,
         )
-        if _stage_native_next_action(profile=profile, study_id=study_id) is not None and not stage_native_next_action_current:
+        if stage_native_dispatch_selection.next_action(profile=profile, study_id=study_id) is not None and not stage_native_next_action_current:
             continue
         if current_writer_handoff.fresh_progress_ticket_supersedes_action(
             profile=profile,
@@ -165,7 +165,7 @@ def selected_dispatches(
     scan_payload: Mapping[str, Any] | None, supported_action_types: frozenset[str],
     dispatch_relative_root: Path,
 ) -> list[dict[str, Any]]:
-    fresh_progress = _read_fresh_study_progress(profile=profile, study_id=study_id)
+    fresh_progress = stage_native_dispatch_selection.read_fresh_study_progress(profile=profile, study_id=study_id)
     progress_envelope_blocks_dispatch_selection = (
         progress_blocking_selection.fresh_progress_envelope_blocks_dispatch_selection(
             fresh_progress
@@ -174,7 +174,10 @@ def selected_dispatches(
     terminal_closeout_owner_answer = _terminal_closeout_owner_answer_required(fresh_progress)
     current_study = _scan_study(scan_payload, study_id)
     current_study = _with_consumed_transition_owner_route(current_study)
-    stage_native_next_action = None if action_types else _stage_native_next_action(profile=profile, study_id=study_id)
+    stage_native_next_action = None if action_types else stage_native_dispatch_selection.next_action(
+        profile=profile,
+        study_id=study_id,
+    )
     consumer_dispatches = current_consumer_dispatches(
         study_id=study_id,
         consumer_payload=consumer_payload,
@@ -199,12 +202,13 @@ def selected_dispatches(
         progress=fresh_progress,
         dispatches=consumer_dispatches,
     )
-    if stage_native_next_action is not None and _stage_native_next_action_superseded_by_current_control(
+    if stage_native_next_action is not None and stage_native_dispatch_selection.next_action_superseded_by_current_control(
         profile=profile,
         study_id=study_id,
         next_action=stage_native_next_action,
         current_study=current_study,
         consumer_dispatches=consumer_dispatches,
+        runtime_current_dispatches_only=_runtime_current_dispatches_only,
     ):
         stage_native_next_action = None
     effective_action_types = action_types
@@ -213,7 +217,7 @@ def selected_dispatches(
     ) is not None:
         effective_action_types = (stage_native_action_type,)
     if stage_native_next_action is not None:
-        consumer_dispatches = _stage_native_next_action_dispatches_only(
+        consumer_dispatches = stage_native_dispatch_selection.next_action_dispatches_only(
             next_action=stage_native_next_action,
             dispatches=consumer_dispatches,
         )
@@ -323,7 +327,7 @@ def selected_dispatches(
         if current_selected:
             return current_selected
         if stage_native_next_action is not None:
-            stage_native_selected = _stage_native_next_action_dispatches_only(
+            stage_native_selected = stage_native_dispatch_selection.next_action_dispatches_only(
                 next_action=stage_native_next_action,
                 dispatches=selected,
             )
@@ -399,7 +403,7 @@ def selected_dispatches(
             selected_keys.add(key)
             selected_by_key[key] = len(selected) - 1
     if stage_native_next_action is not None:
-        stage_native_selected = _stage_native_next_action_dispatches_only(
+        stage_native_selected = stage_native_dispatch_selection.next_action_dispatches_only(
             next_action=stage_native_next_action,
             dispatches=selected,
         )
@@ -494,7 +498,7 @@ def _selected_dispatches_only(
         if opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(dispatch):
             selected.append(dispatch)
             continue
-        if _stage_native_next_action_matches_dispatch(
+        if stage_native_dispatch_selection.next_action_matches_dispatch(
             profile=profile,
             study_id=study_id,
             dispatch=dispatch,
@@ -572,7 +576,7 @@ def _dispatch_selectable_despite_blocking_progress(
         return True
     if opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(dispatch):
         return True
-    if _stage_native_next_action_matches_dispatch(
+    if stage_native_dispatch_selection.next_action_matches_dispatch(
         profile=profile,
         study_id=study_id,
         dispatch=dispatch,
@@ -594,16 +598,11 @@ def _without_unauthorized_stage_native_dispatches(
     study_id: str,
     dispatches: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    return [
-        dispatch
-        for dispatch in dispatches
-        if not stage_native_next_action_admission.dispatch_uses_stage_native_next_action(dispatch)
-        or _stage_native_next_action_matches_dispatch(
-            profile=profile,
-            study_id=study_id,
-            dispatch=dispatch,
-        )
-    ]
+    return stage_native_dispatch_selection.without_unauthorized_dispatches(
+        profile=profile,
+        study_id=study_id,
+        dispatches=dispatches,
+    )
 
 
 def _scan_action_queue_matches_dispatch(
@@ -671,7 +670,7 @@ def _dispatch_matches_terminal_closeout_owner_answer(
 
 
 def read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
-    return _read_fresh_study_progress(profile=profile, study_id=study_id)
+    return stage_native_dispatch_selection.read_fresh_study_progress(profile=profile, study_id=study_id)
 
 
 def dispatch_matches_terminal_closeout_owner_answer(
@@ -680,150 +679,6 @@ def dispatch_matches_terminal_closeout_owner_answer(
     dispatch: Mapping[str, Any],
 ) -> bool:
     return _dispatch_matches_terminal_closeout_owner_answer(progress=progress, dispatch=dispatch)
-
-
-def _stage_native_next_action_superseded_by_current_control(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    next_action: Mapping[str, Any],
-    current_study: Mapping[str, Any],
-    consumer_dispatches: list[dict[str, Any]],
-) -> bool:
-    if not current_study:
-        return False
-    route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
-    allowed_actions = {_text(item) for item in route.get("allowed_actions") or []}
-    allowed_actions.discard(None)
-    if progress_blocking_selection.fresh_progress_typed_blocker_reason(
-        _mapping(_read_fresh_study_progress(profile=profile, study_id=study_id).get("current_execution_envelope"))
-    ) == "medical_paper_readiness_missing" and (
-        not allowed_actions
-        or "complete_medical_paper_readiness_surface" in allowed_actions
-        or _text(next_action.get("action_type")) in allowed_actions
-    ):
-        return False
-    current_dispatches = _runtime_current_dispatches_only(
-        study_id=study_id,
-        dispatches=consumer_dispatches,
-        current_study=current_study,
-    )
-    if current_dispatches:
-        return not bool(
-            _stage_native_next_action_dispatches_only(
-                next_action=next_action,
-                dispatches=current_dispatches,
-            )
-        )
-    if not allowed_actions:
-        return False
-    action_type = _text(next_action.get("action_type"))
-    owner = _text(next_action.get("owner"))
-    return not owner_route_part.route_allows_action(
-        action={
-            "action_type": action_type,
-            "owner": owner,
-            "next_executable_owner": owner,
-        },
-        owner_route=route,
-    )
-
-
-def _stage_native_next_action(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
-    payload = _read_json_object(profile.studies_root / study_id / "control" / "next_action.json")
-    if not payload:
-        return None
-    if _text(payload.get("status")) != "ready_for_owner_action":
-        return None
-    action_type = _stage_native_next_action_type(payload)
-    if action_type is None:
-        return None
-    if not stage_native_next_action_admission.default_dispatch_allowed(payload):
-        return None
-    return {
-        **payload,
-        "action_type": action_type,
-    }
-
-
-def _stage_native_next_action_dispatches_only(
-    *,
-    next_action: Mapping[str, Any],
-    dispatches: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    return [
-        dispatch
-        for dispatch in dispatches
-        if _dispatch_matches_stage_native_next_action(next_action=next_action, dispatch=dispatch)
-    ]
-
-
-def _stage_native_next_action_matches_dispatch(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    dispatch: Mapping[str, Any],
-) -> bool:
-    next_action = _stage_native_next_action(profile=profile, study_id=study_id)
-    if next_action is None:
-        return False
-    return _dispatch_matches_stage_native_next_action(next_action=next_action, dispatch=dispatch)
-
-
-def _dispatch_matches_stage_native_next_action(
-    *,
-    next_action: Mapping[str, Any],
-    dispatch: Mapping[str, Any],
-) -> bool:
-    action_type = _text(next_action.get("action_type"))
-    if action_type is None or _text(dispatch.get("action_type")) != action_type:
-        return False
-    owner = _text(next_action.get("owner"))
-    if owner is not None and _text(dispatch.get("next_executable_owner")) != owner:
-        return False
-    source_action = _mapping(dispatch.get("source_action"))
-    if _text(source_action.get("authority")) != "stage_native_workspace_next_action":
-        return False
-    route = _dispatch_owner_route(dispatch)
-    source_refs = _mapping(route.get("source_refs"))
-    source_surface = _text(next_action.get("source_surface"))
-    if source_surface is not None and source_surface not in {
-        _text(source_action.get("source_surface")),
-        _text(source_refs.get("source_surface")),
-    }:
-        return False
-    current_stage_id = _text(next_action.get("current_stage_id"))
-    if current_stage_id is not None and current_stage_id not in {
-        _text(source_action.get("current_stage_id")),
-        _text(source_refs.get("current_stage_id")),
-    }:
-        return False
-    return True
-
-
-def _stage_native_next_action_type(next_action: Mapping[str, Any]) -> str | None:
-    direct = _text(next_action.get("action_type"))
-    if direct is not None:
-        return direct
-    action_id = _text(next_action.get("action_id"))
-    if action_id is not None and not action_id.startswith("stage-native-next-action::"):
-        return action_id
-    return None
-
-
-def _read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
-    try:
-        from med_autoscience.controllers import study_progress
-
-        payload = study_progress.read_study_progress(
-            profile=profile,
-            study_id=study_id,
-            sync_runtime_summary=False,
-            materialize_read_model_artifacts=False,
-        )
-    except Exception:
-        return {}
-    return dict(payload) if isinstance(payload, Mapping) else {}
 
 
 def _consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
@@ -1350,9 +1205,7 @@ owner_request_path = owner_request_paths.owner_request_path
 
 
 def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
-    return owner_route_part.ensure_owner_route_v2(
-        _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
-    )
+    return stage_native_dispatch_selection.dispatch_owner_route(dispatch)
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:
