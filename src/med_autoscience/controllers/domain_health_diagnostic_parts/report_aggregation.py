@@ -400,6 +400,8 @@ def _managed_study_action_with_paper_recovery_state(
     *,
     recovery: Mapping[str, Any],
 ) -> dict[str, Any]:
+    if _paper_recovery_is_unresolved_current_work_unit_fallback(recovery):
+        return dict(action)
     result = dict(action)
     result["paper_recovery_state"] = dict(recovery)
     phase = _text(recovery.get("phase"))
@@ -418,10 +420,7 @@ def _managed_study_actions_with_provider_admission_state(
 ) -> list[dict[str, Any]]:
     candidates_by_study = _provider_admission_candidates_by_study(provider_admission_candidates)
     if not candidates_by_study:
-        return [
-            dict(action) if isinstance(action, Mapping) else action
-            for action in managed_study_actions
-        ]
+        return [_managed_study_action_without_provider_admission_state(action) for action in managed_study_actions]
     result: list[dict[str, Any]] = []
     for action in managed_study_actions:
         if not isinstance(action, Mapping):
@@ -440,6 +439,16 @@ def _managed_study_actions_with_provider_admission_state(
                 paper_recovery_state=recovery,
             )
         )
+    return result
+
+
+def _managed_study_action_without_provider_admission_state(action: dict[str, Any] | Any) -> dict[str, Any] | Any:
+    if not isinstance(action, Mapping):
+        return action
+    result = dict(action)
+    if "provider_admission_candidates" in result or "provider_admission_state" in result:
+        result["provider_admission_candidates"] = []
+        result.pop("provider_admission_state", None)
     return result
 
 
@@ -509,6 +518,21 @@ def _paper_recovery_reason(recovery: Mapping[str, Any]) -> str | None:
     return _text(recovery.get("phase"))
 
 
+def _paper_recovery_is_unresolved_current_work_unit_fallback(
+    recovery: Mapping[str, Any],
+) -> bool:
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    return any(
+        isinstance(condition, Mapping)
+        and _text(condition.get("condition")) == "current_work_unit_typed_blocker"
+        and _text(condition.get("blocker_type")) == "current_work_unit_unresolved"
+        for condition in recovery.get("conditions") or []
+    ) and (
+        _text(obligation.get("work_unit_id")) is None
+        and _text(obligation.get("work_unit_fingerprint")) is None
+    )
+
+
 def _current_work_unit_blocker_reason(current_work_unit: Mapping[str, Any]) -> str | None:
     state = _mapping(current_work_unit.get("state"))
     typed_blocker = _mapping(state.get("typed_blocker"))
@@ -558,6 +582,13 @@ def _managed_handoff_with_currentness(
         return result
     if _text(result.get("status")) != "handoff_required":
         return result
+    if state_kind in {"typed_blocker", "blocked_current_work_unit"}:
+        currentness_reason = (
+            _current_work_unit_blocker_reason(current_work_unit)
+            or _current_execution_blocker_reason(current_execution)
+        )
+        if _is_unresolved_current_work_unit_fallback(currentness_reason, current_work_unit):
+            return result
     result["status"] = "superseded_by_current_work_unit"
     result["previous_status"] = "handoff_required"
     result["reason"] = state_kind
