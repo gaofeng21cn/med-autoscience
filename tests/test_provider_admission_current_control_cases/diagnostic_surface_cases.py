@@ -134,6 +134,8 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
                 "next_owner": "ai_reviewer",
                 "action_type": "return_to_ai_reviewer_workflow",
                 "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": action_fingerprint,
+                "action_fingerprint": action_fingerprint,
                 "allowed_actions": ["return_to_ai_reviewer_workflow"],
                 "repair_progress_precedence": {"source_fingerprint": action_fingerprint},
             },

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 
-def test_provider_admission_report_derives_owner_gate_route_back_candidate_from_report_recovery_state(
+def test_provider_admission_report_does_not_admit_owner_gate_route_back_without_explicit_allow(
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
@@ -187,18 +187,6 @@ def test_provider_admission_report_derives_owner_gate_route_back_candidate_from_
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    [candidate] = result["provider_admission_candidates"]
-    assert candidate["study_id"] == study_id
-    assert candidate["action_type"] == "run_quality_repair_batch"
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["work_unit_fingerprint"] == fingerprint
-    assert candidate["stage_packet_ref"] == (
-        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
-        "default_executor_dispatches/immutable/run_quality_repair_batch/d4b2229c300acd93d67676bf.json"
-    )
-    assert candidate["route_identity_key"] == route_identity_key
-    assert candidate["attempt_idempotency_key"] == route_identity_key
-    assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
-    }
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["stage_route_arbiter"]["decision_counts"] == {}

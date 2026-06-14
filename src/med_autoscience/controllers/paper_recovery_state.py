@@ -62,7 +62,7 @@ def build_paper_recovery_state(
         if decision == "route_back_to_mas_packet_materialization_bug":
             phase = "owner_action_ready"
             next_action_kind = "route_back_to_owner_or_repair_materialization"
-            provider_admission_allowed = _provider_admission_pending(progress)
+            provider_admission_allowed = owner_gate_payload.get("provider_admission_allowed") is True
             accepted_owner_gate_decision = _accepted_owner_gate_decision(owner_gate_payload)
         elif decision == "admit_identity_bound_stage_packet":
             phase = "admission_pending"

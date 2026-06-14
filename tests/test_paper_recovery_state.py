@@ -89,7 +89,7 @@ def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
     ]
     assert state["current_authority"]["owner"] == "MedAutoScience"
     assert state["next_safe_action"]["kind"] == "route_back_to_owner_or_repair_materialization"
-    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
     assert state["next_safe_action"]["accepted_owner_gate_decision"] == {
         "decision": "route_back_to_mas_packet_materialization_bug",
         "action_type": "run_quality_repair_batch",

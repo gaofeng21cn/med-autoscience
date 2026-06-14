@@ -188,6 +188,14 @@ def _paper_recovery_provider_admission_blocked_studies_from_states(states: Any) 
 
 def _paper_recovery_blocks_provider_admission(recovery: Mapping[str, Any]) -> bool:
     next_safe_action = _mapping(recovery.get("next_safe_action"))
+    accepted_owner_gate_decision = _mapping(next_safe_action.get("accepted_owner_gate_decision"))
+    if (
+        next_safe_action.get("provider_admission_allowed") is False
+        and _non_empty_text(next_safe_action.get("kind")) == "route_back_to_owner_or_repair_materialization"
+        and _non_empty_text(accepted_owner_gate_decision.get("decision"))
+        == "route_back_to_mas_packet_materialization_bug"
+    ):
+        return True
     suppressed = {
         item
         for item in recovery.get("suppressed_surfaces") or []
