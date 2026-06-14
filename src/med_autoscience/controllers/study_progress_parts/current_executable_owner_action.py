@@ -35,6 +35,7 @@ from .current_executable_owner_action_parts.ai_reviewer_followup import (
     terminal_stage_closeout_consumes_repair_followup,
 )
 from .current_executable_owner_action_parts.gate_followthrough import (
+    GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES,
     owner_action_from_gate_followthrough_current_work_unit,
 )
 from .current_executable_owner_action_parts.publication_repair import (
@@ -67,6 +68,12 @@ GATE_REPLAY_WORK_UNITS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS | frozenset({READ
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     repair_progress_action = _from_repair_progress_projection(payload)
+    gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
+    if _gate_followthrough_supersedes_repair_progress(
+        gate_followthrough_action=gate_followthrough_action,
+        repair_progress_action=repair_progress_action,
+    ):
+        return gate_followthrough_action
     if _canonical_current_work_unit_has_terminal_stop_loss(
         payload,
         repair_progress_action=repair_progress_action,
@@ -104,7 +111,6 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
             and consumed_ai_reviewer_followup_allows_publication_repair(payload)
         ):
             return publication_repair_action
-        gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
         next_forced_delta_action = _from_current_next_forced_delta(payload)
         if _next_forced_delta_supersedes_gate_followthrough(
             next_forced_delta_action=next_forced_delta_action,
@@ -126,7 +132,6 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
                 return publication_repair_action
             if next_forced_delta_action is not None:
                 return next_forced_delta_action
-    gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
     next_forced_delta_action = _from_current_next_forced_delta(payload)
     stage_native_action = _from_stage_native_current_owner_action(payload)
     if _next_forced_delta_supersedes_gate_followthrough(
@@ -449,6 +454,48 @@ def _next_forced_delta_supersedes_gate_followthrough(
     return True
 
 
+def _gate_followthrough_supersedes_repair_progress(
+    *,
+    gate_followthrough_action: Mapping[str, Any] | None,
+    repair_progress_action: Mapping[str, Any] | None,
+) -> bool:
+    gate_action = _mapping_copy(gate_followthrough_action)
+    repair_action = _mapping_copy(repair_progress_action)
+    if not gate_action or not repair_action:
+        return False
+    if _non_empty_text(gate_action.get("source")) != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        return False
+    if _non_empty_text(repair_action.get("source")) != REPAIR_PROGRESS_SOURCE:
+        return False
+    if _non_empty_text(gate_action.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    if _non_empty_text(repair_action.get("action_type")) != GATE_CLEARING_ACTION:
+        return False
+    repair_precedence = _mapping_copy(repair_action.get("repair_progress_precedence"))
+    source_work_unit = _non_empty_text(repair_precedence.get("source_work_unit_id"))
+    if source_work_unit is not None and source_work_unit != _non_empty_text(gate_action.get("work_unit_id")):
+        return False
+    gate_eval = _non_empty_text(gate_action.get("source_eval_id"))
+    repair_eval = _non_empty_text(repair_action.get("source_eval_id"))
+    if gate_eval is not None and repair_eval is not None and gate_eval != repair_eval:
+        return False
+    return _ref_sets_intersect(
+        _gate_followthrough_action_refs(gate_action),
+        _repair_followup_gate_request_refs(repair_action),
+    )
+
+
+def _gate_followthrough_action_refs(action: Mapping[str, Any]) -> set[str]:
+    target_surface = _mapping_copy(action.get("target_surface"))
+    return _ref_set(
+        [
+            target_surface.get("gate_clearing_batch_ref"),
+            action.get("source_ref"),
+            *list(action.get("acceptance_refs") or []),
+        ]
+    )
+
+
 def _terminal_stage_next_delta_supersedes_gate_followthrough(
     *,
     next_action: Mapping[str, Any],
@@ -472,6 +519,8 @@ def _action_consumed_by_dispatch_receipt(
     if terminal_stage_closeout_consumes_repair_followup(action=action, payload=payload):
         return True
     if _terminal_gate_closeout_consumes_repair_followup(action=action, payload=payload):
+        return True
+    if _gate_followthrough_consumes_repair_progress_gate_replay(action=action, payload=payload):
         return True
     consumption = _mapping_copy(_mapping_copy(payload.get("progress_first_monitoring_summary")).get("dispatch_consumption"))
     if not consumption:
@@ -504,6 +553,38 @@ def _action_consumed_by_dispatch_receipt(
     return ai_reviewer_eval_receipt_consumes_repair_followup(
         action=action,
         consumption=consumption,
+    )
+
+
+def _gate_followthrough_consumes_repair_progress_gate_replay(
+    *,
+    action: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(action.get("source")) != REPAIR_PROGRESS_SOURCE:
+        return False
+    if _non_empty_text(action.get("action_type")) != GATE_CLEARING_ACTION:
+        return False
+    if _non_empty_text(action.get("work_unit_id")) != GATE_CLEARING_WORK_UNIT:
+        return False
+    followthrough = _mapping_copy(payload.get("gate_clearing_batch_followthrough"))
+    if _non_empty_text(followthrough.get("status")) not in GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES:
+        return False
+    if _non_empty_text(followthrough.get("gate_replay_status")) != "blocked":
+        return False
+    gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
+    if _non_empty_text(gate_followthrough_action.get("source")) != (
+        "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    ):
+        return False
+    if _non_empty_text(gate_followthrough_action.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    return _ref_sets_intersect(
+        _repair_followup_gate_request_refs(action),
+        _gate_followthrough_record_refs(
+            followthrough,
+            gate_followthrough_action=gate_followthrough_action,
+        ),
     )
 
 
@@ -592,6 +673,11 @@ def _repair_followup_gate_action_refs(action: Mapping[str, Any]) -> set[str]:
     )
 
 
+def _repair_followup_gate_request_refs(action: Mapping[str, Any]) -> set[str]:
+    target_surface = _mapping_copy(action.get("target_surface"))
+    return _ref_set([target_surface.get("request_ref")])
+
+
 def _terminal_gate_closeout_refs(
     terminal: Mapping[str, Any],
     *,
@@ -613,6 +699,23 @@ def _terminal_gate_closeout_refs(
             *list(terminal.get("evidence_refs") or []),
             *list(paper_stage_log.get("closeout_refs") or []),
             *list(paper_stage_log.get("evidence_refs") or []),
+        ]
+    )
+
+
+def _gate_followthrough_record_refs(
+    followthrough: Mapping[str, Any],
+    *,
+    gate_followthrough_action: Mapping[str, Any],
+) -> set[str]:
+    target_surface = _mapping_copy(gate_followthrough_action.get("target_surface"))
+    return _ref_set(
+        [
+            followthrough.get("latest_record_path"),
+            followthrough.get("source_ref"),
+            followthrough.get("record_path"),
+            target_surface.get("gate_clearing_batch_ref"),
+            *list(gate_followthrough_action.get("acceptance_refs") or []),
         ]
     )
 
