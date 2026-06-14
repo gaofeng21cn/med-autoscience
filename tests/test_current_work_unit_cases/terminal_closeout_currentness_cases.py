@@ -258,7 +258,7 @@ def test_current_work_unit_preserves_anti_loop_stop_loss_over_stage_readiness_bl
     assert work_unit["state"]["source"] == "typed_blocker"
 
 
-def test_current_work_unit_preserves_terminal_owner_typed_blocker_over_stage_readiness_blocker() -> None:
+def test_current_work_unit_routes_opl_authorization_typed_blocker_over_stage_readiness_blocker() -> None:
     module = _module()
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
@@ -310,11 +310,12 @@ def test_current_work_unit_preserves_terminal_owner_typed_blocker_over_stage_rea
 
     _assert_contract_shape(work_unit)
     assert work_unit["status"] == "typed_blocker"
-    assert work_unit["owner"] == "gate_clearing_batch"
+    assert work_unit["owner"] == "one-person-lab"
     assert work_unit["action_type"] == "run_gate_clearing_batch"
     assert work_unit["work_unit_id"] == "publication_gate_replay"
     assert work_unit["state"]["source"] == "typed_blocker"
     assert work_unit["state"]["blocker_type"] == "opl_execution_authorization_required"
+    assert work_unit["state"]["typed_blocker"]["owner"] == "gate_clearing_batch"
 
 
 def test_current_work_unit_uses_remaining_blocker_for_executed_typed_closeout() -> None:

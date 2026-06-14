@@ -14,6 +14,10 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_routeback_curr
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
 )
+from med_autoscience.controllers.opl_execution_boundary import (
+    OPL_EXECUTION_AUTHORIZATION_BLOCKER,
+    OPL_EXECUTION_AUTHORIZATION_OWNER,
+)
 from med_autoscience.controllers.owner_route_reconcile_parts.stage_artifact_owner_actions import (
     READINESS_GATE_REPAIR_WORK_UNIT,
 )
@@ -474,13 +478,13 @@ def _typed_blocker_work_unit(
     source: str,
     status_kind: str = "typed_blocker",
 ) -> dict[str, Any]:
-    owner = _text(blocker.get("owner")) or _text(blocker.get("next_owner")) or "med-autoscience"
     blocker_type = (
         _text(blocker.get("blocker_type"))
         or _text(blocker.get("blocker_id"))
         or _text(blocker.get("blocked_reason"))
         or "typed_blocker"
     )
+    owner = _typed_blocker_current_work_unit_owner(blocker, blocker_type=blocker_type)
     effective_blocker = dict(blocker)
     resolved_action = action
     resolved_basis = dict(currentness_basis)
@@ -581,6 +585,16 @@ def _typed_blocker_work_unit(
         progress_payload=progress_payload,
         action=resolved_action,
     )
+
+
+def _typed_blocker_current_work_unit_owner(
+    blocker: Mapping[str, Any],
+    *,
+    blocker_type: str,
+) -> str:
+    if blocker_type == OPL_EXECUTION_AUTHORIZATION_BLOCKER:
+        return OPL_EXECUTION_AUTHORIZATION_OWNER
+    return _text(blocker.get("owner")) or _text(blocker.get("next_owner")) or "med-autoscience"
 
 
 def _current_work_unit(

@@ -295,7 +295,8 @@ def _obligation(
         "study_id": study_id,
         "quest_id": _text(progress.get("quest_id")) or _text(current_work_unit.get("quest_id")),
         "owner": (
-            _text(current_work_unit.get("owner"))
+            _text(typed_blocker.get("owner"))
+            or _text(current_work_unit.get("owner"))
             or _text(_mapping(progress.get("current_executable_owner_action")).get("next_owner"))
             or _text(_mapping(progress.get("current_execution_envelope")).get("owner"))
         ),

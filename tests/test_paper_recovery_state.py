@@ -2,64 +2,12 @@ from __future__ import annotations
 
 import importlib
 
-
-def _module():
-    return importlib.import_module("med_autoscience.controllers.paper_recovery_state")
-
-
-def _typed_blocker_work_unit(
-    *,
-    study_id: str = "002-dm-cvd-mortality-risk",
-    owner: str = "one-person-lab",
-    action_type: str = "run_gate_clearing_batch",
-    work_unit_id: str = "publication_gate_replay",
-    blocker_type: str = "stage_packet_not_current_selected_dispatch",
-) -> dict[str, object]:
-    return {
-        "surface_kind": "current_work_unit",
-        "status": "typed_blocker",
-        "study_id": study_id,
-        "quest_id": study_id,
-        "owner": owner,
-        "action_type": action_type,
-        "work_unit_id": work_unit_id,
-        "state": {
-            "state_kind": "typed_blocker",
-            "typed_blocker": {
-                "blocker_type": blocker_type,
-                "owner": owner,
-                "action_type": action_type,
-                "work_unit_id": work_unit_id,
-            },
-        },
-    }
-
-
-def _executable_work_unit(
-    *,
-    study_id: str = "003-dpcc-primary-care-phenotype-treatment-gap",
-    owner: str = "write",
-    action_type: str = "run_quality_repair_batch",
-    work_unit_id: str = "medical_prose_write_repair",
-    fingerprint: str = "publication-blockers::0915410f804b3697",
-) -> dict[str, object]:
-    return {
-        "surface_kind": "current_work_unit",
-        "status": "executable_owner_action",
-        "study_id": study_id,
-        "quest_id": study_id,
-        "owner": owner,
-        "action_type": action_type,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-        "action_fingerprint": fingerprint,
-        "currentness_basis": {
-            "truth_epoch": "truth::current",
-            "runtime_health_epoch": "runtime::current",
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": fingerprint,
-        },
-    }
+from tests.test_paper_recovery_state_cases.opl_authorization_cases import *  # noqa: F403,F401
+from tests.test_paper_recovery_state_cases.shared import (
+    _executable_work_unit,
+    _module,
+    _typed_blocker_work_unit,
+)
 
 
 def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
@@ -89,86 +37,6 @@ def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
     assert state["suppressed_surfaces"] == ["current_executable_owner_action", "provider_admission_candidates"]
-
-
-def test_current_typed_blocker_supersedes_stale_operator_projection() -> None:
-    state = _module().build_paper_recovery_state(
-        {
-            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-            "current_work_unit": _typed_blocker_work_unit(
-                study_id="003-dpcc-primary-care-phenotype-treatment-gap",
-                owner="gate_clearing_batch",
-                action_type="run_gate_clearing_batch",
-                work_unit_id="publication_gate_replay",
-                blocker_type="opl_execution_authorization_required",
-            ),
-            "current_execution_envelope": {
-                "state_kind": "typed_blocker",
-                "owner": "gate_clearing_batch",
-                "typed_blocker": {
-                    "blocker_type": "opl_execution_authorization_required",
-                    "owner": "gate_clearing_batch",
-                    "action_type": "run_gate_clearing_batch",
-                    "work_unit_id": "publication_gate_replay",
-                },
-            },
-            "auto_runtime_parked": {
-                "parked": False,
-                "superseded_by_current_owner_action": True,
-            },
-            "operator_status_card": {
-                "handling_state": "explicit_resume_pending",
-            },
-        }
-    )
-
-    assert state["phase"] == "domain_blocked"
-    assert state["conditions"] == [
-        {
-            "condition": "current_work_unit_typed_blocker",
-            "blocker_type": "opl_execution_authorization_required",
-        }
-    ]
-    assert state["current_authority"]["owner"] == "one-person-lab"
-    assert state["current_authority"]["obligation"]["owner"] == "gate_clearing_batch"
-    assert state["next_safe_action"]["kind"] == "provide_opl_execution_authorization_or_human_gate"
-    assert state["next_safe_action"]["provider_admission_allowed"] is False
-
-
-def test_opl_execution_authorization_blocker_routes_to_opl_runtime_owner() -> None:
-    state = _module().build_paper_recovery_state(
-        {
-            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-            "current_work_unit": _typed_blocker_work_unit(
-                study_id="003-dpcc-primary-care-phenotype-treatment-gap",
-                owner="gate_clearing_batch",
-                action_type="run_gate_clearing_batch",
-                work_unit_id="publication_gate_replay",
-                blocker_type="opl_execution_authorization_required",
-            ),
-            "current_execution_envelope": {
-                "state_kind": "typed_blocker",
-                "owner": "gate_clearing_batch",
-                "typed_blocker": {
-                    "blocker_type": "opl_execution_authorization_required",
-                    "owner": "gate_clearing_batch",
-                    "action_type": "run_gate_clearing_batch",
-                    "work_unit_id": "publication_gate_replay",
-                },
-            },
-        }
-    )
-
-    assert state["phase"] == "domain_blocked"
-    assert state["current_authority"]["owner"] == "one-person-lab"
-    assert state["current_authority"]["authority"] == "one-person-lab"
-    assert state["current_authority"]["obligation"]["owner"] == "gate_clearing_batch"
-    assert state["next_safe_action"] == {
-        "kind": "provide_opl_execution_authorization_or_human_gate",
-        "owner": "one-person-lab",
-        "provider_admission_allowed": False,
-        "required_input": "OPL provider attempt, lease, or closeout receipt binding",
-    }
 
 
 def test_observe_only_provider_admission_is_classified_as_blocked_with_reason() -> None:
