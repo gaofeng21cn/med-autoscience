@@ -185,6 +185,35 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_action_request_materializer_apply.add_argument("--dry-run", action="store_true")
     domain_action_request_materializer_apply.add_argument("--apply", action="store_true")
 
+    study_owner_gate_decision_parser = subparsers.add_parser("study-owner-gate-decision")
+    study_owner_gate_decision_parser.add_argument("--profile", required=True)
+    study_owner_gate_decision_parser.add_argument("--study-id", required=True)
+    study_owner_gate_decision_parser.add_argument("--action-type", required=True)
+    study_owner_gate_decision_parser.add_argument("--work-unit-id", required=True)
+    study_owner_gate_decision_parser.add_argument("--work-unit-fingerprint", required=True)
+    study_owner_gate_decision_parser.add_argument("--blocker-type", required=True)
+    study_owner_gate_decision_parser.add_argument(
+        "--decision",
+        choices=(
+            "admit_identity_bound_stage_packet",
+            "deny_and_stable_typed_blocker",
+            "route_back_to_mas_packet_materialization_bug",
+        ),
+        required=True,
+    )
+    study_owner_gate_decision_parser.add_argument("--reason", required=True)
+    study_owner_gate_decision_parser.add_argument("--recorded-at")
+    study_owner_gate_decision_parser.add_argument("--actor", default="operator")
+    study_owner_gate_decision_parser.add_argument("--source", default="codex")
+    study_owner_gate_decision_parser.add_argument("--stage-packet-ref", action="append", dest="stage_packet_refs")
+    study_owner_gate_decision_parser.add_argument("--route-identity-key")
+    study_owner_gate_decision_parser.add_argument("--attempt-idempotency-key")
+    study_owner_gate_decision_parser.add_argument("--stable-typed-blocker-type")
+    study_owner_gate_decision_parser.add_argument("--route-back-evidence-ref")
+    study_owner_gate_decision_apply = study_owner_gate_decision_parser.add_mutually_exclusive_group(required=True)
+    study_owner_gate_decision_apply.add_argument("--dry-run", action="store_true")
+    study_owner_gate_decision_apply.add_argument("--apply", action="store_true")
+
     domain_owner_action_dispatch_parser = subparsers.add_parser("domain-owner-action-dispatch")
     domain_owner_action_dispatch_parser.add_argument("--profile", required=True)
     domain_owner_action_dispatch_parser.add_argument("--studies", nargs="+")

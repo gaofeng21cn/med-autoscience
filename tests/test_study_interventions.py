@@ -118,3 +118,97 @@ def test_unknown_intervention_intent_is_rejected_without_writing(tmp_path: Path)
         )
 
     assert not module.intervention_events_path(study_root=study_root).exists()
+
+
+def test_owner_gate_decision_dry_run_returns_human_gate_ref_without_writing(tmp_path: Path) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "002-dm"
+
+    result = module.owner_gate_decision_record(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+        action_type="run_quality_repair_batch",
+        work_unit_id="analysis_claim_evidence_repair",
+        work_unit_fingerprint="publication-blockers::497d1260db522f01",
+        blocker_type="stage_packet_not_current_selected_dispatch",
+        decision="route_back_to_mas_packet_materialization_bug",
+        reason="current selected stage packet is missing",
+        recorded_at="2026-06-14T00:00:00+00:00",
+        apply=False,
+    )
+
+    truth_input = result["truth_event_input"]
+    truth_payload = truth_input["payload"]
+
+    assert result["surface"] == "study_owner_gate_decision_record"
+    assert result["record_status"] == "dry_run"
+    assert result["accepted_answer_shape"] == {"human_gate_ref": result["human_gate_ref"]}
+    assert result["human_gate_ref"].startswith("human_gate:owner-gate-decision:")
+    assert truth_input["event_type"] == "human_gate"
+    assert truth_payload["intervention_intent"] == "owner_gate_decision"
+    assert truth_payload["current_owner_identity"] == {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "analysis_claim_evidence_repair",
+        "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+        "blocker_type": "stage_packet_not_current_selected_dispatch",
+    }
+    assert truth_payload["route_back_evidence_ref"].startswith("route_back:owner-gate-decision:")
+    assert truth_payload["provider_admission_allowed"] is False
+    assert truth_payload["do_not_redrive_same_work_unit"] is True
+    assert not module.intervention_events_path(study_root=study_root).exists()
+
+
+def test_owner_gate_decision_apply_requires_exact_stage_packet_identity(tmp_path: Path) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "002-dm"
+
+    result = module.owner_gate_decision_record(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+        action_type="run_quality_repair_batch",
+        work_unit_id="analysis_claim_evidence_repair",
+        work_unit_fingerprint="publication-blockers::497d1260db522f01",
+        blocker_type="stage_packet_not_current_selected_dispatch",
+        decision="admit_identity_bound_stage_packet",
+        reason="OPL selected the current identity-bound packet",
+        recorded_at="2026-06-14T00:01:00+00:00",
+        apply=True,
+        stage_packet_refs=("stage-packet:current-dm002",),
+        route_identity_key="route-identity:dm002-current",
+        attempt_idempotency_key="attempt-idem:dm002-current",
+    )
+
+    events = module.read_intervention_events(study_root=study_root)
+    event_payload = events[0]["payload"]
+
+    assert result["record_status"] == "applied"
+    assert events == [result["event"]]
+    assert event_payload["decision"] == "admit_identity_bound_stage_packet"
+    assert event_payload["stage_packet_ref"] == "stage-packet:current-dm002"
+    assert event_payload["stage_packet_refs"] == ["stage-packet:current-dm002"]
+    assert event_payload["route_identity_key"] == "route-identity:dm002-current"
+    assert event_payload["attempt_idempotency_key"] == "attempt-idem:dm002-current"
+    assert event_payload["provider_admission_allowed"] is True
+    assert "identity_bound_stage_packet_ref" in event_payload["accepted_answer_shapes"]
+
+
+def test_owner_gate_decision_rejects_admission_without_stage_packet_identity(tmp_path: Path) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "002-dm"
+
+    with pytest.raises(ValueError, match="requires stage_packet_refs"):
+        module.owner_gate_decision_record(
+            study_root=study_root,
+            study_id="002-dm-china-us-mortality-attribution",
+            action_type="run_quality_repair_batch",
+            work_unit_id="analysis_claim_evidence_repair",
+            work_unit_fingerprint="publication-blockers::497d1260db522f01",
+            blocker_type="stage_packet_not_current_selected_dispatch",
+            decision="admit_identity_bound_stage_packet",
+            reason="missing current packet identity",
+            recorded_at="2026-06-14T00:02:00+00:00",
+            apply=True,
+        )
+
+    assert not module.intervention_events_path(study_root=study_root).exists()

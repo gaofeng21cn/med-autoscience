@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-14：OPL owner gate request 必须有正式 human gate / owner decision 记录入口
+
+- 决策：MAS 提供 `study-owner-gate-decision` 作为 `stage_packet_not_current_selected_dispatch` 等 OPL owner blocker 的正式 operator / human gate 记录入口。入口必须携带 `study_id`、`action_type`、`work_unit_id`、`work_unit_fingerprint`、`blocker_type`、`decision` 和 `reason`；允许结果固定为 `admit_identity_bound_stage_packet`、`deny_and_stable_typed_blocker`、`route_back_to_mas_packet_materialization_bug`。`admit_identity_bound_stage_packet` 还必须携带 `stage_packet_ref(s)`、`route_identity_key` 和 `attempt_idempotency_key`，缺任一项即 fail closed。
+- 决策：该入口只写 MAS intervention / human-gate owner surface，并输出 `human_gate_ref`、`owner_gate_decision_ref`、`truth_event_input` 与对应 accepted answer shapes。dry-run 不写文件；apply 只追加 `artifacts/interventions/events.jsonl`。它不写 Yang study/runtime artifacts、不写 paper/package/publication/controller 面、不创建 OPL provider attempt，也不把 foreground Codex 文件编辑升级为论文进度。
+- 理由：DM002 的 `stage_packet_not_current_selected_dispatch` 已经能形成 owner gate request，但此前只有内部 intervention event 和 gate request 草案，缺一个强身份、可审计、可 dry-run、可被 truth/human-gate 消费的正式入口。结果是 019eb0e8 只能反复说明 owner-needed，而无法把 blocker 变成可处理的 owner/human gate ref。
+- 影响：这是 MAS owner gate intake 修复。论文推进仍必须等待同一 current identity 的 identity-bound stage packet/admission candidate、stable typed blocker、route-back evidence、human gate、owner receipt、canonical changed surface 或 strict running proof；CLI 返回 ref 不等于 paper progress，也不授权重复 redrive 同一 work unit。
+
 ## 2026-06-14：terminal typed closeout 的 OPL runtime blocker 不能被 stale domain next owner 覆盖
 
 - 决策：`domain_closeout_provided_incomplete_user_stage_log`、`medical_prose_review_request_rehydrate_required`、`stage_packet_not_current_selected_dispatch` 和 `typed_closeout_packet_required` 这类 terminal default-executor typed closeout blocker 属于 OPL runtime/currentness blocker。MAS 在 `current_work_unit`、`current_execution_envelope` 和 `opl_current_control_state_handoff.typed_blocker` 中必须把 canonical owner 投影为 `one-person-lab`；terminal closeout 内残留的 domain `next_owner`（例如 `ai_reviewer`、`gate_clearing_batch`）只能保留为被阻塞 work unit / provenance，不能覆盖 blocker owner。

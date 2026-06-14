@@ -36,6 +36,7 @@ from med_autoscience.cli_parts.scientific_capability_registry_commands import (
 )
 from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_command
 from med_autoscience.cli_parts.study_action_commands import handle_study_action_command
+from med_autoscience.cli_parts.study_owner_gate_commands import handle_study_owner_gate_command
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
 from med_autoscience.cli_parts.domain_health_diagnostic_commands import handle_domain_health_diagnostic_command
 from med_autoscience.cli_parts.domain_handler_commands import handle_domain_handler_command
@@ -141,6 +142,7 @@ study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
 domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
 study_state_matrix = _LazyModuleProxy(lambda: _load_controller("study_state_matrix"))
+study_interventions = _LazyModuleProxy(lambda: _load_controller("study_interventions"))
 study_truth_kernel = _LazyModuleProxy(lambda: _load_controller("study_truth_kernel"))
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_inspection_export = _LazyModuleProxy(lambda: _load_controller("submission_inspection_export"))
@@ -423,6 +425,14 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+
+    study_owner_gate_result = handle_study_owner_gate_command(
+        args,
+        load_profile=load_profile,
+        study_interventions=study_interventions,
+    )
+    if study_owner_gate_result is not None:
+        return study_owner_gate_result
 
     if args.command == "domain-owner-action-dispatch":
         profile = load_profile(args.profile)

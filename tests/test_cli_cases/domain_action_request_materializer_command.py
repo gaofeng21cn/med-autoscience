@@ -100,6 +100,111 @@ def test_domain_action_request_materializer_command_apply_dispatches_controller(
     assert json.loads(captured.out)["default_executor_dispatch_count"] == 2
 
 
+def test_study_owner_gate_decision_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    called: dict[str, object] = {}
+
+    def fake_owner_gate_decision_record(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "surface": "study_owner_gate_decision_record",
+            "record_status": "dry_run",
+            "human_gate_ref": "human_gate:owner-gate-decision:test",
+        }
+
+    monkeypatch.setattr(cli.study_interventions, "owner_gate_decision_record", fake_owner_gate_decision_record)
+
+    exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "002-dm-china-us-mortality-attribution",
+            "--action-type",
+            "run_quality_repair_batch",
+            "--work-unit-id",
+            "analysis_claim_evidence_repair",
+            "--work-unit-fingerprint",
+            "publication-blockers::497d1260db522f01",
+            "--blocker-type",
+            "stage_packet_not_current_selected_dispatch",
+            "--decision",
+            "route_back_to_mas_packet_materialization_bug",
+            "--reason",
+            "current selected stage packet is missing",
+            "--recorded-at",
+            "2026-06-14T00:00:00+00:00",
+            "--dry-run",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["study_root"] == workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    assert called["study_id"] == "002-dm-china-us-mortality-attribution"
+    assert called["action_type"] == "run_quality_repair_batch"
+    assert called["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert called["work_unit_fingerprint"] == "publication-blockers::497d1260db522f01"
+    assert called["blocker_type"] == "stage_packet_not_current_selected_dispatch"
+    assert called["decision"] == "route_back_to_mas_packet_materialization_bug"
+    assert called["reason"] == "current selected stage packet is missing"
+    assert called["recorded_at"] == "2026-06-14T00:00:00+00:00"
+    assert called["apply"] is False
+    assert json.loads(captured.out)["human_gate_ref"] == "human_gate:owner-gate-decision:test"
+
+
+def test_study_owner_gate_decision_command_dry_run_does_not_write(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "002-dm-china-us-mortality-attribution",
+            "--action-type",
+            "run_quality_repair_batch",
+            "--work-unit-id",
+            "analysis_claim_evidence_repair",
+            "--work-unit-fingerprint",
+            "publication-blockers::497d1260db522f01",
+            "--blocker-type",
+            "stage_packet_not_current_selected_dispatch",
+            "--decision",
+            "route_back_to_mas_packet_materialization_bug",
+            "--reason",
+            "current selected stage packet is missing",
+            "--recorded-at",
+            "2026-06-14T00:00:00+00:00",
+            "--dry-run",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    event_log = (
+        workspace_root
+        / "studies"
+        / "002-dm-china-us-mortality-attribution"
+        / "artifacts"
+        / "interventions"
+        / "events.jsonl"
+    )
+
+    assert exit_code == 0
+    assert payload["record_status"] == "dry_run"
+    assert payload["human_gate_ref"].startswith("human_gate:owner-gate-decision:")
+    assert payload["truth_event_input"]["event_type"] == "human_gate"
+    assert not event_log.exists()
+
+
 def test_domain_owner_action_dispatch_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
