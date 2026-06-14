@@ -692,16 +692,22 @@ def _admission_blocked_condition(
             "condition": "provider_admission_pending_without_startable_dispatch",
             "reason": "runtime_recovery_retry_budget_exhausted",
         }
-    if diagnostic.get("will_start_llm") is False and _text(diagnostic.get("action_class")) == "observe_only":
-        return {
-            "condition": "provider_admission_pending_without_startable_dispatch",
-            "reason": "dhd_report_observe_only",
-        }
-    if diagnostic.get("will_start_llm") is False and int(diagnostic.get("codex_dispatch_count") or 0) == 0:
-        return {
-            "condition": "provider_admission_pending_without_startable_dispatch",
-            "reason": "dhd_report_no_codex_dispatch",
-        }
+    explicit_pending_count = int(progress.get("provider_admission_pending_count") or 0)
+    explicit_pending_candidates = [
+        item for item in progress.get("provider_admission_candidates") or [] if isinstance(item, Mapping)
+    ]
+    diagnostic_pending_count = int(diagnostic.get("provider_admission_pending_count") or 0)
+    if explicit_pending_count <= 0 and not explicit_pending_candidates and diagnostic_pending_count <= 0:
+        if diagnostic.get("will_start_llm") is False and _text(diagnostic.get("action_class")) == "observe_only":
+            return {
+                "condition": "provider_admission_pending_without_startable_dispatch",
+                "reason": "dhd_report_observe_only",
+            }
+        if diagnostic.get("will_start_llm") is False and int(diagnostic.get("codex_dispatch_count") or 0) == 0:
+            return {
+                "condition": "provider_admission_pending_without_startable_dispatch",
+                "reason": "dhd_report_no_codex_dispatch",
+            }
     return None
 
 

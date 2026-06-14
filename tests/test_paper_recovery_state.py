@@ -104,7 +104,7 @@ def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
     ]
 
 
-def test_observe_only_provider_admission_is_classified_as_blocked_with_reason() -> None:
+def test_observe_only_diagnostic_does_not_block_provider_admission() -> None:
     state = _module().build_paper_recovery_state(
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -132,15 +132,42 @@ def test_observe_only_provider_admission_is_classified_as_blocked_with_reason() 
         },
     )
 
-    assert state["phase"] == "admission_blocked"
-    assert state["conditions"] == [
+    assert state["phase"] == "admission_pending"
+    assert state["conditions"] == [{"condition": "provider_admission_pending"}]
+    assert state["next_safe_action"]["kind"] == "admit_provider_attempt"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+
+
+def test_executable_owner_action_without_candidate_is_owner_action_ready_not_admission_pending() -> None:
+    state = _module().build_paper_recovery_state(
         {
-            "condition": "provider_admission_pending_without_startable_dispatch",
-            "reason": "dhd_report_observe_only",
-        }
-    ]
-    assert state["next_safe_action"]["kind"] == "run_admission_apply_or_report_operator_gate"
-    assert state["next_safe_action"]["provider_admission_allowed"] is False
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(
+                owner="gate_clearing_batch",
+                action_type="run_gate_clearing_batch",
+                work_unit_id="publication_gate_replay",
+                fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+            ),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+        },
+        diagnostic_report={
+            "action_class": "observe_only",
+            "will_start_llm": False,
+            "codex_dispatch_count": 0,
+            "provider_admission_pending_count": 0,
+        },
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [{"condition": "current_owner_action_ready"}]
+    assert state["next_safe_action"]["kind"] == "materialize_provider_admission_or_owner_callable"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
 
 
 def test_runtime_retry_exhausted_provider_admission_fails_closed() -> None:
@@ -817,7 +844,7 @@ def test_foreground_file_delta_without_owner_receipt_is_unadopted() -> None:
     assert state["next_safe_action"]["provider_admission_allowed"] is False
 
 
-def test_runtime_report_marks_observe_only_provider_admission_as_blocked() -> None:
+def test_runtime_report_keeps_observe_only_provider_admission_pending() -> None:
     report_aggregation = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
     )
@@ -870,21 +897,19 @@ def test_runtime_report_marks_observe_only_provider_admission_as_blocked() -> No
 
     assert result["provider_admission_pending_count"] == 1
     assert result["will_start_llm"] is False
-    assert result["paper_recovery_provider_admission_blocked_count"] == 1
-    assert result["paper_recovery_states"][study_id]["phase"] == "admission_blocked"
+    assert result["paper_recovery_provider_admission_blocked_count"] == 0
+    assert result["paper_recovery_states"][study_id]["phase"] == "admission_pending"
     action = result["managed_study_actions"][0]
     assert len(action["provider_admission_candidates"]) == 1
     assert action["provider_admission_candidates"][0]["study_id"] == study_id
     assert action["provider_admission_candidates"][0]["action_type"] == "run_quality_repair_batch"
     assert action["provider_admission_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
     assert action["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
-    assert action["paper_recovery_state"]["phase"] == "admission_blocked"
+    assert action["paper_recovery_state"]["phase"] == "admission_pending"
     assert action["current_work_unit"]["status"] == "executable_owner_action"
     assert action["current_execution_envelope"]["state_kind"] == "executable_owner_action"
     assert action["provider_admission_state"] == {
-        "status": "blocked_by_paper_recovery_state",
+        "status": "pending",
         "candidate_count": 1,
         "running_provider_attempt": False,
-        "paper_recovery_phase": "admission_blocked",
-        "paper_recovery_reason": "provider_admission_pending_without_startable_dispatch",
     }
