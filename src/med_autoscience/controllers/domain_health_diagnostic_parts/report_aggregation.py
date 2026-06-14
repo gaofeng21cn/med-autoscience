@@ -472,6 +472,16 @@ def _managed_study_action_with_provider_admission_state(
         supervisor_decision = _mapping(recovery.get("supervisor_decision"))
         if supervisor_decision:
             result["supervisor_decision"] = dict(supervisor_decision)
+    gate = _mapping(result.get("execution_gate"))
+    if gate.get("blocked") is True:
+        result["running_provider_attempt"] = False
+        result["provider_admission_state"] = {
+            "status": "pending_but_execution_gate_blocked",
+            "candidate_count": len(candidates),
+            "running_provider_attempt": False,
+            "execution_gate_reason": _text(gate.get("reason")),
+        }
+        return result
     supervisor_decision = _mapping(result.get("supervisor_decision"))
     supervisor_gate = provider_admission_supervisor_gate(
         result,
@@ -488,16 +498,6 @@ def _managed_study_action_with_provider_admission_state(
             "paper_recovery_phase": _text(recovery.get("phase")),
             "paper_recovery_reason": _paper_recovery_reason(recovery),
             "next_safe_action": _mapping(recovery.get("next_safe_action")),
-        }
-        return result
-    gate = _mapping(result.get("execution_gate"))
-    if gate.get("blocked") is True:
-        result["running_provider_attempt"] = False
-        result["provider_admission_state"] = {
-            "status": "pending_but_execution_gate_blocked",
-            "candidate_count": len(candidates),
-            "running_provider_attempt": False,
-            "execution_gate_reason": _text(gate.get("reason")),
         }
         return result
     if _text(recovery.get("phase")) == "admission_blocked":

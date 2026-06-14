@@ -31,6 +31,11 @@ from med_autoscience.runtime_protocol import quest_state
 _NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
 _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY = "同一 controller work unit 已达到有界 redrive 上限，需 OPL runtime handoff后再继续。"
 PROGRESS_CURRENTNESS_KEYS = (
+    "study_id",
+    "quest_id",
+    "study_root",
+    "workspace_root",
+    "runtime_root",
     "current_work_unit",
     "current_execution_envelope",
     "current_executable_owner_action",

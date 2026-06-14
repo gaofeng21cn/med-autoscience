@@ -6,7 +6,8 @@ from typing import Any
 def assert_opl_follow_through_and_external_practice_mapping(
     contract: dict[str, Any],
 ) -> None:
-    provider_identity = contract["identity_policy"]["provider_admission_identity_contract"]
+    identity_policy = contract["identity_policy"]
+    provider_identity = identity_policy["provider_admission_identity_contract"]
     assert provider_identity["required_fields"] == [
         "study_id",
         "action_type",
@@ -32,7 +33,94 @@ def assert_opl_follow_through_and_external_practice_mapping(
     assert provider_identity["action_id_role"] == (
         "action_family_only_not_route_or_attempt_identity"
     )
+    derived_identity = contract["identity_policy"]["derived_identity_enrichment_policy"]
+    assert derived_identity["surface_kind"] == "stage_route_derived_identity_enrichment_policy"
+    assert derived_identity["allowed_enrichment_sources"] == [
+        "current_executable_owner_action",
+        "current_work_unit",
+        "accepted_closeout_owner_route_basis",
+        "owner_route.source_refs.owner_route_currentness_basis",
+    ]
+    assert {
+        "fill_currentness_basis",
+        "fill_action_type_from_allowed_actions",
+        "copy_source_eval_id_as_currentness_basis",
+        "attach_diagnostic_dispatch_ref",
+    } <= set(derived_identity["allowed_effects"])
+    assert {
+        "select_new_recovery_obligation",
+        "bypass_paper_recovery_phase",
+        "authorize_provider_admission_without_work_unit_fingerprint",
+        "treat_source_eval_id_as_work_unit_fingerprint",
+        "declare_owner_receipt_or_paper_progress",
+    } <= set(derived_identity["forbidden_effects"])
+    assert derived_identity["source_eval_id_role"] == (
+        "currentness_disambiguator_only_not_fingerprint_replacement"
+    )
+    assert derived_identity["dispatch_selection_required_identity"] == [
+        "same_action_type",
+        "same_work_unit_id",
+        "shared_work_unit_or_action_fingerprint",
+        "matching_source_eval_id_when_present",
+    ]
     assert provider_identity["dispatch_ref_can_replace_stage_packet_ref"] is False
+    dispatch_ref_exception = provider_identity["dispatch_ref_stage_packet_authority_exception"]
+    assert dispatch_ref_exception["default_policy"] == (
+        "dispatch_ref_cannot_replace_stage_packet_ref"
+    )
+    assert dispatch_ref_exception["scope"] == "stage_run_identity_enrichment_only"
+    assert dispatch_ref_exception["allowed_execution_sources"] == [
+        "default_executor_execution"
+    ]
+    assert dispatch_ref_exception["allowed_execution_surfaces"] == [
+        "default_executor_dispatch_execution"
+    ]
+    assert dispatch_ref_exception["allowed_dispatch_authorities"] == [
+        "ai_reviewer_record_production_handoff",
+        "consumer_default_executor_dispatch",
+        "quality_repair_batch_writer_handoff",
+    ]
+    assert dispatch_ref_exception["required_guards"] == [
+        "dispatch_path_present",
+        "owner_route_current_not_false",
+        "existing_source_refs_preserved_for_default_executor_execution",
+    ]
+    assert {
+        "general_dispatch_ref_to_stage_packet_ref_synthesis",
+        "queue_residue_stage_packet_backfill",
+        "candidate_root_closeout_identity_backfill",
+        "stale_owner_route_current_false_admission",
+    } <= set(dispatch_ref_exception["forbidden_effects"])
+    strong_current_owner_delta = provider_identity[
+        "strong_current_owner_delta_stage_packet_exemption"
+    ]
+    assert strong_current_owner_delta["scope"] == (
+        "fresh_current_owner_delta_direct_owner_action_only"
+    )
+    assert strong_current_owner_delta["allowed_source"] == (
+        "opl_current_control_state.study_current_executable_owner_action"
+    )
+    assert strong_current_owner_delta["required_next_executable_owner"] == "write"
+    assert strong_current_owner_delta["required_currentness_source_any"] == [
+        "current_action_source=publication_eval.recommended_actions.readiness_blocker_repair",
+        "current_work_unit_source=publication_eval.recommended_actions.readiness_blocker_repair",
+    ]
+    assert strong_current_owner_delta["required_currentness_fields"] == [
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "truth_epoch",
+        "source_eval_id",
+    ]
+    assert {
+        "treat_identity_as_strong_for_current_control_projection",
+        "materialize_mas_owner_callable_or_recovery_action",
+    } <= set(strong_current_owner_delta["allowed_effects"])
+    assert {
+        "selected_stage_packet_identity_satisfied",
+        "opl_tick_or_hydrate_without_stage_packet_ref_or_refs",
+        "stage_run_attempt_identity_claim",
+        "paper_progress_or_owner_receipt_claim",
+    } <= set(strong_current_owner_delta["forbidden_effects"])
     assert provider_identity["missing_stage_packet_binding_weak_identity_field"] == (
         "stage_packet_ref_or_refs"
     )
@@ -73,6 +161,36 @@ def assert_opl_follow_through_and_external_practice_mapping(
     assert record_only["identity_fill_for_candidate_root_closeout"] == (
         "may_fill_action_type_and_work_unit_id_only; must_not_fill_fingerprint_source_eval_or_epochs_from_candidate"
     )
+    derived_identity = identity_policy["derived_identity_enrichment_policy"]
+    assert derived_identity["surface_kind"] == "stage_route_derived_identity_enrichment_policy"
+    assert derived_identity["allowed_enrichment_sources"] == [
+        "current_executable_owner_action",
+        "current_work_unit",
+        "accepted_closeout_owner_route_basis",
+        "owner_route.source_refs.owner_route_currentness_basis",
+    ]
+    assert derived_identity["allowed_effects"] == [
+        "fill_currentness_basis",
+        "fill_action_type_from_allowed_actions",
+        "copy_source_eval_id_as_currentness_basis",
+        "attach_diagnostic_dispatch_ref",
+    ]
+    assert {
+        "select_new_recovery_obligation",
+        "bypass_paper_recovery_phase",
+        "authorize_provider_admission_without_work_unit_fingerprint",
+        "treat_source_eval_id_as_work_unit_fingerprint",
+        "declare_owner_receipt_or_paper_progress",
+    } <= set(derived_identity["forbidden_effects"])
+    assert derived_identity["source_eval_id_role"] == (
+        "currentness_disambiguator_only_not_fingerprint_replacement"
+    )
+    assert derived_identity["dispatch_selection_required_identity"] == [
+        "same_action_type",
+        "same_work_unit_id",
+        "shared_work_unit_or_action_fingerprint",
+        "matching_source_eval_id_when_present",
+    ]
 
     arbiter = contract["stage_route_arbiter_surface"]
     accepted_closeout = next(

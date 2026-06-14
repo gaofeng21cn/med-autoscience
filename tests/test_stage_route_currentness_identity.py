@@ -189,3 +189,16 @@ def test_currentness_identity_rejects_synthetic_current_owner_ticket_as_fingerpr
 
     assert identity.work_unit_id == "medical_prose_write_repair"
     assert identity.fingerprints == frozenset()
+
+
+def test_currentness_identity_reads_action_type_from_allowed_actions() -> None:
+    identity = currentness_identity(
+        {
+            "allowed_actions": ["complete_medical_paper_readiness_surface"],
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+            "work_unit_fingerprint": "sha256:readiness-current",
+        }
+    )
+
+    assert identity.action_type == "complete_medical_paper_readiness_surface"
+    assert identity.work_unit_id == "complete_medical_paper_readiness_surface"

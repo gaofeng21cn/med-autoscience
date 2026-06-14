@@ -13,6 +13,10 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 
 DM003_GATE_REPLAY_WORK_UNIT = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
 DM003_GATE_REPLAY_SOURCE_FINGERPRINT = "owner-route-source::c09d46113d9004aaa469c2ad"
+DM003_GATE_REPLAY_SOURCE_EVAL_ID = (
+    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+    "sat_cc2c6c6cf90bbe4444a4d388"
+)
 DM003_AI_REVIEWER_REEVAL_WORK_UNIT = "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
 
 
@@ -24,7 +28,13 @@ def _dm003_ai_reviewer_reeval_fingerprint() -> str:
     return f"domain-transition::ai_reviewer_re_eval::{DM003_AI_REVIEWER_REEVAL_WORK_UNIT}"
 
 
-def _dm003_gate_replay_route(*, study_id: str, quest_root: Path, source_fingerprint: str) -> dict[str, object]:
+def _dm003_gate_replay_route(
+    *,
+    study_id: str,
+    quest_root: Path,
+    source_fingerprint: str,
+    source_eval_id: str | None = DM003_GATE_REPLAY_SOURCE_EVAL_ID,
+) -> dict[str, object]:
     route = _owner_route(
         study_id=study_id,
         action_type="run_gate_clearing_batch",
@@ -50,12 +60,13 @@ def _dm003_gate_replay_route(*, study_id: str, quest_root: Path, source_fingerpr
                 "blocked_reason": DM003_GATE_REPLAY_WORK_UNIT,
                 "quest_root": str(quest_root),
                 "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
-                "source_eval_id": None,
+                "source_eval_id": source_eval_id,
                 "runtime_health_epoch": None,
                 "owner_route_currentness_basis": {
                     "truth_epoch": study_id,
                     "work_unit_fingerprint": _dm003_gate_replay_fingerprint(),
                     "work_unit_id": DM003_GATE_REPLAY_WORK_UNIT,
+                    **({"source_eval_id": source_eval_id} if source_eval_id is not None else {}),
                 },
             },
         }
@@ -162,6 +173,7 @@ def _dm003_consumed_gate_replay_study(
     study_id: str,
     quest_root: Path,
     owner_route: dict[str, object] | None = None,
+    completion_eval_id: str = DM003_GATE_REPLAY_SOURCE_EVAL_ID,
 ) -> dict[str, object]:
     payload: dict[str, object] = {
         "study_id": study_id,
@@ -183,10 +195,7 @@ def _dm003_consumed_gate_replay_study(
             },
             "completion_receipt_consumption": {
                 "status": "consumed",
-                "eval_id": (
-                    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
-                    "sat_cc2c6c6cf90bbe4444a4d388"
-                ),
+                "eval_id": completion_eval_id,
                 "receipt_kind": "ai_reviewer_publication_eval",
                 "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
             },
@@ -239,13 +248,20 @@ def _dm003_consumed_ai_reviewer_reeval_study(
     return payload
 
 
-def _dm003_gate_replay_dispatch(profile, study_root: Path, *, source_fingerprint: str) -> dict[str, object]:
+def _dm003_gate_replay_dispatch(
+    profile,
+    study_root: Path,
+    *,
+    source_fingerprint: str,
+    source_eval_id: str | None = DM003_GATE_REPLAY_SOURCE_EVAL_ID,
+) -> dict[str, object]:
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_root = profile.runtime_root / study_id
     dispatch_route = _dm003_gate_replay_route(
         study_id=study_id,
         quest_root=quest_root,
         source_fingerprint=source_fingerprint,
+        source_eval_id=source_eval_id,
     )
     dispatch_payload = _dispatch(
         study_id=study_id,
@@ -715,6 +731,75 @@ def test_execute_dispatch_rejects_stale_materialized_gate_replay_after_consumed_
 
     def fail_gate_clearing_batch(**kwargs) -> dict[str, object]:
         raise AssertionError("stale gate replay dispatch should not execute")
+
+    monkeypatch.setattr(
+        module.action_execution.publication_gate_actions.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        fail_gate_clearing_batch,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 0
+    assert result["executed_count"] == 0
+    assert result["per_study_execution_summary"][0]["zero_dispatch_reason"] == (
+        "no_selected_dispatch_for_requested_action_types"
+    )
+
+
+def test_execute_dispatch_rejects_gate_replay_when_current_route_has_source_eval_but_dispatch_does_not(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    dispatch_payload = _dm003_gate_replay_dispatch(
+        profile,
+        study_root,
+        source_fingerprint=DM003_GATE_REPLAY_SOURCE_FINGERPRINT,
+    )
+    current_route = _dm003_gate_replay_route(
+        study_id=study_id,
+        quest_root=quest_root,
+        source_fingerprint=DM003_GATE_REPLAY_SOURCE_FINGERPRINT,
+    )
+    current_route["source_refs"] = {
+        **current_route["source_refs"],
+        "source_eval_id": "publication-eval::003::current",
+        "owner_route_currentness_basis": {
+            **current_route["source_refs"]["owner_route_currentness_basis"],
+            "source_eval_id": "publication-eval::003::current",
+        },
+    }
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                _dm003_consumed_gate_replay_study(
+                    study_id=study_id,
+                    quest_root=quest_root,
+                    owner_route=current_route,
+                    completion_eval_id="publication-eval::003::current",
+                )
+            ],
+        },
+    )
+    _write_consumer_latest(profile, dispatch_payload)
+
+    def fail_gate_clearing_batch(**kwargs) -> dict[str, object]:
+        raise AssertionError("source-eval-incomplete gate replay dispatch should not execute")
 
     monkeypatch.setattr(
         module.action_execution.publication_gate_actions.gate_clearing_batch,

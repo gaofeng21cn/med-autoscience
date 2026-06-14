@@ -250,6 +250,7 @@ def candidate_with_progress_currentness_identity(
             "source_eval_id": _non_empty_text(basis.get("source_eval_id"))
             or _non_empty_text(closeout_basis.get("source_eval_id")),
         }
+    basis = _normalized_currentness_basis(basis)
     if basis:
         payload["currentness_basis"] = basis
     if _non_empty_text(payload.get("dispatch_path")) is None and _non_empty_text(
@@ -290,7 +291,7 @@ def _candidate_closeout_currentness_basis(
             or _non_empty_text(basis.get("work_unit_fingerprint")),
         }
         if _identity_core_matches(closeout_identity, identity=candidate):
-            return dict(basis)
+            return _normalized_currentness_basis(basis)
     return {}
 
 
@@ -363,6 +364,12 @@ def _candidate_progress_currentness_basis(
         ),
         "current_action_source": _non_empty_text(basis.get("current_action_source"))
         or (_non_empty_text(current_action.get("source")) if action_matches else None),
+        "current_work_unit_source": _non_empty_text(basis.get("current_work_unit_source"))
+        or (
+            _non_empty_text(_mapping(current_work_unit.get("state")).get("source"))
+            if work_unit_matches
+            else None
+        ),
         "truth_epoch": _non_empty_text(basis.get("truth_epoch"))
         or _non_empty_text(candidate.get("truth_epoch"))
         or (_non_empty_text(current_action.get("truth_epoch")) if action_matches else None),
@@ -372,7 +379,7 @@ def _candidate_progress_currentness_basis(
     }.items():
         if value is not None:
             basis[key] = value
-    basis = {key: value for key, value in basis.items() if value not in (None, "", [], {})}
+    basis = _normalized_currentness_basis(basis)
     if basis_conflicts_with_identity(basis, identity=candidate):
         return {}
     return basis
@@ -495,10 +502,10 @@ def _identity_is_strong_current_owner_delta(identity: Mapping[str, Any]) -> bool
     if _non_empty_text(identity.get("next_executable_owner")) != "write":
         return False
     basis = _mapping(identity.get("currentness_basis"))
-    if (
-        _non_empty_text(basis.get("current_action_source"))
-        != "publication_eval.recommended_actions.readiness_blocker_repair"
-    ):
+    source = _non_empty_text(basis.get("current_action_source")) or _non_empty_text(
+        basis.get("current_work_unit_source")
+    )
+    if source != "publication_eval.recommended_actions.readiness_blocker_repair":
         return False
     if _non_empty_text(basis.get("source_eval_id")) is None:
         return False
@@ -590,27 +597,35 @@ def closeout_owner_route_basis(receipt: Mapping[str, Any]) -> dict[str, Any]:
     for value in (
         receipt.get("owner_route_basis"),
         receipt.get("owner_route_currentness"),
-        _mapping(receipt.get("owner_route")).get("source_refs", {}),
         _mapping(_mapping(receipt.get("owner_route")).get("source_refs")).get(
             "owner_route_currentness_basis"
         ),
+        _mapping(receipt.get("owner_route")).get("source_refs", {}),
         receipt.get("canonical_work_unit_identity"),
         receipt.get("owner_route_currentness_basis"),
     ):
         basis = _mapping(value)
-        if any(
-            _non_empty_text(basis.get(key)) is not None
-            for key in (
-                "work_unit_id",
-                "work_unit_fingerprint",
-                "action_fingerprint",
-                "source_eval_id",
-                "truth_epoch",
-                "runtime_health_epoch",
-            )
-        ):
-            return dict(basis)
+        normalized = _normalized_currentness_basis(basis)
+        if normalized:
+            return normalized
     return {}
+
+
+def _normalized_currentness_basis(basis: Mapping[str, Any]) -> dict[str, Any]:
+    result = {
+        key: _non_empty_text(basis.get(key))
+        for key in (
+            "work_unit_id",
+            "work_unit_fingerprint",
+            "action_fingerprint",
+            "source_eval_id",
+            "truth_epoch",
+            "runtime_health_epoch",
+            "current_action_source",
+            "current_work_unit_source",
+        )
+    }
+    return {key: value for key, value in result.items() if value is not None}
 
 
 __all__ = [

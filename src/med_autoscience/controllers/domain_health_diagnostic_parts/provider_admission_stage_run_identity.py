@@ -44,6 +44,12 @@ def candidate_with_stage_run_admission_identity(
         refs.get("stage_packet_path"),
         refs.get("immutable_dispatch_path"),
     )
+    if stage_packet_ref is None and _dispatch_ref_is_stage_packet_authority(
+        payload=payload,
+        execution=execution,
+        dispatch_payload=dispatch_payload,
+    ):
+        stage_packet_ref = dispatch_ref
     selected_dispatch_ref = _first_present_text(
         payload.get("selected_dispatch_ref"),
         execution.get("selected_dispatch_ref"),
@@ -115,6 +121,7 @@ def candidate_with_stage_run_admission_identity(
     if attempt_idempotency_key is not None:
         payload["idempotency_key"] = attempt_idempotency_key
     source_refs_payload = dict(_mapping(payload.get("source_refs")))
+    preserve_existing_source_refs = _preserve_existing_source_refs(payload)
     for key, value in {
         "dispatch_ref": normalized_dispatch_ref,
         "stage_packet_ref": normalized_stage_packet_ref,
@@ -122,9 +129,11 @@ def candidate_with_stage_run_admission_identity(
         "route_identity_key": route_identity_key,
         "attempt_idempotency_key": attempt_idempotency_key,
     }.items():
-        if value is not None:
+        if value is not None and (not preserve_existing_source_refs or key not in source_refs_payload):
             source_refs_payload[key] = value
-    if normalized_stage_packet_refs:
+    if normalized_stage_packet_refs and (
+        not preserve_existing_source_refs or "stage_packet_refs" not in source_refs_payload
+    ):
         source_refs_payload["stage_packet_refs"] = list(dict.fromkeys(normalized_stage_packet_refs))
     if source_refs_payload:
         payload["source_refs"] = source_refs_payload
@@ -162,6 +171,41 @@ def _workspace_relative_ref(value: str | None, *, study_root: Path | None) -> st
         return path.resolve().relative_to(workspace_root).as_posix()
     except (OSError, ValueError, IndexError):
         return text
+
+
+def _preserve_existing_source_refs(payload: Mapping[str, Any]) -> bool:
+    return _non_empty_text(payload.get("source")) == "default_executor_execution"
+
+
+def _dispatch_ref_is_stage_packet_authority(
+    *,
+    payload: Mapping[str, Any],
+    execution: Mapping[str, Any],
+    dispatch_payload: Mapping[str, Any],
+) -> bool:
+    if (
+        _non_empty_text(execution.get("surface")) != "default_executor_dispatch_execution"
+        and _non_empty_text(execution.get("source")) != "default_executor_execution"
+    ):
+        return False
+    if _non_empty_text(payload.get("dispatch_path")) is None and _non_empty_text(
+        execution.get("dispatch_path")
+    ) is None and _non_empty_text(dispatch_payload.get("dispatch_path")) is None:
+        return False
+    if _non_empty_text(execution.get("owner_route_current")) == "False" or execution.get("owner_route_current") is False:
+        return False
+    if _non_empty_text(payload.get("source")) == "default_executor_execution":
+        return True
+    dispatch_authority = (
+        _non_empty_text(payload.get("dispatch_authority"))
+        or _non_empty_text(execution.get("dispatch_authority"))
+        or _non_empty_text(dispatch_payload.get("dispatch_authority"))
+    )
+    return dispatch_authority in {
+        "ai_reviewer_record_production_handoff",
+        "consumer_default_executor_dispatch",
+        "quality_repair_batch_writer_handoff",
+    }
 
 
 __all__ = ["candidate_with_stage_run_admission_identity"]

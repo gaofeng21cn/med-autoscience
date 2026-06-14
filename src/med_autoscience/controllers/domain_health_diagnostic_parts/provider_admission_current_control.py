@@ -206,9 +206,11 @@ def _payload_with_consumed_closeout_typed_blockers(payload: dict[str, Any]) -> d
         if closeout is None:
             studies.append(dict(study))
             continue
+        identity = _closeout_identity(study)
         typed_blocker = _typed_blocker_from_closeout(
             closeout,
             identity={
+                **identity,
                 "action_type": _non_empty_text(closeout.get("action_type")),
                 "work_unit_id": _non_empty_text(closeout.get("work_unit_id")),
                 "work_unit_fingerprint": _non_empty_text(closeout.get("work_unit_fingerprint"))
@@ -650,15 +652,24 @@ def _closeout_identity(study: Mapping[str, Any]) -> dict[str, Any]:
     receipt = _mapping(study.get("default_executor_execution_receipt_consumption")) or _mapping(
         study.get("opl_provider_attempt")
     )
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    current_action = _mapping(study.get("current_executable_owner_action"))
+    envelope = _mapping(study.get("current_execution_envelope"))
     if not receipt:
-        receipt = _mapping(study.get("current_work_unit")) or _mapping(
-            study.get("current_executable_owner_action")
-        )
+        receipt = current_work_unit or current_action
     if not receipt:
-        envelope = _mapping(study.get("current_execution_envelope"))
         receipt = {
             "work_unit_id": _non_empty_text(envelope.get("next_work_unit")),
         }
+    owner = (
+        _non_empty_text(receipt.get("next_executable_owner"))
+        or _non_empty_text(receipt.get("owner"))
+        or _non_empty_text(current_action.get("next_executable_owner"))
+        or _non_empty_text(current_action.get("owner"))
+        or _non_empty_text(current_work_unit.get("next_executable_owner"))
+        or _non_empty_text(current_work_unit.get("owner"))
+        or _non_empty_text(envelope.get("owner"))
+    )
     return {
         key: value
         for key, value in {
@@ -668,6 +679,8 @@ def _closeout_identity(study: Mapping[str, Any]) -> dict[str, Any]:
             "action_fingerprint": _non_empty_text(receipt.get("action_fingerprint")),
             "dispatch_path": _non_empty_text(receipt.get("dispatch_path")),
             "dispatch_ref": _non_empty_text(receipt.get("dispatch_ref")),
+            "owner": owner,
+            "next_executable_owner": owner,
         }.items()
         if value is not None
     }

@@ -344,6 +344,118 @@ def test_domain_health_diagnostic_dry_run_includes_owner_resolution_preview(
     assert report["action_class"] == "observe_only"
 
 
+def test_domain_health_diagnostic_rebuilds_recovery_state_with_fresh_progress_path_context(
+    tmp_path: Path,
+) -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_record_gate_consumption"
+    fingerprint = "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    closeout_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+        "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json"
+    )
+    closeout_path = workspace_root / closeout_ref
+    closeout_path.parent.mkdir(parents=True, exist_ok=True)
+    dump_json(
+        closeout_path,
+        {
+            "stage_attempt_id": "sat_67e10efde628859185249aa0",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "paper_stage_log": {
+                "next_forced_delta": {
+                    "required_delta_kind": (
+                        "publishability_repair_sprint_or_single_typed_blocker_"
+                        "or_human_or_operator_gate"
+                    ),
+                    "work_unit_id": work_unit_id,
+                },
+            },
+        },
+    )
+    typed_blocker = {
+        "blocker_id": "anti_loop_budget_exhausted",
+        "blocker_type": "anti_loop_budget_exhausted",
+        "owner": "one-person-lab",
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "source_ref": f"{closeout_ref}#typed_blocker",
+        "typed_blocker_ref": f"{closeout_ref}#typed_blocker",
+        "latest_owner_answer_ref": f"{closeout_ref}#typed_blocker",
+        "closeout_refs": [closeout_ref],
+    }
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=tmp_path / "runtime" / "quests",
+        scanned=[],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "reason": "anti_loop_budget_exhausted",
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[],
+        managed_study_progress_currentness={
+            study_id: {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "study_root": str(study_root),
+                "workspace_root": str(workspace_root),
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "typed_blocker",
+                    "study_id": study_id,
+                    "owner": "one-person-lab",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "currentness_basis": {
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "stage_attempt_id": "sat_67e10efde628859185249aa0",
+                    },
+                    "state": {
+                        "state_kind": "typed_blocker",
+                        "typed_blocker": typed_blocker,
+                    },
+                },
+                "next_forced_delta": {
+                    "required_delta_kind": "review_current_paper_delta",
+                    "work_unit_id": work_unit_id,
+                },
+            }
+        },
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    recovery = result["paper_recovery_states"][study_id]
+    assert recovery["next_safe_action"]["required_input"] == (
+        "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
+    )
+    assert result["managed_study_actions"][0]["paper_recovery_state"]["next_safe_action"][
+        "required_input"
+    ] == (
+        "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
+    )
+
+
 def test_domain_health_diagnostic_same_tick_treats_opl_authorization_blocker_as_provider_handoff(
     tmp_path: Path,
     monkeypatch,

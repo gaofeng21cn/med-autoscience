@@ -166,6 +166,35 @@
       "same_action_without_work_unit_or_fingerprint_authorizes_route": false,
       "missing_strong_identity_policy": "fail_closed_to_currentness_diagnostic"
     },
+    "derived_identity_enrichment_policy": {
+      "surface_kind": "stage_route_derived_identity_enrichment_policy",
+      "allowed_enrichment_sources": [
+        "current_executable_owner_action",
+        "current_work_unit",
+        "accepted_closeout_owner_route_basis",
+        "owner_route.source_refs.owner_route_currentness_basis"
+      ],
+      "allowed_effects": [
+        "fill_currentness_basis",
+        "fill_action_type_from_allowed_actions",
+        "copy_source_eval_id_as_currentness_basis",
+        "attach_diagnostic_dispatch_ref"
+      ],
+      "forbidden_effects": [
+        "select_new_recovery_obligation",
+        "bypass_paper_recovery_phase",
+        "authorize_provider_admission_without_work_unit_fingerprint",
+        "treat_source_eval_id_as_work_unit_fingerprint",
+        "declare_owner_receipt_or_paper_progress"
+      ],
+      "source_eval_id_role": "currentness_disambiguator_only_not_fingerprint_replacement",
+      "dispatch_selection_required_identity": [
+        "same_action_type",
+        "same_work_unit_id",
+        "shared_work_unit_or_action_fingerprint",
+        "matching_source_eval_id_when_present"
+      ]
+    },
     "provider_admission_identity_contract": {
       "required_fields": [
         "study_id",
@@ -189,6 +218,57 @@
       "fingerprintless_stop_loss_closeout_match": "requires_same_source_eval_truth_or_runtime_health_epoch",
       "action_id_role": "action_family_only_not_route_or_attempt_identity",
       "dispatch_ref_can_replace_stage_packet_ref": false,
+      "dispatch_ref_stage_packet_authority_exception": {
+        "default_policy": "dispatch_ref_cannot_replace_stage_packet_ref",
+        "scope": "stage_run_identity_enrichment_only",
+        "allowed_execution_sources": [
+          "default_executor_execution"
+        ],
+        "allowed_execution_surfaces": [
+          "default_executor_dispatch_execution"
+        ],
+        "allowed_dispatch_authorities": [
+          "ai_reviewer_record_production_handoff",
+          "consumer_default_executor_dispatch",
+          "quality_repair_batch_writer_handoff"
+        ],
+        "required_guards": [
+          "dispatch_path_present",
+          "owner_route_current_not_false",
+          "existing_source_refs_preserved_for_default_executor_execution"
+        ],
+        "forbidden_effects": [
+          "general_dispatch_ref_to_stage_packet_ref_synthesis",
+          "queue_residue_stage_packet_backfill",
+          "candidate_root_closeout_identity_backfill",
+          "stale_owner_route_current_false_admission"
+        ]
+      },
+      "strong_current_owner_delta_stage_packet_exemption": {
+        "scope": "fresh_current_owner_delta_direct_owner_action_only",
+        "allowed_source": "opl_current_control_state.study_current_executable_owner_action",
+        "required_next_executable_owner": "write",
+        "required_currentness_source_any": [
+          "current_action_source=publication_eval.recommended_actions.readiness_blocker_repair",
+          "current_work_unit_source=publication_eval.recommended_actions.readiness_blocker_repair"
+        ],
+        "required_currentness_fields": [
+          "work_unit_id",
+          "work_unit_fingerprint",
+          "truth_epoch",
+          "source_eval_id"
+        ],
+        "allowed_effects": [
+          "treat_identity_as_strong_for_current_control_projection",
+          "materialize_mas_owner_callable_or_recovery_action"
+        ],
+        "forbidden_effects": [
+          "selected_stage_packet_identity_satisfied",
+          "opl_tick_or_hydrate_without_stage_packet_ref_or_refs",
+          "stage_run_attempt_identity_claim",
+          "paper_progress_or_owner_receipt_claim"
+        ]
+      },
       "missing_stage_packet_binding_weak_identity_field": "stage_packet_ref_or_refs",
       "record_only_closeout_consumption_policy": {
         "record_only_owner_refs_are_identity": false,

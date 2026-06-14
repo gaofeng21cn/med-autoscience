@@ -499,6 +499,11 @@ def _paper_recovery_state_blocks_provider_admission(
         return {}
     next_safe_action = _mapping(recovery.get("next_safe_action"))
     if (
+        next_safe_action.get("provider_admission_allowed") is True
+        or _non_empty_text(next_safe_action.get("kind")) == "admit_provider_attempt"
+    ):
+        return {}
+    if (
         not supervisor_decision
         and next_safe_action.get("provider_admission_allowed") is not False
     ):

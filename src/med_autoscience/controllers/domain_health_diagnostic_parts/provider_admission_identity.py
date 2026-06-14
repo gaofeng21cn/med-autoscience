@@ -112,15 +112,27 @@ def matches_current_action(
     action_ids = set(_text_items(current_action_identity.get("action_ids")))
     expected_fingerprints = set(_text_items(current_action_identity.get("work_unit_fingerprints")))
     if expected_fingerprints:
-        if work_unit_fingerprint not in expected_fingerprints:
-            return False
-        if not provider_admission_ticket_matches_action(
-            work_unit_fingerprint=work_unit_fingerprint,
-            action_type=action_type,
-            work_unit_id=work_unit_id,
-        ):
+        if control_ticket := _control_ticket_fingerprint(expected_fingerprints):
+            if not provider_admission_ticket_matches_action(
+                work_unit_fingerprint=control_ticket,
+                action_type=action_type,
+                work_unit_id=work_unit_id,
+            ):
+                return False
+        real_expected_fingerprints = {
+            fingerprint
+            for fingerprint in expected_fingerprints
+            if not fingerprint.startswith("study-progress-current-owner-ticket::")
+        }
+        if real_expected_fingerprints and work_unit_fingerprint not in real_expected_fingerprints:
             return False
         if action_ids and action_type not in action_ids:
+            return False
+        if expected_work_unit_id is not None and not work_unit_ids_equivalent_for_action(
+            action_type=action_type,
+            left=work_unit_id,
+            right=expected_work_unit_id,
+        ):
             return False
         return True
     expected_fingerprint = _non_empty_text(current_action_identity.get("work_unit_fingerprint"))
@@ -187,6 +199,13 @@ def provider_admission_ticket_matches_action(
         ticket_work_unit_id == work_unit_id
         and (ticket_action_type == action_type or ticket_action_type == work_unit_id)
     )
+
+
+def _control_ticket_fingerprint(fingerprints: set[str]) -> str | None:
+    for fingerprint in fingerprints:
+        if fingerprint.startswith("study-progress-current-owner-ticket::"):
+            return fingerprint
+    return None
 
 
 def work_unit_ids_equivalent_for_action(

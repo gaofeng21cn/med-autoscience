@@ -26,6 +26,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     same_tick_candidate_with_stage_run_identity as _same_tick_candidate_with_stage_run_identity,
     same_tick_text_items as _same_tick_text_items,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_runtime_surfaces import (
+    sync_current_control_runtime_surfaces as _sync_current_control_runtime_surfaces,
+)
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.controllers.owner_route_handoff_parts.accepted_owner_gate_route_back import (
@@ -122,6 +125,8 @@ def sync_report_provider_admission_current_control_state(
     report["managed_study_opl_provider_admission_candidates"] = candidates
     report["provider_admission_pending_count"] = len(candidates)
     current_execution_evidence["provider_admission_candidates"] = candidates
+    if candidates:
+        _sync_current_control_runtime_surfaces(report, current_control_state=current_control_state)
     synced_actions = _sync_managed_action_provider_admission_candidates(
         report.get("managed_study_actions"),
         candidates=candidates,
@@ -248,6 +253,13 @@ def _paper_recovery_provider_admission_blocked_studies_from_states(states: Any) 
 
 def _paper_recovery_blocks_provider_admission(recovery: Mapping[str, Any]) -> bool:
     next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if _non_empty_text(next_safe_action.get("kind")) in {
+        "materialize_provider_admission_or_owner_callable",
+        "materialize_successor_owner_action",
+        "materialize_successor_owner_gate",
+        "run_mas_owner_callable",
+    }:
+        return False
     accepted_owner_gate_decision = _mapping(next_safe_action.get("accepted_owner_gate_decision"))
     if next_safe_action.get("provider_admission_allowed") is False and (
         _non_empty_text(next_safe_action.get("kind")),
@@ -1094,7 +1106,11 @@ def _same_tick_candidate_matches_current_action(
     expected_work_unit_id = _non_empty_text(current_action_identity.get("work_unit_id"))
     if expected_work_unit_id is not None and work_unit_id != expected_work_unit_id:
         return False
-    expected_fingerprints = set(_same_tick_text_items(current_action_identity.get("explicit_fingerprints")))
+    expected_fingerprints = {
+        fingerprint
+        for fingerprint in _same_tick_text_items(current_action_identity.get("explicit_fingerprints"))
+        if not _same_tick_synthetic_current_owner_ticket(fingerprint)
+    }
     if expected_fingerprints:
         return work_unit_fingerprint in expected_fingerprints
     expected_source_ref = _non_empty_text(current_action_identity.get("source_ref"))
@@ -1103,6 +1119,11 @@ def _same_tick_candidate_matches_current_action(
     if _same_tick_materialized_candidate(candidate):
         return False
     return True
+
+
+def _same_tick_synthetic_current_owner_ticket(value: object) -> bool:
+    text = _non_empty_text(value)
+    return bool(text and text.startswith("study-progress-current-owner-ticket::"))
 
 
 
