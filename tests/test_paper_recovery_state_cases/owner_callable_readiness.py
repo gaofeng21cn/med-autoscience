@@ -346,6 +346,95 @@ def test_successor_owner_action_precedes_stale_observe_only_provider_admission()
     }
 
 
+def test_current_owner_route_missing_after_repair_progress_materializes_gate_replay_successor() -> None:
+    gate_fingerprint = "sha256:bfcf03bacdcb4e58edd085444dda2f3906814c8a1806afb63b8095b90408bac9"
+    repair_fingerprint = "publication-blockers::0915410f804b3697"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    current_work_unit = _typed_blocker_work_unit(
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        owner="one-person-lab",
+        action_type="run_gate_clearing_batch",
+        work_unit_id="publication_gate_replay",
+        blocker_type="current_owner_route_missing",
+    ) | {
+        "work_unit_fingerprint": gate_fingerprint,
+        "action_fingerprint": gate_fingerprint,
+        "currentness_basis": {
+            "source_eval_id": source_eval_id,
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": gate_fingerprint,
+            "action_fingerprint": gate_fingerprint,
+        },
+    }
+    current_work_unit["state"]["typed_blocker"] |= {
+        "owner": "one-person-lab",
+        "blocked_reason": "current_owner_route_missing",
+        "work_unit_fingerprint": gate_fingerprint,
+        "action_fingerprint": gate_fingerprint,
+        "latest_owner_answer_ref": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+        "latest_owner_answer_kind": "typed_blocker",
+        "owner_answer_shape": "typed_blocker_ref",
+        "terminal_closeout_outcome": "blocked:current_owner_route_missing",
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": current_work_unit,
+            "progress_first_monitoring_summary": {
+                "current_executable_owner_action": {
+                    "surface_kind": "current_executable_owner_action",
+                    "status": "ready",
+                    "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                    "next_owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": repair_fingerprint,
+                    "source_eval_id": source_eval_id,
+                    "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                }
+            },
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "source_fingerprint": gate_fingerprint,
+                "source_eval_id": source_eval_id,
+                "repair_execution_evidence_ref": (
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_done": True,
+                "gate_replay_refs": ["artifacts/controller/gate_replay_requests/latest.json"],
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [
+        {
+            "condition": "terminal_typed_blocker_successor_evidence",
+            "blocker_type": "current_owner_route_missing",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["successor_owner_action"] == {
+        "action_type": "run_gate_clearing_batch",
+        "owner": "gate_clearing_batch",
+        "work_unit_id": "publication_gate_replay",
+        "work_unit_fingerprint": gate_fingerprint,
+        "source_surface": "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "source_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+    }
+
+
 def test_terminal_anti_loop_typed_blocker_does_not_rerun_same_owner_callable() -> None:
     fingerprint = "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
     current_work_unit = _typed_blocker_work_unit(

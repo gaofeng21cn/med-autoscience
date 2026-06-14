@@ -20,7 +20,6 @@ from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUT
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_actions import (
     _current_action_identity,
     _current_action_action_type,
-    _current_control_action_identity,
     _current_control_action_dispatch_path,
     _current_control_action_requests_provider_admission,
     _current_control_executable_owner,
@@ -138,26 +137,6 @@ def current_control_provider_admission_candidates(
             current_control_ref=current_control_ref,
             study_payload=study,
         )
-        if candidate is None:
-            action_identity = _current_control_action_identity(action)
-            if (
-                action_identity
-                and action_identity != current_action_identity
-                and not _status_blocks_action_queue_self_identity(
-                    effective_status,
-                    current_identity=current_action_identity,
-                    current_identity_required=_status_requires_current_identity(effective_status),
-                )
-            ):
-                candidate = provider_admission_candidate_from_current_control_action(
-                    action,
-                    study_root=study_root,
-                    status_study_id=status_study_id,
-                    current_action_identity=action_identity,
-                    status_payload=effective_status,
-                    current_control_ref=current_control_ref,
-                    study_payload=study,
-                )
         if candidate is not None:
             candidates.append(candidate)
     return candidates
@@ -781,12 +760,6 @@ def _authorization_required_execution_matches_current_action(
     work_unit_fingerprint = _work_unit_fingerprint(execution)
     if action_type is None or work_unit_id is None or work_unit_fingerprint is None:
         return False
-    if _current_identity_is_opl_authorization_typed_blocker(current_action_identity):
-        return _matches_current_action_without_fingerprint(
-            action_type=action_type,
-            work_unit_id=work_unit_id,
-            current_action_identity=current_action_identity,
-        )
     return _matches_current_action(
         action_type=action_type,
         work_unit_id=work_unit_id,

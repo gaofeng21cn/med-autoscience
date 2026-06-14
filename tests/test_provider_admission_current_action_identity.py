@@ -172,3 +172,53 @@ def test_provider_admission_candidate_allows_current_action_identity_over_prior_
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["work_unit_fingerprint"] == fingerprint
     assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
+
+
+def test_opl_authorization_blocked_execution_requires_fingerprint_bound_identity() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_type = "run_gate_clearing_batch"
+    work_unit_id = "publication_gate_replay"
+    current_fingerprint = "sha256:current-gate-replay"
+    stale_fingerprint = "sha256:stale-blocked-dispatch"
+
+    candidate = module.provider_admission_candidate_from_execution(
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": stale_fingerprint,
+            "action_fingerprint": stale_fingerprint,
+            "dispatch_path": (
+                "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+                "consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+            ),
+            "execution_status": "blocked",
+            "blocked_reason": "opl_execution_authorization_required",
+            "provider_attempt_or_lease_required": True,
+            "owner_route_current": True,
+            "next_executable_owner": "gate_clearing_batch",
+            "owner_route": {
+                "source_refs": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": stale_fingerprint,
+                },
+            },
+        },
+        execution_ref="studies/003/default_executor_execution/latest.json",
+        status_study_id=study_id,
+        current_action_identity={
+            "action_ids": [action_type, work_unit_id],
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": current_fingerprint,
+            "work_unit_fingerprints": [current_fingerprint],
+            "source": "canonical_current_work_unit",
+            "next_owner": "one-person-lab",
+            "opl_execution_authorization_required": True,
+        },
+    )
+
+    assert candidate is None
