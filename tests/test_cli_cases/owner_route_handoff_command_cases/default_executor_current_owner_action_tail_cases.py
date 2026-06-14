@@ -458,3 +458,277 @@ def test_domain_handler_export_does_not_fall_back_when_current_control_action_ha
         if task["task_kind"] == "domain_owner/default-executor-dispatch"
     ]
     assert tasks == []
+
+
+def test_domain_handler_export_exports_provider_admission_when_current_work_unit_renames_dispatch_unit(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    action_type = "run_quality_repair_batch"
+    current_work_unit_id = "medical_prose_write_repair"
+    current_fingerprint = "publication-blockers::0915410f804b3697"
+    stale_stage_native_route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason=action_type,
+        action_type=action_type,
+        work_unit_id=action_type,
+        work_unit_fingerprint=(
+            "stage-native-next-action::08-publication_package_handoff::"
+            "run_quality_repair_batch::artifacts/reports/medical_publication_surface/latest.json"
+        ),
+        runtime_health_epoch=(
+            "stage-native-next-action::003-dpcc-primary-care-phenotype-treatment-gap::"
+            "08-publication_package_handoff"
+        ),
+        blocked_actions=["return_to_ai_reviewer_workflow", "run_gate_clearing_batch"],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type=action_type,
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-06-14T08:02:57+00:00",
+        owner_route=stale_stage_native_route,
+        allowed_write_surfaces=[
+            "studies/<study_id>/artifacts/supervision/requests/quality_repair_batch/latest.json",
+            "studies/<study_id>/artifacts/controller/repair_execution_evidence/latest.json",
+        ],
+    )
+    _write_json(
+        workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / "sat_old_writer.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "status": "completed",
+            "stage_attempt_id": "sat_old_writer",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "work_unit_id": current_work_unit_id,
+            "work_unit_fingerprint": current_fingerprint,
+            "action_fingerprint": current_fingerprint,
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+            "owner_route_currentness_basis": {
+                "work_unit_id": current_work_unit_id,
+                "work_unit_fingerprint": current_fingerprint,
+                "truth_epoch": "truth-event-current",
+                "runtime_health_epoch": "runtime-health-event-current",
+                "source_eval_id": (
+                    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::current"
+                ),
+            },
+            "owner_route": {
+                **stale_stage_native_route,
+                "next_owner": "write",
+                "work_unit_fingerprint": current_fingerprint,
+                "source_fingerprint": current_fingerprint,
+                "source_refs": {
+                    "work_unit_id": current_work_unit_id,
+                    "work_unit_fingerprint": current_fingerprint,
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-event-current",
+                    "owner_route_currentness_basis": {
+                        "work_unit_id": current_work_unit_id,
+                        "work_unit_fingerprint": current_fingerprint,
+                        "truth_epoch": "truth-event-current",
+                        "runtime_health_epoch": "runtime-health-event-current",
+                        "source_eval_id": (
+                            "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::current"
+                        ),
+                    },
+                },
+            },
+            "owner_receipt": {"status": "executed", "owner": "write"},
+            "repair_execution_evidence": {
+                "status": "progress_delta_candidate",
+                "changed_artifact_refs": [
+                    {
+                        "path": str(
+                            workspace_root
+                            / "studies"
+                            / study_id
+                            / "paper"
+                            / "draft.md"
+                        ),
+                        "artifact_role": "canonical_manuscript_story_surface",
+                    }
+                ],
+            },
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "schema_version": 1,
+                "status": "available",
+                "stage_name": current_work_unit_id,
+                "problem_summary": "Old writer closeout for a previous admission cycle.",
+                "stage_goal": "Repair medical prose.",
+                "stage_work_done": ["recorded old delta"],
+                "paper_work_done": ["recorded old delta"],
+                "changed_stage_surfaces": ["paper/draft.md"],
+                "changed_paper_surfaces": ["paper/draft.md"],
+                "outcome": "deliverable_progress",
+                "remaining_blockers": ["medical_publication_surface_blocked"],
+                "duration": {"status": "missing", "value": None},
+                "token_usage": {"status": "missing", "value": None, "total_tokens": None},
+                "cost": {"status": "missing", "value": None, "total_cost": None},
+                "usage_refs": [],
+                "cost_refs": [],
+                "progress_delta_classification": "deliverable_progress",
+                "deliverable_progress_delta": {"count": 1, "token_usage_total": None},
+                "paper_progress_delta": {"count": 1, "token_usage_total": None},
+                "platform_repair_delta": {"count": 0, "token_usage_total": None},
+                "next_forced_delta": {
+                    "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                    "work_unit_id": current_work_unit_id,
+                    "owner_action": {
+                        "next_owner": "write",
+                        "action_type": action_type,
+                        "work_unit_id": current_work_unit_id,
+                    },
+                    "reason": "terminal_closeout_observed",
+                },
+                "evidence_refs": [],
+            },
+        },
+    )
+
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        dispatch_path = (
+            workspace_root
+            / "studies"
+            / study_id
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_dispatches"
+            / "run_quality_repair_batch.json"
+        )
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "write",
+                "action_type": action_type,
+                "work_unit_id": current_work_unit_id,
+                "work_unit_fingerprint": current_fingerprint,
+                "action_fingerprint": current_fingerprint,
+                "currentness_basis": {
+                    "work_unit_id": current_work_unit_id,
+                    "work_unit_fingerprint": current_fingerprint,
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-event-current",
+                },
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                    "provider_admission_pending": True,
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": current_work_unit_id,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "next_owner": "write",
+                "action_type": action_type,
+                "work_unit_id": current_work_unit_id,
+                "work_unit_fingerprint": current_fingerprint,
+                "action_fingerprint": current_fingerprint,
+                "allowed_actions": [action_type],
+                "publication_eval_id": (
+                    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::current"
+                ),
+            },
+            "provider_admission_candidates": [
+                {
+                    "surface": "opl_provider_admission_candidate",
+                    "schema_version": 1,
+                    "status": "provider_admission_pending",
+                    "source": "opl_current_control_state.study_current_executable_owner_action",
+                    "execution_ref": str(
+                        workspace_root
+                        / "runtime"
+                        / "artifacts"
+                        / "supervision"
+                        / "opl_current_control_state"
+                        / "latest.json"
+                    ),
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": action_type,
+                    "work_unit_id": current_work_unit_id,
+                    "work_unit_fingerprint": current_fingerprint,
+                    "action_fingerprint": current_fingerprint,
+                    "dispatch_path": str(dispatch_path),
+                    "next_executable_owner": "write",
+                    "provider_attempt_or_lease_required": True,
+                    "owner_route_current": True,
+                    "currentness_basis": {
+                        "work_unit_id": current_work_unit_id,
+                        "work_unit_fingerprint": current_fingerprint,
+                        "truth_epoch": "truth-event-current",
+                        "runtime_health_epoch": "runtime-health-event-current",
+                        "source_eval_id": (
+                            "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::current"
+                        ),
+                    },
+                    "source_refs": {
+                        "dispatch_path": str(dispatch_path),
+                        "stage_packet_ref": (
+                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                            "supervision/consumer/default_executor_dispatches/"
+                            "run_quality_repair_batch.json"
+                        ),
+                        "route_identity_key": "provider-admission::dm003::medical-prose",
+                        "attempt_idempotency_key": "provider-admission::dm003::medical-prose",
+                    },
+                }
+            ],
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["study_id"] == study_id
+    assert task["payload"]["action_type"] == action_type
+    assert task["payload"]["work_unit_id"] == current_work_unit_id
+    assert task["payload"]["work_unit_fingerprint"] == current_fingerprint
+    assert task["payload"]["provider_admission_identity"]["work_unit_id"] == current_work_unit_id
+    assert task["payload"]["provider_attempt_or_lease_required"] is True
