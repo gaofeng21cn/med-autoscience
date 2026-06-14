@@ -73,12 +73,12 @@ def test_runtime_report_owner_gate_event_supersedes_managed_action_typed_blocker
     )
 
     recovery = result["paper_recovery_states"][study_id]
-    assert recovery["phase"] == "human_gate"
+    assert recovery["phase"] == "owner_action_ready"
     assert recovery["conditions"][0]["condition"] == "accepted_owner_gate_decision"
     action = result["managed_study_actions"][0]
-    assert action["paper_recovery_state"]["phase"] == "human_gate"
-    assert action["decision"] == "human_gate"
-    assert action["reason"] == "accepted_owner_gate_decision"
+    assert action["paper_recovery_state"]["phase"] == "owner_action_ready"
+    assert action["decision"] == "blocked"
+    assert action["reason"] == "stage_packet_not_current_selected_dispatch"
     assert action["running_provider_attempt"] is False
 
 

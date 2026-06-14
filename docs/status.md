@@ -13,7 +13,7 @@ Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `
 | --- | --- |
 | Active gap / completion plan | [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) |
 | Live study truth | Fresh `study_progress`、workspace artifacts、controller decisions、publication eval、OPL current-control 和 owner receipts |
-| Runtime / currentness / stage-route repair | [Progress-First Stage Outcome Runbook](./runtime/control/progress_first_stage_outcome.md)、[PaperRecovery 事故 replay 与 authority 边界](./runtime/control/paper_recovery_replay.md)、[Stage-route reconcile 目标设计](./runtime/designs/stage_route_reconcile_target.md)、`contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json` |
+| Runtime / currentness / stage-route repair | [Progress-First Stage Outcome Runbook](./runtime/control/progress_first_stage_outcome.md)、[PaperRecovery 事故 replay 与 authority 边界](./runtime/control/paper_recovery_replay.md)、[Stage-route reconcile 目标设计](./runtime/designs/stage_route_reconcile_target.md)、[Paper Autonomy Supervisor 目标设计](./runtime/designs/paper_autonomy_supervisor_target.md)、`contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json` |
 | Stage folder / storage / authority refs provenance | [Domain Authority Refs Index Guard](./runtime/domain_authority_refs_index_guard.md) |
 | Paper-line pause and dated closeouts | [history/program](./history/program/README.md) |
 | Docs lifecycle | [MAS 文档组合治理](./docs_portfolio_consolidation.md) 与 [coverage ledger](./history/docs-portfolio-coverage-ledger/README.md) |

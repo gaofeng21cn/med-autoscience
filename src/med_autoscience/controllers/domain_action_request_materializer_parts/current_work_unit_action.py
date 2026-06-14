@@ -8,6 +8,7 @@ from med_autoscience.controllers.default_executor_action_policy import (
     request_output_surface_for_action_type,
     request_owner_for_action_type,
 )
+from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
@@ -18,6 +19,8 @@ def canonical_current_work_unit_action(study: Mapping[str, Any]) -> dict[str, An
     current_work_unit = _mapping(study.get("current_work_unit"))
     current_action = _mapping(study.get("current_executable_owner_action"))
     if current_work_unit and not _current_work_unit_is_executable_action(current_work_unit):
+        if _current_work_unit_typed_blocker_reason(current_work_unit) == OPL_EXECUTION_AUTHORIZATION_BLOCKER:
+            return None
         if not _current_action_is_identity_different_ready_action(
             current_action=current_action,
             current_work_unit=current_work_unit,
@@ -160,6 +163,17 @@ def _current_work_unit_is_executable_action(current_work_unit: Mapping[str, Any]
     state = _mapping(current_work_unit.get("state"))
     state_kind = _text(state.get("state_kind"))
     return state_kind in {None, "executable_owner_action"}
+
+
+def _current_work_unit_typed_blocker_reason(current_work_unit: Mapping[str, Any]) -> str | None:
+    state = _mapping(current_work_unit.get("state"))
+    blocker = _mapping(state.get("typed_blocker")) or current_work_unit
+    return (
+        _text(blocker.get("blocker_id"))
+        or _text(blocker.get("blocker_type"))
+        or _text(blocker.get("reason"))
+        or _text(blocker.get("blocked_reason"))
+    )
 
 
 def _current_action_is_identity_different_ready_action(

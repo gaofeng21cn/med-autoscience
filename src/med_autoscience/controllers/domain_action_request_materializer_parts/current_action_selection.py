@@ -139,6 +139,7 @@ def current_actions_for_studies(
             and stage_native_action is None
             and not stage_native_derives_from_readiness_answer
             and not _fresh_progress_is_repair_progress_followup(fresh_progress_action)
+            and not _fresh_progress_is_accepted_owner_gate_decision(fresh_progress_action)
         ):
             transition_barrier = (
                 current_typed_blocker_transition_barrier.current_typed_blocker_barrier_for_actions(
@@ -147,6 +148,43 @@ def current_actions_for_studies(
                     candidate_actions=stale_candidate_actions,
                 )
             )
+        if (
+            fresh_progress_action is not None
+            and _fresh_progress_is_accepted_owner_gate_decision(fresh_progress_action)
+        ):
+            per_study_actions.append(fresh_progress_action)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_fresh_study_progress_current_owner_ticket")
+                for action in [
+                    *([canonical_current_action] if canonical_current_action is not None else []),
+                    *([readiness_followup] if readiness_followup is not None else []),
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
+                    *top_level_study_actions,
+                    *transition_actions,
+                    *current_route_queue_actions,
+                    *per_study_queue_actions,
+                ]
+                if action != fresh_progress_action
+            )
+            continue
+        if _fresh_progress_is_current_execution_envelope_barrier(fresh_progress_action):
+            per_study_actions.append(fresh_progress_action)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_current_work_unit_typed_blocker")
+                for action in [
+                    *([canonical_current_action] if canonical_current_action is not None else []),
+                    *([readiness_followup] if readiness_followup is not None else []),
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
+                    *top_level_study_actions,
+                    *transition_actions,
+                    *current_route_queue_actions,
+                    *per_study_queue_actions,
+                ]
+                if action != fresh_progress_action
+            )
+            continue
         if fresh_progress_action is not None and not _mapping(study_payload.get("current_work_unit")):
             canonical_current_action = None
         stage_native_derives_from_readiness_answer = (
@@ -318,22 +356,31 @@ def current_actions_for_studies(
                 ]
             )
             continue
-        if fresh_progress_action is not None and _scan_currentness_preempts_fresh_progress(
-            study_payload,
-            fresh_action=fresh_progress_action,
+        if (
+            fresh_progress_action is not None
+            and not _fresh_progress_is_accepted_owner_gate_decision(fresh_progress_action)
+            and _scan_currentness_preempts_fresh_progress(
+                study_payload,
+                fresh_action=fresh_progress_action,
+            )
         ):
             suppressed_fresh_progress_studies.add(study_id)
             fresh_progress_action = None
-        if fresh_progress_action is not None and not fresh_progress_arbitration.can_preempt_scan(
-            study=study_payload,
-            fresh_action=fresh_progress_action,
-            readiness_followup=readiness_followup,
-            stage_native_action=stage_native_action,
-            top_level_study_actions=top_level_study_actions,
+        if (
+            fresh_progress_action is not None
+            and not _fresh_progress_is_accepted_owner_gate_decision(fresh_progress_action)
+            and not fresh_progress_arbitration.can_preempt_scan(
+                study=study_payload,
+                fresh_action=fresh_progress_action,
+                readiness_followup=readiness_followup,
+                stage_native_action=stage_native_action,
+                top_level_study_actions=top_level_study_actions,
+            )
         ):
             fresh_progress_action = None
         if (
             fresh_progress_action is not None
+            and not _fresh_progress_is_accepted_owner_gate_decision(fresh_progress_action)
             and fresh_progress_arbitration.has_current_quality_repair_writer_handoff(
                 profile=profile,
                 study=study_payload,
@@ -368,8 +415,8 @@ def current_actions_for_studies(
                         currentness_action=currentness_owner_action,
                     )
                     or _fresh_repair_progress_action_matches_action_currentness(
-                    fresh_action=fresh_progress_action,
-                    currentness_action=currentness_owner_action,
+                        fresh_action=fresh_progress_action,
+                        currentness_action=currentness_owner_action,
                     )
                 ):
                     per_study_actions.append(fresh_progress_action)
@@ -607,6 +654,22 @@ def _current_readiness_followup_action(study: Mapping[str, Any]) -> dict[str, An
 
 def _fresh_progress_is_repair_progress_followup(action: Mapping[str, Any] | None) -> bool:
     return action is not None and repair_progress_currentness.generated_action_is_repair_progress_followup(action)
+
+
+def _fresh_progress_is_accepted_owner_gate_decision(action: Mapping[str, Any] | None) -> bool:
+    if action is None:
+        return False
+    return (
+        _text(action.get("authority")) == "paper_recovery_state.accepted_owner_gate_decision"
+        or _text(action.get("source_surface")) == "paper_recovery_state.accepted_owner_gate_decision"
+        or _text(action.get("current_action_source")) == "paper_recovery_state.accepted_owner_gate_decision"
+    )
+
+
+def _fresh_progress_is_current_execution_envelope_barrier(action: Mapping[str, Any] | None) -> bool:
+    return action is not None and (_text(action.get("action_type")) or "").startswith(
+        "current_execution_envelope_"
+    )
 
 
 def _requires_manuscript_story_surface_delta(value: object) -> bool:

@@ -6,6 +6,7 @@ from typing import Any
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     repair_progress_currentness,
 )
+from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 
 
 def current_typed_blocker_barrier_for_consumed_transition(
@@ -46,9 +47,6 @@ def current_typed_blocker_barrier_for_actions(
         return None
     current_work_unit = _mapping(study.get("current_work_unit"))
     work_unit_state = _mapping(current_work_unit.get("state"))
-    stale_override = work_unit_state.get("stale_queue_or_handoff_can_override")
-    if stale_override is True or _text(stale_override) == "true":
-        return None
     work_unit_status = _text(current_work_unit.get("status"))
     state_kind = _text(work_unit_state.get("state_kind"))
     envelope_state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
@@ -69,6 +67,11 @@ def current_typed_blocker_barrier_for_actions(
         or _text(blocker.get("reason"))
         or "typed_blocker"
     )
+    stale_override = work_unit_state.get("stale_queue_or_handoff_can_override")
+    if reason != OPL_EXECUTION_AUTHORIZATION_BLOCKER and (
+        stale_override is True or _text(stale_override) == "true"
+    ):
+        return None
     owner = (
         _text(envelope.get("owner"))
         or _text(current_work_unit.get("owner"))

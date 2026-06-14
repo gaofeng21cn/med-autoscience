@@ -14,6 +14,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     repair_progress_currentness,
 )
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
@@ -69,6 +70,12 @@ def _fresh_progress_current_action(
     domain_transition_actions: DomainTransitionActions,
     explicit_readiness_action: ExplicitReadinessAction,
 ) -> dict[str, Any] | None:
+    accepted_owner_gate_action = _accepted_owner_gate_decision_action(
+        study_id=study_id,
+        progress=progress,
+    )
+    if accepted_owner_gate_action is not None:
+        return accepted_owner_gate_action
     barrier = _fresh_progress_currentness_barrier(
         study_id=study_id,
         progress=progress,
@@ -210,6 +217,17 @@ def _fresh_progress_currentness_barrier(
     if state_kind not in {"typed_blocker", "parked", "running_provider_attempt"}:
         return None
     current_action = _mapping(progress.get("current_executable_owner_action"))
+    if state_kind == "typed_blocker" and _fresh_progress_typed_blocker_reason(envelope) == (
+        OPL_EXECUTION_AUTHORIZATION_BLOCKER
+    ):
+        return _typed_blocker_barrier(
+            study_id=study_id,
+            progress=progress,
+            envelope=envelope,
+            blocker=_mapping(envelope.get("typed_blocker")),
+            reason=OPL_EXECUTION_AUTHORIZATION_BLOCKER,
+            state_kind=state_kind,
+        )
     if repair_progress_currentness.typed_blocker_allows_repair_progress_followup(
         envelope=envelope,
         current_action=current_action,
@@ -236,6 +254,28 @@ def _fresh_progress_currentness_barrier(
         and explicit_readiness_action(progress)
     ):
         return None
+    return _typed_blocker_barrier(
+        study_id=study_id,
+        progress=progress,
+        envelope=envelope,
+        blocker=blocker,
+        reason=reason,
+        state_kind=state_kind,
+    )
+
+
+def _typed_blocker_barrier(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+    envelope: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+    reason: str,
+    state_kind: str,
+) -> dict[str, Any]:
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    current_work_unit_state = _mapping(current_work_unit.get("state"))
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind")) or "typed_blocker"
     owner = _text(envelope.get("owner")) or _text(blocker.get("owner")) or "MedAutoScience"
     return {
         "study_id": study_id,
@@ -266,6 +306,7 @@ def _fresh_progress_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | N
         _text(blocker.get("blocker_id"))
         or _text(blocker.get("blocker_type"))
         or _text(blocker.get("reason"))
+        or _text(blocker.get("blocked_reason"))
     )
 
 
@@ -274,6 +315,11 @@ def _progress_has_executable_owner_action(progress: Mapping[str, Any]) -> bool:
     envelope = _mapping(progress.get("current_execution_envelope"))
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
     if state_kind is not None:
+        if (
+            state_kind == "typed_blocker"
+            and _fresh_progress_typed_blocker_reason(envelope) == OPL_EXECUTION_AUTHORIZATION_BLOCKER
+        ):
+            return False
         if repair_progress_currentness.typed_blocker_allows_repair_progress_followup(
             envelope=envelope,
             current_action=current_action,
@@ -321,6 +367,8 @@ def _typed_blocker_allows_gate_followthrough_owner_action(
 ) -> bool:
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
     if state_kind != "typed_blocker":
+        return False
+    if _fresh_progress_typed_blocker_reason(envelope) == OPL_EXECUTION_AUTHORIZATION_BLOCKER:
         return False
     if not _gate_followthrough_owner_action_has_strong_identity(current_action):
         return False
@@ -437,6 +485,119 @@ def _current_owner_ticket(progress: Mapping[str, Any]) -> dict[str, Any]:
         if _text(payload.get("surface_kind")) == "mas_current_owner_ticket":
             return payload
     return {}
+
+
+def _accepted_owner_gate_decision_action(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    if _text(recovery.get("phase")) != "owner_action_ready":
+        return None
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if _text(next_safe_action.get("kind")) != "route_back_to_owner_or_repair_materialization":
+        return None
+    accepted = _mapping(next_safe_action.get("accepted_owner_gate_decision"))
+    if _text(accepted.get("decision")) != "route_back_to_mas_packet_materialization_bug":
+        return None
+    action_type = _text(accepted.get("action_type"))
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return None
+    work_unit_id = _text(accepted.get("work_unit_id"))
+    work_unit_fingerprint = _text(accepted.get("work_unit_fingerprint"))
+    if work_unit_id is None or work_unit_fingerprint is None:
+        return None
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    current_action_type = _text(current_work_unit.get("action_type"))
+    current_work_unit_id = _text(current_work_unit.get("work_unit_id"))
+    current_fingerprint = _text(current_work_unit.get("work_unit_fingerprint")) or _text(
+        current_work_unit.get("action_fingerprint")
+    )
+    if current_action_type not in {None, action_type}:
+        return None
+    if current_work_unit_id not in {None, work_unit_id}:
+        return None
+    if current_fingerprint not in {None, work_unit_fingerprint}:
+        return None
+    quest_id = _text(progress.get("quest_id"))
+    owner = request_owner_for_action_type(action_type)
+    provider_admission_allowed = next_safe_action.get("provider_admission_allowed") is True
+    owner_route = owner_route_part.ensure_owner_route_v2(
+        {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "truth_epoch": work_unit_fingerprint,
+            "runtime_health_epoch": work_unit_fingerprint,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "source_fingerprint": work_unit_fingerprint,
+            "current_owner": "mas_controller",
+            "next_owner": owner,
+            "owner_reason": work_unit_id,
+            "active_run_id": _text(progress.get("active_run_id")),
+            "allowed_actions": [action_type],
+            "blocked_actions": sorted(item for item in SUPPORTED_ACTION_TYPES if item != action_type),
+            "source_refs": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "source_surface": "paper_recovery_state.accepted_owner_gate_decision",
+                "source_ref": _text(accepted.get("route_back_evidence_ref")),
+                "owner_route_currentness_basis": {
+                    "truth_epoch": work_unit_fingerprint,
+                    "runtime_health_epoch": work_unit_fingerprint,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                },
+            },
+            "idempotency_key": (
+                f"paper-recovery-owner-gate::{study_id}::{action_type}::{work_unit_fingerprint}"
+            ),
+        }
+    )
+    return {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": action_type,
+        "action_id": f"paper-recovery-owner-gate::{study_id}::{action_type}",
+        "reason": work_unit_id,
+        "owner": owner,
+        "request_owner": owner,
+        "recommended_owner": owner,
+        "authority": "paper_recovery_state.accepted_owner_gate_decision",
+        "required_output_surface": request_output_surface_for_action_type(action_type),
+        "source_surface": "paper_recovery_state.accepted_owner_gate_decision",
+        "source_ref": _text(accepted.get("route_back_evidence_ref")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
+        "provider_admission_allowed": provider_admission_allowed,
+        "paper_progress_stall": (
+            None
+            if provider_admission_allowed
+            else {
+                "kind": "owner_gate_route_back",
+                "route_back_evidence_ref": _text(accepted.get("route_back_evidence_ref")),
+                "provider_admission_allowed": False,
+            }
+        ),
+        "owner_route": owner_route,
+        "handoff_packet": {
+            "action_type": action_type,
+            "request_owner": owner,
+            "recommended_owner": owner,
+            "next_executable_owner": owner,
+            "source_surface": "paper_recovery_state.accepted_owner_gate_decision",
+            "source_ref": _text(accepted.get("route_back_evidence_ref")),
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": work_unit_fingerprint,
+            "provider_admission_allowed": provider_admission_allowed,
+            "owner_route": owner_route,
+            "idempotency_key": _text(owner_route.get("idempotency_key")),
+        },
+    }
 
 
 def _fresh_progress_owner_route(
