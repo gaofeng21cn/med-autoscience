@@ -22,7 +22,7 @@ stage folder + stage_manifest + role artifacts + owner receipt / typed blocker
 
 ## 当前落地状态
 
-2026-06-05 foundation tranche 已落地到 MAS 主干，并在后续 canonical path follow-through 中收敛到当前 Stage Native 文件名；对应 MAS 提交线是 `3eb66cbe`、`6495460c`、`6ef10650`：
+StageRun foundation 已落地到 MAS 主干，并在后续 canonical path follow-through 中收敛到当前 Stage Native 文件名；历史提交线只通过 git history 和 `docs/history/**` 追溯：
 
 - MAS profile：`contracts/stage_run_kernel_profile.json` 固定 `StageRun`、`ArtifactRef`、`OwnerReceipt`、`TypedBlocker`、`ReadModel`、launch admission、default read surface、canary scope、Stage-internal strategy refs、legacy wrapper retirement 和 projection boundary。
 - MAS adoption binding：`contracts/stage_artifact_kernel_adoption.json` 绑定 `stage folder + stage_manifest + role artifacts + owner receipt / typed blocker`，并明确 StageRun Kernel 不是 MAS controller system。
