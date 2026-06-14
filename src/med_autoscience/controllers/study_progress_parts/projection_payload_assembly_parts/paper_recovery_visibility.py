@@ -272,8 +272,13 @@ def _drop_stale_parked_fields(surface: Mapping[str, Any]) -> dict[str, Any]:
 
 def paper_recovery_summary(*, phase: str, next_safe_action: Mapping[str, Any]) -> str | None:
     kind = _non_empty_text(next_safe_action.get("kind"))
+    if kind == "run_mas_owner_callable":
+        owner = _non_empty_text(next_safe_action.get("owner")) or "MAS"
+        return f"Run the current MAS owner callable for {owner}; OPL transport retry exhaustion does not own this action."
+    if kind == "authorize_opl_transport_recovery_or_stable_typed_blocker":
+        return "Authorize OPL transport recovery for the identity-bound provider attempt or record a stable typed blocker."
     if phase == "admission_blocked":
-        return "Provider admission is blocked until the current MAS owner obligation can start or reports an operator gate."
+        return "Provider admission is blocked by the current PaperRecovery authority action."
     if phase == "projection_inconsistent":
         return "Paper recovery projection is inconsistent; repair the MAS recovery state before admission."
     if phase == "manual_foreground_unadopted":

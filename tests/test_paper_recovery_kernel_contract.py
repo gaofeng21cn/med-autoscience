@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import ast
 from pathlib import Path
 
 import pytest
@@ -10,10 +11,30 @@ pytestmark = pytest.mark.meta
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "paper_recovery_kernel_contract.json"
+REDUCER_PATH = REPO_ROOT / "src" / "med_autoscience" / "controllers" / "paper_recovery_state.py"
 
 
 def _contract() -> dict[str, object]:
     return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+
+
+def _literal_next_action_kinds() -> set[str]:
+    module = ast.parse(REDUCER_PATH.read_text(encoding="utf-8"))
+    kinds: set[str] = set()
+    for node in ast.walk(module):
+        if not isinstance(node, ast.Call):
+            continue
+        if not isinstance(node.func, ast.Name) or node.func.id != "_next_action":
+            continue
+        if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+            kinds.add(node.args[0].value)
+    for node in ast.walk(module):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "next_action_kind":
+                    if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                        kinds.add(node.value.value)
+    return kinds
 
 
 def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
@@ -366,7 +387,14 @@ def test_paper_recovery_conditions_next_safe_action_and_manual_adoption() -> Non
         "consume_terminal_closeout",
         "reject_terminal_closeout_as_stale",
         "admit_provider_attempt",
+        "admit_identity_bound_stage_packet",
+        "authorize_opl_transport_recovery_or_stable_typed_blocker",
+        "honor_stable_typed_blocker",
         "materialize_provider_admission_or_owner_callable",
+        "provide_opl_execution_authorization_or_human_gate",
+        "resolve_owner_gate_decision",
+        "route_back_to_owner_or_repair_materialization",
+        "run_mas_owner_callable",
         "watch_running_attempt",
         "resolve_typed_blocker",
         "record_human_or_owner_gate",
@@ -385,6 +413,11 @@ def test_paper_recovery_conditions_next_safe_action_and_manual_adoption() -> Non
     assert next_action["projection_inconsistent_requires"] == [
         "repair_projection_before_admission",
     ]
+    assert next_action["runtime_transport_retry_exhausted_requires_any"] == [
+        "run_mas_owner_callable",
+        "authorize_opl_transport_recovery_or_stable_typed_blocker",
+    ]
+    assert _literal_next_action_kinds() <= set(next_action["allowed_values"])
 
     manual = contract["manual_foreground_adoption_boundary"]
     assert manual["manual_foreground_possible"] is True
@@ -436,7 +469,16 @@ def test_paper_recovery_accident_replay_documents_forbidden_acceptance_evidence(
             "provider admission candidate/count exists and DHD dry-run is observe_only"
         ),
         "required_outcome": "admission_blocked",
-        "next_safe_action": "run_admission_apply_or_report_operator_gate",
+        "next_safe_action": "authorize_opl_transport_recovery_or_stable_typed_blocker",
+    }
+    assert cases["retry_exhausted_current_mas_owner_callable_available"] == {
+        "case_id": "retry_exhausted_current_mas_owner_callable_available",
+        "symptom": (
+            "provider admission retry is exhausted but the current identity-bound MAS owner "
+            "action has a direct study or paper callable"
+        ),
+        "required_outcome": "owner_action_ready",
+        "next_safe_action": "run_mas_owner_callable",
     }
     assert cases["terminal_closeout_not_consumed"]["next_safe_action"] == (
         "consume_terminal_closeout"

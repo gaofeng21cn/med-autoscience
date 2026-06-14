@@ -472,6 +472,7 @@ def _managed_study_action_with_provider_admission_state(
             "running_provider_attempt": False,
             "paper_recovery_phase": _text(recovery.get("phase")),
             "paper_recovery_reason": _paper_recovery_reason(recovery),
+            "next_safe_action": _mapping(recovery.get("next_safe_action")),
         }
         return result
     result.setdefault(

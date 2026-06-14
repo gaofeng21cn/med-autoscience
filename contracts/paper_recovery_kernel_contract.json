@@ -188,7 +188,14 @@
         "consume_terminal_closeout",
         "reject_terminal_closeout_as_stale",
         "admit_provider_attempt",
+        "admit_identity_bound_stage_packet",
+        "authorize_opl_transport_recovery_or_stable_typed_blocker",
+        "honor_stable_typed_blocker",
         "materialize_provider_admission_or_owner_callable",
+        "provide_opl_execution_authorization_or_human_gate",
+        "resolve_owner_gate_decision",
+        "route_back_to_owner_or_repair_materialization",
+        "run_mas_owner_callable",
         "watch_running_attempt",
         "resolve_typed_blocker",
         "record_human_or_owner_gate",
@@ -206,6 +213,10 @@
       ],
       "projection_inconsistent_requires": [
         "repair_projection_before_admission"
+      ],
+      "runtime_transport_retry_exhausted_requires_any": [
+        "run_mas_owner_callable",
+        "authorize_opl_transport_recovery_or_stable_typed_blocker"
       ]
     },
     "recovery_obligation_kernel_interface": {
@@ -446,7 +457,13 @@
         "case_id": "pending_without_identity_bound_provider_admission",
         "symptom": "read-model shows pending or actionable owner card while no identity-bound provider admission candidate/count exists and DHD dry-run is observe_only",
         "required_outcome": "admission_blocked",
-        "next_safe_action": "run_admission_apply_or_report_operator_gate"
+        "next_safe_action": "authorize_opl_transport_recovery_or_stable_typed_blocker"
+      },
+      {
+        "case_id": "retry_exhausted_current_mas_owner_callable_available",
+        "symptom": "provider admission retry is exhausted but the current identity-bound MAS owner action has a direct study or paper callable",
+        "required_outcome": "owner_action_ready",
+        "next_safe_action": "run_mas_owner_callable"
       },
       {
         "case_id": "terminal_closeout_not_consumed",

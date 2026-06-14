@@ -208,6 +208,7 @@ def test_runtime_retry_exhausted_provider_admission_fails_closed() -> None:
             "reason": "runtime_recovery_retry_budget_exhausted",
         }
     ]
+    assert state["next_safe_action"]["kind"] == "authorize_opl_transport_recovery_or_stable_typed_blocker"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
 
 
