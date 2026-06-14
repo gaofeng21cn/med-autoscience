@@ -304,6 +304,7 @@ def provider_admission_candidate_from_current_control_action(
         dispatch_payload=_mapping(dispatch_payload),
         dispatch_path=dispatch_path,
         study_root=study_root,
+        allow_dispatch_ref_stage_packet_authority=True,
     )
     return candidate
 
@@ -462,6 +463,7 @@ def provider_admission_candidate_from_execution(
     return _candidate_with_stage_run_admission_identity(
         candidate,
         execution=execution,
+        allow_dispatch_ref_stage_packet_authority=True,
     )
 
 
