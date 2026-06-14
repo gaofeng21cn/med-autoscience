@@ -6,6 +6,7 @@ from tests.test_current_work_unit_cases.readiness_identity_cases import *  # noq
 from tests.test_current_work_unit_cases.repair_progress_current_action_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.running_provider_attempt_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.shared import _assert_contract_shape, _module
+from tests.test_current_work_unit_cases.terminal_authorization_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.terminal_closeout_currentness_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.terminal_closeout_identity_cases import *  # noqa: F403,F401
 
