@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 
-from tests.test_paper_recovery_state_cases.opl_authorization_cases import *  # noqa: F403,F401
 from tests.test_paper_recovery_state_cases.shared import (
     _executable_work_unit,
     _module,
