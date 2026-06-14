@@ -182,6 +182,7 @@ def current_action_aligned_with_execution_envelope(
             and not current_work_unit.action_supersedes_typed_blocker(
                 action=action,
                 blocker=typed_blocker,
+                progress=envelope.get("progress_payload"),
             )
         ):
             return None
@@ -276,6 +277,7 @@ def _current_action_for_execution_refresh(
         envelope={
             "state_kind": "typed_blocker",
             "typed_blocker": _canonical_typed_blocker_for_execution_refresh(handoff),
+            "progress_payload": payload,
         },
     ):
         return current_action
@@ -297,6 +299,7 @@ def _handoff_consumes_current_action_for_refresh(
         envelope={
             "state_kind": "typed_blocker",
             "typed_blocker": _canonical_typed_blocker_for_execution_refresh(handoff),
+            "progress_payload": payload,
         },
     )
 

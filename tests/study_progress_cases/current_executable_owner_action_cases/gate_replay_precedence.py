@@ -497,6 +497,115 @@ def test_gate_followthrough_action_survives_zero_selected_materialized_dispatch_
     assert aligned == action
 
 
+def test_refresh_current_execution_surfaces_promotes_live_gate_followthrough_over_gate_replay_blocker() -> None:
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "source_eval_id": source_eval_id,
+        "owner_route_currentness_basis": {
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+            "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+        },
+        "target_surface": {
+            "ref_kind": "publication_work_unit",
+            "route_target": "write",
+            "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+        },
+        "target_surface_specificity": "gate_followthrough_actionable_publication_work_unit",
+    }
+
+    result = surfaces.refresh_current_execution_surfaces(
+        payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "queued",
+            "current_executable_owner_action": action,
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "gate_replay_status": "blocked",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_currentness": {
+                    "explicit_publication_work_unit_id": "medical_prose_write_repair",
+                    "selected_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": fingerprint,
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "gate_replay_blockers": [
+                    "stale_submission_minimal_authority",
+                    "medical_publication_surface_blocked",
+                    "reviewer_first_concerns_unresolved",
+                    "submission_hardening_incomplete",
+                ],
+                "latest_record_path": (
+                    f"/workspace/studies/{study_id}/artifacts/controller/"
+                    "gate_clearing_batch/latest.json"
+                ),
+            },
+        },
+        status={"study_id": study_id},
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "running_provider_attempt": False,
+            "blocked_reason": "publication_gate_replay_blocked",
+            "next_owner": "publication_gate",
+            "latest_typed_default_executor_closeout": {
+                "stage_attempt_id": "sat_d2b4c700b31294ab17c225d4",
+                "status": "typed_blocker",
+                "blocked_reason": "publication_gate_replay_blocked",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                "action_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                "source_fingerprint": "truth-snapshot::eb10e8316639d4839970dc15",
+                "idempotency_key": "idem_c84ba9b663a6b466165b652f",
+                "typed_blocker": {
+                    "blocker_type": "publication_gate_replay_blocked",
+                    "owner": "publication_gate",
+                },
+            },
+        },
+        runtime_health_snapshot={
+            "runtime_health_epoch": "runtime-health-event-006833-7bb5776c1cb9e961"
+        },
+    )
+
+    assert result["current_executable_owner_action"] == action
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+    assert result["current_work_unit"]["owner"] == "write"
+    assert result["current_work_unit"]["action_type"] == "run_quality_repair_batch"
+    assert result["current_work_unit"]["work_unit_id"] == "medical_prose_write_repair"
+    assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+    assert result["current_execution_envelope"]["owner"] == "write"
+
+
 def test_publication_eval_repair_action_survives_zero_selected_materialized_dispatch_blocker() -> None:
     surfaces = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"

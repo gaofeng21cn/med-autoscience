@@ -93,6 +93,54 @@ def terminal_routeback_action_from_gate_closeout(
     return False
 
 
+def gate_followthrough_action_supersedes_publication_gate_replay_blocker(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    blocker_type = (
+        _text(blocker.get("blocker_type"))
+        or _text(blocker.get("blocker_id"))
+        or _text(blocker.get("blocked_reason"))
+        or _text(blocker.get("reason"))
+    )
+    if blocker_type != "publication_gate_replay_blocked" or not gate_followthrough_actionable_repair_action(action):
+        return False
+    followthrough = _mapping(progress.get("gate_clearing_batch_followthrough"))
+    currentness = _mapping(followthrough.get("work_unit_currentness"))
+    if (
+        not followthrough
+        or _text(followthrough.get("gate_replay_status")) != "blocked"
+        or _text(currentness.get("current_actionability_status")) != "actionable"
+        or currentness.get("lacks_specific_blocker_object") is True
+    ):
+        return False
+    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
+    followthrough_work_unit = _work_unit_id(currentness.get("current_publication_work_unit_id")) or _work_unit_id(
+        _mapping(followthrough.get("current_publication_work_unit")).get("unit_id")
+    )
+    if action_work_unit is None or followthrough_work_unit != action_work_unit:
+        return False
+    action_fingerprint = (
+        _text(action.get("work_unit_fingerprint"))
+        or _text(action.get("action_fingerprint"))
+        or _text(_mapping(action.get("owner_route_currentness_basis")).get("work_unit_fingerprint"))
+    )
+    followthrough_fingerprint = _text(currentness.get("current_work_unit_fingerprint"))
+    if action_fingerprint is not None and followthrough_fingerprint is not None and action_fingerprint != followthrough_fingerprint:
+        return False
+    action_source_eval = _text(action.get("source_eval_id")) or _text(
+        _mapping(action.get("owner_route_currentness_basis")).get("source_eval_id")
+    )
+    followthrough_source_eval = _text(followthrough.get("source_eval_id"))
+    return not (
+        action_source_eval is not None
+        and followthrough_source_eval is not None
+        and action_source_eval != followthrough_source_eval
+    )
+
+
 def _terminal_gate_closeout_routes_to_action(
     *,
     progress: Mapping[str, Any],
@@ -143,6 +191,20 @@ def _terminal_gate_closeout_routes_to_action(
     return False
 
 
+def gate_followthrough_actionable_repair_action(action: Mapping[str, Any]) -> bool:
+    if (_text(action.get("source_surface")) or _text(action.get("source"))) != (
+        "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    ):
+        return False
+    work_unit = _work_unit_id(action.get("work_unit_id"))
+    if work_unit in {None, "complete_medical_paper_readiness_surface"}:
+        return False
+    target = _mapping(action.get("target_surface"))
+    if _text(target.get("target_surface_specificity")) == "stage_kernel_typed_blocker_followup":
+        return False
+    return _text(target.get("ref_kind")) == "publication_work_unit"
+
+
 def _terminal_stage_candidates(progress: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
     progress_first = _mapping(progress.get("progress_first_monitoring_summary"))
     handoff = _mapping(progress.get("opl_current_control_state_handoff"))
@@ -161,6 +223,8 @@ def _terminal_stage_candidates(progress: Mapping[str, Any]) -> tuple[dict[str, A
 
 
 __all__ = [
+    "gate_followthrough_actionable_repair_action",
+    "gate_followthrough_action_supersedes_publication_gate_replay_blocker",
     "terminal_routeback_action_from_gate_closeout",
     "terminal_routeback_action_supersedes_gate_replay_blocker",
 ]

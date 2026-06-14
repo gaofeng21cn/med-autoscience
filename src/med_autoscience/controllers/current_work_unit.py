@@ -8,6 +8,8 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_curre
     terminal_closeout_blocker_for_action,
 )
 from med_autoscience.controllers.current_work_unit_parts.terminal_routeback_currentness import (
+    gate_followthrough_actionable_repair_action as _gate_followthrough_actionable_repair_action,
+    gate_followthrough_action_supersedes_publication_gate_replay_blocker as _gate_followthrough_supersedes_publication_gate_replay_blocker,
     terminal_routeback_action_from_gate_closeout as _terminal_routeback_action_from_gate_closeout,
     terminal_routeback_action_supersedes_gate_replay_blocker as _terminal_routeback_action_supersedes_gate_replay_blocker,
 )
@@ -695,6 +697,12 @@ def _action_supersedes_typed_blocker(
         gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
     ):
         return True
+    if _gate_followthrough_supersedes_publication_gate_replay_blocker(
+        action=action,
+        blocker=payload,
+        progress=_mapping(progress),
+    ):
+        return True
     if blocker_type in CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS:
         return (
             _action_is_stage_current_owner_delta(action)
@@ -836,20 +844,6 @@ def _publication_eval_repair_action_supersedes_readiness_blocker(action: Mapping
     if _text(action.get("work_unit_id")) in {None, "complete_medical_paper_readiness_surface"}:
         return False
     return bool(_mapping(action.get("target_surface")).get("next_work_unit"))
-
-
-def _gate_followthrough_actionable_repair_action(action: Mapping[str, Any]) -> bool:
-    if (_text(action.get("source_surface")) or _text(action.get("source"))) != (
-        "gate_clearing_batch_followthrough.actionable_current_work_unit"
-    ):
-        return False
-    work_unit = _text(action.get("work_unit_id"))
-    if work_unit in {None, "complete_medical_paper_readiness_surface"}:
-        return False
-    target = _mapping(action.get("target_surface"))
-    if _text(target.get("target_surface_specificity")) == "stage_kernel_typed_blocker_followup":
-        return False
-    return _text(target.get("ref_kind")) == "publication_work_unit"
 
 
 def _gate_consumption_action_supersedes_readiness_blocker(action: Mapping[str, Any]) -> bool:
