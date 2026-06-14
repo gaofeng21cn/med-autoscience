@@ -13,6 +13,14 @@ from med_autoscience.stage_quality_contract_parts.pack_data import (
     _PACK_TITLES,
     _REVIEWER_PRECOMMITMENT_PACK_IDS,
 )
+from med_autoscience.stage_quality_contract_parts.pack_applicability import (
+    _PACK_STAGE_MAP,
+    _PACK_STUDY_ARCHETYPE_MAP,
+)
+from med_autoscience.stage_quality_contract_parts.data_access import (
+    build_data_access_ground_truth_isolation,
+    data_access_level_ids,
+)
 from med_autoscience.stage_quality_contract_parts.journal_currentness import (
     JOURNAL_POLICY_CURRENTNESS_PACKS,
     LITERATURE_SEARCH_SOURCE_PACKS,
@@ -96,107 +104,6 @@ CLINICAL_BASE_GUIDELINES: tuple[str, ...] = (
     "CARE",
 )
 
-DEFAULT_STUDY_ARCHETYPES: tuple[str, ...] = (
-    "clinical_classifier",
-    "clinical_subtype_reconstruction",
-    "external_validation_model_update",
-    "gray_zone_triage",
-    "llm_agent_clinical_task",
-    "mechanistic_sidecar_extension",
-    "survey_trend_analysis",
-)
-
-REPORTING_STUDY_ARCHETYPES: tuple[str, ...] = (
-    "observational_or_cohort_or_registry",
-    "diagnostic_or_prognostic_model",
-    "randomized_or_intervention",
-    "systematic_review_or_meta_analysis",
-    "diagnostic_accuracy",
-    "case_report_or_case_series",
-    "ai_ml_medical_study",
-)
-
-_PACK_STAGE_MAP: dict[str, tuple[str, ...]] = {
-    "ai_native_expert_judgment_pack": (
-        "scout",
-        "idea",
-        "baseline",
-        "experiment",
-        "analysis-campaign",
-        "write",
-        "review",
-        "finalize",
-        "decision",
-        "journal-resolution",
-    ),
-    "medical_claim_evidence_pack": ("write", "review", "finalize", "decision"),
-    "statistical_analysis_pack": ("baseline", "experiment", "analysis-campaign"),
-    "reporting_guideline_pack": ("write", "review", "finalize", "journal-resolution"),
-    "manuscript_argument_pack": ("write", "review", "finalize", "decision"),
-    "statistical_reporting_pack": ("analysis-campaign", "write", "review", "finalize", "journal-resolution"),
-    "display_to_claim_pack": ("analysis-campaign", "write", "review"),
-    "journal_response_pack": ("review", "finalize", "journal-resolution"),
-    "data_availability_fair_pack": ("write", "review", "finalize", "journal-resolution"),
-    "citation_integrity_pack": ("write", "review", "finalize", "journal-resolution"),
-    "figure_evidence_contract_pack": ("analysis-campaign", "write", "review", "finalize"),
-    "paper_reader_grounding_pack": ("scout", "review", "finalize", "decision"),
-    "paper_presentation_pack": ("finalize", "delivery_sync"),
-    "life_science_source_discovery_pack": ("scout", "baseline", "analysis-campaign", "review"),
-    "route_memory_pack": ("scout", "idea", "analysis-campaign", "review", "decision"),
-    "stop_loss_pack": ("idea", "baseline", "experiment", "analysis-campaign", "review", "decision"),
-    "external_pattern_intake_pack": ("scout", "idea", "review", "decision", "write"),
-    "artifact_freshness_pack": ("write", "finalize", "delivery_sync"),
-    "human_gate_pack": ("all_boundary_changing_stages",),
-}
-
-_PACK_STUDY_ARCHETYPE_MAP: dict[str, tuple[str, ...]] = {
-    "ai_native_expert_judgment_pack": ("all_medical_research_stages",),
-    "medical_claim_evidence_pack": ("all_clinical_manuscripts",),
-    "statistical_analysis_pack": (
-        "observational_or_cohort_or_registry",
-        "diagnostic_or_prognostic_model",
-        "randomized_or_intervention",
-        "diagnostic_accuracy",
-        "survey_trend_analysis",
-    ),
-    "reporting_guideline_pack": REPORTING_STUDY_ARCHETYPES,
-    "manuscript_argument_pack": ("all_clinical_manuscripts",),
-    "statistical_reporting_pack": (
-        "observational_or_cohort_or_registry",
-        "diagnostic_or_prognostic_model",
-        "randomized_or_intervention",
-        "systematic_review_or_meta_analysis",
-        "diagnostic_accuracy",
-        "ai_ml_medical_study",
-        "survey_trend_analysis",
-    ),
-    "display_to_claim_pack": (
-        "clinical_classifier",
-        "clinical_subtype_reconstruction",
-        "external_validation_model_update",
-        "diagnostic_accuracy",
-        "ai_ml_medical_study",
-    ),
-    "journal_response_pack": ("all_revision_or_response_candidates",),
-    "data_availability_fair_pack": ("all_submission_or_delivery_candidates",),
-    "citation_integrity_pack": ("all_clinical_manuscripts",),
-    "figure_evidence_contract_pack": ("all_figure_supported_manuscripts",),
-    "paper_reader_grounding_pack": ("all_source_grounded_paper_lines",),
-    "paper_presentation_pack": ("all_human_facing_paper_deliverables",),
-    "life_science_source_discovery_pack": (
-        "observational_or_cohort_or_registry",
-        "diagnostic_or_prognostic_model",
-        "ai_ml_medical_study",
-        "mechanistic_sidecar_extension",
-    ),
-    "route_memory_pack": DEFAULT_STUDY_ARCHETYPES,
-    "stop_loss_pack": DEFAULT_STUDY_ARCHETYPES,
-    "external_pattern_intake_pack": DEFAULT_STUDY_ARCHETYPES,
-    "artifact_freshness_pack": ("all_submission_or_delivery_candidates",),
-    "human_gate_pack": ("all_boundary_changing_studies",),
-}
-
-
 def build_stage_quality_pack_contract() -> dict[str, Any]:
     packs = [_build_pack(pack_id) for pack_id in REQUIRED_STAGE_QUALITY_PACK_IDS]
     return {
@@ -221,7 +128,7 @@ def build_stage_quality_pack_contract() -> dict[str, Any]:
             "source_ref": REPO_PATH,
             "stale_if_contract_source_missing": True,
         },
-        "data_access_ground_truth_isolation": _data_access_ground_truth_isolation(),
+        "data_access_ground_truth_isolation": build_data_access_ground_truth_isolation(),
         "authority_boundary": _contract_authority_boundary(),
         "opl_projection_boundary": {
             "role": "descriptor_ref_freshness_locator_only",
@@ -258,7 +165,7 @@ def build_stage_quality_pack_projection() -> dict[str, Any]:
         "data_access_ground_truth_isolation_ref": (
             "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation"
         ),
-        "data_access_levels": _data_access_level_ids(),
+        "data_access_levels": data_access_level_ids(),
         "runtime_permission_authority": False,
         "source_discovery_pack_ref": (
             "/product_entry_manifest/stage_quality_pack_contract/packs/life_science_source_discovery_pack"
@@ -305,7 +212,7 @@ def build_stage_quality_pack_ref_projection(stage_ids: Iterable[str]) -> dict[st
         "data_access_ground_truth_isolation_ref": (
             "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation"
         ),
-        "data_access_levels": _data_access_level_ids(),
+        "data_access_levels": data_access_level_ids(),
         "runtime_permission_authority": False,
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
     }
@@ -480,52 +387,6 @@ def _reviewer_precommitment_contract(pack_id: str) -> dict[str, object]:
         "rubric_may_authorize_quality_verdict": False,
         "rubric_may_write_truth": False,
     }
-
-
-def _data_access_ground_truth_isolation() -> dict[str, object]:
-    return {
-        "source_project": "academic-research-skills",
-        "absorbed_as": "mas_native_stage_quality_data_access_descriptor",
-        "descriptor_only": True,
-        "runtime_permission_authority": False,
-        "levels": [
-            {
-                "level_id": "raw_source_intake",
-                "ars_data_access_level": "raw",
-                "mas_scope": "source_intake_or_unverified_workspace_material",
-                "may_feed_candidate_generation": True,
-                "may_authorize_reviewer_verdict": False,
-            },
-            {
-                "level_id": "verified_evidence_only",
-                "ars_data_access_level": "verified_only",
-                "mas_scope": "evidence_or_review_refs_after_integrity_gate",
-                "may_feed_candidate_generation": True,
-                "may_authorize_reviewer_verdict": False,
-            },
-            {
-                "level_id": "reviewer_verdict_only",
-                "ars_data_access_level": "verified_only",
-                "mas_scope": "reviewer_or_auditor_verdict_record",
-                "may_feed_candidate_generation": False,
-                "may_authorize_reviewer_verdict": False,
-            },
-        ],
-        "ground_truth_boundary": {
-            "rubric_or_verdict_must_not_seed_candidate_generation": True,
-            "reviewer_must_run_as_separate_invocation": True,
-            "rubric_may_authorize_quality_verdict": False,
-            "rubric_may_write_truth": False,
-            "descriptor_grants_runtime_access": False,
-        },
-    }
-
-
-def _data_access_level_ids() -> list[str]:
-    return [
-        str(item["level_id"])
-        for item in _data_access_ground_truth_isolation()["levels"]
-    ]
 
 
 def _reporting_guideline_selection() -> list[dict[str, Any]]:

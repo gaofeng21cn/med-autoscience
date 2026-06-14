@@ -1,0 +1,102 @@
+from __future__ import annotations
+
+
+DEFAULT_STUDY_ARCHETYPES: tuple[str, ...] = (
+    "clinical_classifier",
+    "clinical_subtype_reconstruction",
+    "external_validation_model_update",
+    "gray_zone_triage",
+    "llm_agent_clinical_task",
+    "mechanistic_sidecar_extension",
+    "survey_trend_analysis",
+)
+
+REPORTING_STUDY_ARCHETYPES: tuple[str, ...] = (
+    "observational_or_cohort_or_registry",
+    "diagnostic_or_prognostic_model",
+    "randomized_or_intervention",
+    "systematic_review_or_meta_analysis",
+    "diagnostic_accuracy",
+    "case_report_or_case_series",
+    "ai_ml_medical_study",
+)
+
+_PACK_STAGE_MAP: dict[str, tuple[str, ...]] = {
+    "ai_native_expert_judgment_pack": (
+        "scout",
+        "idea",
+        "baseline",
+        "experiment",
+        "analysis-campaign",
+        "write",
+        "review",
+        "finalize",
+        "decision",
+        "journal-resolution",
+    ),
+    "medical_claim_evidence_pack": ("write", "review", "finalize", "decision"),
+    "statistical_analysis_pack": ("baseline", "experiment", "analysis-campaign"),
+    "reporting_guideline_pack": ("write", "review", "finalize", "journal-resolution"),
+    "manuscript_argument_pack": ("write", "review", "finalize", "decision"),
+    "statistical_reporting_pack": ("analysis-campaign", "write", "review", "finalize", "journal-resolution"),
+    "display_to_claim_pack": ("analysis-campaign", "write", "review"),
+    "journal_response_pack": ("review", "finalize", "journal-resolution"),
+    "data_availability_fair_pack": ("write", "review", "finalize", "journal-resolution"),
+    "citation_integrity_pack": ("write", "review", "finalize", "journal-resolution"),
+    "figure_evidence_contract_pack": ("analysis-campaign", "write", "review", "finalize"),
+    "paper_reader_grounding_pack": ("scout", "review", "finalize", "decision"),
+    "paper_presentation_pack": ("finalize", "delivery_sync"),
+    "life_science_source_discovery_pack": ("scout", "baseline", "analysis-campaign", "review"),
+    "route_memory_pack": ("scout", "idea", "analysis-campaign", "review", "decision"),
+    "stop_loss_pack": ("idea", "baseline", "experiment", "analysis-campaign", "review", "decision"),
+    "external_pattern_intake_pack": ("scout", "idea", "review", "decision", "write"),
+    "artifact_freshness_pack": ("write", "finalize", "delivery_sync"),
+    "human_gate_pack": ("all_boundary_changing_stages",),
+}
+
+_PACK_STUDY_ARCHETYPE_MAP: dict[str, tuple[str, ...]] = {
+    "ai_native_expert_judgment_pack": ("all_medical_research_stages",),
+    "medical_claim_evidence_pack": ("all_clinical_manuscripts",),
+    "statistical_analysis_pack": (
+        "observational_or_cohort_or_registry",
+        "diagnostic_or_prognostic_model",
+        "randomized_or_intervention",
+        "diagnostic_accuracy",
+        "survey_trend_analysis",
+    ),
+    "reporting_guideline_pack": REPORTING_STUDY_ARCHETYPES,
+    "manuscript_argument_pack": ("all_clinical_manuscripts",),
+    "statistical_reporting_pack": (
+        "observational_or_cohort_or_registry",
+        "diagnostic_or_prognostic_model",
+        "randomized_or_intervention",
+        "systematic_review_or_meta_analysis",
+        "diagnostic_accuracy",
+        "ai_ml_medical_study",
+        "survey_trend_analysis",
+    ),
+    "display_to_claim_pack": (
+        "clinical_classifier",
+        "clinical_subtype_reconstruction",
+        "external_validation_model_update",
+        "diagnostic_accuracy",
+        "ai_ml_medical_study",
+    ),
+    "journal_response_pack": ("all_revision_or_response_candidates",),
+    "data_availability_fair_pack": ("all_submission_or_delivery_candidates",),
+    "citation_integrity_pack": ("all_clinical_manuscripts",),
+    "figure_evidence_contract_pack": ("all_figure_supported_manuscripts",),
+    "paper_reader_grounding_pack": ("all_source_grounded_paper_lines",),
+    "paper_presentation_pack": ("all_human_facing_paper_deliverables",),
+    "life_science_source_discovery_pack": (
+        "observational_or_cohort_or_registry",
+        "diagnostic_or_prognostic_model",
+        "ai_ml_medical_study",
+        "mechanistic_sidecar_extension",
+    ),
+    "route_memory_pack": DEFAULT_STUDY_ARCHETYPES,
+    "stop_loss_pack": DEFAULT_STUDY_ARCHETYPES,
+    "external_pattern_intake_pack": DEFAULT_STUDY_ARCHETYPES,
+    "artifact_freshness_pack": ("all_submission_or_delivery_candidates",),
+    "human_gate_pack": ("all_boundary_changing_studies",),
+}
