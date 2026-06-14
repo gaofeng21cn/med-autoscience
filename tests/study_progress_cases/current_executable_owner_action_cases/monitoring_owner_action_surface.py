@@ -147,6 +147,45 @@ def test_current_owner_action_prefers_actionable_gate_followthrough_over_consume
     assert action["allowed_actions"] == ["run_quality_repair_batch"]
 
 
+def test_current_owner_action_keeps_gate_replay_followup_when_stale_ai_reviewer_receipt_exists() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "source_fingerprint": "sha256:current-gate-replay-followup",
+                "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "gate_replay_refs": ["artifacts/controller/gate_clearing_batch/latest.json"],
+                "ai_reviewer_recheck_done": True,
+            },
+            "domain_transition": {
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/stale.json",
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "work_unit_fingerprint": "sha256:stale-ai-reviewer-followup",
+                }
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert action["next_owner"] == "gate_clearing_batch"
+    assert action["action_type"] == "run_gate_clearing_batch"
+    assert action["work_unit_id"] == "publication_gate_replay"
+    assert action["work_unit_fingerprint"] == "sha256:current-gate-replay-followup"
+
+
 def test_current_owner_action_prefers_actionable_gate_followthrough_over_stale_readiness_blocker() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"

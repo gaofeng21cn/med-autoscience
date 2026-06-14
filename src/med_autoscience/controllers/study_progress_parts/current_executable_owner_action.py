@@ -9,6 +9,15 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_revie
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
+from med_autoscience.controllers.current_work_unit_parts.repair_progress_precedence import (
+    gate_replay_action_supersedes_stage_packet_blocker,
+)
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
+)
+from med_autoscience.controllers.owner_route_reconcile_parts.stage_artifact_owner_actions import (
+    READINESS_GATE_REPAIR_WORK_UNIT,
+)
 
 from .current_executable_owner_action_parts.action_types import (
     AI_REVIEWER_OWNER,
@@ -53,14 +62,18 @@ from .current_action_identity import action_matches_canonical_executable_work_un
 from .shared import _mapping_copy, _non_empty_text
 
 SURFACE_KIND = "current_executable_owner_action"
+GATE_REPLAY_WORK_UNITS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS | frozenset({READINESS_GATE_REPAIR_WORK_UNIT})
 
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    if _canonical_current_work_unit_has_terminal_stop_loss(payload):
+    repair_progress_action = _from_repair_progress_projection(payload)
+    if _canonical_current_work_unit_has_terminal_stop_loss(
+        payload,
+        repair_progress_action=repair_progress_action,
+    ):
         return None
     domain_transition_action = _from_domain_transition(payload)
     publication_repair_action = _from_publication_eval_readiness_blocker_repair(payload)
-    repair_progress_action = _from_repair_progress_projection(payload)
     repair_progress_consumes_publication_repair = _repair_progress_consumes_publication_repair(
         repair_progress_action=repair_progress_action,
         publication_repair_action=publication_repair_action,
@@ -158,7 +171,11 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     return next_forced_delta_action or domain_transition_action
 
 
-def _canonical_current_work_unit_has_terminal_stop_loss(payload: Mapping[str, Any]) -> bool:
+def _canonical_current_work_unit_has_terminal_stop_loss(
+    payload: Mapping[str, Any],
+    *,
+    repair_progress_action: Mapping[str, Any] | None,
+) -> bool:
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
     if _non_empty_text(current_work_unit.get("status")) != "typed_blocker":
         return False
@@ -179,7 +196,27 @@ def _canonical_current_work_unit_has_terminal_stop_loss(payload: Mapping[str, An
         "stage_closeout_status": _non_empty_text(typed_blocker.get("terminal_closeout_status")),
         "stage_closeout_outcome": _non_empty_text(typed_blocker.get("terminal_closeout_outcome")),
     }
+    if _repair_progress_supersedes_terminal_stop_loss(
+        repair_progress_action=repair_progress_action,
+        blocker={**typed_blocker, **closeout_like},
+    ):
+        return False
     return is_anti_loop_stop_loss_closeout(closeout_like)
+
+
+def _repair_progress_supersedes_terminal_stop_loss(
+    *,
+    repair_progress_action: Mapping[str, Any] | None,
+    blocker: Mapping[str, Any],
+) -> bool:
+    action = _mapping_copy(repair_progress_action)
+    if not action:
+        return False
+    return gate_replay_action_supersedes_stage_packet_blocker(
+        action=action,
+        blocker=blocker,
+        gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
+    )
 
 
 def _from_current_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None:

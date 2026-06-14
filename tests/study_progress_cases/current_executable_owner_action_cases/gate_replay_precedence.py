@@ -294,3 +294,72 @@ def test_current_owner_action_prefers_gate_replay_after_ai_reviewer_recheck_done
     assert action["allowed_actions"] == ["run_gate_clearing_batch"]
     assert action["work_unit_id"] == "publication_gate_replay"
     assert action["required_delta_kind"] == "publication_gate_replay_delta_or_typed_blocker"
+
+
+def test_repair_progress_gate_replay_supersedes_zero_selected_dispatch_stop_loss() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    gate_replay_fingerprint = (
+        "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "blocker_type": (
+                        "domain_owner_dispatch_zero_selected_after_materialized_current_request"
+                    ),
+                    "typed_blocker": {
+                        "blocker_type": (
+                            "domain_owner_dispatch_zero_selected_after_materialized_current_request"
+                        ),
+                        "reason": "anti_loop_budget_exhausted",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "analysis_claim_evidence_repair",
+                        "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                        "terminal_closeout_status": "blocked",
+                        "terminal_closeout_outcome": "typed_blocker",
+                    },
+                },
+            },
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "source_fingerprint": gate_replay_fingerprint,
+                "repair_execution_evidence_ref": (
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "ai_reviewer_recheck_required": True,
+                "ai_reviewer_recheck_done": True,
+                "ai_reviewer_recheck_request_ref": (
+                    "artifacts/supervision/requests/ai_reviewer/latest.json"
+                ),
+                "gate_replay_done": True,
+                "gate_replay_refs": [
+                    "artifacts/supervision/requests/gate_clearing_batch/latest.json"
+                ],
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert action["next_owner"] == "gate_clearing_batch"
+    assert action["action_type"] == "run_gate_clearing_batch"
+    assert action["work_unit_id"] == "publication_gate_replay"
+    assert action["work_unit_fingerprint"] == gate_replay_fingerprint

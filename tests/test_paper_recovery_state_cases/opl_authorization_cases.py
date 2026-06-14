@@ -102,3 +102,55 @@ def test_opl_execution_authorization_obligation_keeps_blocked_domain_owner() -> 
 
     assert state["current_authority"]["owner"] == "one-person-lab"
     assert state["current_authority"]["obligation"]["owner"] == "gate_clearing_batch"
+
+
+def test_opl_authorization_blocker_yields_owner_action_ready_when_repair_followup_is_current() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _typed_blocker_work_unit(
+                study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+                owner="gate_clearing_batch",
+                action_type="run_gate_clearing_batch",
+                work_unit_id="publication_gate_replay",
+                blocker_type="opl_execution_authorization_required",
+            ),
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                "action_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                "repair_progress_precedence": {
+                    "paper_delta_observed": True,
+                    "accepted_owner_receipt": True,
+                    "source_work_unit_id": "medical_prose_write_repair",
+                    "source_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "gate_clearing_batch",
+                "typed_blocker": {
+                    "blocker_type": "opl_execution_authorization_required",
+                    "owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                },
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["current_authority"]["owner"] == "gate_clearing_batch"
+    assert state["conditions"] == [{"condition": "current_owner_action_ready"}]
+    assert state["next_safe_action"] == {
+        "kind": "materialize_provider_admission_or_owner_callable",
+        "owner": "gate_clearing_batch",
+        "provider_admission_allowed": True,
+    }

@@ -30,7 +30,17 @@ def refresh_current_execution_surfaces(
     evidence_actions = _execution_evidence_actions_for_payload(payload=updated, handoff=handoff)
     current_action = _current_action_for_execution_refresh(payload=updated, handoff=handoff)
     typed_blocker = _canonical_typed_blocker_for_execution_refresh(handoff)
-    blocked_reason = _non_empty_text(typed_blocker.get("blocker_type")) or _non_empty_text(handoff.get("blocked_reason"))
+    if current_action and current_work_unit.action_supersedes_typed_blocker(
+        action=current_action,
+        blocker=typed_blocker,
+        progress=updated,
+    ):
+        typed_blocker = {}
+        blocked_reason = None
+    else:
+        blocked_reason = _non_empty_text(typed_blocker.get("blocker_type")) or _non_empty_text(
+            handoff.get("blocked_reason")
+        )
     next_owner = _non_empty_text(typed_blocker.get("owner")) or _non_empty_text(handoff.get("next_owner"))
     updated["current_work_unit"] = current_work_unit.build_current_work_unit(
         status=status,
@@ -101,7 +111,7 @@ def _canonical_actions_for_execution_refresh(
     payload: Mapping[str, Any],
     handoff: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    if current_execution_handoff_consumes_current_action(handoff):
+    if _handoff_consumes_current_action_for_refresh(payload=payload, handoff=handoff):
         return []
     return _execution_actions_for_payload(payload=payload, handoff=handoff)
 
@@ -257,9 +267,37 @@ def _current_action_for_execution_refresh(
     payload: Mapping[str, Any],
     handoff: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if current_execution_handoff_consumes_current_action(handoff):
-        return {}
-    return _mapping_copy(payload.get("current_executable_owner_action"))
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not current_execution_handoff_consumes_current_action(handoff):
+        return current_action
+    if current_action_aligned_with_execution_envelope(
+        action=current_action,
+        envelope={
+            "state_kind": "typed_blocker",
+            "typed_blocker": _canonical_typed_blocker_for_execution_refresh(handoff),
+        },
+    ):
+        return current_action
+    return {}
+
+
+def _handoff_consumes_current_action_for_refresh(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> bool:
+    if not current_execution_handoff_consumes_current_action(handoff):
+        return False
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not current_action:
+        return True
+    return not current_action_aligned_with_execution_envelope(
+        action=current_action,
+        envelope={
+            "state_kind": "typed_blocker",
+            "typed_blocker": _canonical_typed_blocker_for_execution_refresh(handoff),
+        },
+    )
 
 
 def _text_list(value: object) -> list[str]:

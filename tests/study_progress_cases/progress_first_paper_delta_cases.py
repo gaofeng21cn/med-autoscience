@@ -262,6 +262,89 @@ def test_repair_progress_current_action_survives_runtime_recovery_typed_blocker(
     assert aligned == action
 
 
+def test_repair_progress_gate_replay_survives_identity_different_terminal_handoff_closeout() -> None:
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+    )
+    gate_replay_fingerprint = (
+        "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"
+    )
+    current_action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "next_owner": "gate_clearing_batch",
+        "work_unit_id": "publication_gate_replay",
+        "work_unit_fingerprint": gate_replay_fingerprint,
+        "action_fingerprint": gate_replay_fingerprint,
+        "action_type": "run_gate_clearing_batch",
+        "allowed_actions": ["run_gate_clearing_batch"],
+        "repair_progress_precedence": {
+            "paper_delta_observed": True,
+            "accepted_owner_receipt": True,
+            "source_work_unit_id": "analysis_claim_evidence_repair",
+            "source_fingerprint": gate_replay_fingerprint,
+            "superseded_stage_native_action": "run_quality_repair_batch",
+        },
+    }
+
+    result = surfaces.refresh_current_execution_surfaces(
+        payload={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_executable_owner_action": current_action,
+            "repair_progress_projection": {
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "source_fingerprint": gate_replay_fingerprint,
+            },
+        },
+        status={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "publication_supervision",
+        },
+        handoff={
+            "running_provider_attempt": False,
+            "latest_typed_default_executor_closeout": {
+                "status": "typed_blocker",
+                "blocked_reason": (
+                    "domain_owner_dispatch_zero_selected_after_materialized_current_request"
+                ),
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                "action_fingerprint": "publication-blockers::497d1260db522f01",
+                "source_fingerprint": "publication-blockers::497d1260db522f01",
+                "stage_attempt_id": "sat_9bbb471b55ad5ceda9d8495e",
+                "receipt_ref": (
+                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "sat_9bbb471b55ad5ceda9d8495e.closeout.json"
+                ),
+                "typed_blocker": {
+                    "blocker_type": "stage_packet_not_current_selected_dispatch",
+                    "reason": (
+                        "domain_owner_dispatch_zero_selected_after_materialized_current_request"
+                    ),
+                    "owner": "one-person-lab",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "analysis_claim_evidence_repair",
+                    "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                },
+            },
+        },
+        runtime_health_snapshot={},
+    )
+
+    assert result["current_executable_owner_action"] == current_action
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+    assert result["current_work_unit"]["action_type"] == "run_gate_clearing_batch"
+    assert result["current_work_unit"]["work_unit_id"] == "publication_gate_replay"
+    assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+
+
 def test_gate_followthrough_action_does_not_survive_identity_mismatched_current_blocker() -> None:
     assembly = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"

@@ -302,6 +302,105 @@ def test_envelope_actions_prefer_repair_progress_current_action_over_stale_gate_
     ]
 
 
+def test_current_action_alignment_keeps_repair_progress_action_over_authorization_blocker() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+    )
+
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "next_owner": "gate_clearing_batch",
+        "action_type": "run_gate_clearing_batch",
+        "allowed_actions": ["run_gate_clearing_batch"],
+        "work_unit_id": "publication_gate_replay",
+        "work_unit_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        "action_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        "repair_progress_precedence": {
+            "paper_delta_observed": True,
+            "accepted_owner_receipt": True,
+            "source_work_unit_id": "medical_prose_write_repair",
+            "source_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        },
+    }
+
+    aligned = module.current_action_aligned_with_execution_envelope(
+        action=action,
+        envelope={
+            "state_kind": "typed_blocker",
+            "owner": "one-person-lab",
+            "typed_blocker": {
+                "blocker_type": "opl_execution_authorization_required",
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+            },
+        },
+    )
+
+    assert aligned == action
+
+
+def test_execution_surface_refresh_keeps_repair_progress_action_over_consumed_authorization_handoff() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+    )
+
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "next_owner": "gate_clearing_batch",
+        "action_type": "run_gate_clearing_batch",
+        "allowed_actions": ["run_gate_clearing_batch"],
+        "work_unit_id": "publication_gate_replay",
+        "work_unit_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        "action_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        "repair_progress_precedence": {
+            "paper_delta_observed": True,
+            "accepted_owner_receipt": True,
+            "source_work_unit_id": "medical_prose_write_repair",
+            "source_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        },
+    }
+
+    refreshed = module.refresh_current_execution_surfaces(
+        payload={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": action,
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+        },
+        status={"study_id": "003-dpcc-primary-care-phenotype-treatment-gap"},
+        handoff={
+            "running_provider_attempt": False,
+            "blocked_reason": "opl_execution_authorization_required",
+            "next_owner": "one-person-lab",
+            "latest_typed_default_executor_closeout": {
+                "status": "blocked",
+                "terminal_closeout_status": "blocked",
+                "terminal_closeout_outcome": "typed_blocker",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                "typed_blocker": {
+                    "blocker_type": "opl_execution_authorization_required",
+                    "owner": "gate_clearing_batch",
+                },
+                "receipt_ref": "artifacts/supervision/consumer/default_executor_execution/sat.closeout.json",
+            },
+        },
+        runtime_health_snapshot={},
+    )
+
+    assert refreshed["current_executable_owner_action"] == action
+    assert refreshed["current_work_unit"]["status"] == "executable_owner_action"
+    assert refreshed["current_work_unit"]["owner"] == "gate_clearing_batch"
+    assert refreshed["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+
+
 def test_envelope_actions_drop_stale_readiness_handoff_queue_after_paper_delta_without_current_action() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"

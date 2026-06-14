@@ -13,7 +13,12 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
 
 
 REPAIR_PROGRESS_EVIDENCE_SOURCE = "repair_progress_projection.mas_owner_repair_execution_evidence"
-STALE_STAGE_PACKET_BLOCKER = "stage_packet_not_current_selected_dispatch"
+STALE_STAGE_PACKET_BLOCKERS = frozenset(
+    {
+        "domain_owner_dispatch_zero_selected_after_materialized_current_request",
+        "stage_packet_not_current_selected_dispatch",
+    }
+)
 
 
 def gate_replay_action_supersedes_stage_packet_blocker(
@@ -27,7 +32,7 @@ def gate_replay_action_supersedes_stage_packet_blocker(
         or _text(blocker.get("blocker_id"))
         or _text(blocker.get("blocked_reason"))
     )
-    if blocker_type != STALE_STAGE_PACKET_BLOCKER:
+    if blocker_type not in STALE_STAGE_PACKET_BLOCKERS:
         return False
     if (_text(action.get("source_surface")) or _text(action.get("source"))) != REPAIR_PROGRESS_EVIDENCE_SOURCE:
         return False
