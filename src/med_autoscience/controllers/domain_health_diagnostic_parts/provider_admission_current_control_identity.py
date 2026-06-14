@@ -356,7 +356,13 @@ def _candidate_progress_currentness_basis(
         or (_non_empty_text(current_work_unit.get("action_fingerprint")) if work_unit_matches else None),
         "source_eval_id": _non_empty_text(basis.get("source_eval_id"))
         or _non_empty_text(candidate.get("source_eval_id"))
-        or (_non_empty_text(current_action.get("source_eval_id")) if action_matches else None),
+        or (
+            _current_action_source_eval_id(current_action)
+            if action_matches
+            else None
+        ),
+        "current_action_source": _non_empty_text(basis.get("current_action_source"))
+        or (_non_empty_text(current_action.get("source")) if action_matches else None),
         "truth_epoch": _non_empty_text(basis.get("truth_epoch"))
         or _non_empty_text(candidate.get("truth_epoch"))
         or (_non_empty_text(current_action.get("truth_epoch")) if action_matches else None),
@@ -451,7 +457,11 @@ def weak_provider_admission_identity(identity: Mapping[str, Any]) -> dict[str, A
         for item in identity.get("stage_packet_refs") or []
         if _non_empty_text(item) is not None
     ]
-    if _non_empty_text(identity.get("stage_packet_ref")) is None and not stage_packet_refs:
+    if (
+        _non_empty_text(identity.get("stage_packet_ref")) is None
+        and not stage_packet_refs
+        and not _identity_is_strong_current_owner_delta(identity)
+    ):
         missing.append("stage_packet_ref_or_refs")
     if not currentness_basis_strong(_mapping(identity.get("currentness_basis"))):
         missing.append("currentness_basis")
@@ -473,6 +483,34 @@ def currentness_basis_strong(basis: Mapping[str, Any]) -> bool:
     return (
         _non_empty_text(basis.get("runtime_health_epoch")) is not None
         or _non_empty_text(basis.get("source_eval_id")) is not None
+    )
+
+
+def _identity_is_strong_current_owner_delta(identity: Mapping[str, Any]) -> bool:
+    if (
+        _non_empty_text(identity.get("source"))
+        != "opl_current_control_state.study_current_executable_owner_action"
+    ):
+        return False
+    if _non_empty_text(identity.get("next_executable_owner")) != "write":
+        return False
+    basis = _mapping(identity.get("currentness_basis"))
+    if (
+        _non_empty_text(basis.get("current_action_source"))
+        != "publication_eval.recommended_actions.readiness_blocker_repair"
+    ):
+        return False
+    if _non_empty_text(basis.get("source_eval_id")) is None:
+        return False
+    return currentness_basis_strong(basis)
+
+
+def _current_action_source_eval_id(current_action: Mapping[str, Any]) -> str | None:
+    target_surface = _mapping(current_action.get("target_surface"))
+    return (
+        _non_empty_text(current_action.get("source_eval_id"))
+        or _non_empty_text(current_action.get("publication_eval_id"))
+        or _non_empty_text(target_surface.get("publication_eval_id"))
     )
 
 

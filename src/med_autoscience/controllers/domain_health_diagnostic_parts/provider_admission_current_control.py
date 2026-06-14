@@ -681,29 +681,41 @@ def _typed_blocker_from_closeout(
     embedded = _mapping(closeout.get("typed_blocker"))
     paper_log = _mapping(closeout.get("paper_stage_log"))
     owner_result = _mapping(closeout.get("owner_result"))
-    explicit_blocker_present = (
+    paper_log_classification = _non_empty_text(paper_log.get("progress_delta_classification"))
+    progress_delta_classification = _non_empty_text(
+        closeout.get("progress_delta_classification")
+    ) or paper_log_classification
+    closeout_marks_typed_blocker = (
         _non_empty_text(embedded.get("surface_kind")) == "mas_domain_typed_blocker"
         or is_anti_loop_stop_loss_closeout(closeout)
         or _non_empty_text(closeout.get("status")) in {"closed_with_typed_blocker"}
         or _non_empty_text(closeout.get("stage_closeout_status")) in {"closed_with_typed_blocker"}
-        or _non_empty_text(closeout.get("outcome")) in {
+        or _non_empty_text(closeout.get("outcome"))
+        in {
             "typed_blocker",
             "repeat_suppressed_with_typed_blocker",
         }
-        or _non_empty_text(closeout.get("stage_closeout_outcome")) in {
+        or _non_empty_text(closeout.get("stage_closeout_outcome"))
+        in {
             "typed_blocker",
             "repeat_suppressed_with_typed_blocker",
         }
+        or paper_log_classification == "typed_blocker"
+    )
+    remaining_blockers = (
+        list(paper_log.get("remaining_blockers") or [])
+        if closeout_marks_typed_blocker
+        else []
+    )
+    explicit_blocker_present = (
+        closeout_marks_typed_blocker
         or any(
             _non_empty_text(value) is not None
             for value in (
                 closeout.get("typed_blocker_reason"),
                 closeout.get("typed_blocker_ref"),
                 owner_result.get("blocked_reason"),
-                paper_log.get("progress_delta_classification")
-                if _non_empty_text(paper_log.get("progress_delta_classification")) == "typed_blocker"
-                else None,
-                *list(paper_log.get("remaining_blockers") or []),
+                *remaining_blockers,
             )
         )
     )
@@ -717,7 +729,7 @@ def _typed_blocker_from_closeout(
         or _non_empty_text(closeout.get("typed_blocker_reason"))
         or _non_empty_text(closeout.get("blocked_reason"))
         or _non_empty_text(owner_result.get("blocked_reason"))
-        or _first_text(paper_log.get("remaining_blockers"))
+        or _first_text(remaining_blockers)
     )
     if blocker_type is None:
         return {}
@@ -763,8 +775,7 @@ def _typed_blocker_from_closeout(
         or _non_empty_text(closeout.get("status")),
         "terminal_closeout_outcome": _non_empty_text(closeout.get("outcome"))
         or _non_empty_text(paper_log.get("outcome")),
-        "progress_delta_classification": _non_empty_text(closeout.get("progress_delta_classification"))
-        or _non_empty_text(paper_log.get("progress_delta_classification")),
+        "progress_delta_classification": progress_delta_classification,
     }
     return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
 
