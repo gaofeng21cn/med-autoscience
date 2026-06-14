@@ -377,6 +377,28 @@ def test_domain_handler_export_materializes_owner_gate_route_back_dispatch_under
             "paper_recovery_state": {
                 "surface_kind": "paper_recovery_state",
                 "phase": "owner_action_ready",
+                "supervisor_decision": {
+                    "surface_kind": "paper_autonomy_supervisor_decision",
+                    "decision": "execute_current_owner_delta",
+                    "identity_match": True,
+                    "paper_autonomy_obligation": {
+                        "surface_kind": "paper_autonomy_obligation",
+                        "study_id": study_id,
+                        "quest_id": study_id,
+                        "stage_id": "publication_supervision",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": work_unit_fingerprint,
+                        "route_identity_key": f"provider-admission::{study_id}::{work_unit_fingerprint}",
+                        "attempt_idempotency_key": f"provider-admission::{study_id}::{work_unit_fingerprint}",
+                    },
+                    "evidence_refs": [
+                        f"provider-admission::{study_id}::{work_unit_fingerprint}",
+                        f"stage-run-identity::{study_id}::{work_unit_fingerprint}",
+                        route_back_ref,
+                    ],
+                    "missing_evidence_refs": [],
+                },
                 "next_safe_action": {
                     "kind": "route_back_to_owner_or_repair_materialization",
                     "owner": "MedAutoScience",
