@@ -3,16 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..shared import _mapping_copy
-
-
-def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:
-    monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
-    admission = _mapping_copy(monitoring.get("owner_action_admission"))
-    if not admission:
-        return payload
-    updated = dict(payload)
-    updated["owner_action_admission"] = admission
-    return updated
+from ..provider_admission_sync import sync_progress_first_owner_action_admission
 
 
 def sync_study_macro_state_from_user_visible_projection(payload: dict[str, Any]) -> dict[str, Any]:

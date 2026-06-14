@@ -36,6 +36,7 @@ from .projection_payload_assembly_parts.paper_recovery_visibility import (
 )
 from .progression import _domain_transition_route_repair
 from .provider_admission_projection import provider_admission_projection_fields
+from .provider_admission_sync import sync_progress_first_owner_action_admission
 from .publication_runtime_followthrough import (
     _gate_clearing_batch_followthrough,
     _quality_repair_batch_followthrough,
@@ -381,16 +382,6 @@ def refresh_paper_recovery_successor_surfaces(
     updated = sync_progress_first_owner_action_admission(updated)
     updated = sync_current_execution_evidence(updated, handoff=handoff)
     updated["paper_recovery_state"] = build_paper_recovery_state(updated)
-    return updated
-
-
-def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:
-    monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
-    admission = _mapping_copy(monitoring.get("owner_action_admission"))
-    if not admission:
-        return payload
-    updated = dict(payload)
-    updated["owner_action_admission"] = admission
     return updated
 
 
