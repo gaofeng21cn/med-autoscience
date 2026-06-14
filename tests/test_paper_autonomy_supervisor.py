@@ -1,0 +1,317 @@
+from __future__ import annotations
+
+from med_autoscience.controllers.paper_autonomy_supervisor import (
+    build_paper_autonomy_obligation,
+    build_supervisor_decision,
+)
+from tests.test_paper_recovery_state_cases.shared import (
+    _executable_work_unit,
+    _typed_blocker_work_unit,
+)
+
+
+def test_execute_decision_requires_provider_and_stage_run_identity() -> None:
+    fingerprint = "publication-blockers::0915410f804b3697"
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_work_unit": _executable_work_unit(fingerprint=fingerprint)
+        | {
+            "state": {"provider_admission_pending": True},
+        },
+        "provider_admission_pending_count": 1,
+        "provider_admission_candidates": [
+            {
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "provider_admission_ref": "provider-admission:dm003:repair",
+                "stage_packet_ref": "stage-packet:dm003:repair",
+            }
+        ],
+        "stage_run_identity_packet": {
+            "stage_run_id": "stage-run-dm003",
+            "lease_ref": "lease:dm003",
+            "provider_attempt_ref": "provider-attempt:dm003",
+        },
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "admission_pending",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_authority": {
+                "owner": "write",
+                "obligation": {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                    "currentness_basis": {
+                        "work_unit_fingerprint": fingerprint,
+                        "idempotency_key": "idem-dm003",
+                    },
+                },
+            },
+            "next_safe_action": {"kind": "admit_provider_attempt"},
+        },
+    }
+
+    decision = build_supervisor_decision(payload)
+
+    assert decision["surface_kind"] == "paper_autonomy_supervisor_decision"
+    assert decision["decision"] == "execute_current_owner_delta"
+    assert decision["next_owner"] == "OPL Framework"
+    assert decision["next_safe_action"]["kind"] == "admit_or_resume_stage_run"
+    assert decision["identity_match"] is True
+    assert "provider-admission:dm003:repair" in decision["evidence_refs"]
+    assert "stage-run-dm003" in decision["evidence_refs"]
+    assert decision["paper_progress_classification"] == "none_until_mas_owner_result"
+
+
+def test_admission_pending_without_stage_run_identity_materializes_recovery_not_idle() -> None:
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_work_unit": _executable_work_unit(),
+        "provider_admission_pending_count": 1,
+        "provider_admission_candidates": [
+            {
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "provider_admission_ref": "provider-admission:dm003:repair",
+            }
+        ],
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "admission_pending",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_authority": {
+                "owner": "write",
+                "obligation": {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                },
+            },
+            "next_safe_action": {"kind": "admit_provider_attempt"},
+        },
+    }
+
+    decision = build_supervisor_decision(payload)
+
+    assert decision["decision"] == "materialize_recovery_action"
+    assert decision["next_safe_action"]["kind"] == "materialize_recovery_work_unit_or_receipt"
+    assert decision["next_safe_action"]["recovery_kind"] == "opl_runtime_repair"
+    assert decision["missing_evidence_refs"] == [
+        "stage_run_identity_packet",
+    ]
+
+
+def test_terminal_closeout_phase_consumes_closeout() -> None:
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_work_unit": _executable_work_unit(),
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "terminal_closeout_ready",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_authority": {
+                "owner": "write",
+                "obligation": {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                },
+            },
+            "evidence_refs": ["closeout:dm003"],
+            "next_safe_action": {"kind": "consume_terminal_closeout"},
+        },
+    }
+
+    decision = build_supervisor_decision(payload)
+
+    assert decision["decision"] == "consume_terminal_closeout"
+    assert decision["next_owner"] == "MedAutoScience"
+    assert decision["next_safe_action"]["kind"] == "consume_or_reject_terminal_closeout"
+    assert "closeout:dm003" in decision["evidence_refs"]
+
+
+def test_human_gate_phase_persists_resume_token() -> None:
+    payload = {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "current_work_unit": _typed_blocker_work_unit(
+            study_id="002-dm-china-us-mortality-attribution",
+            owner="user",
+            action_type="complete_medical_paper_readiness_surface",
+            work_unit_id="complete_medical_paper_readiness_surface",
+            blocker_type="owner_decision_required",
+        ),
+        "human_gate_transport": {
+            "human_gate_ref": "human-gate:dm002",
+            "resume_token": "resume:dm002",
+        },
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "human_gate",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_authority": {
+                "owner": "user",
+                "obligation": {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "quest_id": "002-dm-china-us-mortality-attribution",
+                    "owner": "user",
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "work_unit_fingerprint": "readiness-fp",
+                },
+            },
+            "next_safe_action": {"kind": "record_human_or_owner_gate"},
+        },
+    }
+
+    decision = build_supervisor_decision(payload)
+
+    assert decision["decision"] == "wait_for_owner_with_resume_token"
+    assert decision["next_safe_action"]["kind"] == "persist_gate_and_resume_token"
+    assert decision["next_safe_action"]["resume_token"] == "resume:dm002"
+    assert decision["next_safe_action"]["human_gate_ref"] == "human-gate:dm002"
+
+
+def test_stable_typed_blocker_stops_same_identity_redrive() -> None:
+    payload = {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "current_work_unit": _typed_blocker_work_unit(
+            study_id="002-dm-china-us-mortality-attribution",
+            owner="MedAutoScience",
+            action_type="complete_medical_paper_readiness_surface",
+            work_unit_id="complete_medical_paper_readiness_surface",
+            blocker_type="medical_paper_readiness_missing",
+        ),
+        "provider_admission_pending_count": 0,
+        "action_queue": [],
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "domain_blocked",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_authority": {
+                "owner": "MedAutoScience",
+                "obligation": {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "quest_id": "002-dm-china-us-mortality-attribution",
+                    "owner": "MedAutoScience",
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "work_unit_fingerprint": "readiness-fp",
+                },
+            },
+            "evidence_refs": ["typed-blocker:dm002"],
+            "next_safe_action": {"kind": "resolve_typed_blocker"},
+        },
+    }
+
+    decision = build_supervisor_decision(payload)
+
+    assert decision["decision"] == "stop_with_stable_typed_blocker"
+    assert decision["next_safe_action"]["kind"] == (
+        "publish_stable_blocker_and_stop_same_identity_redrive"
+    )
+    assert "typed-blocker:dm002" in decision["evidence_refs"]
+    assert "provider_admission_pending_count=0_is_not_terminal" in decision[
+        "forbidden_interpretations"
+    ]
+    assert "action_queue=[]_is_not_terminal" in decision["forbidden_interpretations"]
+
+
+def test_owner_callable_recovery_materializes_action_even_when_queue_empty() -> None:
+    payload = {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "current_work_unit": _typed_blocker_work_unit(
+            study_id="002-dm-china-us-mortality-attribution",
+            owner="MedAutoScience",
+            action_type="complete_medical_paper_readiness_surface",
+            work_unit_id="complete_medical_paper_readiness_surface",
+            blocker_type="medical_paper_readiness_missing",
+        ),
+        "provider_admission_pending_count": 0,
+        "action_queue": [],
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "owner_action_ready",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_authority": {
+                "owner": "MedAutoScience",
+                "obligation": {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "quest_id": "002-dm-china-us-mortality-attribution",
+                    "owner": "MedAutoScience",
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "work_unit_fingerprint": "readiness-fp",
+                },
+            },
+            "next_safe_action": {
+                "kind": "run_mas_owner_callable",
+                "owner_callable": {
+                    "callable_surface": (
+                        "medical_paper_readiness.complete_medical_paper_readiness_surface"
+                    )
+                },
+            },
+        },
+    }
+
+    decision = build_supervisor_decision(payload)
+
+    assert decision["decision"] == "materialize_recovery_action"
+    assert decision["next_safe_action"]["recovery_kind"] == "mas_control_plane_repair"
+    assert "provider_admission_pending_count=0_is_not_terminal" in decision[
+        "forbidden_interpretations"
+    ]
+
+
+def test_obligation_shape_is_identity_bound() -> None:
+    obligation = build_paper_autonomy_obligation(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(
+                fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
+            ),
+        },
+        paper_recovery_state={
+            "surface_kind": "paper_recovery_state",
+            "phase": "owner_action_ready",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_authority": {
+                "owner": "publication_gate",
+                "obligation": {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "owner": "publication_gate",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                    "currentness_basis": {
+                        "work_unit_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                        "idempotency_key": "idem-dm003",
+                    },
+                },
+            },
+        },
+    )
+
+    assert obligation["surface_kind"] == "paper_autonomy_obligation"
+    assert obligation["paper_autonomy_obligation_id"].startswith(
+        "paper-autonomy::003-dpcc-primary-care-phenotype-treatment-gap::"
+    )
+    assert obligation["route_identity_key"].startswith(
+        "003-dpcc-primary-care-phenotype-treatment-gap:run_gate_clearing_batch:"
+    )
+    assert obligation["attempt_idempotency_key"] == "idem-dm003"

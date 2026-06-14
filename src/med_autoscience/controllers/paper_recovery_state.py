@@ -111,6 +111,26 @@ def build_paper_recovery_state(
             current_work_unit=current_work_unit,
             blocker_reason=blocker_reason,
         )
+        owner_callable = _current_mas_owner_callable(progress, obligation=obligation)
+        if owner_callable is not None:
+            return _state(
+                progress,
+                obligation=obligation,
+                phase="owner_action_ready",
+                conditions=[
+                    {
+                        "condition": "current_mas_owner_callable_ready",
+                        "reason": blocker_reason,
+                    }
+                ],
+                next_safe_action=_next_action(
+                    "run_mas_owner_callable",
+                    provider_admission_allowed=False,
+                    owner=owner,
+                    owner_callable=owner_callable,
+                ),
+                current_owner=owner,
+            )
         return _state(
             progress,
             obligation=obligation,
@@ -341,7 +361,18 @@ def _state(
         "evidence_refs": list(evidence_refs or []),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
-    return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
+    cleaned = {key: value for key, value in payload.items() if value not in (None, "", [], {})}
+    cleaned["supervisor_decision"] = _supervisor_decision(progress, cleaned)
+    return cleaned
+
+
+def _supervisor_decision(
+    progress: Mapping[str, Any],
+    recovery_state: Mapping[str, Any],
+) -> dict[str, Any]:
+    from med_autoscience.controllers.paper_autonomy_supervisor import build_supervisor_decision
+
+    return build_supervisor_decision(progress, paper_recovery_state=recovery_state)
 
 
 def _obligation(
