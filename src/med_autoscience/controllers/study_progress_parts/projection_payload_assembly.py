@@ -27,11 +27,17 @@ from .macro_state_projection import compact_study_macro_state_from_payload
 from .parked_projection import parked_progress_fields
 from .progress_first_projection import build_progress_first_projection
 from .progress_first_monitoring import build_progress_first_monitoring_summary
+from .projection_payload_assembly_parts.ai_first_snapshot_fields import (
+    progress_ai_first_and_snapshot_fields as _progress_ai_first_and_snapshot_fields,
+)
 from .projection_payload_assembly_parts.progress_delta import (
     progress_delta_metrics as _progress_delta_metrics,
 )
 from .projection_payload_assembly_parts.paper_recovery_visibility import (
     apply_paper_recovery_state_user_visible_status as _apply_paper_recovery_state_user_visible_status,
+)
+from .projection_payload_assembly_parts.publication_runtime_fields import (
+    progress_publication_and_runtime_fields as _progress_publication_and_runtime_fields,
 )
 from .projection_payload_assembly_parts.current_execution_surfaces import (
     current_action_aligned_with_execution_envelope as _current_action_aligned_with_execution_envelope,
@@ -97,12 +103,6 @@ def _progress_supervision_fields(
         "supervisor_tick_latest_recorded_at": _non_empty_text(supervisor_tick_audit.get("latest_recorded_at")),
         "launch_report_path": refs["launch_report_path"],
     }
-
-
-def _last_meaningful_progress_at(autonomy_slo_status: dict[str, Any] | None) -> str | None:
-    if autonomy_slo_status is None:
-        return None
-    return _non_empty_text(autonomy_slo_status.get("last_meaningful_progress_at"))
 
 
 def _progress_stage_and_operator_fields(
@@ -203,76 +203,6 @@ def _progress_quality_fields(
         "quality_repair_batch_followthrough": quality_repair_batch_followthrough or None,
         "gate_clearing_batch_followthrough": gate_clearing_batch_followthrough or None,
         "quality_review_followthrough": quality_review_followthrough or None,
-    }
-
-
-def _progress_publication_and_runtime_fields(
-    *,
-    medical_writing_quality_surfaces: dict[str, Any],
-    medical_paper_readiness_surface: dict[str, Any],
-    medical_paper_ops_health_surface: dict[str, Any],
-    artifact_runtime_proof_surface: dict[str, Any],
-    submission_hygiene_truth: dict[str, Any],
-    delivery_inspection: dict[str, Any] | None,
-    research_runtime_control_projection: dict[str, Any],
-    open_auto_research_state: dict[str, Any],
-    ai_reviewer_request_lifecycle: dict[str, Any] | None,
-    opl_current_control_state_handoff: dict[str, Any] | None,
-    runtime_medical_publication_surface: dict[str, Any] | None,
-    gate_specificity_request: dict[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "medical_writing_quality_surfaces": medical_writing_quality_surfaces,
-        "medical_paper_readiness": medical_paper_readiness_surface,
-        "medical_paper_ops_health": medical_paper_ops_health_surface,
-        "artifact_runtime_proof": artifact_runtime_proof_surface,
-        "submission_hygiene_truth": submission_hygiene_truth,
-        "delivery_inspection": delivery_inspection,
-        "product_recommended_flow": submission_hygiene_truth.get("recommended_flow"),
-        "research_runtime_control_projection": research_runtime_control_projection,
-        "open_auto_research_projection": open_auto_research_state,
-        "ai_reviewer_request_lifecycle": ai_reviewer_request_lifecycle,
-        "opl_current_control_state_handoff": opl_current_control_state_handoff,
-        "runtime_medical_publication_surface": runtime_medical_publication_surface,
-        "publication_gate_specificity_request": gate_specificity_request,
-    }
-
-
-def _progress_ai_first_and_snapshot_fields(
-    *,
-    ai_first_default_entry_state: dict[str, Any],
-    paper_orchestra_operator_projection: dict[str, Any],
-    ai_first_observability_snapshots: dict[str, Any],
-    ai_first_operations_dashboard: dict[str, Any],
-    study_truth_snapshot: dict[str, Any],
-    runtime_health_snapshot: dict[str, Any],
-    authority_snapshot: dict[str, Any],
-    module_surfaces: dict[str, Any],
-    runtime_efficiency: dict[str, Any],
-    paper_progress_stall: dict[str, Any],
-    outer_supervision_slo: dict[str, Any],
-    autonomy_slo_status: dict[str, Any] | None,
-    ai_doctor_state: dict[str, Any],
-    repair_recommendation: dict[str, Any],
-    ai_repair_lifecycle: dict[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "ai_first_default_entry_state": ai_first_default_entry_state,
-        "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
-        "ai_first_observability_snapshots": ai_first_observability_snapshots,
-        "ai_first_operations_dashboard": ai_first_operations_dashboard,
-        "study_truth_snapshot": study_truth_snapshot or None,
-        "runtime_health_snapshot": runtime_health_snapshot or None,
-        "authority_snapshot": authority_snapshot or None,
-        "module_surfaces": module_surfaces,
-        "runtime_efficiency": runtime_efficiency,
-        "paper_progress_stall": paper_progress_stall,
-        "outer_supervision_slo": outer_supervision_slo,
-        "autonomy_slo": autonomy_slo_status,
-        "ai_doctor_state": ai_doctor_state,
-        "repair_recommendation": repair_recommendation or None,
-        "ai_repair_lifecycle": ai_repair_lifecycle,
-        "last_meaningful_progress_at": _last_meaningful_progress_at(autonomy_slo_status),
     }
 
 
