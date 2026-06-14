@@ -6,6 +6,9 @@ from med_autoscience.cli_public_surface import GROUPED_COMMAND_PROGS
 from med_autoscience.cli_parts.evo_scientist_sidecar_commands import (
     register_evo_scientist_sidecar_parsers,
 )
+from med_autoscience.cli_parts.current_owner_delta_owner_answer_commands import (
+    register_current_owner_delta_owner_answer_parser,
+)
 from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_storage_parsers
 from med_autoscience.cli_parts.scientific_capability_registry_commands import (
     register_scientific_capability_registry_parser,
@@ -59,6 +62,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
 
     register_evo_scientist_sidecar_parsers(subparsers)
     register_scientific_capability_registry_parser(subparsers)
+    register_current_owner_delta_owner_answer_parser(subparsers)
 
     preflight_parser = subparsers.add_parser("preflight-changes")
     preflight_sources = preflight_parser.add_mutually_exclusive_group(required=True)

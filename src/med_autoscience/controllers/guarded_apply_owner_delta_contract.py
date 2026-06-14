@@ -44,9 +44,32 @@ def normalize_guarded_apply_current_owner_delta(value: Mapping[str, Any] | None)
     if not payload:
         return {}
     hard_gate = _mapping(payload.get("hard_gate"))
+    latest_owner_answer_ref = _optional_text(payload.get("latest_owner_answer_ref")) or _optional_text(
+        hard_gate.get("owner_answer_ref")
+    )
     accepted_shape = _string_list(payload.get("accepted_answer_shape")) or _string_list(
         payload.get("accepted_return_shapes")
     )
+    owner_answer_missing = _bool_value(payload.get("owner_answer_missing"))
+    if owner_answer_missing is None:
+        owner_answer_missing = _bool_value(hard_gate.get("owner_answer_missing"))
+    if (
+        owner_answer_missing is None
+        and latest_owner_answer_ref is None
+        and _optional_text(hard_gate.get("state")) in {
+        "owner_delta_open",
+        "owner_answer_missing",
+        }
+    ):
+        owner_answer_missing = latest_owner_answer_ref is None
+    owner_answer_still_required = _bool_value(payload.get("owner_answer_still_required"))
+    if owner_answer_still_required is None:
+        owner_answer_still_required = _bool_value(hard_gate.get("owner_answer_still_required"))
+    if owner_answer_still_required is None:
+        owner_answer_still_required = _bool_value(hard_gate.get("human_or_domain_owner_required"))
+    domain_ready_authorized = payload.get("domain_ready_authorized")
+    if not isinstance(domain_ready_authorized, bool):
+        domain_ready_authorized = hard_gate.get("domain_ready_authorized")
     result = {
         key: item
         for key, item in {
@@ -57,20 +80,18 @@ def normalize_guarded_apply_current_owner_delta(value: Mapping[str, Any] | None)
             "owner": _optional_text(payload.get("owner")) or _optional_text(payload.get("current_owner")),
             "current_owner": _optional_text(payload.get("current_owner")) or _optional_text(payload.get("owner")),
             "action": _optional_text(payload.get("action")) or _optional_text(payload.get("action_type")),
-            "desired_delta": _optional_text(payload.get("desired_delta")),
+            "desired_delta": _optional_text(payload.get("desired_delta"))
+            or _optional_text(payload.get("desired_delta_description"))
+            or _optional_text(payload.get("payload_requirement")),
             "desired_delta_kind": _optional_text(payload.get("desired_delta_kind")),
             "accepted_answer_shape": accepted_shape,
             "accepted_return_shapes": accepted_shape,
-            "latest_owner_answer_ref": _optional_text(payload.get("latest_owner_answer_ref")),
-            "domain_ready_authorized": payload.get("domain_ready_authorized")
-            if isinstance(payload.get("domain_ready_authorized"), bool)
+            "latest_owner_answer_ref": latest_owner_answer_ref,
+            "domain_ready_authorized": domain_ready_authorized
+            if isinstance(domain_ready_authorized, bool)
             else None,
-            "owner_answer_missing": _bool_value(payload.get("owner_answer_missing"))
-            if _bool_value(payload.get("owner_answer_missing")) is not None
-            else _bool_value(hard_gate.get("owner_answer_missing")),
-            "owner_answer_still_required": _bool_value(payload.get("owner_answer_still_required"))
-            if _bool_value(payload.get("owner_answer_still_required")) is not None
-            else _bool_value(hard_gate.get("owner_answer_still_required")),
+            "owner_answer_missing": owner_answer_missing,
+            "owner_answer_still_required": owner_answer_still_required,
             "hard_gate": dict(hard_gate) if hard_gate else None,
         }.items()
         if item not in (None, [], {})
@@ -93,9 +114,10 @@ def guarded_apply_current_owner_delta_validation(
         missing.append("desired_delta")
     if require_lineage_ref and _optional_text(delta.get("lineage_ref")) is None:
         missing.append("lineage_ref")
-    if _optional_text(delta.get("latest_owner_answer_ref")) is not None:
+    latest_owner_answer_ref = _optional_text(delta.get("latest_owner_answer_ref"))
+    if latest_owner_answer_ref is not None:
         missing.append("latest_owner_answer_ref_must_be_null")
-    if delta.get("owner_answer_missing") is not True:
+    if latest_owner_answer_ref is None and delta.get("owner_answer_missing") is not True:
         missing.append("owner_answer_missing")
     if delta.get("owner_answer_still_required") is False:
         missing.append("owner_answer_still_required")

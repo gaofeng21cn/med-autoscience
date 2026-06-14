@@ -21,6 +21,7 @@ from med_autoscience.medical_prose_review_request import materialize_ai_medical_
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
 from med_autoscience.cli_parts.authority_operations import handle_authority_operation_command
+from med_autoscience.cli_parts.current_owner_delta_owner_answer_commands import handle_current_owner_delta_owner_answer_command
 from med_autoscience.cli_parts.display_pack_commands import handle_display_pack_command
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
 from med_autoscience.cli_parts.payloads import (
@@ -316,13 +317,13 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    evo_scientist_sidecar_result = handle_evo_scientist_sidecar_command(args)
-    if evo_scientist_sidecar_result is not None:
-        return evo_scientist_sidecar_result
-
-    scientific_capability_registry_result = handle_scientific_capability_registry_command(args)
-    if scientific_capability_registry_result is not None:
-        return scientific_capability_registry_result
+    for handler in (
+        handle_evo_scientist_sidecar_command,
+        handle_scientific_capability_registry_command,
+        handle_current_owner_delta_owner_answer_command,
+    ):
+        if (handler_result := handler(args)) is not None:
+            return handler_result
 
     domain_handler_result = handle_domain_handler_command(
         args,
