@@ -234,6 +234,119 @@ def test_provider_admission_prefers_canonical_current_work_unit_over_stale_curre
     assert candidate["action_fingerprint"] == action_fingerprint
 
 
+def test_provider_admission_uses_fresh_repair_progress_action_over_stale_current_control_study(
+    tmp_path: Path,
+) -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = tmp_path / "studies" / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    current_fingerprint = "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"
+    stale_fingerprint = (
+        "current-ai-reviewer-gate-replay::002-dm-china-us-mortality-attribution::"
+        "publication_gate_replay::ai-reviewer-record-ref::stale-record"
+    )
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "gate_clearing_batch",
+            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "action_fingerprint": stale_fingerprint,
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    candidates = provider_admission.current_control_provider_admission_candidates(
+        {
+            "surface": "opl_current_control_state_handoff",
+            "action_queue": [],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "current_executable_owner_action": {
+                        "source": "stale_current_control",
+                        "next_owner": "gate_clearing_batch",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": stale_fingerprint,
+                        "action_fingerprint": stale_fingerprint,
+                    },
+                    "owner_route": {
+                        "next_owner": "gate_clearing_batch",
+                        "work_unit_fingerprint": stale_fingerprint,
+                        "source_refs": {
+                            "work_unit_id": "publication_gate_replay",
+                            "work_unit_fingerprint": stale_fingerprint,
+                        },
+                    },
+                }
+            ],
+        },
+        study_root=study_root,
+        status_payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": current_fingerprint,
+                "action_fingerprint": current_fingerprint,
+                "currentness_basis": {
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": current_fingerprint,
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-current",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": current_fingerprint,
+                "action_fingerprint": current_fingerprint,
+            },
+        },
+        current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
+    )
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
+    assert candidate["work_unit_id"] == "publication_gate_replay"
+    assert candidate["work_unit_fingerprint"] == current_fingerprint
+    assert candidate["action_fingerprint"] == current_fingerprint
+    assert candidate["currentness_basis"]["work_unit_fingerprint"] == current_fingerprint
+
+
 def test_provider_admission_rejects_same_fingerprint_with_stale_action_identity(
     tmp_path: Path,
 ) -> None:

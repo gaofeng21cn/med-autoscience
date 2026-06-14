@@ -86,7 +86,7 @@ def test_stage_route_reconcile_contract_declares_single_planning_root() -> None:
     } <= set(paper_recovery["derived_surfaces_must_read_from_paper_recovery"])
     assert paper_recovery["required_invariants"] == [
         "exactly_one_current_recovery_obligation",
-        "pending_plus_observe_only_forbidden",
+        "identity_bound_provider_admission_required",
         "terminal_closeout_must_consume_or_reject",
         "stop_loss_must_have_successor_or_human_gate",
         "projection_inconsistency_fail_closed",
@@ -98,7 +98,8 @@ def test_stage_route_reconcile_contract_declares_single_planning_root() -> None:
         "opl_can_own_paper_recovery_state": False,
         "operator_card_can_create_recovery_truth": False,
         "provider_completion_is_recovery_acceptance": False,
-        "observe_only_can_be_pending_recovery_execution": False,
+        "observe_only_can_create_pending_recovery_execution": False,
+        "identity_bound_provider_admission_can_remain_pending_under_observe_only": True,
     }
     projection_guard = paper_recovery["single_kernel_projection_guard"]
     assert projection_guard["kernel_output"] == "paper_recovery_state"

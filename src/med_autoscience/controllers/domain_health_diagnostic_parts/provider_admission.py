@@ -238,6 +238,13 @@ def provider_admission_candidate_from_current_control_action(
         action_fingerprint = _work_unit_fingerprint(dispatch_payload)
     if work_unit_id is None or action_fingerprint is None:
         return None
+    canonical_current_fingerprint = _current_identity_fingerprint_for_action(
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        current_action_identity=current_identity,
+    )
+    if canonical_current_fingerprint is not None:
+        action_fingerprint = canonical_current_fingerprint
     execution = {
         **dict(dispatch_payload),
         "source": _non_empty_text(action.get("source_surface")) or "opl_current_control_state.action_queue",
@@ -320,6 +327,21 @@ def provider_admission_candidate_from_current_control_action(
         study_root=study_root,
     )
     return candidate
+
+
+def _current_identity_fingerprint_for_action(
+    *,
+    action_type: str,
+    work_unit_id: str,
+    current_action_identity: Mapping[str, Any],
+) -> str | None:
+    if not _matches_current_action_without_fingerprint(
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        current_action_identity=current_action_identity,
+    ):
+        return None
+    return _non_empty_text(current_action_identity.get("work_unit_fingerprint"))
 
 
 def provider_admission_candidates_from_execution_payload(
@@ -408,10 +430,11 @@ def provider_admission_candidate_from_execution(
     current_identity_basis = _mapping(current_identity.get("currentness_basis"))
     if currentness_basis or current_identity_basis:
         currentness_basis = {
-            **dict(current_identity_basis),
             **dict(currentness_basis),
+            **dict(current_identity_basis),
             "work_unit_id": _non_empty_text(currentness_basis.get("work_unit_id")) or work_unit_id,
-            "work_unit_fingerprint": _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
+            "work_unit_fingerprint": _non_empty_text(current_identity_basis.get("work_unit_fingerprint"))
+            or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
             or work_unit_fingerprint,
         }
     candidate = {

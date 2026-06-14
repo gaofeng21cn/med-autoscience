@@ -317,7 +317,7 @@ def test_current_work_unit_provider_admission_pending_supersedes_stale_parked_pr
     assert state["current_authority"]["owner"] == "gate_clearing_batch"
 
 
-def test_current_work_unit_provider_admission_pending_observe_only_is_admission_blocked() -> None:
+def test_current_work_unit_provider_admission_without_candidate_observe_only_is_admission_blocked() -> None:
     current_work_unit = _executable_work_unit(
         owner="gate_clearing_batch",
         action_type="run_gate_clearing_batch",

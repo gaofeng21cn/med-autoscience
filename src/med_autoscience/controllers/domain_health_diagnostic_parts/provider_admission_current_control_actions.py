@@ -600,8 +600,8 @@ def _merge_owner_route_currentness(
     )
     basis = {
         **basis,
-        "work_unit_id": _non_empty_text(basis.get("work_unit_id")) or work_unit_id,
-        "work_unit_fingerprint": _non_empty_text(basis.get("work_unit_fingerprint")) or work_unit_fingerprint,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
     }
     source_refs = {
         **source_refs,

@@ -93,7 +93,7 @@ def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
     assert {
         "OPL execution substrate owns PaperRecovery",
         "study_progress derives paper recovery independently from PaperRecovery",
-        "DHD observe_only means pending recovery execution",
+        "DHD observe_only alone creates pending recovery execution",
         "operator card status is recovery truth",
         "provider terminal completion is MAS acceptance",
         "manual foreground edit is governed recovery without adoption refs",
@@ -232,11 +232,12 @@ def test_paper_recovery_phases_are_mutually_exclusive_and_forbid_bad_combination
     forbidden = {
         item["name"]: item for item in state_machine["forbidden_phase_combinations"]
     }
-    assert forbidden["pending_plus_observe_only"]["when_all"] == [
+    assert forbidden["pending_without_identity_bound_provider_admission"]["when_all"] == [
         "phase=admission_pending",
+        "identity_bound_provider_admission_candidate_absent",
         "DHD.action_class=observe_only",
     ]
-    assert forbidden["pending_plus_observe_only"]["effect"] == (
+    assert forbidden["pending_without_identity_bound_provider_admission"]["effect"] == (
         "admission_blocked"
     )
     assert forbidden["terminal_without_consume_or_reject"]["effect"] == (
@@ -264,11 +265,10 @@ def test_paper_recovery_projection_invariants_fail_closed() -> None:
     assert pending["pending_requires_all"] == [
         "phase=admission_pending",
         "next_safe_action=admit_provider_attempt",
-        "provider_admission_pending_count=1",
-        "DHD.action_class!=observe_only",
+        "provider_admission_pending_count=1_or_provider_admission_candidates>=1",
     ]
     assert {
-        "phase=admission_pending + DHD.action_class=observe_only",
+        "phase=admission_pending + identity_bound_provider_admission_candidate_absent",
         "phase=admission_pending + provider_admission_pending_count=0",
         "phase=admission_pending + current_work_unit.status=typed_blocker",
     } <= set(pending["forbidden_combinations"])
@@ -429,11 +429,11 @@ def test_paper_recovery_accident_replay_documents_forbidden_acceptance_evidence(
         "owner receipt / typed blocker / human gate / route-back refs",
     ]
     cases = {item["case_id"]: item for item in replay["replay_cases"]}
-    assert cases["pending_plus_observe_only"] == {
-        "case_id": "pending_plus_observe_only",
+    assert cases["pending_without_identity_bound_provider_admission"] == {
+        "case_id": "pending_without_identity_bound_provider_admission",
         "symptom": (
-            "read-model shows pending or actionable owner card while DHD dry-run is "
-            "observe_only"
+            "read-model shows pending or actionable owner card while no identity-bound "
+            "provider admission candidate/count exists and DHD dry-run is observe_only"
         ),
         "required_outcome": "admission_blocked",
         "next_safe_action": "run_admission_apply_or_report_operator_gate",

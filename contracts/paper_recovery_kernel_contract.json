@@ -116,13 +116,14 @@
       ],
       "forbidden_phase_combinations": [
         {
-          "name": "pending_plus_observe_only",
+          "name": "pending_without_identity_bound_provider_admission",
           "when_all": [
             "phase=admission_pending",
+            "identity_bound_provider_admission_candidate_absent",
             "DHD.action_class=observe_only"
           ],
           "effect": "admission_blocked",
-          "reason": "observe_only means no current provider admission can be treated as pending recovery execution"
+          "reason": "observe_only cannot create pending recovery execution without an identity-bound provider admission candidate or count"
         },
         {
           "name": "terminal_without_consume_or_reject",
@@ -285,11 +286,10 @@
       "pending_requires_all": [
         "phase=admission_pending",
         "next_safe_action=admit_provider_attempt",
-        "provider_admission_pending_count=1",
-        "DHD.action_class!=observe_only"
+        "provider_admission_pending_count=1_or_provider_admission_candidates>=1"
       ],
       "forbidden_combinations": [
-        "phase=admission_pending + DHD.action_class=observe_only",
+        "phase=admission_pending + identity_bound_provider_admission_candidate_absent",
         "phase=admission_pending + provider_admission_pending_count=0",
         "phase=admission_pending + current_work_unit.status=typed_blocker"
       ],
@@ -398,7 +398,7 @@
     "forbidden_authority_claims": [
       "OPL execution substrate owns PaperRecovery",
       "study_progress derives paper recovery independently from PaperRecovery",
-      "DHD observe_only means pending recovery execution",
+      "DHD observe_only alone creates pending recovery execution",
       "operator card status is recovery truth",
       "provider terminal completion is MAS acceptance",
       "manual foreground edit is governed recovery without adoption refs"
@@ -443,8 +443,8 @@
     ],
     "replay_cases": [
       {
-        "case_id": "pending_plus_observe_only",
-        "symptom": "read-model shows pending or actionable owner card while DHD dry-run is observe_only",
+        "case_id": "pending_without_identity_bound_provider_admission",
+        "symptom": "read-model shows pending or actionable owner card while no identity-bound provider admission candidate/count exists and DHD dry-run is observe_only",
         "required_outcome": "admission_blocked",
         "next_safe_action": "run_admission_apply_or_report_operator_gate"
       },

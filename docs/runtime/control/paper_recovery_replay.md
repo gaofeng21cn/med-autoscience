@@ -34,7 +34,7 @@ Provider admission 若要从 `paper_recovery_state` 派生为 OPL StageRun admis
 
 关键禁区：
 
-- `admission_pending + DHD.action_class=observe_only` 必须变成 `admission_blocked`。observe-only 表示当前没有可当作 recovery execution 的 provider admission。
+- `admission_pending` 必须有 identity-bound provider admission candidate / count。`DHD.action_class=observe_only` 不能创建或证明 recovery execution；但已有 identity-bound provider admission candidate / count 时，observe-only 只是诊断，不覆盖 `paper_recovery_state` 的 pending truth。
 - `terminal_closeout_ready` 必须走 consume 或 reject。terminal closeout 不能悬挂成隐式 paper progress，也不能触发同 identity redrive。
 - `domain_blocked` 中的 stop-loss / anti-loop blocker 必须有 successor obligation 或 human gate。没有 successor / human gate 时保持 fail closed，禁止同 work-unit 重跑。
 - `manual_foreground_unadopted` 没有 MAS/OPL adoption refs 时只能是 manual work product，不能写成 governed recovery。
@@ -53,7 +53,7 @@ Replay 读取顺序固定为：
 
 | Case | 症状 | 裁决 | 下一安全动作 |
 | --- | --- | --- | --- |
-| `pending_plus_observe_only` | read-model 或 operator card 仍显示 pending/actionable，但 DHD dry-run 是 `observe_only` | `admission_blocked` | run admission apply or report operator gate |
+| `pending_without_identity_bound_provider_admission` | read-model 或 operator card 仍显示 pending/actionable，但没有 identity-bound provider admission candidate / count，且 DHD dry-run 是 `observe_only` | `admission_blocked` | run admission apply or report operator gate |
 | `terminal_closeout_not_consumed` | OPL/default executor terminal closeout 已存在，但 MAS 未 consume/reject | `terminal_closeout_ready` | consume or reject terminal closeout |
 | `same_work_unit_stop_loss` | stop-loss / anti-loop budget 后同一 work unit 继续 redrive | `domain_blocked` | create successor recovery obligation or open human gate |
 | `manual_foreground_unadopted` | 前台/人工 paper-local 输出存在，但没有 adoption refs | `manual_foreground_unadopted` | adopt through MAS owner receipt or keep non-authority |
