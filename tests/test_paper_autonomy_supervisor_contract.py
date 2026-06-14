@@ -271,3 +271,31 @@ def test_opl_foundation_and_mas_authority_split_forbid_read_model_authority() ->
         "default_safe_branch",
         "same_current_identity",
     ]
+
+
+def test_migration_status_records_opl_readback_and_mas_owner_gate_materializer() -> None:
+    contract = _contract()
+
+    status = contract["migration_status"]
+    assert status["lane_1_opl_foundation"]["state"] == (
+        "existing_opl_surface_mapping_with_minimal_readback_fixture"
+    )
+    assert {
+        "contracts/opl-framework/stage-route-scheduler-contract.json",
+        "src/family-runtime-paper-autonomy.ts",
+        "tests/src/family-runtime-paper-autonomy.test.ts",
+        "tests/src/stage-route-scheduler-arbiter-substrate-contract.test.ts",
+    } <= set(status["lane_1_opl_foundation"]["evidence"])
+    assert "production runtime soak complete" in status["lane_1_opl_foundation"][
+        "does_not_claim"
+    ]
+
+    mas = status["lane_2_mas_authority_kernel"]
+    assert mas["state"] == "owner_gate_route_back_recovery_materializer_landed"
+    assert {
+        "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
+        "src/med_autoscience/controllers/domain_owner_action_dispatch_parts/opl_execution_preflight.py",
+        "tests/test_domain_owner_action_dispatch_cases/current_control_authority_selection.py",
+        "tests/test_provider_admission_current_control_cases/owner_gate_route_back_cases.py",
+    } <= set(mas["evidence"])
+    assert "live paper-line soak complete" in mas["does_not_claim"]

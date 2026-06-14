@@ -484,18 +484,35 @@
       ]
     },
     "lane_1_opl_foundation": {
-      "state": "mapped_requirement_pending_opl_repo_verification",
-      "owner": "OPL Framework"
+      "state": "existing_opl_surface_mapping_with_minimal_readback_fixture",
+      "owner": "OPL Framework",
+      "evidence": [
+        "contracts/opl-framework/stage-route-scheduler-contract.json",
+        "src/family-runtime-paper-autonomy.ts",
+        "tests/src/family-runtime-paper-autonomy.test.ts",
+        "tests/src/stage-route-scheduler-arbiter-substrate-contract.test.ts"
+      ],
+      "does_not_claim": [
+        "OPL provider tick executes supervisor decisions",
+        "human resume token transport complete",
+        "terminal closeout consumption complete",
+        "production runtime soak complete"
+      ]
     },
     "lane_2_mas_authority_kernel": {
-      "state": "partial_owner_gate_route_back_materializer_landed",
+      "state": "owner_gate_route_back_recovery_materializer_landed",
       "evidence": [
         "src/med_autoscience/controllers/domain_action_request_materializer_parts/fresh_progress_current_action.py",
+        "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
+        "src/med_autoscience/controllers/domain_owner_action_dispatch_parts/opl_execution_preflight.py",
         "tests/domain_action_request_materializer_cases/current_control_authority_selection_cases.py",
+        "tests/test_domain_owner_action_dispatch_cases/current_control_authority_selection.py",
+        "tests/test_provider_admission_current_control_cases/owner_gate_route_back_cases.py",
         "tests/test_paper_recovery_state_cases/owner_gate_projection_cases.py"
       ],
       "does_not_claim": [
-        "all DHD study_progress domain-handler surfaces consume supervisor_decision",
+        "live DHD apply has consumed a real study route-back",
+        "OPL provider has executed the materialized recovery action",
         "live paper-line soak complete"
       ]
     }
