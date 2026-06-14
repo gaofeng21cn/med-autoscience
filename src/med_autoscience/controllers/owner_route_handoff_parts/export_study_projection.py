@@ -1,24 +1,27 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
 
-from .. import publication_aftercare
-from .. import reviewer_refinement_loop
-from .. import stage_knowledge_plane
 from ..domain_action_request_materializer_parts import current_writer_handoff
-from ..domain_health_diagnostic_parts import provider_admission
 from ..default_executor_action_policy import (
     SUPPORTED_ACTION_TYPES,
     request_output_surface_for_action_type,
     request_owner_for_action_type,
 )
-from ..study_progress_parts import repair_progress_projection
-from .authority_boundary import authority_boundary_payload
+from .export_study_projection_common import mapping, read_json_object, text, workspace_relative
+from .export_study_projection_repair_followup import (
+    provider_admission_owner_action_record,
+    repair_progress_followup_owner_action_record,
+)
+from .export_study_projection_surfaces import (
+    memory_paper_soak_proof_projection,
+    paper_autonomy_loop_projection,
+    publication_aftercare_projection,
+)
 
 
 _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
@@ -51,30 +54,6 @@ READINESS_REPAIR_ACTION_TYPES = frozenset(
         "run_gate_clearing_batch",
     }
 )
-
-
-def mapping(value: object) -> Mapping[str, Any]:
-    return value if isinstance(value, Mapping) else {}
-
-
-def text(value: object) -> str | None:
-    value_text = str(value or "").strip()
-    return value_text or None
-
-
-def read_json_object(path: Path) -> dict[str, Any] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return None
-    return dict(payload) if isinstance(payload, dict) else None
-
-
-def workspace_relative(path: Path, *, workspace_root: Path) -> str:
-    try:
-        return str(path.relative_to(workspace_root))
-    except ValueError:
-        return str(path)
 
 
 def source_ref(*, study_root: Path, role: str, relative_path: Path, workspace_root: Path) -> dict[str, Any]:
@@ -435,195 +414,6 @@ def stage_native_next_action_owner_action_record(
     }
 
 
-def provider_admission_owner_action_record(
-    *,
-    study_root: Path,
-    current_repair_followup: Mapping[str, Any] | None = None,
-) -> dict[str, Any] | None:
-    repair_progress = repair_progress_projection.build_repair_progress_projection(study_root=study_root)
-    if repair_progress.get("paper_delta_observed") is not True:
-        return None
-    if repair_progress.get("accepted_owner_receipt") is not True:
-        return None
-    current_action = _repair_progress_current_owner_action(repair_progress=repair_progress)
-    candidates = provider_admission.persisted_provider_admission_candidates(
-        study_root=study_root,
-        status_payload={
-            "study_id": study_root.name,
-            "current_executable_owner_action": current_action,
-        },
-    )
-    if not candidates:
-        return None
-    candidate = candidates[0]
-    if not _provider_admission_matches_current_repair_followup(
-        candidate,
-        current_repair_followup=current_repair_followup,
-    ):
-        return None
-    action_type = text(candidate.get("action_type"))
-    work_unit_id = text(candidate.get("work_unit_id"))
-    action_fingerprint = text(candidate.get("action_fingerprint")) or text(candidate.get("work_unit_fingerprint"))
-    if action_type is None or work_unit_id is None:
-        return None
-    owner_route = _provider_admission_owner_route(candidate)
-    currentness_basis = _owner_route_currentness_basis(owner_route)
-    if currentness_basis is None:
-        return None
-    return {
-        "surface_kind": "mas_current_owner_action_record",
-        "schema_version": 1,
-        "source": "default_executor_execution.provider_admission_identity",
-        "study_id": study_root.name,
-        "quest_id": text(candidate.get("quest_id")) or study_root.name,
-        "recorded_at": text(candidate.get("recorded_at")),
-        "action_type": action_type,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": action_fingerprint,
-        "action_fingerprint": action_fingerprint,
-        "recommended_task_kind": "domain_owner/default-executor-dispatch",
-        "next_owner": text(candidate.get("next_executable_owner")),
-        "allowed_actions": [action_type],
-        "required_output_surface": text(candidate.get("required_output_surface")),
-        "source_ref_role": "default_executor_execution_provider_admission_identity",
-        "source_relative_path": text(candidate.get("execution_ref")),
-        "source_surface": "default_executor_execution",
-        "provider_admission_identity": dict(candidate),
-        "provider_admission_identity_ref": text(candidate.get("execution_ref")),
-        "repair_progress_followup": current_action,
-        "owner_route_currentness_basis": currentness_basis,
-        "owner_route": owner_route,
-        "currentness_status": "provider_admission_identity_active",
-        "authority_boundary": {
-            "mas_writes_generic_runtime_queue": False,
-            "mas_submits_runtime_chat": False,
-            "mas_resumes_provider_worker": False,
-            "opl_writes_mas_truth": False,
-            "mas_owner_receipt_required": True,
-        },
-    }
-
-
-def repair_progress_followup_owner_action_record(
-    *,
-    study_root: Path,
-) -> dict[str, Any] | None:
-    repair_progress = repair_progress_projection.build_repair_progress_projection(study_root=study_root)
-    if repair_progress.get("paper_delta_observed") is not True:
-        return None
-    if repair_progress.get("accepted_owner_receipt") is not True:
-        return None
-    current_action = _repair_progress_current_owner_action(repair_progress=repair_progress)
-    action_type = text(current_action.get("action_type"))
-    work_unit_id = text(current_action.get("work_unit_id"))
-    if action_type is None or work_unit_id is None:
-        return None
-    source_ref = text(current_action.get("source_ref")) or text(repair_progress.get("owner_receipt_ref"))
-    action_fingerprint = (
-        text(current_action.get("action_fingerprint"))
-        or text(current_action.get("work_unit_fingerprint"))
-        or text(repair_progress.get("source_fingerprint"))
-        or (
-            f"repair-progress-current-owner::{study_root.name}::{work_unit_id}::{action_type}::{source_ref}"
-            if source_ref is not None
-            else None
-        )
-    )
-    if action_fingerprint is None:
-        return None
-    quest_id = text(current_action.get("quest_id")) or study_root.name
-    next_owner = text(current_action.get("next_owner")) or request_owner_for_action_type(action_type)
-    currentness_basis = {
-        "owner_reason": text(current_action.get("required_delta_kind")) or work_unit_id,
-        "runtime_health_epoch": action_fingerprint,
-        "truth_epoch": action_fingerprint,
-        "work_unit_fingerprint": action_fingerprint,
-        "work_unit_id": work_unit_id,
-    }
-    owner_route = {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": study_root.name,
-        "quest_id": quest_id,
-        "truth_epoch": action_fingerprint,
-        "runtime_health_epoch": action_fingerprint,
-        "work_unit_fingerprint": action_fingerprint,
-        "source_fingerprint": action_fingerprint,
-        "route_epoch": action_fingerprint,
-        "current_owner": "med-autoscience",
-        "next_owner": next_owner,
-        "owner_reason": currentness_basis["owner_reason"],
-        "active_run_id": None,
-        "allowed_actions": [action_type],
-        "blocked_actions": sorted(item for item in SUPPORTED_ACTION_TYPES if item != action_type),
-        "source_refs": {
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": action_fingerprint,
-            "source_surface": text(current_action.get("source")) or "repair_progress_projection",
-            "source_ref": source_ref,
-            "owner_route_currentness_basis": currentness_basis,
-        },
-        "idempotency_key": f"repair-progress-followup::{study_root.name}::{action_fingerprint}",
-    }
-    return {
-        "surface_kind": "mas_current_owner_action_record",
-        "schema_version": 1,
-        "source": "repair_progress_followup.current_executable_owner_action",
-        "study_id": study_root.name,
-        "quest_id": quest_id,
-        "recorded_at": text(repair_progress.get("recorded_at")),
-        "action_type": action_type,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": action_fingerprint,
-        "action_fingerprint": action_fingerprint,
-        "recommended_task_kind": "domain_owner/default-executor-dispatch",
-        "next_owner": next_owner,
-        "allowed_actions": [action_type],
-        "required_output_surface": text(mapping(current_action.get("target_surface")).get("surface_ref"))
-        or request_output_surface_for_action_type(action_type),
-        "source_ref_role": "repair_progress_current_owner_action",
-        "source_relative_path": source_ref,
-        "source_surface": text(current_action.get("source")) or "repair_progress_projection",
-        "repair_progress_followup": current_action,
-        "owner_route_currentness_basis": currentness_basis,
-        "owner_route": owner_route,
-        "currentness_status": "repair_progress_followup_active",
-        "authority_boundary": {
-            "mas_writes_generic_runtime_queue": False,
-            "mas_submits_runtime_chat": False,
-            "mas_resumes_provider_worker": False,
-            "opl_writes_mas_truth": False,
-            "mas_owner_receipt_required": True,
-        },
-    }
-
-
-def _provider_admission_matches_current_repair_followup(
-    candidate: Mapping[str, Any],
-    *,
-    current_repair_followup: Mapping[str, Any] | None,
-) -> bool:
-    followup = mapping(current_repair_followup)
-    if not followup:
-        return True
-    candidate_action_type = text(candidate.get("action_type"))
-    followup_action_type = text(followup.get("action_type"))
-    if candidate_action_type == followup_action_type:
-        pass
-    elif followup_action_type == "return_to_ai_reviewer_workflow" and candidate_action_type == "run_gate_clearing_batch":
-        return False
-    else:
-        return True
-    expected_work_unit = text(followup.get("work_unit_id"))
-    if expected_work_unit is not None and text(candidate.get("work_unit_id")) != expected_work_unit:
-        return False
-    expected_fingerprint = text(followup.get("work_unit_fingerprint")) or text(followup.get("action_fingerprint"))
-    candidate_fingerprint = text(candidate.get("work_unit_fingerprint")) or text(candidate.get("action_fingerprint"))
-    if expected_fingerprint is not None and candidate_fingerprint is not None:
-        return candidate_fingerprint == expected_fingerprint
-    return True
-
-
 def owner_route_reconcile_readiness_repair_owner_action_record(
     *,
     study_root: Path,
@@ -931,120 +721,6 @@ def _repair_work_unit_id(
     )
 
 
-def _repair_progress_current_owner_action(*, repair_progress: Mapping[str, Any]) -> dict[str, Any]:
-    ai_reviewer_request_ref = text(repair_progress.get("ai_reviewer_recheck_request_ref"))
-    gate_replay_refs = _text_list(repair_progress.get("gate_replay_refs"))
-    source_ref = text(repair_progress.get("repair_execution_evidence_ref")) or text(
-        repair_progress.get("owner_receipt_ref")
-    )
-    if ai_reviewer_request_ref is not None:
-        action_type = "return_to_ai_reviewer_workflow"
-        work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-        next_owner = "ai_reviewer"
-        target_surface = {
-            "ref_kind": "route_obligation",
-            "route_target": "review",
-            "surface_ref": "artifacts/publication_eval/latest.json",
-            "request_ref": ai_reviewer_request_ref,
-            **({"gate_replay_request_ref": gate_replay_refs[0]} if gate_replay_refs else {}),
-        }
-        acceptance_refs = [ai_reviewer_request_ref, *gate_replay_refs]
-    elif gate_replay_refs:
-        action_type = "run_gate_clearing_batch"
-        work_unit_id = "publication_gate_replay"
-        next_owner = "gate_clearing_batch"
-        target_surface = {
-            "ref_kind": "route_obligation",
-            "route_target": "finalize",
-            "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
-            "request_ref": gate_replay_refs[0],
-        }
-        acceptance_refs = gate_replay_refs
-    else:
-        action_type = None
-        work_unit_id = None
-        next_owner = None
-        target_surface = {}
-        acceptance_refs = []
-    return {
-        key: value
-        for key, value in {
-            "surface_kind": "current_executable_owner_action",
-            "schema_version": 1,
-            "status": "ready",
-            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
-            "next_owner": next_owner,
-            "work_unit_id": work_unit_id,
-            "action_type": action_type,
-            "allowed_actions": [action_type] if action_type is not None else [],
-            "owner_receipt_required": True,
-            "target_surface": target_surface or None,
-            "target_surface_specificity": "repair_progress_followup_owner_surface",
-            "source_ref": source_ref,
-            "acceptance_refs": [
-                ref
-                for ref in [
-                    text(repair_progress.get("repair_execution_evidence_ref")),
-                    text(repair_progress.get("owner_receipt_ref")),
-                    *acceptance_refs,
-                ]
-                if ref is not None
-            ],
-        }.items()
-        if value is not None
-    }
-
-
-def _provider_admission_owner_route(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    source_refs = mapping(candidate.get("source_refs"))
-    currentness_basis = mapping(candidate.get("currentness_basis"))
-    work_unit_id = text(candidate.get("work_unit_id"))
-    action_type = text(candidate.get("action_type"))
-    action_fingerprint = text(candidate.get("action_fingerprint")) or text(candidate.get("work_unit_fingerprint"))
-    merged_source_refs = {
-        **dict(source_refs),
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": action_fingerprint,
-        "provider_admission_identity_ref": text(candidate.get("execution_ref")),
-        "dispatch_path": text(candidate.get("dispatch_path")),
-        "blocked_reason": text(candidate.get("blocked_reason")),
-        "owner_route_currentness_basis": {
-            **dict(currentness_basis),
-            **(
-                {
-                    "work_unit_id": work_unit_id,
-                    "work_unit_fingerprint": action_fingerprint,
-                }
-                if work_unit_id is not None and action_fingerprint is not None
-                else {}
-            ),
-        },
-    }
-    return {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": text(candidate.get("study_id")),
-        "quest_id": text(candidate.get("quest_id")),
-        "truth_epoch": text(currentness_basis.get("truth_epoch")) or action_fingerprint,
-        "runtime_health_epoch": text(currentness_basis.get("runtime_health_epoch"))
-        or text(currentness_basis.get("source_eval_id"))
-        or action_fingerprint,
-        "work_unit_fingerprint": action_fingerprint,
-        "source_fingerprint": action_fingerprint,
-        "route_epoch": action_fingerprint,
-        "current_owner": "med-autoscience",
-        "next_owner": text(candidate.get("next_executable_owner")),
-        "owner_reason": work_unit_id or action_type,
-        "active_run_id": None,
-        "allowed_actions": [action_type] if action_type is not None else [],
-        "blocked_actions": [],
-        "source_refs": {
-            key: value for key, value in merged_source_refs.items() if value is not None
-        },
-        "idempotency_key": f"provider-admission::{text(candidate.get('study_id'))}::{action_fingerprint}",
-    }
-
-
 def _action_next_owner(
     *,
     action: Mapping[str, Any],
@@ -1212,140 +888,6 @@ def study_roots(profile: WorkspaceProfile) -> list[Path]:
     if not profile.studies_root.is_dir():
         return []
     return sorted(path for path in profile.studies_root.iterdir() if path.is_dir())
-
-
-def paper_autonomy_loop_projection(
-    *,
-    study_root: Path,
-    current_owner_route_handoff_exists: bool = False,
-) -> dict[str, Any]:
-    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
-    if not publication_eval_path.exists():
-        return {
-            "surface_kind": "mas_paper_autonomy_loop_projection",
-            "status": "missing_publication_eval",
-            "eligible_for_auto_dispatch": False,
-            "reason": None,
-            "repair_work_units": [],
-            "source_refs": [
-                {"role": "publication_eval", "ref": str(publication_eval_path), "exists": False},
-            ],
-        }
-    try:
-        refinement = reviewer_refinement_loop.build_reviewer_refinement_loop_read_model(study_root=study_root)
-    except (OSError, TypeError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
-        return {
-            "surface_kind": "mas_paper_autonomy_loop_projection",
-            "status": "blocked",
-            "eligible_for_auto_dispatch": False,
-            "reason": "reviewer_refinement_loop_unreadable",
-            "blockers": [f"reviewer_refinement_loop_unreadable:{exc.__class__.__name__}"],
-            "repair_work_units": [],
-            "source_refs": [
-                {"role": "publication_eval", "ref": str(publication_eval_path), "exists": True},
-            ],
-        }
-    if current_owner_route_handoff_exists:
-        return {
-            "surface_kind": "mas_paper_autonomy_loop_projection",
-            "status": "superseded_by_opl_current_owner_route",
-            "eligible_for_auto_dispatch": False,
-            "reason": "opl_current_owner_route_handoff_active",
-            "accept_status": text(mapping(refinement.get("accept")).get("status")),
-            "repair_plan": dict(mapping(mapping(refinement.get("repair_loop")).get("repair_plan"))),
-            "repair_work_units": [],
-            "source_eval_id": text(mapping(refinement.get("snapshot")).get("source_eval_id")),
-            "source_refs": [
-                {"role": "publication_eval", "ref": str(publication_eval_path), "exists": True},
-            ],
-            "currentness_status": "superseded_by_opl_current_owner_route",
-            "authority_boundary": authority_boundary_payload(),
-        }
-    accept = mapping(refinement.get("accept"))
-    repair_loop = mapping(refinement.get("repair_loop"))
-    repair_plan = mapping(repair_loop.get("repair_plan"))
-    accepted = accept.get("accepted") is True
-    repair_required = any(
-        repair_plan.get(key) is True
-        for key in (
-            "analysis_repair_required",
-            "text_repair_required",
-            "ai_reviewer_recheck_required",
-        )
-    )
-    work_units = [dict(unit) for unit in refinement.get("repair_work_units") or [] if isinstance(unit, Mapping)]
-    eligible = not accepted and repair_required and bool(work_units)
-    return {
-        "surface_kind": "mas_paper_autonomy_loop_projection",
-        "status": "repair_recheck_ready" if eligible else ("accepted" if accepted else "blocked"),
-        "eligible_for_auto_dispatch": eligible,
-        "reason": "ai_reviewer_repair_recheck_required" if eligible else None,
-        "accept_status": text(accept.get("status")),
-        "repair_plan": dict(repair_plan),
-        "repair_work_units": work_units,
-        "source_eval_id": text(mapping(refinement.get("snapshot")).get("source_eval_id")),
-        "source_refs": [
-            {"role": "publication_eval", "ref": str(publication_eval_path), "exists": True},
-        ],
-        "authority_boundary": authority_boundary_payload(),
-    }
-
-
-def publication_aftercare_projection(
-    *,
-    study_root: Path,
-    current_owner_route_handoff_exists: bool = False,
-) -> dict[str, Any]:
-    projection = publication_aftercare.build_publication_aftercare_plan(study_root=study_root)
-    if not current_owner_route_handoff_exists:
-        return projection
-    result = dict(projection)
-    result["currentness_status"] = "superseded_by_opl_current_owner_route"
-    for entry_key in ("analysis_queue_entry", "reviewer_refresh_entry"):
-        entry = mapping(result.get(entry_key))
-        if not entry:
-            continue
-        result[entry_key] = {
-            **dict(entry),
-            "eligible_for_owner_route_task_ref": False,
-            "currentness_status": "superseded_by_opl_current_owner_route",
-        }
-    return result
-
-
-def memory_paper_soak_proof_projection(*, study_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
-    proof_path = stage_knowledge_plane.paper_soak_memory_apply_proof_path(study_root=study_root)
-    proof = read_json_object(proof_path)
-    if proof is None:
-        return {
-            "surface_kind": "mas_memory_paper_soak_proof_projection",
-            "status": "missing",
-            "proof_ref": workspace_relative(proof_path, workspace_root=profile.workspace_root),
-            "receipt_refs": [],
-            "authority_boundary": authority_boundary_payload(),
-            "read_only_display_policy": {
-                "consumer": "OPL/Aion",
-                "body_included": False,
-                "can_write_mas_truth": False,
-            },
-        }
-    receipt_refs = [
-        dict(ref)
-        for ref in proof.get("opl_aion_readonly_receipt_refs") or []
-        if isinstance(ref, Mapping)
-    ]
-    return {
-        "surface_kind": "mas_memory_paper_soak_proof_projection",
-        "status": text(proof.get("status")) or "missing",
-        "proof_ref": workspace_relative(proof_path, workspace_root=profile.workspace_root),
-        "receipt_refs": receipt_refs,
-        "route_memory_ref_count": len(mapping(proof.get("stage_entry")).get("publication_route_memory_refs") or []),
-        "router_receipt_ref_count": len(proof.get("mas_router_receipt_refs") or []),
-        "writeback_proposal_ref_count": len(proof.get("typed_closeout_writeback_proposals") or []),
-        "source_fingerprint": text(proof.get("source_fingerprint")),
-        "authority_boundary": mapping(proof.get("authority_boundary")) or authority_boundary_payload(),
-        "read_only_display_policy": mapping(proof.get("read_only_display_policy")),
-    }
 
 
 __all__ = [
