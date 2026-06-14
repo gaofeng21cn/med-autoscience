@@ -750,6 +750,19 @@ def _with_consumed_transition_owner_route(current_study: Mapping[str, Any]) -> d
     return scan_route_currentness.with_consumed_transition_owner_route(current_study)
 
 
+def _fresh_progress_owner_action_selectable(
+    *,
+    current_study: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    return fresh_progress_owner_actions.fresh_progress_owner_action_selectable(
+        current_study=current_study,
+        progress=progress,
+        dispatch=dispatch,
+    )
+
+
 def _current_control_authority_present(current_study: Mapping[str, Any]) -> bool:
     return bool(
         owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
