@@ -16,10 +16,16 @@ def current_mas_owner_callable(
     obligation: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     current_work_unit = _mapping(progress.get("current_work_unit"))
-    if _current_work_unit_status(current_work_unit) != "executable_owner_action":
+    if _current_work_unit_status(current_work_unit) not in {
+        "executable_owner_action",
+        "typed_blocker",
+    }:
         return None
     action_type = _text(obligation.get("action_type"))
     if action_type is None:
+        return None
+    owner_callable = owner_callable_for_action(action_type)
+    if owner_callable is None:
         return None
     action = _mapping(progress.get("current_executable_owner_action"))
     if action and not _current_action_matches_obligation(action, obligation=obligation):
@@ -28,13 +34,15 @@ def current_mas_owner_callable(
         return None
     if not _direct_study_or_paper_execution_allowed(progress):
         return None
-    owner_callable = owner_callable_for_action(action_type)
-    if owner_callable is None:
-        return None
     return owner_callable
 
 
 def _direct_study_or_paper_execution_allowed(progress: Mapping[str, Any]) -> bool:
+    route_authorization = _mapping(_mapping(progress.get("authority_snapshot")).get("route_authorization"))
+    if route_authorization.get("paper_write_allowed") is True or route_authorization.get(
+        "managed_worker_paper_write_allowed"
+    ) is True:
+        return True
     allowed = {
         *_text_items(_mapping(progress.get("study_truth_snapshot")).get("allowed_controller_actions")),
         *_text_items(_mapping(progress.get("authority_snapshot")).get("allowed_controller_actions")),
