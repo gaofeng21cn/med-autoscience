@@ -7,7 +7,9 @@ from .test_domain_owner_action_dispatch_cases.ai_reviewer_request_currentness_an
 from .test_domain_owner_action_dispatch_cases.ai_reviewer_routeback_materialization import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.ai_reviewer_workflow_dispatch import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.consumed_gate_replay_currentness import *  # noqa: F403,F401
+from .test_domain_owner_action_dispatch_cases.consumer_consumed_dispatch_selection import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.consumer_dispatch_selection import *  # noqa: F403,F401
+from .test_domain_owner_action_dispatch_cases.consumer_terminal_closeout_selection import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.clean_rebuild_route import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.current_control_authority_selection import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.current_package_freshness import *  # noqa: F403,F401
