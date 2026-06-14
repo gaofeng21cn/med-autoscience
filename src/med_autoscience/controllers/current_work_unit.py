@@ -697,6 +697,11 @@ def _action_supersedes_typed_blocker(
         gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
     ):
         return True
+    if _publication_eval_repair_action_supersedes_gate_replay_blocker(
+        action=action,
+        blocker=payload,
+    ):
+        return True
     if _gate_followthrough_supersedes_publication_gate_replay_blocker(
         action=action,
         blocker=payload,
@@ -844,6 +849,34 @@ def _publication_eval_repair_action_supersedes_readiness_blocker(action: Mapping
     if _text(action.get("work_unit_id")) in {None, "complete_medical_paper_readiness_surface"}:
         return False
     return bool(_mapping(action.get("target_surface")).get("next_work_unit"))
+
+
+def _publication_eval_repair_action_supersedes_gate_replay_blocker(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+) -> bool:
+    blocker_reason = (
+        _text(blocker.get("blocker_type"))
+        or _text(blocker.get("blocked_reason"))
+        or _text(blocker.get("blocker_id"))
+    )
+    if blocker_reason != "publication_gate_replay_blocked":
+        return False
+    blocker_action_type = _text(blocker.get("action_type"))
+    if blocker_action_type not in {None, "run_gate_clearing_batch"}:
+        return False
+    blocker_work_unit = _text(blocker.get("work_unit_id"))
+    if blocker_work_unit not in {None, *GATE_REPLAY_WORK_UNITS}:
+        return False
+    if not _publication_eval_repair_action_supersedes_readiness_blocker(action):
+        return False
+    if _text(action.get("next_owner")) not in {"write", "analysis-campaign"}:
+        return False
+    action_work_unit = _text(action.get("work_unit_id"))
+    if action_work_unit in {None, *GATE_REPLAY_WORK_UNITS}:
+        return False
+    return _text(action.get("action_type")) == "run_quality_repair_batch"
 
 
 def _gate_consumption_action_supersedes_readiness_blocker(action: Mapping[str, Any]) -> bool:

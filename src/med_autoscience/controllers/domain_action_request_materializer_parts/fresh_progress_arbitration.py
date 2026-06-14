@@ -54,6 +54,11 @@ def can_preempt_scan(
         queue_actions=queue_actions,
     ):
         return True
+    if _gate_followthrough_action_supersedes_stage_native_residue(
+        fresh_action=fresh_action,
+        queue_actions=queue_actions,
+    ):
+        return True
     if any(not _scan_action_is_readiness_or_stage_native_write(action) for action in queue_actions):
         return False
     if readiness_followup is not None:
@@ -145,6 +150,64 @@ def _terminal_next_forced_write_supersedes_previous_ai_reviewer_queue(
     if not _action_currentness_fingerprints(fresh_action):
         return False
     return any(_scan_action_is_previous_ai_reviewer_queue(action) for action in queue_actions)
+
+
+def _gate_followthrough_action_supersedes_stage_native_residue(
+    *,
+    fresh_action: Mapping[str, Any],
+    queue_actions: list[dict[str, Any]],
+) -> bool:
+    if not gate_followthrough_owner_action_has_strong_identity(fresh_action):
+        return False
+    return bool(queue_actions) and all(
+        _scan_action_is_readiness_or_stage_native_write(action) for action in queue_actions
+    )
+
+
+def gate_followthrough_owner_action_has_strong_identity(action: Mapping[str, Any]) -> bool:
+    if _text(action.get("current_action_source")) != (
+        "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    ):
+        return False
+    if _text(action.get("authority")) != "study_progress.current_executable_owner_action":
+        return False
+    action_type = _text(action.get("action_type"))
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return False
+    work_unit_id = _text(action.get("work_unit_id")) or _text(action.get("next_work_unit"))
+    work_unit_fingerprint = _text(action.get("work_unit_fingerprint")) or _text(
+        action.get("action_fingerprint")
+    )
+    if work_unit_id is None or work_unit_fingerprint is None:
+        return False
+    owner = _text(action.get("owner")) or _text(action.get("request_owner")) or _text(
+        action.get("recommended_owner")
+    )
+    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(action.get("owner_route")))
+    if owner_route and not owner_route_part.route_allows_action(
+        action={
+            "action_type": action_type,
+            "owner": owner,
+            "request_owner": owner,
+            "recommended_owner": owner,
+            "next_executable_owner": owner,
+        },
+        owner_route=owner_route,
+    ):
+        return False
+    route_refs = _mapping(owner_route.get("source_refs"))
+    route_basis = _mapping(route_refs.get("owner_route_currentness_basis"))
+    route_fingerprints = {
+        text
+        for value in (
+            owner_route.get("work_unit_fingerprint"),
+            owner_route.get("source_fingerprint"),
+            route_refs.get("work_unit_fingerprint"),
+            route_basis.get("work_unit_fingerprint"),
+        )
+        if (text := _text(value)) is not None
+    }
+    return not route_fingerprints or work_unit_fingerprint in route_fingerprints
 
 
 def _scan_action_is_previous_repair_or_provider_admission(action: Mapping[str, Any]) -> bool:
@@ -351,5 +414,6 @@ def _text(value: object) -> str | None:
 __all__ = [
     "can_preempt_scan",
     "current_action_supported_action_type",
+    "gate_followthrough_owner_action_has_strong_identity",
     "has_current_quality_repair_writer_handoff",
 ]

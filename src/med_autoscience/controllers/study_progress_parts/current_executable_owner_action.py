@@ -117,6 +117,13 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
             gate_followthrough_action=gate_followthrough_action,
         ):
             return next_forced_delta_action
+        if _terminal_gate_closeout_blocks_repair_followup(
+            action=repair_progress_action,
+            payload=payload,
+        ):
+            if publication_repair_action is not None:
+                return publication_repair_action
+            return None
         if gate_followthrough_action is not None:
             return gate_followthrough_action
         if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
@@ -687,6 +694,42 @@ def _terminal_gate_closeout_consumes_repair_followup(
         or _non_empty_text(typed_blocker.get("action_fingerprint"))
     )
     return action_fingerprint is not None and action_fingerprint == blocker_fingerprint
+
+
+def _terminal_gate_closeout_blocks_repair_followup(
+    *,
+    action: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(action.get("source")) != REPAIR_PROGRESS_SOURCE:
+        return False
+    if _non_empty_text(action.get("action_type")) != GATE_CLEARING_ACTION:
+        return False
+    terminal = _latest_gate_replay_terminal_stage(payload)
+    if not terminal:
+        return False
+    if _non_empty_text(terminal.get("status")) != "blocked":
+        return False
+    outcome = _non_empty_text(terminal.get("outcome"))
+    paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
+    if outcome is None:
+        outcome = _non_empty_text(paper_stage_log.get("outcome"))
+    if outcome != "blocked:publication_gate_replay_blocked":
+        return False
+    remaining = [
+        item
+        for item in _text_items(terminal.get("remaining_blockers"))
+        if item != "publication_gate_replay_blocked"
+    ]
+    if not remaining:
+        remaining = [
+            item
+            for item in _text_items(paper_stage_log.get("remaining_blockers"))
+            if item != "publication_gate_replay_blocked"
+        ]
+    if not remaining:
+        return False
+    return _terminal_gate_closeout_consumes_repair_followup(action=action, payload=payload)
 
 
 def _repair_followup_gate_action_refs(action: Mapping[str, Any]) -> set[str]:
