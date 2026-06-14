@@ -431,7 +431,6 @@ def _is_opl_stage_attempt_admission_action(action: Mapping[str, Any]) -> bool:
     return (
         _text(action.get("decision")) == "blocked"
         and _text(action.get("reason")) == "quest_waiting_opl_runtime_owner_route"
-        and _text(action.get("status")) == "opl_stage_attempt_admission_required"
         and resume_postcondition.get("status") == "opl_stage_attempt_admission_required"
     )
 

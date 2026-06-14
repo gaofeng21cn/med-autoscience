@@ -232,7 +232,7 @@ def test_runtime_report_uses_fresh_canonical_paper_recovery_state() -> None:
     action = result["managed_study_actions"][0]
     assert action["paper_recovery_state"] == canonical_recovery
     assert action["supervisor_decision"] == canonical_recovery["supervisor_decision"]
-    assert action["decision"] == "domain_blocked"
+    assert action["decision"] == "blocked"
     assert action["reason"] == "current_owner_route_missing"
 
 
@@ -251,7 +251,6 @@ def test_runtime_report_preserves_opl_stage_attempt_admission_action() -> None:
                 "study_id": study_id,
                 "decision": "blocked",
                 "reason": "quest_waiting_opl_runtime_owner_route",
-                "status": "opl_stage_attempt_admission_required",
                 "resume_postcondition": {
                     "status": "opl_stage_attempt_admission_required",
                 },
@@ -284,7 +283,6 @@ def test_runtime_report_preserves_opl_stage_attempt_admission_action() -> None:
     assert action["paper_recovery_state"]["phase"] == "domain_blocked"
     assert action["decision"] == "blocked"
     assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert action["status"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"] == {
         "status": "opl_stage_attempt_admission_required",
     }

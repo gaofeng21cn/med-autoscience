@@ -433,6 +433,10 @@ def provider_admission_candidate_from_execution(
         ),
         "action_fingerprint": _non_empty_text(execution.get("action_fingerprint")) or work_unit_fingerprint,
         "dispatch_path": dispatch_path,
+        "dispatch_ref": dispatch_path,
+        "stage_packet_ref": dispatch_path,
+        "stage_packet_refs": [dispatch_path],
+        "checkpoint_refs": [dispatch_path],
         "dispatch_authority": _non_empty_text(execution.get("dispatch_authority")),
         "owner_callable_surface": _non_empty_text(execution.get("owner_callable_surface")),
         "blocked_reason": _execution_blocked_reason(execution),
@@ -459,6 +463,13 @@ def provider_admission_candidate_from_execution(
             if key in source_refs
         },
     }
+    candidate["source_refs"].update(
+        {
+            "dispatch_ref": dispatch_path,
+            "stage_packet_ref": dispatch_path,
+            "stage_packet_refs": [dispatch_path],
+        }
+    )
     return _candidate_with_stage_run_admission_identity(
         candidate,
         execution=execution,
