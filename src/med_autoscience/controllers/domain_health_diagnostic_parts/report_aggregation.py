@@ -83,6 +83,10 @@ def build_runtime_report(
             "provider_admission_pending_count": len(managed_study_opl_provider_admission_candidates),
         },
     )
+    managed_study_actions = _managed_study_actions_with_paper_recovery_state(
+        managed_study_actions=managed_study_actions,
+        paper_recovery_states=paper_recovery_states,
+    )
     managed_study_actions = _managed_study_actions_with_provider_admission_state(
         managed_study_actions=managed_study_actions,
         provider_admission_candidates=managed_study_opl_provider_admission_candidates,
@@ -279,6 +283,40 @@ def _managed_study_action_with_currentness(
         )
         result["running_provider_attempt"] = False
     if state_kind == "executable_owner_action":
+        result["running_provider_attempt"] = False
+    return result
+
+
+def _managed_study_actions_with_paper_recovery_state(
+    *,
+    managed_study_actions: list[dict[str, Any]],
+    paper_recovery_states: Mapping[str, Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for action in managed_study_actions:
+        if not isinstance(action, Mapping):
+            result.append(action)
+            continue
+        study_id = _text(action.get("study_id"))
+        recovery = _mapping(paper_recovery_states.get(study_id or ""))
+        if not recovery:
+            result.append(dict(action))
+            continue
+        result.append(_managed_study_action_with_paper_recovery_state(action, recovery=recovery))
+    return result
+
+
+def _managed_study_action_with_paper_recovery_state(
+    action: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+) -> dict[str, Any]:
+    result = dict(action)
+    result["paper_recovery_state"] = dict(recovery)
+    phase = _text(recovery.get("phase"))
+    if phase in {"domain_blocked", "human_gate"}:
+        result["decision"] = phase
+        result["reason"] = _paper_recovery_reason(recovery) or phase
         result["running_provider_attempt"] = False
     return result
 
