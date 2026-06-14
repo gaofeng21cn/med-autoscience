@@ -4,6 +4,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.controllers import current_execution_envelope, current_work_unit
 from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index
 from med_autoscience.profiles import WorkspaceProfile
@@ -21,12 +22,17 @@ from .opl_current_control_state_handoff import (
 )
 from .operator_view import _study_command_surfaces
 from .progress_first_monitoring import build_progress_first_monitoring_summary
+from .projection_payload_assembly_parts.progress_delta import progress_delta_metrics
+from .projection_payload_assembly_parts.paper_recovery_visibility import (
+    apply_paper_recovery_state_user_visible_status,
+)
 from .progression import _domain_transition_route_repair
 from .provider_admission_projection import provider_admission_projection_fields
 from .publication_runtime_followthrough import (
     _gate_clearing_batch_followthrough,
     _quality_repair_batch_followthrough,
 )
+from .repair_progress_projection import build_repair_progress_projection
 from .projection_payload_assembly_parts.running_provider_status import (
     apply_running_provider_attempt_top_level_status,
 )
@@ -74,6 +80,35 @@ def refresh_existing_projection_batch_followthroughs(
         publication_eval_payload=publication_eval_payload,
         recommended_command=study_commands.get("quality_repair_batch"),
     )
+    return refresh_existing_projection_repair_progress(
+        payload=updated,
+        study_root=study_root,
+    )
+
+
+def refresh_existing_projection_repair_progress(
+    *,
+    payload: dict[str, Any],
+    study_root: Path,
+) -> dict[str, Any]:
+    updated = dict(payload)
+    repair_progress = build_repair_progress_projection(study_root=study_root)
+    updated["repair_progress_projection"] = repair_progress
+    updated.update(
+        progress_delta_metrics(
+            quality_repair_batch_followthrough=_mapping_copy(
+                updated.get("quality_repair_batch_followthrough")
+            ),
+            gate_clearing_batch_followthrough=_mapping_copy(
+                updated.get("gate_clearing_batch_followthrough")
+            ),
+            opl_current_control_state_handoff=_mapping_copy(
+                updated.get("opl_current_control_state_handoff")
+            ),
+            runtime_efficiency=_mapping_copy(updated.get("runtime_efficiency")),
+            repair_progress_projection=repair_progress,
+        )
+    )
     return updated
 
 
@@ -91,7 +126,7 @@ def refresh_existing_projection_current_owner_surfaces(
     if publication_eval_payload is not None:
         updated["publication_eval"] = publication_eval_payload
     handoff = merge_live_attempt_observability_into_handoff(
-        handoff=_mapping_copy(updated.get("opl_current_control_state_handoff")),
+        handoff=_optional_mapping(updated.get("opl_current_control_state_handoff")),
         live_attempt_handoff=opl_current_control_state_live_attempt_handoff_projection(
             profile=profile,
             study_id=_non_empty_text(updated.get("study_id")) or _non_empty_text(status.get("study_id")) or "",
@@ -101,6 +136,7 @@ def refresh_existing_projection_current_owner_surfaces(
     if handoff is not None:
         updated["opl_current_control_state_handoff"] = handoff
     else:
+        updated["opl_current_control_state_handoff"] = None
         handoff = {}
     current_action = build_current_executable_owner_action(updated)
     if current_action is None and handoff.get("running_provider_attempt") is not True:
@@ -171,6 +207,8 @@ def refresh_existing_projection_current_owner_surfaces(
         handoff=handoff,
         action_queue=envelope_actions,
     )
+    updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+    updated = apply_paper_recovery_state_user_visible_status(updated)
     updated["user_visible_projection"] = build_user_visible_projection(updated)
     return attach_delivery_inspection_projection_fn(
         updated,
@@ -188,6 +226,10 @@ def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[
     updated = dict(payload)
     updated["owner_action_admission"] = admission
     return updated
+
+
+def _optional_mapping(value: object) -> dict[str, Any] | None:
+    return dict(value) if isinstance(value, Mapping) else None
 
 
 def sync_current_execution_evidence(
@@ -294,6 +336,7 @@ __all__ = [
     "current_redrive_top_level_next_action",
     "refresh_existing_projection_batch_followthroughs",
     "refresh_existing_projection_current_owner_surfaces",
+    "refresh_existing_projection_repair_progress",
     "refresh_existing_projection_user_visible_status",
     "stage_artifact_index_projection",
     "sync_progress_first_owner_action_admission",
