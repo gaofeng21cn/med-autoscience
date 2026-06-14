@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from med_autoscience.controllers.owner_route_reconcile_parts import provider_admission_projection
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -512,7 +513,6 @@ def test_scan_routes_rejects_provider_admission_when_retained_queue_conflicts_wi
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
@@ -618,7 +618,7 @@ def test_scan_routes_rejects_provider_admission_when_retained_queue_conflicts_wi
         }
     ]
 
-    candidates = scan._provider_admission_candidates_from_current_control(
+    candidates = provider_admission_projection.candidates_from_current_control(
         studies=studies,
         action_queue=action_queue,
         current_control_ref=str(
@@ -637,7 +637,6 @@ def test_scan_routes_rejects_provider_admission_when_retained_queue_conflicts_wi
 def test_scan_routes_projects_provider_admission_when_queue_matches_current_work_unit(
     tmp_path: Path,
 ) -> None:
-    scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
@@ -726,8 +725,8 @@ def test_scan_routes_projects_provider_admission_when_queue_matches_current_work
     ]
     action_queue = [
         {
-                    "study_id": study_id,
-                    "quest_id": quest_id,
+            "study_id": study_id,
+            "quest_id": quest_id,
             "action_type": "run_gate_clearing_batch",
             "status": "queued",
             "owner": "gate_clearing_batch",
@@ -738,7 +737,7 @@ def test_scan_routes_projects_provider_admission_when_queue_matches_current_work
         }
     ]
 
-    candidates = scan._provider_admission_candidates_from_current_control(
+    candidates = provider_admission_projection.candidates_from_current_control(
         studies=studies,
         action_queue=action_queue,
         current_control_ref=str(

@@ -7,7 +7,6 @@ from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
 from med_autoscience.controllers import current_execution_envelope, current_work_unit, domain_status_projection, study_progress
-from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
 from med_autoscience.controllers.owner_route_reconcile_parts import action_projection, artifact_freshness
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer, canonical_inputs
 from med_autoscience.controllers.owner_route_reconcile_parts import block_state as block_state_part, completion_evidence
@@ -18,7 +17,8 @@ from med_autoscience.controllers.owner_route_reconcile_parts import evidence_ado
 from med_autoscience.controllers.owner_route_reconcile_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.owner_route_reconcile_parts import lifecycle_projection, opl_provider_attempts
 from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth, paper_progress_stall_projection, path_utils
-from med_autoscience.controllers.owner_route_reconcile_parts import projection_errors, provider_readiness_runtime_health
+from med_autoscience.controllers.owner_route_reconcile_parts import projection_errors, provider_admission_projection
+from med_autoscience.controllers.owner_route_reconcile_parts import provider_readiness_runtime_health
 from med_autoscience.controllers.owner_route_reconcile_parts import publication_gate_actions, queue_slo
 from med_autoscience.controllers.owner_route_reconcile_parts import repo_write_policy, request_packets
 from med_autoscience.controllers.owner_route_reconcile_parts import runtime_facts, scan_output, status_projection
@@ -130,84 +130,6 @@ def _decorate_action(
         control_allowed_write_surfaces=list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES),
         forbidden_actions=list(SUPERVISION_FORBIDDEN_ACTIONS),
     )
-
-
-def _current_control_provider_admission_payload(
-    *,
-    studies: list[dict[str, Any]],
-    action_queue: list[dict[str, Any]],
-) -> dict[str, Any]:
-    return {
-        "surface": "opl_current_control_state_handoff",
-        "studies": studies,
-        "action_queue": [
-            {
-                **dict(action),
-                "status": _text(action.get("status")) or "queued",
-            }
-            for action in action_queue
-            if isinstance(action, Mapping)
-        ],
-    }
-
-
-def _provider_admission_candidates_from_current_control(
-    *,
-    studies: list[dict[str, Any]],
-    action_queue: list[dict[str, Any]],
-    current_control_ref: str,
-) -> list[dict[str, Any]]:
-    current_control_payload = _current_control_provider_admission_payload(
-        studies=studies,
-        action_queue=action_queue,
-    )
-    actions_by_study_id: dict[str, list[dict[str, Any]]] = {}
-    for action in current_control_payload["action_queue"]:
-        study_id = _text(action.get("study_id"))
-        if study_id is None:
-            continue
-        actions_by_study_id.setdefault(study_id, []).append(dict(action))
-    candidates: list[dict[str, Any]] = []
-    for study in studies:
-        study_id = _text(study.get("study_id"))
-        study_root_text = _text(study.get("study_root"))
-        if study_id is None or study_root_text is None:
-            continue
-        study_actions = actions_by_study_id.get(study_id, [])
-        status_payload = {
-            "study_id": study_id,
-            "current_execution_envelope": _mapping(study.get("current_execution_envelope")),
-            "current_executable_owner_action": current_owner_action_identity.current_executable_owner_action_identity_from_study(
-                study=study,
-                fallback_action=study_actions[0] if study_actions else {},
-            ),
-        }
-        candidates.extend(
-            provider_admission.current_control_provider_admission_candidates(
-                current_control_payload,
-                study_root=Path(study_root_text),
-                status_payload=status_payload,
-                current_control_ref=current_control_ref,
-            )
-        )
-    return candidates
-
-
-def _attach_provider_admission_candidates(
-    *,
-    studies: list[dict[str, Any]],
-    candidates: list[dict[str, Any]],
-) -> None:
-    by_study_id: dict[str, list[dict[str, Any]]] = {}
-    for candidate in candidates:
-        study_id = _text(candidate.get("study_id"))
-        if study_id is None:
-            continue
-        by_study_id.setdefault(study_id, []).append(dict(candidate))
-    for study in studies:
-        study_candidates = by_study_id.get(_text(study.get("study_id")) or "", [])
-        study["provider_admission_pending_count"] = len(study_candidates)
-        study["provider_admission_candidates"] = study_candidates
 
 
 def _action_queue(
@@ -1030,12 +952,12 @@ def scan_domain_routes(
         profile=profile,
         developer_mode=developer_mode,
     )
-    provider_admission_candidates = _provider_admission_candidates_from_current_control(
+    provider_admission_candidates = provider_admission_projection.candidates_from_current_control(
         studies=output_studies,
         action_queue=action_queue,
         current_control_ref=str(latest_path),
     )
-    _attach_provider_admission_candidates(
+    provider_admission_projection.attach_candidates(
         studies=output_studies,
         candidates=provider_admission_candidates,
     )
