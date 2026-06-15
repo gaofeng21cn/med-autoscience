@@ -10,6 +10,7 @@ from med_autoscience.controllers.production_blocker_impact_projection import (
     build_production_blocker_impact_projection,
 )
 import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
+from med_autoscience.controllers import study_domain_transition_table
 import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.controllers.study_interventions import read_intervention_events
@@ -279,6 +280,13 @@ def assemble_study_progress_payload(
             stage_artifact_index
         )
     payload.update(build_progress_first_projection(payload))
+    payload = _attach_fresh_domain_transition(
+        payload=payload,
+        study_root=study_root,
+        status=status,
+        current_active_run_id=current_active_run_id,
+        publication_eval_payload=publication_eval_payload,
+    )
     payload["production_blocker_impact"] = build_production_blocker_impact_projection(
         payload,
         status,
@@ -381,6 +389,56 @@ def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[s
     updated = _apply_current_work_unit_typed_blocker_user_visible_status(updated)
     updated = _apply_runtime_medical_publication_surface_user_visible_status(updated)
     return _apply_terminal_delivery_user_visible_status(updated)
+
+
+def _attach_fresh_domain_transition(
+    *,
+    payload: dict[str, Any],
+    study_root: Path,
+    status: Mapping[str, Any],
+    current_active_run_id: str | None,
+    publication_eval_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    updated = dict(payload)
+    macro_state = compact_study_macro_state_from_payload(updated) or {}
+    delivered_package = _mapping_copy(updated.get("delivered_package"))
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id=_non_empty_text(updated.get("study_id")) or "unknown-study",
+        study_root=study_root,
+        status={
+            **status,
+            **updated,
+            **({"publication_eval": publication_eval_payload} if publication_eval_payload else {}),
+        },
+        macro_state=macro_state,
+        active_run_id=current_active_run_id,
+        running_provider_attempt=_running_provider_attempt_from_payload(updated),
+        delivered_package=delivered_package if delivered_package else None,
+    )
+    if transition and _fresh_domain_transition_should_attach(transition):
+        updated["domain_transition"] = transition
+    return updated
+
+
+def _fresh_domain_transition_should_attach(transition: Mapping[str, Any]) -> bool:
+    decision_type = _non_empty_text(transition.get("decision_type"))
+    if decision_type is None:
+        return False
+    if decision_type == "fail_closed":
+        return False
+    return True
+
+
+def _running_provider_attempt_from_payload(payload: Mapping[str, Any]) -> bool | None:
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    if handoff.get("running_provider_attempt") is True:
+        return True
+    if handoff.get("running_provider_attempt") is False:
+        return False
+    envelope = _mapping_copy(payload.get("current_execution_envelope"))
+    if _non_empty_text(envelope.get("state_kind")) == "running_provider_attempt":
+        return True
+    return None
 
 
 def _apply_current_work_unit_typed_blocker_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:

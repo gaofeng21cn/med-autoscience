@@ -511,7 +511,7 @@ def test_current_work_unit_keeps_paper_recovery_successor_over_repair_progress_f
     assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
 
 
-def test_current_work_unit_consumes_current_paper_recovery_successor_repair_receipt() -> None:
+def test_current_work_unit_keeps_gate_followthrough_successor_over_prior_repair_receipt() -> None:
     module = _module()
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     repair_fingerprint = "publication-blockers::0915410f804b3697"
@@ -595,14 +595,14 @@ def test_current_work_unit_consumes_current_paper_recovery_successor_repair_rece
 
     _assert_contract_shape(work_unit)
     assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "gate_clearing_batch"
-    assert work_unit["action_type"] == "run_gate_clearing_batch"
-    assert work_unit["work_unit_id"] == "publication_gate_replay"
-    assert work_unit["work_unit_fingerprint"] == gate_fingerprint
-    assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["work_unit_fingerprint"] == repair_fingerprint
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
 
 
-def test_current_work_unit_repair_progress_followup_supersedes_same_gate_stall_closeout() -> None:
+def test_current_work_unit_gate_followthrough_successor_supersedes_same_gate_stall_closeout() -> None:
     module = _module()
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     repair_fingerprint = "publication-blockers::0915410f804b3697"
@@ -708,11 +708,11 @@ def test_current_work_unit_repair_progress_followup_supersedes_same_gate_stall_c
 
     _assert_contract_shape(work_unit)
     assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "gate_clearing_batch"
-    assert work_unit["action_type"] == "run_gate_clearing_batch"
-    assert work_unit["work_unit_id"] == "publication_gate_replay"
-    assert work_unit["work_unit_fingerprint"] == gate_fingerprint
-    assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["work_unit_fingerprint"] == repair_fingerprint
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
     assert "typed_blocker" not in work_unit["state"]
 
 
@@ -780,7 +780,7 @@ def test_current_work_unit_keeps_provider_handoff_over_repair_progress_followup(
     assert work_unit["state"]["source"] == "owner_route_reconcile.current_executable_owner_action"
 
 
-def test_current_work_unit_ignores_refs_only_handoff_over_consumed_repair_successor() -> None:
+def test_current_work_unit_keeps_refs_only_handoff_successor_over_prior_repair_receipt() -> None:
     module = _module()
     repair_fingerprint = "publication-blockers::0915410f804b3697"
     gate_fingerprint = "sha256:6908b5fd4189779bc39fa7f869aeedd978159a73644c90b6ec2cf90b39d7a643"
@@ -884,11 +884,11 @@ def test_current_work_unit_ignores_refs_only_handoff_over_consumed_repair_succes
 
     _assert_contract_shape(work_unit)
     assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "gate_clearing_batch"
-    assert work_unit["action_type"] == "run_gate_clearing_batch"
-    assert work_unit["work_unit_id"] == "publication_gate_replay"
-    assert work_unit["work_unit_fingerprint"] == gate_fingerprint
-    assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["work_unit_fingerprint"] == repair_fingerprint
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
 
 
 def test_current_work_unit_prefers_repair_progress_owner_receipt_over_stale_terminal_blocker() -> None:
@@ -1137,7 +1137,7 @@ def test_current_work_unit_projects_publication_eval_repair_over_stale_gate_sele
     assert "typed_blocker" not in work_unit["state"]
 
 
-def test_current_work_unit_projects_repair_progress_gate_replay_after_same_work_unit_repair_receipt() -> None:
+def test_current_work_unit_keeps_actionable_gate_followthrough_after_prior_repair_receipt() -> None:
     module = _module()
     repair_fingerprint = "publication-blockers::0915410f804b3697"
     gate_fingerprint = "sha256:bfcf03bacdcb4e58edd085444dda2f3906814c8a1806afb63b8095b90408bac9"
@@ -1215,11 +1215,11 @@ def test_current_work_unit_projects_repair_progress_gate_replay_after_same_work_
 
     _assert_contract_shape(work_unit)
     assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "gate_clearing_batch"
-    assert work_unit["action_type"] == "run_gate_clearing_batch"
-    assert work_unit["work_unit_id"] == "publication_gate_replay"
-    assert work_unit["work_unit_fingerprint"] == gate_fingerprint
-    assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["work_unit_fingerprint"] == repair_fingerprint
+    assert work_unit["state"]["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
 
 
 def test_current_work_unit_keeps_reconciled_current_action_over_stale_gate_terminal_blocker() -> None:

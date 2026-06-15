@@ -249,13 +249,12 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_tracks_stopped_auto_co
 
     assert calls == [("status", "001-risk"), ("currentness", "001-risk")]
     assert result["managed_study_auto_recoveries"] == []
-    assert result["managed_study_actions"] == [
-        {
-            "study_id": "001-risk",
-            "decision": "resume",
-            "reason": "quest_waiting_on_invalid_blocking",
-        }
-    ]
+    action = result["managed_study_actions"][0]
+    assert action["study_id"] == "001-risk"
+    assert action["decision"] == "resume"
+    assert action["reason"] == "quest_waiting_on_invalid_blocking"
+    assert action["current_work_unit"]["status"] == "executable_owner_action"
+    assert action["current_execution_envelope"]["state_kind"] == "executable_owner_action"
     handoff = result["managed_study_opl_runtime_owner_handoffs"][0]
     assert handoff["status"] == "handoff_required"
     assert handoff["runtime_owner"] == "one-person-lab"

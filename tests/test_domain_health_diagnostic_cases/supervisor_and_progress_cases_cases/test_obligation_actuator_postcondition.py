@@ -629,7 +629,7 @@ def test_domain_health_diagnostic_apply_accepts_refreshed_owner_receipt_postcond
     assert outcomes[0]["owner_receipt_ref"] == gate_replay_ref
 
 
-def test_domain_health_diagnostic_apply_skips_same_tick_for_existing_owner_receipt(
+def test_domain_health_diagnostic_apply_continues_same_tick_for_owner_receipt_consumption(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -688,10 +688,18 @@ def test_domain_health_diagnostic_apply_skips_same_tick_for_existing_owner_recei
         },
     )
 
-    def fail_if_same_tick_runs(**kwargs):
-        raise AssertionError("existing owner receipt must close before same-tick reconcile")
+    same_tick_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module, "_run_developer_supervisor_same_tick", fail_if_same_tick_runs)
+    def fake_same_tick(**kwargs):
+        same_tick_calls.append(kwargs)
+        return {
+            "surface": "developer_supervisor_same_tick",
+            "stop_reason": "typed_blocker_or_dispatch_blocker_observed",
+            "study_ids": [study_id],
+            "iterations": [{"owner_route_reconcile": {"surface": "portable_owner_route_reconcile"}}],
+        }
+
+    monkeypatch.setattr(module, "_run_developer_supervisor_same_tick", fake_same_tick)
     monkeypatch.setattr(
         module,
         "_materialize_report_provider_admission_current_control_state",
@@ -705,6 +713,23 @@ def test_domain_health_diagnostic_apply_skips_same_tick_for_existing_owner_recei
         "_sync_report_provider_admission_current_control_state",
         lambda report, **kwargs: None,
     )
+    monkeypatch.setattr(
+        module,
+        "_fresh_progress_currentness_for_report",
+        lambda **kwargs: {
+            study_id: {
+                "study_id": study_id,
+                "current_work_unit": {
+                    "status": "owner_receipt_recorded",
+                    "owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "sha256:gate-replay-current",
+                },
+                "paper_recovery_state": recovery_state,
+            }
+        },
+    )
 
     report = module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
@@ -715,12 +740,141 @@ def test_domain_health_diagnostic_apply_skips_same_tick_for_existing_owner_recei
         request_opl_owner_route_reconcile=True,
     )
 
-    assert "developer_supervisor_same_tick" not in report
+    assert [call["study_ids"] for call in same_tick_calls] == [(study_id,)]
+    assert report["developer_supervisor_same_tick"]["stop_reason"] == (
+        "typed_blocker_or_dispatch_blocker_observed"
+    )
     outcomes = report["managed_study_obligation_actuator_outcomes"]
-    assert len(outcomes) == 1
-    _assert_exactly_one_dhd_apply_outcome(outcomes[0], "owner_receipt_ref")
-    assert outcomes[0]["owner_receipt_ref"] == gate_replay_ref
-    assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
+    assert not [
+        outcome for outcome in outcomes if outcome.get("outcome_kind") == "owner_receipt_ref"
+    ]
+    typed_blocker_outcomes = [
+        outcome for outcome in outcomes if outcome.get("outcome_kind") == "typed_blocker_ref"
+    ]
+    assert len(typed_blocker_outcomes) == 1
+    _assert_exactly_one_dhd_apply_outcome(typed_blocker_outcomes[0], "typed_blocker_ref")
+    assert typed_blocker_outcomes[0]["typed_control_blocker"]["blocker_type"] == (
+        "dhd_apply_no_closed_obligation_outcome"
+    )
+    assert typed_blocker_outcomes[0]["typed_control_blocker"]["next_safe_action_kind"] == (
+        "consume_owner_receipt"
+    )
+    assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is False
+
+
+def test_domain_health_diagnostic_apply_continues_same_tick_for_successor_owner_gate(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    typed_blocker_ref = (
+        "artifacts/supervision/consumer/default_executor_execution/"
+        "sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+    )
+    recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "owner_action_ready",
+        "current_authority": {
+            "obligation": {
+                "owner": "one-person-lab",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "work_unit_fingerprint": (
+                    "domain-transition::route_back_same_line::"
+                    "ai_reviewer_record_gate_consumption"
+                ),
+            }
+        },
+        "next_safe_action": {
+            "kind": "materialize_successor_owner_gate",
+            "owner": "one-person-lab",
+            "provider_admission_allowed": False,
+        },
+        "supervisor_decision": {"decision": "materialize_recovery_action"},
+        "evidence_refs": [f"typed_blocker:{typed_blocker_ref}"],
+    }
+
+    monkeypatch.setattr(
+        module,
+        "_run_domain_health_diagnostic_for_runtime_impl",
+        lambda **kwargs: {
+            "surface": "domain_health_diagnostic",
+            "action_class": "observe_only",
+            "scanned_at": "2026-06-15T00:00:00+00:00",
+            "current_execution_evidence": {"progress_currentness": {}},
+            "paper_recovery_states": {study_id: recovery_state},
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "study_root": str(study_root),
+                    "current_work_unit": {
+                        "status": "typed_blocker",
+                        "owner": "one-person-lab",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "ai_reviewer_record_gate_consumption",
+                        "work_unit_fingerprint": (
+                            "domain-transition::route_back_same_line::"
+                            "ai_reviewer_record_gate_consumption"
+                        ),
+                        "state": {
+                            "typed_blocker": {
+                                "blocker_type": "anti_loop_budget_exhausted",
+                                "typed_blocker_ref": typed_blocker_ref,
+                            }
+                        },
+                    },
+                    "paper_recovery_state": recovery_state,
+                }
+            ],
+        },
+    )
+    same_tick_calls: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        module,
+        "_run_developer_supervisor_same_tick",
+        lambda **kwargs: same_tick_calls.append(kwargs)
+        or {
+            "surface": "developer_supervisor_same_tick",
+            "stop_reason": "owner_action_projected_but_not_materialized",
+            "study_ids": [study_id],
+            "iterations": [{"owner_route_reconcile": {"surface": "portable_owner_route_reconcile"}}],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_materialize_report_provider_admission_current_control_state",
+        lambda **kwargs: {
+            "surface": "opl_current_control_state_handoff",
+            "provider_admission_candidates": [],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_sync_report_provider_admission_current_control_state",
+        lambda report, **kwargs: None,
+    )
+    monkeypatch.setattr(module, "_fresh_progress_currentness_for_report", lambda **kwargs: {})
+
+    report = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=True,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+        request_opl_owner_route_reconcile=True,
+    )
+
+    assert [call["study_ids"] for call in same_tick_calls] == [(study_id,)]
+    assert report["developer_supervisor_same_tick"]["stop_reason"] == (
+        "owner_action_projected_but_not_materialized"
+    )
 
 
 def _owner_from_recovery(recovery: dict[str, object]) -> str | None:

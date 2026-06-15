@@ -912,7 +912,10 @@ def test_progress_first_monitoring_prefers_repair_followup_over_stale_readiness_
     )
     admission = monitoring["owner_action_admission"]
     assert admission["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
-    assert admission["admission_pending"] is True
+    assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
     assert admission["provider_attempt_running_proven"] is False
     assert admission["provider_attempt_proof"] is None
 

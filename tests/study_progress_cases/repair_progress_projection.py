@@ -148,6 +148,18 @@ def test_repair_progress_projection_accepts_executed_quality_batch_owner_result(
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
                 },
             },
+            "gate_clearing_batch": {
+                "status": "executed",
+                "source_work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "selected_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+            },
         },
     )
 
@@ -157,6 +169,9 @@ def test_repair_progress_projection_accepts_executed_quality_batch_owner_result(
     assert repair_progress["accepted_owner_receipt"] is True
     assert repair_progress["owner_receipt_ref"] == str(quality_batch_path)
     assert repair_progress["work_unit_id"] == "medical_prose_write_repair"
+    assert repair_progress["work_unit_fingerprint"] == "publication-blockers::0915410f804b3697"
+    assert repair_progress["action_fingerprint"] == "publication-blockers::0915410f804b3697"
+    assert repair_progress["source_fingerprint"] == "sha256:repair-evidence-current"
     assert repair_progress["source_eval_id"] == "eval-current"
     assert repair_progress["changed_artifact_refs"] == [
         {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},

@@ -95,6 +95,16 @@ def apply_managed_study_obligation_actuator(
         if not _recovery_requires_obligation_actuator(recovery):
             refreshed_actions.append(action_payload)
             continue
+        existing_outcome = _existing_closed_outcome_for_action(
+            action=action_payload,
+            outcomes=outcomes,
+        )
+        if existing_outcome is not None:
+            action_payload["dhd_apply_postcondition"] = _postcondition_from_outcome(
+                existing_outcome
+            )
+            refreshed_actions.append(action_payload)
+            continue
         outcome = _closed_obligation_outcome(
             action=action_payload,
             current_control_state=current_control,
@@ -364,6 +374,8 @@ def _owner_receipt_outcome(
 ) -> dict[str, Any] | None:
     recovery = _mapping(action.get("paper_recovery_state"))
     next_action = _mapping(recovery.get("next_safe_action"))
+    if _non_empty_text(next_action.get("kind")) == "consume_owner_receipt":
+        return None
     owner_receipt_ref = _first_text(
         next_action.get("owner_receipt_ref"),
         recovery.get("owner_receipt_ref"),
@@ -624,6 +636,83 @@ def _typed_control_blocker_payload(
     return cleaned
 
 
+def _existing_closed_outcome_for_action(
+    *,
+    action: Mapping[str, Any],
+    outcomes: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    study_id = _non_empty_text(action.get("study_id"))
+    if study_id is None:
+        return None
+    recovery = _mapping(action.get("paper_recovery_state"))
+    recovery_obligation_id = _non_empty_text(recovery.get("recovery_obligation_id"))
+    next_kind = _non_empty_text(_mapping(recovery.get("next_safe_action")).get("kind"))
+    action_type = _action_obligation_action_type(action)
+    work_unit_id = _action_obligation_work_unit_id(action)
+    work_unit_fingerprint = _action_obligation_fingerprint(action)
+    identity_incomplete = _action_obligation_identity_incomplete(
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+    )
+    for outcome in reversed(outcomes):
+        if outcome.get("postcondition_ok") is not True:
+            continue
+        if _non_empty_text(outcome.get("study_id")) != study_id:
+            continue
+        if (
+            next_kind == "consume_owner_receipt"
+            and _non_empty_text(outcome.get("outcome_kind")) == "owner_receipt_ref"
+        ):
+            continue
+        if recovery_obligation_id is not None:
+            if _non_empty_text(outcome.get("recovery_obligation_id")) == recovery_obligation_id:
+                return outcome
+            if not identity_incomplete:
+                continue
+        if (
+            _non_empty_text(outcome.get("action_type")) == action_type
+            and _non_empty_text(outcome.get("work_unit_id")) == work_unit_id
+            and _non_empty_text(outcome.get("work_unit_fingerprint")) == work_unit_fingerprint
+            and _non_empty_text(outcome.get("paper_recovery_next_safe_action_kind")) == next_kind
+        ):
+            return outcome
+        if identity_incomplete:
+            return outcome
+    return None
+
+
+def _action_obligation_identity_incomplete(
+    *,
+    action_type: str | None,
+    work_unit_id: str | None,
+    work_unit_fingerprint: str | None,
+) -> bool:
+    return (
+        action_type in {None, "unknown-action"}
+        or work_unit_id in {None, "unknown-work-unit", "current_work_unit_unresolved"}
+        or work_unit_fingerprint in {None, "current_work_unit_unresolved"}
+    )
+
+
+def _action_obligation_action_type(action: Mapping[str, Any]) -> str | None:
+    obligation = _action_recovery_obligation(action)
+    return _first_text(
+        obligation.get("action_type"),
+        _mapping(action.get("current_executable_owner_action")).get("action_type"),
+        _mapping(action.get("current_work_unit")).get("action_type"),
+    )
+
+
+def _action_obligation_work_unit_id(action: Mapping[str, Any]) -> str | None:
+    obligation = _action_recovery_obligation(action)
+    return _first_text(
+        obligation.get("work_unit_id"),
+        _mapping(action.get("current_executable_owner_action")).get("work_unit_id"),
+        _mapping(action.get("current_work_unit")).get("work_unit_id"),
+    )
+
+
 def _obligation_outcome(
     *,
     action: Mapping[str, Any],
@@ -672,16 +761,8 @@ def _obligation_outcome(
             _mapping(action.get("paper_recovery_state")).get("recovery_obligation_id")
         )
         or _non_empty_text(obligation.get("recovery_obligation_id")),
-        "action_type": _first_text(
-            obligation.get("action_type"),
-            _mapping(action.get("current_executable_owner_action")).get("action_type"),
-            _mapping(action.get("current_work_unit")).get("action_type"),
-        ),
-        "work_unit_id": _first_text(
-            obligation.get("work_unit_id"),
-            _mapping(action.get("current_executable_owner_action")).get("work_unit_id"),
-            _mapping(action.get("current_work_unit")).get("work_unit_id"),
-        ),
+        "action_type": _action_obligation_action_type(action),
+        "work_unit_id": _action_obligation_work_unit_id(action),
         "work_unit_fingerprint": _action_obligation_fingerprint(action),
         "details": _clean_payload(_mapping(details)),
         "typed_control_blocker": _clean_payload(_mapping(typed_control_blocker)),

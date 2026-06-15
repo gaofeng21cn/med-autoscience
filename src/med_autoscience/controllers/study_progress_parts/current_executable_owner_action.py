@@ -106,6 +106,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     if _gate_followthrough_supersedes_repair_progress(
         gate_followthrough_action=gate_followthrough_action,
         repair_progress_action=repair_progress_action,
+        payload=payload,
     ):
         return gate_followthrough_action
     if _canonical_current_work_unit_has_terminal_stop_loss(
@@ -575,6 +576,7 @@ def _gate_followthrough_supersedes_repair_progress(
     *,
     gate_followthrough_action: Mapping[str, Any] | None,
     repair_progress_action: Mapping[str, Any] | None,
+    payload: Mapping[str, Any],
 ) -> bool:
     gate_action = _mapping_copy(gate_followthrough_action)
     repair_action = _mapping_copy(repair_progress_action)
@@ -587,6 +589,11 @@ def _gate_followthrough_supersedes_repair_progress(
     if _non_empty_text(gate_action.get("action_type")) != QUALITY_REPAIR_ACTION:
         return False
     if _non_empty_text(repair_action.get("action_type")) != GATE_CLEARING_ACTION:
+        return False
+    if _terminal_gate_closeout_blocks_repair_followup(
+        action=repair_action,
+        payload=payload,
+    ):
         return False
     if _repair_progress_consumes_gate_followthrough_work_unit(
         gate_action=gate_action,
@@ -624,9 +631,12 @@ def _repair_progress_consumes_gate_followthrough_work_unit(
         return False
     if _non_empty_text(gate_action.get("action_type")) != QUALITY_REPAIR_ACTION:
         return False
-    repair_fingerprint = _non_empty_text(
-        repair_precedence.get("source_fingerprint")
-    ) or gate_replay_identity.action_fingerprint(repair_action)
+    repair_fingerprint = (
+        _non_empty_text(repair_precedence.get("work_unit_fingerprint"))
+        or _non_empty_text(repair_precedence.get("action_fingerprint"))
+        or gate_replay_identity.action_fingerprint(repair_action)
+        or _non_empty_text(repair_precedence.get("source_fingerprint"))
+    )
     gate_fingerprint = gate_replay_identity.action_fingerprint(gate_action)
     if (
         gate_replay_identity.canonical_gate_replay_typed_blocker_matches_repair_progress(
@@ -640,7 +650,13 @@ def _repair_progress_consumes_gate_followthrough_work_unit(
         and gate_fingerprint != repair_fingerprint
     ):
         return False
-    return _non_empty_text(repair_action.get("action_type")) == GATE_CLEARING_ACTION
+    if _non_empty_text(repair_action.get("action_type")) == GATE_CLEARING_ACTION:
+        return (
+            gate_fingerprint is not None
+            and repair_fingerprint is not None
+            and gate_fingerprint == repair_fingerprint
+        )
+    return True
 
 
 def _gate_followthrough_action_refs(action: Mapping[str, Any]) -> set[str]:
@@ -788,6 +804,8 @@ def _terminal_gate_closeout_consumes_repair_followup(
     action_fingerprint = (
         _non_empty_text(action.get("work_unit_fingerprint"))
         or _non_empty_text(action.get("action_fingerprint"))
+        or _non_empty_text(_mapping_copy(action.get("repair_progress_precedence")).get("work_unit_fingerprint"))
+        or _non_empty_text(_mapping_copy(action.get("repair_progress_precedence")).get("action_fingerprint"))
         or _non_empty_text(_mapping_copy(action.get("repair_progress_precedence")).get("source_fingerprint"))
     )
     terminal_fingerprint = (

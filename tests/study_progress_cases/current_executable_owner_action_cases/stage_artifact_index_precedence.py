@@ -295,7 +295,10 @@ def test_progress_first_monitoring_keeps_running_provider_liveness_from_overridi
     assert monitoring["next_owner"] == "finalize"
     assert monitoring["controller_action"] == "run_gate_clearing_batch"
     admission = monitoring["owner_action_admission"]
-    assert admission["admission_pending"] is True
+    assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
     assert admission["provider_attempt_running_proven"] is False
     assert admission["provider_attempt_proof"] is None
     assert admission["provider_attempt_owner"] == "ai_reviewer"

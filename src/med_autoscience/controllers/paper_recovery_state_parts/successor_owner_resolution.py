@@ -158,6 +158,14 @@ def _gate_followthrough_has_consumed_repair_progress(
     repair_eval = _text(repair.get("source_eval_id"))
     if action_eval is not None and repair_eval is not None and action_eval != repair_eval:
         return False
+    action_fingerprint = _first_text(action.get("work_unit_fingerprint"), action.get("action_fingerprint"))
+    repair_fingerprint = _first_text(
+        repair.get("work_unit_fingerprint"),
+        repair.get("action_fingerprint"),
+        repair.get("source_fingerprint"),
+    )
+    if action_fingerprint is None or repair_fingerprint != action_fingerprint:
+        return False
     return bool(
         _text(repair.get("repair_execution_evidence_ref"))
         or _text(repair.get("owner_receipt_ref"))

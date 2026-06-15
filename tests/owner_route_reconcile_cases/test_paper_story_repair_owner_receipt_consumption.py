@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.study_domain_transition_table import project_domain_transition
 from med_autoscience.controllers.study_transition_receipt_consumption import (
     default_executor_execution_nonconsumable_closeout,
     default_executor_execution_receipt_consumption,
@@ -178,6 +179,74 @@ def test_consumes_live_paper_story_repair_owner_receipt_from_controller_surface(
     assert receipt["submission_authorized"] is False
     assert receipt["current_package_write_authorized"] is False
     assert receipt["next_action"] == "honor_paper_story_repair_owner_receipt"
+
+
+def test_domain_transition_prioritizes_story_repair_receipt_over_publication_gate_blocker(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = tmp_path / "studies" / study_id
+    draft_ref = str(study_root / "paper" / "draft.md")
+    review_ref = str(study_root / "paper" / "build" / "review_manuscript.md")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "status": "blocked",
+            "verdict": {"overall_verdict": "blocked"},
+            "gaps": [{"gap_id": "medical_publication_surface_blocked", "severity": "must_fix"}],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json",
+        {
+            "surface": "paper_story_repair_owner_receipt",
+            "accepted": True,
+            "execution_status": "progress_delta_candidate",
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+            "canonical_artifact_delta_refs": [
+                {"path": draft_ref, "artifact_role": "canonical_manuscript_story_surface"},
+                {"path": review_ref, "artifact_role": "canonical_manuscript_story_surface"},
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "canonical_artifact_delta": {
+                "status": "fresh",
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    {"path": draft_ref, "artifact_role": "canonical_manuscript_story_surface"},
+                    {"path": review_ref, "artifact_role": "canonical_manuscript_story_surface"},
+                ],
+            },
+        },
+    )
+
+    transition = project_domain_transition(
+        study_id=study_id,
+        study_root=study_root,
+        status={"study_id": study_id, "quest_id": study_id},
+        macro_state={"writer_state": "queued", "reason": "quality"},
+        active_run_id=None,
+        running_provider_attempt=False,
+    )
+
+    assert transition["decision_type"] == "owner_apply_receipt_consumed"
+    assert transition["route_target"] == "finalize"
+    assert transition["controller_action"] == "paper_autonomy_guarded_apply"
+    assert transition["next_work_unit"]["unit_id"] == "provider_hosted_guarded_apply"
+    assert transition["completion_receipt_consumption"]["receipt_surface"] == (
+        "paper_story_repair_owner_receipt"
+    )
+    assert transition["completion_receipt_consumption"]["next_action"] == (
+        "honor_paper_story_repair_owner_receipt"
+    )
+    assert transition["guard_boundary"]["mas_owner_apply_receipt_required"] is True
 
 
 def test_rejects_paper_story_repair_owner_receipt_without_story_surface_refs(

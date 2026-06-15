@@ -15,6 +15,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import current_trut
 
 AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS = frozenset(
     {
+        "ai_reviewer_medical_prose_quality_review",
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
         "produce_ai_reviewer_publication_eval_record_against_current_inputs",
         "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",

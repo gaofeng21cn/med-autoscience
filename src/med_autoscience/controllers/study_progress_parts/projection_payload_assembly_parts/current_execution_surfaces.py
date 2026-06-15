@@ -247,15 +247,21 @@ def _repair_progress_precedence_for_current_work_unit(
     if repair.get("paper_delta_observed") is not True or repair.get("accepted_owner_receipt") is not True:
         return {}
     source_work_unit = _non_empty_text(repair.get("work_unit_id"))
-    source_fingerprint = _non_empty_text(repair.get("source_fingerprint"))
-    if source_work_unit is None or source_fingerprint is None:
+    work_unit_fingerprint = (
+        _non_empty_text(repair.get("work_unit_fingerprint"))
+        or _non_empty_text(repair.get("action_fingerprint"))
+        or _non_empty_text(repair.get("source_fingerprint"))
+    )
+    if source_work_unit is None or work_unit_fingerprint is None:
         return {}
     return {
         "paper_delta_observed": True,
         "accepted_owner_receipt": True,
         "superseded_stage_native_action": "run_quality_repair_batch",
         "source_work_unit_id": source_work_unit,
-        "source_fingerprint": source_fingerprint,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
+        "source_fingerprint": _non_empty_text(repair.get("source_fingerprint")),
     }
 
 

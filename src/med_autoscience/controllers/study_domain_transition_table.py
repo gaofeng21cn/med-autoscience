@@ -278,6 +278,29 @@ def project_domain_transition(
         )
         return consumed_transition or ai_reviewer_transition
 
+    if owner_apply_receipt_consumption or _meaningful_artifact_delta(repair_evidence):
+        return _transition(
+            study_id=study_id,
+            decision_type="owner_apply_receipt_consumed"
+            if owner_apply_receipt_consumption
+            else "artifact_delta_live_apply",
+            route_target="finalize",
+            next_work_unit=_work_unit(
+                "provider_hosted_guarded_apply",
+                "finalize",
+                "Apply artifact delta only through MAS-owned guarded apply receipt.",
+            ),
+            controller_action="paper_autonomy_guarded_apply",
+            owner="med-autoscience",
+            typed_blocker=None,
+            guard_boundary=_guard_boundary(
+                required_owner_surface="mas_owner_apply_receipt",
+                mas_owner_apply_receipt_required=True,
+            ),
+            source_refs=source_refs,
+            completion_receipt_consumption=owner_apply_receipt_consumption or execution_receipt_consumption,
+        )
+
     if _publication_gate_blocked(publication_eval, status=status):
         publication_gate_transition = _transition(
             study_id=study_id,
@@ -367,29 +390,6 @@ def project_domain_transition(
             guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
             source_refs=source_refs,
             completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
-        )
-
-    if owner_apply_receipt_consumption or _meaningful_artifact_delta(repair_evidence):
-        return _transition(
-            study_id=study_id,
-            decision_type="owner_apply_receipt_consumed"
-            if owner_apply_receipt_consumption
-            else "artifact_delta_live_apply",
-            route_target="finalize",
-            next_work_unit=_work_unit(
-                "provider_hosted_guarded_apply",
-                "finalize",
-                "Apply artifact delta only through MAS-owned guarded apply receipt.",
-            ),
-            controller_action="paper_autonomy_guarded_apply",
-            owner="med-autoscience",
-            typed_blocker=None,
-            guard_boundary=_guard_boundary(
-                required_owner_surface="mas_owner_apply_receipt",
-                mas_owner_apply_receipt_required=True,
-            ),
-            source_refs=source_refs,
-            completion_receipt_consumption=owner_apply_receipt_consumption or execution_receipt_consumption,
         )
 
     if active_runtime_present:

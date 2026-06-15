@@ -261,7 +261,9 @@ def test_progress_first_monitoring_prefers_consumed_repair_followup_over_same_pu
     assert action["work_unit_fingerprint"] == "sha256:old-repair-progress-followup"
     assert action["repair_progress_precedence"]["source_work_unit_id"] == "medical_prose_write_repair"
     assert admission["admission_requested"] is True
-    assert admission["admission_pending"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
     assert admission["next_owner"] == "gate_clearing_batch"
     assert admission["work_unit_id"] == "publication_gate_replay"
     assert admission["provider_attempt_owner"] == "gate_clearing_batch"

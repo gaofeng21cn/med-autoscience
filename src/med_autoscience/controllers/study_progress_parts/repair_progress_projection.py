@@ -19,6 +19,7 @@ def build_repair_progress_projection(*, study_root: Path) -> dict[str, Any]:
     evidence = _read_json_object(evidence_path)
     receipt = _read_json_object(receipt_path)
     quality_batch = _read_json_object(quality_batch_path)
+    quality_identity = _quality_batch_work_unit_identity(quality_batch)
     changed_refs = _progress_changed_refs(evidence=evidence, receipt=receipt)
     accepted = _accepted_progress_receipt(receipt=receipt) or _accepted_quality_batch_owner_result(
         quality_batch=quality_batch,
@@ -39,7 +40,12 @@ def build_repair_progress_projection(*, study_root: Path) -> dict[str, Any]:
         "accepted_owner_receipt": accepted,
         "status": "progress_delta_observed" if paper_delta_observed else "not_observed",
         "work_unit_id": _text(_mapping(evidence.get("repair_work_unit")).get("unit_id"))
-        or _text(receipt.get("work_unit_id")),
+        or _text(receipt.get("work_unit_id"))
+        or _text(quality_identity.get("work_unit_id")),
+        "work_unit_fingerprint": _text(quality_identity.get("work_unit_fingerprint"))
+        or _text(receipt.get("work_unit_fingerprint")),
+        "action_fingerprint": _text(quality_identity.get("work_unit_fingerprint"))
+        or _text(receipt.get("action_fingerprint")),
         "source_fingerprint": _text(evidence.get("source_fingerprint")),
         "source_eval_id": _text(_mapping(evidence.get("repair_work_unit")).get("source_eval_id"))
         or _text(_mapping(evidence.get("review_finding")).get("source_eval_id")),
@@ -150,6 +156,32 @@ def _quality_batch_authority_allows_owner_receipt(quality_batch: Mapping[str, An
     if controller_gate and controller_gate.get("authorized") is False:
         return False
     return True
+
+
+def _quality_batch_work_unit_identity(quality_batch: Mapping[str, Any]) -> dict[str, Any]:
+    gate_batch = _mapping(quality_batch.get("gate_clearing_batch"))
+    controller_gate = _mapping(_mapping(quality_batch.get("authority_route_gate")).get("controller_route_gate"))
+    controller_ref = _mapping(_mapping(quality_batch.get("authority_route_gate")).get("controller_repair_authorization_ref"))
+    selected_work_unit = _mapping(gate_batch.get("selected_publication_work_unit"))
+    current_work_unit = _mapping(gate_batch.get("current_publication_work_unit"))
+    currentness = _mapping(gate_batch.get("work_unit_currentness"))
+    return {
+        key: value
+        for key, value in {
+            "work_unit_id": _text(gate_batch.get("work_unit_id"))
+            or _text(controller_gate.get("work_unit_id"))
+            or _text(controller_ref.get("work_unit_id"))
+            or _text(selected_work_unit.get("unit_id"))
+            or _text(current_work_unit.get("unit_id")),
+            "work_unit_fingerprint": _text(gate_batch.get("source_work_unit_fingerprint"))
+            or _text(gate_batch.get("work_unit_fingerprint"))
+            or _text(currentness.get("current_work_unit_fingerprint"))
+            or _text(currentness.get("explicit_work_unit_fingerprint"))
+            or _text(controller_gate.get("work_unit_fingerprint"))
+            or _text(controller_ref.get("work_unit_fingerprint")),
+        }.items()
+        if value is not None
+    }
 
 
 def _progress_changed_refs(

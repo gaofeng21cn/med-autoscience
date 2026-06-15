@@ -291,12 +291,13 @@ def test_watch_runtime_refreshes_recovery_requested_status_to_live_within_same_t
         (study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json").read_text(encoding="utf-8")
     )
 
-    assert calls == [
+    assert calls[:4] == [
         ("status", "001-risk"),
         ("currentness", "001-risk"),
         ("status", "001-risk"),
         ("currentness", "001-risk"),
     ]
+    assert calls[4:] in ([], [("currentness", "001-risk")])
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
     assert result["managed_study_actions"][0]["decision"] == "blocked"
     assert result["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"

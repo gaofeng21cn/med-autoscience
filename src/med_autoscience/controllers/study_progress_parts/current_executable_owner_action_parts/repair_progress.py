@@ -129,7 +129,11 @@ def _repair_followup_action(
 ) -> dict[str, Any]:
     owner_receipt_ref = _non_empty_text(repair_progress.get("owner_receipt_ref"))
     repair_evidence_ref = _non_empty_text(repair_progress.get("repair_execution_evidence_ref"))
-    work_unit_fingerprint = _non_empty_text(repair_progress.get("source_fingerprint"))
+    work_unit_fingerprint = (
+        _non_empty_text(repair_progress.get("work_unit_fingerprint"))
+        or _non_empty_text(repair_progress.get("action_fingerprint"))
+        or _non_empty_text(repair_progress.get("source_fingerprint"))
+    )
     return _compact(
         {
             "surface_kind": surface_kind,
@@ -161,6 +165,8 @@ def _repair_followup_action(
                 "superseded_stage_native_action": "run_quality_repair_batch",
                 "superseded_readiness_action": READINESS_ACTION,
                 "source_work_unit_id": _non_empty_text(repair_progress.get("work_unit_id")),
+                "work_unit_fingerprint": _non_empty_text(repair_progress.get("work_unit_fingerprint")),
+                "action_fingerprint": _non_empty_text(repair_progress.get("action_fingerprint")),
                 "source_fingerprint": _non_empty_text(repair_progress.get("source_fingerprint")),
             },
             "authority_boundary": _authority_boundary(),

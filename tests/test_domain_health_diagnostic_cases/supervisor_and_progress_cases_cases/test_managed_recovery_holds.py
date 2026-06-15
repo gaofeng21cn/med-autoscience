@@ -99,13 +99,12 @@ def test_watch_runtime_does_not_auto_recover_package_ready_handoff(
     )
 
     assert calls == [("status", "001-risk"), ("currentness", "001-risk")]
-    assert result["managed_study_actions"] == [
-        {
-            "study_id": "001-risk",
-            "decision": "resume",
-            "reason": "quest_parked_on_unchanged_finalize_state",
-        }
-    ]
+    action = result["managed_study_actions"][0]
+    assert action["study_id"] == "001-risk"
+    assert action["decision"] == "resume"
+    assert action["reason"] == "quest_parked_on_unchanged_finalize_state"
+    assert action["current_work_unit"]["status"] == "executable_owner_action"
+    assert action["current_execution_envelope"]["state_kind"] == "parked"
     assert result["managed_study_auto_recoveries"] == []
 
 def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_active(

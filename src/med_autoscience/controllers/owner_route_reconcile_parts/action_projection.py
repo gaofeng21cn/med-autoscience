@@ -161,6 +161,23 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    explicit_ai_reviewer_successor = _explicit_ai_reviewer_successor_actions(
+        status,
+        progress=progress,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if explicit_ai_reviewer_successor is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+            for action in explicit_ai_reviewer_successor
+        ]
     repair_progress_action = repair_progress_followup.accepted_repair_progress_followup_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -551,6 +568,39 @@ def _consumed_ai_reviewer_route_back_actions(
         )
         for action in domain_transition_actions.actions(status, publication_eval_payload=publication_eval_payload)
     ]
+
+
+def _explicit_ai_reviewer_successor_actions(
+    status: Mapping[str, Any],
+    *,
+    progress: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any],
+) -> list[dict[str, Any]] | None:
+    if not _owner_receipt_consumption_is_current(progress):
+        return None
+    transition = _mapping(status.get("domain_transition"))
+    if _text(transition.get("decision_type")) != "ai_reviewer_re_eval":
+        return None
+    if _text(transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
+        return None
+    if _text(transition.get("owner")) not in {None, "ai_reviewer"}:
+        return None
+    return domain_transition_actions.actions(
+        status,
+        publication_eval_payload=publication_eval_payload,
+    )
+
+
+def _owner_receipt_consumption_is_current(progress: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    paper_recovery_state = _mapping(progress.get("paper_recovery_state"))
+    next_action = _mapping(paper_recovery_state.get("next_safe_action"))
+    return (
+        _text(current_work_unit.get("status")) == "owner_receipt_recorded"
+        and _text(paper_recovery_state.get("phase")) == "owner_receipt_recorded"
+        and _text(next_action.get("kind")) == "consume_owner_receipt"
+    )
+
 
 def _explicit_ai_reviewer_request_pending(ai_reviewer_assessment: Mapping[str, Any]) -> bool:
     if ai_reviewer_assessment.get("missing") is not True:

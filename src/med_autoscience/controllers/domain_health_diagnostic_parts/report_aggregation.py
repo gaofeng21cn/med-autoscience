@@ -299,6 +299,7 @@ def _managed_study_action_with_currentness(
     state_kind = _text(current_work_unit.get("status")) or _text(current_execution.get("state_kind"))
     if state_kind not in {
         "running_provider_attempt",
+        "owner_receipt_recorded",
         "typed_blocker",
         "blocked_current_work_unit",
         "executable_owner_action",
@@ -347,6 +348,12 @@ def _managed_study_action_with_currentness(
                 result["active_stage_attempt_id"] = active_stage_attempt_id
             if active_workflow_id := _text(proof.get("active_workflow_id")):
                 result["active_workflow_id"] = active_workflow_id
+        return result
+
+    if state_kind == "owner_receipt_recorded":
+        result["decision"] = "owner_receipt_recorded"
+        result["reason"] = "current_owner_receipt_recorded"
+        result["running_provider_attempt"] = False
         return result
 
     if state_kind in {"typed_blocker", "blocked_current_work_unit"}:

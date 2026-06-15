@@ -313,8 +313,11 @@ def test_successor_owner_action_precedes_stale_observe_only_provider_admission()
             "repair_progress_projection": {
                 "surface_kind": "repair_progress_projection",
                 "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
                 "accepted_owner_receipt": True,
                 "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
                 "source_eval_id": source_eval_id,
                 "repair_execution_evidence_ref": (
                     "artifacts/controller/repair_execution_evidence/latest.json"
@@ -470,6 +473,8 @@ def test_same_work_unit_quality_repair_owner_receipt_closes_current_callable() -
                 "paper_delta_observed": True,
                 "accepted_owner_receipt": True,
                 "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
                 "source_eval_id": "publication-eval::003::current",
                 "owner_receipt_ref": receipt_ref,
                 "repair_execution_evidence_ref": (
@@ -512,7 +517,8 @@ def test_same_work_unit_quality_repair_owner_receipt_closes_current_callable() -
 
 
 def test_repair_progress_gate_replay_followup_with_existing_receipt_closes_as_owner_receipt() -> None:
-    fingerprint = "sha256:7ede1907479d87ea1a88c4468749d0e63017d93b7b2d518cdcd9be95d4ee0e96"
+    fingerprint = "publication-gate-replay::current"
+    artifact_delta_fingerprint = "sha256:7ede1907479d87ea1a88c4468749d0e63017d93b7b2d518cdcd9be95d4ee0e96"
     repair_receipt_ref = "artifacts/controller/repair_execution_receipts/latest.json"
     gate_replay_ref = "artifacts/controller/gate_clearing_batch/latest.json"
     state = _module().build_paper_recovery_state(
@@ -545,7 +551,9 @@ def test_repair_progress_gate_replay_followup_with_existing_receipt_closes_as_ow
                     "paper_delta_observed": True,
                     "accepted_owner_receipt": True,
                     "source_work_unit_id": "medical_prose_write_repair",
-                    "source_fingerprint": fingerprint,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "source_fingerprint": artifact_delta_fingerprint,
                 },
             },
             "repair_progress_projection": {
@@ -554,7 +562,9 @@ def test_repair_progress_gate_replay_followup_with_existing_receipt_closes_as_ow
                 "paper_delta_observed": True,
                 "accepted_owner_receipt": True,
                 "work_unit_id": "medical_prose_write_repair",
-                "source_fingerprint": fingerprint,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "source_fingerprint": artifact_delta_fingerprint,
                 "source_eval_id": "publication-eval::003::current",
                 "owner_receipt_ref": repair_receipt_ref,
                 "repair_execution_evidence_ref": (

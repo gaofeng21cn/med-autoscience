@@ -37,6 +37,9 @@ def read_study_projection_inputs(
     )
     status_payload = _mapping(status)
     progress_payload = _mapping(progress)
+    progress_domain_transition = _mapping(progress_payload.get("domain_transition"))
+    if progress_domain_transition and not _mapping(status_payload.get("domain_transition")):
+        status_payload["domain_transition"] = progress_domain_transition
     resolved_quest_id = _text(status_payload.get("quest_id")) or _text(progress_payload.get("quest_id"))
     publication_eval = publication_eval_payload(status_payload, progress_payload)
     return status_payload, progress_payload, resolved_quest_id, publication_eval

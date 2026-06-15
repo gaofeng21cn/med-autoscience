@@ -20,6 +20,86 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def test_owner_receipt_consumption_successor_overrides_stage_readiness_residue() -> None:
+    stage_artifact_owner_actions = __import__(
+        "med_autoscience.controllers.owner_route_reconcile_parts.stage_artifact_owner_actions",
+        fromlist=["stage_artifact_owner_actions"],
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action = {
+        "action_type": "return_to_ai_reviewer_workflow",
+        "owner": "ai_reviewer",
+        "request_owner": "ai_reviewer",
+        "recommended_owner": "ai_reviewer",
+        "reason": "domain_transition_ai_reviewer_re_eval",
+        "next_work_unit": "ai_reviewer_medical_prose_quality_review",
+        "work_unit_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review"
+        ),
+        "domain_transition_decision_type": "ai_reviewer_re_eval",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+    }
+    progress = {
+        "current_work_unit": {
+            "status": "owner_receipt_recorded",
+            "state": {
+                "state_kind": "owner_receipt_recorded",
+                "next_safe_action_kind": "consume_owner_receipt",
+                "owner_receipt_ref": (
+                    "artifacts/controller/repair_execution_receipts/latest.json"
+                ),
+            },
+            "required_output_contract": {"owner_receipt_consumed": True},
+        },
+        "paper_recovery_state": {
+            "phase": "owner_receipt_recorded",
+            "next_safe_action": {
+                "kind": "consume_owner_receipt",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+            },
+        },
+        "medical_paper_readiness": {"overall_status": "not_ready"},
+        "stage_kernel_projection": {
+            "current_owner_delta": {
+                "source_kind": "typed_blocker",
+                "action": "complete_medical_paper_readiness_surface",
+                "owner": "MedAutoScience",
+                "reason": "medical_paper_readiness_missing",
+                "required_input": "complete_medical_paper_readiness_surface",
+                "source_ref": (
+                    "artifacts/stage_outputs/08-publication_package_handoff/"
+                    "receipts/typed_blocker.json"
+                ),
+                "latest_owner_answer_kind": "typed_blocker",
+                "next_action": {
+                    "action_id": "complete_medical_paper_readiness_surface",
+                    "surface_key": "authoring_runtime_authorization",
+                },
+            },
+        },
+    }
+
+    result = stage_artifact_owner_actions.action_queue_with_terminal_publication_handoff(
+        actions=[dict(action)],
+        progress=progress,
+        study_id=study_id,
+        quest_id=study_id,
+        decorate_action=lambda **kwargs: {
+            **dict(kwargs["action"]),
+            "study_id": kwargs["study_id"],
+            "quest_id": kwargs["quest_id"],
+        },
+        publication_eval_payload={
+            "gaps": [{"gap_id": "medical_publication_surface_blocked"}],
+        },
+    )
+    projection = stage_artifact_owner_actions.projection_fields(progress, actions=result)
+
+    assert [item["action_type"] for item in result] == ["return_to_ai_reviewer_workflow"]
+    assert result[0]["reason"] == "domain_transition_ai_reviewer_re_eval"
+    assert "current_executable_owner_action" not in projection
+
+
 @pytest.mark.parametrize("ai_reviewer_lifecycle_stateful", [True, False])
 def test_scan_routes_accepted_repair_reviewer_queue_overrides_stage_readiness_typed_blocker(
     monkeypatch,
@@ -993,3 +1073,177 @@ def test_fresh_ai_reviewer_write_routeback_supersedes_stale_reviewer_redrive(
     assert study["owner_route"]["next_owner"] == "write"
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
     assert study["owner_route"]["source_refs"]["source_eval_id"] == publication_eval_payload["eval_id"]
+
+
+def test_owner_receipt_consumption_routes_domain_transition_reviewer_successor_over_gate_replay(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    draft = study_root / "paper" / "draft.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text("# Draft\n\nCurrent repaired manuscript.\n", encoding="utf-8")
+    ai_reviewer_request = (
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    )
+    gate_replay_request = study_root / "artifacts" / "controller" / "gate_replay_requests" / "latest.json"
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    receipt_path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
+    _write_json(
+        ai_reviewer_request,
+        {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {"state": "requested"},
+        },
+    )
+    _write_json(
+        gate_replay_request,
+        {"request_kind": "run_gate_replay_after_repair", "request_lifecycle": {"state": "requested"}},
+    )
+    _write_json(
+        evidence_path,
+        {
+            "surface": "repair_execution_evidence",
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "source_fingerprint": "publication-blockers::0915410f804b3697",
+            "source_eval_id": "publication-eval::dm003::owner-receipt-consumption",
+            "repair_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "source_eval_id": "publication-eval::dm003::owner-receipt-consumption",
+            },
+            "canonical_artifact_delta": {
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+                ],
+            },
+            "ai_reviewer_recheck_required": True,
+            "ai_reviewer_recheck_done": True,
+            "ai_reviewer_recheck_request_ref": str(ai_reviewer_request),
+            "gate_replay_refs": [str(gate_replay_request)],
+        },
+    )
+    _write_json(
+        receipt_path,
+        {
+            "surface": "paper_story_repair_owner_receipt",
+            "accepted": True,
+            "work_unit_id": "medical_prose_write_repair",
+            "repair_execution_evidence_ref": str(evidence_path),
+            "ai_reviewer_recheck_request_ref": str(ai_reviewer_request),
+            "gate_replay_request_ref": str(gate_replay_request),
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+    status_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "decision": "resume",
+        "reason": "domain_transition_ai_reviewer_re_eval",
+        "active_run_id": None,
+        "domain_transition": {
+            "study_id": study_id,
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "owner": "ai_reviewer",
+            "next_work_unit": {
+                "unit_id": "ai_reviewer_medical_prose_quality_review",
+                "lane": "review",
+                "summary": "Re-run AI reviewer manuscript-quality review after the canonical manuscript story repair.",
+            },
+            "guard_boundary": {"opl_generic_runner_may_resume": False},
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm003-owner-receipt-consumption",
+            "source_signature": "truth-source-dm003-owner-receipt-consumption",
+        },
+    }
+    progress_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "queued",
+        "paper_stage": "analysis-campaign",
+        "active_run_id": None,
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "owner_receipt_recorded",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "owner_receipt_ref": str(receipt_path),
+        },
+        "paper_recovery_state": {
+            "phase": "owner_receipt_recorded",
+            "next_safe_action": {
+                "kind": "consume_owner_receipt",
+                "owner_receipt_ref": str(receipt_path),
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+            },
+        },
+        "domain_transition": status_payload["domain_transition"],
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm003::owner-receipt-consumption",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "overall_verdict": "blocked",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+    }
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval_payload),
+    )
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+        live_attempt_max_inspect_count=0,
+        provider_readiness_timeout_seconds=0,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "ai_reviewer"
+    assert action["reason"] == "domain_transition_ai_reviewer_re_eval"
+    assert action["next_work_unit"] == "ai_reviewer_medical_prose_quality_review"
+    assert action["work_unit_fingerprint"] == (
+        "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review"
+    )
+    assert study["owner_route"]["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert study["current_work_unit"]["status"] == "executable_owner_action"
+    assert study["current_work_unit"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert study["current_work_unit"]["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"

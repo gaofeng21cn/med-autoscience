@@ -235,6 +235,90 @@ def test_current_owner_action_preserves_same_eval_repair_progress_gate_replay() 
     assert action["repair_progress_precedence"]["source_work_unit_id"] == "medical_prose_write_repair"
 
 
+def test_current_owner_action_gate_followthrough_supersedes_consumed_repair_progress_gate_replay() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    gate_record_ref = (
+        f"/workspace/studies/{study_id}/artifacts/controller/"
+        "gate_clearing_batch/latest.json"
+    )
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": study_id,
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "source_fingerprint": "sha256:6908b5fd",
+                "source_eval_id": source_eval_id,
+                "repair_execution_evidence_ref": (
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "owner_receipt_ref": (
+                    "artifacts/controller/repair_execution_receipts/latest.json"
+                ),
+                "gate_replay_refs": [
+                    (
+                        f"runtime/quests/{study_id}/artifacts/reports/"
+                        "publishability_gate/2026-06-15T121635Z.json"
+                    ),
+                    gate_record_ref,
+                    "artifacts/controller/gate_replay_requests/latest.json",
+                ],
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_done": True,
+            },
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "work_unit_currentness": {
+                    "explicit_publication_work_unit_id": "medical_prose_write_repair",
+                    "selected_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "explicit_work_unit_fingerprint": fingerprint,
+                    "current_work_unit_fingerprint": fingerprint,
+                    "explicit_work_unit_fingerprint_matches_current": True,
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                    "summary": "Repair structured medical reporting.",
+                },
+                "gate_replay_status": "blocked",
+                "gate_replay_blockers": [
+                    "stale_submission_minimal_authority",
+                    "medical_publication_surface_blocked",
+                    "reviewer_first_concerns_unresolved",
+                    "submission_hardening_incomplete",
+                ],
+                "latest_record_path": gate_record_ref,
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    assert action["next_owner"] == "write"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["work_unit_id"] == "medical_prose_write_repair"
+    assert action["work_unit_fingerprint"] == fingerprint
+
+
 def test_current_owner_action_uses_newer_gate_replay_delta_over_stale_gate_followthrough() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"

@@ -146,14 +146,24 @@ def build_current_work_unit(
         current_executable_owner_action=current_executable_owner_action
         or progress_first_current_action,
     )
-    repair_progress_action = _repair_progress_action_consuming_current_action(
-        progress=progress_payload,
-        current_action=action,
+    current_action_owner_receipt_recovery = None
+    if not _provider_handoff_matches_action(
         provider_admission=provider_admission,
-        surface_kind="current_executable_owner_action",
-    )
-    if repair_progress_action is not None:
-        action = repair_progress_action
+        action=action,
+    ):
+        current_action_owner_receipt_recovery = _repair_progress_owner_receipt_recovery(
+            progress=progress_payload,
+            action=action,
+        )
+    if current_action_owner_receipt_recovery is None:
+        repair_progress_action = _repair_progress_action_consuming_current_action(
+            progress=progress_payload,
+            current_action=action,
+            provider_admission=provider_admission,
+            surface_kind="current_executable_owner_action",
+        )
+        if repair_progress_action is not None:
+            action = repair_progress_action
     if stage_owner_answer_action is not None and not _action_supersedes_stage_owner_answer(
         action=action,
         progress=progress_payload,
@@ -238,11 +248,25 @@ def build_current_work_unit(
         runtime_health=runtime_health_payload,
         running_attempt=running_attempt,
     )
-    owner_receipt_recovery = _owner_receipt_recorded_recovery(progress_payload) or _repair_progress_owner_receipt_recovery(
-        progress=progress_payload,
+    fallback_owner_receipt_recovery = None
+    if not _provider_handoff_matches_action(
+        provider_admission=provider_admission,
         action=action,
+    ):
+        fallback_owner_receipt_recovery = _repair_progress_owner_receipt_recovery(
+            progress=progress_payload,
+            action=action,
+        )
+    owner_receipt_recovery = (
+        _owner_receipt_recorded_recovery(progress_payload)
+        or current_action_owner_receipt_recovery
+        or fallback_owner_receipt_recovery
     )
-    if owner_receipt_recovery is not None:
+    if owner_receipt_recovery is not None and not _owner_receipt_consumed_by_actionable_successor(
+        action=action,
+        status=status_payload,
+        progress=progress_payload,
+    ):
         return _owner_receipt_work_unit(
             recovery=owner_receipt_recovery,
             action=action,
@@ -486,24 +510,31 @@ def _repair_progress_owner_receipt_recovery(
         return None
     if repair.get("gate_replay_done") is not True:
         return None
-    if _gate_followthrough_actionable_repair_action(_mapping(action)):
-        return None
-    if _progress_has_gate_followthrough_actionable_repair(progress):
-        return None
-    owner_receipt_ref = _repair_progress_gate_replay_receipt_ref(repair)
-    if owner_receipt_ref is None:
-        return None
-    payload = _mapping(action)
-    action_type = _action_type(payload) if payload else "run_gate_clearing_batch"
-    work_unit_id = _work_unit_id(payload.get("work_unit_id")) if payload else "publication_gate_replay"
-    if payload and (
-        action_type != "run_gate_clearing_batch"
-        or work_unit_id not in GATE_REPLAY_WORK_UNITS
+    if _gate_followthrough_actionable_repair_action(_mapping(action)) and not _repair_progress_matches_action(
+        repair=repair,
+        action=_mapping(action),
     ):
         return None
+    payload = _mapping(action)
+    same_work_unit_receipt = _repair_progress_matches_action(repair=repair, action=payload)
+    if _progress_has_gate_followthrough_actionable_repair(progress) and not same_work_unit_receipt:
+        return None
+    owner_receipt_ref = _text(repair.get("owner_receipt_ref")) if same_work_unit_receipt else _repair_progress_gate_replay_receipt_ref(repair)
+    if owner_receipt_ref is None:
+        return None
+    action_type = _action_type(payload) if payload else "run_gate_clearing_batch"
+    work_unit_id = _work_unit_id(payload.get("work_unit_id")) if payload else "publication_gate_replay"
+    if payload:
+        if same_work_unit_receipt:
+            if action_type != "run_quality_repair_batch" or work_unit_id != _work_unit_id(repair.get("work_unit_id")):
+                return None
+        elif action_type != "run_gate_clearing_batch" or work_unit_id not in GATE_REPLAY_WORK_UNITS:
+            return None
     work_unit_fingerprint = (
         _text(payload.get("work_unit_fingerprint"))
         or _text(payload.get("action_fingerprint"))
+        or _text(repair.get("work_unit_fingerprint"))
+        or _text(repair.get("action_fingerprint"))
         or _text(repair.get("source_fingerprint"))
     )
     return {
@@ -530,12 +561,93 @@ def _repair_progress_owner_receipt_recovery(
             "provider_admission_allowed": False,
             "owner_receipt_ref": owner_receipt_ref,
         },
-        "evidence_refs": _text_items(repair.get("gate_replay_refs")),
+        "evidence_refs": [owner_receipt_ref],
         "owner_receipt_ref": owner_receipt_ref,
         "supervisor_decision": {"decision": "stop_with_owner_receipt"},
         "repair_progress_projection": dict(repair),
         "condition": "repair_progress_owner_receipt_recorded",
     }
+
+
+def _repair_progress_matches_action(
+    *,
+    repair: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    action_type = _action_type(action)
+    if action_type is not None and action_type != "run_quality_repair_batch":
+        return False
+    repair_work_unit = _work_unit_id(repair.get("work_unit_id"))
+    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
+    if repair_work_unit is None or action_work_unit is None or repair_work_unit != action_work_unit:
+        return False
+    action_fingerprint = _work_unit_fingerprint(
+        action,
+        currentness_basis=_mapping(action.get("owner_route_currentness_basis"))
+        or _mapping(action.get("currentness_basis")),
+    )
+    repair_fingerprint = (
+        _text(repair.get("work_unit_fingerprint"))
+        or _text(repair.get("action_fingerprint"))
+        or _text(repair.get("source_fingerprint"))
+    )
+    if action_fingerprint is None or repair_fingerprint != action_fingerprint:
+        return False
+    action_eval = _text(action.get("source_eval_id"))
+    repair_eval = _text(repair.get("source_eval_id"))
+    if action_eval is not None and repair_eval is not None and action_eval != repair_eval:
+        return False
+    return True
+
+
+def _provider_handoff_matches_action(
+    *,
+    provider_admission: Mapping[str, Any] | None,
+    action: Mapping[str, Any] | None,
+) -> bool:
+    payload = _mapping(action)
+    handoff = _mapping(provider_admission)
+    if not payload or not handoff:
+        return False
+    candidate_count = handoff.get("provider_admission_pending_count")
+    candidates = _mappings(handoff.get("provider_admission_candidates"))
+    queued = _mappings(handoff.get("action_queue"))
+    if candidate_count in (None, 0) and not candidates and not queued and not _mapping(handoff.get("current_executable_owner_action")):
+        return False
+    for candidate in (
+        handoff.get("current_executable_owner_action"),
+        handoff.get("owner_action"),
+        *candidates,
+        *queued,
+    ):
+        item = _mapping(candidate)
+        if item and _same_action_identity(item, payload):
+            return True
+    return False
+
+
+def _same_action_identity(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    if _action_type(left) != _action_type(right):
+        return False
+    left_work_unit = _work_unit_id(left.get("work_unit_id")) or _work_unit_id(left.get("next_work_unit"))
+    right_work_unit = _work_unit_id(right.get("work_unit_id")) or _work_unit_id(right.get("next_work_unit"))
+    if left_work_unit is None or right_work_unit is None or left_work_unit != right_work_unit:
+        return False
+    left_fingerprint = _work_unit_fingerprint(
+        left,
+        currentness_basis=_mapping(left.get("owner_route_currentness_basis")) or _mapping(left.get("currentness_basis")),
+    )
+    right_fingerprint = _work_unit_fingerprint(
+        right,
+        currentness_basis=_mapping(right.get("owner_route_currentness_basis")) or _mapping(right.get("currentness_basis")),
+    )
+    return left_fingerprint is not None and left_fingerprint == right_fingerprint
+
+
+def _mappings(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list | tuple):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
 
 
 def _repair_progress_gate_replay_receipt_ref(repair: Mapping[str, Any]) -> str | None:
@@ -559,6 +671,75 @@ def _progress_has_gate_followthrough_actionable_repair(progress: Mapping[str, An
     if unit_id in {None, "publication_gate_replay", "complete_medical_paper_readiness_surface"}:
         return False
     return True
+
+
+def _owner_receipt_consumed_by_actionable_successor(
+    *,
+    action: Mapping[str, Any] | None,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    payload = _mapping(action)
+    if not payload:
+        return False
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    if _same_action_identity(obligation, payload):
+        return False
+    repair = _mapping(progress.get("repair_progress_projection"))
+    if repair and _repair_progress_matches_action(repair=repair, action=payload):
+        return False
+    if _domain_transition_successor_consumes_owner_receipt(
+        action=payload,
+        status=status,
+        progress=progress,
+    ):
+        return True
+    if not _gate_followthrough_actionable_repair_action(payload):
+        return False
+    if not _progress_has_gate_followthrough_actionable_repair(progress):
+        return False
+    return _action_supersedes_typed_blocker(
+        action=payload,
+        blocker={"blocker_type": "publication_gate_replay_blocked"},
+        progress=progress,
+    )
+
+
+def _domain_transition_successor_consumes_owner_receipt(
+    *,
+    action: Mapping[str, Any],
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    next_action = _mapping(recovery.get("next_safe_action"))
+    if _text(recovery.get("phase")) != "owner_receipt_recorded":
+        return False
+    if _text(next_action.get("kind")) != "consume_owner_receipt":
+        return False
+    transition = _mapping(status.get("domain_transition")) or _mapping(progress.get("domain_transition"))
+    if _text(transition.get("decision_type")) != "ai_reviewer_re_eval":
+        return False
+    if _text(transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
+        return False
+    if _text(transition.get("owner")) not in {None, "ai_reviewer"}:
+        return False
+    if _action_type(action) != "return_to_ai_reviewer_workflow":
+        return False
+    if _text(action.get("domain_transition_decision_type")) != "ai_reviewer_re_eval":
+        return False
+    next_work_unit = _work_unit_id(_mapping(transition.get("next_work_unit")).get("unit_id"))
+    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
+    if next_work_unit is None or action_work_unit != next_work_unit:
+        return False
+    expected_fingerprint = f"domain-transition::ai_reviewer_re_eval::{next_work_unit}"
+    action_fingerprint = _work_unit_fingerprint(
+        action,
+        currentness_basis=_mapping(action.get("owner_route_currentness_basis"))
+        or _mapping(action.get("currentness_basis")),
+    )
+    return action_fingerprint == expected_fingerprint
 
 
 def _action_supersedes_typed_blocker(

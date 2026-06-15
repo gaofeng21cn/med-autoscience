@@ -101,7 +101,7 @@ def test_domain_health_diagnostic_apply_accepts_stable_typed_blocker_as_closed_o
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
 
 
-def test_domain_health_diagnostic_apply_accepts_recorded_owner_receipt_as_closed_outcome(
+def test_domain_health_diagnostic_apply_rejects_unconsumed_owner_receipt_as_closed_outcome(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -183,16 +183,19 @@ def test_domain_health_diagnostic_apply_accepts_recorded_owner_receipt_as_closed
     )
 
     outcome = report["managed_study_obligation_actuator_outcomes"][0]
-    _assert_exactly_one_dhd_apply_outcome(outcome, "owner_receipt_ref")
+    _assert_exactly_one_dhd_apply_outcome(outcome, "typed_blocker_ref")
     _assert_supervisor_transaction_binding(
         outcome,
         expected_decision_id=supervisor_decision_id,
         expected_decision_kind="stop_with_owner_receipt",
         expected_obligation_ref=obligation_ref,
     )
-    assert outcome["owner_receipt_ref"] == receipt_ref
+    assert outcome["typed_control_blocker"]["blocker_type"] == (
+        "dhd_apply_no_closed_obligation_outcome"
+    )
+    assert outcome["typed_control_blocker"]["next_safe_action_kind"] == "consume_owner_receipt"
     postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
-    assert postcondition["ok"] is True
+    assert postcondition["ok"] is False
     assert postcondition["paper_autonomy_supervisor_decision_id"] == supervisor_decision_id
     assert postcondition["paper_autonomy_supervisor_decision_kind"] == "stop_with_owner_receipt"
     assert postcondition["paper_autonomy_obligation_ref"] == obligation_ref

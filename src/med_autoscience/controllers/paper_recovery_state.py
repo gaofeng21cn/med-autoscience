@@ -1064,10 +1064,10 @@ def _same_work_unit_owner_receipt_matches_obligation(
     repair_fingerprint = _first_text(
         repair.get("work_unit_fingerprint"),
         repair.get("action_fingerprint"),
+        repair.get("source_fingerprint"),
     )
-    if repair_fingerprint is not None and obligation_fingerprint is not None:
-        if repair_fingerprint != obligation_fingerprint:
-            return False
+    if obligation_fingerprint is not None and repair_fingerprint != obligation_fingerprint:
+        return False
     action_eval = _text(current_action.get("source_eval_id"))
     repair_eval = _text(repair.get("source_eval_id"))
     if action_eval is not None and repair_eval is not None and action_eval != repair_eval:
@@ -1120,6 +1120,13 @@ def _gate_followthrough_successor_receipt_matches_current_action(
     )
     if current_fingerprint is None or followthrough_fingerprint != current_fingerprint:
         return False
+    repair_fingerprint = _first_text(
+        repair.get("work_unit_fingerprint"),
+        repair.get("action_fingerprint"),
+        repair.get("source_fingerprint"),
+    )
+    if repair_fingerprint is None or repair_fingerprint != current_fingerprint:
+        return False
     repair_eval = _text(repair.get("source_eval_id"))
     action_eval = _text(current_action.get("source_eval_id"))
     followthrough_eval = _text(followthrough.get("source_eval_id"))
@@ -1155,11 +1162,15 @@ def _repair_progress_followup_owner_receipt_matches_obligation(
     source_work_unit = _text(repair_precedence.get("source_work_unit_id"))
     if source_work_unit is None or source_work_unit != _text(repair.get("work_unit_id")):
         return False
-    source_fingerprint = _text(repair_precedence.get("source_fingerprint"))
+    source_fingerprint = _first_text(
+        repair_precedence.get("work_unit_fingerprint"),
+        repair_precedence.get("action_fingerprint"),
+        repair_precedence.get("source_fingerprint"),
+    )
     repair_fingerprint = _first_text(
-        repair.get("source_fingerprint"),
         repair.get("work_unit_fingerprint"),
         repair.get("action_fingerprint"),
+        repair.get("source_fingerprint"),
     )
     if source_fingerprint is None or repair_fingerprint != source_fingerprint:
         return False

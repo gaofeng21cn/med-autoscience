@@ -21,6 +21,7 @@ from med_autoscience.controllers.study_progress_parts.current_executable_owner_a
 
 REPAIR_PROGRESS_EVIDENCE_SOURCE = "repair_progress_projection.mas_owner_repair_execution_evidence"
 PAPER_RECOVERY_SUCCESSOR_SOURCE = "paper_recovery_state.next_safe_action.successor_owner_action"
+GATE_FOLLOWTHROUGH_SUCCESSOR_SOURCE = "gate_clearing_batch_followthrough.actionable_current_work_unit"
 QUALITY_REPAIR_ACTION = "run_quality_repair_batch"
 
 
@@ -71,6 +72,12 @@ def _repair_progress_consumes_current_action(
     if progress_projection.get("accepted_owner_receipt") is not True:
         return False
     if _paper_recovery_successor_action_ready(current) and not _repair_progress_matches_current_successor(
+        current_action=current,
+        progress=progress,
+        progress_projection=progress_projection,
+    ):
+        return False
+    if _gate_followthrough_successor_action_ready(current) and not _repair_progress_matches_current_successor(
         current_action=current,
         progress=progress,
         progress_projection=progress_projection,
@@ -160,6 +167,17 @@ def _fingerprint(action: Mapping[str, Any]) -> str | None:
     )
 
 
+def _repair_identity_fingerprint(repair: Mapping[str, Any]) -> str | None:
+    basis = _mapping(repair.get("owner_route_currentness_basis")) or _mapping(repair.get("currentness_basis"))
+    return (
+        _text(repair.get("work_unit_fingerprint"))
+        or _text(repair.get("action_fingerprint"))
+        or _text(repair.get("fingerprint"))
+        or _text(basis.get("work_unit_fingerprint"))
+        or _text(repair.get("source_fingerprint"))
+    )
+
+
 def _repair_progress_matches_current_successor(
     *,
     current_action: Mapping[str, Any],
@@ -199,6 +217,9 @@ def _repair_progress_matches_current_successor(
         return False
     if current_fingerprint != followthrough_fingerprint:
         return False
+    repair_fingerprint = _repair_identity_fingerprint(progress_projection)
+    if repair_fingerprint is None or repair_fingerprint != current_fingerprint:
+        return False
     followthrough_eval = _text(followthrough.get("source_eval_id"))
     if repair_eval is not None and followthrough_eval is not None and repair_eval != followthrough_eval:
         return False
@@ -214,6 +235,19 @@ def _paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
     return (
         _action_type(action) is not None
         and _work_unit_id(action.get("work_unit_id")) is not None
+        and (_text(action.get("work_unit_fingerprint")) or _text(action.get("action_fingerprint")))
+        is not None
+    )
+
+
+def _gate_followthrough_successor_action_ready(action: Mapping[str, Any]) -> bool:
+    source = _text(action.get("source_surface")) or _text(action.get("source"))
+    if source != GATE_FOLLOWTHROUGH_SUCCESSOR_SOURCE:
+        return False
+    if _action_type(action) != QUALITY_REPAIR_ACTION:
+        return False
+    return (
+        _work_unit_id(action.get("work_unit_id")) is not None
         and (_text(action.get("work_unit_fingerprint")) or _text(action.get("action_fingerprint")))
         is not None
     )

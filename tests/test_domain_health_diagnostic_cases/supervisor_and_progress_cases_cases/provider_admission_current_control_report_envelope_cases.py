@@ -313,3 +313,93 @@ def test_runtime_report_uses_managed_action_runtime_health_for_recovery_state() 
     action = result["managed_study_actions"][0]
     assert action["paper_recovery_state"]["phase"] == "admission_blocked"
     assert action["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is False
+
+
+def test_runtime_report_prefers_owner_receipt_currentness_over_stale_user_waiting_action() -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    owner_receipt_ref = (
+        "/workspace/studies/003/artifacts/controller/quality_repair_batch/latest.json"
+    )
+    recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "owner_receipt_recorded",
+        "current_authority": {
+            "obligation": {
+                "study_id": study_id,
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            }
+        },
+        "next_safe_action": {
+            "kind": "consume_owner_receipt",
+            "owner": "write",
+            "provider_admission_allowed": False,
+            "owner_receipt_ref": owner_receipt_ref,
+        },
+        "owner_receipt_ref": owner_receipt_ref,
+        "evidence_refs": [owner_receipt_ref],
+        "supervisor_decision": {"decision": "stop_with_owner_receipt"},
+    }
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "decision": "blocked",
+                "reason": "quest_waiting_for_user",
+                "runtime_health_snapshot": {
+                    "canonical_runtime_action": "external_supervisor_required",
+                },
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[],
+        managed_study_progress_currentness={
+            study_id: {
+                "study_id": study_id,
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "owner_receipt_recorded",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "state": {
+                        "state_kind": "owner_receipt_recorded",
+                        "owner_receipt_ref": owner_receipt_ref,
+                    },
+                },
+                "current_execution_envelope": {
+                    "state_kind": "owner_receipt_recorded",
+                    "owner": "write",
+                    "next_work_unit": None,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                },
+                "paper_recovery_state": recovery_state,
+            }
+        },
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    action = result["managed_study_actions"][0]
+    assert action["decision"] == "owner_receipt_recorded"
+    assert action["reason"] == "current_owner_receipt_recorded"
+    assert action["running_provider_attempt"] is False
+    assert action["current_work_unit"]["status"] == "owner_receipt_recorded"
+    assert action["paper_recovery_state"]["phase"] == "owner_receipt_recorded"
+    assert action["paper_recovery_state"]["next_safe_action"]["kind"] == "consume_owner_receipt"

@@ -421,6 +421,7 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
         == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     )
 from .provider_admission_current_control_cases import *  # noqa: F403,F401,E402
+from .provider_admission_current_control_report_envelope_cases import *  # noqa: F403,F401,E402
 from .provider_admission_progress_currentness_cases import *  # noqa: F403,F401,E402
 from .provider_admission_probe_identity_cases import *  # noqa: F403,F401,E402
 from .provider_admission_same_tick_cases import *  # noqa: F403,F401,E402

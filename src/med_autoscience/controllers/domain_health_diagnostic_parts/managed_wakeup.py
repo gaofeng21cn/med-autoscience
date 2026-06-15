@@ -248,6 +248,9 @@ def _outer_loop_dispatch_blocked_by_explicit_wakeup_contract(
     runtime_action = _non_empty_text(runtime_health_snapshot.get("canonical_runtime_action"))
     supervisor_phase = _non_empty_text(publication_supervisor_state.get("supervisor_phase"))
 
+    if auto_runtime_parked.get("superseded_by_current_owner_action") is True:
+        return None
+
     user_pause_contract = stop_reason == "user_pause"
     reason_requires_wakeup = reason in _EXPLICIT_WAKEUP_REASONS
     parked_requires_wakeup = (

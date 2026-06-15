@@ -76,13 +76,12 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_auto_recover_submissi
     )
 
     assert calls == [("status", "001-risk"), ("currentness", "001-risk")]
-    assert result["managed_study_actions"] == [
-        {
-            "study_id": "001-risk",
-            "decision": "blocked",
-            "reason": "quest_waiting_for_submission_metadata",
-        }
-    ]
+    action = result["managed_study_actions"][0]
+    assert action["study_id"] == "001-risk"
+    assert action["decision"] == "blocked"
+    assert action["reason"] == "quest_waiting_for_submission_metadata"
+    assert action["current_work_unit"]["status"] == "executable_owner_action"
+    assert action["current_execution_envelope"]["state_kind"] == "parked"
     assert result["managed_study_auto_recoveries"] == []
 
 def test_watch_quest_dry_run_does_not_write_latest_domain_health_diagnostic_alias(tmp_path: Path) -> None:

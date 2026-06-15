@@ -766,8 +766,11 @@ def _same_tick_open_study_ids_after_actuator(
     closed_study_ids = {
         study_id
         for outcome in outcomes[max(0, outcome_start_index):]
-        if _obligation_actuator_outcome_closes_same_tick_study(outcome)
         if (study_id := _non_empty_text(outcome.get("study_id"))) is not None
+        and _obligation_actuator_outcome_closes_same_tick_study(
+            outcome,
+            action=_managed_study_action_for_study(report, study_id=study_id),
+        )
         and not _report_has_same_tick_successor_for_study(report, study_id=study_id)
     }
     if not closed_study_ids:
@@ -787,15 +790,41 @@ def _same_tick_open_study_ids_after_actuator(
     return open_requested or None
 
 
-def _obligation_actuator_outcome_closes_same_tick_study(outcome: Mapping[str, Any]) -> bool:
+def _obligation_actuator_outcome_closes_same_tick_study(
+    outcome: Mapping[str, Any],
+    *,
+    action: Mapping[str, Any] | None = None,
+) -> bool:
     if outcome.get("postcondition_ok") is not True:
         return False
-    return _non_empty_text(outcome.get("outcome_kind")) in {
-        "owner_receipt_ref",
-        "provider_admission_pending",
-        "running_provider_attempt",
-        "typed_blocker_ref",
-    }
+    outcome_kind = _non_empty_text(outcome.get("outcome_kind"))
+    if outcome_kind in {"provider_admission_pending", "running_provider_attempt"}:
+        return True
+    next_kind = _non_empty_text(
+        _mapping(_mapping(_mapping(action).get("paper_recovery_state")).get("next_safe_action")).get("kind")
+    )
+    if outcome_kind == "owner_receipt_ref":
+        return next_kind != "consume_owner_receipt"
+    if outcome_kind == "typed_blocker_ref":
+        return next_kind in {
+            "resolve_typed_blocker",
+            "honor_stable_typed_blocker",
+            "publish_stable_blocker_and_stop_same_identity_redrive",
+        }
+    return False
+
+
+def _managed_study_action_for_study(
+    report: Mapping[str, Any],
+    *,
+    study_id: str,
+) -> Mapping[str, Any] | None:
+    for action in report.get("managed_study_actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        if _non_empty_text(action.get("study_id")) == study_id:
+            return action
+    return None
 
 
 def _report_has_same_tick_successor_for_study(
