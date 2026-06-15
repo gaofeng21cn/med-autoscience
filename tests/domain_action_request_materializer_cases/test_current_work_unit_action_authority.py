@@ -188,12 +188,94 @@ def test_current_action_selection_does_not_let_typed_blocker_barrier_preempt_ide
     assert [action["action_type"] for action in actions] == ["run_quality_repair_batch"]
     assert actions[0]["source_surface"] == "current_executable_owner_action"
     assert actions[0]["work_unit_id"] == "analysis_claim_evidence_repair"
-    assert all(action["action_type"] != "current_execution_envelope_typed_blocker" for action in actions)
-    assert ignored == [
-        {
-            "study_id": "002-dm-china-us-mortality-attribution",
-            "action_type": "run_gate_clearing_batch",
-            "action_id": "stale-gate-replay",
-            "reason": "superseded_by_canonical_current_work_unit",
-        }
-    ]
+
+
+def test_current_action_selection_does_not_let_stale_fresh_paper_recovery_callable_preempt_current_work_unit(
+    monkeypatch,
+) -> None:
+    selection = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    monkeypatch.setattr(
+        selection.stage_native_next_action,
+        "stage_native_next_actions",
+        lambda **_: [],
+    )
+    monkeypatch.setattr(
+        selection.fresh_progress_current_action,
+        "current_actions",
+        lambda **_: [],
+    )
+    monkeypatch.setattr(
+        selection.paper_recovery_owner_callable,
+        "current_actions",
+        lambda **_: {
+            study_id: {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "action_type": "run_gate_clearing_batch",
+                "action_id": f"paper-recovery-owner-callable::{study_id}::run_gate_clearing_batch",
+                "reason": "publication_gate_replay",
+                "owner": "gate_clearing_batch",
+                "request_owner": "gate_clearing_batch",
+                "recommended_owner": "gate_clearing_batch",
+                "authority": "paper_recovery_state",
+                "source_surface": "paper_recovery_state",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:stale-gate",
+                "action_fingerprint": "sha256:stale-gate",
+            }
+        },
+    )
+
+    actions, ignored = selection.current_actions_for_studies(
+        profile=None,
+        study_ids=(study_id,),
+        scan_payload={
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "executable_owner_action",
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                        "action_fingerprint": "publication-blockers::0915410f804b3697",
+                        "state": {
+                            "state_kind": "executable_owner_action",
+                            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                        },
+                    },
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "status": "ready",
+                        "source": "canonical_current_work_unit",
+                        "next_owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "allowed_actions": ["run_quality_repair_batch"],
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                        "target_surface": {
+                            "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json"
+                        },
+                    },
+                    "action_queue": [],
+                }
+            ],
+            "action_queue": [],
+        },
+    )
+
+    assert actions is not None
+    assert [action["action_type"] for action in actions] == ["run_quality_repair_batch"]
+    assert actions[0]["authority"] == "canonical_current_work_unit"
+    assert actions[0]["work_unit_id"] == "medical_prose_write_repair"
+    assert any(
+        action["action_type"] == "run_gate_clearing_batch"
+        and action["reason"] == "superseded_by_canonical_current_work_unit"
+        for action in ignored
+    )

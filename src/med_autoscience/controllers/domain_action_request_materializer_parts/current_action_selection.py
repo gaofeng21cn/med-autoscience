@@ -196,7 +196,17 @@ def current_actions_for_studies(
                 if action != fresh_progress_action
             )
             continue
-        if paper_recovery_owner_callable_action is not None and readiness_followup is None:
+        if (
+            paper_recovery_owner_callable_action is not None
+            and readiness_followup is None
+            and (
+                canonical_current_action is None
+                or _action_matches_current_identity(
+                    paper_recovery_owner_callable_action,
+                    canonical_current_action,
+                )
+            )
+        ):
             per_study_actions.append(paper_recovery_owner_callable_action)
             ignored.extend(
                 _ignored_action(action, "superseded_by_paper_recovery_owner_callable")
@@ -273,6 +283,11 @@ def current_actions_for_studies(
                 )
                 for action in [
                     *([fresh_progress_action] if fresh_progress_action is not None else []),
+                    *(
+                        [paper_recovery_owner_callable_action]
+                        if paper_recovery_owner_callable_action is not None
+                        else []
+                    ),
                     *([readiness_followup] if readiness_followup is not None else []),
                     *([stage_native_action] if stage_native_action is not None else []),
                     *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
@@ -742,6 +757,29 @@ def _fresh_progress_is_current_owner_action(action: Mapping[str, Any] | None) ->
         _text(action.get("work_unit_fingerprint")) is not None
         or _text(action.get("action_fingerprint")) is not None
     )
+
+
+def _action_matches_current_identity(
+    action: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    if _text(action.get("action_type")) != _text(current_action.get("action_type")):
+        return False
+    current_work_unit_id = _text(current_action.get("work_unit_id")) or _text(
+        current_action.get("next_work_unit")
+    )
+    action_work_unit_id = _text(action.get("work_unit_id")) or _text(action.get("next_work_unit"))
+    if current_work_unit_id is not None and action_work_unit_id != current_work_unit_id:
+        return False
+    current_fingerprint = _text(current_action.get("work_unit_fingerprint")) or _text(
+        current_action.get("action_fingerprint")
+    )
+    action_fingerprint = _text(action.get("work_unit_fingerprint")) or _text(
+        action.get("action_fingerprint")
+    )
+    if current_fingerprint is not None and action_fingerprint != current_fingerprint:
+        return False
+    return True
 
 
 def _fresh_progress_is_current_execution_envelope_barrier(action: Mapping[str, Any] | None) -> bool:
