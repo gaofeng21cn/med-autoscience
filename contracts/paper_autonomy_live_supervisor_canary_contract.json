@@ -1,0 +1,101 @@
+{
+  "surface_kind": "paper_autonomy_live_supervisor_canary_contract",
+  "version": "paper-autonomy-live-supervisor-canary.v1",
+  "owner": "MedAutoScience",
+  "state": "active_contract",
+  "purpose": "Machine-readable contract for the read-only DM002/DM003 live supervisor canary that cross-checks study progress and DHD dry-run currentness.",
+  "machine_boundary": "This contract defines a read-only canary/readback surface. It does not execute DHD apply, hydrate, tick, redrive, provider admission, provider attempt start, closeout consumption, study truth writes, publication verdict writes, owner receipt writes, typed blocker writes, human gate writes, paper progress claims, publication readiness, domain readiness, current package freshness, or OPL production readiness.",
+  "command_surface": {
+    "script_ref": "scripts/real-paper-autonomy-soak-inventory.py",
+    "mode": "live-supervisor-canary",
+    "example_command": "scripts/run-python-clean.sh scripts/real-paper-autonomy-soak-inventory.py --mode live-supervisor-canary --profile <profile> --study 002-dm-china-us-mortality-attribution --study 003-dpcc-primary-care-phenotype-treatment-gap",
+    "requires_exactly_one_profile": true,
+    "default_target_studies": [
+      "002-dm-china-us-mortality-attribution",
+      "003-dpcc-primary-care-phenotype-treatment-gap"
+    ],
+    "output_surface_kind": "real_paper_autonomy_live_supervisor_canary"
+  },
+  "read_only_contract": {
+    "surface_kind": "real_paper_autonomy_live_supervisor_canary",
+    "mode": "read_only_live_canary",
+    "may_call_study_progress": true,
+    "may_call_domain_health_diagnostic_dry_run": true,
+    "may_apply_domain_health_diagnostic": false,
+    "may_hydrate": false,
+    "may_tick": false,
+    "may_redrive": false,
+    "may_start_provider_attempt": false,
+    "may_write_yang_study_or_runtime_artifacts": false
+  },
+  "source_read_order": [
+    "study_progress per study with sync_runtime_summary=false and materialize_read_model_artifacts=false",
+    "domain_health_diagnostic dry-run with request_opl_stage_attempts=true and apply=false",
+    "paper_recovery_state.supervisor_decision or deterministic rebuild from the same progress payload"
+  ],
+  "per_study_required_checks": [
+    "study_progress_payload_present",
+    "dhd_progress_currentness_payload_present",
+    "exactly_one_supervisor_decision",
+    "supervisor_decision_in_allowed_taxonomy",
+    "supervisor_decision_identity_match_true",
+    "study_progress_and_dhd_decision_identity_match",
+    "current_work_unit_summary_present",
+    "current_execution_envelope_summary_present",
+    "provider_admission_summary_present",
+    "strict_running_proof_summary_present",
+    "terminal_closeout_summary_present",
+    "forbidden_progress_authorities_rejected"
+  ],
+  "allowed_supervisor_decisions": [
+    "execute_current_owner_delta",
+    "consume_terminal_closeout",
+    "materialize_recovery_action",
+    "wait_for_owner_with_resume_token",
+    "stop_with_stable_typed_blocker",
+    "stop_with_owner_receipt"
+  ],
+  "forbidden_terminal_decisions": [
+    "idle",
+    "observe_only",
+    "queue_empty",
+    "provider_healthy",
+    "read_model_refreshed",
+    "operator_decision_required"
+  ],
+  "forbidden_progress_authorities": [
+    "queue_empty",
+    "dry_run",
+    "old_attempt_completion",
+    "transport_success",
+    "provider_admission_pending_count=0",
+    "read_model_refreshed",
+    "refs_only"
+  ],
+  "classification_policy": {
+    "missing_or_mismatched_identity_effect": "stale_diagnostic",
+    "execute_current_owner_delta": "identity_bound_provider_handoff_or_running_candidate",
+    "consume_terminal_closeout": "terminal_closeout_requires_mas_consumption",
+    "stop_with_owner_receipt": "owner_receipt_recorded",
+    "stop_with_stable_typed_blocker": "stable_typed_blocker",
+    "wait_for_owner_with_resume_token": "human_gate",
+    "materialize_recovery_action": "recovery_action_required"
+  },
+  "success_criteria": {
+    "summary_status": "pass",
+    "exactly_one_supervisor_decision_per_study": true,
+    "forbidden_progress_authorities_rejected": true,
+    "writes_performed": false
+  },
+  "failure_effect": {
+    "status": "fail",
+    "effect": "fail_closed_to_stale_diagnostic_or_identity_split_report",
+    "may_generate_domain_authority": false,
+    "may_generate_provider_admission": false,
+    "may_credit_paper_progress": false
+  },
+  "verification_refs": [
+    "tests/test_real_paper_autonomy_live_supervisor_canary.py",
+    "tests/test_paper_autonomy_supervisor_live_shape.py"
+  ]
+}
