@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.paper_autonomy_supervisor import (
+    ALLOWED_DECISIONS as SUPERVISOR_ALLOWED_DECISIONS,
     build_paper_autonomy_obligation,
     build_supervisor_decision,
 )
@@ -16,11 +17,7 @@ EXPECTED_STUDY_IDS = {
 }
 
 ALLOWED_SUPERVISOR_DECISIONS = {
-    "execute_current_owner_delta",
-    "consume_terminal_closeout",
-    "materialize_recovery_action",
-    "wait_for_owner_with_resume_token",
-    "stop_with_stable_typed_blocker",
+    *SUPERVISOR_ALLOWED_DECISIONS,
 }
 
 FORBIDDEN_TERMINAL_DECISIONS = {
@@ -101,6 +98,22 @@ def test_paper_recovery_state_embeds_same_supervisor_decision_for_dm002_dm003_li
         assert state["study_id"] == study_id
 
 
+def test_owner_receipt_recorded_live_shape_is_allowed_terminal_supervisor_decision() -> None:
+    progress = _owner_receipt_recorded_progress_payload()
+    state = build_paper_recovery_state(progress)
+    decision = build_supervisor_decision(progress, paper_recovery_state=state)
+
+    assert state["phase"] == "owner_receipt_recorded"
+    assert state["supervisor_decision"] == decision
+    assert decision["decision"] == "stop_with_owner_receipt"
+    assert decision["decision"] in ALLOWED_SUPERVISOR_DECISIONS
+    assert decision["decision"] not in FORBIDDEN_TERMINAL_DECISIONS
+    assert decision["next_safe_action"]["kind"] == "consume_owner_receipt"
+    assert decision["next_safe_action"]["owner_receipt_ref"] == "owner-receipt:dm003:gate"
+    assert decision["paper_progress_classification"] == "mas_owner_receipt_credit"
+    assert "owner-receipt:dm003:gate" in decision["evidence_refs"]
+
+
 def test_live_shape_obligation_preserves_current_identity_not_queue_empty_as_root() -> None:
     report = _dm002_dm003_dhd_live_shape()
     progress = report["progress_currentness"]["003-dpcc-primary-care-phenotype-treatment-gap"]
@@ -179,6 +192,47 @@ def _dm002_dm003_dhd_live_shape() -> dict[str, Any]:
                 ],
                 source_ref="/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_clearing_batch/latest.json",
             ),
+        },
+    }
+
+
+def _owner_receipt_recorded_progress_payload() -> dict[str, Any]:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_fingerprint = "sha256:owner-receipt-terminal"
+    return {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "action_queue": [],
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "owner_receipt_recorded",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "owner": "publication_gate",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": work_unit_fingerprint,
+            "currentness_basis": {
+                "source": "paper_recovery_state.owner_receipt_recorded",
+                "truth_epoch": f"truth::{study_id}",
+                "runtime_health_epoch": f"runtime::{study_id}",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+                "idempotency_key": f"idem::{study_id}::owner-receipt",
+            },
+            "state": {
+                "state_kind": "owner_receipt_recorded",
+                "owner_receipt_ref": "owner-receipt:dm003:gate",
+            },
+        },
+        "current_execution_envelope": {
+            "state_kind": "owner_receipt_recorded",
+            "owner": "publication_gate",
+            "owner_receipt_ref": "owner-receipt:dm003:gate",
         },
     }
 
