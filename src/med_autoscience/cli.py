@@ -8,9 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import dev_preflight, dev_preflight_contract
-from med_autoscience.agent_entry.renderers import render_stage_route_contract_payload, sync_agent_entry_assets
 from med_autoscience.cli_public_surface import (
-    GROUPED_COMMAND_PROGS,
     maybe_handle_public_help,
     normalize_public_command_argv,
 )
@@ -19,7 +17,7 @@ from med_autoscience.json_payload import json_safe
 from med_autoscience.lazy_module_proxy import LazyModuleProxy as _LazyModuleProxy
 from med_autoscience.medical_prose_review_request import materialize_ai_medical_prose_review_from_response
 from med_autoscience.overlay import installer as overlay_installer
-from med_autoscience.profiles import load_profile, profile_to_dict
+from med_autoscience.profiles import load_profile
 from med_autoscience.cli_parts.authority_operations import handle_authority_operation_command
 from med_autoscience.cli_parts.current_owner_delta_owner_answer_commands import handle_current_owner_delta_owner_answer_command
 from med_autoscience.cli_parts.display_pack_commands import handle_display_pack_command
@@ -44,13 +42,11 @@ from med_autoscience.cli_parts.domain_handler_commands import handle_domain_hand
 from med_autoscience.cli_parts.evo_scientist_sidecar_commands import (
     handle_evo_scientist_sidecar_command,
 )
+from med_autoscience.cli_parts.overlay_requests import overlay_request_from_args as _build_overlay_request_from_args
+from med_autoscience.cli_parts.public_root_commands import handle_public_root_command
+from med_autoscience.cli_parts.submission_delivery_commands import handle_submission_delivery_command
 from med_autoscience.cli_parts.workspace_data_commands import handle_workspace_data_command
-from med_autoscience.foundry_command_surface import (
-    build_foundry_command_surface_projection,
-    is_foundry_command,
-    operation_from_command,
-    render_foundry_command_surface_text,
-)
+
 
 def _load_module(module_name: str) -> Any:
     return importlib.import_module(module_name)
@@ -158,18 +154,11 @@ workspace_python_environment_controller = _LazyModuleProxy(_load_workspace_pytho
 
 
 def _overlay_request_from_args(args: argparse.Namespace) -> dict[str, object]:
-    if getattr(args, "profile", None) and getattr(args, "quest_root", None):
-        raise SystemExit("Specify at most one of --profile or --quest-root")
-    if getattr(args, "profile", None):
-        profile = load_profile(args.profile)
-        request = _load_doctor_module().overlay_request_from_profile(profile)
-        if not profile.enable_medical_overlay:
-            request["skill_ids"] = tuple()
-        return request
-    return {
-        "quest_root": Path(args.quest_root) if getattr(args, "quest_root", None) else None,
-        "skill_ids": None,
-    }
+    return _build_overlay_request_from_args(
+        args,
+        load_profile=load_profile,
+        load_doctor_module=_load_doctor_module,
+    )
 
 
 def _serialize_study_runtime_result(result: Any) -> dict[str, Any]:
@@ -187,35 +176,6 @@ def _serialize_study_runtime_result(result: Any) -> dict[str, Any]:
             raise TypeError("study runtime controller result must serialize to a dict")
         return safe_payload
     raise TypeError("study runtime controller result must be dict or ProgressProjectionStatus")
-
-
-def _handle_delivery_inspect_command(args: argparse.Namespace) -> int:
-    profile = load_profile(args.profile)
-    result = delivery_inspector.inspect_study_delivery(
-        profile=profile,
-        profile_ref=Path(args.profile),
-        study_id=args.study_id,
-        study_root=Path(args.study_root) if args.study_root else None,
-        publication_profile=args.publication_profile,
-    )
-    if args.format == "json":
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-    else:
-        print(delivery_inspector.render_delivery_inspection_markdown(result), end="")
-    return 0
-
-
-def _handle_submission_export_or_delivery_inspect_command(args: argparse.Namespace) -> int:
-    if args.command == "delivery-inspect":
-        return _handle_delivery_inspect_command(args)
-    result = submission_targets_controller.export_submission_targets(
-        paper_root=Path(args.paper_root) if args.paper_root else None,
-        profile_path=Path(args.profile) if args.profile else None,
-        study_root=Path(args.study_root) if args.study_root else None,
-        quest_root=Path(args.quest_root) if args.quest_root else None,
-    )
-    print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 0
 
 
 def _resolve_study_and_quest_for_batch_command(
@@ -259,13 +219,17 @@ def main(argv: list[str] | None = None) -> int:
         return help_result
     parser = build_parser()
     args = parser.parse_args(normalize_public_command_argv(resolved_argv))
-    if is_foundry_command(args.command):
-        payload = build_foundry_command_surface_projection(operation=operation_from_command(args.command))
-        if args.format == "json":
-            print(json.dumps(payload, ensure_ascii=False, indent=2))
-        else:
-            print(render_foundry_command_surface_text(payload), end="")
-        return 0
+    public_root_result = handle_public_root_command(
+        args,
+        dev_preflight=dev_preflight,
+        dev_preflight_contract=dev_preflight_contract,
+        load_profile=load_profile,
+        load_doctor_module=_load_doctor_module,
+        mainline_status=mainline_status,
+    )
+    if public_root_result is not None:
+        return public_root_result
+
     authority_result = handle_authority_operation_command(
         args,
         controller_modules={
@@ -277,45 +241,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     if authority_result is not None:
         return authority_result
-
-    if args.command == "doctor":
-        profile = load_profile(args.profile)
-        doctor = _load_doctor_module()
-        print(doctor.render_doctor_report(doctor.build_doctor_report(profile)), end="")
-        return 0
-
-    if args.command == "show-profile":
-        profile = load_profile(args.profile)
-        if args.format == "json":
-            print(json.dumps(profile_to_dict(profile), ensure_ascii=False, indent=2))
-        else:
-            print(_load_doctor_module().render_profile(profile), end="")
-        return 0
-
-    if args.command == "mainline-status":
-        result = mainline_status.read_mainline_status()
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(mainline_status.render_mainline_status_markdown(result), end="")
-        return 0
-
-    if args.command == "mainline-phase":
-        result = mainline_status.read_mainline_phase_status(args.phase)
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(mainline_status.render_mainline_phase_markdown(result), end="")
-        return 0
-
-    if args.command == "show-stage-route-contract":
-        print(json.dumps(render_stage_route_contract_payload(), ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "sync-agent-entry-assets":
-        result = sync_agent_entry_assets(repo_root=Path(args.repo_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
 
     for handler in (
         handle_evo_scientist_sidecar_command,
@@ -335,37 +260,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     if domain_handler_result is not None:
         return domain_handler_result
-
-    if args.command == "preflight-changes":
-        input_mode = "files"
-        if args.staged:
-            input_mode = "staged"
-        elif args.base_ref:
-            input_mode = "base_ref"
-        if args.base_ref:
-            result = dev_preflight.run_ci_preflight(base_ref=args.base_ref, repo_root=Path.cwd())
-        else:
-            changed_files = dev_preflight.collect_changed_files(
-                repo_root=Path.cwd(),
-                files=list(args.files or []),
-                staged=bool(args.staged),
-                base_ref=args.base_ref,
-            )
-            result = dev_preflight.run_preflight(
-                changed_files=changed_files,
-                repo_root=Path.cwd(),
-                input_mode=input_mode,
-            )
-        if args.format == "json":
-            print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
-        else:
-            print(dev_preflight.render_preflight_text(result), end="")
-        return 0 if result.ok else 1
-
-    if args.command == "preflight-contract-report":
-        result = dev_preflight_contract.build_preflight_contract_report()
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
 
     stage_memory_result = handle_stage_memory_command(
         args,
@@ -875,14 +769,14 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "resolve-submission-targets":
-        result = submission_targets_controller.resolve_submission_targets(
-            profile_path=Path(args.profile) if args.profile else None,
-            study_root=Path(args.study_root) if args.study_root else None,
-            quest_root=Path(args.quest_root) if args.quest_root else None,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
+    submission_delivery_result = handle_submission_delivery_command(
+        args,
+        load_profile=load_profile,
+        delivery_inspector=delivery_inspector,
+        submission_targets_controller=submission_targets_controller,
+    )
+    if submission_delivery_result is not None:
+        return submission_delivery_result
 
     if args.command == "resolve-journal-shortlist":
         result = journal_shortlist_controller.resolve_journal_shortlist(
@@ -918,9 +812,6 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
-
-    if args.command in {"export-submission-targets", "delivery-inspect"}:
-        return _handle_submission_export_or_delivery_inspect_command(args)
 
     if args.command == "publication-gate":
         result = publication_gate.run_controller(
