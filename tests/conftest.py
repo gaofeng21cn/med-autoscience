@@ -69,6 +69,20 @@ MATERIALIZATION_HEAVY_FILES = {
     "tests/test_study_delivery_sync.py",
 }
 
+SOAK_OR_GOLDEN_FILES = {
+    "tests/test_control_plane_generalization_cases/test_study_soak_replay_cases.py",
+    "tests/test_mas_mds_longitudinal_soak.py",
+    "tests/test_medical_paper_v2_final_soak_proof.py",
+    "tests/test_multistudy_soak_proof.py",
+    "tests/test_open_auto_research_soak.py",
+    "tests/test_real_paper_ai_first_soak.py",
+    "tests/test_real_paper_autonomy_soak_inventory.py",
+    "tests/test_real_workspace_soak_monitor.py",
+    "tests/test_storage_governance_read_only_soak.py",
+    "tests/test_study_truth_kernel_golden_fixtures.py",
+    "tests/progress_portal_cases/test_stage_kernel_cross_domain_soak_projection.py",
+}
+
 WRITE_ROUTE_LEGACY_DEFAULT_FILES = {
     "tests/test_submission_minimal.py",
     "tests/test_submission_minimal_display_surface.py",
@@ -131,6 +145,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             item.add_marker(pytest.mark.family)
         if relative_path in MATERIALIZATION_HEAVY_FILES:
             item.add_marker(pytest.mark.materialization_heavy)
+        if relative_path in SOAK_OR_GOLDEN_FILES:
+            item.add_marker(pytest.mark.soak_or_golden)
         if relative_path in WRITE_ROUTE_LEGACY_DEFAULT_FILES or relative_path.startswith(
             WRITE_ROUTE_LEGACY_DEFAULT_PREFIXES
         ):

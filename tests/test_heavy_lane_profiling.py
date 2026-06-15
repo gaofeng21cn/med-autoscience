@@ -12,7 +12,7 @@ SCRIPT = REPO_ROOT / "scripts" / "profile-heavy-test-lanes.py"
 
 def test_heavy_lane_profile_print_only_exposes_reproducible_duration_commands() -> None:
     result = subprocess.run(
-        [sys.executable, str(SCRIPT), "display", "submission", "--durations", "20", "--print-only"],
+        [sys.executable, str(SCRIPT), "display", "soak-golden", "submission", "--durations", "20", "--print-only"],
         cwd=REPO_ROOT,
         text=True,
         capture_output=True,
@@ -22,6 +22,7 @@ def test_heavy_lane_profile_print_only_exposes_reproducible_duration_commands() 
     assert result.returncode == 0
     assert result.stdout.splitlines() == [
         "scripts/run-pytest-clean.sh -q -m display_heavy --durations=20",
+        "scripts/run-pytest-clean.sh -q -m soak_or_golden --durations=20",
         "scripts/run-pytest-clean.sh -q -m submission_heavy --durations=20",
     ]
 
@@ -38,10 +39,11 @@ def test_heavy_lane_profile_defaults_cover_all_costly_lanes() -> None:
     assert result.returncode == 0
     lines = result.stdout.splitlines()
     assert "scripts/run-pytest-clean.sh -q -m display_heavy --durations=50" in lines
+    assert "scripts/run-pytest-clean.sh -q -m soak_or_golden --durations=50" in lines
     assert "scripts/run-pytest-clean.sh -q -m submission_heavy --durations=50" in lines
     assert (
         "scripts/run-pytest-clean.sh -q -m 'not meta and not display_heavy and not submission_heavy "
-        "and not materialization_heavy and not family' "
+        "and not materialization_heavy and not family and not soak_or_golden' "
         "--durations=50"
     ) in lines
 

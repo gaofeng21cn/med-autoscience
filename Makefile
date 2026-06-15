@@ -1,4 +1,4 @@
-.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-full test-family line-budget line-budget-strict test-structure test-structure-strict test-control-plane test-medical-paper-ops test-medical-quality-regression
+.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-soak-golden test-full test-family line-budget line-budget-strict test-structure test-structure-strict test-control-plane test-medical-paper-ops test-medical-quality-regression
 
 MAS_PYTEST_WORKERS ?= auto
 MAS_PYTEST_DIST ?= loadscope
@@ -46,7 +46,7 @@ test-smoke:
 	scripts/run-pytest-clean.sh tests/test_smoke_entrypoints.py tests/test_line_budget.py -q
 
 test-regression:
-	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family"
+	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family and not soak_or_golden"
 
 test-ci-preflight:
 	@if [ -z "$${BASE_REF:-}" ]; then echo "BASE_REF is required, for example: BASE_REF=HEAD~1 make test-ci-preflight" >&2; exit 2; fi
@@ -62,6 +62,9 @@ test-display:
 
 test-submission:
 	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy"
+
+test-soak-golden:
+	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m soak_or_golden
 
 test-family:
 	scripts/run-pytest-clean.sh tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q

@@ -16,6 +16,7 @@ PARALLEL_FULL_LANES = (
     "test-meta",
     "test-display",
     "test-submission",
+    "test-soak-golden",
     "test-family",
 )
 def test_lane_duration_summary_script_reports_slowest_lane(tmp_path: Path) -> None:
@@ -334,4 +335,3 @@ def test_lane_duration_history_script_reports_null_delta_when_history_is_too_sho
         "delta_from_baseline_percent=null"
         in result.stdout
     )
-

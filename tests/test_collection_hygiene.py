@@ -48,6 +48,8 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_holds.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_materialized_dispatch_blockers.py",
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_provider_admission_probe.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_gate.py",
@@ -87,6 +89,8 @@ NESTED_CASE_REEXPORT_SURFACES = {
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_holds.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_materialized_dispatch_blockers.py",
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_provider_admission_probe.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
     },
@@ -194,6 +198,7 @@ def _is_marker_managed_nested_path(path: str) -> bool:
         relative_test_path in tests_conftest.META_FILES
         or relative_test_path in tests_conftest.DISPLAY_HEAVY_FILES
         or relative_test_path in tests_conftest.FAMILY_FILES
+        or relative_test_path in tests_conftest.SOAK_OR_GOLDEN_FILES
         or relative_test_path in tests_conftest.WRITE_ROUTE_LEGACY_DEFAULT_FILES
         or relative_test_path.startswith(tests_conftest.WRITE_ROUTE_LEGACY_DEFAULT_PREFIXES)
         or "pytestmark = pytest.mark." in _read(relative_test_path)

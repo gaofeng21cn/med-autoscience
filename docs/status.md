@@ -237,6 +237,8 @@ Progress-first consumed-receipt read-model、owner action selection、same-tick 
 
 Medical quality regression lane 已收口为 `make test-medical-quality-regression`。该 lane 只验证 MAS 可消费的质量/进度语义、owner-route 和 refs-only blocker 形状，不写真实 study truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、`manuscript/current_package`、paper body、memory body 或 artifact body，也不授权 publication-ready、paper closure、domain-ready 或 production-ready。
 
+默认开发验证策略：`scripts/verify.sh` 未传 lane 时只运行 `make test-smoke`，用于入口/行预算级 smoke 合同；`make test-regression` / `scripts/verify.sh regression` 是普通开发回归 lane，显式排除 `meta`、`display_heavy`、`submission_heavy`、`materialization_heavy`、`family` 和 `soak_or_golden`。显示物化、submission/package materialization、family shared boundary 以及 soak/golden/fixture-oracle 证据分别由 `make test-display`、`make test-submission`、`make test-family`、`make test-soak-golden` 或 `scripts/verify.sh <lane>` 显式触发；`scripts/verify.sh full` 仍通过并行 lane 覆盖这些重型证据。该分层只减少默认开发路径负担，不把 smoke/regression 通过写成 runtime currentness、release-ready、publication-ready、domain-ready 或 owner acceptance。
+
 ## 当前不能声明
 
 - 不能声明 OPL provider proof 等于 MAS paper closure、publication-ready 或 artifact mutation authorization。

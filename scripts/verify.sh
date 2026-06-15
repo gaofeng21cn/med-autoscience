@@ -157,6 +157,11 @@ if [[ "${lane}" == "submission" ]]; then
   exit 0
 fi
 
+if [[ "${lane}" == "soak-golden" ]]; then
+  run_with_optional_summary "soak-golden" "make test-soak-golden" make test-soak-golden
+  exit 0
+fi
+
 if [[ "${lane}" == "family" ]]; then
   run_with_optional_summary "family" "make test-family" make test-family
   exit 0
@@ -192,5 +197,5 @@ if [[ "${lane}" == "control-plane" ]]; then
   exit 0
 fi
 
-echo "Usage: scripts/verify.sh [smoke|regression|ci-preflight <base-ref>|fast|meta|display|submission|family|line-budget|line-budget:strict|structure|structure:strict|control-plane|full]" >&2
+echo "Usage: scripts/verify.sh [smoke|regression|ci-preflight <base-ref>|fast|meta|display|submission|soak-golden|family|line-budget|line-budget:strict|structure|structure:strict|control-plane|full]" >&2
 exit 1

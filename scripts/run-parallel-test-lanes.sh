@@ -11,6 +11,7 @@ lanes=(
   "test-meta"
   "test-display"
   "test-submission"
+  "test-soak-golden"
   "test-family"
 )
 

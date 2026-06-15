@@ -41,6 +41,14 @@ def test_test_lane_manifest_paths_exist_and_are_used_by_makefile() -> None:
     manifest = _test_lane_manifest()
     makefile = _read("Makefile")
 
+    lane_markers = {
+        marker
+        for lane in manifest["lanes"].values()
+        for marker in lane.get("markers", [])
+    }
+    marker_registry = set(manifest["marker_registry"])
+    assert lane_markers <= marker_registry
+
     for lane in manifest["lanes"].values():
         for path in lane.get("paths", []):
             assert (REPO_ROOT / path).exists(), path
@@ -49,6 +57,19 @@ def test_test_lane_manifest_paths_exist_and_are_used_by_makefile() -> None:
             for path in lane.get(key, []):
                 assert (REPO_ROOT / path).exists(), f"{lane_id} references missing {key}: {path}"
     assert " ".join(manifest["lanes"]["smoke"]["paths"]) in makefile
+
+
+def test_test_lane_manifest_entries_are_unique() -> None:
+    manifest = _test_lane_manifest()
+
+    for lane_id, lane in manifest["lanes"].items():
+        for key in ("paths", "markers"):
+            values = lane.get(key, [])
+            assert len(values) == len(set(values)), f"{lane_id} has duplicate {key}: {values}"
+    for lane_id, lane in manifest["focused_lanes"].items():
+        for key in ("paths", "docs"):
+            values = lane.get(key, [])
+            assert len(values) == len(set(values)), f"{lane_id} has duplicate {key}: {values}"
 
 
 def test_functional_privatization_audit_exposes_standard_agent_purity_guard() -> None:

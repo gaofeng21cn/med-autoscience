@@ -16,6 +16,13 @@
         "materialization_heavy"
       ],
       "overlap_policy": "excluded_from_default_regression"
+    },
+    "soak-golden": {
+      "kind": "explicit_runtime_soak_and_golden_oracle_gate",
+      "markers": [
+        "soak_or_golden"
+      ],
+      "overlap_policy": "excluded_from_default_regression_included_in_full"
     }
   },
   "marker_registry": [

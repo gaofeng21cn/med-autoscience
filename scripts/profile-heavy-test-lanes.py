@@ -9,8 +9,9 @@ import sys
 
 LANE_MARKERS: dict[str, str] = {
     "display": "display_heavy",
+    "regression": "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family and not soak_or_golden",
+    "soak-golden": "soak_or_golden",
     "submission": "submission_heavy",
-    "regression": "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family",
 }
 
 
@@ -31,7 +32,7 @@ def profile_commands(lanes: list[str], *, durations: int) -> list[list[str]]:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
         prog="scripts/profile-heavy-test-lanes.py",
-        usage="%(prog)s [display|submission|regression ...] [--durations N] [--print-only]",
+        usage="%(prog)s [display|regression|soak-golden|submission ...] [--durations N] [--print-only]",
     )
     parser.add_argument("lanes", nargs="*", choices=sorted(LANE_MARKERS))
     parser.add_argument("--durations", type=int, default=50)

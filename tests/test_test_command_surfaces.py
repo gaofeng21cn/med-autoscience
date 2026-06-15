@@ -53,6 +53,7 @@ PARALLEL_FULL_LANES = (
     "test-meta",
     "test-display",
     "test-submission",
+    "test-soak-golden",
     "test-family",
 )
 
@@ -125,7 +126,7 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert (
         'scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) '
         '-m "not meta and not display_heavy and not submission_heavy '
-        'and not materialization_heavy and not family"'
+        'and not materialization_heavy and not family and not soak_or_golden"'
     ) in makefile
     assert "test-ci-preflight:" in makefile
     assert 'scripts/run-python-clean.sh -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"' in makefile
@@ -136,6 +137,8 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert "scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy" in makefile
     assert "test-submission:" in makefile
     assert 'scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy"' in makefile
+    assert "test-soak-golden:" in makefile
+    assert "scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m soak_or_golden" in makefile
     assert "test-family:" in makefile
     assert (
         "scripts/run-pytest-clean.sh tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py "
@@ -179,6 +182,7 @@ def test_only_heavy_make_lanes_use_xdist() -> None:
         "test-meta",
         "test-display",
         "test-submission",
+        "test-soak-golden",
         "test-family",
         "test-control-plane",
         "test-medical-paper-ops",
@@ -188,7 +192,7 @@ def test_only_heavy_make_lanes_use_xdist() -> None:
         for lane in lane_names
     }
 
-    for lane in ("test-regression", "test-display", "test-submission"):
+    for lane in ("test-regression", "test-display", "test-submission", "test-soak-golden"):
         assert "$(MAS_PYTEST_XDIST_ARGS)" in lane_blocks[lane]
     for lane in (
         "test-smoke",
@@ -312,6 +316,7 @@ def test_pyproject_registers_meta_display_and_submission_markers() -> None:
     assert "meta: repo-tracked docs, workflow, packaging, and command-surface checks" in markers
     assert "display_heavy: display materialization and golden-regression tests that dominate wall-clock time" in markers
     assert "submission_heavy: submission package materialization tests that dominate fast-lane wall-clock time" in markers
+    assert "soak_or_golden: long-running soak, golden-regression, or fixture-oracle tests" in markers
     assert "family: family shared boundary tests that depend on cross-repo shared-module topology" in markers
     for marker_name in _test_lane_manifest()["marker_registry"]:
         assert marker_name in marker_names
@@ -433,6 +438,7 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'if [[ "${lane}" == "meta" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "submission" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "soak-golden" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "line-budget" ]]; then' in verify_script
     assert 'run_with_optional_summary "line-budget" "make line-budget" make line-budget' in verify_script
     assert 'if [[ "${lane}" == "structure" ]]; then' in verify_script
@@ -456,6 +462,7 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert "make test-meta" in verify_script
     assert "make test-display" in verify_script
     assert "make test-submission" in verify_script
+    assert "make test-soak-golden" in verify_script
     assert "make line-budget" in verify_script
     assert "make test-structure" in verify_script
     assert "make line-budget-strict" in verify_script
@@ -922,6 +929,7 @@ def test_parallel_full_lane_script_waits_for_all_lanes_before_failing(tmp_path: 
         "test-meta": 0,
         "test-display": 7,
         "test-submission": 0,
+        "test-soak-golden": 0,
         "test-family": 0,
     }
     assert "[summary] test-display: failed (exit 7" in result.stdout
