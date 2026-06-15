@@ -10,7 +10,7 @@ import sys
 LANE_MARKERS: dict[str, str] = {
     "display": "display_heavy",
     "submission": "submission_heavy",
-    "regression": "not meta and not display_heavy and not submission_heavy and not family",
+    "regression": "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family",
 }
 
 

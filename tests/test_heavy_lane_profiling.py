@@ -40,7 +40,8 @@ def test_heavy_lane_profile_defaults_cover_all_costly_lanes() -> None:
     assert "scripts/run-pytest-clean.sh -q -m display_heavy --durations=50" in lines
     assert "scripts/run-pytest-clean.sh -q -m submission_heavy --durations=50" in lines
     assert (
-        "scripts/run-pytest-clean.sh -q -m 'not meta and not display_heavy and not submission_heavy and not family' "
+        "scripts/run-pytest-clean.sh -q -m 'not meta and not display_heavy and not submission_heavy "
+        "and not materialization_heavy and not family' "
         "--durations=50"
     ) in lines
 
