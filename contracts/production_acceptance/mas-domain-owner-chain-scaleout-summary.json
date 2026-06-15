@@ -1,0 +1,64 @@
+{
+  "surface_kind": "mas_domain_owner_chain_scaleout_summary",
+  "schema_version": 1,
+  "domain_id": "med-autoscience",
+  "owner": "MedAutoScience",
+  "updated_at": "2026-06-15",
+  "status": "owner_evidence_recorded_not_ready_claim",
+  "body_included": false,
+  "source_refs": [
+    {
+      "ref": "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence",
+      "role": "selected_existing_mas_evidence_surface",
+      "body_included": false
+    },
+    {
+      "ref": "contracts/production_acceptance/mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.json",
+      "role": "refs_only_multiprofile_owner_chain_snapshot",
+      "body_included": false
+    }
+  ],
+  "summary": {
+    "paper_line_count": 9,
+    "owner_receipt_payload_count": 4,
+    "stable_typed_blocker_payload_count": 5,
+    "domain_ready_claimed": false,
+    "production_ready_claimed": false,
+    "publication_ready_claimed": false,
+    "artifact_mutation_authorized_count": 0
+  },
+  "accepted_opl_intake_ref_shapes": [
+    "owner_receipt_ref",
+    "progress_delta_ref",
+    "ai_reviewer_gate_receipt_ref",
+    "artifact_movement_ref",
+    "human_gate_or_resume_ref",
+    "stable_typed_blocker_ref",
+    "no_forbidden_write_proof_ref"
+  ],
+  "forbidden_claims": [
+    "domain_ready",
+    "production_ready",
+    "publication_ready",
+    "medical_ready",
+    "quality_or_export_ready",
+    "artifact_mutation_authorized",
+    "current_package_update_authorized",
+    "owner_receipt_or_typed_blocker_created_by_opl",
+    "provider_completion_closes_domain_ready"
+  ],
+  "authority_boundary": {
+    "owner_receipt_and_typed_blocker_owner": "MedAutoScience",
+    "opl_records_refs_only": true,
+    "opl_can_create_owner_receipt": false,
+    "opl_can_create_stable_typed_blocker": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_publication_verdict": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_write_artifact_body": false,
+    "opl_can_write_current_package": false,
+    "opl_can_authorize_publication_or_quality": false,
+    "provider_completion_is_domain_ready": false,
+    "domain_ready_requires_mas_owner_receipt_or_typed_blocker": true
+  }
+}

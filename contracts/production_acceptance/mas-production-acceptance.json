@@ -179,6 +179,11 @@
       "publication_ready_claimed": false,
       "artifact_mutation_authorized": false
     },
+    "domain_owner_chain_scaleout_summary_ref": {
+      "ref": "contracts/production_acceptance/mas-domain-owner-chain-scaleout-summary.json",
+      "role": "domain_owner_chain_scaleout_summary",
+      "body_included": false
+    },
     "selected_evidence_surface": "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence",
     "real_paper_line_provider_canary_contract": {
       "gate_id": "real_paper_line_provider_canary",
