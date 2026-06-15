@@ -6,6 +6,7 @@ from typing import Any, Mapping
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
     current_control_provider_admission_candidates,
+    candidate_with_authority_boundaries,
     handoff_dispatch_path,
     handoff_work_unit_id,
     study_has_running_provider_attempt,
@@ -881,7 +882,11 @@ def _provider_admission_candidates_from_same_tick_materialize(
                 current_action_identity=current_action_identity,
             ):
                 continue
-            candidates.append({key: value for key, value in candidate.items() if value is not None})
+            candidates.append(
+                candidate_with_authority_boundaries(
+                    {key: value for key, value in candidate.items() if value is not None}
+                )
+            )
     return candidates
 
 

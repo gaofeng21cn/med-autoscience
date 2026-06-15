@@ -373,3 +373,130 @@ def test_materialize_domain_action_requests_routes_stage_native_write_when_curre
     assert source_action["current_work_unit_binding"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["owner_route"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
+
+
+def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_authority_boundary(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_study(profile.workspace_root, study_id, quest_id=study_id)
+    work_unit_id = "ai_reviewer_medical_prose_quality_review"
+    work_unit_fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": "truth-event-current",
+        "runtime_health_epoch": "runtime-health-current",
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "source_fingerprint": work_unit_fingerprint,
+        "route_epoch": work_unit_fingerprint,
+        "current_owner": "med-autoscience",
+        "next_owner": "ai_reviewer",
+        "owner_reason": work_unit_id,
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "blocked_actions": [],
+        "source_refs": {
+            "runtime_health_epoch": "runtime-health-current",
+            "study_truth_epoch": "truth-event-current",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "owner_route_currentness_basis": {
+                "runtime_health_epoch": "runtime-health-current",
+                "truth_epoch": "truth-event-current",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+            },
+        },
+        "idempotency_key": f"owner-route::{study_id}::{work_unit_fingerprint}",
+    }
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner_route": owner_route,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_id": (
+                                "supervisor-action::003::return_to_ai_reviewer_workflow::"
+                                "domain_transition_ai_reviewer_re_eval"
+                            ),
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "authority": "observability_only",
+                            "owner": "ai_reviewer",
+                            "request_owner": "ai_reviewer",
+                            "recommended_owner": "ai_reviewer",
+                            "route_target": "ai_reviewer",
+                            "reason": "domain_transition_ai_reviewer_re_eval",
+                            "required_output_surface": "artifacts/publication_eval/latest.json",
+                            "work_unit_fingerprint": work_unit_fingerprint,
+                            "controller_work_unit_id": work_unit_id,
+                            "executable_work_unit": work_unit_id,
+                            "source_eval_id": "publication-eval::current-record",
+                            "owner_route": owner_route,
+                            "handoff_packet": {
+                                "authority": "observability_only",
+                                "owner": "ai_reviewer",
+                                "request_owner": "ai_reviewer",
+                                "recommended_owner": "ai_reviewer",
+                                "next_executable_owner": "ai_reviewer",
+                            },
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["ready_default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    immutable_path = Path(dispatch["refs"]["immutable_dispatch_path"])
+    persisted = json.loads(immutable_path.read_text(encoding="utf-8"))
+    assert persisted["dispatch_status"] == "ready"
+    assert persisted["action_type"] == "return_to_ai_reviewer_workflow"
+    assert persisted["provider_completion_is_domain_completion"] is False
+    assert persisted["authority_boundary"]["authority"] == "mas_provider_admission_identity"
+    assert persisted["authority_boundary"]["can_write_current_owner_delta"] is False
+    assert (
+        persisted["stage_transition_authority_boundary"]["stage_transition_authority"]
+        == "one-person-lab"
+    )
+    assert (
+        persisted["stage_transition_authority_boundary"][
+            "provider_completion_counts_as_stage_transition"
+        ]
+        is False
+    )
+    assert persisted["provider_admission_identity"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert persisted["provider_admission_identity"]["work_unit_id"] == work_unit_id
+    assert (
+        persisted["provider_admission_identity"]["work_unit_fingerprint"]
+        == work_unit_fingerprint
+    )

@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import domain_action_request_lifecycle
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+    provider_admission_authority_transport_fields,
+)
 from med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution.ai_reviewer_record_production import (
     build_ai_reviewer_record_production_request,
     build_ai_reviewer_record_worker_handoff,
@@ -80,11 +83,21 @@ def ai_reviewer_record_production_handoff_dispatch(
         production_request=production_request,
     )
     owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
+    work_unit_fingerprint = _record_production_route_fingerprint(owner_route)
+    provider_admission_identity = _provider_admission_identity(
+        dispatch=dispatch,
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+    )
     dispatch["action_id"] = _text(action.get("action_id")) or dispatch.get("action_id")
     dispatch["blocked_reason"] = None
     dispatch["owner_route_attempt_envelope"] = dict(owner_route_attempt_envelope)
     dispatch["repeat_suppressed"] = False
     dispatch["why_not_applied"] = None
+    dispatch["provider_admission_identity"] = provider_admission_identity
+    dispatch.update(provider_admission_authority_transport_fields(provider_admission_identity))
     dispatch["refs"] = {**_mapping(dispatch.get("refs")), "dispatch_path": str(dispatch_path)}
     dispatch["source_action"] = {
         **source_action_ref(action),
@@ -115,12 +128,36 @@ def ai_reviewer_record_production_handoff_dispatch(
         dispatch["repeat_suppression"] = {
             "repeat_suppressed": True,
             "why_not_applied": repeat_suppression.REPEAT_SUPPRESSED_REASON,
-            "work_unit_fingerprint": _record_production_route_fingerprint(owner_route),
-            "repeat_suppression_key": _record_production_route_fingerprint(owner_route),
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "repeat_suppression_key": work_unit_fingerprint,
             "suppression_source": "ai_reviewer_record_production_output_satisfied",
         }
         dispatch["record_production_satisfaction"] = satisfaction
     return dispatch
+
+
+def _provider_admission_identity(
+    *,
+    dispatch: Mapping[str, Any],
+    study_id: str,
+    action_type: str,
+    work_unit_id: str | None,
+    work_unit_fingerprint: str | None,
+) -> dict[str, Any]:
+    return {
+        "surface": "provider_admission_current_control_handoff",
+        "study_id": study_id,
+        "quest_id": _text(dispatch.get("quest_id")) or study_id,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
+        "dispatch_authority": _text(dispatch.get("dispatch_authority")),
+        "next_executable_owner": _text(dispatch.get("next_executable_owner")),
+        "required_output_surface": _text(dispatch.get("required_output_surface")),
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+    }
 
 
 def _record_production_satisfaction(

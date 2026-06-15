@@ -111,6 +111,19 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
     action = result["action_queue"][0]
     assert candidate["route_identity_key"] == expected_identity
     assert candidate["attempt_idempotency_key"] == expected_identity
+    assert candidate["provider_completion_is_domain_completion"] is False
+    assert candidate["authority_boundary"]["authority"] == "mas_provider_admission_identity"
+    assert candidate["authority_boundary"]["can_write_current_owner_delta"] is False
+    assert (
+        candidate["stage_transition_authority_boundary"]["stage_transition_authority"]
+        == "one-person-lab"
+    )
+    assert (
+        candidate["stage_transition_authority_boundary"][
+            "provider_completion_counts_as_stage_transition"
+        ]
+        is False
+    )
     assert candidate["stage_packet_ref"] == str(dispatch_path)
     assert candidate["stage_packet_refs"] == [str(dispatch_path)]
     assert action["route_identity_key"] == expected_identity
