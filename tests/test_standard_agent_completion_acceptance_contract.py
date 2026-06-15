@@ -138,8 +138,12 @@ def test_standard_agent_completion_acceptance_false_completion_claims_are_explic
         "cross_agent_standard_conformance_negative_test_ref",
     } <= set(contract["allowed_completion_evidence"])
 
+    assert (
+        "representative DM002/DM003 governed recovery evidence"
+        not in contract["current_open_evidence_tails"]
+    )
     assert {
-        "representative DM002/DM003 governed recovery evidence",
+        "physical source morphology scan beyond classification-zero",
         "OPL/OMA family-level standard-agent generation negative conformance",
     } <= set(contract["current_open_evidence_tails"])
 
@@ -160,6 +164,7 @@ def test_standard_agent_completion_evidence_ledger_covers_every_acceptance_gate(
 
     allowed_statuses = {
         "satisfied_with_repo_evidence",
+        "satisfied_with_live_owner_evidence",
         "evidence_required",
         "blocked_by_live_owner_evidence",
     }
@@ -171,18 +176,17 @@ def test_standard_agent_completion_evidence_ledger_covers_every_acceptance_gate(
         assert gate["false_completion_boundary"], gate["gate_id"]
 
 
-def test_standard_agent_completion_evidence_ledger_keeps_live_tails_open() -> None:
+def test_standard_agent_completion_evidence_ledger_records_representative_live_owner_closeout() -> None:
     ledger = _ledger()
     gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
 
     live = gates["live_owner_evidence_for_representative_paper_lines"]
-    assert live["status"] == "blocked_by_live_owner_evidence"
-    assert live["observed_refs"] == []
+    assert live["status"] == "satisfied_with_live_owner_evidence"
     assert {
-        "fresh_DM002_DM003_owner_receipt_or_stable_typed_blocker_ref",
-        "fresh_human_gate_or_route_back_evidence_ref",
-        "provider_long_soak_same_current_identity_proof_ref",
-    } <= set(live["missing_evidence_tails"])
+        "workspace:Yang/DM-CVD-Mortality-Risk#DHD-apply-2026-06-15T15:08:10Z/DM002-outcome=typed_blocker_ref/postcondition_ok",
+        "workspace:Yang/DM-CVD-Mortality-Risk#DHD-apply-2026-06-15T15:08:10Z/DM003-outcome=owner_receipt_ref/postcondition_ok",
+    } <= set(live["observed_refs"])
+    assert live["missing_evidence_tails"] == []
     assert {
         "repo_tests",
         "contract_landed",
@@ -201,17 +205,18 @@ def test_standard_agent_completion_evidence_ledger_keeps_live_tails_open() -> No
 
     observations = {
         observation["study_id"]: observation
-        for observation in ledger["latest_read_only_gap_observations"]
+        for observation in ledger["latest_live_owner_closeout_observations"]
     }
     assert observations["002-dm-china-us-mortality-attribution"][
         "progress_first_outcome"
     ] == "blocked_with_typed_owner"
     assert observations["003-dpcc-primary-care-phenotype-treatment-gap"][
         "progress_first_outcome"
-    ] == "ready_for_owner_action"
+    ] == "terminal_success"
     for observation in observations.values():
-        assert observation["completion_evidence"] is False
-        assert observation["can_close_live_owner_gate"] is False
+        assert observation["completion_evidence"] is True
+        assert observation["can_close_live_owner_gate"] is True
+        assert observation["paper_progress_delta"] is False
 
 
 def test_standard_agent_completion_evidence_ledger_records_lifecycle_owner_followthrough_without_ready_claim() -> None:
