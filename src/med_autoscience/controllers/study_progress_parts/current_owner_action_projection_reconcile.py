@@ -4,6 +4,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers.current_work_unit_parts.terminal_routeback_currentness import (
     gate_followthrough_action_supersedes_publication_gate_replay_blocker,
+    gate_followthrough_action_supersedes_transport_or_execution_residue,
 )
 
 from .current_executable_owner_action import owner_action_next_step
@@ -222,9 +223,14 @@ def current_control_typed_blocker_successor_action(
     if source == "gate_clearing_batch_followthrough.actionable_current_work_unit":
         if not _gate_followthrough_action_has_exact_current_identity(action):
             return False
+        blocker = _mapping_copy(typed_blocker)
         return gate_followthrough_action_supersedes_publication_gate_replay_blocker(
             action=action,
-            blocker=_mapping_copy(typed_blocker),
+            blocker=blocker,
+            progress=_mapping_copy(progress),
+        ) or gate_followthrough_action_supersedes_transport_or_execution_residue(
+            action=action,
+            blocker=blocker,
             progress=_mapping_copy(progress),
         )
     if source in {

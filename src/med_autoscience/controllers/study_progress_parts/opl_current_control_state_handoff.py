@@ -27,6 +27,7 @@ from .opl_current_control_state_handoff_values import (
     _observability_mapping,
     _owner_route_projection,
     _stage_progress_log_mapping,
+    _strict_running_provider_attempt,
     _string_list,
     _work_unit_identity,
 )
@@ -308,6 +309,15 @@ def opl_current_control_state_study_handoff_projection(
     ]
     why_not_applied = _string_list(matching.get("why_not_applied"))
     matching_terminal_stage_log = _observability_mapping(matching.get("latest_terminal_stage_log"))
+    active_run_id = _non_empty_text(matching.get("active_run_id"))
+    active_stage_attempt_id = _non_empty_text(matching.get("active_stage_attempt_id"))
+    active_workflow_id = _non_empty_text(matching.get("active_workflow_id"))
+    running_provider_attempt = _strict_running_provider_attempt(
+        matching,
+        active_run_id=active_run_id,
+        active_stage_attempt_id=active_stage_attempt_id,
+        active_workflow_id=active_workflow_id,
+    )
     projection = {
         "surface_kind": "opl_current_control_state_study_handoff",
         "read_model": "study_opl_current_control_state_handoff_projection",
@@ -316,17 +326,13 @@ def opl_current_control_state_study_handoff_projection(
         "generated_at": _non_empty_text(payload.get("generated_at")),
         "study_id": study_id,
         "quest_status": _non_empty_text(matching.get("quest_status")),
-        "active_run_id": _non_empty_text(matching.get("active_run_id")),
-        "active_stage_attempt_id": _non_empty_text(matching.get("active_stage_attempt_id")),
-        "active_workflow_id": _non_empty_text(matching.get("active_workflow_id")),
-        "running_provider_attempt": (
-            bool(matching.get("running_provider_attempt"))
-            if "running_provider_attempt" in matching
-            else False
-        ),
-        "runtime_owner": "one-person-lab" if matching.get("running_provider_attempt") is True else None,
-        "provider_attempt_owner": "one-person-lab" if matching.get("running_provider_attempt") is True else None,
-        "queue_owner": "one-person-lab" if matching.get("running_provider_attempt") is True else None,
+        "active_run_id": active_run_id,
+        "active_stage_attempt_id": active_stage_attempt_id,
+        "active_workflow_id": active_workflow_id,
+        "running_provider_attempt": running_provider_attempt,
+        "runtime_owner": "one-person-lab" if running_provider_attempt else None,
+        "provider_attempt_owner": "one-person-lab" if running_provider_attempt else None,
+        "queue_owner": "one-person-lab" if running_provider_attempt else None,
         "action_type": _non_empty_text(matching.get("action_type")),
         "work_unit_id": _work_unit_identity(matching.get("work_unit_id")),
         "next_work_unit": _work_unit_identity(matching.get("next_work_unit")),
@@ -465,6 +471,15 @@ def opl_current_control_state_live_attempt_handoff_projection(
             *ATTEMPT_IDENTITY_KEYS,
         ),
     )
+    active_run_id = _non_empty_text(runtime_liveness_audit.get("active_run_id"))
+    active_stage_attempt_id = _non_empty_text(runtime_liveness_audit.get("active_stage_attempt_id"))
+    active_workflow_id = _non_empty_text(runtime_liveness_audit.get("active_workflow_id"))
+    running_provider_attempt = _strict_running_provider_attempt(
+        runtime_liveness_audit,
+        active_run_id=active_run_id,
+        active_stage_attempt_id=active_stage_attempt_id,
+        active_workflow_id=active_workflow_id,
+    )
     return {
         "surface_kind": "opl_current_control_state_provider_attempt_handoff",
         "read_model": "study_opl_current_control_state_handoff_projection",
@@ -473,18 +488,18 @@ def opl_current_control_state_live_attempt_handoff_projection(
         "generated_at": _non_empty_text(runtime_liveness_audit.get("handoff_generated_at")),
         "study_id": study_id,
         "quest_status": None,
-        "active_run_id": _non_empty_text(runtime_liveness_audit.get("active_run_id")),
-        "active_stage_attempt_id": _non_empty_text(runtime_liveness_audit.get("active_stage_attempt_id")),
-        "active_workflow_id": _non_empty_text(runtime_liveness_audit.get("active_workflow_id")),
-        "running_provider_attempt": bool(runtime_liveness_audit.get("running_provider_attempt")),
+        "active_run_id": active_run_id,
+        "active_stage_attempt_id": active_stage_attempt_id,
+        "active_workflow_id": active_workflow_id,
+        "running_provider_attempt": running_provider_attempt,
         "action_type": _non_empty_text(runtime_liveness_audit.get("action_type")),
         "work_unit_id": _work_unit_identity(runtime_liveness_audit.get("work_unit_id")),
         "work_unit_fingerprint": _non_empty_text(runtime_liveness_audit.get("work_unit_fingerprint")),
         "action_fingerprint": _non_empty_text(runtime_liveness_audit.get("action_fingerprint"))
         or _non_empty_text(runtime_liveness_audit.get("work_unit_fingerprint")),
-        "runtime_owner": "one-person-lab" if runtime_liveness_audit.get("running_provider_attempt") is True else None,
-        "provider_attempt_owner": "one-person-lab" if runtime_liveness_audit.get("running_provider_attempt") is True else None,
-        "queue_owner": "one-person-lab" if runtime_liveness_audit.get("running_provider_attempt") is True else None,
+        "runtime_owner": "one-person-lab" if running_provider_attempt else None,
+        "provider_attempt_owner": "one-person-lab" if running_provider_attempt else None,
+        "queue_owner": "one-person-lab" if running_provider_attempt else None,
         "runtime_health": runtime_health,
         "artifact_delta": {},
         "gate_specificity": {},

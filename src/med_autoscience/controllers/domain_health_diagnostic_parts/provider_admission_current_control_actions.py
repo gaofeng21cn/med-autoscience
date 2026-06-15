@@ -104,24 +104,28 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         current.get("currentness_basis")
     )
     repair_precedence = _mapping(current.get("repair_progress_precedence"))
-    action_fingerprint = (
-        eval_bound_fingerprint
-        or _first_currentness_fingerprint(
-            current.get("action_fingerprint"),
-            current.get("work_unit_fingerprint"),
-            current.get("source_fingerprint"),
-            repair_precedence.get("source_fingerprint"),
-            current_action_basis.get("work_unit_fingerprint"),
-            current_action_basis.get("source_fingerprint"),
-            current_work_unit.get("action_fingerprint"),
-            current_work_unit.get("work_unit_fingerprint"),
-            current_work_unit_basis.get("work_unit_fingerprint"),
-            current_work_unit_basis.get("source_fingerprint"),
-            study_id=study_id,
-            action_type=action_type,
-            work_unit_id=work_unit_id,
-        )
+    action_fingerprint = _first_currentness_fingerprint(
+        current.get("action_fingerprint"),
+        current.get("work_unit_fingerprint"),
+        current.get("source_fingerprint"),
+        repair_precedence.get("source_fingerprint"),
+        current_action_basis.get("work_unit_fingerprint"),
+        current_action_basis.get("source_fingerprint"),
+        current_work_unit.get("action_fingerprint"),
+        current_work_unit.get("work_unit_fingerprint"),
+        current_work_unit_basis.get("work_unit_fingerprint"),
+        current_work_unit_basis.get("source_fingerprint"),
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
     )
+    if action_fingerprint is None:
+        action_fingerprint = eval_bound_fingerprint
+    elif (
+        eval_bound_fingerprint is not None
+        and control_identity.is_synthetic_current_owner_ticket(action_fingerprint)
+    ):
+        action_fingerprint = eval_bound_fingerprint
     if action_fingerprint is None and _currentness_basis_can_bind_stable_ticket(
         current_work_unit_basis
     ):
@@ -138,6 +142,7 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": action_fingerprint,
             "source_eval_id": source_eval_id,
+            "eval_bound_work_unit_fingerprint": eval_bound_fingerprint,
             "owner_route_currentness_basis": study_currentness_basis(
                 study=study,
                 current=current,
@@ -483,18 +488,22 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
         work_unit_id=work_unit_id,
         source_eval_id=source_eval_id,
     )
-    fingerprint = (
-        eval_bound_fingerprint
-        or _first_currentness_fingerprint(
-            current_work_unit.get("work_unit_fingerprint"),
-            current_work_unit.get("action_fingerprint"),
-            currentness_basis.get("work_unit_fingerprint"),
-            currentness_basis.get("source_fingerprint"),
-            study_id=_non_empty_text(current_work_unit.get("study_id")),
-            action_type=action_type,
-            work_unit_id=work_unit_id,
-        )
+    fingerprint = _first_currentness_fingerprint(
+        current_work_unit.get("work_unit_fingerprint"),
+        current_work_unit.get("action_fingerprint"),
+        currentness_basis.get("work_unit_fingerprint"),
+        currentness_basis.get("source_fingerprint"),
+        study_id=_non_empty_text(current_work_unit.get("study_id")),
+        action_type=action_type,
+        work_unit_id=work_unit_id,
     )
+    if fingerprint is None:
+        fingerprint = eval_bound_fingerprint
+    elif (
+        eval_bound_fingerprint is not None
+        and control_identity.is_synthetic_current_owner_ticket(fingerprint)
+    ):
+        fingerprint = eval_bound_fingerprint
     fingerprints = [
         item
         for item in (

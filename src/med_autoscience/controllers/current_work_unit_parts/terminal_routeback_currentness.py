@@ -12,6 +12,9 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
     text as _text,
     text_items as _text_items,
 )
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
+)
 
 
 def terminal_routeback_action_supersedes_gate_replay_blocker(
@@ -105,7 +108,49 @@ def gate_followthrough_action_supersedes_publication_gate_replay_blocker(
         or _text(blocker.get("blocked_reason"))
         or _text(blocker.get("reason"))
     )
-    if blocker_type != "publication_gate_replay_blocked" or not gate_followthrough_actionable_repair_action(action):
+    if blocker_type != "publication_gate_replay_blocked":
+        return False
+    return _gate_followthrough_action_matches_current_followthrough(
+        action=action,
+        progress=progress,
+    )
+
+
+def gate_followthrough_action_supersedes_transport_or_execution_residue(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    blocker_type = (
+        _text(blocker.get("blocker_type"))
+        or _text(blocker.get("blocker_id"))
+        or _text(blocker.get("blocked_reason"))
+        or _text(blocker.get("reason"))
+    )
+    if blocker_type == "opl_execution_authorization_required":
+        if not _gate_followthrough_transport_blocker_matches_action(
+            action=action,
+            blocker=blocker,
+        ):
+            return False
+    elif blocker_type == "executed":
+        if not _gate_followthrough_executed_gate_closeout_residue(blocker):
+            return False
+    else:
+        return False
+    return _gate_followthrough_action_matches_current_followthrough(
+        action=action,
+        progress=progress,
+    )
+
+
+def _gate_followthrough_action_matches_current_followthrough(
+    *,
+    action: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    if not gate_followthrough_actionable_repair_action(action):
         return False
     followthrough = _mapping(progress.get("gate_clearing_batch_followthrough"))
     currentness = _mapping(followthrough.get("work_unit_currentness"))
@@ -147,6 +192,49 @@ def gate_followthrough_action_supersedes_publication_gate_replay_blocker(
     )
 
 
+def _gate_followthrough_transport_blocker_matches_action(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+) -> bool:
+    blocker_action = _text(blocker.get("action_type"))
+    if blocker_action not in {None, "run_quality_repair_batch"}:
+        return False
+    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
+    blocker_work_unit = _work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(
+        blocker.get("next_work_unit")
+    )
+    if action_work_unit is None:
+        return False
+    if blocker_work_unit is not None and blocker_work_unit != action_work_unit:
+        return False
+    action_fingerprint = (
+        _text(action.get("work_unit_fingerprint"))
+        or _text(action.get("action_fingerprint"))
+        or _text(_mapping(action.get("owner_route_currentness_basis")).get("work_unit_fingerprint"))
+    )
+    blocker_fingerprint = _text(blocker.get("work_unit_fingerprint")) or _text(
+        blocker.get("action_fingerprint")
+    )
+    return not (
+        action_fingerprint is not None
+        and blocker_fingerprint is not None
+        and action_fingerprint != blocker_fingerprint
+    )
+
+
+def _gate_followthrough_executed_gate_closeout_residue(blocker: Mapping[str, Any]) -> bool:
+    owner = _text(blocker.get("owner")) or _text(blocker.get("next_owner"))
+    if owner not in {"one-person-lab", "opl"}:
+        return False
+    if _text(blocker.get("action_type")) != "run_gate_clearing_batch":
+        return False
+    blocker_work_unit = _work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(
+        blocker.get("next_work_unit")
+    )
+    return blocker_work_unit in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+
+
 def _gate_followthrough_successor_identity_is_current(
     *,
     action_work_unit: str | None,
@@ -163,8 +251,10 @@ def _gate_followthrough_successor_identity_is_current(
     current_work_unit = _work_unit_id(currentness.get("current_publication_work_unit_id")) or _work_unit_id(
         current_publication_work_unit.get("unit_id")
     )
-    observed_units = [unit for unit in (explicit_work_unit, selected_work_unit, current_work_unit) if unit]
-    if not observed_units or any(unit != action_work_unit for unit in observed_units):
+    required_units = [unit for unit in (explicit_work_unit, current_work_unit) if unit]
+    if not required_units or any(unit != action_work_unit for unit in required_units):
+        return False
+    if current_work_unit is None and selected_work_unit not in {None, action_work_unit}:
         return False
 
     explicit_fingerprint = _text(currentness.get("explicit_work_unit_fingerprint"))
@@ -260,6 +350,7 @@ def _terminal_stage_candidates(progress: Mapping[str, Any]) -> tuple[dict[str, A
 __all__ = [
     "gate_followthrough_actionable_repair_action",
     "gate_followthrough_action_supersedes_publication_gate_replay_blocker",
+    "gate_followthrough_action_supersedes_transport_or_execution_residue",
     "terminal_routeback_action_from_gate_closeout",
     "terminal_routeback_action_supersedes_gate_replay_blocker",
 ]

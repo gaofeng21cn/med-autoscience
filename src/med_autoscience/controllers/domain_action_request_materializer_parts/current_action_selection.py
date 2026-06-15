@@ -179,6 +179,23 @@ def current_actions_for_studies(
                 if action != fresh_progress_action
             )
             continue
+        if (
+            scan_paper_recovery_action is not None
+            and fresh_paper_recovery_action is None
+            and _fresh_progress_is_current_owner_action(fresh_progress_action)
+        ):
+            per_study_actions.append(fresh_progress_action)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_fresh_study_progress_current_owner_ticket")
+                for action in [
+                    scan_paper_recovery_action,
+                    *stale_candidate_actions,
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
+                ]
+                if action != fresh_progress_action
+            )
+            continue
         if paper_recovery_owner_callable_action is not None and readiness_followup is None:
             per_study_actions.append(paper_recovery_owner_callable_action)
             ignored.extend(
@@ -709,6 +726,21 @@ def _fresh_progress_is_accepted_owner_gate_decision(action: Mapping[str, Any] | 
         _text(action.get("authority")) == "paper_recovery_state.accepted_owner_gate_decision"
         or _text(action.get("source_surface")) == "paper_recovery_state.accepted_owner_gate_decision"
         or _text(action.get("current_action_source")) == "paper_recovery_state.accepted_owner_gate_decision"
+    )
+
+
+def _fresh_progress_is_current_owner_action(action: Mapping[str, Any] | None) -> bool:
+    if action is None:
+        return False
+    if _text(action.get("authority")) == "study_progress.current_owner_ticket_weak_identity":
+        return False
+    if _text(action.get("authority")) != "study_progress.current_executable_owner_action":
+        return False
+    if _text(action.get("action_type")) not in fresh_progress_arbitration.SUPPORTED_ACTION_TYPES:
+        return False
+    return _text(action.get("work_unit_id")) is not None and (
+        _text(action.get("work_unit_fingerprint")) is not None
+        or _text(action.get("action_fingerprint")) is not None
     )
 
 

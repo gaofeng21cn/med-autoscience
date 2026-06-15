@@ -215,6 +215,17 @@ def refresh_existing_projection_current_owner_surfaces(
     if current_action is not None:
         updated["current_executable_owner_action"] = current_action
         updated = reconcile_current_owner_action_projection(updated)
+    current_control_typed_blocker = _mapping_copy(currentness_handoff.get("typed_blocker"))
+    current_control_blocked_reason = _non_empty_text(currentness_handoff.get("blocked_reason"))
+    current_control_next_owner = _non_empty_text(currentness_handoff.get("next_owner"))
+    if current_action is not None and current_work_unit.action_supersedes_typed_blocker(
+        action=current_action,
+        blocker=current_control_typed_blocker,
+        progress=updated,
+    ):
+        current_control_typed_blocker = {}
+        current_control_blocked_reason = None
+        current_control_next_owner = None
     progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
     envelope_actions = current_execution_envelope_actions(
         handoff=currentness_handoff,
@@ -229,18 +240,18 @@ def refresh_existing_projection_current_owner_surfaces(
         current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
         provider_admission=currentness_handoff,
         live_provider_attempt=currentness_handoff,
-        typed_blocker=_mapping_copy(currentness_handoff.get("typed_blocker")),
-        blocked_reason=_non_empty_text(currentness_handoff.get("blocked_reason")),
-        next_owner=_non_empty_text(currentness_handoff.get("next_owner")),
+        typed_blocker=current_control_typed_blocker,
+        blocked_reason=current_control_blocked_reason,
+        next_owner=current_control_next_owner,
         runtime_health=runtime_health_snapshot,
     )
     updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
         status=status,
         progress=updated,
         actions=envelope_actions,
-        blocked_reason=_non_empty_text(currentness_handoff.get("blocked_reason")),
-        next_owner=_non_empty_text(currentness_handoff.get("next_owner")),
-        typed_blocker=_mapping_copy(currentness_handoff.get("typed_blocker")),
+        blocked_reason=current_control_blocked_reason,
+        next_owner=current_control_next_owner,
+        typed_blocker=current_control_typed_blocker,
         runtime_health=runtime_health_snapshot,
         live_provider_attempt=currentness_handoff,
         current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),

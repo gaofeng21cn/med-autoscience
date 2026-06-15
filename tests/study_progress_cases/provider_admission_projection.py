@@ -969,4 +969,5 @@ def test_existing_projection_refresh_rejects_superseded_live_attempt_identity(
 
 
 from .provider_admission_projection_cases.current_control_typed_blocker import *  # noqa: F403,F401,E402
+from .provider_admission_projection_cases.gate_replay_admission_currentness import *  # noqa: F403,F401,E402
 from .provider_admission_projection_cases.progress_first_admission_sync import *  # noqa: F403,F401,E402

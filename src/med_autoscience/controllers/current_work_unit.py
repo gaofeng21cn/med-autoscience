@@ -10,6 +10,7 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_curre
 from med_autoscience.controllers.current_work_unit_parts.terminal_routeback_currentness import (
     gate_followthrough_actionable_repair_action as _gate_followthrough_actionable_repair_action,
     gate_followthrough_action_supersedes_publication_gate_replay_blocker as _gate_followthrough_supersedes_publication_gate_replay_blocker,
+    gate_followthrough_action_supersedes_transport_or_execution_residue as _gate_followthrough_supersedes_transport_or_execution_residue,
     terminal_routeback_action_from_gate_closeout as _terminal_routeback_action_from_gate_closeout,
     terminal_routeback_action_supersedes_gate_replay_blocker as _terminal_routeback_action_supersedes_gate_replay_blocker,
 )
@@ -668,6 +669,11 @@ def _action_supersedes_stage_owner_answer(
     payload = _mapping(action)
     if not payload:
         return False
+    if _paper_recovery_successor_supersedes_publication_gate_replay_blocker(
+        action=payload,
+        blocker={"blocker_type": "publication_gate_replay_blocked"},
+    ):
+        return True
     if _provider_admission_repair_action_supersedes_readiness_blocker(payload):
         return True
     if _gate_consumption_action_supersedes_readiness_blocker(payload):
@@ -715,6 +721,12 @@ def _action_supersedes_typed_blocker(
     ):
         return True
     if _gate_followthrough_supersedes_publication_gate_replay_blocker(
+        action=action,
+        blocker=payload,
+        progress=_mapping(progress),
+    ):
+        return True
+    if _gate_followthrough_supersedes_transport_or_execution_residue(
         action=action,
         blocker=payload,
         progress=_mapping(progress),

@@ -136,6 +136,18 @@ def _current_control_currentness_fields(matching: Mapping[str, Any]) -> dict[str
     return projection
 
 
+def _strict_running_provider_attempt(
+    payload: Mapping[str, Any],
+    *,
+    active_run_id: str | None,
+    active_stage_attempt_id: str | None,
+    active_workflow_id: str | None,
+) -> bool:
+    return payload.get("running_provider_attempt") is True and (
+        active_run_id or active_stage_attempt_id or active_workflow_id
+    ) is not None
+
+
 def _work_unit_identity(value: object) -> str | None:
     if isinstance(value, Mapping):
         return (
