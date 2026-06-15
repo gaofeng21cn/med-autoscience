@@ -2687,6 +2687,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 / DM003 在 2026-06-05 暴露出同一类 currentness 缺口：当前 AI reviewer record 已经存在并被 request/record ref 绑定，但 lifecycle/request projection 仍残留为 reviewer loop；gate replay work unit 又可能被旧 re-eval 或未注册 owner reason 拦住，导致 operator 看到 next owner 之前先花数小时修 read-model、dispatch 和 provider admission。
 - 影响：当前修复面是 MAS lifecycle / owner-route / dispatch authorization，不是论文正文修补。若用户要求暂停论文线，必须使用 OPL queue hold / human gate；恢复前先 release hold 或 human approval，再由 StageRun 或 current owner-route surface 重新生成当前 work unit，不能用全局 tick 或手写 workspace truth 恢复。
 
+## 2026-06-16：current-control provider admission 包装层必须保留 OPL stage authority boundary
+
+- 决策：MAS 生成的 `opl_provider_admission_candidate` 进入 `opl_current_control_state` 时，root `provider_admission_candidates[]`、study 内 `provider_admission_candidates[]`、`action_queue[]` 以及 `handoff_packet` 都必须携带同一个 `stage_transition_authority_boundary`。该 boundary 声明 candidate 只是 OPL Stage Transition Authority 的 provider observation / intent producer，不能写 stage current pointer、stage terminal state、current owner delta、MAS domain truth、owner receipt 或 typed blocker；`provider_completion_is_domain_completion` 必须固定为 `false`。
+- 理由：DM003 owner receipt consumption 已产出合法 `return_to_ai_reviewer_workflow` successor，但 MAS current-control 包装层把原始 candidate 上的 boundary 剥离，导致 OPL hydrate 以 `current_control_provider_admission_missing_stage_authority_boundary` fail-closed。继续修 read-model、queue 或 worker 不会让论文推进；根因是 MAS 到 OPL 的 command-side admission identity 在最后包装层丢失 authority boundary。
+- 影响：OPL fail-closed gate 不放宽；MAS 的 current-control action / study projection / provider admission identity 包装必须保留或补齐 `PROVIDER_ADMISSION_AUTHORITY_BOUNDARY` 与 `STAGE_TRANSITION_AUTHORITY_BOUNDARY`。后续类似 “DHD dry-run/queue 看似空但 current-control 有 pending candidate” 的卡住，优先检查 root candidate、study candidate、action 和 handoff packet 的 authority boundary 是否一致，而不是重复 redrive provider。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+    PROVIDER_ADMISSION_AUTHORITY_BOUNDARY,
+    STAGE_TRANSITION_AUTHORITY_BOUNDARY,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
     mapping as _mapping,
     text_items as _text_items,
@@ -10,17 +14,18 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 
 
 def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    action = provider_admission_current_control_action(candidate)
+    provider_identity = _candidate_with_authority_boundaries(candidate)
+    action = provider_admission_current_control_action(provider_identity)
     owner_route = _mapping(action.get("owner_route"))
-    study_id = _non_empty_text(candidate.get("study_id"))
-    route_key = route_identity_key(candidate)
-    attempt_key = attempt_idempotency_key(candidate)
+    study_id = _non_empty_text(provider_identity.get("study_id"))
+    route_key = route_identity_key(provider_identity)
+    attempt_key = attempt_idempotency_key(provider_identity)
     return {
         "study_id": study_id,
-        "quest_id": _non_empty_text(candidate.get("quest_id")),
-        "handoff_generated_at": _non_empty_text(candidate.get("recorded_at")),
+        "quest_id": _non_empty_text(provider_identity.get("quest_id")),
+        "handoff_generated_at": _non_empty_text(provider_identity.get("recorded_at")),
         "handoff_scan_status": "provider_admission_from_mas_handoff",
-        "study_root": _non_empty_text(candidate.get("study_root")),
+        "study_root": _non_empty_text(provider_identity.get("study_root")),
         "quest_status": "provider_admission_pending",
         "active_run_id": None,
         "active_stage_attempt_id": None,
@@ -29,14 +34,14 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
         "runtime_health": {
             "health_status": "provider_admission_pending",
             "runtime_liveness_status": "not_running",
-            "blocked_reason": _non_empty_text(candidate.get("blocked_reason")),
+            "blocked_reason": _non_empty_text(provider_identity.get("blocked_reason")),
             "summary": "Current MAS owner action is ready for OPL provider admission.",
         },
         "action_queue": [action],
-        "provider_admission_identity": dict(candidate),
+        "provider_admission_identity": provider_identity,
         "provider_admission_identity_key": route_key,
         "attempt_idempotency_key": attempt_key,
-        "provider_admission_candidates": [dict(candidate)],
+        "provider_admission_candidates": [dict(provider_identity)],
         "provider_admission_pending_count": 1,
         "why_not_applied": ["provider_admission_current_control_state_required"],
         "blocked_reason": "provider_admission_current_control_state_required",
@@ -45,8 +50,8 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
         "owner_route": owner_route,
         "current_execution_envelope": {
             "state_kind": "executable_owner_action",
-            "owner": _non_empty_text(candidate.get("next_executable_owner")) or "one-person-lab",
-            "next_work_unit": _non_empty_text(candidate.get("work_unit_id")),
+            "owner": _non_empty_text(provider_identity.get("next_executable_owner")) or "one-person-lab",
+            "next_work_unit": _non_empty_text(provider_identity.get("work_unit_id")),
             "typed_blocker": None,
             "parked_state": None,
             "source": "mas_provider_admission_identity",
@@ -57,6 +62,7 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
 
 
 def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    candidate = _candidate_with_authority_boundaries(candidate)
     action_type = _non_empty_text(candidate.get("action_type"))
     study_id = _non_empty_text(candidate.get("study_id"))
     work_unit_id = _non_empty_text(candidate.get("work_unit_id"))
@@ -71,6 +77,12 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
     if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
         stage_packet_refs.append(stage_packet_ref)
     checkpoint_refs = _text_items(candidate.get("checkpoint_refs")) or list(stage_packet_refs)
+    authority_boundary = _mapping(candidate.get("authority_boundary")) or dict(
+        PROVIDER_ADMISSION_AUTHORITY_BOUNDARY
+    )
+    stage_transition_authority_boundary = _mapping(
+        candidate.get("stage_transition_authority_boundary")
+    ) or dict(STAGE_TRANSITION_AUTHORITY_BOUNDARY)
     source_refs = {
         key: value
         for key, value in {
@@ -143,6 +155,8 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "source_ref": _non_empty_text(candidate.get("execution_ref")),
             "provider_attempt_or_lease_required": True,
             "provider_completion_is_domain_completion": False,
+            "authority_boundary": authority_boundary,
+            "stage_transition_authority_boundary": stage_transition_authority_boundary,
             "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
             "blocked_reason": _non_empty_text(candidate.get("blocked_reason")),
             "owner_route": owner_route,
@@ -165,9 +179,24 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
                 "checkpoint_refs": checkpoint_refs or None,
                 "source_ref": _non_empty_text(candidate.get("execution_ref")),
                 "owner_route": owner_route,
+                "authority_boundary": authority_boundary,
+                "stage_transition_authority_boundary": stage_transition_authority_boundary,
             },
         }.items()
         if value not in (None, "", [], {})
+    }
+
+
+def _candidate_with_authority_boundaries(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        **dict(candidate),
+        "authority_boundary": _mapping(candidate.get("authority_boundary"))
+        or dict(PROVIDER_ADMISSION_AUTHORITY_BOUNDARY),
+        "stage_transition_authority_boundary": _mapping(
+            candidate.get("stage_transition_authority_boundary")
+        )
+        or dict(STAGE_TRANSITION_AUTHORITY_BOUNDARY),
+        "provider_completion_is_domain_completion": False,
     }
 
 

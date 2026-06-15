@@ -5,6 +5,62 @@ import json
 from pathlib import Path
 
 
+def test_provider_admission_current_control_wrappers_preserve_stage_authority_boundary() -> None:
+    identity = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity"
+    )
+    boundaries = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_type = "return_to_ai_reviewer_workflow"
+    work_unit_id = "ai_reviewer_medical_prose_quality_review"
+    fingerprint = "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review"
+    stage_packet_ref = (
+        "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+        "consumer/default_executor_dispatches/immutable/return_to_ai_reviewer_workflow/c4a596de.json"
+    )
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "dispatch_path": stage_packet_ref,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+        "next_executable_owner": "ai_reviewer",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "owner_route_current": True,
+        "route_identity_key": f"provider-admission::{study_id}::{fingerprint}",
+        "attempt_idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+        "stage_transition_authority_boundary": dict(
+            boundaries.STAGE_TRANSITION_AUTHORITY_BOUNDARY
+        ),
+        "authority_boundary": dict(boundaries.PROVIDER_ADMISSION_AUTHORITY_BOUNDARY),
+    }
+
+    action = identity.provider_admission_current_control_action(candidate)
+    study = identity.provider_admission_current_control_study(candidate)
+
+    expected = boundaries.STAGE_TRANSITION_AUTHORITY_BOUNDARY
+    assert action["stage_transition_authority_boundary"] == expected
+    assert action["handoff_packet"]["stage_transition_authority_boundary"] == expected
+    assert study["provider_admission_identity"]["stage_transition_authority_boundary"] == expected
+    assert (
+        study["provider_admission_candidates"][0]["stage_transition_authority_boundary"]
+        == expected
+    )
+    assert (
+        study["action_queue"][0]["stage_transition_authority_boundary"] == expected
+    )
+
+
 def test_provider_admission_candidate_inherits_current_action_currentness_basis() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
