@@ -281,6 +281,33 @@ def test_ai_reviewer_record_handoff_renders_executable_owner_callable_with_profi
         "Run owner_callable_command exactly as rendered to let MAS rebuild the production "
         "reviewer_operating_system trace and write the record-only archive."
     )
+    assert handoff["provider_completion_is_domain_completion"] is False
+    assert handoff["authority_boundary"]["authority"] == "mas_provider_admission_identity"
+    assert handoff["authority_boundary"]["can_write_current_owner_delta"] is False
+    assert (
+        handoff["stage_transition_authority_boundary"]["stage_transition_authority"]
+        == "one-person-lab"
+    )
+    assert (
+        handoff["stage_transition_authority_boundary"][
+            "provider_completion_counts_as_stage_transition"
+        ]
+        is False
+    )
+    assert handoff["provider_admission_identity"]["action_type"] == (
+        "return_to_ai_reviewer_workflow"
+    )
+    assert handoff["provider_admission_identity"]["next_executable_owner"] == "ai_reviewer"
+    assert handoff["provider_admission_identity"]["provider_completion_is_domain_completion"] is False
+    assert (
+        handoff["provider_admission_identity"]["required_output_surface"]
+        == "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    )
+    assert handoff["prompt_contract"]["authority_boundary"] == handoff["authority_boundary"]
+    assert (
+        handoff["prompt_contract"]["stage_transition_authority_boundary"]
+        == handoff["stage_transition_authority_boundary"]
+    )
 
 
 def test_execute_dispatch_accepts_record_only_handoff_contract_when_selected_from_persisted_dispatch(

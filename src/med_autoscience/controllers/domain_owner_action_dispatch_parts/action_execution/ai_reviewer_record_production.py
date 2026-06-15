@@ -16,6 +16,9 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+    provider_admission_authority_transport_fields,
+)
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.policies.publication_critique import (
@@ -298,6 +301,16 @@ def build_ai_reviewer_record_worker_handoff(
     repeat_key = _text(owner_route.get("work_unit_fingerprint")) if owner_route else None
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
+    provider_admission_identity = _provider_admission_identity(
+        study_id=study_id,
+        quest_id=quest_id,
+        owner_route=owner_route,
+        production_request=production_request,
+        work_unit_fingerprint=repeat_key,
+    )
+    provider_admission_fields = provider_admission_authority_transport_fields(
+        provider_admission_identity
+    )
     authorization_fields = _authorization_fields(dispatch)
     owner_route_currentness_basis = _mapping(_mapping(owner_route.get("source_refs")).get("owner_route_currentness_basis"))
     prompt_contract = {
@@ -334,6 +347,8 @@ def build_ai_reviewer_record_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
+        "provider_admission_identity": provider_admission_identity,
+        **provider_admission_fields,
         **authorization_fields,
     }
     dispatch_shell = {
@@ -344,6 +359,8 @@ def build_ai_reviewer_record_worker_handoff(
         "required_closeout_packet": closeout_contract,
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "provider_admission_identity": provider_admission_identity,
+        **provider_admission_fields,
     }
     owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
         dispatch=dispatch_shell
@@ -376,6 +393,8 @@ def build_ai_reviewer_record_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
+        "provider_admission_identity": provider_admission_identity,
+        **provider_admission_fields,
         **authorization_fields,
         "ai_reviewer_record_production_request": dict(production_request),
         "source_action": {
@@ -399,6 +418,36 @@ def build_ai_reviewer_record_worker_handoff(
             "expected_next_effect": "ai_reviewer emits a current record-only publication-eval response",
         },
         "generated_at": _utc_now(),
+    }
+
+
+def _provider_admission_identity(
+    *,
+    study_id: str,
+    quest_id: str | None,
+    owner_route: Mapping[str, Any],
+    production_request: Mapping[str, Any],
+    work_unit_fingerprint: str | None,
+) -> dict[str, Any]:
+    source_refs = _mapping(owner_route.get("source_refs"))
+    work_unit_id = (
+        _text(source_refs.get("work_unit_id"))
+        or _text(production_request.get("request_kind"))
+        or _text(owner_route.get("owner_reason"))
+    )
+    return {
+        "surface": "provider_admission_current_control_handoff",
+        "study_id": study_id,
+        "quest_id": quest_id or study_id,
+        "action_type": ACTION_TYPE,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
+        "dispatch_authority": DISPATCH_AUTHORITY,
+        "next_executable_owner": "ai_reviewer",
+        "required_output_surface": RECORD_OUTPUT_SURFACE,
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
     }
 
 
