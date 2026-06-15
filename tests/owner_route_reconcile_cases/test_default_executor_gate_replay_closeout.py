@@ -180,6 +180,153 @@ def test_default_executor_consumes_executed_gate_replay_typed_blocker_closeout(
     assert redrive == {}
 
 
+def test_default_executor_consumes_executed_gate_replay_ledger_blocker(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = tmp_path / "studies" / study_id
+    work_unit_id = "publication_gate_replay"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    fingerprint = "sha256:bfcf03bacdcb4e58edd085444dda2f3906814c8a1806afb63b8095b90408bac9"
+    owner_route = {
+        "idempotency_key": f"owner-route::{study_id}::gate-replay",
+        "source_fingerprint": f"truth-snapshot::{study_id}::gate-replay",
+        "route_epoch": "truth-event-000035-39f0b8e96689a623",
+        "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+        "runtime_health_epoch": "runtime-health-event-006877-a1a57c58b90056f3",
+        "source_eval_id": source_eval_id,
+        "work_unit_fingerprint": fingerprint,
+        "next_owner": "gate_clearing_batch",
+        "allowed_actions": ["run_gate_clearing_batch"],
+        "source_refs": {
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "owner_route_currentness_basis": {
+                "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+                "runtime_health_epoch": "runtime-health-event-006877-a1a57c58b90056f3",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_id,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_gate_clearing_batch",
+                    "execution_status": "executed",
+                    "execution_id": (
+                        f"execution::{study_id}::run_gate_clearing_batch::"
+                        "2026-06-15T02:17:49+00:00"
+                    ),
+                    "idempotency_key": owner_route["idempotency_key"],
+                    "repeat_suppression_key": owner_route["source_fingerprint"],
+                    "current_owner_route": owner_route,
+                    "prompt_contract": {"owner_route": owner_route},
+                    "owner_result": {
+                        "status": "executed",
+                        "ok": True,
+                        "source_eval_id": source_eval_id,
+                        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                        "record_path": str(
+                            study_root
+                            / "artifacts"
+                            / "controller"
+                            / "gate_clearing_batch"
+                            / "latest.json"
+                        ),
+                        "gate_replay": {
+                            "status": "blocked",
+                            "allow_write": False,
+                            "report_json": str(
+                                tmp_path
+                                / "runtime"
+                                / "quests"
+                                / study_id
+                                / "artifacts"
+                                / "reports"
+                                / "publishability_gate"
+                                / "2026-06-15T021817Z.json"
+                            ),
+                            "blockers": [
+                                "medical_publication_surface_blocked",
+                                "reviewer_first_concerns_unresolved",
+                                "submission_hardening_incomplete",
+                            ],
+                        },
+                        "gate_blockers": [
+                            "medical_publication_surface_blocked",
+                            "reviewer_first_concerns_unresolved",
+                            "submission_hardening_incomplete",
+                        ],
+                        "publication_work_unit_lifecycle": {
+                            "status": "blocked",
+                            "gate_replay_status": "blocked",
+                            "work_unit": {"unit_id": work_unit_id},
+                        },
+                        "quality_authorized": False,
+                        "submission_authorized": False,
+                        "current_package_write_authorized": False,
+                    },
+                    "paper_stage_log": {
+                        "surface_kind": "mas_paper_facing_stage_log_summary",
+                        "schema_version": 1,
+                        "status": "available",
+                        "stage_name": work_unit_id,
+                        "current_owner": "gate_clearing_batch",
+                        "outcome": "executed",
+                        "progress_delta_classification": "typed_blocker",
+                        "remaining_blockers": [],
+                        "changed_stage_surfaces": [],
+                        "changed_paper_surfaces": [],
+                    },
+                }
+            ],
+        },
+    )
+
+    receipt = default_executor_execution_receipt_consumption(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_gate_clearing_batch"}],
+    )
+    redrive = default_executor_execution_nonconsumable_closeout(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_gate_clearing_batch"}],
+    )
+
+    assert receipt["status"] == "consumed"
+    assert receipt["action_type"] == "run_gate_clearing_batch"
+    assert receipt["execution_status"] == "executed"
+    assert receipt["outcome"] == "typed_blocker"
+    assert receipt["blocked_reason"] == "publication_gate_replay_blocked"
+    assert receipt["typed_blocker"]["blocker_type"] == "publication_gate_replay_blocked"
+    assert receipt["typed_blocker"]["gate_replay_status"] == "blocked"
+    assert receipt["typed_blocker"]["gate_replay_blockers"] == [
+        "medical_publication_surface_blocked",
+        "reviewer_first_concerns_unresolved",
+        "submission_hardening_incomplete",
+    ]
+    assert receipt["next_action"] == "honor_typed_blocker_without_redrive"
+    assert redrive == {}
+
+
 def test_gate_replay_closeout_uses_closeout_bound_immutable_dispatch_not_current_mutable_slot(
     tmp_path: Path,
 ) -> None:

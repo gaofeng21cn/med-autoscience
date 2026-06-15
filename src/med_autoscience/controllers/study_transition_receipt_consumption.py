@@ -16,6 +16,7 @@ from med_autoscience.controllers.study_transition_receipt_consumption_parts.defa
     default_executor_consumed_blocked_reason,
     default_executor_dispatch_zero_execution_blocker,
     default_executor_owner_result_consumable,
+    gate_replay_blocker_fields,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_followthrough import (
     default_executor_execution_followthrough_receipt_consumption,
@@ -208,6 +209,7 @@ def default_executor_execution_receipt_consumption(
             owner_result=owner_result,
             repair_evidence=repair_evidence,
         )
+        typed_blocker_extra = gate_replay_blocker_fields(owner_result)
         owner_route_currentness_basis = build_owner_route_currentness_basis(owner_route)
         outcomes.append(
             _default_executor_execution_outcome(
@@ -226,7 +228,11 @@ def default_executor_execution_receipt_consumption(
                     or _text(owner_result.get("owner_receipt_ref")),
                     "repair_execution_evidence_status": _text(repair_evidence.get("status")),
                     **({"blocked_reason": blocked_reason} if blocked_reason else {}),
-                    **_typed_blocker_consumption_fields(execution, blocked_reason=blocked_reason),
+                    **_typed_blocker_consumption_fields(
+                        execution,
+                        blocked_reason=blocked_reason,
+                        extra_fields=typed_blocker_extra,
+                    ),
                     "work_unit_id": _text(owner_route_currentness_basis.get("work_unit_id")),
                     "work_unit_fingerprint": _text(owner_route_currentness_basis.get("work_unit_fingerprint")),
                     "canonical_work_unit_identity": owner_route_currentness_basis,
@@ -240,7 +246,7 @@ def default_executor_execution_receipt_consumption(
                     "current_package_write_authorized": False,
                     "next_action": (
                         "honor_typed_blocker_without_redrive"
-                        if _text(execution.get("stage_closeout_outcome")) == "typed_blocker"
+                        if _text(execution.get("stage_closeout_outcome")) == "typed_blocker" or typed_blocker_extra
                         else "do_not_redrive_consumed_owner_route"
                     ),
                 },
@@ -265,11 +271,18 @@ def _typed_blocker_consumption_fields(
     execution: Mapping[str, Any],
     *,
     blocked_reason: str | None,
+    extra_fields: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if _text(execution.get("stage_closeout_outcome")) != "typed_blocker":
+    extra_payload = dict(extra_fields or {})
+    if _text(execution.get("stage_closeout_outcome")) != "typed_blocker" and not extra_payload:
         return {}
     source_typed_blocker = _source_typed_blocker(execution)
-    reason = _typed_blocker_reason(execution) or _text(blocked_reason) or "default_executor_typed_blocker"
+    reason = (
+        (_text(blocked_reason) if extra_payload else "")
+        or _typed_blocker_reason(execution)
+        or _text(blocked_reason)
+        or "default_executor_typed_blocker"
+    )
     typed_blocker_ref = _text(execution.get("typed_blocker_ref"))
     owner_receipt_ref = _text(execution.get("owner_receipt_ref"))
     owner = _text(source_typed_blocker.get("owner"))
@@ -293,6 +306,7 @@ def _typed_blocker_consumption_fields(
                 "blocker_type": reason,
                 "source_ref": typed_blocker_ref,
                 "owner_receipt_ref": owner_receipt_ref,
+                **extra_payload,
                 **({"owner": owner} if owner else {}),
                 "next_owner": next_owner,
                 "write_permitted": False,

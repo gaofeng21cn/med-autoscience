@@ -251,12 +251,85 @@ def test_current_work_unit_uses_remaining_blocker_for_executed_typed_closeout() 
 
     _assert_contract_shape(work_unit)
     assert work_unit["status"] == "typed_blocker"
-    assert work_unit["owner"] == "gate_clearing_batch"
+    assert work_unit["owner"] == "publication_gate"
     assert work_unit["action_type"] == "run_gate_clearing_batch"
     assert work_unit["work_unit_id"] == work_unit_id
     assert work_unit["state"]["blocker_type"] == "publication_gate_replay_blocked"
     assert work_unit["state"]["typed_blocker"]["terminal_closeout_status"] == "executed"
     assert work_unit["state"]["typed_blocker"]["terminal_closeout_outcome"] == "typed_blocker"
+
+
+def test_current_work_unit_gate_replay_executed_log_uses_gate_blocked_reason() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "publication_gate_replay"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    fingerprint = "sha256:bfcf03bacdcb4e58edd085444dda2f3906814c8a1806afb63b8095b90408bac9"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "surface_kind": "mas_latest_terminal_stage_log_projection",
+                    "action_type": "run_gate_clearing_batch",
+                    "status": "executed",
+                    "stage_name": work_unit_id,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "source_eval_id": source_eval_id,
+                    "outcome": "executed",
+                    "progress_delta_classification": "typed_blocker",
+                    "gate_replay_status": "blocked",
+                    "gate_replay_blockers": [
+                        "medical_publication_surface_blocked",
+                        "reviewer_first_concerns_unresolved",
+                    ],
+                    "paper_stage_log": {
+                        "outcome": "executed",
+                        "progress_delta_classification": "typed_blocker",
+                        "remaining_blockers": [],
+                    },
+                    "source_path": (
+                        f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
+                        "default_executor_execution/latest.json"
+                    ),
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "study_progress.next_forced_delta.owner_action",
+            "next_owner": "gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_eval_id": source_eval_id,
+            "action_type": "run_gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+        },
+        next_owner="gate_clearing_batch",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "publication_gate"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["state"]["source"] == "terminal_closeout_typed_blocker"
+    assert work_unit["state"]["blocker_type"] == "publication_gate_replay_blocked"
+    assert work_unit["state"]["typed_blocker"]["gate_replay_status"] == "blocked"
+    assert work_unit["state"]["typed_blocker"]["gate_replay_blockers"] == [
+        "medical_publication_surface_blocked",
+        "reviewer_first_concerns_unresolved",
+    ]
+    assert work_unit["state"]["typed_blocker"]["terminal_closeout_outcome"] == "executed"
 
 
 def test_current_work_unit_preserves_same_identity_gate_replay_typed_closeout_over_admission() -> None:
@@ -326,7 +399,7 @@ def test_current_work_unit_preserves_same_identity_gate_replay_typed_closeout_ov
 
     _assert_contract_shape(work_unit)
     assert work_unit["status"] == "typed_blocker"
-    assert work_unit["owner"] == "gate_clearing_batch"
+    assert work_unit["owner"] == "publication_gate"
     assert work_unit["action_type"] == "run_gate_clearing_batch"
     assert work_unit["work_unit_id"] == work_unit_id
     assert work_unit["work_unit_fingerprint"] == fingerprint

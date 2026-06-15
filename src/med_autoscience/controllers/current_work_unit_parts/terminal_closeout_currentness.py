@@ -135,6 +135,7 @@ def terminal_closeout_blocker_for_action(
             "terminal_closeout_outcome": text(terminal.get("outcome")) or text(paper_stage_log.get("outcome")),
             "progress_delta_classification": text(terminal.get("progress_delta_classification"))
             or text(paper_stage_log.get("progress_delta_classification")),
+            **_terminal_gate_replay_fields(terminal, mapping=mapping, text=text, text_items=text_items),
         }.items()
         if value not in (None, "", [], {})
     }
@@ -534,6 +535,8 @@ def _terminal_stage_blocker_reason(
     mapping: MappingReader,
     text: TextReader,
 ) -> str:
+    if _terminal_gate_replay_blocked(terminal, mapping=mapping, text=text):
+        return "publication_gate_replay_blocked"
     typed_blocker = mapping(terminal.get("typed_blocker"))
     paper_stage_log = mapping(terminal.get("paper_stage_log"))
     paper_next_forced_delta = mapping(paper_stage_log.get("next_forced_delta"))
@@ -597,6 +600,8 @@ def _terminal_stage_blocker_owner(
     )
     if blocker_reason in OPL_RUNTIME_TERMINAL_BLOCKERS:
         return "one-person-lab"
+    if blocker_reason == "publication_gate_replay_blocked":
+        return "publication_gate"
     contract = owner_reason_contract(reason=blocker_reason, owner=explicit_owner)
     return (
         explicit_owner
@@ -617,6 +622,42 @@ def _structured_blocker_reason(
         if resolved is not None:
             return resolved
     return text(value)
+
+
+def _terminal_gate_replay_blocked(
+    terminal: Mapping[str, Any],
+    *,
+    mapping: MappingReader,
+    text: TextReader,
+) -> bool:
+    paper_stage_log = mapping(terminal.get("paper_stage_log"))
+    return (
+        text(terminal.get("gate_replay_status")) == "blocked"
+        or text(paper_stage_log.get("gate_replay_status")) == "blocked"
+    )
+
+
+def _terminal_gate_replay_fields(
+    terminal: Mapping[str, Any],
+    *,
+    mapping: MappingReader,
+    text: TextReader,
+    text_items: TextItemsReader,
+) -> dict[str, Any]:
+    if not _terminal_gate_replay_blocked(terminal, mapping=mapping, text=text):
+        return {}
+    paper_stage_log = mapping(terminal.get("paper_stage_log"))
+    blockers = text_items(terminal.get("gate_replay_blockers")) or text_items(
+        paper_stage_log.get("gate_replay_blockers")
+    )
+    return {
+        key: value
+        for key, value in {
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": blockers,
+        }.items()
+        if value not in (None, "", [], {})
+    }
 
 
 def _structured_blocker_mapping(

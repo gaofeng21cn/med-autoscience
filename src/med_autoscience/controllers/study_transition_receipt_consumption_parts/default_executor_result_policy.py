@@ -80,6 +80,8 @@ def default_executor_consumed_blocked_reason(
     owner_result: Mapping[str, Any],
     repair_evidence: Mapping[str, Any],
 ) -> str | None:
+    if action_type == "run_gate_clearing_batch" and _gate_replay_blocked(owner_result):
+        return "publication_gate_replay_blocked"
     if action_type == "run_quality_repair_batch":
         if "manuscript_story_surface_delta_missing" in _string_set(repair_evidence.get("blockers")):
             return "manuscript_story_surface_delta_missing"
@@ -93,6 +95,39 @@ def default_executor_consumed_blocked_reason(
         ):
             return "manuscript_story_surface_delta_missing"
     return _text(owner_result.get("blocked_reason")) or _text(repair_evidence.get("blocked_reason")) or None
+
+
+def gate_replay_blockers(owner_result: Mapping[str, Any]) -> list[str]:
+    gate_replay = _mapping(owner_result.get("gate_replay"))
+    blockers = _string_items(gate_replay.get("blockers"))
+    if blockers:
+        return blockers
+    return _string_items(owner_result.get("gate_blockers"))
+
+
+def gate_replay_blocker_fields(owner_result: Mapping[str, Any]) -> dict[str, Any]:
+    if not _gate_replay_blocked(owner_result):
+        return {}
+    blockers = gate_replay_blockers(owner_result)
+    return {
+        key: value
+        for key, value in {
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": blockers,
+            "publication_gate_report_ref": _text(_mapping(owner_result.get("gate_replay")).get("report_json")),
+        }.items()
+        if value not in ("", [], None)
+    }
+
+
+def _gate_replay_blocked(owner_result: Mapping[str, Any]) -> bool:
+    gate_replay = _mapping(owner_result.get("gate_replay"))
+    lifecycle = _mapping(owner_result.get("publication_work_unit_lifecycle"))
+    return (
+        _text(gate_replay.get("status")) == "blocked"
+        or _text(owner_result.get("gate_replay_status")) == "blocked"
+        or _text(lifecycle.get("gate_replay_status")) == "blocked"
+    )
 
 
 def _current_manuscript_digest_mismatch(
@@ -182,6 +217,12 @@ def _mapping_list(value: object) -> list[Mapping[str, Any]]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, Mapping)]
+
+
+def _string_items(value: object) -> list[str]:
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [text for item in value if (text := _text(item))]
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
