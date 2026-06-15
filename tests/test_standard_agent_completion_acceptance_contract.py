@@ -145,7 +145,7 @@ def test_standard_agent_completion_acceptance_false_completion_claims_are_explic
     )
     assert {
         "physical source morphology scan beyond classification-zero",
-        "OPL/OMA family-level standard-agent generation negative conformance",
+        "OPL/OMA production generated-surface caller and long-soak negative conformance",
     } <= set(contract["current_open_evidence_tails"])
 
 
@@ -197,12 +197,27 @@ def test_standard_agent_completion_evidence_ledger_records_representative_live_o
 
     family = gates["family_standard_agent_feedback_loop"]
     assert family["status"] == "evidence_required"
-    assert "OPL_OMA_family_negative_conformance_receipt_ref" in family[
+    assert "OPL_OMA_family_negative_conformance_receipt_ref" not in family[
         "missing_evidence_tails"
     ]
+    assert {
+        "production_generated_surface_caller_negative_samples_ref",
+        "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+        "long_soak_negative_conformance_ref",
+    } <= set(family["missing_evidence_tails"])
     assert "cross_agent_standard_conformance_negative_test_ref" in family[
         "required_evidence_refs"
     ]
+    assert {
+        (
+            "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#"
+            "contracts/opl-framework/standard-agent-negative-conformance-samples.json"
+        ),
+        (
+            "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#"
+            "tests/src/cli/cases/work-order-execution.test.ts::omaTargetAgentGuardMissingCases"
+        ),
+    } <= set(family["observed_refs"])
 
     observations = {
         observation["study_id"]: observation
@@ -218,6 +233,39 @@ def test_standard_agent_completion_evidence_ledger_records_representative_live_o
         assert observation["completion_evidence"] is True
         assert observation["can_close_live_owner_gate"] is True
         assert observation["paper_progress_delta"] is False
+
+
+def test_standard_agent_completion_evidence_ledger_records_opl_family_negative_conformance_samples() -> None:
+    ledger = _ledger()
+    gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
+    negative = gates["negative_false_completion_tests"]
+    family = gates["family_standard_agent_feedback_loop"]
+
+    negative_sample_ref = (
+        "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#"
+        "contracts/opl-framework/standard-agent-negative-conformance-samples.json"
+    )
+    acceptance_sample_ref = (
+        "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#"
+        "tests/src/standard-agent-landing-acceptance-contract.test.ts::standard agent landing "
+        "negative conformance has repo-backed cross-agent samples"
+    )
+    oma_guard_ref = (
+        "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#"
+        "tests/src/cli/cases/work-order-execution.test.ts::omaTargetAgentGuardMissingCases"
+    )
+
+    assert {negative_sample_ref, acceptance_sample_ref} <= set(
+        negative["observed_refs"]
+    )
+    assert negative["missing_evidence_tails"] == []
+    assert {negative_sample_ref, oma_guard_ref} <= set(family["observed_refs"])
+    assert {
+        "production_generated_surface_caller_negative_samples_ref",
+        "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+        "long_soak_negative_conformance_ref",
+    } <= set(family["missing_evidence_tails"])
+    assert ledger["completion_claim_allowed"] is False
 
 
 def test_standard_agent_completion_evidence_ledger_records_lifecycle_owner_followthrough_without_ready_claim() -> None:

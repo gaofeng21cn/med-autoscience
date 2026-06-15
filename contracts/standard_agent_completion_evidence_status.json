@@ -146,11 +146,11 @@
         "tests/test_paper_recovery_kernel_contract.py",
         "tests/test_stage_route_reconcile_contract.py",
         "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py",
-        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_default_executor_residue_cleanup_without_progress_claim"
+        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_default_executor_residue_cleanup_without_progress_claim",
+        "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-negative-conformance-samples.json",
+        "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#tests/src/standard-agent-landing-acceptance-contract.test.ts::standard agent landing negative conformance has repo-backed cross-agent samples"
       ],
-      "missing_evidence_tails": [
-        "cross_agent_standard_conformance_negative_test_ref"
-      ],
+      "missing_evidence_tails": [],
       "false_completion_boundary": [
         "docs_only_wording",
         "manual_reviewer_confidence",
@@ -206,13 +206,15 @@
         "contracts/standard_agent_completion_acceptance.json#/acceptance_gates/6",
         "contracts/functional_privatization_audit.json#/functional_followthrough_gap_summary/owner_followthrough_evidence/0",
         "contracts/functional_privatization_audit.json#/functional_consumer_boundary/functional_followthrough_gap_summary/owner_followthrough_evidence/0",
-        "opl:runtime/app-operator-drilldown/memory_artifact_lifecycle/memory-artifact-lifecycle-owner-decision"
+        "opl:runtime/app-operator-drilldown/memory_artifact_lifecycle/memory-artifact-lifecycle-owner-decision",
+        "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-landing-acceptance-contract.json",
+        "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-negative-conformance-samples.json",
+        "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#tests/src/cli/cases/work-order-execution.test.ts::omaTargetAgentGuardMissingCases"
       ],
       "missing_evidence_tails": [
-        "OPL_OMA_family_negative_conformance_receipt_ref",
-        "target_owner_route_missing_returns_typed_blocker_ref",
-        "source_morphology_missing_returns_work_order_ref",
-        "generated_surface_or_private_residue_gap_returns_work_order_ref"
+        "production_generated_surface_caller_negative_samples_ref",
+        "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+        "long_soak_negative_conformance_ref"
       ],
       "false_completion_boundary": [
         "copying_MAS_paper_recovery_state_into_OPL",
