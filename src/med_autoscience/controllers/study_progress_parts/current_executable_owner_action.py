@@ -81,6 +81,12 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
     paper_recovery_action = _from_paper_recovery_state(payload)
     domain_transition_action = _from_domain_transition(payload)
+    if _repair_progress_consumes_paper_recovery_successor(
+        repair_progress_action=repair_progress_action,
+        paper_recovery_action=paper_recovery_action,
+        payload=payload,
+    ):
+        return repair_progress_action
     if paper_recovery_successor_supersedes_gate_replay_blocker(
         paper_recovery_action=paper_recovery_action,
         payload=payload,
@@ -241,6 +247,79 @@ def _canonical_current_work_unit_has_terminal_stop_loss(
     ):
         return False
     return is_anti_loop_stop_loss_closeout(closeout_like)
+
+
+def _repair_progress_consumes_paper_recovery_successor(
+    *,
+    repair_progress_action: Mapping[str, Any] | None,
+    paper_recovery_action: Mapping[str, Any] | None,
+    payload: Mapping[str, Any],
+) -> bool:
+    repair_action = _mapping_copy(repair_progress_action)
+    paper_action = _mapping_copy(paper_recovery_action)
+    if not repair_action or not paper_action:
+        return False
+    if not paper_recovery_successor_action_ready(paper_action):
+        return False
+    if _non_empty_text(repair_action.get("source")) != REPAIR_PROGRESS_SOURCE:
+        return False
+    repair_progress = _mapping_copy(payload.get("repair_progress_projection"))
+    if repair_progress.get("paper_delta_observed") is not True:
+        return False
+    if repair_progress.get("accepted_owner_receipt") is not True:
+        return False
+    if repair_progress.get("gate_replay_done") is not True:
+        return False
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+        return False
+    current_source = _non_empty_text(_mapping_copy(current_work_unit.get("state")).get("source"))
+    if current_source != "paper_recovery_state.next_safe_action.successor_owner_action":
+        return False
+    source_work_unit = _non_empty_text(
+        _mapping_copy(repair_action.get("repair_progress_precedence")).get("source_work_unit_id")
+    ) or _non_empty_text(repair_progress.get("work_unit_id"))
+    if source_work_unit is None or source_work_unit != _non_empty_text(paper_action.get("work_unit_id")):
+        return False
+    if source_work_unit != _non_empty_text(current_work_unit.get("work_unit_id")):
+        return False
+    repair_eval = _non_empty_text(repair_progress.get("source_eval_id")) or _non_empty_text(
+        repair_action.get("source_eval_id")
+    )
+    paper_eval = _non_empty_text(paper_action.get("source_eval_id"))
+    if repair_eval is not None and paper_eval is not None and repair_eval != paper_eval:
+        return False
+    followthrough = _mapping_copy(payload.get("gate_clearing_batch_followthrough"))
+    if not followthrough:
+        return False
+    currentness = _mapping_copy(followthrough.get("work_unit_currentness"))
+    if _non_empty_text(currentness.get("current_actionability_status")) != "actionable":
+        return False
+    if currentness.get("lacks_specific_blocker_object") is True:
+        return False
+    followthrough_work_unit = (
+        _non_empty_text(followthrough.get("work_unit_id"))
+        or _non_empty_text(currentness.get("current_publication_work_unit_id"))
+        or _non_empty_text(_mapping_copy(followthrough.get("current_publication_work_unit")).get("unit_id"))
+    )
+    if followthrough_work_unit != source_work_unit:
+        return False
+    paper_fingerprint = _non_empty_text(paper_action.get("work_unit_fingerprint")) or _non_empty_text(
+        paper_action.get("action_fingerprint")
+    )
+    current_fingerprint = _non_empty_text(current_work_unit.get("work_unit_fingerprint")) or _non_empty_text(
+        current_work_unit.get("action_fingerprint")
+    )
+    if paper_fingerprint is None or current_fingerprint != paper_fingerprint:
+        return False
+    followthrough_fingerprint = (
+        _non_empty_text(followthrough.get("work_unit_fingerprint"))
+        or _non_empty_text(currentness.get("current_work_unit_fingerprint"))
+        or _non_empty_text(currentness.get("explicit_work_unit_fingerprint"))
+    )
+    if followthrough_fingerprint != paper_fingerprint:
+        return False
+    return True
 
 
 def _repair_progress_supersedes_terminal_stop_loss(

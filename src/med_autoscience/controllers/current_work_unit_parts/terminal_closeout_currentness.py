@@ -167,7 +167,55 @@ def _gate_replay_terminal_superseded_by_followthrough(
         or work_unit_id(mapping(followthrough.get("work_unit_currentness")).get("explicit_publication_work_unit_id"))
         or work_unit_id(mapping(followthrough.get("explicit_publication_work_unit")).get("unit_id"))
     )
-    return action_work_unit is not None and followthrough_work_unit == action_work_unit
+    if action_work_unit is not None and followthrough_work_unit == action_work_unit:
+        return True
+    return _repair_progress_gate_action_routes_to_followthrough_repair(
+        action=action,
+        followthrough=followthrough,
+        mapping=mapping,
+        text=text,
+        work_unit_id=work_unit_id,
+    )
+
+
+def _repair_progress_gate_action_routes_to_followthrough_repair(
+    *,
+    action: Mapping[str, Any],
+    followthrough: Mapping[str, Any],
+    mapping: MappingReader,
+    text: TextReader,
+    work_unit_id: WorkUnitIdReader,
+) -> bool:
+    if text(action.get("source")) != "repair_progress_projection.mas_owner_repair_execution_evidence":
+        return False
+    if text(action.get("action_type")) != "run_gate_clearing_batch":
+        return False
+    precedence = mapping(action.get("repair_progress_precedence"))
+    source_work_unit = work_unit_id(precedence.get("source_work_unit_id"))
+    if source_work_unit is None:
+        return False
+    currentness = mapping(followthrough.get("work_unit_currentness"))
+    if text(currentness.get("current_actionability_status")) != "actionable":
+        return False
+    if currentness.get("lacks_specific_blocker_object") is True:
+        return False
+    followthrough_current_work_unit = (
+        work_unit_id(followthrough.get("work_unit_id"))
+        or work_unit_id(currentness.get("current_publication_work_unit_id"))
+        or work_unit_id(mapping(followthrough.get("current_publication_work_unit")).get("unit_id"))
+    )
+    if followthrough_current_work_unit != source_work_unit:
+        return False
+    action_source_eval = _action_source_eval_id(action, mapping=mapping, text=text)
+    followthrough_source_eval = text(followthrough.get("source_eval_id"))
+    if action_source_eval is None or followthrough_source_eval != action_source_eval:
+        return False
+    source_fingerprint = text(precedence.get("source_fingerprint"))
+    if source_fingerprint is not None:
+        gate_fingerprint = text(action.get("work_unit_fingerprint")) or text(action.get("action_fingerprint"))
+        if gate_fingerprint != source_fingerprint:
+            return False
+    return True
 
 
 def gate_replay_consumed_by_source_eval(

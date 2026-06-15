@@ -981,6 +981,10 @@ def _same_work_unit_owner_receipt(
         progress,
         current_work_unit=current_work_unit,
         current_action=current_action,
+    ) and not _gate_followthrough_successor_receipt_matches_current_action(
+        progress,
+        current_work_unit=current_work_unit,
+        current_action=current_action,
     ):
         return None
     repair = _mapping(progress.get("repair_progress_projection"))
@@ -1071,6 +1075,63 @@ def _same_work_unit_owner_receipt_matches_obligation(
     return True
 
 
+def _gate_followthrough_successor_receipt_matches_current_action(
+    progress: Mapping[str, Any],
+    *,
+    current_work_unit: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    repair = _mapping(progress.get("repair_progress_projection"))
+    if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
+        return False
+    followthrough = _mapping(progress.get("gate_clearing_batch_followthrough"))
+    if _text(followthrough.get("status")) != "executed":
+        return False
+    currentness = _mapping(followthrough.get("work_unit_currentness"))
+    if _text(currentness.get("current_actionability_status")) != "actionable":
+        return False
+    if currentness.get("lacks_specific_blocker_object") is True:
+        return False
+    repair_work_unit = _text(repair.get("work_unit_id"))
+    current_work_unit_id = _text(current_work_unit.get("work_unit_id"))
+    action_work_unit_id = _text(current_action.get("work_unit_id"))
+    followthrough_work_unit = _first_text(
+        followthrough.get("work_unit_id"),
+        currentness.get("current_publication_work_unit_id"),
+        _mapping(followthrough.get("current_publication_work_unit")).get("unit_id"),
+    )
+    if (
+        repair_work_unit is None
+        or current_work_unit_id != repair_work_unit
+        or action_work_unit_id != repair_work_unit
+        or followthrough_work_unit != repair_work_unit
+    ):
+        return False
+    current_fingerprint = _first_text(
+        current_work_unit.get("work_unit_fingerprint"),
+        current_work_unit.get("action_fingerprint"),
+        current_action.get("work_unit_fingerprint"),
+        current_action.get("action_fingerprint"),
+    )
+    followthrough_fingerprint = _first_text(
+        followthrough.get("work_unit_fingerprint"),
+        currentness.get("current_work_unit_fingerprint"),
+        currentness.get("explicit_work_unit_fingerprint"),
+    )
+    if current_fingerprint is None or followthrough_fingerprint != current_fingerprint:
+        return False
+    repair_eval = _text(repair.get("source_eval_id"))
+    action_eval = _text(current_action.get("source_eval_id"))
+    followthrough_eval = _text(followthrough.get("source_eval_id"))
+    if action_eval is None or followthrough_eval is None:
+        return False
+    if repair_eval is not None and repair_eval != action_eval:
+        return False
+    if repair_eval is not None and repair_eval != followthrough_eval:
+        return False
+    return True
+
+
 def _repair_progress_followup_owner_receipt_matches_obligation(
     repair: Mapping[str, Any],
     *,
@@ -1117,7 +1178,10 @@ def _repair_progress_followup_owner_receipt_ref(repair: Mapping[str, Any]) -> st
     for ref in gate_replay_refs:
         if "gate_clearing_batch" in ref:
             return ref
-    return gate_replay_refs[0] if gate_replay_refs else None
+    for ref in gate_replay_refs:
+        if "publishability_gate" in ref or "receipt" in ref:
+            return ref
+    return None
 
 
 def _suppressed_surfaces_for_typed_blocker(progress: Mapping[str, Any]) -> list[str]:

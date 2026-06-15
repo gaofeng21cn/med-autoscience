@@ -6,6 +6,9 @@ from typing import Any
 
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.controllers import current_execution_envelope, current_work_unit
+from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
+    PROVIDER_ADMISSION_AUTHORITIES,
+)
 from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -148,6 +151,10 @@ def refresh_existing_projection_current_owner_surfaces(
         updated["opl_current_control_state_handoff"] = None
         handoff = {}
     current_control_executable_action = current_control_executable_owner_action(handoff)
+    if current_control_executable_action and not _handoff_is_active_provider_control(handoff):
+        recomputed_action = build_current_executable_owner_action(updated)
+        if recomputed_action is not None:
+            current_control_executable_action = recomputed_action
     currentness_handoff = current_control_executable_currentness_handoff(
         handoff,
         current_control_executable_action=current_control_executable_action,
@@ -330,6 +337,23 @@ def _apply_current_control_currentness_to_existing_projection(
     return updated
 
 
+def _handoff_is_active_provider_control(handoff: Mapping[str, Any]) -> bool:
+    if handoff.get("running_provider_attempt") is True:
+        return True
+    if handoff.get("provider_admission_pending_count") not in (None, 0):
+        return True
+    if handoff.get("provider_attempt_or_lease_required") is True:
+        return True
+    if _non_empty_text(handoff.get("execution_status")) == "handoff_ready":
+        return True
+    if any(_mapping_copy(item) for item in handoff.get("provider_admission_candidates") or []):
+        return True
+    return any(
+        _non_empty_text(_mapping_copy(item).get("authority")) in PROVIDER_ADMISSION_AUTHORITIES
+        for item in handoff.get("action_queue") or []
+    )
+
+
 def _current_control_handoff_is_typed_blocker(handoff: Mapping[str, Any]) -> bool:
     if handoff.get("running_provider_attempt") is True:
         return False
@@ -366,6 +390,8 @@ def refresh_paper_recovery_successor_surfaces(
     current_control_executable_action = current_control_executable_owner_action(handoff)
     if current_control_executable_action:
         return payload
+    if _repair_progress_gate_followup_current(payload):
+        return payload
     recovery_payload = dict(payload)
     recovery_payload["paper_recovery_state"] = build_paper_recovery_state(recovery_payload)
     current_action = build_current_executable_owner_action(recovery_payload)
@@ -394,6 +420,28 @@ def refresh_paper_recovery_successor_surfaces(
     updated = sync_current_execution_evidence(updated, handoff=handoff)
     updated["paper_recovery_state"] = build_paper_recovery_state(updated)
     return updated
+
+
+def _repair_progress_gate_followup_current(payload: Mapping[str, Any]) -> bool:
+    action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if _non_empty_text(action.get("source")) != "repair_progress_projection.mas_owner_repair_execution_evidence":
+        return False
+    if _non_empty_text(action.get("action_type")) != "run_gate_clearing_batch":
+        return False
+    repair_progress = _mapping_copy(payload.get("repair_progress_projection"))
+    if repair_progress.get("paper_delta_observed") is not True:
+        return False
+    if repair_progress.get("accepted_owner_receipt") is not True:
+        return False
+    if repair_progress.get("gate_replay_done") is not True:
+        return False
+    current = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current.get("status")) != "executable_owner_action":
+        return False
+    return (
+        _non_empty_text(current.get("action_type")) == "run_gate_clearing_batch"
+        and _non_empty_text(current.get("work_unit_id")) == "publication_gate_replay"
+    )
 
 
 def _optional_mapping(value: object) -> dict[str, Any] | None:

@@ -18,6 +18,9 @@ def provider_admission_projection_fields(
     handoff: Mapping[str, Any],
     study_root: Path,
 ) -> dict[str, Any]:
+    handoff_fields = _identity_bound_handoff_provider_admission_fields(handoff=handoff, payload=payload)
+    if handoff_fields is not None:
+        return handoff_fields
     supervisor_gate = provider_admission_supervisor_gate(payload)
     if supervisor_gate.get("blocked") is True:
         supervisor_decision = _mapping_copy(supervisor_gate.get("supervisor_decision"))
@@ -46,6 +49,36 @@ def provider_admission_projection_fields(
     return {
         "provider_admission_pending_count": len(candidates),
         "provider_admission_candidates": list(candidates),
+    }
+
+
+def _identity_bound_handoff_provider_admission_fields(
+    *,
+    handoff: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    candidates = [
+        dict(item)
+        for item in handoff.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    pending_count = int(handoff.get("provider_admission_pending_count") or 0)
+    if pending_count <= 0 and not candidates:
+        return None
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+        return None
+    matching = [
+        item
+        for item in candidates
+        if _same_action_identity(current_action, item) or _same_action_identity(current_work_unit, item)
+    ]
+    if not matching:
+        return None
+    return {
+        "provider_admission_pending_count": len(matching),
+        "provider_admission_candidates": matching,
     }
 
 

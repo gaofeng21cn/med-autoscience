@@ -123,6 +123,11 @@ def refresh_current_execution_surfaces(
         action=current_action,
         envelope=_mapping_copy(updated.get("current_execution_envelope")),
     )
+    if aligned_action is None:
+        aligned_action = _current_action_from_current_work_unit(
+            updated.get("current_work_unit"),
+            progress=updated,
+        )
     if aligned_action != _mapping_copy(updated.get("current_executable_owner_action")):
         updated["current_executable_owner_action"] = aligned_action
         actions = _canonical_actions_for_execution_refresh(payload=updated, handoff=handoff)
@@ -167,6 +172,91 @@ def _canonical_current_control_typed_blocker_work_unit(handoff: Mapping[str, Any
     if _non_empty_text(current.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
         return current
     return {}
+
+
+def _current_action_from_current_work_unit(
+    value: object,
+    *,
+    progress: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    current = _mapping_copy(value)
+    if _non_empty_text(current.get("status")) != "executable_owner_action":
+        return None
+    action_type = _non_empty_text(current.get("action_type"))
+    work_unit_id = _non_empty_text(current.get("work_unit_id"))
+    owner = _non_empty_text(current.get("owner"))
+    fingerprint = _non_empty_text(current.get("work_unit_fingerprint"))
+    if action_type is None or work_unit_id is None or owner is None or fingerprint is None:
+        return None
+    contract = _mapping_copy(current.get("required_output_contract"))
+    state = _mapping_copy(current.get("state"))
+    currentness_basis = _mapping_copy(current.get("currentness_basis"))
+    source = _non_empty_text(state.get("source")) or "canonical_current_work_unit"
+    repair_precedence = _repair_progress_precedence_for_current_work_unit(
+        current=current,
+        progress=progress,
+        source=source,
+    )
+    return {
+        key: value
+        for key, value in {
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": source,
+            "next_owner": owner,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": _non_empty_text(current.get("action_fingerprint")) or fingerprint,
+            "source_eval_id": _non_empty_text(currentness_basis.get("source_eval_id")),
+            "action_type": action_type,
+            "allowed_actions": [action_type],
+            "owner_receipt_required": _mapping_copy(current.get("required_output_contract")).get(
+                "owner_receipt_required"
+            )
+            is not False,
+            "required_delta_kind": _non_empty_text(contract.get("required_delta_kind")),
+            "target_surface": _mapping_copy(contract.get("target_surface")) or None,
+            "target_surface_specificity": _non_empty_text(contract.get("target_surface_specificity")),
+            "source_ref": _first_text(_text_list(current.get("input_refs"))),
+            "acceptance_refs": _text_list(current.get("acceptance_refs")),
+            "owner_route_currentness_basis": currentness_basis or None,
+            "repair_progress_precedence": repair_precedence or None,
+            "authority_boundary": {
+                "refs_only": True,
+                "source_current_work_unit": True,
+                "can_write_runtime_owned_surfaces": False,
+                "can_write_paper_or_package": False,
+                "can_authorize_quality_verdict": False,
+                "can_authorize_publication_ready": False,
+            },
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _repair_progress_precedence_for_current_work_unit(
+    *,
+    current: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    source: str,
+) -> dict[str, Any]:
+    if source != "repair_progress_projection.mas_owner_repair_execution_evidence":
+        return {}
+    repair = _mapping_copy(progress.get("repair_progress_projection"))
+    if repair.get("paper_delta_observed") is not True or repair.get("accepted_owner_receipt") is not True:
+        return {}
+    source_work_unit = _non_empty_text(repair.get("work_unit_id"))
+    source_fingerprint = _non_empty_text(repair.get("source_fingerprint"))
+    if source_work_unit is None or source_fingerprint is None:
+        return {}
+    return {
+        "paper_delta_observed": True,
+        "accepted_owner_receipt": True,
+        "superseded_stage_native_action": "run_quality_repair_batch",
+        "source_work_unit_id": source_work_unit,
+        "source_fingerprint": source_fingerprint,
+    }
 
 
 def _canonical_current_control_typed_blocker(handoff: Mapping[str, Any]) -> dict[str, Any]:
@@ -265,15 +355,8 @@ def current_action_aligned_with_execution_envelope(
             )
         ):
             return None
+        return dict(action)
     action_source = _non_empty_text(action.get("source_surface")) or _non_empty_text(action.get("source"))
-    if action_source == "repair_progress_projection.mas_owner_repair_execution_evidence":
-        return dict(action)
-    if action_source == "gate_clearing_batch_followthrough.actionable_current_work_unit":
-        return dict(action)
-    if action_source == "publication_eval.recommended_actions.readiness_blocker_repair":
-        return dict(action)
-    if action_source == "paper_recovery_state.next_safe_action.successor_owner_action":
-        return dict(action)
     if (
         state_kind == "typed_blocker"
         and action_source == "study_progress.next_forced_delta.owner_action"
@@ -291,6 +374,8 @@ def current_action_aligned_with_execution_envelope(
     if state_kind != "executable_owner_action":
         return None
     envelope_work_unit = _work_unit_identity(envelope.get("next_work_unit"))
+    envelope_action = _non_empty_text(envelope.get("action_type"))
+    action_type = _non_empty_text(action.get("action_type"))
     action_work_units = {
         item
         for item in (
@@ -301,6 +386,8 @@ def current_action_aligned_with_execution_envelope(
         if item is not None
     }
     if envelope_work_unit is not None and action_work_units and envelope_work_unit not in action_work_units:
+        return None
+    if envelope_action is not None and action_type is not None and envelope_action != action_type:
         return None
     return dict(action)
 
@@ -392,6 +479,10 @@ def _text_list(value: object) -> list[str]:
     if not isinstance(value, list | tuple | set):
         return []
     return [text for item in value if (text := _non_empty_text(item)) is not None]
+
+
+def _first_text(items: list[str]) -> str | None:
+    return items[0] if items else None
 
 
 def _envelope_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | None:

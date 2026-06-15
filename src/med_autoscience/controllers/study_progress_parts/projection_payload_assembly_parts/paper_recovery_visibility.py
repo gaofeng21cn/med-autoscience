@@ -165,6 +165,8 @@ def _suppress_active_provider_admission_projection(
     *,
     blocked_by: str = "paper_recovery_state",
 ) -> None:
+    if _has_identity_bound_handoff_provider_admission(payload):
+        return
     candidates = [
         dict(item)
         for item in payload.get("provider_admission_candidates") or []
@@ -192,6 +194,50 @@ def _suppress_active_provider_admission_projection(
         monitoring_admission["blocked_by"] = blocked_by
         monitoring["owner_action_admission"] = monitoring_admission
         payload["progress_first_monitoring_summary"] = monitoring
+
+
+def _has_identity_bound_handoff_provider_admission(payload: Mapping[str, Any]) -> bool:
+    if int(payload.get("provider_admission_pending_count") or 0) <= 0:
+        return False
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    if int(handoff.get("provider_admission_pending_count") or 0) <= 0:
+        return False
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+        return False
+    return any(
+        _same_action_identity(candidate, current_action) or _same_action_identity(candidate, current_work_unit)
+        for candidate in payload.get("provider_admission_candidates") or []
+        if isinstance(candidate, Mapping)
+    )
+
+
+def _same_action_identity(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    left_action = _non_empty_text(left.get("action_type"))
+    right_action = _non_empty_text(right.get("action_type"))
+    if left_action is not None and right_action is not None and left_action != right_action:
+        return False
+    left_work_unit = _non_empty_text(left.get("work_unit_id")) or _non_empty_text(left.get("next_work_unit"))
+    right_work_unit = _non_empty_text(right.get("work_unit_id")) or _non_empty_text(right.get("next_work_unit"))
+    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
+        return False
+    left_fingerprint = _non_empty_text(left.get("work_unit_fingerprint")) or _non_empty_text(
+        left.get("action_fingerprint")
+    )
+    right_fingerprint = _non_empty_text(right.get("work_unit_fingerprint")) or _non_empty_text(
+        right.get("action_fingerprint")
+    )
+    if left_fingerprint is not None and right_fingerprint is not None and left_fingerprint != right_fingerprint:
+        return False
+    return (
+        left_action is not None
+        and right_action is not None
+        and left_work_unit is not None
+        and right_work_unit is not None
+        and left_fingerprint is not None
+        and right_fingerprint is not None
+    )
 
 
 def _supervisor_decision_blocks_provider_admission(
