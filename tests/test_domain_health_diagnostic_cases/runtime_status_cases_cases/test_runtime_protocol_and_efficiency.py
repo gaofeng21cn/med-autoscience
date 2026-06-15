@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+import os
+import subprocess
+import sys
+
 from tests.test_domain_health_diagnostic_cases import shared as _shared
 
 globals().update({
@@ -206,3 +211,65 @@ def test_domain_health_diagnostic_preserves_publication_supervisor_summary(tmp_p
     assert controller["current_required_action"] == "return_to_publishability_gate"
     assert controller["deferred_downstream_actions"] == []
     assert "downstream-only" in controller["controller_stage_note"]
+
+
+def test_clean_python_runner_can_reuse_external_env_and_cache(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    uv_log = tmp_path / "uv-sync.log"
+    host_python = json.dumps(sys.executable)
+    fake_uv = fake_bin / "uv"
+    fake_uv.write_text(
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${{1:-}}" != "sync" ]]; then
+  echo "fake uv only supports sync" >&2
+  exit 64
+fi
+printf 'sync\\n' >>"${{MAS_FAKE_UV_LOG}}"
+mkdir -p "${{UV_PROJECT_ENVIRONMENT}}/bin"
+cat >"${{UV_PROJECT_ENVIRONMENT}}/bin/python" <<'PY'
+#!/usr/bin/env bash
+exec {host_python} "$@"
+PY
+chmod +x "${{UV_PROJECT_ENVIRONMENT}}/bin/python"
+""",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+
+    reuse_root = tmp_path / "mas-clean-runner-reuse"
+    env = os.environ.copy()
+    env.update(
+        {
+            "MAS_CLEAN_RUNNER_REUSE_ENV": "1",
+            "MAS_CLEAN_RUNNER_REUSE_ROOT": str(reuse_root),
+            "MAS_FAKE_UV_LOG": str(uv_log),
+            "PATH": f"{fake_bin}{os.pathsep}{env['PATH']}",
+        }
+    )
+
+    script = (
+        "import json, os; "
+        "print(json.dumps({"
+        "'venv': os.environ['UV_PROJECT_ENVIRONMENT'], "
+        "'cache': os.environ['UV_CACHE_DIR'], "
+        "'pycache': os.environ['PYTHONPYCACHEPREFIX'], "
+        "'pytest_addopts': os.environ['PYTEST_ADDOPTS']"
+        "}, sort_keys=True))"
+    )
+    command = [str(repo_root / "scripts" / "run-python-clean.sh"), "-c", script]
+
+    first = subprocess.run(command, env=env, capture_output=True, text=True, check=True)
+    second = subprocess.run(command, env=env, capture_output=True, text=True, check=True)
+
+    first_env = json.loads(first.stdout)
+    second_env = json.loads(second.stdout)
+    assert first_env == second_env
+    assert Path(first_env["venv"]).is_relative_to(reuse_root)
+    assert Path(first_env["cache"]).is_relative_to(reuse_root)
+    assert Path(first_env["pycache"]).is_relative_to(reuse_root)
+    assert not Path(first_env["venv"]).is_relative_to(repo_root)
+    assert not Path(first_env["cache"]).is_relative_to(repo_root)
+    assert uv_log.read_text(encoding="utf-8").splitlines() == ["sync"]

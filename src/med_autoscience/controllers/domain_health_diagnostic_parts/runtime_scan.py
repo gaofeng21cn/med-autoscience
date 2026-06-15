@@ -45,6 +45,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan_sup
     _with_fresh_progress_currentness,
     utc_now,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.scopes import parse_diagnostic_scope
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control.ports import (
@@ -73,8 +74,12 @@ def run_domain_health_diagnostic_for_runtime(
     runtime_control_ports: RuntimeControlPorts,
     profile: WorkspaceProfile | None = None,
     study_ids: tuple[str, ...] = (),
+    diagnostic_scope: str = "full",
     request_opl_stage_attempts: bool = False,
 ) -> dict[str, Any]:
+    scope = parse_diagnostic_scope(diagnostic_scope)
+    if apply and not scope.allows_apply:
+        raise ValueError("domain-health-diagnostic scope currentness-only does not support apply")
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
     managed_study_auto_recoveries: list[dict[str, Any]] = []
     managed_study_recovery_holds: list[dict[str, Any]] = []
@@ -98,15 +103,18 @@ def run_domain_health_diagnostic_for_runtime(
         recovery_holds=managed_study_recovery_holds,
         runtime_recovery_payloads=managed_study_runtime_recovery_payloads,
     )
-    scanned, reports, report_by_quest_root = report_aggregation.scan_active_quest_reports(
-        runtime_root=runtime_root,
-        controller_runners=controller_runners,
-        apply=apply,
-        persist_diagnostic_reports=persist_reports,
-        run_domain_health_diagnostic_for_quest_fn=run_domain_health_diagnostic_for_quest_fn,
-        study_ids=study_ids,
-    )
-    if apply and request_opl_stage_attempts and profile is not None:
+    if scope.reads_active_quest_reports:
+        scanned, reports, report_by_quest_root = report_aggregation.scan_active_quest_reports(
+            runtime_root=runtime_root,
+            controller_runners=controller_runners,
+            apply=apply,
+            persist_diagnostic_reports=persist_reports,
+            run_domain_health_diagnostic_for_quest_fn=run_domain_health_diagnostic_for_quest_fn,
+            study_ids=study_ids,
+        )
+    else:
+        scanned, reports, report_by_quest_root = [], [], {}
+    if scope.runs_outer_loop_wakeup and apply and request_opl_stage_attempts and profile is not None:
         rerouted_managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
         for study_root, status_payload in managed_study_statuses:
             resolved_status_payload = status_payload
@@ -166,7 +174,7 @@ def run_domain_health_diagnostic_for_runtime(
                 **status_payload,
                 **managed_study_progress_currentness[study_id],
             }
-        if apply and profile is not None:
+        if scope.runs_outer_loop_wakeup and apply and profile is not None:
             wakeup_audit = _build_outer_loop_wakeup_audit(
                 study_root=study_root,
                 status_payload=status_payload,
@@ -690,7 +698,10 @@ def run_domain_health_diagnostic_for_runtime(
         quest_root = _candidate_path(status_payload.get("quest_root"))
         quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
         opl_runtime_owner_handoff = None
-        if status_payload.get("domain_health_diagnostic_error_isolated") is not True:
+        if (
+            scope.materializes_opl_handoff
+            and status_payload.get("domain_health_diagnostic_error_isolated") is not True
+        ):
             opl_runtime_owner_handoff = runtime_control_ports.materialize_opl_runtime_owner_handoff(
                 study_root=study_root,
                 status_payload=status_payload,
@@ -710,15 +721,16 @@ def run_domain_health_diagnostic_for_runtime(
             **status_payload,
             **managed_study_progress_currentness.get(study_id, {}),
         }
-        managed_study_opl_provider_admission_candidates.extend(
-            _provider_admission_candidates_for_status(
-                profile=profile,
-                study_root=study_root,
-                status_payload=candidate_status_payload,
-                refresh_currentness=False,
+        if scope.reads_provider_admission:
+            managed_study_opl_provider_admission_candidates.extend(
+                _provider_admission_candidates_for_status(
+                    profile=profile,
+                    study_root=study_root,
+                    status_payload=candidate_status_payload,
+                    refresh_currentness=False,
+                )
             )
-        )
-        if apply:
+        if scope.runs_outer_loop_wakeup and apply:
             study_id = str(status_payload.get("study_id") or "").strip()
             quest_id = str(status_payload.get("quest_id") or "").strip()
             if study_id and quest_id:
@@ -729,7 +741,11 @@ def run_domain_health_diagnostic_for_runtime(
                     status_payload=status_payload,
                     recorded_at=utc_now(),
                 )
-        if profile is not None and status_payload.get("domain_health_diagnostic_error_isolated") is not True:
+        if (
+            profile is not None
+            and scope.runs_autonomy_slo
+            and status_payload.get("domain_health_diagnostic_error_isolated") is not True
+        ):
             managed_study_autonomy_slo_statuses.append(
                 runtime_control_ports.materialize_autonomy_slo(
                     profile=profile,
@@ -738,7 +754,8 @@ def run_domain_health_diagnostic_for_runtime(
             )
             ready_ai_doctor_repair = runtime_control_ports.read_ready_ai_repair(study_root=study_root)
             if (
-                apply
+                scope.runs_autonomy_repair
+                and apply
                 and ready_ai_doctor_repair is not None
                 and not current_study_outer_loop_dispatched
                 and study_root_key not in managed_study_action_overrides

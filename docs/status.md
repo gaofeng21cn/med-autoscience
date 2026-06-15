@@ -5,7 +5,7 @@ Purpose: `current_truth_summary`
 State: `active_current_truth`
 Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `agent/` pack、`contracts/`、CLI/MCP/API 行为、product-entry manifest、domain-handler receipt、runtime/controller durable surfaces、真实 workspace artifact、owner receipt 和 generated artifact proof。具体 study 当前状态必须 fresh 读取 live `study_progress`、workspace artifacts、controller decisions、publication eval、OPL current-control 和 owner receipts。
 
-文档更新时间：`2026-06-14`
+文档更新时间：`2026-06-15`
 
 当前状态 anchors：
 
@@ -25,6 +25,8 @@ Stage-route / currentness top-level governance：当前人读口径已收口为 
 Progress-first / AI-first operator runbook: [Progress-First Stage Outcome Runbook](./runtime/control/progress_first_stage_outcome.md) 是当前 DM002/DM003 同类 receipt/currentness/read-model/preflight 空转的稳定人读入口；它固定非终局 stage outcome、paper/deliverable 与 platform repair 分账、AI-first admission、hard gates、live verification commands 和错误路径。该 runbook 不写 study truth，也不替代 live `study_progress`、OPL current-control、owner receipt、AI reviewer verdict 或 publication gate。
 
 DM002/DM003 recovery operator landing：default executor dispatch 与 DHD report 现在必须把 provider admission candidate、developer-supervisor `execution_gate` 和 `running_provider_attempt` 分账；`provider_admission_pending_count>0` 但 `execution_gate.blocked=true` 时是 `pending_but_execution_gate_blocked`，不是 running、idle bug 或 hydrate/redrive 请求。terminal stage accounting 也允许从合同规定的 `paper_stage_log` / `user_stage_log` / `stage_log_summary` 读取 duration/token/cost fallback；这只关闭 observability，不计为 paper progress、quality verdict 或 publication readiness。
+
+DHD acceleration docs / acceptance landing：`docs/runtime/control/controllers.md` 和 `docs/runtime/control/progress_first_stage_outcome.md` 现在把 DHD 慢路径根因固定为 clean runtime bootstrap、broad DHD scan 和 duplicate readbacks，并记录落地语义：checkout-external clean runner env/cache、`--scope full|currentness-only|owner-route|provider-admission`、`--apply` post-apply readback summary。`currentness-only` 是 read-only scope，不支持 `--apply`；scope 具体 CLI 行为必须继续由 fresh `domain-health-diagnostic --help`、schema 和 parser / focused-scope tests 对齐。该 landing 只服务 controller / operator path 加速与验收边界，不写 study truth、paper body、package、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt 或 typed blocker，也不声明 DM002/DM003 live paper progress。
 
 Selected stage packet identity hardening：accepted closeout evidence 现在必须保留 closeout 原生 `dispatch_ref`、`stage_packet_ref` 和 `stage_packet_refs`。provider admission arbiter 只有在 action、work-unit、fingerprint 与 selected stage packet identity 都匹配时，才允许旧 closeout 消费当前 pending admission。2026-06-13 fresh dry-run 回归样本显示，DM003 旧 `sat_f8e1cfe49a3aa3cf95d0584d` closeout 绑定旧 mutable dispatch，而当前 admission 绑定 immutable `run_quality_repair_batch/77fa1796dc1d50c2b7687a9f.json`；修复后 DHD dry-run 应投影为 `provider_admission_pending_count=1` / `pending_provider_admission`，而不是 `accepted_closeout_consumed_pending`。该读面仍只是 admission truth，不启动 provider、不声明 paper progress 或 publication-ready。
 

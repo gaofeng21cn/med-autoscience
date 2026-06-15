@@ -37,6 +37,10 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.autonomy_repair 
     read_ai_repair_lifecycle,
     read_ready_ai_doctor_repair,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.apply_readback_summary import (
+    attach_apply_readback_summary,
+    capture_apply_readback_snapshot,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.control_plane_gate import (
     CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
     apply_control_plane_dispatch_block,
@@ -120,6 +124,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan_sup
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator import (
     apply_managed_study_obligation_actuator,
+)
+from med_autoscience.controllers.domain_health_diagnostic_parts.scopes import (
+    parse_diagnostic_scope,
 )
 from med_autoscience.controllers.study_progress_parts.runtime_efficiency import (
     _latest_run_telemetry_surface,
@@ -545,9 +552,18 @@ def run_domain_health_diagnostic_for_runtime(
     persist_diagnostic_reports: bool | None = None,
     profile: WorkspaceProfile | None = None,
     study_ids: tuple[str, ...] = (),
+    diagnostic_scope: str = "full",
     request_opl_stage_attempts: bool = False,
     request_opl_owner_route_reconcile: bool = False,
 ) -> dict[str, Any]:
+    scope = parse_diagnostic_scope(diagnostic_scope)
+    if apply and not scope.allows_apply:
+        raise ValueError("domain-health-diagnostic scope currentness-only does not support apply")
+    pre_apply_readback = capture_apply_readback_snapshot(
+        profile=profile,
+        study_ids=study_ids,
+        enabled=apply and request_opl_stage_attempts,
+    )
     report = _run_domain_health_diagnostic_for_runtime_impl(
         runtime_root=runtime_root,
         controller_runners=controller_runners or build_default_controller_runners(),
@@ -557,8 +573,10 @@ def run_domain_health_diagnostic_for_runtime(
         runtime_control_ports=_build_runtime_control_ports(),
         profile=profile,
         study_ids=study_ids,
+        diagnostic_scope=scope.scope,
         request_opl_stage_attempts=request_opl_stage_attempts,
     )
+    report["diagnostic_scope"] = scope.to_report()
     if apply and request_opl_stage_attempts and profile is not None:
         initial_outcome_count = len(
             [
@@ -580,7 +598,13 @@ def run_domain_health_diagnostic_for_runtime(
                 owner_callable_actions=actions,
             ),
         )
-    if apply and request_opl_stage_attempts and request_opl_owner_route_reconcile and profile is not None:
+    if (
+        scope.runs_same_tick_owner_route
+        and apply
+        and request_opl_stage_attempts
+        and request_opl_owner_route_reconcile
+        and profile is not None
+    ):
         same_tick_study_ids = _same_tick_open_study_ids_after_actuator(
             report=report,
             requested_study_ids=study_ids,
@@ -615,7 +639,7 @@ def run_domain_health_diagnostic_for_runtime(
                     owner_callable_actions=actions,
                 ),
             )
-    if request_opl_stage_attempts and profile is not None and not apply:
+    if scope.reads_owner_route and request_opl_stage_attempts and profile is not None and not apply:
         attach_domain_action_request_materialization_preview(
             report=report,
             profile=profile,
@@ -628,7 +652,11 @@ def run_domain_health_diagnostic_for_runtime(
             study_ids=study_ids,
             export_family_domain_handler=owner_route_handoff.export_family_domain_handler,
         )
-    if request_opl_stage_attempts and profile is not None:
+    if (
+        scope.materializes_provider_admission_current_control
+        and request_opl_stage_attempts
+        and profile is not None
+    ):
         current_control_state = _materialize_report_provider_admission_current_control_state(
             profile=profile,
             report=report,
@@ -655,6 +683,13 @@ def run_domain_health_diagnostic_for_runtime(
                 owner_callable_actions=actions,
             ),
         )
+    attach_apply_readback_summary(
+        report=report,
+        profile=profile,
+        study_ids=study_ids,
+        before=pre_apply_readback,
+        enabled=apply and request_opl_stage_attempts,
+    )
     return report
 
 

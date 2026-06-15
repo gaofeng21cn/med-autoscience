@@ -184,6 +184,63 @@ def test_domain_health_diagnostic_cli_accepts_focused_owner_route_studies() -> N
     assert args.studies == ["002-dm-paper", "003-dm-paper"]
 
 
+def test_domain_health_diagnostic_cli_accepts_runtime_scope() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    args = cli.build_parser().parse_args(
+        [
+            "domain-health-diagnostic",
+            "--runtime-root",
+            "/tmp/runtime/quests",
+            "--profile",
+            "/tmp/workspace-profile.toml",
+            "--request-opl-stage-attempts",
+            "--dry-run",
+            "--scope",
+            "provider-admission",
+            "--studies",
+            "002-dm-paper",
+        ]
+    )
+
+    assert args.command == "domain-health-diagnostic"
+    assert args.scope == "provider-admission"
+    assert args.studies == ["002-dm-paper"]
+
+
+def test_domain_health_diagnostic_cli_rejects_currentness_only_apply(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    command_handler = importlib.import_module(
+        "med_autoscience.cli_parts.domain_health_diagnostic_commands"
+    )
+    parser = cli.build_parser()
+
+    args = parser.parse_args(
+        [
+            "domain-health-diagnostic",
+            "--runtime-root",
+            "/tmp/runtime/quests",
+            "--profile",
+            "/tmp/workspace-profile.toml",
+            "--request-opl-stage-attempts",
+            "--scope",
+            "currentness-only",
+            "--apply",
+        ]
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        command_handler.handle_domain_health_diagnostic_command(
+            args,
+            parser=parser,
+            domain_health_diagnostic=object(),
+            load_profile=lambda _path: object(),
+        )
+
+    assert excinfo.value.code == 2
+    assert "currentness-only is read-only" in capsys.readouterr().err
+
+
 def test_domain_health_diagnostic_cli_rejects_apply_and_dry_run_together() -> None:
     cli = importlib.import_module("med_autoscience.cli")
 

@@ -198,6 +198,40 @@ recent non-authoritative recovery sample（debug context only）：
 
 recovery 验收必须至少读回以下证据族之一：MAS owner receipt、quality gate receipt、canonical changed surface ref、stable typed blocker、human gate、route-back evidence，或同一 current identity 的 strict provider running proof。验收 readback 必须包含 DM002/DM003 fresh `study progress`、DHD `--dry-run`、`provider_admission_pending_count`，以及 owner receipt / typed blocker refs；缺这些证据时只能说 docs/contracts 已更新，不能说 paper-line 已恢复。机器合同见 `contracts/stage_route_reconcile_contract.json#/dm002_dm003_recovery_acceptance_policy`。
 
+## DHD acceleration acceptance skeleton
+
+本骨架用于验收 DHD 加速 lane，不用于声明 DM002 / DM003 runtime recovery。它只回答三件事：慢根因是否被明确分类；新的 DHD / clean runner contract 是否有可执行边界；operator 是否能在 `apply` 后读到同一 current identity 的 post-apply readback summary。验收前必须先看当前 CLI help / schema / focused tests；当前落地的 scope 名字是 `full`、`currentness-only`、`owner-route`、`provider-admission`，机器真相仍以 CLI help、controller schema 和 tests 为准。
+
+慢根因按三类记录，不能混成泛型“DHD 慢”：
+
+- clean runtime bootstrap：每次 DHD / pytest / CLI 验证都重新搭建干净运行环境，启动与依赖探测成本重复发生。
+- broad DHD scan：operator 只想读 currentness、owner-route 或 provider-admission 中一个面时，默认扫描仍会穿过更宽 read-model / controller surface。
+- duplicate readbacks：`--apply` 后还要重复运行 `study progress`、DHD dry-run 或 OPL current-control inspection，才能知道 handoff、pending admission、running proof、owner receipt 或 typed blocker 是否对齐同一 current obligation。
+
+目标合同按三条验收：
+
+- checkout-external clean runner env/cache：缓存、venv、bytecode、pytest cache、probe state 和同步副产物仍在 checkout 外部；它们可以减少 bootstrap 时间，但不能进入 repo-tracked truth、study workspace truth 或 runtime artifact truth。
+- focused DHD scope：`--scope` 当前覆盖 `full`、`currentness-only`、`owner-route` 和 `provider-admission`；`currentness-only` 是 read-only scope，不支持 `--apply`，provider-admission scope 跳过 active quest report 与 owner-route preview，保留 provider admission readback。
+- post-apply readback summary：`--apply` 输出应让 operator 直接读到同一 study/current obligation 的 current work-unit status、owner route、provider admission count/candidates、running proof、owner receipt / typed blocker / human gate / route-back refs，以及 DHD actuator outcome。这个 summary 是 readback convenience，不是第二 authority。
+
+验收边界：
+
+- 允许读取 CLI / controller output、OPL current-control、owner receipt / typed blocker refs、diagnostic report persistence 和 focused tests。
+- 禁止写 study truth、paper body、paper/package body、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package、`current_package`、memory body、artifact body 或 publication verdict。
+- docs 更新、parser/focused-scope 测试通过、clean runner cache hit、scope flag 存在或 summary 字段存在，都不能替代 live owner receipt、quality gate receipt、canonical changed surface、stable typed blocker、human gate、route-back evidence 或同一 current identity 的 strict provider running proof。
+
+docs-only lane 的验收命令只做文档 review 与 focused parser/scope smoke；不要为了证明本文而跑 live `--apply`：
+
+```bash
+rtk git diff --check -- docs/runtime/control/controllers.md docs/runtime/control/progress_first_stage_outcome.md docs/status.md
+```
+
+```bash
+rtk scripts/run-pytest-clean.sh \
+  tests/test_domain_health_diagnostic_cases/cli_cases.py \
+  tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_focused_scope.py
+```
+
 ## Hard gates
 
 preflight 只保留以下 hard gates：

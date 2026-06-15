@@ -136,6 +136,11 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_health_diagnostic_parser.add_argument("--runtime-root", type=str)
     domain_health_diagnostic_parser.add_argument("--profile", type=str)
     domain_health_diagnostic_parser.add_argument("--studies", nargs="+")
+    domain_health_diagnostic_parser.add_argument(
+        "--scope",
+        choices=("full", "currentness-only", "owner-route", "provider-admission"),
+        default="full",
+    )
     domain_health_diagnostic_parser.add_argument("--request-opl-stage-attempts", action="store_true")
     domain_health_diagnostic_parser.add_argument("--request-opl-owner-route-reconcile", action="store_true")
     domain_health_diagnostic_parser.add_argument("--refresh-diagnostic-reports", action="store_true")

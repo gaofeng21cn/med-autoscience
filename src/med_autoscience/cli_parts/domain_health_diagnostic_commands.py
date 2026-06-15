@@ -35,6 +35,8 @@ def handle_domain_health_diagnostic_command(
             parser.error("--request-opl-owner-route-reconcile requires --request-opl-stage-attempts")
         if args.request_opl_owner_route_reconcile and not args.apply:
             parser.error("--request-opl-owner-route-reconcile requires --apply")
+        if args.scope == "currentness-only" and args.apply:
+            parser.error("--scope currentness-only is read-only and does not support --apply")
         persist_diagnostic_reports = bool(args.apply or args.refresh_diagnostic_reports)
         if args.quest_root:
             result = domain_health_diagnostic.run_domain_health_diagnostic_for_quest(
@@ -49,6 +51,7 @@ def handle_domain_health_diagnostic_command(
                 apply=args.apply,
                 profile=profile,
                 study_ids=tuple(args.studies or ()),
+                diagnostic_scope=args.scope,
                 request_opl_stage_attempts=bool(args.request_opl_stage_attempts),
                 request_opl_owner_route_reconcile=bool(args.request_opl_owner_route_reconcile),
                 persist_diagnostic_reports=persist_diagnostic_reports,

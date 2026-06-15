@@ -65,6 +65,14 @@ def _read(relative_path: str) -> str:
     return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
 
 
+def _clean_runner_env(**updates: str) -> dict[str, str]:
+    env = os.environ.copy()
+    env.pop("MAS_CLEAN_RUNNER_REUSE_ENV", None)
+    env.pop("MAS_CLEAN_RUNNER_REUSE_ROOT", None)
+    env.update(updates)
+    return env
+
+
 def _assert_command_surface_matches_catalog(
     *,
     surface: str,
@@ -374,6 +382,9 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"' in runner_script
     assert 'repo_root="$(cd "${script_dir}/.." && pwd -P)"' in runner_script
     assert 'repo_root="$(git rev-parse --show-toplevel)"' not in runner_script
+    assert 'if [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" == "1" ]]; then' in runner_script
+    assert 'tmp_root="${MAS_CLEAN_RUNNER_REUSE_ROOT}"' in runner_script
+    assert 'echo "run-python-clean.sh: reuse root must be outside the checkout: ${tmp_root}" >&2' in runner_script
     assert 'if path_is_inside_checkout "${UV_PROJECT_ENVIRONMENT:-}"; then' in runner_script
     assert 'if path_is_inside_checkout "${PYTHONPYCACHEPREFIX:-}"; then' in runner_script
     assert 'if [[ "${MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE:-0}" != "1" ]] || path_is_inside_checkout "${UV_CACHE_DIR:-}"; then' in runner_script
@@ -382,7 +393,11 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"' in runner_script
     assert 'export UV_CACHE_DIR="${UV_CACHE_DIR:-${default_uv_cache_dir}}"' in runner_script
     assert 'mkdir -p "${UV_CACHE_DIR}"' in runner_script
+    assert 'egg_info_base="${MAS_CLEAN_RUNNER_EGG_INFO_BASE:-${tmp_root}/egg-info}"' in runner_script
+    assert 'if path_is_inside_checkout "${egg_info_base}"; then' in runner_script
+    assert 'mkdir -p "${egg_info_base}"' in runner_script
     assert 'uv_sync_args=(uv sync --frozen --group dev --no-install-project --inexact)' in runner_script
+    assert 'uv_sync_args+=("-C--global-option=egg_info" "-C--global-option=--egg-base=${egg_info_base}")' in runner_script
     assert 'uv_sync_args+=(--extra analysis)' in runner_script
     assert 'UV_NO_SYNC=0 "${uv_sync_args[@]}"' in runner_script
     assert '"${UV_NO_SYNC:-0}" != "1"' not in runner_script
@@ -490,12 +505,11 @@ def test_clean_python_runner_resolves_repo_from_script_path_outside_git(tmp_path
             "import os; print(os.getcwd())",
         ],
         cwd=outside_git,
-        env={
-            **os.environ,
-            "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
-            "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
-            "UV_PROJECT_ENVIRONMENT": str(fake_venv),
-        },
+        env=_clean_runner_env(
+            MAS_CLEAN_RUNNER_SKIP_SYNC="1",
+            MAS_CLEAN_RUNNER_TMP_ROOT=str(runner_tmp),
+            UV_PROJECT_ENVIRONMENT=str(fake_venv),
+        ),
         check=False,
         capture_output=True,
         text=True,
@@ -530,14 +544,13 @@ def test_clean_python_runner_rejects_checkout_local_python_artifact_env(tmp_path
             ),
         ],
         cwd=REPO_ROOT,
-        env={
-            **os.environ,
-            "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
-            "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
-            "UV_PROJECT_ENVIRONMENT": str(checkout_local_venv),
-            "PYTHONPYCACHEPREFIX": str(checkout_local_pycache),
-            "UV_CACHE_DIR": str(checkout_local_uv_cache),
-        },
+        env=_clean_runner_env(
+            MAS_CLEAN_RUNNER_SKIP_SYNC="1",
+            MAS_CLEAN_RUNNER_TMP_ROOT=str(runner_tmp),
+            UV_PROJECT_ENVIRONMENT=str(checkout_local_venv),
+            PYTHONPYCACHEPREFIX=str(checkout_local_pycache),
+            UV_CACHE_DIR=str(checkout_local_uv_cache),
+        ),
         check=False,
         capture_output=True,
         text=True,
@@ -580,14 +593,13 @@ def test_clean_python_runner_ignores_inherited_skip_sync_without_marker(tmp_path
             "print('runner-ok')",
         ],
         cwd=REPO_ROOT,
-        env={
-            **os.environ,
-            "PATH": f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
-            "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
-            "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
-            "MAS_TEST_SYNC_LOG": str(sync_log),
-            "UV_PROJECT_ENVIRONMENT": str(fake_venv),
-        },
+        env=_clean_runner_env(
+            PATH=f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
+            MAS_CLEAN_RUNNER_SKIP_SYNC="1",
+            MAS_CLEAN_RUNNER_TMP_ROOT=str(runner_tmp),
+            MAS_TEST_SYNC_LOG=str(sync_log),
+            UV_PROJECT_ENVIRONMENT=str(fake_venv),
+        ),
         check=False,
         capture_output=True,
         text=True,
@@ -596,7 +608,8 @@ def test_clean_python_runner_ignores_inherited_skip_sync_without_marker(tmp_path
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "runner-ok"
     assert sync_log.read_text(encoding="utf-8").strip() == (
-        "sync --frozen --group dev --no-install-project --inexact"
+        "sync --frozen --group dev --no-install-project --inexact "
+        f"-C--global-option=egg_info -C--global-option=--egg-base={runner_tmp / 'egg-info'}"
     )
     assert (runner_tmp / "uv-sync.done").is_file()
 

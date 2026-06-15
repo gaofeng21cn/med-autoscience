@@ -9,6 +9,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _clean_runner_env(**updates: str) -> dict[str, str]:
+    env = os.environ.copy()
+    env.pop("MAS_CLEAN_RUNNER_REUSE_ENV", None)
+    env.pop("MAS_CLEAN_RUNNER_REUSE_ROOT", None)
+    env.update(updates)
+    return env
+
+
 def _runner_tmp_with_fake_venv(tmp_path: Path) -> tuple[Path, Path]:
     runner_tmp = tmp_path / "runner-tmp"
     fake_venv = runner_tmp / "venv"
@@ -31,14 +39,13 @@ def test_clean_python_runner_preserves_external_uv_cache_only_when_requested(tmp
             "import os; print(os.environ['UV_CACHE_DIR'])",
         ],
         cwd=REPO_ROOT,
-        env={
-            **os.environ,
-            "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
-            "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
-            "MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE": "1",
-            "UV_PROJECT_ENVIRONMENT": str(fake_venv),
-            "UV_CACHE_DIR": str(external_uv_cache),
-        },
+        env=_clean_runner_env(
+            MAS_CLEAN_RUNNER_SKIP_SYNC="1",
+            MAS_CLEAN_RUNNER_TMP_ROOT=str(runner_tmp),
+            MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE="1",
+            UV_PROJECT_ENVIRONMENT=str(fake_venv),
+            UV_CACHE_DIR=str(external_uv_cache),
+        ),
         check=False,
         capture_output=True,
         text=True,
@@ -69,15 +76,14 @@ def test_clean_python_runner_routes_uv_cache_to_runner_tmp_by_default(tmp_path: 
             "print('runner-ok')",
         ],
         cwd=REPO_ROOT,
-        env={
-            **os.environ,
-            "PATH": f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
-            "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
-            "MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR": str(persistent_cache),
-            "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
-            "MAS_TEST_SYNC_LOG": str(sync_log),
-            "UV_PROJECT_ENVIRONMENT": str(fake_venv),
-        },
+        env=_clean_runner_env(
+            PATH=f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
+            MAS_CLEAN_RUNNER_SKIP_SYNC="1",
+            MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR=str(persistent_cache),
+            MAS_CLEAN_RUNNER_TMP_ROOT=str(runner_tmp),
+            MAS_TEST_SYNC_LOG=str(sync_log),
+            UV_PROJECT_ENVIRONMENT=str(fake_venv),
+        ),
         check=False,
         capture_output=True,
         text=True,
@@ -88,9 +94,13 @@ def test_clean_python_runner_routes_uv_cache_to_runner_tmp_by_default(tmp_path: 
     expected_uv_cache = persistent_cache
     assert sync_log.read_text(encoding="utf-8").splitlines() == [
         str(expected_uv_cache),
-        "sync --frozen --group dev --no-install-project --inexact",
+        (
+            "sync --frozen --group dev --no-install-project --inexact "
+            f"-C--global-option=egg_info -C--global-option=--egg-base={runner_tmp / 'egg-info'}"
+        ),
     ]
     assert expected_uv_cache.is_dir()
+    assert (runner_tmp / "egg-info").is_dir()
     assert not (runner_tmp / "uv-cache").exists()
 
 
@@ -106,13 +116,12 @@ def test_clean_python_runner_rejects_checkout_local_default_uv_cache(tmp_path: P
             "print('runner-ok')",
         ],
         cwd=REPO_ROOT,
-        env={
-            **os.environ,
-            "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
-            "MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR": str(checkout_local_default_cache),
-            "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
-            "UV_PROJECT_ENVIRONMENT": str(fake_venv),
-        },
+        env=_clean_runner_env(
+            MAS_CLEAN_RUNNER_SKIP_SYNC="1",
+            MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR=str(checkout_local_default_cache),
+            MAS_CLEAN_RUNNER_TMP_ROOT=str(runner_tmp),
+            UV_PROJECT_ENVIRONMENT=str(fake_venv),
+        ),
         check=False,
         capture_output=True,
         text=True,
@@ -121,6 +130,53 @@ def test_clean_python_runner_rejects_checkout_local_default_uv_cache(tmp_path: P
     assert result.returncode == 2
     assert "default uv cache must be outside the checkout" in result.stderr
     assert not checkout_local_default_cache.exists()
+
+
+def test_clean_python_runner_rejects_checkout_local_reuse_root() -> None:
+    checkout_local_reuse_root = REPO_ROOT / ".mas-clean-runner-reuse"
+
+    result = subprocess.run(
+        [
+            str(REPO_ROOT / "scripts/run-python-clean.sh"),
+            "-c",
+            "print('runner-ok')",
+        ],
+        cwd=REPO_ROOT,
+        env=_clean_runner_env(
+            MAS_CLEAN_RUNNER_REUSE_ENV="1",
+            MAS_CLEAN_RUNNER_REUSE_ROOT=str(checkout_local_reuse_root),
+        ),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "reuse root must be outside the checkout" in result.stderr
+    assert not checkout_local_reuse_root.exists()
+
+
+def test_clean_python_runner_rejects_checkout_local_egg_info_base() -> None:
+    checkout_local_egg_info_base = REPO_ROOT / ".mas-clean-runner-egg-info-base"
+
+    result = subprocess.run(
+        [
+            str(REPO_ROOT / "scripts/run-python-clean.sh"),
+            "-c",
+            "print('runner-ok')",
+        ],
+        cwd=REPO_ROOT,
+        env=_clean_runner_env(
+            MAS_CLEAN_RUNNER_EGG_INFO_BASE=str(checkout_local_egg_info_base),
+        ),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "egg-info base must be outside the checkout" in result.stderr
+    assert not checkout_local_egg_info_base.exists()
 
 
 def test_clean_python_runner_removes_auto_tmp_root_after_success(tmp_path: Path) -> None:
@@ -144,16 +200,15 @@ def test_clean_python_runner_removes_auto_tmp_root_after_success(tmp_path: Path)
             "print('runner-ok')",
         ],
         cwd=REPO_ROOT,
-        env={
-            **os.environ,
-            "PATH": f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
-            "MAS_CLEAN_RUNNER_SKIP_SYNC": "0",
-            "MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR": str(persistent_cache),
-            "MAS_CLEAN_RUNNER_TMP_ROOT": "",
-            "MAS_TEST_PYTHON": sys.executable,
-            "TMPDIR": f"{auto_tmp}/",
-            "UV_PROJECT_ENVIRONMENT": "",
-        },
+        env=_clean_runner_env(
+            PATH=f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
+            MAS_CLEAN_RUNNER_SKIP_SYNC="0",
+            MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR=str(persistent_cache),
+            MAS_CLEAN_RUNNER_TMP_ROOT="",
+            MAS_TEST_PYTHON=sys.executable,
+            TMPDIR=f"{auto_tmp}/",
+            UV_PROJECT_ENVIRONMENT="",
+        ),
         check=False,
         capture_output=True,
         text=True,
