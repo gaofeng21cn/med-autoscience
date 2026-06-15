@@ -145,7 +145,8 @@
       "consume_terminal_closeout",
       "materialize_recovery_action",
       "wait_for_owner_with_resume_token",
-      "stop_with_stable_typed_blocker"
+      "stop_with_stable_typed_blocker",
+      "stop_with_owner_receipt"
     ],
     "decision_required_fields": [
       "identity_match",
@@ -228,6 +229,17 @@
         ],
         "paper_progress_classification": "stable_stop_loss_credit",
         "platform_repair_classification": "stop_loss"
+      },
+      {
+        "decision": "stop_with_owner_receipt",
+        "next_owner": "MedAutoScience",
+        "next_safe_action": "consume_owner_receipt",
+        "required_evidence_refs": [
+          "paper_autonomy_obligation_ref",
+          "owner_receipt_ref"
+        ],
+        "paper_progress_classification": "mas_owner_receipt_credit",
+        "platform_repair_classification": "none"
       }
     ],
     "forbidden_decisions": [
@@ -384,7 +396,8 @@
         "consume_terminal_closeout",
         "materialize_recovery_action",
         "wait_for_owner_with_resume_token",
-        "stop_with_stable_typed_blocker"
+        "stop_with_stable_typed_blocker",
+        "stop_with_owner_receipt"
       ],
       "free_text_status_allowed_as_output": false
     },

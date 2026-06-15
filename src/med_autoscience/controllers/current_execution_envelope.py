@@ -16,7 +16,13 @@ ENVELOPE_KEYS = (
     "conflict_suppression_refs",
     "authority_boundary",
 )
-ALLOWED_STATE_KINDS = ("parked", "executable_owner_action", "running_provider_attempt", "typed_blocker")
+ALLOWED_STATE_KINDS = (
+    "parked",
+    "executable_owner_action",
+    "running_provider_attempt",
+    "owner_receipt_recorded",
+    "typed_blocker",
+)
 EVIDENCE_ONLY_SURFACES = ("action_queue", "runtime_health", "no_op")
 AUTHORITY_BOUNDARY = {
     "surface_kind": "current_execution_envelope",
@@ -187,6 +193,16 @@ def _envelope_from_current_work_unit(
             source_refs=source_refs,
             conflict_suppression_refs=conflict_suppression_refs,
         )
+    if status == "owner_receipt_recorded":
+        return _envelope(
+            state_kind="owner_receipt_recorded",
+            owner=_text(work_unit.get("owner")) or "med-autoscience",
+            next_work_unit=None,
+            typed_blocker=None,
+            parked_state=None,
+            source_refs=source_refs,
+            conflict_suppression_refs=conflict_suppression_refs,
+        )
     blocker = _mapping(state.get("typed_blocker")) or _minimal_blocker(
         _text(state.get("blocker_type")) or "current_execution_unresolved",
         owner=_text(work_unit.get("owner")),
@@ -306,7 +322,10 @@ def _current_work_unit_supersedes_explicit_resume(
 ) -> bool:
     if _current_work_unit_has_authoritative_typed_blocker(current_work_unit):
         return True
-    if _current_work_unit_status(current_work_unit) != "executable_owner_action":
+    if _current_work_unit_status(current_work_unit) not in {
+        "executable_owner_action",
+        "owner_receipt_recorded",
+    }:
         return False
     owner = _text(current_work_unit.get("owner"))
     if owner in {None, "user", "human"}:

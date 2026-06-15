@@ -126,6 +126,7 @@ def test_supervisor_decision_taxonomy_is_closed_and_identity_bound() -> None:
         "materialize_recovery_action",
         "wait_for_owner_with_resume_token",
         "stop_with_stable_typed_blocker",
+        "stop_with_owner_receipt",
     ]
     assert "operator_decision_required" not in taxonomy["allowed_decisions"]
     assert taxonomy["decision_required_fields"] == [
@@ -167,6 +168,13 @@ def test_supervisor_decision_taxonomy_is_closed_and_identity_bound() -> None:
         "stable_typed_blocker_ref",
         "budget_or_missing_evidence_ref",
     ]
+    assert cases["stop_with_owner_receipt"]["required_evidence_refs"] == [
+        "paper_autonomy_obligation_ref",
+        "owner_receipt_ref",
+    ]
+    assert cases["stop_with_owner_receipt"]["paper_progress_classification"] == (
+        "mas_owner_receipt_credit"
+    )
 
 
 def test_recovery_action_and_progress_accounting_keep_platform_repair_out_of_paper_progress() -> None:

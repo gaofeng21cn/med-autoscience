@@ -165,12 +165,14 @@ def _recovery_requires_obligation_actuator(recovery: Mapping[str, Any]) -> bool:
         "materialize_recovery_action",
         "execute_current_owner_delta",
         "stop_with_stable_typed_blocker",
+        "stop_with_owner_receipt",
     }:
         return False
     phase = _non_empty_text(recovery.get("phase"))
     next_kind = _non_empty_text(next_action.get("kind"))
     return phase in {
         "owner_action_ready",
+        "owner_receipt_recorded",
         "admission_pending",
         "attempt_running",
         "domain_blocked",
@@ -186,6 +188,7 @@ def _recovery_requires_obligation_actuator(recovery: Mapping[str, Any]) -> bool:
         "resolve_owner_gate_decision",
         "route_back_to_owner_or_repair_materialization",
         "resolve_typed_blocker",
+        "consume_owner_receipt",
         "honor_stable_typed_blocker",
         "publish_stable_blocker_and_stop_same_identity_redrive",
         "authorize_opl_transport_recovery_or_stable_typed_blocker",
@@ -220,6 +223,9 @@ def _closed_obligation_outcome(
         )
         if outcome is not None:
             return outcome
+    owner_receipt = _owner_receipt_outcome(action=action, phase=phase)
+    if owner_receipt is not None:
+        return owner_receipt
     running = _running_provider_attempt_outcome(
         action=action,
         current_control_state=current_control_state,
@@ -304,6 +310,29 @@ def _owner_callable_action_matches_obligation(
     action_fingerprint = _non_empty_text(owner_callable_action.get("work_unit_fingerprint"))
     expected_fingerprint = _action_obligation_fingerprint(action)
     return not (action_fingerprint and expected_fingerprint and action_fingerprint != expected_fingerprint)
+
+
+def _owner_receipt_outcome(
+    *,
+    action: Mapping[str, Any],
+    phase: str,
+) -> dict[str, Any] | None:
+    recovery = _mapping(action.get("paper_recovery_state"))
+    next_action = _mapping(recovery.get("next_safe_action"))
+    owner_receipt_ref = _first_text(
+        next_action.get("owner_receipt_ref"),
+        recovery.get("owner_receipt_ref"),
+        *_matching_ref_items(recovery.get("evidence_refs"), prefix="owner_receipt:"),
+    )
+    if owner_receipt_ref is None:
+        return None
+    return _obligation_outcome(
+        action=action,
+        outcome_kind="owner_receipt_ref",
+        outcome_ref=owner_receipt_ref,
+        phase=phase,
+        details={"next_safe_action_kind": _non_empty_text(next_action.get("kind"))},
+    )
 
 
 def _running_provider_attempt_outcome(

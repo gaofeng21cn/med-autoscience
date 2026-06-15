@@ -37,6 +37,7 @@ def _assert_contract_shape(work_unit: Mapping[str, Any]) -> None:
     assert work_unit["status"] in {
         "executable_owner_action",
         "running_provider_attempt",
+        "owner_receipt_recorded",
         "typed_blocker",
         "blocked_current_work_unit",
     }

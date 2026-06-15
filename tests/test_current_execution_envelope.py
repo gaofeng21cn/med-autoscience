@@ -133,6 +133,7 @@ def test_owner_route_envelope_projects_ai_reviewer_action_past_non_human_explici
                 "parked",
                 "executable_owner_action",
                 "running_provider_attempt",
+                "owner_receipt_recorded",
                 "typed_blocker",
             ],
             "evidence_only_surfaces": ["action_queue", "runtime_health", "no_op"],
@@ -980,5 +981,6 @@ def test_envelope_treats_non_human_waiting_user_decision_as_stale_when_owner_act
 
 
 from tests.test_current_execution_envelope_cases.explicit_resume_residue import *  # noqa: F403,F401,E402
+from tests.test_current_execution_envelope_cases.owner_receipt_currentness import *  # noqa: F403,F401,E402
 from tests.test_current_execution_envelope_cases.repair_progress_and_provider_admission import *  # noqa: F403,F401,E402
 from tests.test_current_execution_envelope_cases.provider_attempt_priority import *  # noqa: F403,F401,E402

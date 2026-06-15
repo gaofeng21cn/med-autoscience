@@ -89,6 +89,7 @@ from med_autoscience.controllers.current_work_unit_parts.stage_packet_identity i
 )
 from med_autoscience.controllers.current_work_unit_parts.projection import (
     action_work_unit as _action_work_unit,
+    owner_receipt_work_unit as _owner_receipt_work_unit,
     running_provider_attempt_work_unit as _running_provider_attempt_work_unit,
     typed_blocker_work_unit as _typed_blocker_work_unit,
 )
@@ -237,6 +238,16 @@ def build_current_work_unit(
         runtime_health=runtime_health_payload,
         running_attempt=running_attempt,
     )
+    owner_receipt_recovery = _owner_receipt_recorded_recovery(progress_payload)
+    if owner_receipt_recovery is not None:
+        return _owner_receipt_work_unit(
+            recovery=owner_receipt_recovery,
+            action=action,
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            source_refs=resolved_source_refs,
+            currentness_basis=basis,
+        )
     gate_replay_blocker = consumed_gate_replay_blocker_for_action(
         progress=progress_payload,
         action=action,
@@ -443,6 +454,21 @@ def _action_supersedes_stage_owner_answer(
         action=payload,
         progress=progress,
     )
+
+
+def _owner_receipt_recorded_recovery(progress: Mapping[str, Any]) -> dict[str, Any] | None:
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    if _text(recovery.get("phase")) != "owner_receipt_recorded":
+        return None
+    next_action = _mapping(recovery.get("next_safe_action"))
+    if _text(next_action.get("kind")) != "consume_owner_receipt":
+        return None
+    if _text(next_action.get("owner_receipt_ref")) or _text(recovery.get("owner_receipt_ref")):
+        return recovery
+    for ref in _text_items(recovery.get("evidence_refs")):
+        if "receipt" in ref:
+            return recovery
+    return None
 
 
 def _action_supersedes_typed_blocker(

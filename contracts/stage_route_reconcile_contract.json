@@ -689,6 +689,23 @@
     },
     {
       "rank": 5,
+      "signal": "current_identity_owner_receipt_recorded",
+      "effect": "consume_provider_admission_pending_and_project_owner_receipt",
+      "accepted_conditions": [
+        "same_work_unit_owner_receipt_recorded",
+        "repair_progress_followup_owner_receipt_recorded",
+        "current_work_unit_owner_receipt_recorded"
+      ],
+      "required_match": [
+        "study_id",
+        "action_type",
+        "work_unit_id_or_fingerprint",
+        "owner_receipt_ref"
+      ],
+      "allowed_output": "owner_receipt_recorded"
+    },
+    {
+      "rank": 6,
       "signal": "accepted_typed_closeout_for_same_identity",
       "effect": "consume_provider_admission_pending",
       "required_match": [
@@ -698,7 +715,7 @@
       "allowed_output": "typed_blocker_or_next_owner_projection"
     },
     {
-      "rank": 6,
+      "rank": 7,
       "signal": "weak_fresh_progress_current_owner_ticket_identity",
       "effect": "diagnostic_only_no_default_executor_dispatch",
       "required_match": [
@@ -708,7 +725,7 @@
       "allowed_output": "ignored_diagnostic"
     },
     {
-      "rank": 7,
+      "rank": 8,
       "signal": "fresh_current_owner_action",
       "effect": "project_executable_owner_action",
       "required_match": [
@@ -719,7 +736,7 @@
       "allowed_output": "executable_owner_action"
     },
     {
-      "rank": 8,
+      "rank": 9,
       "signal": "stable_typed_blocker_for_current_identity",
       "effect": "project_typed_blocker",
       "required_match": [

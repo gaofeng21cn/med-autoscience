@@ -101,6 +101,70 @@ def test_domain_health_diagnostic_apply_accepts_stable_typed_blocker_as_closed_o
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
 
 
+def test_domain_health_diagnostic_apply_accepts_recorded_owner_receipt_as_closed_outcome(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    receipt_ref = "artifacts/controller/repair_execution_receipts/latest.json"
+    recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "owner_receipt_recorded",
+        "evidence_refs": [receipt_ref],
+        "current_authority": {
+            "obligation": {
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            }
+        },
+        "next_safe_action": {
+            "kind": "consume_owner_receipt",
+            "owner": "write",
+            "provider_admission_allowed": False,
+            "owner_receipt_ref": receipt_ref,
+        },
+        "supervisor_decision": {"decision": "stop_with_owner_receipt"},
+    }
+
+    monkeypatch.setattr(
+        module,
+        "_run_domain_health_diagnostic_for_runtime_impl",
+        lambda **kwargs: _runtime_report_with_recovery_action(
+            study_id=study_id,
+            study_root=study_root,
+            recovery_state=recovery_state,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_materialize_report_provider_admission_current_control_state",
+        lambda **kwargs: {"surface": "opl_current_control_state_handoff"},
+    )
+    monkeypatch.setattr(module, "_sync_report_provider_admission_current_control_state", lambda report, **kwargs: None)
+    monkeypatch.setattr(module, "_fresh_progress_currentness_for_report", lambda **kwargs: {})
+
+    report = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=True,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    outcome = report["managed_study_obligation_actuator_outcomes"][0]
+    _assert_exactly_one_dhd_apply_outcome(outcome, "owner_receipt_ref")
+    assert outcome["owner_receipt_ref"] == receipt_ref
+    assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
+
+
 def test_domain_health_diagnostic_apply_accepts_provider_admission_pending_as_closed_outcome(
     tmp_path: Path,
     monkeypatch,

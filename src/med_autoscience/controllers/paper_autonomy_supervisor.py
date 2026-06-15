@@ -15,6 +15,7 @@ ALLOWED_DECISIONS = {
     "materialize_recovery_action",
     "wait_for_owner_with_resume_token",
     "stop_with_stable_typed_blocker",
+    "stop_with_owner_receipt",
 }
 
 FORBIDDEN_TERMINAL_INTERPRETATIONS = [
@@ -72,6 +73,26 @@ def build_supervisor_decision(
             ],
             paper_progress_classification="depends_on_mas_closeout_consumer_output",
             platform_repair_classification="transport_closeout_consumption",
+        )
+
+    if phase == "owner_receipt_recorded":
+        owner_receipt_ref = _owner_receipt_ref(recovery)
+        return _decision(
+            progress,
+            recovery,
+            obligation,
+            decision="stop_with_owner_receipt",
+            next_owner=_owner(recovery, obligation) or "MedAutoScience",
+            next_safe_action={
+                "kind": "consume_owner_receipt",
+                "owner_receipt_ref": owner_receipt_ref,
+            },
+            evidence_refs=[
+                _obligation_ref(obligation),
+                *_owner_receipt_refs(recovery),
+            ],
+            paper_progress_classification="mas_owner_receipt_credit",
+            platform_repair_classification="none",
         )
 
     if phase == "human_gate" or _resume_token_payload(progress, recovery):
@@ -695,6 +716,15 @@ def _closeout_ref_items(item: Mapping[str, Any]) -> list[str]:
         )
         if ref
     ]
+
+
+def _owner_receipt_refs(recovery: Mapping[str, Any]) -> list[str]:
+    return _dedupe([_owner_receipt_ref(recovery), *_evidence_refs(recovery)])
+
+
+def _owner_receipt_ref(recovery: Mapping[str, Any]) -> str | None:
+    next_action = _mapping(recovery.get("next_safe_action"))
+    return _first_text(next_action.get("owner_receipt_ref"), recovery.get("owner_receipt_ref"))
 
 
 def _typed_blocker_refs(progress: Mapping[str, Any], recovery: Mapping[str, Any]) -> list[str]:

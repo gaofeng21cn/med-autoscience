@@ -273,11 +273,12 @@ def test_stage_route_reconcile_contract_orders_currentness_and_blocks_transport_
     contract = _contract()
 
     precedence = contract["currentness_precedence"]
-    assert [item["signal"] for item in precedence[:7]] == [
+    assert [item["signal"] for item in precedence[:8]] == [
         "weak_provider_admission_identity",
         "terminal_closeout_for_same_stage_attempt",
         "strict_live_provider_attempt_for_current_identity",
         "same_work_unit_stop_loss_terminal_stage",
+        "current_identity_owner_receipt_recorded",
         "accepted_typed_closeout_for_same_identity",
         "weak_fresh_progress_current_owner_ticket_identity",
         "fresh_current_owner_action",
@@ -288,8 +289,15 @@ def test_stage_route_reconcile_contract_orders_currentness_and_blocks_transport_
     assert precedence[3]["effect"] == "project_typed_blocker_and_suppress_provider_admission"
     assert precedence[3]["allowed_output"] == "typed_blocker"
     assert precedence[3]["default_blocker"] == "anti_loop_budget_exhausted"
-    assert precedence[5]["effect"] == "diagnostic_only_no_default_executor_dispatch"
-    assert precedence[5]["allowed_output"] == "ignored_diagnostic"
+    assert precedence[4]["effect"] == "consume_provider_admission_pending_and_project_owner_receipt"
+    assert precedence[4]["accepted_conditions"] == [
+        "same_work_unit_owner_receipt_recorded",
+        "repair_progress_followup_owner_receipt_recorded",
+        "current_work_unit_owner_receipt_recorded",
+    ]
+    assert precedence[4]["allowed_output"] == "owner_receipt_recorded"
+    assert precedence[6]["effect"] == "diagnostic_only_no_default_executor_dispatch"
+    assert precedence[6]["allowed_output"] == "ignored_diagnostic"
     assert precedence[-1]["allowed_output"] == "ignored_diagnostic"
 
     lifecycle = contract["lifecycle_state_machine"]

@@ -96,6 +96,7 @@
         "admission_blocked",
         "attempt_running",
         "terminal_closeout_ready",
+        "owner_receipt_recorded",
         "owner_answer_consumed",
         "domain_blocked",
         "human_gate",
@@ -103,6 +104,7 @@
         "manual_foreground_unadopted"
       ],
       "terminal_phases": [
+        "owner_receipt_recorded",
         "owner_answer_consumed",
         "domain_blocked",
         "human_gate"
@@ -112,6 +114,7 @@
         "admission_pending",
         "attempt_running",
         "terminal_closeout_ready",
+        "owner_receipt_recorded",
         "owner_answer_consumed"
       ],
       "forbidden_phase_combinations": [
@@ -143,6 +146,15 @@
           ],
           "effect": "force_next_safe_action_consume_or_reject_terminal_closeout",
           "reason": "terminal closeout cannot remain as implicit paper progress or retry authority"
+        },
+        {
+          "name": "owner_receipt_recorded_without_ref",
+          "when_all": [
+            "phase=owner_receipt_recorded",
+            "owner_receipt_ref.empty=true"
+          ],
+          "effect": "projection_inconsistency_fail_closed",
+          "reason": "owner receipt terminal closure must carry the MAS owner receipt or gate replay ref for the current identity"
         },
         {
           "name": "stop_loss_without_successor_or_human_gate",
@@ -213,11 +225,20 @@
         "record_human_or_owner_gate",
         "run_admission_apply_or_report_operator_gate",
         "repair_projection_before_admission",
-        "adopt_manual_delta_through_mas_owner_receipt"
+        "adopt_manual_delta_through_mas_owner_receipt",
+        "consume_owner_receipt"
       ],
       "terminal_closeout_observed_requires": [
         "consume_terminal_closeout",
         "reject_terminal_closeout_as_stale"
+      ],
+      "owner_receipt_recorded_requires": [
+        "consume_owner_receipt"
+      ],
+      "owner_receipt_recorded_acceptance_conditions": [
+        "same_work_unit_owner_receipt_recorded",
+        "repair_progress_followup_owner_receipt_recorded",
+        "current_work_unit_owner_receipt_recorded"
       ],
       "stop_loss_requires_any": [
         "create_successor_recovery_obligation",
@@ -248,6 +269,7 @@
         "admission_blocked",
         "attempt_running",
         "terminal_closeout_ready",
+        "owner_receipt_recorded",
         "owner_answer_consumed",
         "domain_blocked",
         "human_gate",

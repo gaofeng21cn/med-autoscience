@@ -124,6 +124,38 @@ def build_paper_recovery_state(
 
     typed_blocker = _current_typed_blocker(current_work_unit)
     current_action = _current_executable_owner_action(progress)
+    owner_receipt = _owner_receipt_recorded_current_work_unit(
+        current_work_unit,
+        obligation=obligation,
+    ) or _same_work_unit_owner_receipt(
+        progress,
+        current_work_unit=current_work_unit,
+        current_action=current_action,
+        obligation=obligation,
+    )
+    if owner_receipt is not None:
+        owner = _text(obligation.get("owner"))
+        owner_receipt_ref = _text(owner_receipt.get("owner_receipt_ref"))
+        condition = _text(owner_receipt.get("condition")) or "same_work_unit_owner_receipt_recorded"
+        return _state(
+            progress,
+            obligation=obligation,
+            phase="owner_receipt_recorded",
+            conditions=[
+                {
+                    "condition": condition,
+                    "action_type": _text(obligation.get("action_type")),
+                }
+            ],
+            next_safe_action=_next_action(
+                "consume_owner_receipt",
+                provider_admission_allowed=False,
+                owner=owner,
+                owner_receipt_ref=owner_receipt_ref,
+            ),
+            current_owner=owner,
+            evidence_refs=[owner_receipt_ref] if owner_receipt_ref is not None else [],
+        )
     typed_blocker_superseded_by_current_action = bool(
         typed_blocker
         and current_action
@@ -935,6 +967,152 @@ def _typed_blocker_has_stable_outcome_ref(typed_blocker: Mapping[str, Any]) -> b
     return False
 
 
+def _same_work_unit_owner_receipt(
+    progress: Mapping[str, Any],
+    *,
+    current_work_unit: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+    obligation: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if _current_work_unit_status(current_work_unit) != "executable_owner_action":
+        return None
+    repair = _mapping(progress.get("repair_progress_projection"))
+    if not repair:
+        return None
+    if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
+        return None
+    if repair.get("paper_delta_observed") is not True:
+        return None
+    if repair.get("accepted_owner_receipt") is not True:
+        return None
+    owner_receipt_ref = _text(repair.get("owner_receipt_ref"))
+    if owner_receipt_ref is None:
+        return None
+    if _same_work_unit_owner_receipt_matches_obligation(
+        repair,
+        current_work_unit=current_work_unit,
+        current_action=current_action,
+        obligation=obligation,
+    ):
+        return {
+            "condition": "same_work_unit_owner_receipt_recorded",
+            "owner_receipt_ref": owner_receipt_ref,
+        }
+    if _repair_progress_followup_owner_receipt_matches_obligation(
+        repair,
+        current_work_unit=current_work_unit,
+        current_action=current_action,
+        obligation=obligation,
+    ):
+        followup_receipt_ref = _repair_progress_followup_owner_receipt_ref(repair)
+        if followup_receipt_ref is None:
+            return None
+        return {
+            "condition": "repair_progress_followup_owner_receipt_recorded",
+            "owner_receipt_ref": followup_receipt_ref,
+        }
+    return None
+
+
+def _owner_receipt_recorded_current_work_unit(
+    current_work_unit: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if _current_work_unit_status(current_work_unit) != "owner_receipt_recorded":
+        return None
+    owner_receipt_ref = _first_text(
+        _mapping(current_work_unit.get("state")).get("owner_receipt_ref"),
+        _mapping(current_work_unit.get("required_output_contract")).get("owner_receipt_ref"),
+        *_text_items(current_work_unit.get("acceptance_refs")),
+    )
+    if owner_receipt_ref is None:
+        return None
+    return {
+        "condition": "current_work_unit_owner_receipt_recorded",
+        "owner_receipt_ref": owner_receipt_ref,
+        "action_type": _text(current_work_unit.get("action_type")) or _text(obligation.get("action_type")),
+    }
+
+
+def _same_work_unit_owner_receipt_matches_obligation(
+    repair: Mapping[str, Any],
+    *,
+    current_work_unit: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+    obligation: Mapping[str, Any],
+) -> bool:
+    obligation_action_type = _text(obligation.get("action_type"))
+    if obligation_action_type and _text(current_work_unit.get("action_type")) != obligation_action_type:
+        return False
+    obligation_work_unit = _text(obligation.get("work_unit_id"))
+    repair_work_unit = _text(repair.get("work_unit_id"))
+    if obligation_work_unit is None or repair_work_unit != obligation_work_unit:
+        return False
+    obligation_fingerprint = _text(obligation.get("work_unit_fingerprint"))
+    repair_fingerprint = _first_text(
+        repair.get("work_unit_fingerprint"),
+        repair.get("action_fingerprint"),
+    )
+    if repair_fingerprint is not None and obligation_fingerprint is not None:
+        if repair_fingerprint != obligation_fingerprint:
+            return False
+    action_eval = _text(current_action.get("source_eval_id"))
+    repair_eval = _text(repair.get("source_eval_id"))
+    if action_eval is not None and repair_eval is not None and action_eval != repair_eval:
+        return False
+    return True
+
+
+def _repair_progress_followup_owner_receipt_matches_obligation(
+    repair: Mapping[str, Any],
+    *,
+    current_work_unit: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+    obligation: Mapping[str, Any],
+) -> bool:
+    repair_precedence = _mapping(current_action.get("repair_progress_precedence"))
+    if not repair_precedence:
+        return False
+    obligation_action_type = _text(obligation.get("action_type"))
+    if obligation_action_type and _text(current_work_unit.get("action_type")) != obligation_action_type:
+        return False
+    if obligation_action_type and _text(current_action.get("action_type")) != obligation_action_type:
+        return False
+    obligation_work_unit = _text(obligation.get("work_unit_id"))
+    if obligation_work_unit and _text(current_work_unit.get("work_unit_id")) != obligation_work_unit:
+        return False
+    if obligation_work_unit and _text(current_action.get("work_unit_id")) != obligation_work_unit:
+        return False
+    source_work_unit = _text(repair_precedence.get("source_work_unit_id"))
+    if source_work_unit is None or source_work_unit != _text(repair.get("work_unit_id")):
+        return False
+    source_fingerprint = _text(repair_precedence.get("source_fingerprint"))
+    repair_fingerprint = _first_text(
+        repair.get("source_fingerprint"),
+        repair.get("work_unit_fingerprint"),
+        repair.get("action_fingerprint"),
+    )
+    if source_fingerprint is None or repair_fingerprint != source_fingerprint:
+        return False
+    obligation_fingerprint = _text(obligation.get("work_unit_fingerprint"))
+    if obligation_fingerprint is not None and source_fingerprint != obligation_fingerprint:
+        return False
+    action_eval = _text(current_action.get("source_eval_id"))
+    repair_eval = _text(repair.get("source_eval_id"))
+    if action_eval is not None and repair_eval is not None and action_eval != repair_eval:
+        return False
+    return True
+
+
+def _repair_progress_followup_owner_receipt_ref(repair: Mapping[str, Any]) -> str | None:
+    gate_replay_refs = _text_items(repair.get("gate_replay_refs"))
+    for ref in gate_replay_refs:
+        if "gate_clearing_batch" in ref:
+            return ref
+    return gate_replay_refs[0] if gate_replay_refs else None
+
+
 def _suppressed_surfaces_for_typed_blocker(progress: Mapping[str, Any]) -> list[str]:
     suppressed: list[str] = []
     if _current_executable_owner_action(progress):
@@ -950,6 +1128,7 @@ def _next_action(
     provider_admission_allowed: bool,
     owner: str | None = None,
     required_input: str | None = None,
+    owner_receipt_ref: str | None = None,
     accepted_owner_gate_decision: Mapping[str, Any] | None = None,
     owner_callable: Mapping[str, Any] | None = None,
     successor_owner_action: Mapping[str, Any] | None = None,
@@ -960,6 +1139,7 @@ def _next_action(
         "owner": owner,
         "provider_admission_allowed": provider_admission_allowed,
         "required_input": required_input,
+        "owner_receipt_ref": owner_receipt_ref,
         "accepted_owner_gate_decision": dict(accepted_owner_gate_decision or {}),
         "owner_callable": dict(owner_callable or {}),
         "successor_owner_action": dict(successor_owner_action or {}),

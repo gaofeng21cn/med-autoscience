@@ -238,6 +238,7 @@ def test_paper_recovery_phases_are_mutually_exclusive_and_forbid_bad_combination
         "admission_blocked",
         "attempt_running",
         "terminal_closeout_ready",
+        "owner_receipt_recorded",
         "owner_answer_consumed",
         "domain_blocked",
         "human_gate",
@@ -245,6 +246,7 @@ def test_paper_recovery_phases_are_mutually_exclusive_and_forbid_bad_combination
         "manual_foreground_unadopted",
     ]
     assert state_machine["terminal_phases"] == [
+        "owner_receipt_recorded",
         "owner_answer_consumed",
         "domain_blocked",
         "human_gate",
@@ -273,6 +275,13 @@ def test_paper_recovery_phases_are_mutually_exclusive_and_forbid_bad_combination
     ] == "owner_action_ready"
     assert forbidden["terminal_without_consume_or_reject"]["effect"] == (
         "force_next_safe_action_consume_or_reject_terminal_closeout"
+    )
+    assert forbidden["owner_receipt_recorded_without_ref"]["when_all"] == [
+        "phase=owner_receipt_recorded",
+        "owner_receipt_ref.empty=true",
+    ]
+    assert forbidden["owner_receipt_recorded_without_ref"]["effect"] == (
+        "projection_inconsistency_fail_closed"
     )
     assert forbidden["stop_loss_without_successor_or_human_gate"]["effect"] == (
         "remain_fail_closed_no_redrive"
@@ -413,10 +422,19 @@ def test_paper_recovery_conditions_next_safe_action_and_manual_adoption() -> Non
         "run_admission_apply_or_report_operator_gate",
         "repair_projection_before_admission",
         "adopt_manual_delta_through_mas_owner_receipt",
+        "consume_owner_receipt",
     } <= set(next_action["allowed_values"])
     assert next_action["terminal_closeout_observed_requires"] == [
         "consume_terminal_closeout",
         "reject_terminal_closeout_as_stale",
+    ]
+    assert next_action["owner_receipt_recorded_requires"] == [
+        "consume_owner_receipt"
+    ]
+    assert next_action["owner_receipt_recorded_acceptance_conditions"] == [
+        "same_work_unit_owner_receipt_recorded",
+        "repair_progress_followup_owner_receipt_recorded",
+        "current_work_unit_owner_receipt_recorded",
     ]
     assert next_action["stop_loss_requires_any"] == [
         "create_successor_recovery_obligation",

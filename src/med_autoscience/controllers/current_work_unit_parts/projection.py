@@ -148,6 +148,62 @@ def running_provider_attempt_work_unit(
     )
 
 
+def owner_receipt_work_unit(
+    *,
+    recovery: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+    status_payload: Mapping[str, Any],
+    progress_payload: Mapping[str, Any],
+    source_refs: Sequence[str],
+    currentness_basis: Mapping[str, Any],
+) -> dict[str, Any]:
+    next_action = _mapping(recovery.get("next_safe_action"))
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    owner_receipt_ref = _text(next_action.get("owner_receipt_ref")) or _text(
+        recovery.get("owner_receipt_ref")
+    )
+    return current_work_unit(
+        status="owner_receipt_recorded",
+        owner=_text(next_action.get("owner"))
+        or _text(obligation.get("owner"))
+        or _text(_mapping(action).get("next_owner"))
+        or _text(_mapping(action).get("owner")),
+        action_type=_text(obligation.get("action_type")) or _action_type(_mapping(action)),
+        work_unit_id=_work_unit_id(obligation.get("work_unit_id"))
+        or _work_unit_id(_mapping(action).get("work_unit_id"))
+        or _work_unit_id(_mapping(action).get("next_work_unit")),
+        work_unit_fingerprint=_text(obligation.get("work_unit_fingerprint"))
+        or _work_unit_fingerprint(_mapping(action), currentness_basis=currentness_basis),
+        action_fingerprint=_text(obligation.get("action_fingerprint"))
+        or _action_fingerprint(_mapping(action), currentness_basis=currentness_basis),
+        input_refs=_input_refs(recovery, source_refs),
+        required_output_contract={
+            "owner_receipt_consumed": True,
+            "owner_receipt_ref": owner_receipt_ref,
+            "provider_completion_is_domain_completion": False,
+            "domain_ready_authorized": False,
+        },
+        acceptance_refs=_text_items(recovery.get("evidence_refs")),
+        currentness_basis=currentness_basis,
+        state={
+            "state_kind": "owner_receipt_recorded",
+            "source": "paper_recovery_state.owner_receipt_recorded",
+            "owner_receipt_ref": owner_receipt_ref,
+            "next_safe_action_kind": _text(next_action.get("kind")),
+            "provider_admission_pending": False,
+            "owner_answer_binding": {
+                "answer_kind": "owner_receipt_ref",
+                "owner_receipt_ref": owner_receipt_ref,
+            },
+            "mas_owner_authority_preserved": True,
+            "stale_queue_or_handoff_can_override": False,
+        },
+        status_payload=status_payload,
+        progress_payload=progress_payload,
+        action=action,
+    )
+
+
 def typed_blocker_work_unit(
     *,
     blocker: Mapping[str, Any],
@@ -341,6 +397,7 @@ def _text_items(value: object) -> list[str]:
 __all__ = [
     "action_work_unit",
     "current_work_unit",
+    "owner_receipt_work_unit",
     "running_provider_attempt_work_unit",
     "typed_blocker_work_unit",
 ]

@@ -500,6 +500,139 @@ def test_domain_health_diagnostic_apply_drains_mas_owner_callable_created_by_sam
     ]
 
 
+def test_domain_health_diagnostic_apply_accepts_refreshed_owner_receipt_postcondition(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    actuator = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    gate_replay_ref = str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json")
+    initial_recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "owner_action_ready",
+        "next_safe_action": {
+            "kind": "run_mas_owner_callable",
+            "owner": "gate_clearing_batch",
+            "provider_admission_allowed": False,
+            "owner_callable": {
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+            },
+        },
+        "supervisor_decision": {"decision": "materialize_recovery_action"},
+    }
+    refreshed_recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "owner_receipt_recorded",
+        "evidence_refs": [gate_replay_ref],
+        "current_authority": {
+            "obligation": {
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:gate-replay-current",
+            }
+        },
+        "next_safe_action": {
+            "kind": "consume_owner_receipt",
+            "owner": "gate_clearing_batch",
+            "provider_admission_allowed": False,
+            "owner_receipt_ref": gate_replay_ref,
+        },
+        "supervisor_decision": {"decision": "stop_with_owner_receipt"},
+    }
+
+    monkeypatch.setattr(
+        module,
+        "_run_domain_health_diagnostic_for_runtime_impl",
+        lambda **kwargs: {
+            "surface": "domain_health_diagnostic",
+            "action_class": "observe_only",
+            "scanned_at": "2026-06-15T00:00:00+00:00",
+            "current_execution_evidence": {"progress_currentness": {}},
+            "paper_recovery_states": {study_id: initial_recovery_state},
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "study_root": str(study_root),
+                    "paper_recovery_state": initial_recovery_state,
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        actuator.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **kwargs: {
+            "ok": True,
+            "status": "executed",
+            "record_path": gate_replay_ref,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_fresh_progress_currentness_for_report",
+        lambda **kwargs: {
+            study_id: {
+                "study_id": study_id,
+                "current_work_unit": {
+                    "status": "owner_receipt_recorded",
+                    "owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "sha256:gate-replay-current",
+                    "state": {
+                        "state_kind": "owner_receipt_recorded",
+                        "owner_receipt_ref": gate_replay_ref,
+                    },
+                },
+                "paper_recovery_state": refreshed_recovery_state,
+            }
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_materialize_report_provider_admission_current_control_state",
+        lambda **kwargs: {"surface": "opl_current_control_state_handoff"},
+    )
+    monkeypatch.setattr(
+        module,
+        "_sync_report_provider_admission_current_control_state",
+        lambda report, **kwargs: None,
+    )
+
+    report = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=True,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    action = report["managed_study_actions"][0]
+    assert action["paper_recovery_state"]["phase"] == "owner_receipt_recorded"
+    assert action["dhd_apply_postcondition"]["ok"] is True
+    assert action["dhd_apply_postcondition"]["outcome_kind"] == "owner_receipt_ref"
+    outcomes = [
+        outcome
+        for outcome in report["managed_study_obligation_actuator_outcomes"]
+        if outcome["study_id"] == study_id
+    ]
+    assert len(outcomes) == 1
+    _assert_exactly_one_dhd_apply_outcome(outcomes[0], "owner_receipt_ref")
+    assert outcomes[0]["owner_receipt_ref"] == gate_replay_ref
+
+
 def _owner_from_recovery(recovery: dict[str, object]) -> str | None:
     next_safe_action = recovery.get("next_safe_action")
     if not isinstance(next_safe_action, dict):

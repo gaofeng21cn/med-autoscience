@@ -341,6 +341,7 @@ def test_safety_envelope_covers_all_false_completion_and_drift_risk_classes() ->
     assert stale["valid_current_statuses"] == [
         "executable_owner_action",
         "running_provider_attempt",
+        "owner_receipt_recorded",
         "typed_blocker",
         "blocked_current_work_unit",
     ]

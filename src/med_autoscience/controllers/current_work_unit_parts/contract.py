@@ -6,6 +6,7 @@ SCHEMA_VERSION = 1
 ALLOWED_STATUSES = (
     "executable_owner_action",
     "running_provider_attempt",
+    "owner_receipt_recorded",
     "typed_blocker",
     "blocked_current_work_unit",
 )
