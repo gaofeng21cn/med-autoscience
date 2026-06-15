@@ -462,6 +462,21 @@ def build_paper_recovery_state(
         and _current_action_matches_obligation(current_action, obligation=obligation)
     ):
         owner = _text(obligation.get("owner"))
+        owner_callable = _current_mas_owner_callable(progress, obligation=obligation)
+        if owner_callable is not None:
+            return _state(
+                progress,
+                obligation=obligation,
+                phase="owner_action_ready",
+                conditions=[{"condition": "current_mas_owner_callable_ready"}],
+                next_safe_action=_next_action(
+                    "run_mas_owner_callable",
+                    provider_admission_allowed=False,
+                    owner=owner,
+                    owner_callable=owner_callable,
+                ),
+                current_owner=owner,
+            )
         return _state(
             progress,
             obligation=obligation,

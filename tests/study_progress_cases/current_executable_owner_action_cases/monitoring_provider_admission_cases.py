@@ -126,7 +126,10 @@ def test_progress_first_monitoring_honors_current_control_executable_handoff_ove
     assert monitoring["controller_action"] == "run_quality_repair_batch"
     assert monitoring["next_work_unit"] == "medical_prose_write_repair"
     admission = monitoring["owner_action_admission"]
-    assert admission["admission_pending"] is True
+    assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
     assert admission["hard_gate_blocked"] is False
     assert admission["next_owner"] == "write"
     assert admission["work_unit_id"] == "medical_prose_write_repair"
@@ -179,7 +182,10 @@ def test_progress_first_monitoring_requires_running_provider_proof_for_current_w
     assert monitoring["controller_action"] == "run_quality_repair_batch"
     assert monitoring["next_work_unit"] == "medical_prose_write_repair"
     admission = monitoring["owner_action_admission"]
-    assert admission["admission_pending"] is True
+    assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
     assert admission["provider_attempt_running_proven"] is False
     assert admission["provider_attempt_proof"] is None
 
@@ -281,8 +287,9 @@ def test_progress_first_monitoring_execute_decision_allows_owner_action_admissio
 
     admission = monitoring["owner_action_admission"]
     assert admission["admission_requested"] is True
-    assert admission["admission_pending"] is True
-    assert admission["provider_attempt_start_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
 
 
 def test_progress_first_monitoring_suppresses_running_current_work_unit_when_owner_action_unbound() -> None:
@@ -347,7 +354,10 @@ def test_progress_first_monitoring_suppresses_running_current_work_unit_when_own
     assert monitoring["execution_state_kind"] == "executable_owner_action"
     assert monitoring["current_executable_owner_action"]["work_unit_id"] == "medical_prose_write_repair"
     admission = monitoring["owner_action_admission"]
-    assert admission["admission_pending"] is True
+    assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
     assert admission["provider_attempt_running_proven"] is False
     assert admission["provider_attempt_proof"] is None
 
@@ -473,10 +483,11 @@ def test_progress_first_monitoring_treats_missing_telemetry_and_closeout_as_obse
 
     admission = monitoring["owner_action_admission"]
     assert admission["admission_requested"] is True
-    assert admission["admission_pending"] is True
-    assert admission["provider_attempt_start_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
     assert admission["provider_attempt_started"] is False
     assert admission["provider_attempt_running_proven"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
     assert admission["hard_gate_blocked"] is False
     assert admission["hard_gate_reasons"] == []
     assert admission["observability_diagnostics"] == [

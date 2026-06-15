@@ -192,8 +192,64 @@ def test_progress_first_monitoring_keeps_stale_active_run_id_out_of_running_fiel
     assert monitoring["active_stage_attempt_id"] is None
     assert monitoring["active_workflow_id"] is None
     assert monitoring["worker_liveness"]["stale_active_run_id"] == "opl-stage-attempt://sat-stale"
-    assert monitoring["owner_action_admission"]["admission_pending"] is True
+    assert monitoring["owner_action_admission"]["admission_pending"] is False
+    assert monitoring["owner_action_admission"]["provider_attempt_start_requested"] is False
+    assert monitoring["owner_action_admission"]["blocked_by"] == "provider_admission_candidate_absent"
     assert monitoring["owner_action_admission"]["provider_attempt_started"] is False
+
+
+def test_progress_first_monitoring_does_not_mark_admission_pending_without_candidate() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "next_owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "action_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "provider_admission_pending": False,
+                },
+            },
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "provider_admission_pending_count": 0,
+                "provider_admission_candidates": [],
+                "action_queue": [],
+            },
+        }
+    )
+
+    admission = monitoring["owner_action_admission"]
+    assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["provider_attempt_started"] is False
+    assert admission["provider_attempt_running_proven"] is False
+    assert admission["candidate_present"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
 
 def test_progress_first_monitoring_keeps_handoff_active_run_ref_out_of_running_fields_without_running_provider_proof() -> None:
     module = importlib.import_module(

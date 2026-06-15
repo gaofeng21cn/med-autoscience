@@ -316,10 +316,11 @@ def test_progress_first_monitoring_requests_admission_for_current_executable_own
     admission = monitoring["owner_action_admission"]
     assert admission["surface_kind"] == "current_executable_owner_action_admission"
     assert admission["admission_requested"] is True
-    assert admission["admission_pending"] is True
-    assert admission["provider_attempt_start_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
     assert admission["provider_attempt_started"] is False
     assert admission["provider_attempt_running_proven"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
     assert admission["hard_gate_blocked"] is False
     assert admission["hard_gate_reasons"] == []
     assert admission["next_owner"] == "finalize"
@@ -389,7 +390,10 @@ def test_progress_first_monitoring_proves_running_only_with_matching_current_act
         admission = _monitoring(handoff_action)["owner_action_admission"]
         assert admission["provider_attempt_running_proven"] is False
         assert admission["provider_attempt_started"] is False
-        assert admission["admission_pending"] is True
+        assert admission["admission_requested"] is True
+        assert admission["admission_pending"] is False
+        assert admission["provider_attempt_start_requested"] is False
+        assert admission["blocked_by"] == "provider_admission_candidate_absent"
         assert admission["provider_attempt_proof"] is None
 
     matching_admission = _monitoring(

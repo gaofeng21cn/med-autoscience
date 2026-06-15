@@ -3,6 +3,8 @@ from __future__ import annotations
 from .supervisor_and_progress_cases_cases.test_managed_recovery_holds import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_focused_scope import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_materialized_dispatch_blockers import *  # noqa: F403,F401
+from .supervisor_and_progress_cases_cases.test_obligation_actuator_outcomes import *  # noqa: F403,F401
+from .supervisor_and_progress_cases_cases.test_obligation_actuator_postcondition import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_provider_admission_probe import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.provider_admission_closeout_currentness_cases import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.provider_admission_current_control_publication_eval_cases import *  # noqa: F403,F401

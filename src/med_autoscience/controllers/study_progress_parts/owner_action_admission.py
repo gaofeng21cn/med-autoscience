@@ -22,25 +22,35 @@ def build_owner_action_admission_projection(
     blocked_by = _hard_gate_blockers(payload)
     hard_gate_reasons = _hard_gate_reasons(blocked_by)
     hard_gate_blocked = bool(hard_gate_reasons)
-    start_requested = not hard_gate_blocked
     provider_attempt_proof = provider_attempt_proof_for_current_action(
         handoff=handoff,
         current_action=current_action,
     )
     running_proven = bool(provider_attempt_proof)
+    candidate_present = _provider_admission_candidate_present(
+        payload=payload,
+        handoff=handoff,
+        current_action=current_action,
+    )
+    admission_requested = not hard_gate_blocked
+    start_requested = admission_requested and (candidate_present or running_proven)
+    blocked_reason = blocked_by or None
+    if admission_requested and not start_requested:
+        blocked_reason = "provider_admission_candidate_absent"
     return {
         "surface_kind": "current_executable_owner_action_admission",
         "schema_version": 1,
         "source": "progress_first_monitoring.current_executable_owner_action",
-        "admission_requested": start_requested,
+        "admission_requested": admission_requested,
         "admission_pending": start_requested and not running_proven,
         "provider_attempt_start_requested": start_requested,
         "provider_attempt_started": running_proven,
         "provider_attempt_running_proven": running_proven,
         "provider_attempt_proof": provider_attempt_proof,
+        "candidate_present": candidate_present,
         "hard_gate_blocked": hard_gate_blocked,
         "hard_gate_reasons": hard_gate_reasons,
-        "blocked_by": blocked_by or None,
+        "blocked_by": blocked_reason,
         "next_owner": owner,
         "work_unit_id": work_unit_id,
         "allowed_actions": allowed_actions,
@@ -58,6 +68,99 @@ def build_owner_action_admission_projection(
             "can_authorize_publication_ready": False,
         },
     }
+
+
+def _provider_admission_candidate_present(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    if provider_attempt_proof_for_current_action(
+        handoff=handoff,
+        current_action=current_action,
+    ):
+        return True
+    if _matching_provider_admission_candidates(
+        payload.get("provider_admission_candidates"),
+        current_action=current_action,
+    ):
+        return True
+    if _matching_provider_admission_candidates(
+        handoff.get("provider_admission_candidates"),
+        current_action=current_action,
+    ):
+        return True
+    return any(
+        _action_queue_item_is_provider_admission_candidate(item)
+        and _candidate_matches_current_action(item, current_action=current_action)
+        for item in handoff.get("action_queue") or []
+        if isinstance(item, Mapping)
+    )
+
+
+def _action_queue_item_is_provider_admission_candidate(item: Mapping[str, Any]) -> bool:
+    if _text(item.get("authority")) == "mas_provider_admission_identity":
+        return True
+    if item.get("provider_attempt_or_lease_required") is True:
+        return True
+    if _text(item.get("execution_status")) == "handoff_ready":
+        return True
+    return _text(item.get("source_surface")) == "mas_opl_runtime_owner_handoff.provider_admission_identity"
+
+
+def _matching_provider_admission_candidates(
+    value: object,
+    *,
+    current_action: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in value or []
+        if isinstance(item, Mapping)
+        and _candidate_matches_current_action(item, current_action=current_action)
+    ]
+
+
+def _candidate_matches_current_action(
+    candidate: Mapping[str, Any],
+    *,
+    current_action: Mapping[str, Any],
+) -> bool:
+    current_owner = _text(current_action.get("next_owner")) or _text(current_action.get("owner"))
+    candidate_owner = (
+        _text(candidate.get("next_executable_owner"))
+        or _text(candidate.get("next_owner"))
+        or _text(candidate.get("owner"))
+    )
+    if current_owner is not None and candidate_owner is not None and candidate_owner != current_owner:
+        return False
+    current_actions = set(_text_list(current_action.get("allowed_actions")))
+    if action_type := _text(current_action.get("action_type")):
+        current_actions.add(action_type)
+    candidate_action = _text(candidate.get("action_type"))
+    if current_actions and candidate_action is not None and candidate_action not in current_actions:
+        return False
+    current_work_unit = _work_unit_text(current_action.get("work_unit_id")) or _work_unit_text(
+        current_action.get("next_work_unit")
+    )
+    candidate_work_unit = _work_unit_text(candidate.get("work_unit_id")) or _work_unit_text(
+        candidate.get("next_work_unit")
+    )
+    if (
+        current_work_unit is not None
+        and candidate_work_unit is not None
+        and candidate_work_unit != current_work_unit
+    ):
+        return False
+    current_identity = _current_action_identity_values(current_action)
+    candidate_identity = _current_action_identity_values(candidate)
+    for key in ("work_unit_fingerprint", "action_fingerprint"):
+        current_value = current_identity.get(key)
+        candidate_value = candidate_identity.get(key)
+        if current_value is not None and candidate_value is not None and candidate_value != current_value:
+            return False
+    return True
 
 
 def provider_attempt_proof_for_current_action(

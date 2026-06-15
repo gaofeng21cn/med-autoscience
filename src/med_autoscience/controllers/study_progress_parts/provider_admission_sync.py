@@ -3,12 +3,17 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from .owner_action_admission import build_owner_action_admission_projection
 from .shared import _mapping_copy, _non_empty_text
 
 
 def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[str, Any]:
     monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
     admission = _mapping_copy(monitoring.get("owner_action_admission"))
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if current_action:
+        admission = _rebuild_owner_action_admission(payload, current_action=current_action) or admission
+        monitoring["owner_action_admission"] = admission or None
     if not admission:
         return payload
     updated = dict(payload)
@@ -16,8 +21,26 @@ def sync_progress_first_owner_action_admission(payload: dict[str, Any]) -> dict[
         admission = _suppressed_stale_admission(admission)
         monitoring["owner_action_admission"] = admission
         updated["progress_first_monitoring_summary"] = monitoring
+    else:
+        updated["progress_first_monitoring_summary"] = monitoring
     updated["owner_action_admission"] = admission
     return updated
+
+
+def _rebuild_owner_action_admission(
+    payload: Mapping[str, Any],
+    *,
+    current_action: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    latest_terminal_stage_log = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    return build_owner_action_admission_projection(
+        payload=payload,
+        current_action=current_action,
+        handoff=handoff,
+        stage_progress_log=_mapping_copy(handoff.get("stage_progress_log")),
+        latest_terminal_stage_log=latest_terminal_stage_log,
+    )
 
 
 def _admission_mismatches_current_execution(
