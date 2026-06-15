@@ -343,6 +343,39 @@ def test_current_action_alignment_keeps_repair_progress_action_over_authorizatio
     assert aligned == action
 
 
+def test_current_action_alignment_rejects_identity_mismatched_executable_envelope() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+    )
+
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::current",
+        "action_fingerprint": "publication-blockers::current",
+    }
+
+    aligned = module.current_action_aligned_with_execution_envelope(
+        action=action,
+        envelope={
+            "state_kind": "executable_owner_action",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "next_work_unit": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::stale",
+            "action_fingerprint": "publication-blockers::stale",
+        },
+    )
+
+    assert aligned is None
+
+
 def test_execution_surface_refresh_keeps_repair_progress_action_over_consumed_authorization_handoff() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"

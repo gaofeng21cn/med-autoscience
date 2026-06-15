@@ -389,6 +389,11 @@ def current_action_aligned_with_execution_envelope(
         return None
     if envelope_action is not None and action_type is not None and envelope_action != action_type:
         return None
+    envelope_fingerprint = _fingerprint_identity(envelope)
+    action_fingerprint = _fingerprint_identity(action)
+    if envelope_fingerprint is not None and action_fingerprint is not None:
+        if envelope_fingerprint != action_fingerprint:
+            return None
     return dict(action)
 
 
@@ -497,6 +502,18 @@ def _work_unit_identity(value: object) -> str | None:
     if isinstance(value, Mapping):
         return _non_empty_text(value.get("unit_id")) or _non_empty_text(value.get("work_unit_id"))
     return _non_empty_text(value)
+
+
+def _fingerprint_identity(value: Mapping[str, Any]) -> str | None:
+    basis = _mapping_copy(value.get("owner_route_currentness_basis")) or _mapping_copy(value.get("currentness_basis"))
+    return (
+        _non_empty_text(value.get("work_unit_fingerprint"))
+        or _non_empty_text(value.get("action_fingerprint"))
+        or _non_empty_text(value.get("fingerprint"))
+        or _non_empty_text(value.get("source_fingerprint"))
+        or _non_empty_text(basis.get("work_unit_fingerprint"))
+        or _non_empty_text(basis.get("source_fingerprint"))
+    )
 
 
 __all__ = [
