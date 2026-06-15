@@ -19,6 +19,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     current_default_executor_dispatches as current_default_executor_dispatches_part,
     current_action_selection,
     current_writer_handoff,
+    default_executor_prompt,
     execution_gate,
     persistence,
     publication_owner_materialization,
@@ -318,24 +319,6 @@ def _readiness_dispatch_enrichment(
     }
 
 
-def _executor_prompt(
-    *,
-    action_type: str,
-    study_id: str,
-    next_executable_owner: str,
-    required_output_surface: str,
-) -> str:
-    typed_closeout_contract = default_executor_typed_closeout_contract(action_type=action_type)
-    return (
-        "Use Codex CLI as the default MAS repair executor. "
-        f"Handle action `{action_type}` for study `{study_id}` as owner `{next_executable_owner}`. "
-        f"Read the referenced MAS durable truth surfaces and write only the owner-authorized output `{required_output_surface}` "
-        "or the supervision handoff surfaces listed in this dispatch. Do not patch paper/current_package, "
-        "manuscript/current_package, publication gates, or medical conclusions outside the owner workflow. "
-        f"{typed_closeout_contract['terminal_output_instruction']}"
-    )
-
-
 def _default_executor_dispatch(
     *,
     profile: WorkspaceProfile,
@@ -582,11 +565,12 @@ def _default_executor_dispatch_payload(
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "prompt_contract": dict(prompt_contract),
         "progress_first_closeout_admission": dict(progress_first_closeout_admission),
-        "executor_prompt": _executor_prompt(
+        "executor_prompt": default_executor_prompt.executor_prompt(
             action_type=action_type,
             study_id=study_id,
             next_executable_owner=next_executable_owner,
             required_output_surface=required_output_surface,
+            typed_closeout_contract=default_executor_typed_closeout_contract,
         ),
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
