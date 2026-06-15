@@ -424,6 +424,17 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_config_clean_migration_mode.add_argument("--dry-run", action="store_true")
     study_config_clean_migration_mode.add_argument("--apply", action="store_true")
 
+    default_executor_dispatch_residue_cleanup_parser = subparsers.add_parser(
+        "default-executor-dispatch-residue-cleanup"
+    )
+    default_executor_dispatch_residue_cleanup_parser.add_argument("--profile", required=True)
+    default_executor_dispatch_residue_cleanup_parser.add_argument("--studies", nargs="+")
+    default_executor_dispatch_residue_cleanup_mode = (
+        default_executor_dispatch_residue_cleanup_parser.add_mutually_exclusive_group(required=True)
+    )
+    default_executor_dispatch_residue_cleanup_mode.add_argument("--dry-run", action="store_true")
+    default_executor_dispatch_residue_cleanup_mode.add_argument("--apply", action="store_true")
+
     agent_lab_medical_quality_parser = subparsers.add_parser("agent-lab-medical-manuscript-quality-suite")
     agent_lab_medical_quality_parser.add_argument("--study-root", required=True)
     agent_lab_medical_quality_parser.add_argument("--reviewer-feedback-ref")
