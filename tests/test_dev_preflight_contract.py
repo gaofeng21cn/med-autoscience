@@ -672,6 +672,8 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "contracts/golden_path_profile.json",
             "contracts/mas-paper-study-stage-pack.json",
             "contracts/pack_compiler_input.json",
+            "contracts/standard_agent_completion_acceptance.json",
+            "contracts/standard_agent_completion_evidence_status.json",
             "contracts/stage_artifact_kernel_adoption.json",
             "contracts/stage_route_reconcile_contract.json",
             "contracts/stage_run_kernel_profile.json",
@@ -690,6 +692,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "scripts/run-pytest-clean.sh "
             "tests/test_opl_family_contract_adoption.py "
             "tests/test_progress_first_safety_envelope_contract.py "
+            "tests/test_standard_agent_completion_acceptance_contract.py "
             "tests/test_test_lane_governance.py "
             "tests/test_stage_quality_contract.py "
             "tests/test_stage_route_contract.py "
@@ -738,6 +741,7 @@ def test_classify_changed_files_matches_external_learning_sidecar_surface() -> N
             "scripts/run-pytest-clean.sh "
             "tests/test_opl_family_contract_adoption.py "
             "tests/test_progress_first_safety_envelope_contract.py "
+            "tests/test_standard_agent_completion_acceptance_contract.py "
             "tests/test_test_lane_governance.py "
             "tests/test_stage_quality_contract.py "
             "tests/test_stage_route_contract.py "

@@ -311,6 +311,8 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "contracts/pack_compiler_input.json",
             "contracts/private_functional_surface_policy.json",
             "contracts/progress_first_safety_envelope.json",
+            "contracts/standard_agent_completion_acceptance.json",
+            "contracts/standard_agent_completion_evidence_status.json",
             "contracts/stage_artifact_kernel_adoption.json",
             "contracts/stage_route_reconcile_contract.json",
             "contracts/stage_run_kernel_profile.json",
@@ -341,6 +343,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
                 f"{PYTEST_CLEAN_RUNNER} "
                 "tests/test_opl_family_contract_adoption.py "
                 "tests/test_progress_first_safety_envelope_contract.py "
+                "tests/test_standard_agent_completion_acceptance_contract.py "
                 "tests/test_test_lane_governance.py "
                 "tests/test_stage_quality_contract.py "
                 "tests/test_stage_route_contract.py "
