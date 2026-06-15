@@ -5,6 +5,9 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import current_work_unit as current_work_unit_reducer
+from med_autoscience.controllers.current_work_unit_parts.typed_blocker_owner_answer import (
+    typed_blocker_answer_ref as _typed_blocker_answer_ref,
+)
 from med_autoscience.controllers.opl_execution_boundary import (
     OPL_EXECUTION_AUTHORIZATION_BLOCKER,
     OPL_EXECUTION_AUTHORIZATION_OWNER,
@@ -194,12 +197,14 @@ def build_paper_recovery_state(
                 current_owner=successor_owner,
                 suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
             )
-        owner_gate = _successor_owner_gate_from_terminal_blocker(
-            progress,
-            typed_blocker=typed_blocker,
-            blocker_reason=blocker_reason,
-            owner=owner,
-        )
+        owner_gate = None
+        if not _typed_blocker_has_stable_outcome_ref(typed_blocker):
+            owner_gate = _successor_owner_gate_from_terminal_blocker(
+                progress,
+                typed_blocker=typed_blocker,
+                blocker_reason=blocker_reason,
+                owner=owner,
+            )
         if owner_gate is not None:
             return _state(
                 progress,
@@ -916,6 +921,18 @@ def _typed_blocker_reason(typed_blocker: Mapping[str, Any]) -> str | None:
     if _text(anti_loop.get("status")) == "exhausted":
         return "anti_loop_budget_exhausted"
     return None
+
+
+def _typed_blocker_has_stable_outcome_ref(typed_blocker: Mapping[str, Any]) -> bool:
+    if _typed_blocker_answer_ref(typed_blocker) is not None:
+        return True
+    if _text_items(typed_blocker.get("closeout_refs")):
+        return True
+    if _text(typed_blocker.get("latest_owner_answer_kind")) == "typed_blocker":
+        return _text(typed_blocker.get("latest_owner_answer_ref")) is not None
+    if _text(typed_blocker.get("owner_answer_shape")) == "typed_blocker_ref":
+        return _text(typed_blocker.get("latest_owner_answer_ref")) is not None
+    return False
 
 
 def _suppressed_surfaces_for_typed_blocker(progress: Mapping[str, Any]) -> list[str]:

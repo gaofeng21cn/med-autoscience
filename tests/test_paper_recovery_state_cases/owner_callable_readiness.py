@@ -511,19 +511,16 @@ def test_terminal_anti_loop_typed_blocker_does_not_rerun_same_owner_callable() -
         }
     )
 
-    assert state["phase"] == "owner_action_ready"
+    assert state["phase"] == "domain_blocked"
     assert state["conditions"] == [
         {
-            "condition": "terminal_typed_blocker_owner_gate_required",
+            "condition": "current_work_unit_typed_blocker",
             "blocker_type": "anti_loop_budget_exhausted",
         }
     ]
     assert state["current_authority"]["owner"] == "one-person-lab"
-    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_gate"
+    assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
-    assert state["next_safe_action"]["required_input"] == (
-        "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
-    )
     assert "owner_callable" not in state["next_safe_action"]
 
 
@@ -591,7 +588,12 @@ def test_terminal_anti_loop_owner_gate_reads_closeout_ref_before_stale_progress_
         }
     )
 
-    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_gate"
-    assert state["next_safe_action"]["required_input"] == (
-        "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
-    )
+    assert state["phase"] == "domain_blocked"
+    assert state["conditions"] == [
+        {
+            "condition": "current_work_unit_typed_blocker",
+            "blocker_type": "anti_loop_budget_exhausted",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False

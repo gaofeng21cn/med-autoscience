@@ -459,14 +459,17 @@ def test_domain_health_diagnostic_rebuilds_recovery_state_with_fresh_progress_pa
     )
 
     recovery = result["paper_recovery_states"][study_id]
-    assert recovery["next_safe_action"]["required_input"] == (
-        "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
-    )
+    assert recovery["phase"] == "domain_blocked"
+    assert recovery["conditions"] == [
+        {
+            "condition": "current_work_unit_typed_blocker",
+            "blocker_type": "anti_loop_budget_exhausted",
+        }
+    ]
+    assert recovery["next_safe_action"]["kind"] == "resolve_typed_blocker"
     assert result["managed_study_actions"][0]["paper_recovery_state"]["next_safe_action"][
-        "required_input"
-    ] == (
-        "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
-    )
+        "kind"
+    ] == "resolve_typed_blocker"
 
 
 def test_domain_health_diagnostic_same_tick_treats_opl_authorization_blocker_as_provider_handoff(
