@@ -64,5 +64,18 @@ def provider_admission_candidate_with_authority_boundaries(
     }
 
 
+def provider_admission_authority_transport_fields(
+    candidate: Mapping[str, Any],
+) -> dict[str, Any]:
+    normalized = provider_admission_candidate_with_authority_boundaries(candidate)
+    return {
+        "authority_boundary": normalized["authority_boundary"],
+        "stage_transition_authority_boundary": normalized[
+            "stage_transition_authority_boundary"
+        ],
+        "provider_completion_is_domain_completion": False,
+    }
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}

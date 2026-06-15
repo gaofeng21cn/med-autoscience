@@ -170,7 +170,29 @@ def test_domain_handler_export_materializes_supervisor_successor_dispatch_under_
     assert task["domain_owner"] == "write"
     assert task["work_unit_id"] == "medical_prose_write_repair"
     assert task["work_unit_fingerprint"] == successor_fingerprint
-    assert task["payload"]["authority_boundary"] == "mas_default_executor_dispatch_request_only"
+    assert task["provider_completion_is_domain_completion"] is False
+    assert task["authority_boundary"]["authority"] == "mas_provider_admission_identity"
+    assert (
+        task["stage_transition_authority_boundary"]["stage_transition_authority"]
+        == "one-person-lab"
+    )
+    assert (
+        task["stage_transition_authority_boundary"][
+            "provider_completion_counts_as_stage_transition"
+        ]
+        is False
+    )
+    assert task["payload"]["provider_completion_is_domain_completion"] is False
+    assert task["payload"]["authority_boundary"] == task["authority_boundary"]
+    assert (
+        task["payload"]["stage_transition_authority_boundary"]
+        == task["stage_transition_authority_boundary"]
+    )
+    assert task["payload"]["provider_admission_identity"] == task["provider_admission_identity"]
+    assert (
+        task["payload"]["provider_admission_identity"]["stage_transition_authority_boundary"]
+        == task["stage_transition_authority_boundary"]
+    )
     assert task["payload"]["next_executable_owner"] == "write"
     assert task["payload"]["paper_autonomy_supervisor_decision"]["decision"] == (
         "materialize_recovery_action"

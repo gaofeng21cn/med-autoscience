@@ -11,6 +11,10 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+    provider_admission_authority_transport_fields,
+    provider_admission_candidate_with_authority_boundaries,
+)
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import default_executor_dispatch_packets
 from med_autoscience.controllers.default_executor_action_policy import REQUEST_OWNER_BY_ACTION_TYPE
@@ -170,9 +174,18 @@ def default_executor_dispatch_tasks(
             stage_packet_path=stage_packet_path,
             workspace_root=profile.workspace_root,
         )
+        if provider_admission_identity_payload is not None:
+            provider_admission_identity_payload = (
+                provider_admission_candidate_with_authority_boundaries(
+                    provider_admission_identity_payload
+                )
+            )
         provider_payload_fields = provider_admission_identity.provider_admission_payload_fields(
             provider_admission_identity=provider_admission_identity_payload,
             owner_route_basis=owner_route_basis,
+        )
+        provider_authority_fields = _provider_admission_authority_fields(
+            provider_admission_identity_payload
         )
         work_unit_id = _text(provider_payload_fields.get("work_unit_id")) or work_unit_id
         work_unit_fingerprint = (
@@ -231,6 +244,7 @@ def default_executor_dispatch_tasks(
                     "dispatch_ref": dispatch_ref,
                     "authority_boundary": "mas_default_executor_dispatch_request_only",
                     "next_executable_owner": next_owner,
+                    **provider_authority_fields,
                     **(
                         {"readiness_surface_identity": readiness_surface_identity}
                         if readiness_surface_identity
@@ -249,6 +263,7 @@ def default_executor_dispatch_tasks(
                 "domain_truth_owner": "med-autoscience",
                 "queue_owner": "one-person-lab",
                 "profile_name": profile.name,
+                **provider_authority_fields,
                 **(
                     {"provider_admission_identity": provider_admission_identity_payload}
                     if provider_admission_identity_payload
@@ -258,6 +273,16 @@ def default_executor_dispatch_tasks(
             }
         )
     return tasks
+
+
+def _provider_admission_authority_fields(
+    provider_admission_identity_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    identity = _mapping(provider_admission_identity_payload)
+    if not identity:
+        return {}
+    fields = provider_admission_authority_transport_fields(identity)
+    return {key: value for key, value in fields.items() if value not in (None, "", [], {})}
 
 
 def _provider_admission_status_payload(

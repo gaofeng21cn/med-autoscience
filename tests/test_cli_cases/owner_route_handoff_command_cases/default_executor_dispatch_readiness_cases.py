@@ -247,7 +247,25 @@ def test_domain_handler_export_carries_stage_current_provider_admission_identity
     assert task["work_unit_fingerprint"] == work_unit_fingerprint
     assert task["source_fingerprint"] == work_unit_fingerprint
     assert task["dedupe_key"].endswith(work_unit_fingerprint)
+    assert task["provider_completion_is_domain_completion"] is False
+    assert task["authority_boundary"]["authority"] == "mas_provider_admission_identity"
+    assert (
+        task["stage_transition_authority_boundary"]["stage_transition_authority"]
+        == "one-person-lab"
+    )
+    assert (
+        task["stage_transition_authority_boundary"][
+            "provider_completion_counts_as_stage_transition"
+        ]
+        is False
+    )
     assert task["payload"]["provider_admission_identity"] == identity
+    assert task["payload"]["provider_completion_is_domain_completion"] is False
+    assert task["payload"]["authority_boundary"] == task["authority_boundary"]
+    assert (
+        task["payload"]["stage_transition_authority_boundary"]
+        == task["stage_transition_authority_boundary"]
+    )
     assert task["payload"]["work_unit_fingerprint"] == work_unit_fingerprint
     assert task["payload"]["source_fingerprint"] == work_unit_fingerprint
     assert task["payload"]["owner_route_currentness_basis"]["work_unit_fingerprint"] == work_unit_fingerprint
