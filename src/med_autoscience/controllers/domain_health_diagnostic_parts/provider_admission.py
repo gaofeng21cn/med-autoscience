@@ -5,8 +5,9 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers import control_identity
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
-    PROVIDER_ADMISSION_AUTHORITY_BOUNDARY,
-    STAGE_TRANSITION_AUTHORITY_BOUNDARY,
+    provider_admission_authority_boundary,
+    provider_admission_candidate_with_authority_boundaries,
+    stage_transition_authority_boundary,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_handoffs import (
     handoff_dispatch_path,
@@ -138,7 +139,7 @@ def current_control_provider_admission_candidates(
             study_payload=study,
         )
         if candidate is not None:
-            candidates.append(candidate)
+            candidates.append(candidate_with_authority_boundaries(candidate))
     return candidates
 
 
@@ -298,15 +299,16 @@ def provider_admission_candidate_from_current_control_action(
         "current_control_ref": current_control_ref,
         "dispatch_path": str(dispatch_path),
     }
-    candidate = _candidate_with_stage_run_admission_identity(
-        candidate,
-        execution=execution,
-        dispatch_payload=_mapping(dispatch_payload),
-        dispatch_path=dispatch_path,
-        study_root=study_root,
-        allow_dispatch_ref_stage_packet_authority=True,
+    return candidate_with_authority_boundaries(
+        _candidate_with_stage_run_admission_identity(
+            candidate,
+            execution=execution,
+            dispatch_payload=_mapping(dispatch_payload),
+            dispatch_path=dispatch_path,
+            study_root=study_root,
+            allow_dispatch_ref_stage_packet_authority=True,
+        )
     )
-    return candidate
 
 
 def _current_identity_fingerprint_for_action(
@@ -444,8 +446,8 @@ def provider_admission_candidate_from_execution(
         "owner_route_current": execution.get("owner_route_current") is not False,
         "owner_route_basis": _non_empty_text(execution.get("owner_route_basis")),
         "currentness_basis": dict(currentness_basis) if currentness_basis else None,
-        "authority_boundary": dict(PROVIDER_ADMISSION_AUTHORITY_BOUNDARY),
-        "stage_transition_authority_boundary": dict(STAGE_TRANSITION_AUTHORITY_BOUNDARY),
+        "authority_boundary": provider_admission_authority_boundary(),
+        "stage_transition_authority_boundary": stage_transition_authority_boundary(),
         "source_refs": {
             key: source_refs[key]
             for key in (
@@ -460,11 +462,17 @@ def provider_admission_candidate_from_execution(
             if key in source_refs
         },
     }
-    return _candidate_with_stage_run_admission_identity(
-        candidate,
-        execution=execution,
-        allow_dispatch_ref_stage_packet_authority=True,
+    return candidate_with_authority_boundaries(
+        _candidate_with_stage_run_admission_identity(
+            candidate,
+            execution=execution,
+            allow_dispatch_ref_stage_packet_authority=True,
+        )
     )
+
+
+def candidate_with_authority_boundaries(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    return provider_admission_candidate_with_authority_boundaries(candidate)
 
 
 def _status_envelope_blocks_provider_admission(

@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-16：provider admission 所有出口必须归一化 authority boundary
+
+- 决策：MAS 暴露给 DHD report、managed study readback、fresh `study_progress` currentness scan、current-control action、persisted default-executor execution 和 OPL intake 的每一个 provider-admission candidate，都必须在出口统一携带 `authority_boundary`、`stage_transition_authority_boundary`，并固定 `provider_completion_is_domain_completion=false`。该归一化必须发生在 provider-admission helper 层，而不是只补某个 report wrapper。
+- 决策：`stage_transition_authority_boundary` 只说明 MAS/provider 产出的是 OPL Stage Transition Authority 可审计的 provider observation / intent，不授予 MAS 写 stage current pointer、stage run terminal state、current owner delta、domain truth、owner receipt 或 typed blocker 的权限。OPL 缺该 boundary 时继续 fail closed 是正确行为；MAS 的职责是完整输出身份和边界，而不是放宽 OPL gate。
+- 理由：DM003 owner-receipt successor 已正确生成 `return_to_ai_reviewer_workflow` / `ai_reviewer_medical_prose_quality_review` provider admission candidate，但 same-tick fresh progress / managed-study candidate 面绕过了前一层 current-control wrapper，导致 root DHD readback 仍缺 `stage_transition_authority_boundary`，OPL 以 `current_control_provider_admission_missing_stage_authority_boundary` fail closed。之前“看起来有 pending candidate 但无法启动”的直接原因就是同一 provider-admission identity 在不同出口的 boundary 不一致。
+- 影响：这是 MAS provider-admission 出口规范化修复；它不手写 Yang runtime artifact、不写 paper body、不刷新 `publication_eval/latest.json` 或 `controller_decisions/latest.json`，也不把 provider admission pending 说成 running proof、paper progress、publication-ready 或 submission-ready。DM003 是否恢复推进必须继续由 fresh DHD apply、OPL hydrate/tick、同一 current identity running proof、terminal closeout、owner receipt、stable typed blocker、human gate 或 route-back evidence 证明。
+
 ## 2026-06-16：OPL family negative conformance 样例关闭样例级缺口，不关闭 production tail
 
 - 决策：OPL `one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20` 已把标准 Agent false-completion 防线从 MAS 单仓口号推进到 repo-backed family samples：`contracts/opl-framework/standard-agent-negative-conformance-samples.json` 覆盖 MAS/MAG/RCA/OMA/family-default 维度，并拒绝 `provider_completed`、`classification_zero`、`generated_interface_ready`、`verified_refs_only_ledger`、`domain_specific_kernel_copied_to_opl` 这五类完成伪信号；`tests/src/cli/cases/work-order-execution.test.ts` 也覆盖 OMA work-order 缺 `target_owner_route`、`source_morphology`、`generated_surface_consumption`、`private_residue_decision`、`no_forbidden_write_proof`、`owner_answer_shape` 时 executor launch 前 fail closed 并返回 developer work order / typed blocker surface。

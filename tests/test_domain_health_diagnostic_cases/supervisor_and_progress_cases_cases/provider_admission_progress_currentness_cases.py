@@ -59,7 +59,17 @@ def test_runtime_scan_preserves_fresh_progress_provider_admission_candidate(
         "next_executable_owner": "gate_clearing_batch",
         "dispatch_path": str(dispatch_path),
         "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": True,
         "owner_route_current": True,
+        "authority_boundary": {
+            "can_write_current_owner_delta": True,
+            "legacy_diagnostic": "kept",
+        },
+        "stage_transition_authority_boundary": {
+            "stage_transition_authority": "legacy-local-runner",
+            "intent_can_write_stage_current_pointer": True,
+            "legacy_diagnostic": "kept",
+        },
         "currentness_basis": _currentness_basis(
             work_unit_id=work_unit_id,
             fingerprint=fingerprint,
@@ -110,4 +120,26 @@ def test_runtime_scan_preserves_fresh_progress_provider_admission_candidate(
         refresh_currentness=True,
     )
 
-    assert result == [candidate]
+    assert len(result) == 1
+    retained = result[0]
+    assert retained["study_id"] == candidate["study_id"]
+    assert retained["action_type"] == candidate["action_type"]
+    assert retained["work_unit_id"] == candidate["work_unit_id"]
+    assert retained["work_unit_fingerprint"] == candidate["work_unit_fingerprint"]
+    assert retained["provider_completion_is_domain_completion"] is False
+    authority_boundary = retained["authority_boundary"]
+    assert authority_boundary["legacy_diagnostic"] == "kept"
+    assert authority_boundary["surface_kind"] == "opl_provider_admission_candidate"
+    assert authority_boundary["can_write_current_owner_delta"] is False
+    assert authority_boundary["can_mark_provider_attempt_running"] is False
+    stage_boundary = retained["stage_transition_authority_boundary"]
+    assert stage_boundary["legacy_diagnostic"] == "kept"
+    assert stage_boundary["producer_kind"] == "runtime_provider"
+    assert stage_boundary["intent_kind"] == "provider_observation"
+    assert stage_boundary["stage_transition_authority"] == "one-person-lab"
+    assert stage_boundary["intent_can_write_stage_current_pointer"] is False
+    assert stage_boundary["intent_can_write_stage_run_terminal_state"] is False
+    assert stage_boundary["intent_can_publish_current_owner_delta"] is False
+    assert stage_boundary["intent_can_write_domain_truth"] is False
+    assert stage_boundary["intent_can_create_owner_receipt"] is False
+    assert stage_boundary["intent_can_create_typed_blocker"] is False

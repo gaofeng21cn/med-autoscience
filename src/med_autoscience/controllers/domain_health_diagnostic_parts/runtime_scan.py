@@ -831,7 +831,7 @@ def _provider_admission_candidates_for_status(
     if _status_has_running_provider_attempt(status_payload):
         return []
     current_progress_candidates = [
-        dict(item)
+        provider_admission.candidate_with_authority_boundaries(item)
         for item in status_payload.get("provider_admission_candidates") or []
         if isinstance(item, Mapping)
     ]

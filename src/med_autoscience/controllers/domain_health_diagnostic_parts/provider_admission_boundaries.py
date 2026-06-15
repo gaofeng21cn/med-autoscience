@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Any
+
 
 PROVIDER_ADMISSION_AUTHORITY_BOUNDARY = {
     "surface_kind": "opl_provider_admission_candidate",
@@ -30,3 +33,36 @@ STAGE_TRANSITION_AUTHORITY_BOUNDARY = {
     "evidence_event_counts_as_stage_transition": False,
     "agent_lab_output_counts_as_stage_transition": False,
 }
+
+
+def provider_admission_authority_boundary(value: object = None) -> dict[str, Any]:
+    return {
+        **_mapping(value),
+        **PROVIDER_ADMISSION_AUTHORITY_BOUNDARY,
+    }
+
+
+def stage_transition_authority_boundary(value: object = None) -> dict[str, Any]:
+    return {
+        **_mapping(value),
+        **STAGE_TRANSITION_AUTHORITY_BOUNDARY,
+    }
+
+
+def provider_admission_candidate_with_authority_boundaries(
+    candidate: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        **dict(candidate),
+        "authority_boundary": provider_admission_authority_boundary(
+            candidate.get("authority_boundary")
+        ),
+        "stage_transition_authority_boundary": stage_transition_authority_boundary(
+            candidate.get("stage_transition_authority_boundary")
+        ),
+        "provider_completion_is_domain_completion": False,
+    }
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}

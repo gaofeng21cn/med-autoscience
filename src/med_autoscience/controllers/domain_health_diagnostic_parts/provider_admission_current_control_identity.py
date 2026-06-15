@@ -4,8 +4,9 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
-    PROVIDER_ADMISSION_AUTHORITY_BOUNDARY,
-    STAGE_TRANSITION_AUTHORITY_BOUNDARY,
+    provider_admission_authority_boundary,
+    provider_admission_candidate_with_authority_boundaries,
+    stage_transition_authority_boundary,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
     mapping as _mapping,
@@ -77,12 +78,12 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
     if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
         stage_packet_refs.append(stage_packet_ref)
     checkpoint_refs = _text_items(candidate.get("checkpoint_refs")) or list(stage_packet_refs)
-    authority_boundary = _mapping(candidate.get("authority_boundary")) or dict(
-        PROVIDER_ADMISSION_AUTHORITY_BOUNDARY
+    authority_boundary = provider_admission_authority_boundary(
+        candidate.get("authority_boundary")
     )
-    stage_transition_authority_boundary = _mapping(
+    stage_boundary = stage_transition_authority_boundary(
         candidate.get("stage_transition_authority_boundary")
-    ) or dict(STAGE_TRANSITION_AUTHORITY_BOUNDARY)
+    )
     source_refs = {
         key: value
         for key, value in {
@@ -156,7 +157,7 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "provider_attempt_or_lease_required": True,
             "provider_completion_is_domain_completion": False,
             "authority_boundary": authority_boundary,
-            "stage_transition_authority_boundary": stage_transition_authority_boundary,
+            "stage_transition_authority_boundary": stage_boundary,
             "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
             "blocked_reason": _non_empty_text(candidate.get("blocked_reason")),
             "owner_route": owner_route,
@@ -179,8 +180,9 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
                 "checkpoint_refs": checkpoint_refs or None,
                 "source_ref": _non_empty_text(candidate.get("execution_ref")),
                 "owner_route": owner_route,
+                "provider_completion_is_domain_completion": False,
                 "authority_boundary": authority_boundary,
-                "stage_transition_authority_boundary": stage_transition_authority_boundary,
+                "stage_transition_authority_boundary": stage_boundary,
             },
         }.items()
         if value not in (None, "", [], {})
@@ -188,16 +190,7 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
 
 
 def _candidate_with_authority_boundaries(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        **dict(candidate),
-        "authority_boundary": _mapping(candidate.get("authority_boundary"))
-        or dict(PROVIDER_ADMISSION_AUTHORITY_BOUNDARY),
-        "stage_transition_authority_boundary": _mapping(
-            candidate.get("stage_transition_authority_boundary")
-        )
-        or dict(STAGE_TRANSITION_AUTHORITY_BOUNDARY),
-        "provider_completion_is_domain_completion": False,
-    }
+    return provider_admission_candidate_with_authority_boundaries(candidate)
 
 
 def route_identity_key(payload: Mapping[str, Any]) -> str | None:

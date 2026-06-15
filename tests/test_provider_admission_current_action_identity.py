@@ -35,30 +35,39 @@ def test_provider_admission_current_control_wrappers_preserve_stage_authority_bo
         "stage_packet_refs": [stage_packet_ref],
         "next_executable_owner": "ai_reviewer",
         "provider_attempt_or_lease_required": True,
-        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_completion": True,
         "owner_route_current": True,
         "route_identity_key": f"provider-admission::{study_id}::{fingerprint}",
         "attempt_idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
-        "stage_transition_authority_boundary": dict(
-            boundaries.STAGE_TRANSITION_AUTHORITY_BOUNDARY
-        ),
-        "authority_boundary": dict(boundaries.PROVIDER_ADMISSION_AUTHORITY_BOUNDARY),
+        "stage_transition_authority_boundary": {
+            "stage_transition_authority": "legacy-local-runner",
+            "intent_can_write_stage_current_pointer": True,
+            "legacy_diagnostic": "kept",
+        },
+        "authority_boundary": {
+            "can_write_current_owner_delta": True,
+            "legacy_diagnostic": "kept",
+        },
     }
 
     action = identity.provider_admission_current_control_action(candidate)
     study = identity.provider_admission_current_control_study(candidate)
 
     expected = boundaries.STAGE_TRANSITION_AUTHORITY_BOUNDARY
-    assert action["stage_transition_authority_boundary"] == expected
-    assert action["handoff_packet"]["stage_transition_authority_boundary"] == expected
-    assert study["provider_admission_identity"]["stage_transition_authority_boundary"] == expected
-    assert (
-        study["provider_admission_candidates"][0]["stage_transition_authority_boundary"]
-        == expected
-    )
-    assert (
-        study["action_queue"][0]["stage_transition_authority_boundary"] == expected
-    )
+    for payload in (
+        action,
+        action["handoff_packet"],
+        study["provider_admission_identity"],
+        study["provider_admission_candidates"][0],
+        study["action_queue"][0],
+    ):
+        stage_boundary = payload["stage_transition_authority_boundary"]
+        assert stage_boundary == {"legacy_diagnostic": "kept", **expected}
+        assert payload["provider_completion_is_domain_completion"] is False
+        authority_boundary = payload["authority_boundary"]
+        assert authority_boundary["legacy_diagnostic"] == "kept"
+        assert authority_boundary["can_write_current_owner_delta"] is False
+        assert authority_boundary["can_mark_provider_attempt_running"] is False
 
 
 def test_provider_admission_candidate_inherits_current_action_currentness_basis() -> None:
