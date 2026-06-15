@@ -762,15 +762,18 @@
       "owner_receipt_ref",
       "provider_admission_pending",
       "running_provider_attempt",
-      "human_gate_ref",
-      "typed_blocker_ref",
-      "route_back_evidence_ref"
+      "typed_blocker_ref"
     ],
     "closed_outcome_required_fields": [
       "study_id",
       "outcome_kind",
       "outcome_ref",
+      "paper_autonomy_supervisor_decision_id",
+      "paper_autonomy_obligation_ref",
       "postcondition_ok=true"
+    ],
+    "diagnostic_only_outcome_kinds": [
+      "rejected_stale_diagnostic"
     ],
     "successor_next_safe_actions_keep_same_tick": [
       "materialize_successor_owner_action",
