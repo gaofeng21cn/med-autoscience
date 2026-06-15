@@ -169,6 +169,7 @@ def build_current_work_unit(
     repair_progress_action = _repair_progress_action_consuming_current_action(
         progress=progress_payload,
         current_action=action,
+        provider_admission=provider_admission,
         surface_kind="current_executable_owner_action",
     )
     if repair_progress_action is not None:

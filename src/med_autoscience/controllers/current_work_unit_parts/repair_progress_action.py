@@ -25,6 +25,7 @@ def repair_progress_action_consuming_current_action(
     *,
     progress: Mapping[str, Any],
     current_action: Mapping[str, Any] | None,
+    provider_admission: Mapping[str, Any] | None,
     surface_kind: str,
 ) -> dict[str, Any] | None:
     repair_action = owner_action_from_repair_progress_projection(
@@ -34,6 +35,7 @@ def repair_progress_action_consuming_current_action(
     if not _repair_progress_consumes_current_action(
         repair_action=repair_action,
         current_action=current_action,
+        provider_admission=provider_admission,
         progress=progress,
     ):
         return None
@@ -44,6 +46,7 @@ def _repair_progress_consumes_current_action(
     *,
     repair_action: Mapping[str, Any] | None,
     current_action: Mapping[str, Any] | None,
+    provider_admission: Mapping[str, Any] | None,
     progress: Mapping[str, Any],
 ) -> bool:
     repair = _mapping(repair_action)
@@ -51,6 +54,11 @@ def _repair_progress_consumes_current_action(
     if not repair or not current:
         return False
     if _paper_recovery_successor_action_ready(current):
+        return False
+    if _provider_handoff_matches_current_action(
+        provider_admission=provider_admission,
+        current_action=current,
+    ):
         return False
     if (_text(repair.get("source_surface")) or _text(repair.get("source"))) != REPAIR_PROGRESS_EVIDENCE_SOURCE:
         return False
@@ -72,6 +80,58 @@ def _repair_progress_consumes_current_action(
     if repair_eval is not None and current_eval is not None and repair_eval != current_eval:
         return False
     return True
+
+
+def _provider_handoff_matches_current_action(
+    *,
+    provider_admission: Mapping[str, Any] | None,
+    current_action: Mapping[str, Any],
+) -> bool:
+    handoff = _mapping(provider_admission)
+    if not handoff:
+        return False
+    handoff_action = _matching_handoff_action(handoff)
+    if not handoff_action:
+        return False
+    return _action_identity_matches(handoff_action, current_action)
+
+
+def _matching_handoff_action(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    for key in ("current_executable_owner_action", "owner_action"):
+        action = _mapping(handoff.get(key))
+        if action:
+            return action
+    current_work_unit = _mapping(handoff.get("current_work_unit"))
+    if _text(current_work_unit.get("status")) == "executable_owner_action":
+        return current_work_unit
+    for item in handoff.get("provider_admission_candidates") or []:
+        action = _mapping(item)
+        if action:
+            return action
+    return {}
+
+
+def _action_identity_matches(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    if _action_type(left) != _action_type(right):
+        return False
+    left_work_unit = _work_unit_id(left.get("work_unit_id")) or _work_unit_id(left.get("next_work_unit"))
+    right_work_unit = _work_unit_id(right.get("work_unit_id")) or _work_unit_id(right.get("next_work_unit"))
+    if left_work_unit is None or right_work_unit is None or left_work_unit != right_work_unit:
+        return False
+    left_fingerprint = _fingerprint(left)
+    right_fingerprint = _fingerprint(right)
+    return bool(left_fingerprint and right_fingerprint and left_fingerprint == right_fingerprint)
+
+
+def _fingerprint(action: Mapping[str, Any]) -> str | None:
+    basis = _mapping(action.get("owner_route_currentness_basis")) or _mapping(action.get("currentness_basis"))
+    return (
+        _text(action.get("work_unit_fingerprint"))
+        or _text(action.get("action_fingerprint"))
+        or _text(action.get("fingerprint"))
+        or _text(basis.get("work_unit_fingerprint"))
+        or _text(basis.get("source_fingerprint"))
+    )
 
 
 def _paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
