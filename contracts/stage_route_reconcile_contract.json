@@ -753,6 +753,43 @@
       "allowed_output": "ignored_diagnostic"
     }
   ],
+  "dhd_apply_same_tick_gate": {
+    "surface_kind": "domain_health_diagnostic_apply_same_tick_gate",
+    "producer": "domain-health-diagnostic.apply",
+    "decision_point": "after_initial_managed_study_obligation_actuator_before_developer_supervisor_same_tick",
+    "purpose": "Prevent DHD apply from running same-tick owner-route reconcile after the initial actuator has already closed the current paper recovery obligation, while preserving same-tick follow-through when fresh progress exposes a successor owner action or gate.",
+    "closed_outcome_kinds_skip_same_tick": [
+      "owner_receipt_ref",
+      "provider_admission_pending",
+      "running_provider_attempt",
+      "human_gate_ref",
+      "typed_blocker_ref",
+      "route_back_evidence_ref"
+    ],
+    "closed_outcome_required_fields": [
+      "study_id",
+      "outcome_kind",
+      "outcome_ref",
+      "postcondition_ok=true"
+    ],
+    "successor_next_safe_actions_keep_same_tick": [
+      "materialize_successor_owner_action",
+      "materialize_successor_owner_gate"
+    ],
+    "skip_effect": "do_not_run_developer_supervisor_same_tick_for_closed_study",
+    "successor_effect": "run_developer_supervisor_same_tick_for_successor_study",
+    "forbidden_effects": [
+      "repeat_run_mas_owner_callable_after_terminal_owner_receipt",
+      "skip_same_tick_when_fresh_successor_owner_action_is_present",
+      "treat_contract_lag_as_reason_to_revert_source_behavior"
+    ],
+    "authority_boundary": {
+      "can_create_owner_receipt": false,
+      "can_mark_paper_progress": false,
+      "can_authorize_provider_admission_without_identity": false,
+      "only_controls_same_tick_reconcile_scope": true
+    }
+  },
   "closeout_handshake": {
     "required_sequence": [
       "OPL attempt reaches terminal state",
@@ -1214,7 +1251,271 @@
       "worker_residency_owner",
       "second_route_table",
       "second_active_backlog"
-    ]
+    ],
+    "opl_substrate_interfaces": {
+      "surface_kind": "mas_opl_substrate_interface_contract",
+      "version": "opl-substrate-interfaces.v1",
+      "purpose": "Declare the first-class OPL substrate interfaces that MAS consumes for stage-route reconcile without moving MAS domain authority into the substrate.",
+      "ordinary_projection_root": "current_owner_delta",
+      "readback_role": "contract_and_meta_test_surface_not_runtime_implementation",
+      "authority_boundary": {
+        "opl_owns": [
+          "durable refs",
+          "current pointers",
+          "liveness",
+          "attempt transport",
+          "human gate transport",
+          "closeout inbox transport",
+          "trace lineage refs"
+        ],
+        "mas_owns": [
+          "owner receipt",
+          "typed blocker",
+          "publication verdict",
+          "quality verdict",
+          "source readiness verdict",
+          "artifact mutation authorization",
+          "human gate semantic acceptance"
+        ],
+        "transport_or_liveness_can_authorize_domain_progress": false
+      },
+      "interface_order": [
+        "RecoveryObligationStore",
+        "SupervisorDecisionLedger",
+        "StageRunIdentityPacket",
+        "CloseoutInbox",
+        "HumanGateTransport",
+        "OutcomeEnvelope",
+        "TraceLineageRefs"
+      ],
+      "interfaces": {
+        "RecoveryObligationStore": {
+          "owner": "OPL substrate stores refs/current/liveness; MAS PaperRecovery owns obligation semantics",
+          "role": "durable_current_recovery_obligation_pointer_and_identity_bound_attempt_link_index",
+          "required_readback_fields": [
+            "recovery_obligation_ref",
+            "current_pointer_ref",
+            "study_id",
+            "quest_id",
+            "stage_id",
+            "action_type",
+            "work_unit_id",
+            "work_unit_fingerprint",
+            "route_identity_key",
+            "attempt_idempotency_key",
+            "provider_admission_identity_ref",
+            "liveness_ref",
+            "terminal_closeout_refs",
+            "consumed_or_rejected_refs"
+          ],
+          "allowed_opl_writes": [
+            "current_pointer_ref",
+            "attempt_link_ref",
+            "liveness_ref",
+            "terminal_closeout_ref"
+          ],
+          "mas_authority_refs_required_for_domain_effect": [
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "paper_recovery_state_ref"
+          ],
+          "forbidden_opl_authority": [
+            "select_recovery_obligation_semantics",
+            "consume_or_reject_recovery_obligation",
+            "create_owner_receipt",
+            "create_typed_blocker",
+            "claim_publication_verdict"
+          ]
+        },
+        "SupervisorDecisionLedger": {
+          "owner": "OPL substrate records decision refs and liveness observations; MAS owns semantic decision acceptance",
+          "role": "append_only_supervisor_decision_ref_ledger_for_reconcile_and_operator_readback",
+          "required_readback_fields": [
+            "decision_id",
+            "decision_kind",
+            "decision_ref",
+            "identity_match",
+            "evidence_refs",
+            "next_safe_transport_action",
+            "liveness_refs",
+            "forbidden_interpretations",
+            "authority_boundary"
+          ],
+          "allowed_decision_kinds": [
+            "observe_liveness",
+            "admit_stage_run",
+            "consume_terminal_closeout_ref",
+            "transport_human_gate",
+            "stop_redrive_transport",
+            "route_back_to_mas_authority"
+          ],
+          "mas_authority_refs_required_for_domain_effect": [
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "quality_gate_receipt_ref",
+            "publication_verdict_ref"
+          ],
+          "forbidden_opl_authority": [
+            "accept_publication_ready",
+            "materialize_typed_blocker_semantics",
+            "sign_owner_receipt",
+            "mark_paper_progress"
+          ]
+        },
+        "StageRunIdentityPacket": {
+          "owner": "OPL substrate carries attempt identity; MAS emits and validates domain identity fields",
+          "role": "single_identity_packet_compared_by_launch_liveness_closeout_and_owner_answer_paths",
+          "required_readback_fields": [
+            "stage_run_id",
+            "stage_run_generation",
+            "stage_manifest_ref",
+            "current_pointer_ref",
+            "study_id",
+            "stage_id",
+            "action_type",
+            "work_unit_id",
+            "work_unit_fingerprint",
+            "route_identity_key",
+            "attempt_idempotency_key",
+            "owner_route_currentness_basis",
+            "provider_admission_identity_key",
+            "active_lease_ref",
+            "provider_attempt_ref"
+          ],
+          "identity_source_policy": "MAS domain identity fields are embedded verbatim and are not re-derived from OPL labels",
+          "allowed_opl_writes": [
+            "stage_run_id",
+            "stage_run_generation",
+            "current_pointer_ref",
+            "active_lease_ref",
+            "provider_attempt_ref",
+            "liveness_ref"
+          ],
+          "forbidden_opl_authority": [
+            "replace_work_unit_fingerprint_with_transport_id",
+            "treat_active_run_id_as_paper_progress",
+            "synthesize_owner_receipt_from_provider_completion"
+          ]
+        },
+        "CloseoutInbox": {
+          "owner": "OPL substrate transports terminal closeout refs; MAS consumes or rejects closeout into authority refs",
+          "role": "identity_bound_terminal_closeout_queue_for_mas_authority_consumption",
+          "required_readback_fields": [
+            "closeout_ref",
+            "stage_run_identity_packet_ref",
+            "terminal_status",
+            "terminal_evidence_refs",
+            "received_at",
+            "consumption_state",
+            "mas_consumer_ref",
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "route_back_evidence_ref"
+          ],
+          "allowed_consumption_states": [
+            "received",
+            "identity_mismatch_rejected",
+            "consumed_by_mas_authority",
+            "superseded_by_new_identity",
+            "blocked_waiting_for_mas_authority"
+          ],
+          "forbidden_opl_authority": [
+            "consume_closeout_as_domain_success",
+            "convert_terminal_status_to_owner_receipt",
+            "convert_terminal_status_to_typed_blocker",
+            "claim_publication_verdict"
+          ]
+        },
+        "HumanGateTransport": {
+          "owner": "OPL substrate transports resume tokens and operator choices; MAS owns human gate semantics and acceptance",
+          "role": "durable_human_interrupt_resume_transport_for_same_identity",
+          "required_readback_fields": [
+            "human_gate_ref",
+            "resume_token",
+            "current_identity",
+            "allowed_decisions",
+            "timeout_policy",
+            "default_safe_branch",
+            "transport_state",
+            "mas_acceptance_ref"
+          ],
+          "allowed_transport_states": [
+            "requested",
+            "delivered",
+            "resumed",
+            "timed_out",
+            "cancelled"
+          ],
+          "forbidden_opl_authority": [
+            "choose_semantic_human_decision",
+            "accept_publication_submission",
+            "authorize_artifact_mutation",
+            "sign_owner_receipt"
+          ]
+        },
+        "OutcomeEnvelope": {
+          "owner": "Tool or OPL transport returns structured outcome; MAS consumes only authority-bounded refs",
+          "role": "uniform_result_envelope_for_transport_progress_diagnostics_and_domain_authority_refs",
+          "required_readback_fields": [
+            "status",
+            "stage_run_identity_packet_ref",
+            "output_refs",
+            "diagnostic_refs",
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "quality_gate_receipt_ref",
+            "human_gate_ref",
+            "route_back_evidence_ref",
+            "retryability",
+            "idempotency_key",
+            "no_forbidden_authority_proof"
+          ],
+          "status_values": [
+            "transport_progress",
+            "domain_authority_ref_available",
+            "typed_blocker_candidate",
+            "human_gate_required",
+            "diagnostic_only",
+            "failed"
+          ],
+          "forbidden_opl_authority": [
+            "treat_transport_progress_as_owner_receipt",
+            "treat_diagnostic_only_as_publication_verdict",
+            "omit_no_forbidden_authority_proof_for_ordinary_path"
+          ]
+        },
+        "TraceLineageRefs": {
+          "owner": "OPL observability stores refs-only lineage; MAS owns domain meaning of consumed refs",
+          "role": "refs_only_trace_lineage_join_between_current_owner_delta_stage_run_tool_result_and_owner_answer",
+          "required_readback_fields": [
+            "trace_id",
+            "span_id",
+            "parent_span_id",
+            "current_owner_delta_ref",
+            "stage_run_identity_packet_ref",
+            "attempt_ledger_ref",
+            "tool_result_envelope_ref",
+            "closeout_ref",
+            "owner_answer_ref",
+            "lineage_fingerprint"
+          ],
+          "audit_only": true,
+          "forbidden_opl_authority": [
+            "derive_current_owner_delta",
+            "authorize_provider_admission",
+            "mark_paper_progress",
+            "claim_quality_or_publication_verdict"
+          ]
+        }
+      },
+      "readback_invariants": [
+        "every_interface_declares_required_readback_fields",
+        "every_interface_declares_forbidden_opl_authority",
+        "every_domain_effect_requires_mas_authority_ref",
+        "transport_liveness_and_trace_refs_are_audit_or_projection_inputs_only",
+        "same_identity_closeout_requires_mas_consumption_before_domain_progress"
+      ]
+    }
   },
   "required_opl_follow_through": {
     "source": "one-person-lab read-only substrate audit 2026-06-12",

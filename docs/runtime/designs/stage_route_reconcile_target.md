@@ -162,6 +162,10 @@ Temporal / queue / workflow state 中只放小 payload：
 
 Stage-route reconcile 是 Paper Autonomy Supervisor 的 decision source，不再作为平行的顶层控制面存在。长期读法是：MAS 先生成 `current_owner_delta` 和 `paper_autonomy_obligation`，stage-route arbiter 只负责把 provider admission identity、StageRun current/currentness、terminal closeout、typed blocker、owner gate 和 read-model lag 转译成 supervisor 可消费证据；最终可执行结论必须落到 `execute_current_owner_delta`、`consume_terminal_closeout`、`materialize_recovery_action`、`wait_for_owner_with_resume_token` 或 `stop_with_stable_typed_blocker`。机器入口见 `contracts/paper_autonomy_supervisor_contract.json`；本文件和 `contracts/stage_route_reconcile_contract.json` 继续持有 stage-route identity / currentness / closeout 细则，但不得单独声明论文推进、human gate resume、quality verdict 或 owner receipt closure。
 
+2026-06-15 追加顶层治理规则：理想态是 durable supervisor transaction，而不是更厚的 read-model selector。一次 transaction 以同一 `paper_autonomy_obligation` / `current_owner_delta` identity 为输入，把 stage-route arbiter、DHD dry-run/readback、OPL StageRun current/currentness、terminal closeout、owner gate、typed blocker 和 read-model lag 收成同一 decision evidence，再输出五类 supervisor decision 之一。transaction 的关闭条件只能是 owner-chain 可消费结果：owner receipt、quality gate receipt、stable typed blocker、human gate / resume token、route-back evidence、terminal closeout consumption、next current owner delta，或同一 current identity strict provider running proof。
+
+2026-06-15 owner-receipt / successor-action 修复族属于同一类 authority-path split provenance：局部 surface 能看到不同“下一步”，但没有统一落到 executable authority path 和 receipt-terminal closure。它修的是 split 症状；长期治理不应继续让 read-model、queue、old dispatch 或 transport status 相互补偿。queue empty、provider completion、transport succeeded、worker heartbeat、old active run、trace/span、stage artifact index、`provider_admission_pending_count=0` 和 `action_queue=[]` 只能解释 transaction 为什么未前进，不能授权新 transaction，不能覆盖 canonical current owner，也不能被写成 DM002/DM003 paper progress、publication-ready、domain-ready、owner receipt closure 或 current package freshness。
+
 OPL 侧应把以下能力做成一等基座接口：
 
 - `StageRun Kernel`：attempt identity、lease、retry、dead-letter、resume、terminal closeout hook。

@@ -65,8 +65,6 @@ def apply_managed_study_obligation_actuator(
         study_ids=study_ids,
         refresh_owner_callable_actions=refresh_owner_callable_actions,
     )
-    if not fail_closed:
-        return owner_callable_actions
     current_control = _mapping(current_control_state)
     outcomes = [
         dict(item)
@@ -102,8 +100,12 @@ def apply_managed_study_obligation_actuator(
             current_control_state=current_control,
             owner_callable_actions=action_results_by_study.get(study_id, []),
             profile=profile,
+            fail_closed=fail_closed,
             phase=phase,
         )
+        if outcome is None:
+            refreshed_actions.append(action_payload)
+            continue
         key = _obligation_actuator_outcome_key(outcome)
         if key is not None and key not in outcome_keys:
             outcomes.append(outcome)
@@ -213,8 +215,9 @@ def _closed_obligation_outcome(
     current_control_state: Mapping[str, Any],
     owner_callable_actions: list[dict[str, Any]],
     profile: WorkspaceProfile,
+    fail_closed: bool,
     phase: str,
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     for owner_callable_action in reversed(owner_callable_actions):
         outcome = _owner_callable_action_outcome(
             action=action,
@@ -249,6 +252,8 @@ def _closed_obligation_outcome(
     typed_blocker = _typed_blocker_outcome(action=action, phase=phase)
     if typed_blocker is not None:
         return typed_blocker
+    if not fail_closed:
+        return None
     return _fail_closed_obligation_outcome(
         action=action,
         profile=profile,
@@ -299,17 +304,26 @@ def _owner_callable_action_matches_obligation(
     action_type = _non_empty_text(owner_callable_action.get("action_type"))
     if action_type is None:
         return False
-    obligation = _action_recovery_obligation(action)
-    expected_action_type = (
-        _non_empty_text(obligation.get("action_type"))
-        or _non_empty_text(_mapping(action.get("current_executable_owner_action")).get("action_type"))
-        or _non_empty_text(_mapping(action.get("current_work_unit")).get("action_type"))
-    )
-    if expected_action_type is not None and expected_action_type != action_type:
+    expected_action_types = _action_obligation_action_types(action)
+    if expected_action_types and action_type not in expected_action_types:
         return False
     action_fingerprint = _non_empty_text(owner_callable_action.get("work_unit_fingerprint"))
-    expected_fingerprint = _action_obligation_fingerprint(action)
-    return not (action_fingerprint and expected_fingerprint and action_fingerprint != expected_fingerprint)
+    expected_fingerprints = _action_obligation_fingerprints(action)
+    return not (action_fingerprint and expected_fingerprints and action_fingerprint not in expected_fingerprints)
+
+
+def _action_obligation_action_types(action: Mapping[str, Any]) -> set[str]:
+    recovery = _mapping(action.get("paper_recovery_state"))
+    next_action = _mapping(recovery.get("next_safe_action"))
+    owner_callable = _mapping(next_action.get("owner_callable"))
+    candidates = (
+        _action_recovery_obligation(action).get("action_type"),
+        owner_callable.get("action_type"),
+        next_action.get("action_type"),
+        _mapping(action.get("current_executable_owner_action")).get("action_type"),
+        _mapping(action.get("current_work_unit")).get("action_type"),
+    )
+    return {text for value in candidates if (text := _non_empty_text(value)) is not None}
 
 
 def _owner_receipt_outcome(
@@ -763,14 +777,27 @@ def _action_recovery_obligation(action: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _action_obligation_fingerprint(action: Mapping[str, Any]) -> str | None:
-    return _first_text(
+    return _first_text(*_action_obligation_fingerprints(action))
+
+
+def _action_obligation_fingerprints(action: Mapping[str, Any]) -> tuple[str, ...]:
+    recovery = _mapping(action.get("paper_recovery_state"))
+    next_action = _mapping(recovery.get("next_safe_action"))
+    owner_callable = _mapping(next_action.get("owner_callable"))
+    candidates = (
         _action_recovery_obligation(action).get("work_unit_fingerprint"),
+        _action_recovery_obligation(action).get("action_fingerprint"),
+        owner_callable.get("work_unit_fingerprint"),
+        owner_callable.get("action_fingerprint"),
+        next_action.get("work_unit_fingerprint"),
+        next_action.get("action_fingerprint"),
         _mapping(action.get("current_executable_owner_action")).get("work_unit_fingerprint"),
         _mapping(action.get("current_executable_owner_action")).get("action_fingerprint"),
         _mapping(action.get("current_work_unit")).get("work_unit_fingerprint"),
         _mapping(action.get("current_work_unit")).get("action_fingerprint"),
         _mas_owner_callable_action_fingerprint(action),
     )
+    return tuple(dict.fromkeys(text for value in candidates if (text := _non_empty_text(value)) is not None))
 
 
 def _clean_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -958,8 +985,6 @@ def _run_mas_owner_callable(
         "status": _non_empty_text(_mapping(result).get("status")),
         "record_path": _non_empty_text(_mapping(result).get("record_path")),
     }
-
-
 
 
 def _text_items(values: object) -> list[str]:

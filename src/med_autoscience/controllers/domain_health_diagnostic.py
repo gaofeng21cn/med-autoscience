@@ -560,6 +560,13 @@ def run_domain_health_diagnostic_for_runtime(
         request_opl_stage_attempts=request_opl_stage_attempts,
     )
     if apply and request_opl_stage_attempts and profile is not None:
+        initial_outcome_count = len(
+            [
+                outcome
+                for outcome in report.get("managed_study_obligation_actuator_outcomes") or []
+                if isinstance(outcome, Mapping)
+            ]
+        )
         apply_managed_study_obligation_actuator(
             report=report,
             profile=profile,
@@ -574,31 +581,40 @@ def run_domain_health_diagnostic_for_runtime(
             ),
         )
     if apply and request_opl_stage_attempts and request_opl_owner_route_reconcile and profile is not None:
-        supervisor_tick = _run_developer_supervisor_same_tick(profile=profile, study_ids=study_ids)
-        first_iteration = (supervisor_tick.get("iterations") or [{}])[0]
-        report["opl_owner_route_reconcile_request"] = (
-            _mapping(first_iteration).get("owner_route_reconcile") or {}
-        )
-        report["developer_supervisor_same_tick"] = supervisor_tick
-        _refresh_report_progress_currentness_after_same_tick(
+        same_tick_study_ids = _same_tick_open_study_ids_after_actuator(
             report=report,
-            profile=profile,
-            study_ids=study_ids,
-            supervisor_tick=supervisor_tick,
+            requested_study_ids=study_ids,
+            outcome_start_index=initial_outcome_count,
         )
-        apply_managed_study_obligation_actuator(
-            report=report,
-            profile=profile,
-            study_ids=study_ids,
-            fail_closed=False,
-            phase="post_owner_route_reconcile",
-            refresh_owner_callable_actions=lambda actions: _refresh_report_progress_currentness_after_owner_callable_actions(
+        if same_tick_study_ids is not None:
+            supervisor_tick = _run_developer_supervisor_same_tick(
+                profile=profile,
+                study_ids=same_tick_study_ids,
+            )
+            first_iteration = (supervisor_tick.get("iterations") or [{}])[0]
+            report["opl_owner_route_reconcile_request"] = (
+                _mapping(first_iteration).get("owner_route_reconcile") or {}
+            )
+            report["developer_supervisor_same_tick"] = supervisor_tick
+            _refresh_report_progress_currentness_after_same_tick(
                 report=report,
                 profile=profile,
-                study_ids=study_ids,
-                owner_callable_actions=actions,
-            ),
-        )
+                study_ids=same_tick_study_ids,
+                supervisor_tick=supervisor_tick,
+            )
+            apply_managed_study_obligation_actuator(
+                report=report,
+                profile=profile,
+                study_ids=same_tick_study_ids,
+                fail_closed=False,
+                phase="post_owner_route_reconcile",
+                refresh_owner_callable_actions=lambda actions: _refresh_report_progress_currentness_after_owner_callable_actions(
+                    report=report,
+                    profile=profile,
+                    study_ids=same_tick_study_ids,
+                    owner_callable_actions=actions,
+                ),
+            )
     if request_opl_stage_attempts and profile is not None and not apply:
         attach_domain_action_request_materialization_preview(
             report=report,
@@ -698,6 +714,74 @@ def _refresh_report_progress_currentness_after_same_tick(
         ],
         progress_currentness=refreshed,
     )
+
+
+def _same_tick_open_study_ids_after_actuator(
+    *,
+    report: Mapping[str, Any],
+    requested_study_ids: tuple[str, ...],
+    outcome_start_index: int,
+) -> tuple[str, ...] | None:
+    requested = tuple(dict.fromkeys(_text_items(requested_study_ids)))
+    outcomes = [
+        outcome
+        for outcome in report.get("managed_study_obligation_actuator_outcomes") or []
+        if isinstance(outcome, Mapping)
+    ]
+    closed_study_ids = {
+        study_id
+        for outcome in outcomes[max(0, outcome_start_index):]
+        if _obligation_actuator_outcome_closes_same_tick_study(outcome)
+        if (study_id := _non_empty_text(outcome.get("study_id"))) is not None
+        and not _report_has_same_tick_successor_for_study(report, study_id=study_id)
+    }
+    if not closed_study_ids:
+        return requested_study_ids
+    if not requested:
+        open_from_report = tuple(
+            dict.fromkeys(
+                study_id
+                for action in report.get("managed_study_actions") or []
+                if isinstance(action, Mapping)
+                if (study_id := _non_empty_text(action.get("study_id"))) is not None
+                and study_id not in closed_study_ids
+            )
+        )
+        return open_from_report or None
+    open_requested = tuple(study_id for study_id in requested if study_id not in closed_study_ids)
+    return open_requested or None
+
+
+def _obligation_actuator_outcome_closes_same_tick_study(outcome: Mapping[str, Any]) -> bool:
+    if outcome.get("postcondition_ok") is not True:
+        return False
+    return _non_empty_text(outcome.get("outcome_kind")) in {
+        "owner_receipt_ref",
+        "provider_admission_pending",
+        "running_provider_attempt",
+        "human_gate_ref",
+        "typed_blocker_ref",
+        "route_back_evidence_ref",
+    }
+
+
+def _report_has_same_tick_successor_for_study(
+    report: Mapping[str, Any],
+    *,
+    study_id: str,
+) -> bool:
+    for action in report.get("managed_study_actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        if _non_empty_text(action.get("study_id")) != study_id:
+            continue
+        next_action = _mapping(_mapping(action.get("paper_recovery_state")).get("next_safe_action"))
+        if _non_empty_text(next_action.get("kind")) in {
+            "materialize_successor_owner_action",
+            "materialize_successor_owner_gate",
+        }:
+            return True
+    return False
 
 
 def _refresh_report_progress_currentness_after_owner_callable_actions(

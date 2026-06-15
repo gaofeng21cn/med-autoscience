@@ -300,6 +300,41 @@ def test_stage_route_reconcile_contract_orders_currentness_and_blocks_transport_
     assert precedence[6]["allowed_output"] == "ignored_diagnostic"
     assert precedence[-1]["allowed_output"] == "ignored_diagnostic"
 
+    same_tick_gate = contract["dhd_apply_same_tick_gate"]
+    assert same_tick_gate["surface_kind"] == "domain_health_diagnostic_apply_same_tick_gate"
+    assert same_tick_gate["decision_point"] == (
+        "after_initial_managed_study_obligation_actuator_before_developer_supervisor_same_tick"
+    )
+    assert same_tick_gate["closed_outcome_kinds_skip_same_tick"] == [
+        "owner_receipt_ref",
+        "provider_admission_pending",
+        "running_provider_attempt",
+        "human_gate_ref",
+        "typed_blocker_ref",
+        "route_back_evidence_ref",
+    ]
+    assert same_tick_gate["successor_next_safe_actions_keep_same_tick"] == [
+        "materialize_successor_owner_action",
+        "materialize_successor_owner_gate",
+    ]
+    assert same_tick_gate["skip_effect"] == (
+        "do_not_run_developer_supervisor_same_tick_for_closed_study"
+    )
+    assert same_tick_gate["successor_effect"] == (
+        "run_developer_supervisor_same_tick_for_successor_study"
+    )
+    assert {
+        "repeat_run_mas_owner_callable_after_terminal_owner_receipt",
+        "skip_same_tick_when_fresh_successor_owner_action_is_present",
+        "treat_contract_lag_as_reason_to_revert_source_behavior",
+    } <= set(same_tick_gate["forbidden_effects"])
+    assert same_tick_gate["authority_boundary"] == {
+        "can_create_owner_receipt": False,
+        "can_mark_paper_progress": False,
+        "can_authorize_provider_admission_without_identity": False,
+        "only_controls_same_tick_reconcile_scope": True,
+    }
+
     lifecycle = contract["lifecycle_state_machine"]
     assert lifecycle["main_chain"] == [
         "DesiredOwnerDelta",
@@ -715,6 +750,133 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
         "second_route_table",
         "second_active_backlog",
     } <= set(split["forbidden_mas_runtime_residue"])
+
+
+def test_stage_route_reconcile_contract_declares_opl_substrate_interface_readbacks() -> None:
+    contract = _contract()
+
+    substrate = contract["opl_substrate_optimization"]["opl_substrate_interfaces"]
+    assert substrate["surface_kind"] == "mas_opl_substrate_interface_contract"
+    assert substrate["version"] == "opl-substrate-interfaces.v1"
+    assert substrate["ordinary_projection_root"] == "current_owner_delta"
+    assert substrate["readback_role"] == (
+        "contract_and_meta_test_surface_not_runtime_implementation"
+    )
+    assert substrate["interface_order"] == [
+        "RecoveryObligationStore",
+        "SupervisorDecisionLedger",
+        "StageRunIdentityPacket",
+        "CloseoutInbox",
+        "HumanGateTransport",
+        "OutcomeEnvelope",
+        "TraceLineageRefs",
+    ]
+    assert substrate["authority_boundary"] == {
+        "opl_owns": [
+            "durable refs",
+            "current pointers",
+            "liveness",
+            "attempt transport",
+            "human gate transport",
+            "closeout inbox transport",
+            "trace lineage refs",
+        ],
+        "mas_owns": [
+            "owner receipt",
+            "typed blocker",
+            "publication verdict",
+            "quality verdict",
+            "source readiness verdict",
+            "artifact mutation authorization",
+            "human gate semantic acceptance",
+        ],
+        "transport_or_liveness_can_authorize_domain_progress": False,
+    }
+    assert substrate["readback_invariants"] == [
+        "every_interface_declares_required_readback_fields",
+        "every_interface_declares_forbidden_opl_authority",
+        "every_domain_effect_requires_mas_authority_ref",
+        "transport_liveness_and_trace_refs_are_audit_or_projection_inputs_only",
+        "same_identity_closeout_requires_mas_consumption_before_domain_progress",
+    ]
+
+    interfaces = substrate["interfaces"]
+    assert set(interfaces) == set(substrate["interface_order"])
+    for interface in interfaces.values():
+        assert interface["required_readback_fields"]
+        assert interface["forbidden_opl_authority"]
+
+    assert {
+        "recovery_obligation_ref",
+        "current_pointer_ref",
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "provider_admission_identity_ref",
+        "terminal_closeout_refs",
+        "consumed_or_rejected_refs",
+    } <= set(interfaces["RecoveryObligationStore"]["required_readback_fields"])
+    assert interfaces["RecoveryObligationStore"][
+        "mas_authority_refs_required_for_domain_effect"
+    ] == ["owner_receipt_ref", "typed_blocker_ref", "paper_recovery_state_ref"]
+    assert {
+        "select_recovery_obligation_semantics",
+        "consume_or_reject_recovery_obligation",
+        "create_owner_receipt",
+        "create_typed_blocker",
+    } <= set(interfaces["RecoveryObligationStore"]["forbidden_opl_authority"])
+
+    assert interfaces["SupervisorDecisionLedger"]["allowed_decision_kinds"] == [
+        "observe_liveness",
+        "admit_stage_run",
+        "consume_terminal_closeout_ref",
+        "transport_human_gate",
+        "stop_redrive_transport",
+        "route_back_to_mas_authority",
+    ]
+    assert "sign_owner_receipt" in interfaces["SupervisorDecisionLedger"][
+        "forbidden_opl_authority"
+    ]
+    assert interfaces["StageRunIdentityPacket"]["identity_source_policy"] == (
+        "MAS domain identity fields are embedded verbatim and are not re-derived from OPL labels"
+    )
+    assert {
+        "replace_work_unit_fingerprint_with_transport_id",
+        "treat_active_run_id_as_paper_progress",
+        "synthesize_owner_receipt_from_provider_completion",
+    } <= set(interfaces["StageRunIdentityPacket"]["forbidden_opl_authority"])
+    assert interfaces["CloseoutInbox"]["allowed_consumption_states"] == [
+        "received",
+        "identity_mismatch_rejected",
+        "consumed_by_mas_authority",
+        "superseded_by_new_identity",
+        "blocked_waiting_for_mas_authority",
+    ]
+    assert "consume_closeout_as_domain_success" in interfaces["CloseoutInbox"][
+        "forbidden_opl_authority"
+    ]
+    assert "mas_acceptance_ref" in interfaces["HumanGateTransport"][
+        "required_readback_fields"
+    ]
+    assert "choose_semantic_human_decision" in interfaces["HumanGateTransport"][
+        "forbidden_opl_authority"
+    ]
+    assert {
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "quality_gate_receipt_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "no_forbidden_authority_proof",
+    } <= set(interfaces["OutcomeEnvelope"]["required_readback_fields"])
+    assert "treat_transport_progress_as_owner_receipt" in interfaces["OutcomeEnvelope"][
+        "forbidden_opl_authority"
+    ]
+    assert interfaces["TraceLineageRefs"]["audit_only"] is True
+    assert {
+        "derive_current_owner_delta",
+        "authorize_provider_admission",
+        "mark_paper_progress",
+    } <= set(interfaces["TraceLineageRefs"]["forbidden_opl_authority"])
 
 
 def test_stage_route_reconcile_contract_splits_foreground_manual_work_from_governed_recovery() -> None:

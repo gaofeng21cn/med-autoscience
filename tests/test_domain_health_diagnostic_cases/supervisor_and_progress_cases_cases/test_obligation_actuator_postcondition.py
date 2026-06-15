@@ -227,7 +227,7 @@ def test_domain_health_diagnostic_apply_runs_mas_owner_callable_from_canonical_n
     )
 
 
-def test_domain_health_diagnostic_apply_consumes_mas_owner_callable_before_same_tick_reconcile(
+def test_domain_health_diagnostic_apply_consumes_mas_owner_callable_without_same_tick_reconcile(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -277,16 +277,11 @@ def test_domain_health_diagnostic_apply_consumes_mas_owner_callable_before_same_
             ],
         },
     )
-    monkeypatch.setattr(
-        module,
-        "_run_developer_supervisor_same_tick",
-        lambda **kwargs: events.append("same_tick")
-        or {
-            "surface": "developer_supervisor_same_tick",
-            "stop_reason": "typed_blocker_or_dispatch_blocker_observed",
-            "iterations": [{"owner_route_reconcile": {"surface": "portable_owner_route_reconcile"}}],
-        },
-    )
+    def fail_if_same_tick_runs(**kwargs):
+        events.append("same_tick")
+        raise AssertionError("terminal owner receipt must close before same-tick reconcile")
+
+    monkeypatch.setattr(module, "_run_developer_supervisor_same_tick", fail_if_same_tick_runs)
     monkeypatch.setattr(
         actuator.quality_repair_batch,
         "run_quality_repair_batch",
@@ -334,12 +329,13 @@ def test_domain_health_diagnostic_apply_consumes_mas_owner_callable_before_same_
         request_opl_owner_route_reconcile=True,
     )
 
-    assert events == ["owner_callable", "same_tick"]
+    assert events == ["owner_callable"]
     assert report["managed_study_mas_owner_callable_actions"][0]["status"] == "executed"
-    assert report["developer_supervisor_same_tick"]["stop_reason"] == (
-        "typed_blocker_or_dispatch_blocker_observed"
+    assert "developer_supervisor_same_tick" not in report
+    _assert_exactly_one_dhd_apply_outcome(
+        report["managed_study_obligation_actuator_outcomes"][0],
+        "owner_receipt_ref",
     )
-    assert report["managed_study_actions"][0]["current_work_unit"]["owner"] == "gate_clearing_batch"
 
 
 def test_domain_health_diagnostic_apply_drains_mas_owner_callable_created_by_same_tick_reconcile(
@@ -631,6 +627,100 @@ def test_domain_health_diagnostic_apply_accepts_refreshed_owner_receipt_postcond
     assert len(outcomes) == 1
     _assert_exactly_one_dhd_apply_outcome(outcomes[0], "owner_receipt_ref")
     assert outcomes[0]["owner_receipt_ref"] == gate_replay_ref
+
+
+def test_domain_health_diagnostic_apply_skips_same_tick_for_existing_owner_receipt(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    gate_replay_ref = str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json")
+    recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "owner_receipt_recorded",
+        "current_authority": {
+            "obligation": {
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:gate-replay-current",
+            }
+        },
+        "next_safe_action": {
+            "kind": "consume_owner_receipt",
+            "owner": "gate_clearing_batch",
+            "provider_admission_allowed": False,
+            "owner_receipt_ref": gate_replay_ref,
+        },
+        "supervisor_decision": {"decision": "stop_with_owner_receipt"},
+    }
+
+    monkeypatch.setattr(
+        module,
+        "_run_domain_health_diagnostic_for_runtime_impl",
+        lambda **kwargs: {
+            "surface": "domain_health_diagnostic",
+            "action_class": "observe_only",
+            "scanned_at": "2026-06-15T00:00:00+00:00",
+            "current_execution_evidence": {"progress_currentness": {}},
+            "paper_recovery_states": {study_id: recovery_state},
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "study_root": str(study_root),
+                    "current_work_unit": {
+                        "status": "owner_receipt_recorded",
+                        "owner": "gate_clearing_batch",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": "sha256:gate-replay-current",
+                    },
+                    "paper_recovery_state": recovery_state,
+                }
+            ],
+        },
+    )
+
+    def fail_if_same_tick_runs(**kwargs):
+        raise AssertionError("existing owner receipt must close before same-tick reconcile")
+
+    monkeypatch.setattr(module, "_run_developer_supervisor_same_tick", fail_if_same_tick_runs)
+    monkeypatch.setattr(
+        module,
+        "_materialize_report_provider_admission_current_control_state",
+        lambda **kwargs: {
+            "surface": "opl_current_control_state_handoff",
+            "provider_admission_candidates": [],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_sync_report_provider_admission_current_control_state",
+        lambda report, **kwargs: None,
+    )
+
+    report = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=True,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+        request_opl_owner_route_reconcile=True,
+    )
+
+    assert "developer_supervisor_same_tick" not in report
+    outcomes = report["managed_study_obligation_actuator_outcomes"]
+    assert len(outcomes) == 1
+    _assert_exactly_one_dhd_apply_outcome(outcomes[0], "owner_receipt_ref")
+    assert outcomes[0]["owner_receipt_ref"] == gate_replay_ref
+    assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
 
 
 def _owner_from_recovery(recovery: dict[str, object]) -> str | None:

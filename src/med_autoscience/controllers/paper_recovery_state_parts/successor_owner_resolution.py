@@ -35,7 +35,7 @@ def successor_owner_action_from_terminal_blocker(
         progress=progress,
     ):
         return successor_owner_action_from_current_action(action)
-    if blocker_reason == "publication_gate_replay_blocked":
+    if blocker_reason in {"publication_gate_replay_blocked", "paper_progress_stall_terminal"}:
         return _successor_owner_action_from_gate_followthrough(progress)
     return None
 
@@ -98,6 +98,44 @@ def current_owner_successor_action(
     ):
         return None
     return successor
+
+
+def executable_action_is_gate_followthrough_successor(
+    progress: Mapping[str, Any],
+    *,
+    current_work_unit: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    source = _text(current_action.get("source")) or _text(
+        _mapping(current_work_unit.get("state")).get("source")
+    )
+    if source != "paper_recovery_state.next_safe_action.successor_owner_action":
+        return False
+    source_surface = _text(current_action.get("source_surface")) or _text(
+        _mapping(_mapping(current_work_unit.get("required_output_contract")).get("target_surface")).get(
+            "source_surface"
+        )
+    )
+    if source_surface != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        return False
+    followthrough = _mapping(progress.get("gate_clearing_batch_followthrough"))
+    currentness = _mapping(followthrough.get("work_unit_currentness"))
+    if _text(currentness.get("current_actionability_status")) != "actionable":
+        return False
+    successor_work_unit = _text(followthrough.get("work_unit_id")) or _text(
+        _mapping(followthrough.get("current_publication_work_unit")).get("unit_id")
+    )
+    if successor_work_unit is None or successor_work_unit != _text(current_work_unit.get("work_unit_id")):
+        return False
+    successor_fingerprint = _text(followthrough.get("work_unit_fingerprint")) or _text(
+        currentness.get("current_work_unit_fingerprint")
+    )
+    current_fingerprint = _text(current_work_unit.get("work_unit_fingerprint")) or _text(
+        current_work_unit.get("action_fingerprint")
+    )
+    if successor_fingerprint is not None and current_fingerprint is not None:
+        return successor_fingerprint == current_fingerprint
+    return True
 
 
 def _gate_followthrough_has_consumed_repair_progress(
@@ -491,6 +529,7 @@ def _dedupe(values: list[str | None]) -> list[str]:
 __all__ = [
     "current_executable_owner_action",
     "current_owner_successor_action",
+    "executable_action_is_gate_followthrough_successor",
     "paper_recovery_successor_action_ready",
     "successor_owner_action_from_current_action",
     "successor_owner_action_from_terminal_blocker",

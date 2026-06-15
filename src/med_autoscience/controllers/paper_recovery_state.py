@@ -36,6 +36,7 @@ from med_autoscience.controllers.paper_recovery_state_parts.running_attempt_iden
 from med_autoscience.controllers.paper_recovery_state_parts.successor_owner_resolution import (
     current_executable_owner_action as _current_executable_owner_action,
     current_owner_successor_action as _current_owner_successor_action,
+    executable_action_is_gate_followthrough_successor as _executable_action_is_gate_followthrough_successor,
     paper_recovery_successor_action_ready as _paper_recovery_successor_action_ready,
     successor_owner_action_from_current_action as _successor_owner_action_from_current_action,
     successor_owner_action_from_terminal_blocker as _successor_owner_action_from_terminal_blocker,
@@ -975,6 +976,12 @@ def _same_work_unit_owner_receipt(
     obligation: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     if _current_work_unit_status(current_work_unit) != "executable_owner_action":
+        return None
+    if _executable_action_is_gate_followthrough_successor(
+        progress,
+        current_work_unit=current_work_unit,
+        current_action=current_action,
+    ):
         return None
     repair = _mapping(progress.get("repair_progress_projection"))
     if not repair:

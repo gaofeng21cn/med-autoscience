@@ -187,7 +187,7 @@ def owner_receipt_work_unit(
         currentness_basis=currentness_basis,
         state={
             "state_kind": "owner_receipt_recorded",
-            "source": "paper_recovery_state.owner_receipt_recorded",
+            "source": _text(recovery.get("source")) or "paper_recovery_state.owner_receipt_recorded",
             "owner_receipt_ref": owner_receipt_ref,
             "next_safe_action_kind": _text(next_action.get("kind")),
             "provider_admission_pending": False,

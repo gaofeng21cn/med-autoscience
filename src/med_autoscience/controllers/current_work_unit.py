@@ -238,7 +238,10 @@ def build_current_work_unit(
         runtime_health=runtime_health_payload,
         running_attempt=running_attempt,
     )
-    owner_receipt_recovery = _owner_receipt_recorded_recovery(progress_payload)
+    owner_receipt_recovery = _owner_receipt_recorded_recovery(progress_payload) or _repair_progress_owner_receipt_recovery(
+        progress=progress_payload,
+        action=action,
+    )
     if owner_receipt_recovery is not None:
         return _owner_receipt_work_unit(
             recovery=owner_receipt_recovery,
@@ -469,6 +472,93 @@ def _owner_receipt_recorded_recovery(progress: Mapping[str, Any]) -> dict[str, A
         if "receipt" in ref:
             return recovery
     return None
+
+
+def _repair_progress_owner_receipt_recovery(
+    *,
+    progress: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    repair = _mapping(progress.get("repair_progress_projection"))
+    if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
+        return None
+    if repair.get("accepted_owner_receipt") is not True:
+        return None
+    if repair.get("gate_replay_done") is not True:
+        return None
+    if _gate_followthrough_actionable_repair_action(_mapping(action)):
+        return None
+    if _progress_has_gate_followthrough_actionable_repair(progress):
+        return None
+    owner_receipt_ref = _repair_progress_gate_replay_receipt_ref(repair)
+    if owner_receipt_ref is None:
+        return None
+    payload = _mapping(action)
+    action_type = _action_type(payload) if payload else "run_gate_clearing_batch"
+    work_unit_id = _work_unit_id(payload.get("work_unit_id")) if payload else "publication_gate_replay"
+    if payload and (
+        action_type != "run_gate_clearing_batch"
+        or work_unit_id not in GATE_REPLAY_WORK_UNITS
+    ):
+        return None
+    work_unit_fingerprint = (
+        _text(payload.get("work_unit_fingerprint"))
+        or _text(payload.get("action_fingerprint"))
+        or _text(repair.get("source_fingerprint"))
+    )
+    return {
+        "surface_kind": "paper_recovery_state",
+        "schema_version": 1,
+        "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "phase": "owner_receipt_recorded",
+        "current_authority": {
+            "owner": _text(payload.get("next_owner")) or _text(payload.get("owner")) or "gate_clearing_batch",
+            "authority": "med-autoscience",
+            "obligation": {
+                "study_id": _text(progress.get("study_id")),
+                "quest_id": _text(progress.get("quest_id")),
+                "owner": _text(payload.get("next_owner")) or _text(payload.get("owner")) or "gate_clearing_batch",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            },
+        },
+        "next_safe_action": {
+            "kind": "consume_owner_receipt",
+            "owner": _text(payload.get("next_owner")) or _text(payload.get("owner")) or "gate_clearing_batch",
+            "provider_admission_allowed": False,
+            "owner_receipt_ref": owner_receipt_ref,
+        },
+        "evidence_refs": _text_items(repair.get("gate_replay_refs")),
+        "owner_receipt_ref": owner_receipt_ref,
+        "supervisor_decision": {"decision": "stop_with_owner_receipt"},
+        "repair_progress_projection": dict(repair),
+        "condition": "repair_progress_owner_receipt_recorded",
+    }
+
+
+def _repair_progress_gate_replay_receipt_ref(repair: Mapping[str, Any]) -> str | None:
+    for ref in _text_items(repair.get("gate_replay_refs")):
+        if "gate_clearing_batch" in ref:
+            return ref
+    return None
+
+
+def _progress_has_gate_followthrough_actionable_repair(progress: Mapping[str, Any]) -> bool:
+    followthrough = _mapping(progress.get("gate_clearing_batch_followthrough"))
+    if _text(followthrough.get("status")) != "executed":
+        return False
+    work_unit_currentness = _mapping(followthrough.get("work_unit_currentness"))
+    if _text(work_unit_currentness.get("current_actionability_status")) != "actionable":
+        return False
+    publication_work_unit = _mapping(followthrough.get("current_publication_work_unit"))
+    unit_id = _work_unit_id(publication_work_unit.get("unit_id")) or _work_unit_id(
+        followthrough.get("work_unit_id")
+    )
+    if unit_id in {None, "publication_gate_replay", "complete_medical_paper_readiness_surface"}:
+        return False
+    return True
 
 
 def _action_supersedes_typed_blocker(
