@@ -33,6 +33,8 @@ from med_autoscience.controllers.paper_recovery_state_parts.running_attempt_iden
 from med_autoscience.controllers.paper_recovery_state_parts.successor_owner_resolution import (
     current_executable_owner_action as _current_executable_owner_action,
     current_owner_successor_action as _current_owner_successor_action,
+    paper_recovery_successor_action_ready as _paper_recovery_successor_action_ready,
+    successor_owner_action_from_current_action as _successor_owner_action_from_current_action,
     successor_owner_action_from_terminal_blocker as _successor_owner_action_from_terminal_blocker,
     successor_owner_gate_from_terminal_blocker as _successor_owner_gate_from_terminal_blocker,
 )
@@ -128,6 +130,35 @@ def build_paper_recovery_state(
             progress=progress,
         )
     )
+    if (
+        typed_blocker
+        and typed_blocker_superseded_by_current_action
+        and _paper_recovery_successor_action_ready(current_action)
+    ):
+        blocker_reason = _typed_blocker_reason(typed_blocker)
+        successor_action = _successor_owner_action_from_current_action(current_action)
+        successor_owner = _text(successor_action.get("owner")) or _text(
+            successor_action.get("next_owner")
+        )
+        return _state(
+            progress,
+            obligation=obligation,
+            phase="owner_action_ready",
+            conditions=[
+                {
+                    "condition": "current_owner_action_supersedes_typed_blocker",
+                    "blocker_type": blocker_reason,
+                }
+            ],
+            next_safe_action=_next_action(
+                "materialize_successor_owner_action",
+                provider_admission_allowed=True,
+                owner=successor_owner,
+                successor_owner_action=successor_action,
+            ),
+            current_owner=successor_owner,
+            suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
+        )
     if typed_blocker and not typed_blocker_superseded_by_current_action:
         blocker_reason = _typed_blocker_reason(typed_blocker)
         owner = _typed_blocker_recovery_owner(

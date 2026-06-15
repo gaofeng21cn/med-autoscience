@@ -17,6 +17,7 @@ from med_autoscience.controllers.study_progress_parts.current_executable_owner_a
 
 
 REPAIR_PROGRESS_EVIDENCE_SOURCE = "repair_progress_projection.mas_owner_repair_execution_evidence"
+PAPER_RECOVERY_SUCCESSOR_SOURCE = "paper_recovery_state.next_safe_action.successor_owner_action"
 QUALITY_REPAIR_ACTION = "run_quality_repair_batch"
 
 
@@ -49,6 +50,8 @@ def _repair_progress_consumes_current_action(
     current = _mapping(current_action)
     if not repair or not current:
         return False
+    if _paper_recovery_successor_action_ready(current):
+        return False
     if (_text(repair.get("source_surface")) or _text(repair.get("source"))) != REPAIR_PROGRESS_EVIDENCE_SOURCE:
         return False
     if _action_type(current) != QUALITY_REPAIR_ACTION:
@@ -69,6 +72,20 @@ def _repair_progress_consumes_current_action(
     if repair_eval is not None and current_eval is not None and repair_eval != current_eval:
         return False
     return True
+
+
+def _paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
+    if _text(action.get("source")) != PAPER_RECOVERY_SUCCESSOR_SOURCE:
+        return False
+    successor = _mapping(action.get("paper_recovery_successor"))
+    if successor.get("provider_admission_allowed") is not True:
+        return False
+    return (
+        _action_type(action) is not None
+        and _work_unit_id(action.get("work_unit_id")) is not None
+        and (_text(action.get("work_unit_fingerprint")) or _text(action.get("action_fingerprint")))
+        is not None
+    )
 
 
 __all__ = ["repair_progress_action_consuming_current_action"]

@@ -60,6 +60,24 @@ def successor_owner_action_from_current_action(action: Mapping[str, Any]) -> dic
     }
 
 
+def paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
+    payload = _mapping(action)
+    if _text(payload.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
+        return False
+    successor = _mapping(payload.get("paper_recovery_successor"))
+    if successor.get("provider_admission_allowed") is not True:
+        return False
+    return (
+        _text(payload.get("action_type")) is not None
+        and _text(payload.get("work_unit_id")) is not None
+        and (
+            _text(payload.get("work_unit_fingerprint"))
+            or _text(payload.get("action_fingerprint"))
+        )
+        is not None
+    )
+
+
 def current_owner_successor_action(
     progress: Mapping[str, Any],
     *,
@@ -473,6 +491,7 @@ def _dedupe(values: list[str | None]) -> list[str]:
 __all__ = [
     "current_executable_owner_action",
     "current_owner_successor_action",
+    "paper_recovery_successor_action_ready",
     "successor_owner_action_from_current_action",
     "successor_owner_action_from_terminal_blocker",
     "successor_owner_gate_from_terminal_blocker",

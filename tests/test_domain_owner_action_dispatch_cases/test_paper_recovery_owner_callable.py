@@ -575,3 +575,164 @@ def test_execute_dispatch_selects_same_tick_paper_recovery_successor_dispatch(
     assert execution["prompt_contract"]["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
     assert execution["owner_route_basis"] == "paper_recovery_owner_callable"
     assert called == [study_id]
+
+
+def test_execute_dispatch_handoffs_paper_recovery_provider_successor_without_extra_opl_authorization(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    supervisor_decision_ref = "supervisor-decision::materialize_recovery_action::dm003::write"
+    supervisor_decision = {
+        "surface_kind": "paper_autonomy_supervisor_decision",
+        "schema_version": 1,
+        "decision": "materialize_recovery_action",
+        "decision_id": supervisor_decision_ref,
+        "next_safe_action": {
+            "kind": "materialize_successor_owner_action",
+            "owner": "write",
+            "provider_admission_allowed": True,
+            "successor_owner_action": {
+                "action_type": action_type,
+                "owner": "write",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+            },
+        },
+        "paper_autonomy_obligation": {
+            "surface_kind": "paper_autonomy_obligation",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "action_type": action_type,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+        },
+    }
+    route = _owner_route(
+        study_id=study_id,
+        action_type=action_type,
+        owner="write",
+    )
+    route.update(
+        {
+            "quest_id": quest_id,
+            "truth_epoch": fingerprint,
+            "route_epoch": fingerprint,
+            "runtime_health_epoch": fingerprint,
+            "work_unit_fingerprint": fingerprint,
+            "source_fingerprint": fingerprint,
+            "current_owner": "MedAutoScience",
+            "owner_reason": work_unit_id,
+            "failure_signature": work_unit_id,
+            "idempotency_key": f"paper-recovery::{study_id}::{action_type}::{fingerprint}",
+            "source_refs": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "bridge_authority": "domain_action_request_materializer_paper_recovery_owner_callable",
+                "source_surface": "paper_recovery_state",
+                "successor_source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "successor_source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                "supervisor_authority": "paper_autonomy_supervisor_decision",
+                "supervisor_decision_ref": supervisor_decision_ref,
+                "owner_route_currentness_basis": {
+                    "truth_epoch": fingerprint,
+                    "runtime_health_epoch": fingerprint,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+        }
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{action_type}.json"
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type=action_type,
+        owner="write",
+        required_output_surface="artifacts/controller/repair_execution_evidence/latest.json",
+        owner_route=route,
+    )
+    dispatch_payload.pop("opl_execution_authorization", None)
+    dispatch_payload["prompt_contract"].pop("opl_execution_authorization", None)
+    dispatch_payload.update(
+        {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "refs": {"dispatch_path": str(dispatch_path)},
+            "source_action": {
+                "authority": "paper_recovery_state",
+                "source_surface": "paper_recovery_state",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "supervisor_decision": supervisor_decision,
+                "supervisor_decision_ref": supervisor_decision_ref,
+            },
+        }
+    )
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id}],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [
+                {**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_execute_owner_dispatch_action",
+        lambda **_: {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "should_not_execute_without_opl_attempt",
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(action_type,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["blocked_reason"] is None
+    assert execution["owner_route_basis"] == "paper_recovery_owner_callable"
+    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+    assert execution["authority_boundary"]["handoff_authority"] == (
+        "paper_recovery_successor_owner_action"
+    )

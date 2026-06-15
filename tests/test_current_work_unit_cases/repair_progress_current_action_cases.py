@@ -224,6 +224,218 @@ def test_current_work_unit_projects_repair_progress_gate_replay_over_stale_stage
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_projects_paper_recovery_successor_over_opl_authorization_blocker() -> None:
+    module = _module()
+    repair_fingerprint = "publication-blockers::0915410f804b3697"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "queued",
+            "paper_stage": "publishability_gate_blocked",
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "next_owner": "write",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": repair_fingerprint,
+            "action_fingerprint": repair_fingerprint,
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+            "paper_recovery_successor": {
+                "phase": "owner_action_ready",
+                "source_next_safe_action_kind": "materialize_successor_owner_action",
+                "provider_admission_allowed": True,
+                "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            },
+        },
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "schema_version": 1,
+            "status": "blocked",
+            "blocker_id": "opl_execution_authorization_required",
+            "blocker_type": "opl_execution_authorization_required",
+            "blocked_reason": "opl_execution_authorization_required",
+            "owner": "one-person-lab",
+            "write_permitted": False,
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": "sha256:bfcf03bacdcb4e58edd085444dda2f3906814c8a1806afb63b8095b90408bac9",
+            "typed_blocker_ref": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+        },
+        next_owner="one-person-lab",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["work_unit_fingerprint"] == repair_fingerprint
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
+    assert "typed_blocker" not in work_unit["state"]
+
+
+def test_current_work_unit_projects_paper_recovery_successor_over_terminal_opl_authorization_blocker() -> None:
+    module = _module()
+    repair_fingerprint = "publication-blockers::0915410f804b3697"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "queued",
+            "paper_stage": "publishability_gate_blocked",
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_attempt_id": "sat_old_auth_blocker",
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": repair_fingerprint,
+                    "action_fingerprint": repair_fingerprint,
+                    "status": "blocked",
+                    "outcome": "blocked_with_domain_typed_blocker",
+                    "progress_delta_classification": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_id": "opl_execution_authorization_required",
+                        "blocker_type": "opl_execution_authorization_required",
+                        "blocked_reason": "opl_execution_authorization_required",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": repair_fingerprint,
+                    },
+                    "source_path": (
+                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_old_auth_blocker.closeout.json"
+                    ),
+                }
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "next_owner": "write",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": repair_fingerprint,
+            "action_fingerprint": repair_fingerprint,
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+            "paper_recovery_successor": {
+                "phase": "owner_action_ready",
+                "source_next_safe_action_kind": "materialize_successor_owner_action",
+                "provider_admission_allowed": True,
+                "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            },
+        },
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "schema_version": 1,
+            "status": "blocked",
+            "blocker_id": "medical_publication_surface_blocked",
+            "blocker_type": "medical_publication_surface_blocked",
+            "blocked_reason": "medical_publication_surface_blocked",
+            "owner": "one-person-lab",
+            "write_permitted": False,
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": "sha256:old-publication-gate-replay",
+        },
+        next_owner="one-person-lab",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["work_unit_fingerprint"] == repair_fingerprint
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
+    assert "typed_blocker" not in work_unit["state"]
+
+
+def test_current_work_unit_keeps_paper_recovery_successor_over_repair_progress_followup() -> None:
+    module = _module()
+    repair_fingerprint = "publication-blockers::0915410f804b3697"
+    gate_fingerprint = "sha256:bfcf03bacdcb4e58edd085444dda2f3906814c8a1806afb63b8095b90408bac9"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "paper_stage": "analysis-campaign",
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "source_fingerprint": gate_fingerprint,
+                "source_eval_id": source_eval_id,
+                "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_done": True,
+                "gate_replay_refs": [
+                    "artifacts/controller/gate_clearing_batch/latest.json",
+                    "artifacts/controller/gate_replay_requests/latest.json",
+                ],
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "next_owner": "write",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": repair_fingerprint,
+            "action_fingerprint": repair_fingerprint,
+            "source_eval_id": source_eval_id,
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+            "paper_recovery_successor": {
+                "phase": "owner_action_ready",
+                "source_next_safe_action_kind": "materialize_successor_owner_action",
+                "provider_admission_allowed": True,
+                "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["work_unit_fingerprint"] == repair_fingerprint
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
+
+
 def test_current_work_unit_projects_repair_progress_gate_replay_over_zero_selected_dispatch_blocker() -> None:
     module = _module()
     gate_replay_fingerprint = "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"

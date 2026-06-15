@@ -10,6 +10,14 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
 from med_autoscience.controllers.current_work_unit_parts.primitives import mapping, text
 
 
+SUPERSEDED_RECOVERY_SUCCESSOR_BLOCKERS = frozenset(
+    {
+        "opl_execution_authorization_required",
+        "publication_gate_replay_blocked",
+    }
+)
+
+
 def paper_recovery_successor_supersedes_publication_gate_replay_blocker(
     *,
     action: Mapping[str, Any],
@@ -21,7 +29,7 @@ def paper_recovery_successor_supersedes_publication_gate_replay_blocker(
         or text(blocker.get("blocked_reason"))
         or text(blocker.get("reason"))
     )
-    if blocker_type != "publication_gate_replay_blocked":
+    if blocker_type not in SUPERSEDED_RECOVERY_SUCCESSOR_BLOCKERS:
         return False
     if text(action.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
         return False

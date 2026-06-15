@@ -338,7 +338,14 @@ def build_current_work_unit(
             currentness_basis=basis,
             source="typed_blocker",
         )
-    if terminal_action_blocker_selected:
+    if terminal_action_blocker_selected and not (
+        action is not None
+        and _action_supersedes_typed_blocker(
+            action=action,
+            blocker=terminal_action_blocker,
+            progress=progress_payload,
+        )
+    ):
         return _typed_blocker_work_unit(
             blocker=terminal_action_blocker,
             action=action,
