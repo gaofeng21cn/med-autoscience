@@ -232,6 +232,41 @@ def test_recovery_action_and_progress_accounting_keep_platform_repair_out_of_pap
     assert accounting["yang_artifact_repair_counts_as_paper_progress"] is False
 
 
+def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
+    contract = _contract()
+
+    readback = contract["dhd_apply_consume_only_readback"]
+    assert readback["surface_kind"] == "domain_health_diagnostic_apply_consume_only_readback_contract"
+    assert readback["required_binding_fields"] == [
+        "paper_autonomy_supervisor_decision_id",
+        "paper_autonomy_supervisor_decision_kind",
+        "paper_autonomy_obligation_ref",
+        "paper_autonomy_obligation_identity",
+    ]
+    assert readback["allowed_success_outcome_kinds"] == [
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "provider_admission_pending",
+        "running_provider_attempt",
+    ]
+    assert readback["diagnostic_only_outcome_kinds"] == ["rejected_stale_diagnostic"]
+    assert readback["forbidden_success_roots"] == [
+        "queue_empty",
+        "dry_run_status",
+        "old_attempt",
+        "transport_status",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert readback["queue_and_transport_policy"] == {
+        "action_queue_can_create_success_outcome": False,
+        "queue_empty_can_create_success_outcome": False,
+        "dry_run_can_create_success_outcome": False,
+        "old_attempt_can_create_success_outcome": False,
+        "transport_status_can_create_success_outcome": False,
+    }
+
+
 def test_opl_foundation_and_mas_authority_split_forbid_read_model_authority() -> None:
     contract = _contract()
 

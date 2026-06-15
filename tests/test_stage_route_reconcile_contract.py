@@ -309,9 +309,10 @@ def test_stage_route_reconcile_contract_orders_currentness_and_blocks_transport_
         "owner_receipt_ref",
         "provider_admission_pending",
         "running_provider_attempt",
-        "human_gate_ref",
         "typed_blocker_ref",
-        "route_back_evidence_ref",
+    ]
+    assert same_tick_gate["diagnostic_only_outcome_kinds"] == [
+        "rejected_stale_diagnostic"
     ]
     assert same_tick_gate["successor_next_safe_actions_keep_same_tick"] == [
         "materialize_successor_owner_action",

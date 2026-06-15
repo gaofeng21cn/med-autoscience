@@ -113,6 +113,13 @@ def test_domain_health_diagnostic_apply_accepts_recorded_owner_receipt_as_closed
     study_root.mkdir(parents=True, exist_ok=True)
     dump_json(study_root / "study.yaml", {"study_id": study_id})
     receipt_ref = "artifacts/controller/repair_execution_receipts/latest.json"
+    obligation_ref = (
+        "paper-autonomy::003::publication_supervision::run_quality_repair_batch::"
+        "medical_prose_write_repair::publication-blockers::0915410f804b3697"
+    )
+    supervisor_decision_id = (
+        f"supervisor-decision::stop_with_owner_receipt::{obligation_ref}::owner-receipt"
+    )
     recovery_state = {
         "surface_kind": "paper_recovery_state",
         "phase": "owner_receipt_recorded",
@@ -131,7 +138,23 @@ def test_domain_health_diagnostic_apply_accepts_recorded_owner_receipt_as_closed
             "provider_admission_allowed": False,
             "owner_receipt_ref": receipt_ref,
         },
-        "supervisor_decision": {"decision": "stop_with_owner_receipt"},
+        "supervisor_decision": {
+            "surface_kind": "paper_autonomy_supervisor_decision",
+            "decision": "stop_with_owner_receipt",
+            "decision_id": supervisor_decision_id,
+            "paper_autonomy_obligation_ref": obligation_ref,
+            "paper_autonomy_obligation": {
+                "paper_autonomy_obligation_id": obligation_ref,
+                "study_id": study_id,
+                "quest_id": study_id,
+                "stage_id": "publication_supervision",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "route_identity_key": "route::003::quality-repair",
+                "attempt_idempotency_key": "attempt::003::quality-repair",
+            },
+        },
     }
 
     monkeypatch.setattr(
@@ -161,8 +184,18 @@ def test_domain_health_diagnostic_apply_accepts_recorded_owner_receipt_as_closed
 
     outcome = report["managed_study_obligation_actuator_outcomes"][0]
     _assert_exactly_one_dhd_apply_outcome(outcome, "owner_receipt_ref")
+    _assert_supervisor_transaction_binding(
+        outcome,
+        expected_decision_id=supervisor_decision_id,
+        expected_decision_kind="stop_with_owner_receipt",
+        expected_obligation_ref=obligation_ref,
+    )
     assert outcome["owner_receipt_ref"] == receipt_ref
-    assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
+    postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
+    assert postcondition["ok"] is True
+    assert postcondition["paper_autonomy_supervisor_decision_id"] == supervisor_decision_id
+    assert postcondition["paper_autonomy_supervisor_decision_kind"] == "stop_with_owner_receipt"
+    assert postcondition["paper_autonomy_obligation_ref"] == obligation_ref
 
 
 def test_domain_health_diagnostic_apply_accepts_provider_admission_pending_as_closed_outcome(
@@ -269,7 +302,7 @@ def test_domain_health_diagnostic_apply_accepts_running_provider_attempt_as_clos
     assert outcome["running_provider_attempt"] == "sat_003_write"
 
 
-def test_domain_health_diagnostic_apply_accepts_human_gate_and_route_back_as_closed_outcomes(
+def test_domain_health_diagnostic_apply_rejects_human_gate_and_route_back_as_stale_diagnostics(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -350,8 +383,13 @@ def test_domain_health_diagnostic_apply_accepts_human_gate_and_route_back_as_clo
     )
 
     outcomes = report["managed_study_obligation_actuator_outcomes"]
-    _assert_exactly_one_dhd_apply_outcome(outcomes[0], "route_back_evidence_ref")
-    _assert_exactly_one_dhd_apply_outcome(outcomes[1], "human_gate_ref")
+    _assert_exactly_one_dhd_apply_outcome(outcomes[0], "rejected_stale_diagnostic")
+    _assert_exactly_one_dhd_apply_outcome(outcomes[1], "rejected_stale_diagnostic")
+    assert outcomes[0]["rejected_stale_diagnostic"]["rejected_ref"] == "route_back:owner-gate-decision:002"
+    assert outcomes[0]["rejected_stale_diagnostic"]["reason"] == (
+        "dhd_apply_outcome_kind_not_supervisor_terminal_readback"
+    )
+    assert outcomes[1]["rejected_stale_diagnostic"]["rejected_ref"] == "human_gate:owner-gate-decision:003"
 
 
 def _ready_provider_recovery_state() -> dict[str, object]:
@@ -403,3 +441,20 @@ def _runtime_report_with_recovery_action(
             }
         ],
     }
+
+
+def _assert_supervisor_transaction_binding(
+    outcome: dict[str, object],
+    *,
+    expected_decision_id: str,
+    expected_decision_kind: str,
+    expected_obligation_ref: str,
+) -> None:
+    assert outcome["paper_autonomy_supervisor_decision_id"] == expected_decision_id
+    assert outcome["paper_autonomy_supervisor_decision_kind"] == expected_decision_kind
+    assert outcome["paper_autonomy_obligation_ref"] == expected_obligation_ref
+    identity = outcome["paper_autonomy_obligation_identity"]
+    assert identity["study_id"] == outcome["study_id"]
+    assert identity["action_type"] == outcome["action_type"]
+    assert identity["work_unit_id"] == outcome["work_unit_id"]
+    assert identity["work_unit_fingerprint"] == outcome["work_unit_fingerprint"]

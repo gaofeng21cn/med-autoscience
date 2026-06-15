@@ -794,9 +794,7 @@ def _obligation_actuator_outcome_closes_same_tick_study(outcome: Mapping[str, An
         "owner_receipt_ref",
         "provider_admission_pending",
         "running_provider_attempt",
-        "human_gate_ref",
         "typed_blocker_ref",
-        "route_back_evidence_ref",
     }
 
 

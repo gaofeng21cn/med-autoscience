@@ -948,8 +948,7 @@ def _assert_exactly_one_dhd_apply_outcome(
         "running_provider_attempt",
         "owner_receipt_ref",
         "typed_blocker_ref",
-        "human_gate_ref",
-        "route_back_evidence_ref",
+        "rejected_stale_diagnostic",
     ]
     present = [key for key in allowed if outcome.get(key)]
     assert outcome["exactly_one_outcome"] is True

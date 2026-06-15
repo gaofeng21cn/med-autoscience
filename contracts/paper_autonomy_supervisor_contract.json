@@ -280,6 +280,72 @@
       "OPL self-signed MAS owner receipt"
     ]
   },
+  "dhd_apply_consume_only_readback": {
+    "surface_kind": "domain_health_diagnostic_apply_consume_only_readback_contract",
+    "producer": "domain-health-diagnostic.apply",
+    "role": "consume supervisor transaction results and report identity-bound readback without redeciding MAS study truth",
+    "required_binding_fields": [
+      "paper_autonomy_supervisor_decision_id",
+      "paper_autonomy_supervisor_decision_kind",
+      "paper_autonomy_obligation_ref",
+      "paper_autonomy_obligation_identity"
+    ],
+    "allowed_success_outcome_kinds": [
+      "owner_receipt_ref",
+      "typed_blocker_ref",
+      "provider_admission_pending",
+      "running_provider_attempt"
+    ],
+    "diagnostic_only_outcome_kinds": [
+      "rejected_stale_diagnostic"
+    ],
+    "forbidden_success_roots": [
+      "queue_empty",
+      "dry_run_status",
+      "old_attempt",
+      "transport_status",
+      "human_gate_ref",
+      "route_back_evidence_ref"
+    ],
+    "decision_allowed_outcomes": {
+      "execute_current_owner_delta": [
+        "provider_admission_pending",
+        "running_provider_attempt",
+        "typed_blocker_ref",
+        "rejected_stale_diagnostic"
+      ],
+      "consume_terminal_closeout": [
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "rejected_stale_diagnostic"
+      ],
+      "materialize_recovery_action": [
+        "provider_admission_pending",
+        "running_provider_attempt",
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "rejected_stale_diagnostic"
+      ],
+      "wait_for_owner_with_resume_token": [
+        "rejected_stale_diagnostic"
+      ],
+      "stop_with_stable_typed_blocker": [
+        "typed_blocker_ref",
+        "rejected_stale_diagnostic"
+      ],
+      "stop_with_owner_receipt": [
+        "owner_receipt_ref",
+        "rejected_stale_diagnostic"
+      ]
+    },
+    "queue_and_transport_policy": {
+      "action_queue_can_create_success_outcome": false,
+      "queue_empty_can_create_success_outcome": false,
+      "dry_run_can_create_success_outcome": false,
+      "old_attempt_can_create_success_outcome": false,
+      "transport_status_can_create_success_outcome": false
+    }
+  },
   "progress_accounting": {
     "surface_kind": "paper_autonomy_progress_accounting",
     "classes": [

@@ -146,9 +146,40 @@ _OBLIGATION_ACTUATOR_ALLOWED_OUTCOMES = [
     "running_provider_attempt",
     "owner_receipt_ref",
     "typed_blocker_ref",
-    "human_gate_ref",
-    "route_back_evidence_ref",
+    "rejected_stale_diagnostic",
 ]
+
+_SUPERVISOR_DECISION_ALLOWED_OUTCOMES = {
+    "execute_current_owner_delta": {
+        "provider_admission_pending",
+        "running_provider_attempt",
+        "typed_blocker_ref",
+        "rejected_stale_diagnostic",
+    },
+    "consume_terminal_closeout": {
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "rejected_stale_diagnostic",
+    },
+    "materialize_recovery_action": {
+        "provider_admission_pending",
+        "running_provider_attempt",
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "rejected_stale_diagnostic",
+    },
+    "wait_for_owner_with_resume_token": {
+        "rejected_stale_diagnostic",
+    },
+    "stop_with_stable_typed_blocker": {
+        "typed_blocker_ref",
+        "rejected_stale_diagnostic",
+    },
+    "stop_with_owner_receipt": {
+        "owner_receipt_ref",
+        "rejected_stale_diagnostic",
+    },
+}
 
 
 def _recovery_requires_obligation_actuator(recovery: Mapping[str, Any]) -> bool:
@@ -243,15 +274,15 @@ def _closed_obligation_outcome(
     )
     if pending is not None:
         return pending
+    typed_blocker = _typed_blocker_outcome(action=action, phase=phase)
+    if typed_blocker is not None:
+        return typed_blocker
     route_back = _route_back_evidence_outcome(action=action, phase=phase)
     if route_back is not None:
         return route_back
     human_gate = _human_gate_outcome(action=action, phase=phase)
     if human_gate is not None:
         return human_gate
-    typed_blocker = _typed_blocker_outcome(action=action, phase=phase)
-    if typed_blocker is not None:
-        return typed_blocker
     if not fail_closed:
         return None
     return _fail_closed_obligation_outcome(
@@ -411,7 +442,6 @@ def _current_obligation_provider_admission_candidates(
             current_control_state,
             study_id=_non_empty_text(action.get("study_id")),
         ).get("provider_admission_candidates"),
-        current_control_state.get("action_queue"),
     ):
         for candidate in source or []:
             if isinstance(candidate, Mapping) and _candidate_matches_action_obligation(candidate, action):
@@ -434,11 +464,12 @@ def _route_back_evidence_outcome(
     )
     if route_back_ref is None:
         return None
-    return _obligation_outcome(
+    return _rejected_stale_diagnostic_outcome(
         action=action,
-        outcome_kind="route_back_evidence_ref",
-        outcome_ref=route_back_ref,
         phase=phase,
+        rejected_kind="route_back_evidence_ref",
+        rejected_ref=route_back_ref,
+        reason="dhd_apply_outcome_kind_not_supervisor_terminal_readback",
         details={"next_safe_action_kind": _non_empty_text(next_action.get("kind"))},
     )
 
@@ -459,11 +490,12 @@ def _human_gate_outcome(
     )
     if human_gate_ref is None:
         return None
-    return _obligation_outcome(
+    return _rejected_stale_diagnostic_outcome(
         action=action,
-        outcome_kind="human_gate_ref",
-        outcome_ref=human_gate_ref,
         phase=phase,
+        rejected_kind="human_gate_ref",
+        rejected_ref=human_gate_ref,
+        reason="dhd_apply_outcome_kind_not_supervisor_terminal_readback",
         details={"next_safe_action_kind": _non_empty_text(next_action.get("kind"))},
     )
 
@@ -596,13 +628,27 @@ def _obligation_outcome(
     *,
     action: Mapping[str, Any],
     outcome_kind: str,
-    outcome_ref: str,
+    outcome_ref: object,
     phase: str,
     details: Mapping[str, Any] | None = None,
     typed_control_blocker: Mapping[str, Any] | None = None,
     postcondition_ok: bool = True,
 ) -> dict[str, Any]:
-    obligation = _action_recovery_obligation(action)
+    decision = _action_supervisor_decision(action)
+    decision_kind = _non_empty_text(decision.get("decision"))
+    obligation = _supervisor_obligation(action=action, supervisor_decision=decision)
+    obligation_ref = _paper_autonomy_obligation_ref(
+        action=action,
+        supervisor_decision=decision,
+        obligation=obligation,
+    )
+    obligation_identity = _paper_autonomy_obligation_identity(action=action, obligation=obligation)
+    allowed_decision_outcomes = _allowed_decision_outcomes(decision_kind)
+    decision_id = _paper_autonomy_supervisor_decision_id(
+        action=action,
+        decision_kind=decision_kind,
+        obligation_ref=obligation_ref,
+    )
     payload = {
         "surface_kind": "managed_study_obligation_actuator_outcome",
         "schema_version": 1,
@@ -613,6 +659,12 @@ def _obligation_outcome(
         outcome_kind: outcome_ref,
         "exactly_one_outcome": True,
         "postcondition_ok": postcondition_ok,
+        "paper_autonomy_supervisor_decision_id": decision_id,
+        "paper_autonomy_supervisor_decision_kind": decision_kind,
+        "paper_autonomy_supervisor_allowed_outcome_kinds": sorted(allowed_decision_outcomes),
+        "paper_autonomy_supervisor_outcome_allowed": outcome_kind in allowed_decision_outcomes,
+        "paper_autonomy_obligation_ref": obligation_ref,
+        "paper_autonomy_obligation_identity": obligation_identity,
         "paper_recovery_next_safe_action_kind": _non_empty_text(
             _mapping(_mapping(action.get("paper_recovery_state")).get("next_safe_action")).get("kind")
         ),
@@ -637,6 +689,157 @@ def _obligation_outcome(
     return _clean_payload(payload)
 
 
+def _rejected_stale_diagnostic_outcome(
+    *,
+    action: Mapping[str, Any],
+    phase: str,
+    rejected_kind: str,
+    rejected_ref: str,
+    reason: str,
+    details: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    diagnostic = {
+        "surface_kind": "dhd_apply_rejected_stale_diagnostic",
+        "schema_version": 1,
+        "reason": reason,
+        "rejected_outcome_kind": rejected_kind,
+        "rejected_ref": rejected_ref,
+        "paper_progress_credit_allowed": False,
+    }
+    return _obligation_outcome(
+        action=action,
+        outcome_kind="rejected_stale_diagnostic",
+        outcome_ref=diagnostic,
+        phase=phase,
+        details=details,
+    )
+
+
+def _action_supervisor_decision(action: Mapping[str, Any]) -> dict[str, Any]:
+    recovery = _mapping(action.get("paper_recovery_state"))
+    for candidate in (
+        recovery.get("paper_autonomy_supervisor_decision"),
+        recovery.get("supervisor_decision"),
+        action.get("paper_autonomy_supervisor_decision"),
+        action.get("supervisor_decision"),
+    ):
+        decision = _mapping(candidate)
+        if decision:
+            return decision
+    return {}
+
+
+def _supervisor_obligation(
+    *,
+    action: Mapping[str, Any],
+    supervisor_decision: Mapping[str, Any],
+) -> dict[str, Any]:
+    obligation = _mapping(supervisor_decision.get("paper_autonomy_obligation"))
+    if obligation:
+        return obligation
+    return _action_recovery_obligation(action)
+
+
+def _paper_autonomy_obligation_ref(
+    *,
+    action: Mapping[str, Any],
+    supervisor_decision: Mapping[str, Any],
+    obligation: Mapping[str, Any],
+) -> str:
+    recovery = _mapping(action.get("paper_recovery_state"))
+    return _first_text(
+        supervisor_decision.get("paper_autonomy_obligation_ref"),
+        obligation.get("paper_autonomy_obligation_id"),
+        obligation.get("recovery_obligation_id"),
+        recovery.get("recovery_obligation_id"),
+        _action_obligation_fingerprint(action),
+        _non_empty_text(action.get("study_id")),
+        "unknown-obligation",
+    ) or "unknown-obligation"
+
+
+def _paper_autonomy_supervisor_decision_id(
+    *,
+    action: Mapping[str, Any],
+    decision_kind: str | None,
+    obligation_ref: str,
+) -> str:
+    decision = _action_supervisor_decision(action)
+    explicit = _non_empty_text(decision.get("decision_id"))
+    if explicit is not None:
+        return explicit
+    return "::".join(
+        (
+            "supervisor-decision",
+            decision_kind or "unknown-decision",
+            obligation_ref,
+        )
+    )
+
+
+def _paper_autonomy_obligation_identity(
+    *,
+    action: Mapping[str, Any],
+    obligation: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_action = _mapping(action.get("current_executable_owner_action"))
+    current_work_unit = _mapping(action.get("current_work_unit"))
+    return _clean_payload(
+        {
+            "study_id": _first_text(
+                obligation.get("study_id"),
+                action.get("study_id"),
+                current_work_unit.get("study_id"),
+            ),
+            "quest_id": _first_text(
+                obligation.get("quest_id"),
+                action.get("quest_id"),
+                current_work_unit.get("quest_id"),
+            ),
+            "stage_id": _first_text(obligation.get("stage_id"), current_work_unit.get("stage_id")),
+            "action_type": _first_text(
+                obligation.get("action_type"),
+                current_action.get("action_type"),
+                current_work_unit.get("action_type"),
+            ),
+            "work_unit_id": _first_text(
+                obligation.get("work_unit_id"),
+                current_action.get("work_unit_id"),
+                current_work_unit.get("work_unit_id"),
+            ),
+            "work_unit_fingerprint": _first_text(
+                obligation.get("work_unit_fingerprint"),
+                _action_obligation_fingerprint(action),
+            ),
+            "route_identity_key": _first_text(
+                obligation.get("route_identity_key"),
+                current_work_unit.get("route_identity_key"),
+            ),
+            "attempt_idempotency_key": _first_text(
+                obligation.get("attempt_idempotency_key"),
+                current_work_unit.get("attempt_idempotency_key"),
+                current_work_unit.get("idempotency_key"),
+            ),
+        }
+    )
+
+
+def _allowed_decision_outcomes(decision_kind: str | None) -> set[str]:
+    if decision_kind in _SUPERVISOR_DECISION_ALLOWED_OUTCOMES:
+        return set(_SUPERVISOR_DECISION_ALLOWED_OUTCOMES[decision_kind])
+    return set(_OBLIGATION_ACTUATOR_ALLOWED_OUTCOMES)
+
+
+def _obligation_outcome_ref(outcome: Mapping[str, Any]) -> str | None:
+    outcome_kind = _non_empty_text(outcome.get("outcome_kind"))
+    if outcome_kind is None:
+        return None
+    value = outcome.get(outcome_kind)
+    if isinstance(value, Mapping):
+        return _first_text(value.get("rejected_ref"), value.get("ref"), value.get("path"))
+    return _non_empty_text(value)
+
+
 def _postcondition_from_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
     outcome_kind = _non_empty_text(outcome.get("outcome_kind"))
     return {
@@ -645,8 +848,24 @@ def _postcondition_from_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
         "ok": bool(outcome.get("postcondition_ok")) is True,
         "exactly_one_outcome": outcome.get("exactly_one_outcome") is True,
         "outcome_kind": outcome_kind,
-        "outcome_ref": _non_empty_text(outcome.get(outcome_kind)) if outcome_kind else None,
+        "outcome_ref": _obligation_outcome_ref(outcome) if outcome_kind else None,
         "allowed_outcome_kinds": list(_OBLIGATION_ACTUATOR_ALLOWED_OUTCOMES),
+        "paper_autonomy_supervisor_decision_id": _non_empty_text(
+            outcome.get("paper_autonomy_supervisor_decision_id")
+        ),
+        "paper_autonomy_supervisor_decision_kind": _non_empty_text(
+            outcome.get("paper_autonomy_supervisor_decision_kind")
+        ),
+        "paper_autonomy_supervisor_outcome_allowed": outcome.get(
+            "paper_autonomy_supervisor_outcome_allowed"
+        )
+        is True,
+        "paper_autonomy_obligation_ref": _non_empty_text(
+            outcome.get("paper_autonomy_obligation_ref")
+        ),
+        "paper_autonomy_obligation_identity": _clean_payload(
+            _mapping(outcome.get("paper_autonomy_obligation_identity"))
+        ),
     }
 
 
@@ -659,7 +878,7 @@ def _obligation_actuator_outcome_key(outcome: Mapping[str, Any]) -> tuple[str, s
         study_id,
         _non_empty_text(outcome.get("recovery_obligation_id")) or "",
         outcome_kind,
-        _non_empty_text(outcome.get(outcome_kind)) or "",
+        _obligation_outcome_ref(outcome) or "",
     )
 
 
