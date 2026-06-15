@@ -91,7 +91,9 @@
       "observed_refs": [
         "contracts/runtime/legacy-active-path-tombstones.json",
         "tests/test_adapter_retirement_boundary.py",
-        "tests/test_legacy_ds_retirement.py"
+        "tests/test_legacy_ds_retirement.py",
+        "workspace:Yang/DM-CVD-Mortality-Risk#default-executor-dispatch-residue-cleanup-apply-2026-06-15T15:57:03Z/archived_mutable_slots=23/immutable_preserved=396",
+        "workspace:Yang/DM-CVD-Mortality-Risk#default-executor-dispatch-residue-cleanup-dry-run-2026-06-15T16:09:23Z/status=clean/mutable_slots=0/candidates=0"
       ],
       "missing_evidence_tails": [
         "production_generated_surface_consumption_ref"
@@ -143,7 +145,8 @@
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_keeps_false_claims_rejected",
         "tests/test_paper_recovery_kernel_contract.py",
         "tests/test_stage_route_reconcile_contract.py",
-        "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py"
+        "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py",
+        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_default_executor_residue_cleanup_without_progress_claim"
       ],
       "missing_evidence_tails": [
         "cross_agent_standard_conformance_negative_test_ref"
@@ -234,6 +237,7 @@
     "active_run_id_present",
     "active_run_id_null",
     "DHD_observe_only",
+    "default_executor_residue_cleanup_clean",
     "verified_refs_only_ledger",
     "App_projection_ready",
     "manual_foreground_edit_without_adoption_refs"
@@ -308,7 +312,9 @@
     "memory_artifact_ready": false,
     "artifact_ready": false,
     "package_export_ready": false,
-    "memory_or_artifact_lifecycle_work_order_complete_means_ready": false
+    "memory_or_artifact_lifecycle_work_order_complete_means_ready": false,
+    "default_executor_residue_cleanup_clean": false,
+    "default_executor_residue_cleanup_means_paper_progress": false
   },
   "latest_owner_followthrough_evidence": [
     {
@@ -380,5 +386,55 @@
         "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:ee885717be533f07"
       ]
     }
-  ]
+  ],
+  "latest_default_executor_dispatch_residue_cleanup": {
+    "surface_kind": "default_executor_dispatch_residue_cleanup",
+    "workspace_ref": "workspace:Yang/DM-CVD-Mortality-Risk",
+    "status": "clean",
+    "apply_observed_at": "2026-06-15T15:57:03Z",
+    "dry_run_observed_at": "2026-06-15T16:09:23Z",
+    "study_ids": [
+      "002-dm-china-us-mortality-attribution",
+      "003-dpcc-primary-care-phenotype-treatment-gap"
+    ],
+    "archived_mutable_slot_count": 23,
+    "remaining_mutable_dispatch_json_count": 0,
+    "remaining_cleanup_candidate_count": 0,
+    "immutable_dispatch_provenance_file_count": 396,
+    "study_receipts": [
+      {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "receipt_ref": "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#artifacts/migration/default_executor_dispatch_residue_cleanup/latest.json",
+        "archived_mutable_slot_count": 14,
+        "immutable_dispatch_provenance_file_count": 144,
+        "currentness_basis": "typed_blocker",
+        "paper_progress_delta": false
+      },
+      {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "receipt_ref": "workspace:Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap#artifacts/migration/default_executor_dispatch_residue_cleanup/latest.json",
+        "archived_mutable_slot_count": 9,
+        "immutable_dispatch_provenance_file_count": 252,
+        "currentness_basis": "owner_receipt_recorded",
+        "paper_progress_delta": false
+      }
+    ],
+    "authority_boundary": {
+      "default_executor_mutable_residue_mutation": true,
+      "immutable_dispatch_provenance_mutation": false,
+      "dhd_apply": false,
+      "provider_start": false,
+      "paper_content_mutation": false,
+      "publication_truth_mutation": false,
+      "runtime_truth_mutation": false
+    },
+    "completion_boundary": {
+      "closes_yang_stale_ready_dispatch_physical_cleanup": true,
+      "closes_live_owner_gate": false,
+      "closes_paper_recovery": false,
+      "paper_progress_delta": false,
+      "publication_ready": false,
+      "current_package_fresh": false
+    }
+  }
 }

@@ -118,6 +118,7 @@ def test_standard_agent_completion_acceptance_false_completion_claims_are_explic
         "active_run_id_present",
         "active_run_id_null",
         "DHD_observe_only",
+        "default_executor_residue_cleanup_clean",
         "verified_refs_only_ledger",
         "App_projection_ready",
         "manual_foreground_edit_without_adoption_refs",
@@ -273,6 +274,82 @@ def test_standard_agent_completion_evidence_ledger_records_lifecycle_owner_follo
         ledger["non_claims"]["memory_or_artifact_lifecycle_work_order_complete_means_ready"]
         is False
     )
+
+
+def test_standard_agent_completion_evidence_ledger_records_default_executor_residue_cleanup_without_progress_claim() -> None:
+    contract = _contract()
+    ledger = _ledger()
+    gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
+
+    cleanup = ledger["latest_default_executor_dispatch_residue_cleanup"]
+    assert cleanup["surface_kind"] == "default_executor_dispatch_residue_cleanup"
+    assert cleanup["workspace_ref"] == "workspace:Yang/DM-CVD-Mortality-Risk"
+    assert cleanup["status"] == "clean"
+    assert cleanup["apply_observed_at"] == "2026-06-15T15:57:03Z"
+    assert cleanup["dry_run_observed_at"] == "2026-06-15T16:09:23Z"
+    assert cleanup["archived_mutable_slot_count"] == 23
+    assert cleanup["remaining_mutable_dispatch_json_count"] == 0
+    assert cleanup["remaining_cleanup_candidate_count"] == 0
+    assert cleanup["immutable_dispatch_provenance_file_count"] == 396
+    assert cleanup["authority_boundary"] == {
+        "default_executor_mutable_residue_mutation": True,
+        "immutable_dispatch_provenance_mutation": False,
+        "dhd_apply": False,
+        "provider_start": False,
+        "paper_content_mutation": False,
+        "publication_truth_mutation": False,
+        "runtime_truth_mutation": False,
+    }
+    assert cleanup["completion_boundary"] == {
+        "closes_yang_stale_ready_dispatch_physical_cleanup": True,
+        "closes_live_owner_gate": False,
+        "closes_paper_recovery": False,
+        "paper_progress_delta": False,
+        "publication_ready": False,
+        "current_package_fresh": False,
+    }
+
+    receipts = {receipt["study_id"]: receipt for receipt in cleanup["study_receipts"]}
+    assert receipts["002-dm-china-us-mortality-attribution"]["receipt_ref"] == (
+        "workspace:Yang/DM-CVD-Mortality-Risk/studies/"
+        "002-dm-china-us-mortality-attribution#artifacts/migration/"
+        "default_executor_dispatch_residue_cleanup/latest.json"
+    )
+    assert receipts["002-dm-china-us-mortality-attribution"]["archived_mutable_slot_count"] == 14
+    assert receipts["002-dm-china-us-mortality-attribution"]["currentness_basis"] == "typed_blocker"
+    assert receipts["003-dpcc-primary-care-phenotype-treatment-gap"]["receipt_ref"] == (
+        "workspace:Yang/DM-CVD-Mortality-Risk/studies/"
+        "003-dpcc-primary-care-phenotype-treatment-gap#artifacts/migration/"
+        "default_executor_dispatch_residue_cleanup/latest.json"
+    )
+    assert receipts["003-dpcc-primary-care-phenotype-treatment-gap"]["archived_mutable_slot_count"] == 9
+    assert receipts["003-dpcc-primary-care-phenotype-treatment-gap"]["currentness_basis"] == (
+        "owner_receipt_recorded"
+    )
+    assert all(receipt["paper_progress_delta"] is False for receipt in receipts.values())
+
+    active_caller = gates["active_caller_migration_and_no_resurrection"]
+    assert {
+        (
+            "workspace:Yang/DM-CVD-Mortality-Risk#default-executor-dispatch-residue-cleanup-apply-"
+            "2026-06-15T15:57:03Z/archived_mutable_slots=23/immutable_preserved=396"
+        ),
+        (
+            "workspace:Yang/DM-CVD-Mortality-Risk#default-executor-dispatch-residue-cleanup-dry-run-"
+            "2026-06-15T16:09:23Z/status=clean/mutable_slots=0/candidates=0"
+        ),
+    } <= set(active_caller["observed_refs"])
+
+    negative = gates["negative_false_completion_tests"]
+    assert (
+        "tests/test_standard_agent_completion_acceptance_contract.py::"
+        "test_standard_agent_completion_evidence_ledger_records_default_executor_residue_cleanup_without_progress_claim"
+    ) in negative["observed_refs"]
+    assert "default_executor_residue_cleanup_clean" in contract["false_completion_claims"]
+    assert "default_executor_residue_cleanup_clean" in ledger["rejected_completion_claims"]
+    assert ledger["non_claims"]["default_executor_residue_cleanup_clean"] is False
+    assert ledger["non_claims"]["default_executor_residue_cleanup_means_paper_progress"] is False
+    assert ledger["completion_claim_allowed"] is False
 
 
 def test_standard_agent_completion_evidence_ledger_rejects_docs_as_machine_truth_refs() -> None:

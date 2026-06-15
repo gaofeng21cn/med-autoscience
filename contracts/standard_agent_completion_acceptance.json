@@ -207,6 +207,7 @@
     "active_run_id_present",
     "active_run_id_null",
     "DHD_observe_only",
+    "default_executor_residue_cleanup_clean",
     "verified_refs_only_ledger",
     "App_projection_ready",
     "manual_foreground_edit_without_adoption_refs"
