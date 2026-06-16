@@ -361,16 +361,29 @@ def _terminal_stage_blocks_action(
     status = text(terminal.get("status"))
     outcome = text(terminal.get("outcome"))
     classification = text(terminal.get("progress_delta_classification"))
+    typed_blocker = mapping(terminal.get("typed_blocker"))
+    explicit_blocker = _terminal_stage_has_explicit_blocker(
+        terminal,
+        typed_blocker=typed_blocker,
+        mapping=mapping,
+        text=text,
+    )
     if (
         status not in TERMINAL_ACTION_BLOCKING_STATUSES
         and outcome not in TERMINAL_ACTION_BLOCKING_STATUSES
-        and classification != "typed_blocker"
-        and not mapping(terminal.get("typed_blocker"))
+        and not typed_blocker
+        and not (classification == "typed_blocker" and explicit_blocker)
+    ):
+        return False
+    if (
+        classification == "typed_blocker"
+        and status not in TERMINAL_ACTION_BLOCKING_STATUSES
+        and outcome not in TERMINAL_ACTION_BLOCKING_STATUSES
+        and not explicit_blocker
     ):
         return False
     expected_action = action_type(action)
     terminal_action = text(terminal.get("action_type"))
-    typed_blocker = mapping(terminal.get("typed_blocker"))
     typed_blocker_action = text(typed_blocker.get("action_type"))
     if expected_action is None:
         return False
@@ -414,6 +427,34 @@ def _terminal_stage_blocks_action(
     if expected_work_unit is not None and terminal_work_units:
         return expected_work_unit in terminal_work_units
     return expected_work_unit is not None
+
+
+def _terminal_stage_has_explicit_blocker(
+    terminal: Mapping[str, Any],
+    *,
+    typed_blocker: Mapping[str, Any],
+    mapping: MappingReader,
+    text: TextReader,
+) -> bool:
+    if typed_blocker:
+        return True
+    paper_stage_log = mapping(terminal.get("paper_stage_log"))
+    if _terminal_gate_replay_blocked(terminal, mapping=mapping, text=text):
+        return True
+    remaining_blockers = terminal.get("remaining_blockers") or paper_stage_log.get("remaining_blockers")
+    if isinstance(remaining_blockers, list | tuple) and any(text(item) for item in remaining_blockers):
+        return True
+    return any(
+        text(value) is not None
+        for value in (
+            terminal.get("blocked_reason"),
+            terminal.get("typed_blocker_reason"),
+            terminal.get("typed_blocker_ref"),
+            paper_stage_log.get("blocked_reason"),
+            paper_stage_log.get("typed_blocker_reason"),
+            paper_stage_log.get("typed_blocker_ref"),
+        )
+    )
 
 
 def _terminal_stage_identity_conflicts_action(

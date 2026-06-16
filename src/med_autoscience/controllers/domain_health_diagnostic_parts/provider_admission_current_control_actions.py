@@ -74,6 +74,8 @@ def _study_current_actions_for_provider_admission(payload: Mapping[str, Any]) ->
 def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> dict[str, Any] | None:
     current = _mapping(study.get("current_executable_owner_action"))
     if not current:
+        current = _current_action_from_executable_current_work_unit(study)
+    if not current:
         return None
     action_type = _current_action_action_type(current)
     if action_type is None:
@@ -167,12 +169,76 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "required_output_surface": _required_output_surface(current),
         "provider_attempt_or_lease_required": True,
         "provider_completion_is_domain_completion": False,
-        "source_surface": "opl_current_control_state.study_current_executable_owner_action",
+        "source_surface": _study_current_action_source_surface(current),
         "owner_route": {
             "next_owner": executable_owner,
             "allowed_actions": [action_type],
             "work_unit_fingerprint": action_fingerprint,
             "source_refs": source_refs,
+        },
+    }
+
+
+def _study_current_action_source_surface(current: Mapping[str, Any]) -> str:
+    if _non_empty_text(current.get("source")) == "canonical_current_work_unit":
+        return "opl_current_control_state.study_current_work_unit"
+    return "opl_current_control_state.study_current_executable_owner_action"
+
+
+def _current_action_from_executable_current_work_unit(
+    study: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+        return {}
+    envelope = _mapping(study.get("current_execution_envelope"))
+    state_kind = _non_empty_text(envelope.get("state_kind"))
+    if state_kind not in {None, "executable_owner_action"}:
+        return {}
+    action_type = _non_empty_text(current_work_unit.get("action_type"))
+    work_unit_id = _non_empty_text(current_work_unit.get("work_unit_id"))
+    owner = _non_empty_text(current_work_unit.get("owner")) or _non_empty_text(envelope.get("owner"))
+    if action_type is None or work_unit_id is None or owner is None:
+        return {}
+    if _current_control_executable_owner(action_type=action_type, owner=owner) is None:
+        return {}
+    currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
+    fingerprint = _first_currentness_fingerprint(
+        current_work_unit.get("work_unit_fingerprint"),
+        current_work_unit.get("action_fingerprint"),
+        currentness_basis.get("work_unit_fingerprint"),
+        currentness_basis.get("source_fingerprint"),
+        study_id=_non_empty_text(study.get("study_id")),
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    )
+    if fingerprint is None:
+        return {}
+    required_output = _non_empty_text(
+        _mapping(current_work_unit.get("required_output_contract")).get("required_output_surface")
+    ) or _non_empty_text(
+        _mapping(
+            _mapping(current_work_unit.get("required_output_contract")).get("target_surface")
+        ).get("surface_ref")
+    )
+    return {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": "canonical_current_work_unit",
+        "next_owner": owner,
+        "owner": owner,
+        "action_type": action_type,
+        "allowed_actions": [action_type],
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "source_eval_id": _non_empty_text(currentness_basis.get("source_eval_id")),
+        "required_output_surface": required_output,
+        "owner_route_currentness_basis": dict(currentness_basis)
+        if currentness_basis
+        else {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
         },
     }
 
@@ -406,6 +472,7 @@ def _current_control_action_identity(action: Mapping[str, Any]) -> dict[str, Any
         None,
         "opl_current_control_state.action_queue",
         "opl_current_control_state.study_current_executable_owner_action",
+        "opl_current_control_state.study_current_work_unit",
     }:
         return {}
     action_type = _current_action_action_type(action)

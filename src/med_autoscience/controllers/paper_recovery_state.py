@@ -38,6 +38,7 @@ from med_autoscience.controllers.paper_recovery_state_parts.successor_owner_reso
     current_owner_successor_action as _current_owner_successor_action,
     executable_action_is_gate_followthrough_successor as _executable_action_is_gate_followthrough_successor,
     paper_recovery_successor_action_ready as _paper_recovery_successor_action_ready,
+    successor_owner_action_from_gate_followthrough as _successor_owner_action_from_gate_followthrough,
     successor_owner_action_from_current_action as _successor_owner_action_from_current_action,
     successor_owner_action_from_terminal_blocker as _successor_owner_action_from_terminal_blocker,
     successor_owner_gate_from_terminal_blocker as _successor_owner_gate_from_terminal_blocker,
@@ -135,6 +136,33 @@ def build_paper_recovery_state(
         obligation=obligation,
     )
     if owner_receipt is not None:
+        successor_action = _successor_owner_action_from_consumed_owner_receipt(
+            progress,
+            owner_receipt=owner_receipt,
+        )
+        if successor_action is not None:
+            successor_owner = _text(successor_action.get("owner")) or _text(
+                successor_action.get("next_owner")
+            )
+            return _state(
+                progress,
+                obligation=obligation,
+                phase="owner_action_ready",
+                conditions=[
+                    {
+                        "condition": "consumed_owner_receipt_routeback_successor",
+                        "source_condition": _text(owner_receipt.get("condition"))
+                        or "owner_receipt_recorded",
+                    }
+                ],
+                next_safe_action=_next_action(
+                    "materialize_successor_owner_action",
+                    provider_admission_allowed=True,
+                    owner=successor_owner,
+                    successor_owner_action=successor_action,
+                ),
+                current_owner=successor_owner,
+            )
         owner = _text(obligation.get("owner"))
         owner_receipt_ref = _text(owner_receipt.get("owner_receipt_ref"))
         condition = _text(owner_receipt.get("condition")) or "same_work_unit_owner_receipt_recorded"
@@ -1005,6 +1033,13 @@ def _same_work_unit_owner_receipt(
         current_action=current_action,
         obligation=obligation,
     ):
+        if _route_back_successor_consumes_prior_owner_receipt(
+            progress,
+            repair=repair,
+            current_work_unit=current_work_unit,
+            current_action=current_action,
+        ):
+            return None
         return {
             "condition": "same_work_unit_owner_receipt_recorded",
             "owner_receipt_ref": owner_receipt_ref,
@@ -1044,6 +1079,108 @@ def _owner_receipt_recorded_current_work_unit(
         "owner_receipt_ref": owner_receipt_ref,
         "action_type": _text(current_work_unit.get("action_type")) or _text(obligation.get("action_type")),
     }
+
+
+def _successor_owner_action_from_consumed_owner_receipt(
+    progress: Mapping[str, Any],
+    *,
+    owner_receipt: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not _owner_receipt_has_consumed_successor(progress, owner_receipt=owner_receipt):
+        return None
+    successor = _successor_owner_action_from_gate_followthrough(progress)
+    if successor is None:
+        return None
+    if _owner_receipt_has_consumed_gate_followthrough(progress, owner_receipt=owner_receipt):
+        return successor
+    transition = _mapping(progress.get("domain_transition"))
+    next_work_unit = _first_text(
+        _mapping(transition.get("next_work_unit")).get("unit_id"),
+        _mapping(transition.get("next_work_unit")).get("work_unit_id"),
+    )
+    successor_work_unit = _text(successor.get("work_unit_id"))
+    if next_work_unit is None or successor_work_unit != next_work_unit:
+        return None
+    transition_owner = _first_text(transition.get("owner"), transition.get("route_target"))
+    successor_owner = _first_text(successor.get("owner"), successor.get("next_owner"))
+    if transition_owner is not None and successor_owner is not None and successor_owner != transition_owner:
+        return None
+    return successor
+
+
+def _owner_receipt_has_consumed_successor(
+    progress: Mapping[str, Any],
+    *,
+    owner_receipt: Mapping[str, Any],
+) -> bool:
+    return _owner_receipt_has_consumed_routeback(
+        progress,
+        owner_receipt=owner_receipt,
+    ) or _owner_receipt_has_consumed_gate_followthrough(
+        progress,
+        owner_receipt=owner_receipt,
+    )
+
+
+def _owner_receipt_has_consumed_routeback(
+    progress: Mapping[str, Any],
+    *,
+    owner_receipt: Mapping[str, Any],
+) -> bool:
+    if _text(owner_receipt.get("owner_receipt_ref")) is None:
+        return False
+    transition = _mapping(progress.get("domain_transition"))
+    if _text(transition.get("decision_type")) != "route_back_same_line":
+        return False
+    if _text(transition.get("controller_action")) != "request_opl_stage_attempt":
+        return False
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return False
+    return _text(completion.get("receipt_kind")) == "ai_reviewer_publication_eval"
+
+
+def _owner_receipt_has_consumed_gate_followthrough(
+    progress: Mapping[str, Any],
+    *,
+    owner_receipt: Mapping[str, Any],
+) -> bool:
+    if _text(owner_receipt.get("owner_receipt_ref")) is None:
+        return False
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    if _text(current_work_unit.get("action_type")) != "run_gate_clearing_batch":
+        return False
+    if _text(current_work_unit.get("work_unit_id")) != "publication_gate_replay":
+        return False
+    contract = _mapping(current_work_unit.get("required_output_contract"))
+    if contract.get("owner_receipt_consumed") is not True:
+        return False
+    followthrough = _mapping(progress.get("gate_clearing_batch_followthrough"))
+    if _text(followthrough.get("status")) != "executed":
+        return False
+    if _text(followthrough.get("gate_replay_status")) != "blocked":
+        return False
+    currentness = _mapping(followthrough.get("work_unit_currentness"))
+    if _text(currentness.get("current_actionability_status")) != "actionable":
+        return False
+    if currentness.get("lacks_specific_blocker_object") is True:
+        return False
+    if _text(followthrough.get("latest_record_path")) != _text(owner_receipt.get("owner_receipt_ref")):
+        return False
+    successor_work_unit = _first_text(
+        followthrough.get("work_unit_id"),
+        currentness.get("current_publication_work_unit_id"),
+        currentness.get("explicit_publication_work_unit_id"),
+        _mapping(followthrough.get("current_publication_work_unit")).get("unit_id"),
+    )
+    if successor_work_unit in {None, "publication_gate_replay"}:
+        return False
+    successor_fingerprint = _first_text(
+        followthrough.get("work_unit_fingerprint"),
+        currentness.get("current_work_unit_fingerprint"),
+        currentness.get("explicit_work_unit_fingerprint"),
+    )
+    return successor_fingerprint is not None
 
 
 def _same_work_unit_owner_receipt_matches_obligation(
@@ -1135,6 +1272,66 @@ def _gate_followthrough_successor_receipt_matches_current_action(
     if repair_eval is not None and repair_eval != action_eval:
         return False
     if repair_eval is not None and repair_eval != followthrough_eval:
+        return False
+    return True
+
+
+def _route_back_successor_consumes_prior_owner_receipt(
+    progress: Mapping[str, Any],
+    *,
+    repair: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    transition = _mapping(progress.get("domain_transition"))
+    if _text(transition.get("decision_type")) != "route_back_same_line":
+        return False
+    if _text(transition.get("owner")) not in {None, "write", "analysis-campaign", "finalize"}:
+        return False
+    controller_action = _text(transition.get("controller_action"))
+    if controller_action not in {None, "request_opl_stage_attempt"}:
+        return False
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return False
+    if _text(completion.get("receipt_kind")) != "ai_reviewer_publication_eval":
+        return False
+    if _text(current_action.get("action_type")) != "run_quality_repair_batch":
+        return False
+    next_work_unit = _first_text(
+        _mapping(transition.get("next_work_unit")).get("unit_id"),
+        _mapping(transition.get("next_work_unit")).get("work_unit_id"),
+    )
+    action_work_unit = _text(current_action.get("work_unit_id"))
+    current_work_unit_id = _text(current_work_unit.get("work_unit_id"))
+    repair_work_unit = _text(repair.get("work_unit_id"))
+    if (
+        next_work_unit is None
+        or action_work_unit != next_work_unit
+        or current_work_unit_id != next_work_unit
+        or repair_work_unit != next_work_unit
+    ):
+        return False
+    action_owner = _first_text(current_action.get("next_owner"), current_action.get("owner"))
+    transition_owner = _first_text(transition.get("owner"), transition.get("route_target"))
+    if action_owner is not None and transition_owner is not None and action_owner != transition_owner:
+        return False
+    action_fingerprint = _first_text(
+        current_action.get("work_unit_fingerprint"),
+        current_action.get("action_fingerprint"),
+        current_work_unit.get("work_unit_fingerprint"),
+        current_work_unit.get("action_fingerprint"),
+    )
+    repair_fingerprint = _first_text(
+        repair.get("work_unit_fingerprint"),
+        repair.get("action_fingerprint"),
+        repair.get("source_fingerprint"),
+    )
+    if action_fingerprint is None or repair_fingerprint != action_fingerprint:
+        return False
+    action_eval = _text(current_action.get("source_eval_id"))
+    repair_eval = _text(repair.get("source_eval_id"))
+    if action_eval is not None and repair_eval is not None and action_eval != repair_eval:
         return False
     return True
 

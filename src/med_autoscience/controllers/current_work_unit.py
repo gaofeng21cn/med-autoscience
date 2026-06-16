@@ -164,6 +164,9 @@ def build_current_work_unit(
         )
         if repair_progress_action is not None:
             action = repair_progress_action
+    paper_recovery_successor_action = _paper_recovery_successor_action(progress_payload)
+    if paper_recovery_successor_action is not None:
+        action = paper_recovery_successor_action
     if stage_owner_answer_action is not None and not _action_supersedes_stage_owner_answer(
         action=action,
         progress=progress_payload,
@@ -498,6 +501,76 @@ def _owner_receipt_recorded_recovery(progress: Mapping[str, Any]) -> dict[str, A
     return None
 
 
+def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, Any] | None:
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    if _text(recovery.get("phase")) != "owner_action_ready":
+        return None
+    next_action = _mapping(recovery.get("next_safe_action"))
+    if _text(next_action.get("kind")) != "materialize_successor_owner_action":
+        return None
+    if next_action.get("provider_admission_allowed") is not True:
+        return None
+    successor = _mapping(next_action.get("successor_owner_action"))
+    action_type = _action_type(successor)
+    work_unit_id = _work_unit_id(successor.get("work_unit_id")) or _work_unit_id(
+        successor.get("next_work_unit")
+    )
+    fingerprint = _text(successor.get("work_unit_fingerprint")) or _text(
+        successor.get("action_fingerprint")
+    )
+    owner = (
+        _text(successor.get("owner"))
+        or _text(successor.get("next_owner"))
+        or _text(next_action.get("owner"))
+    )
+    if action_type is None or work_unit_id is None or fingerprint is None or owner is None:
+        return None
+    source_surface = _text(successor.get("source_surface")) or _text(successor.get("source"))
+    currentness_basis = _mapping(successor.get("owner_route_currentness_basis")) or {
+        "source": source_surface,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+    }
+    return {
+        key: value
+        for key, value in {
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "source_surface": source_surface,
+            "next_owner": owner,
+            "owner": owner,
+            "action_type": action_type,
+            "allowed_actions": [action_type],
+            "work_unit_id": work_unit_id,
+            "next_work_unit": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_ref": _text(successor.get("source_ref")),
+            "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            "owner_receipt_required": True,
+            "paper_recovery_successor": {
+                "phase": _text(recovery.get("phase")),
+                "source_next_safe_action_kind": _text(next_action.get("kind")),
+                "provider_admission_allowed": True,
+                "source_surface": source_surface,
+            },
+            "owner_route_currentness_basis": {
+                key: value
+                for key, value in {
+                    **currentness_basis,
+                    "source": source_surface,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                }.items()
+                if value not in (None, "", [], {})
+            },
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
 def _repair_progress_owner_receipt_recovery(
     *,
     progress: Mapping[str, Any],
@@ -685,10 +758,20 @@ def _owner_receipt_consumed_by_actionable_successor(
     recovery = _mapping(progress.get("paper_recovery_state"))
     obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
     if _same_action_identity(obligation, payload):
-        return False
+        if not _route_back_successor_consumes_prior_owner_receipt(
+            action=payload,
+            status=status,
+            progress=progress,
+        ):
+            return False
     repair = _mapping(progress.get("repair_progress_projection"))
     if repair and _repair_progress_matches_action(repair=repair, action=payload):
-        return False
+        if not _route_back_successor_consumes_prior_owner_receipt(
+            action=payload,
+            status=status,
+            progress=progress,
+        ):
+            return False
     if _domain_transition_successor_consumes_owner_receipt(
         action=payload,
         status=status,
@@ -720,7 +803,11 @@ def _domain_transition_successor_consumes_owner_receipt(
         return False
     transition = _mapping(status.get("domain_transition")) or _mapping(progress.get("domain_transition"))
     if _text(transition.get("decision_type")) != "ai_reviewer_re_eval":
-        return False
+        return _route_back_successor_consumes_prior_owner_receipt(
+            action=action,
+            status=status,
+            progress=progress,
+        )
     if _text(transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
         return False
     if _text(transition.get("owner")) not in {None, "ai_reviewer"}:
@@ -740,6 +827,44 @@ def _domain_transition_successor_consumes_owner_receipt(
         or _mapping(action.get("currentness_basis")),
     )
     return action_fingerprint == expected_fingerprint
+
+
+def _route_back_successor_consumes_prior_owner_receipt(
+    *,
+    action: Mapping[str, Any],
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    transition = _mapping(status.get("domain_transition")) or _mapping(progress.get("domain_transition"))
+    if _text(transition.get("decision_type")) != "route_back_same_line":
+        return False
+    if _text(transition.get("owner")) not in {None, "write", "analysis-campaign", "finalize"}:
+        return False
+    controller_action = _text(transition.get("controller_action"))
+    if controller_action not in {None, "request_opl_stage_attempt"}:
+        return False
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return False
+    if _text(completion.get("receipt_kind")) != "ai_reviewer_publication_eval":
+        return False
+    if _action_type(action) != "run_quality_repair_batch":
+        return False
+    next_work_unit = _work_unit_id(_mapping(transition.get("next_work_unit")).get("unit_id"))
+    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(
+        action.get("next_work_unit")
+    )
+    if next_work_unit is None or action_work_unit != next_work_unit:
+        return False
+    action_owner = _text(action.get("next_owner")) or _text(action.get("owner"))
+    transition_owner = _text(transition.get("owner")) or _text(transition.get("route_target"))
+    if action_owner is not None and transition_owner is not None and action_owner != transition_owner:
+        return False
+    return _work_unit_fingerprint(
+        action,
+        currentness_basis=_mapping(action.get("owner_route_currentness_basis"))
+        or _mapping(action.get("currentness_basis")),
+    ) is not None
 
 
 def _action_supersedes_typed_blocker(

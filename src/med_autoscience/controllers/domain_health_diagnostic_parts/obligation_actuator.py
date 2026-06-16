@@ -628,6 +628,7 @@ def _typed_control_blocker_payload(
         "paper_package_mutation_allowed": False,
         "publication_ready_claim_allowed": False,
         "provider_completion_is_domain_completion": False,
+        "non_advancing_apply": blocker_type == "dhd_apply_no_closed_obligation_outcome",
     }
     cleaned = {key: value for key, value in payload.items() if value not in (None, "", [], {})}
     cleaned["typed_blocker_id"] = "dhd-obligation-blocker:" + hashlib.sha256(

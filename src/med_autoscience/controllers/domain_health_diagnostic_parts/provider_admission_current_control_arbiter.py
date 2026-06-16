@@ -509,6 +509,12 @@ def _paper_recovery_state_blocks_provider_admission(
     if supervisor_decision and supervisor_gate.get("blocked") is not True:
         return {}
     next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if _provider_admission_candidate_materializes_recovery_action(
+        identity,
+        recovery=recovery,
+        supervisor_decision=supervisor_decision,
+    ):
+        return {}
     if (
         next_safe_action.get("provider_admission_allowed") is True
         or _non_empty_text(next_safe_action.get("kind")) == "admit_provider_attempt"
@@ -533,6 +539,33 @@ def _paper_recovery_state_blocks_provider_admission(
         }.items()
         if value not in (None, "", [], {})
     }
+
+
+def _provider_admission_candidate_materializes_recovery_action(
+    identity: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+    supervisor_decision: Mapping[str, Any],
+) -> bool:
+    if identity.get("same_tick_materialized_provider_admission") is not True:
+        return False
+    if _non_empty_text(identity.get("source")) != "same_tick_materialized_dispatch":
+        return False
+    if _non_empty_text(supervisor_decision.get("decision")) != "materialize_recovery_action":
+        return False
+    if _non_empty_text(recovery.get("phase")) != "owner_action_ready":
+        return False
+    next_safe_action = _mapping(supervisor_decision.get("next_safe_action"))
+    if _non_empty_text(next_safe_action.get("kind")) != "materialize_recovery_work_unit_or_receipt":
+        return False
+    source_next_safe_action = _mapping(next_safe_action.get("source_next_safe_action"))
+    if _non_empty_text(source_next_safe_action.get("kind")) != "run_mas_owner_callable":
+        return False
+    owner = _non_empty_text(identity.get("next_executable_owner")) or _non_empty_text(identity.get("owner"))
+    supervisor_owner = _non_empty_text(supervisor_decision.get("next_owner")) or _non_empty_text(
+        source_next_safe_action.get("owner")
+    )
+    return owner is not None and supervisor_owner in {None, owner}
 
 
 def _running_attempt_covers_candidate(

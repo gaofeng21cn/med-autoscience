@@ -226,6 +226,112 @@ def test_provider_admission_current_control_requires_execute_supervisor_decision
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
 
 
+def test_provider_admission_current_control_retains_same_tick_materialized_recovery_candidate(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    action_fingerprint = "publication-blockers::0915410f804b3697"
+    candidate = {
+        **_provider_candidate(profile, study_id, action_fingerprint=action_fingerprint),
+        "source": "same_tick_materialized_dispatch",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "next_executable_owner": "write",
+        "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+        "same_tick_materialized_provider_admission": True,
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-16T00:25:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "active",
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": action_fingerprint,
+                    "action_fingerprint": action_fingerprint,
+                },
+                "paper_recovery_state": {
+                    "surface_kind": "paper_recovery_state",
+                    "phase": "owner_action_ready",
+                    "current_authority": {
+                        "owner": "write",
+                        "obligation": {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "owner": "write",
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                        },
+                    },
+                    "conditions": [
+                        {
+                            "condition": "current_mas_owner_callable_ready",
+                            "reason": "runtime_recovery_retry_budget_exhausted",
+                        }
+                    ],
+                    "next_safe_action": {
+                        "kind": "run_mas_owner_callable",
+                        "owner": "write",
+                        "provider_admission_allowed": False,
+                    },
+                    "supervisor_decision": {
+                        "surface_kind": "paper_autonomy_supervisor_decision",
+                        "decision": "materialize_recovery_action",
+                        "next_owner": "write",
+                        "next_safe_action": {
+                            "kind": "materialize_recovery_work_unit_or_receipt",
+                            "recovery_kind": "mas_control_plane_repair",
+                            "source_next_safe_action": {
+                                "kind": "run_mas_owner_callable",
+                                "owner": "write",
+                                "provider_admission_allowed": False,
+                            },
+                        },
+                        "forbidden_interpretations": [
+                            "provider_admission_pending_count=0",
+                            "observe_only",
+                        ],
+                    },
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert len(result["provider_admission_candidates"]) == 1
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "pending_provider_admission"
+    assert decision["effect"] == "retain_provider_admission_pending"
+    assert result["action_queue"][0]["action_type"] == "run_quality_repair_batch"
+    assert result["action_queue"][0]["work_unit_id"] == work_unit_id
+
+
 def test_provider_admission_report_suppresses_candidate_blocked_by_report_paper_recovery_state(
     tmp_path: Path,
 ) -> None:

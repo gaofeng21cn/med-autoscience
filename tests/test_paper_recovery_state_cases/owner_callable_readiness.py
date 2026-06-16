@@ -516,6 +516,117 @@ def test_same_work_unit_quality_repair_owner_receipt_closes_current_callable() -
     )
 
 
+def test_routeback_successor_does_not_reclose_consumed_owner_receipt() -> None:
+    fingerprint = "publication-blockers::0915410f804b3697"
+    receipt_ref = "artifacts/controller/repair_execution_receipts/latest.json"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(
+                owner="write",
+                action_type="run_quality_repair_batch",
+                work_unit_id="medical_prose_write_repair",
+                fingerprint=fingerprint,
+            )
+            | {
+                "required_output_contract": {
+                    "target_surface": {
+                        "ref_kind": "publication_work_unit",
+                        "route_target": "write",
+                        "current_publication_work_unit": {
+                            "unit_id": "medical_prose_write_repair",
+                            "lane": "write",
+                        },
+                    }
+                },
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "source_eval_id": source_eval_id,
+                "allowed_actions": ["run_quality_repair_batch"],
+            },
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "source_eval_id": source_eval_id,
+                "owner_receipt_ref": receipt_ref,
+                "repair_execution_evidence_ref": (
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "gate_replay_done": True,
+            },
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "source_eval_id": source_eval_id,
+                "work_unit_currentness": {
+                    "current_actionability_status": "actionable",
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": fingerprint,
+                    "explicit_work_unit_fingerprint": fingerprint,
+                    "lacks_specific_blocker_object": False,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+            },
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "work_unit_fingerprint": (
+                        "domain-transition::ai_reviewer_re_eval::"
+                        "ai_reviewer_medical_prose_quality_review"
+                    ),
+                },
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["current_authority"]["owner"] == "write"
+
+
 def test_repair_progress_gate_replay_followup_with_existing_receipt_closes_as_owner_receipt() -> None:
     fingerprint = "publication-gate-replay::current"
     artifact_delta_fingerprint = "sha256:7ede1907479d87ea1a88c4468749d0e63017d93b7b2d518cdcd9be95d4ee0e96"
@@ -659,6 +770,219 @@ def test_current_work_unit_owner_receipt_recorded_closes_paper_recovery_state() 
     }
     assert state["evidence_refs"] == [receipt_ref]
     assert state["supervisor_decision"]["decision"] == "stop_with_owner_receipt"
+
+
+def test_consumed_gate_owner_receipt_materializes_routeback_successor() -> None:
+    receipt_ref = "artifacts/controller/gate_clearing_batch/latest.json"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
+    )
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "owner_receipt_recorded",
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "stage_id": "publication_supervision",
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "required_output_contract": {
+                    "owner_receipt_consumed": True,
+                    "owner_receipt_ref": receipt_ref,
+                    "provider_completion_is_domain_completion": False,
+                    "domain_ready_authorized": False,
+                },
+                "acceptance_refs": [receipt_ref],
+                "state": {
+                    "state_kind": "owner_receipt_recorded",
+                    "source": "paper_recovery_state.owner_receipt_recorded",
+                    "owner_receipt_ref": receipt_ref,
+                    "next_safe_action_kind": "consume_owner_receipt",
+                    "provider_admission_pending": False,
+                },
+                "currentness_basis": {
+                    "source_eval_id": source_eval_id,
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "work_unit_fingerprint": (
+                        "domain-transition::ai_reviewer_re_eval::"
+                        "ai_reviewer_medical_prose_quality_review"
+                    ),
+                },
+            },
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "gate_replay_status": "blocked",
+                "latest_record_path": receipt_ref,
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "work_unit_currentness": {
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": fingerprint,
+                    "explicit_work_unit_fingerprint": fingerprint,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [
+        {
+            "condition": "consumed_owner_receipt_routeback_successor",
+            "source_condition": "current_work_unit_owner_receipt_recorded",
+        }
+    ]
+    assert state["current_authority"]["owner"] == "write"
+    assert state["next_safe_action"] == {
+        "kind": "materialize_successor_owner_action",
+        "owner": "write",
+        "provider_admission_allowed": True,
+        "successor_owner_action": {
+            "action_type": "run_quality_repair_batch",
+            "owner": "write",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+            "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "source_ref": receipt_ref,
+        },
+    }
+
+
+def test_consumed_gate_owner_receipt_materializes_actionable_gate_followthrough_successor() -> None:
+    receipt_ref = "/workspace/studies/003/artifacts/controller/gate_clearing_batch/latest.json"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260615T222436Z::sat_eb686259d7e6346195aba801"
+    )
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "owner_receipt_recorded",
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "stage_id": "publication_supervision",
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "required_output_contract": {
+                    "owner_receipt_consumed": True,
+                    "owner_receipt_ref": receipt_ref,
+                    "provider_completion_is_domain_completion": False,
+                    "domain_ready_authorized": False,
+                },
+                "acceptance_refs": [receipt_ref],
+                "state": {
+                    "state_kind": "owner_receipt_recorded",
+                    "source": "paper_recovery_state.owner_receipt_recorded",
+                    "owner_receipt_ref": receipt_ref,
+                    "next_safe_action_kind": "consume_owner_receipt",
+                    "provider_admission_pending": False,
+                },
+                "currentness_basis": {
+                    "source_eval_id": source_eval_id,
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "next_work_unit": {
+                    "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "lane": "review",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "work_unit_fingerprint": (
+                        "domain-transition::ai_reviewer_re_eval::"
+                        "ai_reviewer_medical_prose_quality_review"
+                    ),
+                },
+            },
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "gate_replay_status": "blocked",
+                "latest_record_path": receipt_ref,
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "work_unit_currentness": {
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": fingerprint,
+                    "explicit_work_unit_fingerprint": fingerprint,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [
+        {
+            "condition": "consumed_owner_receipt_routeback_successor",
+            "source_condition": "current_work_unit_owner_receipt_recorded",
+        }
+    ]
+    assert state["current_authority"]["owner"] == "write"
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["successor_owner_action"] == {
+        "action_type": "run_quality_repair_batch",
+        "owner": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": fingerprint,
+        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "source_ref": receipt_ref,
+    }
 
 
 def test_terminal_anti_loop_typed_blocker_does_not_rerun_same_owner_callable() -> None:

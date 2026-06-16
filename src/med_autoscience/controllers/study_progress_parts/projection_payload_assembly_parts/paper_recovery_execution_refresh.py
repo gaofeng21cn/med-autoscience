@@ -19,30 +19,70 @@ def refresh_after_paper_recovery_state(
     sync_progress_first_owner_action_admission: Callable[[dict[str, Any]], dict[str, Any]],
     build_paper_recovery_state: Callable[[Mapping[str, Any]], dict[str, Any]],
 ) -> dict[str, Any]:
-    recovery_current_action = build_current_executable_owner_action(payload)
-    recovery_probe = refresh_current_execution_surfaces(
-        payload={**payload, "current_executable_owner_action": recovery_current_action},
-        status=status,
-        handoff=handoff,
-        runtime_health_snapshot=runtime_health_snapshot,
-    )
-    if (
-        recovery_current_action == _mapping_copy(payload.get("current_executable_owner_action"))
-        and _mapping_copy(recovery_probe.get("current_work_unit"))
-        == _mapping_copy(payload.get("current_work_unit"))
-    ):
-        return payload
-    updated = recovery_probe
-    updated.update(
-        provider_admission_projection_fields(
-            payload=updated,
+    updated = _with_recovery_supervisor_decision(dict(payload))
+    for _ in range(4):
+        before = _refresh_signature(updated)
+        recovery_current_action = build_current_executable_owner_action(updated)
+        refreshed = refresh_current_execution_surfaces(
+            payload={**updated, "current_executable_owner_action": recovery_current_action},
+            status=status,
+            handoff=handoff,
+            runtime_health_snapshot=runtime_health_snapshot,
+        )
+        refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
+        refreshed = _with_recovery_supervisor_decision(refreshed)
+        refreshed = _without_stale_provider_supervisor_block(refreshed)
+        provider_fields = provider_admission_projection_fields(
+            payload=refreshed,
             handoff=handoff,
             study_root=study_root,
         )
-    )
-    updated = sync_progress_first_owner_action_admission(updated)
-    updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+        refreshed.update(provider_fields)
+        refreshed = sync_progress_first_owner_action_admission(refreshed)
+        refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
+        refreshed = _with_recovery_supervisor_decision(refreshed)
+        if "provider_admission_blocked_by_supervisor_decision" not in provider_fields:
+            refreshed = _without_stale_provider_supervisor_block(refreshed)
+        if _refresh_signature(refreshed) == before:
+            return refreshed
+        updated = refreshed
     return updated
+
+
+def _with_recovery_supervisor_decision(payload: dict[str, Any]) -> dict[str, Any]:
+    updated = dict(payload)
+    recovery = _mapping_copy(updated.get("paper_recovery_state"))
+    if not recovery:
+        return updated
+    decision = _mapping_copy(recovery.get("supervisor_decision"))
+    if decision:
+        updated["paper_autonomy_supervisor_decision"] = decision
+    else:
+        updated.pop("paper_autonomy_supervisor_decision", None)
+    return updated
+
+
+def _without_stale_provider_supervisor_block(payload: dict[str, Any]) -> dict[str, Any]:
+    updated = dict(payload)
+    updated.pop("provider_admission_blocked_by_supervisor_decision", None)
+    return updated
+
+
+def _refresh_signature(payload: Mapping[str, Any]) -> tuple[Any, ...]:
+    return tuple(
+        _mapping_copy(payload.get(key)) if key not in {"provider_admission_pending_count"} else payload.get(key)
+        for key in (
+            "current_executable_owner_action",
+            "current_work_unit",
+            "current_execution_envelope",
+            "paper_recovery_state",
+            "provider_admission_pending_count",
+            "provider_admission_candidates",
+            "owner_action_admission",
+            "paper_autonomy_supervisor_decision",
+            "provider_admission_blocked_by_supervisor_decision",
+        )
+    )
 
 
 __all__ = ["refresh_after_paper_recovery_state"]

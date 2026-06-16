@@ -100,6 +100,12 @@ def current_owner_successor_action(
     return successor
 
 
+def successor_owner_action_from_gate_followthrough(
+    progress: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    return _successor_owner_action_from_gate_followthrough(progress)
+
+
 def executable_action_is_gate_followthrough_successor(
     progress: Mapping[str, Any],
     *,

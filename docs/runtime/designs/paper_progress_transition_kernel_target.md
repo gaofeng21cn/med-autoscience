@@ -1,0 +1,214 @@
+# OPL Domain Progress Transition Runtime 与 MAS Paper Policy Adapter 目标设计
+
+Owner: `MedAutoScience / OPL Framework`
+Purpose: `opl_domain_progress_transition_runtime_target_design_for_mas`
+State: `active_target_design`
+Machine boundary: 本文是人读目标设计和落地路线。机器真相继续归 `contracts/`、源码、CLI/MCP/API payload、OPL current-control / StageRun ledger、MAS runtime/controller durable surfaces、owner receipt、typed blocker、human gate、route-back evidence、fresh `study_progress` / DHD readback 和真实 workspace artifact。
+Date: `2026-06-16`
+
+## 目标判断
+
+DM002 / DM003 最近一个月反复暴露的 currentness、owner-route、owner receipt、provider admission 和 supervision 修复，不是因为 MAS 缺少又一个私有控制模块，而是因为 OPL 尚未把“domain agent 的 current owner delta 如何事务化前进”做成一等通用基座。论文推进状态机因此被拆散在多个 projection / selector / arbiter / actuator 中：`current_work_unit`、`paper_recovery_state`、`current_executable_owner_action`、DHD provider admission、OPL current-control、Paper Autonomy Supervisor 和 read-model projection 都可能重新解释同一个 owner receipt、typed blocker、closeout 或 queue residue。
+
+长期目标必须收敛为：
+
+`OPL DomainProgressTransitionRuntime + MAS PaperProgressPolicyAdapter -> durable command/event log -> derived projections`
+
+`DomainProgressTransitionRuntime` 是 OPL-owned 通用能力，负责 command/event log、fixed-point reconciler、transactional outbox、StageRun identity、idempotency、projection metadata、replay harness、`NonAdvancingApply` 和 human gate resume。`PaperProgressPolicyAdapter` 是 MAS-owned domain policy，负责 owner receipt / typed blocker / publication gate / artifact delta / forbidden write / reviewer-human gate 的医学语义裁决。
+
+MAS 不应长期持有一个横跨 OPL Runway / Console / Vault / Pack / Stagecraft 的私有 `PaperProgressTransitionKernel`。MAS 只提供 policy adapter、authority functions 和 domain contract；OPL 提供通用 transition runtime。所有 read model、DHD、study progress、domain-handler export、operator card、OPL admission 和 workbench 只能消费 OPL runtime 事件与 MAS policy 结果；不能再从 queue、stage artifact index、旧 dispatch、provider count、operator 文案、trace/span 或 read-model refresh 反向生成下一步。
+
+## 为什么旧修复会复发
+
+1. 旧修复多在派生面之间加优先级、currentness guard、stale residue filter 或 special case，修的是“哪个 surface 赢”，不是“谁唯一有权推进状态”。
+2. supervision 已有价值，但当前形态仍偏 readback / guard / decision source，没有成为唯一 transition owner；因此下游 DHD / provider admission / current-work-unit 仍可能旁路生成动作。
+3. apply 语义仍像单次 materialization，而不是 fixed-point reconcile。apply 后如果回到同一 `owner_receipt_recorded`、旧 blocker 或无 outcome 状态，系统应写出 `non_advancing_apply` typed blocker，而不是返回看似成功的 projection refresh。
+4. 测试过多锁定局部 reducer case，缺少跨 MAS / OPL / DHD / readback 的历史坏轨迹 replay fixture。局部绿不能证明 live apply 已产生 exactly-one outcome。
+
+## 外部成熟模式映射
+
+本文只吸收成熟工程模式，不引入外部 runtime 或 authority。
+
+| 来源 | 可取模式 | MAS / OPL 转译 |
+| --- | --- | --- |
+| Kubernetes controller | controller 持续观察 desired/current state，并把 current 推向 desired；status 是观测，不是 desired。 | OPL transition runtime 持 desired/current/status 控制环；MAS 只给 desired domain policy 和 authority verdict。 |
+| Kubebuilder / controller-runtime | Reconcile 必须幂等，按事件类型写一次性分支容易让资源卡住。 | OPL reconciler 必须可重复执行；MAS policy adapter 在同一 identity 下给出同一 accepted transition、blocker、human gate 或 domain verdict。 |
+| Temporal durable execution | workflow history 支撑 replay、resume、activity retry；completion 不等于 domain acceptance。 | OPL 保存 StageRun / attempt / closeout event history；MAS consume closeout 后才签 owner receipt、typed blocker 或 next owner delta。 |
+| CQRS / Event Sourcing | command / event / projection 分离；read model 是派生视图，可滞后、可重建。 | OPL 持通用 command/event log 与 projection rebuild；MAS event payload 只表达 domain authority result 和 policy refs。 |
+| Transactional Outbox | 状态变化与外发事件在同一事务边界内持久化，避免半成功。 | OPL runtime 在同一事务边界提交 transition event 与 outbox；MAS owner callable / provider start / human gate 是 outbox side effect。 |
+
+参考：
+
+- Kubernetes Controllers: <https://kubernetes.io/docs/concepts/architecture/controller/>
+- Kubebuilder good practices: <https://book.kubebuilder.io/reference/good-practices.html>
+- Temporal Event History: <https://docs.temporal.io/workflow-execution/event>
+- Azure CQRS pattern: <https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs>
+- Azure Event Sourcing pattern: <https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing>
+- Azure Transactional Outbox pattern: <https://learn.microsoft.com/en-us/azure/architecture/databases/guide/transactional-out-box-cosmos>
+
+## 目标架构
+
+```mermaid
+flowchart TD
+  A["Domain inputs<br/>study truth / owner receipt / typed blocker / human gate / closeout / paper delta"] --> M["MAS PaperProgressPolicyAdapter<br/>domain verdict / authority refs"]
+  M --> K["OPL DomainProgressTransitionRuntime<br/>fixed-point reconciler"]
+  K --> L["Command + Event Log<br/>aggregate id / version / idempotency / postcondition"]
+  L --> O["Transactional Outbox<br/>OPL provider attempt / MAS owner callable / human gate"]
+  O --> P["OPL Execution Substrate<br/>StageRun / lease / retry / dead-letter / closeout"]
+  P --> M
+  L --> R["Derived Read Models<br/>study_progress / DHD / current_work_unit / workbench"]
+  R --> Q["Operator Query Surfaces<br/>status / drilldown / diagnostics"]
+```
+
+原则：
+
+- `DomainProgressTransitionRuntime` 是 OPL-owned 通用 transition authority for execution state。Paper Autonomy Supervisor 的通用 obligation / fixed-point / replay / projection 能力必须上收到 OPL runtime；MAS 只保留 paper-specific policy adapter 和 authority functions。
+- `commands` 表示意图，`events` 表示已提交事实，`projections` 只是派生读面。DHD apply、owner-route reconcile 和 provider admission 只能提交 OPL command 或消费 OPL event，再由 MAS policy adapter 裁决 domain result；不能直接写出平行 truth。
+- 每个 transition 必须绑定 `aggregate_id = study_id + work_unit_id + work_unit_fingerprint`，并携带 `source_generation`、`expected_version`、`idempotency_key`、`causal_event_id`、precondition 和 postcondition。
+- 所有 projection 必须携带 `derived_from_event_id`、`observed_generation`、`lag_status` 和 `authority=false`。缺这些字段时只能作为 diagnostic。
+- 同一 apply / reconcile loop 每轮只能提交 exactly-one transition；若没有 transition 成立，必须提交 stable typed blocker、human gate、route-back evidence 或 `non_advancing_apply`。
+
+## Transition 类型
+
+OPL runtime 输出只能来自固定 transition 枚举；MAS policy adapter 决定哪些 transition 在医学论文语义上可接受、应转 owner receipt / typed blocker / human gate，或应 fail closed：
+
+| Transition | 语义 | 稳定 outcome |
+| --- | --- | --- |
+| `ConsumeOwnerReceipt` | 消费同 identity owner receipt，生成下一 owner delta 或 terminal state。 | `owner_receipt_consumed` / `next_current_owner_delta` |
+| `StartProviderAttempt` | 对同 identity current owner action 发起 OPL StageRun / provider attempt。 | `provider_admission_accepted` / `running_proof` |
+| `ConsumeTerminalCloseout` | 消费 OPL terminal closeout，进入 MAS authority 判定。 | `owner_receipt_ref` / `typed_blocker_ref` / `route_back_evidence_ref` |
+| `RecordTypedBlocker` | 写出 stable blocker，命名 owner、缺口、currentness refs 和可恢复条件。 | `typed_blocker_ref` |
+| `OpenHumanGate` | 打开必须由人类或真实 owner 决策的 gate，并给 resume token。 | `human_gate_ref` |
+| `MaterializeOwnerAction` | 物化 MAS owner callable / recovery action 的合法请求。 | `owner_action_ref` / `owner_callable_request_ref` |
+| `AdoptPaperDelta` | 接受 canonical paper / artifact / evidence / review / gate semantic delta。 | `paper_delta_refs` / `quality_gate_receipt_ref` |
+| `AdoptRouteBackEvidence` | 接受 route-back / successor owner evidence。 | `route_back_evidence_ref` / `next_current_owner_delta` |
+| `StopLoss` | 对同 identity 达到预算边界，停止自动 redrive。 | `stable_stop_loss_typed_blocker_ref` |
+| `NonAdvancingApply` | apply 后 fresh readback 未前进，禁止 ok=true。 | `non_advancing_apply_typed_blocker_ref` |
+
+`provider_admission_pending_count=0`、`action_queue=[]`、docs updated、tests passed、read-model refreshed、recorded-only receipt 和 refs-only ledger 都不是 transition outcome。
+
+## Fixed-point Controller
+
+每次 DHD apply、supervisor tick 或 owner-route reconcile 必须走同一 fixed-point loop：
+
+```text
+read authoritative event state
+read external observations with source generation
+decide exactly one transition
+commit command/event with compare-and-set
+emit transactional outbox item if side effect is needed
+apply side effect through OPL or MAS owner callable
+fresh readback
+repeat until stable outcome
+```
+
+稳定 outcome 只允许：
+
+- strict current-identity running proof
+- provider admission accepted
+- owner receipt consumed into next owner action
+- owner receipt / quality gate receipt
+- stable typed blocker
+- human gate with resume token
+- route-back evidence
+- canonical paper / gate / artifact / review semantic delta
+- terminal stop-loss
+
+如果 loop 在同一 aggregate/version 上重复看到相同状态，OPL runtime 必须提交 `NonAdvancingApply` execution event；MAS policy adapter 再把它解释为 MAS control-plane blocker、OPL substrate blocker、study workspace migration blocker 或 human gate。
+
+## MAS / OPL 分工
+
+| 层 | OPL owner | MAS owner |
+| --- | --- | --- |
+| Durable execution | StageRun、lease、queue、retry/dead-letter、workflow history、attempt ledger、heartbeat、worker lifecycle。 | 不持有 generic execution lifecycle。 |
+| Command processing | Idempotent command runner、transactional outbox、generic event append、read-model rebuild、fixed-point reconciler。 | 定义 domain command semantics、precondition、postcondition 和 forbidden authority。 |
+| Domain authority | 不判断 paper quality、publication ready、artifact mutation、owner receipt 语义。 | study truth、source readiness、AI reviewer / gate verdict、artifact/package authority、owner receipt、typed blocker、human gate、route-back。 |
+| Read models | 投影 OPL runtime status、attempt health、transport refs、workbench drilldown。 | 投影 MAS domain status、current owner delta、paper progress ledger、authority refs。 |
+| Recovery | OPL runtime repair、stale worker、attempt identity、human gate transport。 | MAS control-plane repair、paper recovery semantics、Yang workspace migration receipt、medical typed blocker。 |
+
+OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；MAS 不私有实现 generic scheduler、attempt lifecycle、event log、outbox、projection rebuild 或 fixed-point runtime。双方通过 OPL command/event/outbox 合同与 MAS policy adapter 连接。
+
+## 现有 surface 的目标读法
+
+| Surface | 目标角色 | 禁止行为 |
+| --- | --- | --- |
+| `paper_autonomy_supervisor` | 短期作为 MAS-side policy / obligation adapter；长期通用 obligation runtime 上收到 OPL。 | 作为 MAS 私有平行控制面。 |
+| `paper_recovery_state` | OPL transition event + MAS policy result 派生的 recovery projection。 | 从旧 dispatch / queue residue 重新选 next action。 |
+| `current_work_unit` | 当前 aggregate 的 projection。 | 覆盖 kernel transition 或发明 provider admission。 |
+| `current_executable_owner_action` | operator/executor read model。 | 把 stage index / DHD preview 当 authority。 |
+| DHD dry-run | diagnostic query。 | 声明恢复或 paper progress。 |
+| DHD apply | fixed-point controller entry。 | 单次 materialize 后没有 postcondition 仍 ok=true。 |
+| OPL current-control | generic execution state。 | 签 MAS owner receipt 或解释 publication readiness。 |
+| Stage artifact index | rebuildable diagnostic / fallback projection。 | 在 current owner surface 存在时反向覆盖 currentness。 |
+| Workbench / Portal | query / drilldown / operator UX。 | 以 UI visible、queue empty 或 active_run_id 声明 progress。 |
+
+## 迁移路线
+
+### Lane 0：合同和文档入口
+
+- 固定本文、active plan 和 runtime README 入口。
+- 在 OPL 侧新增或更新通用 `DomainProgressTransitionRuntime` contract：transition enum、aggregate identity、event envelope、projection metadata、fixed-point postcondition、forbidden interpretations。
+- 在 MAS 侧新增或更新 `PaperProgressPolicyAdapter` contract：owner receipt / typed blocker / human gate / paper delta / forbidden write / publication gate 的 accepted shapes。
+- 将 `paper_autonomy_supervisor_contract` 标记为临时 MAS adapter 和未来 OPL transition runtime consumer，而不是长期 MAS 私有控制面。
+
+完成门：contract / meta tests 能证明 transition taxonomy、identity、projection `authority=false`、fixed-point postcondition 和 forbidden interpretations 存在。此门不声明 live progress。
+
+### Lane 1：Replay fixtures
+
+- 把最近 DM002 / DM003 坏轨迹转成 event trace replay：owner receipt recorded 后不推进、same-tick admission 被 stale blocker 压掉、provider admission pending 为 0、current_work_unit 与 paper_recovery_state 分歧、DHD apply 后无 outcome。
+- 旧局部 reducer fixtures 继续保留，但不能替代 replay acceptance。
+
+完成门：每条历史 trace 都收敛到 exactly-one transition 或 `NonAdvancingApply` typed blocker。
+
+### Lane 2：OPL runtime first slice
+
+- 先覆盖 `owner_receipt_recorded`、`typed_blocker`、`provider_admission`、`terminal_closeout`、`paper_recovery_successor` 这五类 DM002 / DM003 高频路径。
+- DHD apply 改为调用 OPL fixed-point controller，并通过 MAS policy adapter 裁决 domain result。
+- `paper_recovery_state`、`current_work_unit`、`current_executable_owner_action` 改为从 OPL transition event + MAS policy result 派生。
+
+完成门：focused tests + DHD apply readback 证明同一 aggregate 每轮 exactly-one outcome；无 outcome 时写 `NonAdvancingApply`。
+
+### Lane 3：OPL substrate hardening
+
+- OPL 提供 `StageRunIdentityPacket`、durable command/outbox consumer、human gate resume token、attempt event history、read-model rebuild metadata。
+- Provider admission 只接受 OPL transition outbox item，不再从 MAS read-model residue 入队。
+
+完成门：OPL readback 对同一 outbox item 给出 accepted / running / terminal / blocked / stale-owner-denied，并保留 idempotency。
+
+### Lane 4：Projection demotion and retirement
+
+- 所有 read model 增加 `derived_from_event_id`、`observed_generation`、`authority=false`。
+- 删除或退役仍能直接写 next action 的旧 selector / materializer / alias。
+- Workbench 默认显示 kernel state；DHD / queue / stage index 进入 drilldown。
+
+完成门：grep / tests / contract inventory 证明 projection surface 不再有 transition authority；旧入口只保留 tombstone/provenance 或 diagnostic。
+
+### Lane 5：Live paper-line acceptance
+
+- 对 DM002 / DM003 执行 fresh kernel-driven apply。
+- 成功不以测试绿或 projection clean 为准，只以 stable outcome 为准。
+
+完成门：每篇 paper 出现 strict running proof、owner receipt、stable typed blocker、human gate、route-back evidence、paper/gate/artifact semantic delta 或 terminal stop-loss 中的 exactly-one outcome。
+
+## 验证策略
+
+按风险分层：
+
+- L1 docs / contract planning：`git diff --check`、conflict marker scan、docs index path check。
+- L3 contract / behavior：kernel contract schema tests、projection metadata tests、forbidden interpretation tests、replay fixture tests。
+- L4 runtime currentness：fresh `study_progress`、DHD apply/readback、OPL current-control readback、owner receipt / typed blocker / human gate / route-back artifact refs。
+
+禁止完成声明：
+
+- `contract_landed` 不能代表 kernel landed。
+- focused tests 通过不能代表 live DHD apply 前进。
+- provider completion 不能代表 MAS owner acceptance。
+- OPL queue empty、provider admission pending 0、read-model refreshed、docs updated 不能代表 paper progress。
+- side conversation、supervisor report 或 workbench visible 不能替代 owner receipt / typed blocker / running proof。
+
+## 与现有文档的关系
+
+- [Paper Autonomy Supervisor 目标设计](./paper_autonomy_supervisor_target.md) 继续定义 obligation 和五类 supervisor decision；本文把其中通用 obligation / reconcile / replay 能力上收到 OPL transition runtime，把 MAS 部分收薄为 paper-specific policy adapter。
+- [PaperRecovery Obligation 目标架构](./paper_recovery_obligation_target_architecture.md) 继续定义 recovery obligation 的输入/输出和派生面规则；本文要求 recovery obligation 长期由 OPL runtime 承载，MAS 只解释 paper recovery domain policy。
+- [MAS / OPL Agent OS 目标运行架构](./mas_opl_agent_os_target_operating_architecture.md) 继续定义 OPL Agent OS / MAS Medical Research Pack / Authority Kernel 总体分层；本文是 OPL domain progress runtime 在 MAS paper-line 上的目标消费设计。
+- [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md) 维护当前执行顺序、状态、完成门和 open evidence tail。

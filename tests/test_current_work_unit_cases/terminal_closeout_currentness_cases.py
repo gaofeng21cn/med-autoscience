@@ -122,6 +122,87 @@ def test_current_work_unit_treats_repeat_suppressed_gate_replay_terminal_stage_a
     assert work_unit["state"]["stale_queue_or_handoff_can_override"] is False
 
 
+def test_current_work_unit_does_not_turn_handoff_ready_terminal_log_into_typed_blocker() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "action_type": "run_quality_repair_batch",
+                    "status": "handoff_ready",
+                    "stage_name": work_unit_id,
+                    "outcome": "handoff_ready",
+                    "progress_delta_classification": "typed_blocker",
+                    "remaining_blockers": [],
+                    "source_path": (
+                        f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
+                        "default_executor_execution/latest.json"
+                    ),
+                    "paper_stage_log": {
+                        "outcome": "handoff_ready",
+                        "progress_delta_classification": "typed_blocker",
+                        "remaining_blockers": [],
+                        "next_forced_delta": {
+                            "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                            "reason": "no_deliverable_delta_observed",
+                            "work_unit_id": work_unit_id,
+                            "owner_action": {
+                                "next_owner": "write",
+                                "action_type": "run_quality_repair_batch",
+                                "work_unit_id": work_unit_id,
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "next_owner": "write",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "owner_receipt_required": True,
+            "paper_recovery_successor": {
+                "phase": "owner_action_ready",
+                "source_next_safe_action_kind": "materialize_successor_owner_action",
+                "provider_admission_allowed": True,
+                "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            },
+            "owner_route_currentness_basis": {
+                "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+        next_owner="write",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_uses_write_repair_after_executed_ai_reviewer_receipt_over_stale_gate_blocker() -> None:
     module = _module()
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

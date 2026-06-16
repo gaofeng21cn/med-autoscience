@@ -103,6 +103,13 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         )
     ):
         return domain_transition_action
+    if _ai_reviewer_transition_supersedes_consumed_write_followthrough(
+        payload=payload,
+        domain_transition_action=domain_transition_action,
+        gate_followthrough_action=gate_followthrough_action,
+        repair_progress_action=repair_progress_action,
+    ):
+        return domain_transition_action
     if _gate_followthrough_supersedes_repair_progress(
         gate_followthrough_action=gate_followthrough_action,
         repair_progress_action=repair_progress_action,
@@ -336,6 +343,112 @@ def _repair_progress_supersedes_terminal_stop_loss(
         blocker=blocker,
         gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
     )
+
+
+def _ai_reviewer_transition_supersedes_consumed_write_followthrough(
+    *,
+    payload: Mapping[str, Any],
+    domain_transition_action: Mapping[str, Any] | None,
+    gate_followthrough_action: Mapping[str, Any] | None,
+    repair_progress_action: Mapping[str, Any] | None,
+) -> bool:
+    transition_action = _mapping_copy(domain_transition_action)
+    gate_action = _mapping_copy(gate_followthrough_action)
+    repair_action = _mapping_copy(repair_progress_action)
+    if not transition_action or not gate_action or not repair_action:
+        return False
+    if _non_empty_text(transition_action.get("source")) != "domain_transition":
+        return False
+    if _non_empty_text(transition_action.get("next_owner")) != AI_REVIEWER_OWNER:
+        return False
+    if _non_empty_text(transition_action.get("action_type")) != "return_to_ai_reviewer_workflow":
+        return False
+    if _non_empty_text(transition_action.get("domain_transition_decision_type")) != "ai_reviewer_re_eval":
+        return False
+    transition_work_unit = _non_empty_text(transition_action.get("work_unit_id"))
+    if transition_work_unit is None:
+        return False
+    transition_fingerprint = (
+        _non_empty_text(transition_action.get("work_unit_fingerprint"))
+        or _non_empty_text(transition_action.get("action_fingerprint"))
+    )
+    if transition_fingerprint != f"domain-transition::ai_reviewer_re_eval::{transition_work_unit}":
+        return False
+
+    if _non_empty_text(gate_action.get("source")) != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        return False
+    if _non_empty_text(gate_action.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    if _non_empty_text(repair_action.get("source")) != REPAIR_PROGRESS_SOURCE:
+        return False
+
+    repair_progress = _mapping_copy(payload.get("repair_progress_projection"))
+    if repair_progress.get("accepted_owner_receipt") is not True:
+        return False
+    if repair_progress.get("gate_replay_done") is not True:
+        return False
+    if repair_progress.get("ai_reviewer_recheck_required") is not True and (
+        repair_progress.get("ai_reviewer_recheck_done") is not True
+    ):
+        return False
+
+    repair_source_work_unit = _non_empty_text(
+        _mapping_copy(repair_action.get("repair_progress_precedence")).get("source_work_unit_id")
+    ) or _non_empty_text(repair_progress.get("work_unit_id"))
+    if repair_source_work_unit is None:
+        return False
+    if repair_source_work_unit != _non_empty_text(gate_action.get("work_unit_id")):
+        return False
+
+    gate_currentness = _mapping_copy(
+        _mapping_copy(payload.get("gate_clearing_batch_followthrough")).get("work_unit_currentness")
+    )
+    current_gate_work_unit = (
+        _non_empty_text(gate_currentness.get("current_publication_work_unit_id"))
+        or _non_empty_text(gate_action.get("work_unit_id"))
+    )
+    if repair_source_work_unit != current_gate_work_unit:
+        return False
+
+    completion = _mapping_copy(_mapping_copy(payload.get("domain_transition")).get("completion_receipt_consumption"))
+    if _non_empty_text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return False
+    consumed_work_unit = _non_empty_text(completion.get("work_unit_id"))
+    if consumed_work_unit not in {None, repair_source_work_unit, transition_work_unit, AI_REVIEWER_WORK_UNIT}:
+        return False
+
+    repair_fingerprint = (
+        _non_empty_text(repair_progress.get("work_unit_fingerprint"))
+        or _non_empty_text(repair_progress.get("action_fingerprint"))
+        or _non_empty_text(repair_progress.get("source_fingerprint"))
+    )
+    gate_fingerprint = (
+        _non_empty_text(gate_action.get("work_unit_fingerprint"))
+        or _non_empty_text(gate_action.get("action_fingerprint"))
+        or _non_empty_text(gate_currentness.get("current_work_unit_fingerprint"))
+        or _non_empty_text(gate_currentness.get("explicit_work_unit_fingerprint"))
+    )
+    consumed_fingerprint = (
+        _non_empty_text(completion.get("work_unit_fingerprint"))
+        or _non_empty_text(completion.get("action_fingerprint"))
+    )
+    if repair_fingerprint is not None and gate_fingerprint is not None and repair_fingerprint != gate_fingerprint:
+        return False
+    if (
+        consumed_work_unit == repair_source_work_unit
+        and consumed_fingerprint is not None
+        and repair_fingerprint is not None
+            and consumed_fingerprint != repair_fingerprint
+    ):
+        return False
+    if (
+        consumed_work_unit == transition_work_unit
+        and consumed_fingerprint is not None
+        and transition_fingerprint is not None
+        and consumed_fingerprint != transition_fingerprint
+    ):
+        return False
+    return True
 
 
 def _from_current_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None:
