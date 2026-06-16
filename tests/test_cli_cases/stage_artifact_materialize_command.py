@@ -84,4 +84,4 @@ def test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index(
 
     sqlite_path = domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root)
     inspection = domain_authority_refs_index.inspect_authority_refs_index(sqlite_path)
-    assert inspection["tables"]["paper_work_unit_receipts"] == 1
+    assert inspection["tables"]["stage_artifact_delta_refs"] == 1

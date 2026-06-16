@@ -564,7 +564,7 @@ def test_stage_artifact_materializer_backfills_stage_native_refs_without_copying
     sqlite_path = domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root)
     inspection = domain_authority_refs_index.inspect_authority_refs_index(sqlite_path)
     assert inspection["status"] == "ready"
-    assert inspection["tables"]["paper_work_unit_receipts"] == 8
+    assert inspection["tables"]["stage_artifact_delta_refs"] == 8
 
 
 def test_stage_artifact_materializer_keeps_terminal_publication_handoff_gate_open(

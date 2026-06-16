@@ -289,7 +289,7 @@ def _materialize_stage(
         if current_owner_delta is not None and stage_artifact_projection_ref is not None:
             _write_json(stage_root / stage_artifact_projection_ref, current_owner_delta)
         _write_json(study_root / receipt_ref, receipt)
-        index_result = domain_authority_refs_index.record_paper_work_unit_receipt(
+        index_result = domain_authority_refs_index.record_stage_artifact_delta_ref(
             study_root=study_root,
             quest_root=workspace_root / "runtime" / "quests" / str(study_id),
             receipt=receipt,

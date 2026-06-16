@@ -27,7 +27,8 @@ AUTHORITY_REF_TABLES = (
     "archive_refs",
     "owner_route_receipts",
     "dispatch_receipts",
-    "paper_work_unit_receipts",
+    "paper_progress_transition_refs",
+    "stage_artifact_delta_refs",
 )
 OPL_FAMILY_ADAPTER_SOURCE_TABLES = AUTHORITY_REF_TABLES
 
@@ -213,13 +214,50 @@ def record_dispatch_receipt(
     return _index_result(db_path=resolved_db_path, indexed_table="dispatch_receipts", indexed_count=1, scope="quest")
 
 
-def record_paper_work_unit_receipt(
+def record_paper_progress_transition_ref(
     *,
     study_root: Path,
     quest_root: Path,
     receipt: Mapping[str, Any],
     receipt_path: Path,
     db_path: Path | None = None,
+) -> dict[str, Any]:
+    return _record_study_receipt_ref(
+        table="paper_progress_transition_refs",
+        study_root=study_root,
+        quest_root=quest_root,
+        receipt=receipt,
+        receipt_path=receipt_path,
+        db_path=db_path,
+    )
+
+
+def record_stage_artifact_delta_ref(
+    *,
+    study_root: Path,
+    quest_root: Path,
+    receipt: Mapping[str, Any],
+    receipt_path: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    return _record_study_receipt_ref(
+        table="stage_artifact_delta_refs",
+        study_root=study_root,
+        quest_root=quest_root,
+        receipt=receipt,
+        receipt_path=receipt_path,
+        db_path=db_path,
+    )
+
+
+def _record_study_receipt_ref(
+    *,
+    table: str,
+    study_root: Path,
+    quest_root: Path,
+    receipt: Mapping[str, Any],
+    receipt_path: Path,
+    db_path: Path | None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_quest_root = Path(quest_root).expanduser().resolve()
@@ -247,8 +285,8 @@ def record_paper_work_unit_receipt(
     }
     with _connect(resolved_db_path) as conn:
         _ensure_schema(conn)
-        _upsert_row(conn, table="paper_work_unit_receipts", conflict_columns=("study_root", "receipt_id"), row=row)
-    return _index_result(db_path=resolved_db_path, indexed_table="paper_work_unit_receipts", indexed_count=1, scope="study")
+        _upsert_row(conn, table=table, conflict_columns=("study_root", "receipt_id"), row=row)
+    return _index_result(db_path=resolved_db_path, indexed_table=table, indexed_count=1, scope="study")
 
 
 def inspect_authority_refs_index(db_path: Path) -> dict[str, Any]:
@@ -355,7 +393,31 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     )
     conn.execute(
         """
-        CREATE TABLE IF NOT EXISTS paper_work_unit_receipts(
+        CREATE TABLE IF NOT EXISTS paper_progress_transition_refs(
+            study_root TEXT NOT NULL,
+            quest_root TEXT NOT NULL,
+            receipt_id TEXT NOT NULL,
+            study_id TEXT NOT NULL,
+            quest_id TEXT,
+            idempotency_key TEXT NOT NULL,
+            intent_fingerprint TEXT NOT NULL,
+            source_fingerprint TEXT NOT NULL,
+            receipt_status TEXT NOT NULL,
+            started_worker INTEGER NOT NULL,
+            worker_start_ref TEXT,
+            duplicate_of_receipt_id TEXT,
+            fail_closed_reason TEXT,
+            source_path TEXT NOT NULL,
+            payload_sha256 TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            PRIMARY KEY (study_root, receipt_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS stage_artifact_delta_refs(
             study_root TEXT NOT NULL,
             quest_root TEXT NOT NULL,
             receipt_id TEXT NOT NULL,
@@ -547,6 +609,7 @@ __all__ = [
     "record_archive_ref",
     "record_dispatch_receipt",
     "record_owner_route_receipt",
-    "record_paper_work_unit_receipt",
+    "record_paper_progress_transition_ref",
+    "record_stage_artifact_delta_ref",
     "workspace_authority_refs_index_path",
 ]

@@ -211,4 +211,4 @@ def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal
         domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root)
     )
     assert index["tables"]["dispatch_receipts"] == index_before["tables"].get("dispatch_receipts", 0) + 1
-    assert index["tables"]["paper_work_unit_receipts"] == index_before["tables"].get("paper_work_unit_receipts", 0)
+    assert index["tables"]["stage_artifact_delta_refs"] == index_before["tables"].get("stage_artifact_delta_refs", 0)

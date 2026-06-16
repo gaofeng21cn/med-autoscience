@@ -184,7 +184,7 @@ def _index_receipt(
     receipt: Mapping[str, Any],
     db_path: Path | None,
 ) -> None:
-    domain_authority_refs_index.record_paper_work_unit_receipt(
+    domain_authority_refs_index.record_paper_progress_transition_ref(
         study_root=study_root,
         quest_root=quest_root,
         receipt=receipt,

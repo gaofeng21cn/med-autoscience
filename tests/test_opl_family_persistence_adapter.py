@@ -111,7 +111,8 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "archive_refs",
         "owner_route_receipts",
         "dispatch_receipts",
-        "paper_work_unit_receipts",
+        "paper_progress_transition_refs",
+        "stage_artifact_delta_refs",
     ]
     assert adoption["payload"]["authority_boundary"]["publication_eval_owner"] == "MedAutoScience"
     assert adoption["payload"]["authority_boundary"]["ai_reviewer_owner"] == "MedAutoScience"

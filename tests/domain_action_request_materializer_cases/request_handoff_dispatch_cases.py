@@ -199,14 +199,18 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     assert result["request_tasks"][2]["refs"]["request_packet_path"] == str(freshness_packet_path)
     assert result["request_tasks"][3]["refs"]["request_packet_path"] == str(display_packet_path)
     assert result["ignored_actions"] == []
-    assert gate_packet_path.is_file()
-    assert ai_packet_path.is_file()
-    assert freshness_packet_path.is_file()
-    assert display_packet_path.is_file()
-    gate_packet = json.loads(gate_packet_path.read_text(encoding="utf-8"))
-    ai_packet = json.loads(ai_packet_path.read_text(encoding="utf-8"))
-    freshness_packet = json.loads(freshness_packet_path.read_text(encoding="utf-8"))
-    display_packet = json.loads(display_packet_path.read_text(encoding="utf-8"))
+    assert {task["dispatch_status"] for task in result["request_tasks"]} == {"transition_request_pending"}
+    assert {task["provider_admission_pending"] for task in result["request_tasks"]} == {False}
+    assert {task["provider_admission_requires_opl_runtime_result"] for task in result["request_tasks"]} == {True}
+    assert {task["mas_local_request_packet_persistence"] for task in result["request_tasks"]} == {"forbidden"}
+    assert not gate_packet_path.exists()
+    assert not ai_packet_path.exists()
+    assert not freshness_packet_path.exists()
+    assert not display_packet_path.exists()
+    gate_packet = result["request_tasks"][0]["handoff_packet"]
+    ai_packet = result["request_tasks"][1]["handoff_packet"]
+    freshness_packet = result["request_tasks"][2]["handoff_packet"]
+    display_packet = result["request_tasks"][3]["handoff_packet"]
     assert gate_packet["authority"] == "observability_only"
     assert ai_packet["authority"] == "observability_only"
     assert freshness_packet["authority"] == "observability_only"
@@ -514,7 +518,10 @@ def test_materialize_domain_action_requests_does_not_repeat_suppress_pending_ai_
     )
 
     dispatch = result["default_executor_dispatches"][0]
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["repeat_suppressed"] is False
-    assert dispatch["blocked_reason"] is None
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert result["repeat_suppressed_count"] == 0

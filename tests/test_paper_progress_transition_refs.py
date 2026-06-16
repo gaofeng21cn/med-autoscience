@@ -62,7 +62,7 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
         rows = conn.execute(
             """
             SELECT idempotency_key, intent_fingerprint, source_fingerprint, started_worker, worker_start_ref, payload_json
-            FROM paper_work_unit_receipts
+            FROM paper_progress_transition_refs
             WHERE study_root = ?
             """,
             (str(study_root.resolve()),),
