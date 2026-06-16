@@ -104,12 +104,14 @@ def assert_opl_follow_through_and_external_practice_mapping(
     assert strong_current_owner_delta["required_currentness_source_any"] == [
         "current_action_source=publication_eval.recommended_actions.readiness_blocker_repair",
         "current_work_unit_source=publication_eval.recommended_actions.readiness_blocker_repair",
+        "current_action_source=gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "current_work_unit_source=gate_clearing_batch_followthrough.actionable_current_work_unit",
     ]
     assert strong_current_owner_delta["required_currentness_fields"] == [
         "work_unit_id",
         "work_unit_fingerprint",
         "truth_epoch",
-        "source_eval_id",
+        "runtime_health_epoch_or_source_eval_id",
     ]
     assert {
         "treat_identity_as_strong_for_current_control_projection",

@@ -77,6 +77,8 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
     if not current:
         current = _current_action_from_executable_current_work_unit(study)
     if not current:
+        current = _current_action_from_paper_recovery_successor(study)
+    if not current:
         return None
     action_type = _current_action_action_type(current)
     if action_type is None:
@@ -143,6 +145,19 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         {**dict(study), "current_executable_owner_action": current},
         source="dhd.provider_admission_candidate",
     )
+    owner_route_currentness_basis = study_currentness_basis(
+        study=study,
+        current=current,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=action_fingerprint,
+        source_eval_id=source_eval_id,
+    )
+    owner_route_currentness_basis = {
+        **dict(current_action_basis),
+        **dict(owner_route_currentness_basis),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+    }
     source_refs = {
         key: value
         for key, value in {
@@ -150,13 +165,7 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
             "work_unit_fingerprint": action_fingerprint,
             "source_eval_id": source_eval_id,
             "eval_bound_work_unit_fingerprint": eval_bound_fingerprint,
-            "owner_route_currentness_basis": study_currentness_basis(
-                study=study,
-                current=current,
-                work_unit_id=work_unit_id,
-                work_unit_fingerprint=action_fingerprint,
-                source_eval_id=source_eval_id,
-            ),
+            "owner_route_currentness_basis": owner_route_currentness_basis,
         }.items()
         if value is not None
     }
@@ -249,6 +258,91 @@ def _current_action_from_executable_current_work_unit(
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": fingerprint,
         },
+    }
+
+
+def _current_action_from_paper_recovery_successor(
+    study: Mapping[str, Any],
+) -> dict[str, Any]:
+    recovery = _mapping(study.get("paper_recovery_state"))
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if _non_empty_text(next_safe_action.get("kind")) not in {
+        "materialize_successor_owner_action",
+        "materialize_successor_owner_gate",
+    }:
+        return {}
+    if next_safe_action.get("provider_admission_allowed") is not True:
+        return {}
+    successor = _mapping(next_safe_action.get("successor_owner_action"))
+    action_type = _non_empty_text(successor.get("action_type"))
+    owner = _non_empty_text(successor.get("next_owner")) or _non_empty_text(successor.get("owner"))
+    work_unit_id = _non_empty_text(successor.get("work_unit_id")) or _non_empty_text(
+        successor.get("next_work_unit")
+    )
+    if action_type is None or owner is None or work_unit_id is None:
+        return {}
+    executable_owner = _current_control_executable_owner(action_type=action_type, owner=owner)
+    if executable_owner is None:
+        return {}
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    currentness_basis = (
+        _mapping(successor.get("currentness_basis"))
+        or _mapping(obligation.get("currentness_basis"))
+        or _mapping(current_work_unit.get("currentness_basis"))
+    )
+    fingerprint = _first_currentness_fingerprint(
+        successor.get("work_unit_fingerprint"),
+        successor.get("action_fingerprint"),
+        obligation.get("work_unit_fingerprint"),
+        obligation.get("action_fingerprint"),
+        current_work_unit.get("work_unit_fingerprint"),
+        current_work_unit.get("action_fingerprint"),
+        currentness_basis.get("work_unit_fingerprint"),
+        currentness_basis.get("source_fingerprint"),
+        study_id=_non_empty_text(study.get("study_id")),
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    )
+    if fingerprint is None and _currentness_basis_can_bind_stable_ticket(currentness_basis):
+        fingerprint = _stable_provider_admission_ticket(
+            study_id=_non_empty_text(study.get("study_id")),
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+        )
+    if fingerprint is None:
+        return {}
+    successor_source = _non_empty_text(successor.get("source_surface")) or _non_empty_text(
+        currentness_basis.get("source")
+    )
+    basis = {
+        **dict(currentness_basis),
+        **({"current_action_source": successor_source} if successor_source is not None else {}),
+        **({"current_work_unit_source": successor_source} if successor_source is not None else {}),
+        "source_eval_id": (
+            _non_empty_text(successor.get("source_eval_id"))
+            or _non_empty_text(currentness_basis.get("source_eval_id"))
+        ),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+    }
+    basis = {key: value for key, value in basis.items() if value is not None}
+    return {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+        "next_owner": executable_owner,
+        "owner": executable_owner,
+        "action_type": action_type,
+        "allowed_actions": [action_type],
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "source_ref": _non_empty_text(successor.get("source_ref")),
+        "source_surface": _non_empty_text(successor.get("source_surface")),
+        "required_output_surface": _required_output_surface(successor),
+        "owner_route_currentness_basis": basis,
+        "currentness_basis": basis,
     }
 
 
@@ -378,11 +472,19 @@ def _status_with_current_control_study_currentness(
         value = _mapping(study.get(key))
         if value:
             payload[key] = value
+    if not _mapping(payload.get("current_executable_owner_action")):
+        successor_action = _current_action_from_paper_recovery_successor(study)
+        if successor_action:
+            payload["current_executable_owner_action"] = successor_action
     return payload
 
 
 def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any]:
     current_work_unit = _mapping(status_payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) == "owner_receipt_recorded":
+        recovery_identity = _paper_recovery_successor_identity(status_payload)
+        if recovery_identity:
+            return recovery_identity
     if current_work_unit:
         identity = _current_work_unit_identity(current_work_unit)
         if identity:
@@ -474,6 +576,45 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
         "next_owner": _non_empty_text(current.get("next_owner")),
         "currentness_basis": basis if basis else None,
     }
+
+
+def _paper_recovery_successor_identity(status_payload: Mapping[str, Any]) -> dict[str, Any]:
+    recovery_action = _current_action_from_paper_recovery_successor(status_payload)
+    if not recovery_action:
+        return {}
+    return _current_control_action_identity(
+        {
+            **recovery_action,
+            "study_id": _non_empty_text(status_payload.get("study_id")),
+            "quest_id": _non_empty_text(status_payload.get("quest_id")),
+            "source_surface": "opl_current_control_state.study_current_executable_owner_action",
+            "next_executable_owner": _non_empty_text(recovery_action.get("next_owner")),
+            "owner_route": {
+                "next_owner": _non_empty_text(recovery_action.get("next_owner")),
+                "allowed_actions": [
+                    action
+                    for action in (_current_action_action_type(recovery_action),)
+                    if action is not None
+                ],
+                "work_unit_fingerprint": _non_empty_text(
+                    recovery_action.get("work_unit_fingerprint")
+                )
+                or _non_empty_text(recovery_action.get("action_fingerprint")),
+                "source_refs": {
+                    "work_unit_id": _non_empty_text(recovery_action.get("work_unit_id"))
+                    or _non_empty_text(recovery_action.get("next_work_unit")),
+                    "work_unit_fingerprint": _non_empty_text(
+                        recovery_action.get("work_unit_fingerprint")
+                    )
+                    or _non_empty_text(recovery_action.get("action_fingerprint")),
+                    "owner_route_currentness_basis": _mapping(
+                        recovery_action.get("owner_route_currentness_basis")
+                    )
+                    or _mapping(recovery_action.get("currentness_basis")),
+                },
+            },
+        }
+    )
 
 
 def _current_control_action_identity(action: Mapping[str, Any]) -> dict[str, Any]:

@@ -541,9 +541,10 @@ def _identity_is_strong_current_owner_delta(identity: Mapping[str, Any]) -> bool
     source = _non_empty_text(basis.get("current_action_source")) or _non_empty_text(
         basis.get("current_work_unit_source")
     )
-    if source != "publication_eval.recommended_actions.readiness_blocker_repair":
-        return False
-    if _non_empty_text(basis.get("source_eval_id")) is None:
+    if source not in {
+        "publication_eval.recommended_actions.readiness_blocker_repair",
+        "gate_clearing_batch_followthrough.actionable_current_work_unit",
+    }:
         return False
     return currentness_basis_strong(basis)
 

@@ -8,7 +8,7 @@ Date: `2026-06-16`
 
 ## 2026-06-16 落地状态
 
-当前已完成 first slice 的方向纠偏：OPL `one-person-lab` 已落地 `DomainProgressTransitionRuntime` 最小切片，覆盖 command normalization、transition event、transactional outbox item、projection metadata、StageRun identity、idempotency、`NonAdvancingApply` 和 replay/readback 测试。该能力落在 OPL 既有 Runway / Pack / Stagecraft / Console / Vault 分工内，没有新增第 11 品牌模块，也没有保留旧 `paper_autonomy_supervisor_apply` 兼容字段。
+当前已完成 first slice 的方向纠偏：OPL `one-person-lab` 已落地 `DomainProgressTransitionRuntime` 最小切片，覆盖 command normalization、transition event、transactional outbox item、projection metadata、StageRun identity、idempotency、`NonAdvancingApply` 和 replay/readback 测试。该能力落在 OPL 既有 Runway / Pack / Stagecraft / Console / Vault 分工内，没有新增第 11 品牌模块，也没有为旧监督 apply 入口保留兼容字段。
 
 MAS 侧已删除私有 `paper_progress_transition_kernel` 方向，保留 `PaperProgressPolicyAdapter`。DHD provider-admission 候选现在只携带 MAS `paper_progress_policy_result` 和 OPL-owned `current_control_command_outbox_record` readback；MAS 明确 `mas_can_authorize_provider_admission=false`、`mas_can_run_fixed_point_reconciler=false`、`mas_can_own_event_log_or_outbox=false`，并把 transition runtime owner 指向 OPL。root `action_queue`、study `current_executable_owner_action` 和 `current_work_unit` 三类候选入口都必须消费同一 adapter / outbox-record shape，不能把该 outbox record 作为 MAS 生成的新 authority。
 
