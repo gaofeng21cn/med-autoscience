@@ -13,6 +13,23 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup i
 from med_autoscience.profiles import WorkspaceProfile
 
 MAS_OWNER_CALLABLE_DRAIN_MAX_PASSES = 3
+OPL_TRANSITION_RUNTIME_OWNER = "one-person-lab"
+OPL_TRANSITION_RUNTIME_KIND = "DomainProgressTransitionRuntime"
+OPL_CURRENT_CONTROL_OUTBOX_SURFACE = "opl_generic_current_control_command_outbox_record"
+ACTUATOR_AUTHORITY_BOUNDARY = {
+    "surface_kind": "mas_obligation_outcome_projection_authority_boundary",
+    "authority": "med_autoscience.paper_progress_policy_adapter",
+    "authority_role": "paper_policy_and_owner_answer_readback_only",
+    "opl_transition_runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    "opl_transition_runtime_kind": OPL_TRANSITION_RUNTIME_KIND,
+    "can_authorize_provider_admission": False,
+    "can_own_generic_event_log_or_outbox": False,
+    "can_run_fixed_point_runtime": False,
+    "can_write_opl_current_control_state": False,
+    "provider_admission_outcome_requires_opl_outbox_record": True,
+    "can_execute_mas_owner_callable": True,
+    "can_write_fail_closed_typed_control_blocker": True,
+}
 
 
 def _drain_mas_owner_callable_actions(
@@ -146,7 +163,8 @@ def apply_managed_study_obligation_actuator(
                 if _mapping(outcome.get("typed_control_blocker")).get("fail_closed") is True
             ),
             "allowed_outcome_kinds": _OBLIGATION_ACTUATOR_ALLOWED_OUTCOMES,
-            "authority": "domain_health_diagnostic_obligation_actuator",
+            "authority": "med_autoscience.paper_progress_policy_adapter",
+            "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
         }
     return owner_callable_actions
 
@@ -456,7 +474,11 @@ def _current_obligation_provider_admission_candidates(
         ).get("provider_admission_candidates"),
     ):
         for candidate in source or []:
-            if isinstance(candidate, Mapping) and _candidate_matches_action_obligation(candidate, action):
+            if (
+                isinstance(candidate, Mapping)
+                and _candidate_matches_action_obligation(candidate, action)
+                and _candidate_has_opl_transition_outbox_record(candidate)
+            ):
                 candidates.append(dict(candidate))
     return candidates
 
@@ -629,6 +651,7 @@ def _typed_control_blocker_payload(
         "publication_ready_claim_allowed": False,
         "provider_completion_is_domain_completion": False,
         "non_advancing_apply": blocker_type == "dhd_apply_no_closed_obligation_outcome",
+        "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
     }
     cleaned = {key: value for key, value in payload.items() if value not in (None, "", [], {})}
     cleaned["typed_blocker_id"] = "dhd-obligation-blocker:" + hashlib.sha256(
@@ -755,6 +778,7 @@ def _obligation_outcome(
         "paper_autonomy_supervisor_outcome_allowed": outcome_kind in allowed_decision_outcomes,
         "paper_autonomy_obligation_ref": obligation_ref,
         "paper_autonomy_obligation_identity": obligation_identity,
+        "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
         "paper_recovery_next_safe_action_kind": _non_empty_text(
             _mapping(_mapping(action.get("paper_recovery_state")).get("next_safe_action")).get("kind")
         ),
@@ -948,6 +972,7 @@ def _postcondition_from_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
         "paper_autonomy_obligation_identity": _clean_payload(
             _mapping(outcome.get("paper_autonomy_obligation_identity"))
         ),
+        "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
     }
 
 
@@ -1059,6 +1084,32 @@ def _candidate_matches_action_obligation(
     if expected_fingerprint is not None and candidate_fingerprints:
         return expected_fingerprint in candidate_fingerprints
     return True
+
+
+def _candidate_has_opl_transition_outbox_record(candidate: Mapping[str, Any]) -> bool:
+    record = _mapping(candidate.get("current_control_command_outbox_record"))
+    if not record:
+        return False
+    if _non_empty_text(record.get("surface_kind")) != OPL_CURRENT_CONTROL_OUTBOX_SURFACE:
+        return False
+    if _non_empty_text(record.get("runtime_owner")) != OPL_TRANSITION_RUNTIME_OWNER:
+        return False
+    runtime_kind = _non_empty_text(record.get("runtime_kind"))
+    if runtime_kind is not None and runtime_kind != OPL_TRANSITION_RUNTIME_KIND:
+        return False
+    aggregate_identity = _mapping(record.get("aggregate_identity"))
+    required_identity = (
+        aggregate_identity.get("aggregate_kind"),
+        aggregate_identity.get("aggregate_id"),
+        aggregate_identity.get("study_id"),
+        aggregate_identity.get("work_unit_id"),
+        record.get("idempotency_key"),
+        record.get("source_generation"),
+        record.get("expected_version"),
+    )
+    if any(_non_empty_text(value) is None for value in required_identity):
+        return False
+    return bool(_mapping(record.get("postcondition")) or _mapping(record.get("outcome")))
 
 
 def _current_typed_blocker_payload(action: Mapping[str, Any]) -> dict[str, Any]:

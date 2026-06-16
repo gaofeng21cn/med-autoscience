@@ -50,6 +50,11 @@ def test_stale_compatibility_terms_do_not_reenter_active_surfaces() -> None:
         "med_deepscientist_" + "upgrade_check.py",
         "codex_cli_" + "autonomous",
         "legacy_oracle_" + "backend_audit",
+        "paper_autonomy_" + "supervisor_apply",
+        "paper_progress_" + "transition_kernel",
+        "single_transition_" + "authority",
+        "kernel_authorized_" + "provider_admission",
+        "mas_opl_paper_" + "autonomy_supervisor",
     )
     violations: list[str] = []
 

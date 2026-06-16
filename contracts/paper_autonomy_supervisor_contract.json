@@ -1,10 +1,10 @@
 {
-  "surface_kind": "mas_opl_paper_autonomy_supervisor_contract",
+  "surface_kind": "mas_paper_progress_policy_adapter_contract",
   "version": "paper-autonomy-supervisor.v1",
   "owner": "MedAutoScience / OPL Framework",
   "state": "active_contract",
-  "purpose": "Machine-readable contract for the MAS/OPL Paper Autonomy Supervisor obligation, decision taxonomy, recovery materialization, progress accounting, and OPL substrate split.",
-  "machine_boundary": "This contract defines the MAS/OPL Paper Autonomy Supervisor handshake. It does not declare live study truth, paper closure, publication readiness, submission readiness, quality verdicts, artifact mutation authority, current package freshness, runtime production readiness, or OPL provider liveness.",
+  "purpose": "Machine-readable contract for the MAS paper progress policy adapter obligation, decision taxonomy, recovery materialization, progress accounting, and OPL substrate split.",
+  "machine_boundary": "This contract defines the MAS paper progress policy adapter handshake with OPL DomainProgressTransitionRuntime. It does not declare live study truth, paper closure, publication readiness, submission readiness, quality verdicts, artifact mutation authority, current package freshness, runtime production readiness, or OPL provider liveness.",
   "source_design_ref": "docs/runtime/designs/paper_autonomy_supervisor_target.md",
   "related_contract_refs": [
     "contracts/stage_route_reconcile_contract.json",
@@ -385,10 +385,10 @@
   "authority_split": {
     "surface_kind": "paper_autonomy_authority_split",
     "mas_authority_surfaces": [
-      "PaperAutonomyAuthorityKernel",
-      "RecoveryMaterializer",
-      "PaperProgressLedger",
-      "AuthorityResultEnvelope"
+      "PaperProgressPolicyAdapter",
+      "PaperRecoveryPolicyAdapter",
+      "PaperProgressAccountingAdapter",
+      "PaperAuthorityResultShapes"
     ],
     "opl_substrate_surfaces": [
       "StageRunIdentityPacket",
@@ -523,22 +523,22 @@
   ],
   "mas_authority_requirements": [
     {
-      "surface": "PaperAutonomyAuthorityKernel",
+      "surface": "PaperProgressPolicyAdapter",
       "owner": "MedAutoScience",
       "role": "derive the single current_owner_delta from MAS study truth, publication eval, AI reviewer, controller decisions, stage receipts, owner receipts, typed blockers, human gates, and route-back evidence"
     },
     {
-      "surface": "RecoveryMaterializer",
+      "surface": "PaperRecoveryPolicyAdapter",
       "owner": "MedAutoScience",
       "role": "consume supervisor recovery decisions and route them to MAS repo repair, OPL runtime repair, study workspace migration, or operator policy materialization without self-signing foreign authority"
     },
     {
-      "surface": "PaperProgressLedger",
+      "surface": "PaperProgressAccountingAdapter",
       "owner": "MedAutoScience",
       "role": "separate paper semantic progress from platform repair, migration, and observability deltas"
     },
     {
-      "surface": "AuthorityResultEnvelope",
+      "surface": "PaperAuthorityResultShapes",
       "owner": "MedAutoScience",
       "required_ref_families": [
         "owner_receipt_ref",

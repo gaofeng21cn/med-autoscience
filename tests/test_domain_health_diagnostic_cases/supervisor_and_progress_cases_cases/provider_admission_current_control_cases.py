@@ -126,8 +126,11 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
     assert candidate["dispatch_path"] == str(dispatch_path)
     assert candidate["next_executable_owner"] == "ai_reviewer"
     assert candidate["paper_progress_policy_result"]["authority_role"] == "paper_domain_policy_adapter_only"
-    assert candidate["current_control_command"]["surface_kind"] == "opl_domain_progress_transition_command"
-    assert candidate["current_control_command"]["runtime_owner"] == "one-person-lab"
+    assert "current_control_command" not in candidate
+    assert candidate["current_control_command_outbox_record"]["surface_kind"] == (
+        "opl_generic_current_control_command_outbox_record"
+    )
+    assert candidate["current_control_command_outbox_record"]["runtime_owner"] == "one-person-lab"
 
 
 def test_provider_admission_candidate_from_analysis_campaign_quality_repair_current_action(
@@ -229,7 +232,9 @@ def test_provider_admission_candidate_from_analysis_campaign_quality_repair_curr
     assert candidate["next_executable_owner"] == "analysis-campaign"
     assert candidate["required_output_surface"] == "artifacts/controller/repair_execution_evidence/latest.json"
     assert candidate["paper_progress_policy_result"]["authority_boundary"]["mas_can_authorize_provider_admission"] is False
-    assert candidate["current_control_command"]["postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
+    assert candidate["current_control_command_outbox_record"]["postcondition"]["kind"] == (
+        "provider_admission_enqueued_or_blocked"
+    )
 
 
 def test_provider_admission_candidate_from_quality_repair_current_work_unit_without_action(
@@ -353,7 +358,7 @@ def test_provider_admission_candidate_from_quality_repair_current_work_unit_with
     assert candidate["next_executable_owner"] == "write"
     assert candidate["required_output_surface"] == "artifacts/controller/repair_execution_evidence/latest.json"
     assert candidate["paper_progress_policy_result"]["authority_boundary"]["opl_owns_transition_runtime"] is True
-    assert candidate["current_control_command"]["transition_kind"] == "StartProviderAttempt"
+    assert candidate["current_control_command_outbox_record"]["transition_kind"] == "StartProviderAttempt"
 
 
 def test_stale_current_control_gate_queue_is_suppressed_by_fresh_ai_reviewer_current_action(

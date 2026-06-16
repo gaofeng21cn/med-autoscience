@@ -32,7 +32,9 @@ FORBIDDEN_TERMINAL_INTERPRETATIONS = [
 
 AUTHORITY_BOUNDARY = {
     "surface_kind": SURFACE_KIND,
-    "authority": "mas_opl_paper_autonomy_supervisor",
+    "authority": "mas_paper_progress_policy_projection",
+    "authority_role": "paper_policy_projection_only_opl_transition_runtime_consumer",
+    "opl_transition_runtime_owner": "one-person-lab",
     "top_level_truth": "decision",
     "allowed_decisions": sorted(ALLOWED_DECISIONS),
     "read_models_can_create_decision": False,
@@ -41,6 +43,8 @@ AUTHORITY_BOUNDARY = {
     "can_write_study_truth": False,
     "can_authorize_publication_ready": False,
     "can_write_paper_or_package": False,
+    "can_own_generic_event_log_or_outbox": False,
+    "can_run_fixed_point_runtime": False,
 }
 
 

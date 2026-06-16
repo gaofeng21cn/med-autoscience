@@ -19,12 +19,12 @@ def _contract() -> dict[str, object]:
 def test_paper_autonomy_supervisor_declares_schema_external_patterns_and_boundary() -> None:
     contract = _contract()
 
-    assert contract["surface_kind"] == "mas_opl_paper_autonomy_supervisor_contract"
+    assert contract["surface_kind"] == "mas_paper_progress_policy_adapter_contract"
     assert contract["version"] == "paper-autonomy-supervisor.v1"
     assert contract["owner"] == "MedAutoScience / OPL Framework"
     assert contract["state"] == "active_contract"
     assert contract["machine_boundary"].startswith(
-        "This contract defines the MAS/OPL Paper Autonomy Supervisor"
+        "This contract defines the MAS paper progress policy adapter handshake"
     )
     assert contract["source_design_ref"] == (
         "docs/runtime/designs/paper_autonomy_supervisor_target.md"
@@ -272,10 +272,10 @@ def test_opl_foundation_and_mas_authority_split_forbid_read_model_authority() ->
 
     authority = contract["authority_split"]
     assert authority["mas_authority_surfaces"] == [
-        "PaperAutonomyAuthorityKernel",
-        "RecoveryMaterializer",
-        "PaperProgressLedger",
-        "AuthorityResultEnvelope",
+        "PaperProgressPolicyAdapter",
+        "PaperRecoveryPolicyAdapter",
+        "PaperProgressAccountingAdapter",
+        "PaperAuthorityResultShapes",
     ]
     assert authority["opl_substrate_surfaces"] == [
         "StageRunIdentityPacket",

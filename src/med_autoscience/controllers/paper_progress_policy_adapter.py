@@ -65,7 +65,7 @@ def build_policy_result(payload: Mapping[str, Any], *, source: str = "paper_prog
         "work_unit_id": identity.get("work_unit_id"),
         "work_unit_fingerprint": identity.get("work_unit_fingerprint"),
         "paper_policy_verdict": _paper_policy_verdict(policy_kind),
-        "opl_domain_progress_command": _opl_domain_progress_command(
+        "opl_domain_progress_command_outbox_record": _opl_domain_progress_command_outbox_record(
             policy_kind=policy_kind,
             identity=identity,
         ),
@@ -173,13 +173,18 @@ def _paper_policy_verdict(policy_kind: str) -> dict[str, Any]:
     return {"verdict": "non_advancing_apply_requires_typed_blocker"}
 
 
-def _opl_domain_progress_command(*, policy_kind: str, identity: Mapping[str, Any]) -> dict[str, Any]:
+def _opl_domain_progress_command_outbox_record(
+    *,
+    policy_kind: str,
+    identity: Mapping[str, Any],
+) -> dict[str, Any]:
     study_id = _text(identity.get("study_id"))
     work_unit_id = _text(identity.get("work_unit_id"))
     fingerprint = _text(identity.get("work_unit_fingerprint"))
     source_generation = _text(identity.get("source_generation")) or fingerprint
     command = {
-        "surface_kind": "opl_domain_progress_transition_command",
+        "surface_kind": "opl_generic_current_control_command_outbox_record",
+        "runtime_kind": "DomainProgressTransitionRuntime",
         "runtime_owner": "one-person-lab",
         "transition_kind": policy_kind,
         "aggregate_identity": {
