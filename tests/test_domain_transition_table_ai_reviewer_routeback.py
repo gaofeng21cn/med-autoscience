@@ -687,6 +687,74 @@ def test_current_ai_reviewer_routeback_controller_route_accepts_domain_transitio
     assert route["work_unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
 
 
+def test_materialized_controller_write_route_preempts_stale_ai_reviewer_projection(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript still needs medical prose repair.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    old_eval = _current_ai_reviewer_route_back_eval(study_root)
+    old_eval["eval_id"] = "publication-eval::dm003::old-readiness-blocker"
+    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, old_eval)
+    current_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260616T015951Z_publication_eval_record.json"
+    )
+    current_record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id="dm003",
+        quest_id="dm003",
+        eval_id="publication-eval::dm003::current-ai-reviewer-no-routeback-action",
+        emitted_at="2026-06-16T01:59:51+00:00",
+    )
+    current_record["recommended_actions"] = []
+    _write_json(current_record_path, current_record)
+    _write_json(
+        study_root / study_domain_transition_table.CONTROLLER_DECISION_RELATIVE_PATH,
+        {
+            "schema_version": 1,
+            "decision_id": "dm003-controller-route-back-write",
+            "decision_type": "route_back_same_line",
+            "study_id": "dm003",
+            "quest_id": "dm003",
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "run_quality_repair_batch"}],
+            "route_target": "write",
+            "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+            "next_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+                "summary": "Repair medical prose against the current AI reviewer record.",
+            },
+        },
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm003",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "route_back_same_line"
+    assert transition["route_target"] == "write"
+    assert transition["owner"] == "write"
+    assert transition["controller_action"] == "request_opl_stage_attempt"
+    assert transition["next_work_unit"]["unit_id"] == "medical_prose_write_repair"
+    assert str(current_record_path.resolve()) in transition["source_refs"]
+    assert str((study_root / study_domain_transition_table.CONTROLLER_DECISION_RELATIVE_PATH).resolve()) in transition[
+        "source_refs"
+    ]
+
+
 def test_current_ai_reviewer_write_routeback_preempts_consumed_story_recheck_request(
     tmp_path: Path,
 ) -> None:

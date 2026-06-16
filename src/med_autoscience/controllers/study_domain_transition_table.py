@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import ai_reviewer_publication_eval_records
+from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
 from med_autoscience.controllers.study_domain_transition_table_parts import default_executor_receipts
 from med_autoscience.controllers.study_domain_transition_table_parts import family_transition_spec
@@ -224,6 +225,16 @@ def project_domain_transition(
             source_refs=source_refs,
             completion_receipt_consumption=execution_receipt_consumption,
         )
+
+    current_controller_route_transition = _current_controller_runtime_route_transition(
+        study_id=study_id,
+        study_root=root,
+        publication_eval=publication_eval,
+        source_refs=source_refs,
+        completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
+    )
+    if current_controller_route_transition is not None:
+        return current_controller_route_transition
 
     stale_reviewer_revision_transition = ai_reviewer_transitions.project_stale_reviewer_revision_transition(
         study_id=study_id,
@@ -566,6 +577,82 @@ def _delivered_package_handoff_transition(
         source_refs=source_refs,
         completion_receipt_consumption=completion_receipt_consumption,
     )
+
+
+def _current_controller_runtime_route_transition(
+    *,
+    study_id: str,
+    study_root: Path,
+    publication_eval: Mapping[str, Any],
+    source_refs: Iterable[str],
+    completion_receipt_consumption: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    route = current_truth_owner.current_controller_runtime_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval,
+    )
+    if route is None:
+        return None
+    work_unit_id = _text(route.get("work_unit_id"))
+    route_target = _text(route.get("route_target"))
+    if not work_unit_id or not route_target:
+        return None
+    decision_type = _domain_transition_decision_type(route.get("work_unit_fingerprint"))
+    if decision_type is None:
+        return None
+    action_types = set(_text_list(route.get("controller_actions")))
+    controller_action = _domain_transition_controller_action(
+        decision_type=decision_type,
+        action_types=action_types,
+    )
+    if controller_action is None:
+        return None
+    next_work_unit = _compact_work_unit(route.get("next_work_unit")) or _work_unit(
+        work_unit_id,
+        route_target,
+        "Continue the current MAS controller-authorized domain route.",
+    )
+    decision_path = _text(route.get("decision_path"))
+    return _transition(
+        study_id=study_id,
+        decision_type=decision_type,
+        route_target=route_target,
+        next_work_unit=next_work_unit,
+        controller_action=controller_action,
+        owner=_domain_transition_owner(decision_type=decision_type, route_target=route_target),
+        typed_blocker=None,
+        guard_boundary=_guard_boundary(required_owner_surface=str(CONTROLLER_DECISION_RELATIVE_PATH)),
+        source_refs=[*source_refs, *([decision_path] if decision_path else [])],
+        completion_receipt_consumption=completion_receipt_consumption,
+    )
+
+
+def _domain_transition_decision_type(work_unit_fingerprint: object) -> str | None:
+    fingerprint = _text(work_unit_fingerprint)
+    parts = fingerprint.split("::", 2)
+    if len(parts) != 3 or parts[0] != "domain-transition" or not parts[1] or not parts[2]:
+        return None
+    return parts[1]
+
+
+def _domain_transition_controller_action(*, decision_type: str, action_types: set[str]) -> str | None:
+    if decision_type == "ai_reviewer_re_eval" and "return_to_ai_reviewer_workflow" in action_types:
+        return "return_to_ai_reviewer_workflow"
+    if decision_type == "publication_gate_blocker" and "run_gate_clearing_batch" in action_types:
+        return "run_gate_clearing_batch"
+    if decision_type == "route_back_same_line" and "run_quality_repair_batch" in action_types:
+        return "request_opl_stage_attempt"
+    if decision_type == "bundle_stage_finalize" and "request_opl_stage_attempt" in action_types:
+        return "continue_bundle_stage"
+    return None
+
+
+def _domain_transition_owner(*, decision_type: str, route_target: str) -> str:
+    if decision_type == "ai_reviewer_re_eval":
+        return "ai_reviewer"
+    if decision_type in {"bundle_stage_finalize", "publication_gate_blocker"}:
+        return "publication_gate"
+    return route_target
 
 
 def build_domain_transition_table(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
