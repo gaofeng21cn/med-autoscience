@@ -102,12 +102,13 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
     assert result["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
     assert result["action_queue"][0]["work_unit_fingerprint"] == work_unit_fingerprint
     expected_identity = f"provider-admission::{study_id}::{work_unit_fingerprint}"
-    candidate = result["provider_admission_candidates"][0]
+    candidate = result["transition_request_candidates"][0]
     action = result["action_queue"][0]
     assert candidate["route_identity_key"] == expected_identity
     assert candidate["attempt_idempotency_key"] == expected_identity
@@ -246,7 +247,7 @@ def test_same_tick_materialized_report_candidate_carries_opl_outbox_record(
     )
 
     assert result is not None
-    candidate = result["provider_admission_candidates"][0]
+    candidate = result["transition_request_candidates"][0]
     transition_request = candidate["opl_domain_progress_transition_request"]
     assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
     assert transition_request["target_runtime_owner"] == "one-person-lab"
@@ -514,8 +515,9 @@ def test_same_tick_owner_route_apply_refreshes_report_currentness_before_provide
 
     currentness = result["current_execution_evidence"]["progress_currentness"][study_id]
     assert currentness["current_work_unit"]["work_unit_id"] == work_unit_id
-    assert result["provider_admission_pending_count"] == 1
-    candidate = result["managed_study_opl_provider_admission_candidates"][0]
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
+    candidate = result["managed_study_opl_transition_request_candidates"][0]
     assert candidate["source"] == "same_tick_materialized_dispatch"
     assert candidate["study_id"] == study_id
     assert candidate["action_type"] == "run_gate_clearing_batch"
@@ -532,7 +534,8 @@ def test_same_tick_owner_route_apply_refreshes_report_currentness_before_provide
     assert action["attempt_idempotency_key"] == expected_identity
     assert action["stage_packet_ref"] == str(dispatch_path)
     assert action["stage_packet_refs"] == [str(dispatch_path)]
-    assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 1
+    assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 0
+    assert result["provider_admission_current_control_state"]["transition_request_pending_count"] == 1
     assert result["action_fingerprints"] == [action_fingerprint]
 
 
@@ -726,8 +729,9 @@ def test_same_tick_recovery_successor_dispatch_survives_stale_opl_authorization_
         request_opl_owner_route_reconcile=True,
     )
 
-    assert result["provider_admission_pending_count"] == 1
-    candidate = result["managed_study_opl_provider_admission_candidates"][0]
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
+    candidate = result["managed_study_opl_transition_request_candidates"][0]
     assert candidate["study_id"] == study_id
     assert candidate["action_type"] == "run_quality_repair_batch"
     assert candidate["work_unit_id"] == work_unit_id

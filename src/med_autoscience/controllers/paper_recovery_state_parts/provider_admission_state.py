@@ -24,7 +24,7 @@ def admission_blocked_condition(
     progress: Mapping[str, Any],
     diagnostic: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    if not provider_admission_pending(progress):
+    if not provider_admission_pending(progress) and not transition_request_pending(progress):
         return None
     runtime_health = _mapping(progress.get("runtime_health_snapshot"))
     if (
@@ -60,17 +60,17 @@ def admission_blocked_condition(
 def provider_admission_pending(progress: Mapping[str, Any]) -> bool:
     candidates = _provider_admission_candidates(progress)
     if int(progress.get("provider_admission_pending_count") or 0) > 0 and any(
-        _has_opl_transition_boundary(candidate) for candidate in candidates
+        _has_opl_runtime_readback(candidate) for candidate in candidates
     ):
         return True
     current_work_unit = _mapping(progress.get("current_work_unit"))
     if (
         _current_work_unit_status(current_work_unit) == "executable_owner_action"
         and _mapping(current_work_unit.get("state")).get("provider_admission_pending") is True
-        and _has_opl_transition_boundary(current_work_unit)
+        and _has_opl_runtime_readback(current_work_unit)
     ):
         return True
-    return any(_has_opl_transition_boundary(candidate) for candidate in candidates)
+    return any(_has_opl_runtime_readback(candidate) for candidate in candidates)
 
 
 def _provider_admission_candidates(progress: Mapping[str, Any]) -> list[Mapping[str, Any]]:
@@ -79,6 +79,15 @@ def _provider_admission_candidates(progress: Mapping[str, Any]) -> list[Mapping[
 
 def _has_opl_transition_boundary(value: Mapping[str, Any]) -> bool:
     return _has_mas_transition_request(value) or _has_opl_runtime_readback(value)
+
+
+def transition_request_pending(progress: Mapping[str, Any]) -> bool:
+    candidates = _provider_admission_candidates(progress)
+    if any(_has_mas_transition_request(candidate) for candidate in candidates):
+        return True
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    state = _mapping(current_work_unit.get("state"))
+    return bool(state.get("provider_admission_pending") is True and _has_mas_transition_request(current_work_unit))
 
 
 def _has_mas_transition_request(value: Mapping[str, Any]) -> bool:
@@ -174,4 +183,5 @@ def _text(value: Any) -> str | None:
 __all__ = [
     "admission_blocked_condition",
     "provider_admission_pending",
+    "transition_request_pending",
 ]

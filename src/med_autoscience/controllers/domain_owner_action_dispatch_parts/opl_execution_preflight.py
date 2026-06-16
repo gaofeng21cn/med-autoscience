@@ -47,7 +47,13 @@ def block_if_missing_authorization(
         "blocked_reason": "opl_execution_authorization_required",
         "typed_blocker": opl_execution_authorization_typed_blocker(),
         "owner_callable_surface": None,
+        "adapter_kind": "opl_authorized_owner_callable_adapter",
+        "target_runtime_owner": "one-person-lab",
         "mas_private_attempt_loop_forbidden": True,
+        "mas_dispatch_authority": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
         "provider_attempt_or_lease_required": True,
     }
 
@@ -73,11 +79,6 @@ def _authorized(
         owner_route_basis=owner_route_basis,
     ):
         return True
-    if _paper_recovery_mas_owner_callable_authorized(
-        dispatch=dispatch,
-        owner_route_basis=owner_route_basis,
-    ):
-        return True
     if owner_route_basis in {"bridged_writer_handoff", "current_writer_handoff"} and (
         current_writer_handoff.self_authorized_quality_repair_writer_handoff(
             study_id=_text(dispatch.get("study_id")) or "",
@@ -92,7 +93,7 @@ def _authorized(
     if owner_route_basis == "live_provider_attempt_dispatch":
         live_attempt = _mapping(current_study.get("opl_provider_attempt")) or current_study
         return first_trusted_opl_execution_authorization(live_attempt) is not None
-    return first_trusted_opl_execution_authorization(
+    if first_trusted_opl_execution_authorization(
         dispatch.get("opl_execution_authorization"),
         dispatch.get("opl_provider_attempt"),
         dispatch.get("stage_attempt"),
@@ -100,7 +101,27 @@ def _authorized(
         _mapping(dispatch.get("prompt_contract")).get("opl_provider_attempt"),
         _mapping(dispatch.get("owner_route")).get("opl_execution_authorization"),
         _mapping(dispatch.get("owner_route")).get("opl_provider_attempt"),
-    ) is not None
+    ) is not None:
+        return True
+    return _closeout_or_readback_binding_present(dispatch)
+
+
+def _closeout_or_readback_binding_present(dispatch: Mapping[str, Any]) -> bool:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    binding = _mapping(dispatch.get("closeout_binding")) or _mapping(prompt_contract.get("closeout_binding"))
+    if not binding:
+        return False
+    if _text(binding.get("stage_run_id")) is None and _text(binding.get("stage_run_ref")) is None:
+        return False
+    if _text(binding.get("stage_manifest_ref")) is None:
+        return False
+    if _text(binding.get("current_pointer_ref")) is None:
+        return False
+    if not _text_items(binding.get("closeout_refs")):
+        return False
+    if _text(binding.get("source_fingerprint")) is None:
+        return False
+    return _text(binding.get("work_unit_fingerprint")) is not None
 
 
 def _stage_native_clean_room_publication_surface_authorized(
@@ -221,52 +242,6 @@ def _accepted_owner_gate_materialization_authorized(
         or _text(currentness_basis.get("work_unit_fingerprint"))
     )
     return work_unit_id is not None and fingerprint is not None
-
-
-def _paper_recovery_mas_owner_callable_authorized(
-    *,
-    dispatch: Mapping[str, Any],
-    owner_route_basis: str | None,
-) -> bool:
-    if owner_route_basis != _PAPER_RECOVERY_OWNER_CALLABLE_BASIS:
-        return False
-    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(
-        _mapping(dispatch.get("prompt_contract")).get("owner_route")
-    )
-    source_refs = _mapping(owner_route.get("source_refs"))
-    if _text(source_refs.get("bridge_authority")) != _PAPER_RECOVERY_OWNER_CALLABLE_BRIDGE_AUTHORITY:
-        return False
-    source_action = _mapping(dispatch.get("source_action"))
-    if _text(source_action.get("authority")) != "paper_recovery_state":
-        return False
-    if _text(source_action.get("source_surface")) != "paper_recovery_state":
-        return False
-    supervisor_decision = _mapping(source_action.get("supervisor_decision")) or _mapping(
-        _mapping(source_action.get("handoff_packet")).get("supervisor_decision")
-    )
-    if _text(supervisor_decision.get("decision")) != "materialize_recovery_action":
-        return False
-    source_next_action = _source_next_safe_action(supervisor_decision)
-    if _text(source_next_action.get("kind")) != "run_mas_owner_callable":
-        return False
-    owner_callable = _mapping(source_next_action.get("owner_callable"))
-    action_type = _text(dispatch.get("action_type"))
-    if action_type is None or _text(owner_callable.get("action_type")) != action_type:
-        return False
-    obligation = _mapping(supervisor_decision.get("paper_autonomy_obligation"))
-    if not _paper_recovery_callable_identity_matches(
-        dispatch=dispatch,
-        owner_route=owner_route,
-        source_refs=source_refs,
-        obligation=obligation,
-        action_type=action_type,
-    ):
-        return False
-    return _text(owner_callable.get("callable_surface")) in {
-        "quality_repair_batch.run_quality_repair_batch",
-        "medical_paper_readiness.complete_medical_paper_readiness_surface",
-        "gate_clearing_batch.run_gate_clearing_batch",
-    }
 
 
 def _paper_recovery_provider_handoff_authorized(
@@ -503,3 +478,12 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 def _text(value: object) -> str | None:
     return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [text for item in value if (text := _text(item)) is not None]

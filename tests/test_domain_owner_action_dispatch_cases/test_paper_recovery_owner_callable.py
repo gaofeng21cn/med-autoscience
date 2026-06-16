@@ -116,7 +116,7 @@ def test_execute_dispatch_accepts_paper_recovery_owner_callable_route_without_sc
     assert execution["current_owner_route"]["idempotency_key"] == route["idempotency_key"]
 
 
-def test_execute_dispatch_invokes_persisted_paper_recovery_owner_callable_without_opl_attempt(
+def test_execute_dispatch_blocks_persisted_paper_recovery_owner_callable_without_opl_proof(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -249,7 +249,12 @@ def test_execute_dispatch_invokes_persisted_paper_recovery_owner_callable_withou
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [
+            "target_runtime_owner": "one-person-lab",
+            "mas_dispatch_authority": False,
+            "mas_creates_opl_outbox": False,
+            "mas_creates_opl_event": False,
+            "mas_creates_opl_stage_run": False,
+            "owner_callable_adapters": [
                 {**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}
             ],
         },
@@ -279,16 +284,28 @@ def test_execute_dispatch_invokes_persisted_paper_recovery_owner_callable_withou
         apply=True,
     )
 
-    assert result["executed_count"] == 1
-    assert result["blocked_count"] == 0
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "executed"
-    assert execution["blocked_reason"] is None
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
     assert execution["owner_route_basis"] == "paper_recovery_owner_callable"
-    assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
-    assert called["study_id"] == study_id
-    assert called["quest_id"] == study_id
-    assert called["authority_route_context"]["work_unit_id"] == work_unit_id
+    assert execution["owner_callable_surface"] is None
+    assert execution["target_runtime_owner"] == "one-person-lab"
+    assert execution["adapter_kind"] == "opl_authorized_owner_callable_adapter"
+    assert execution["mas_dispatch_authority"] is False
+    assert execution["mas_creates_opl_outbox"] is False
+    assert execution["mas_creates_opl_event"] is False
+    assert execution["mas_creates_opl_stage_run"] is False
+    assert execution["typed_blocker"] == {
+        "blocker_id": "opl_execution_authorization_required",
+        "owner": "one-person-lab",
+        "write_permitted": False,
+        "required_input": "OPL provider attempt, lease, or closeout receipt binding",
+    }
+    assert execution["mas_private_attempt_loop_forbidden"] is True
+    assert execution["provider_attempt_or_lease_required"] is True
+    assert called == {}
 
 
 def test_execute_dispatch_selects_same_tick_paper_recovery_successor_dispatch(

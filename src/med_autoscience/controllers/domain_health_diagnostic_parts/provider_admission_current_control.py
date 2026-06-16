@@ -25,6 +25,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     candidate_with_progress_currentness_identity as _candidate_with_progress_currentness_identity,
     provider_admission_current_control_study,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_request import (
     candidate_with_opl_transition_request as _candidate_with_opl_transition_request,
 )
@@ -82,18 +85,23 @@ def materialize_provider_admission_current_control_state(
         live_studies_by_id=live_studies_by_id,
         scanned_studies_by_id=scanned_studies_by_id,
     )
-    pending_candidates = _candidates_not_covered_by_live_attempt(
+    transition_request_candidates = _candidates_not_covered_by_live_attempt(
         candidates,
         live_studies_by_id=live_studies_by_id,
         scanned_studies_by_id=scanned_studies_by_id,
     )
+    pending_candidates = [
+        candidate
+        for candidate in transition_request_candidates
+        if candidate_opl_transition_readback(candidate)
+    ]
     terminal_precedence_by_study = _terminal_precedence_by_study(scanned_studies)
     studies = [
         _study_with_terminal_precedence(
             provider_admission_current_control_study(candidate),
             terminal_precedence_by_study=terminal_precedence_by_study,
         )
-        for candidate in pending_candidates
+        for candidate in transition_request_candidates
     ]
     candidate_study_ids = {
         study_id
@@ -153,6 +161,7 @@ def materialize_provider_admission_current_control_state(
             "history_path": str(history_path),
             "latest_action_count": len(output_actions),
             "provider_admission_pending_count": len(pending_candidates),
+            "transition_request_pending_count": len(transition_request_candidates),
         },
         workspace_daemon_lifecycle={},
         provider_readiness=None,
@@ -162,6 +171,10 @@ def materialize_provider_admission_current_control_state(
     )
     payload["provider_admission_pending_count"] = len(pending_candidates)
     payload["provider_admission_candidates"] = [dict(candidate) for candidate in pending_candidates]
+    payload["transition_request_pending_count"] = len(transition_request_candidates)
+    payload["transition_request_candidates"] = [
+        dict(candidate) for candidate in transition_request_candidates
+    ]
     payload["stage_route_arbiter"] = _stage_route_arbiter_summary(
         decisions=arbiter_decisions,
         candidate_count=len(candidates),
@@ -184,6 +197,7 @@ def materialize_provider_admission_current_control_state(
                 ],
                 "action_ids": [action.get("action_id") for action in output_actions],
                 "provider_admission_pending_count": len(pending_candidates),
+                "transition_request_pending_count": len(transition_request_candidates),
                 "stage_route_arbiter_decision_counts": payload["stage_route_arbiter"][
                     "decision_counts"
                 ],

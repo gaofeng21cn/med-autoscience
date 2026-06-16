@@ -74,7 +74,7 @@ def current_default_executor_dispatches(
         for action in selected_request_actions
     ]
     return {
-        "surface": "domain_action_request_materializer.current_default_executor_dispatches",
+        "surface": "domain_action_request_materializer.current_owner_callable_adapters",
         "schema_version": 1,
         "generated_at": generated_at,
         "workspace_root": str(profile.workspace_root),
@@ -84,13 +84,24 @@ def current_default_executor_dispatches(
         "effective_mode": developer_mode.mode,
         "developer_supervisor_mode": developer_mode_payload,
         "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
+        "adapter_kind": "opl_authorized_owner_callable_adapter",
+        "target_runtime_owner": "one-person-lab",
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+        "mas_dispatch_authority": False,
         "selected_action_count": len(selected_request_actions),
         "ignored_actions": ignored_actions,
+        "owner_callable_adapter_count": len(dispatches),
+        "ready_owner_callable_adapter_count": _dispatch_status_count(dispatches, "ready", text=text),
+        "blocked_owner_callable_adapter_count": _dispatch_status_count(dispatches, "blocked", text=text),
+        "owner_callable_adapters": dispatches,
         "default_executor_dispatch_count": len(dispatches),
         "ready_default_executor_dispatch_count": _dispatch_status_count(dispatches, "ready", text=text),
         "blocked_default_executor_dispatch_count": _dispatch_status_count(dispatches, "blocked", text=text),
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in dispatches),
         "default_executor_dispatches": dispatches,
+        "default_executor_dispatches_compat_role": "derived_read_model_for_existing_selectors",
     }
 
 

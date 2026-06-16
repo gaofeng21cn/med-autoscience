@@ -25,6 +25,7 @@ from med_autoscience.controllers.paper_recovery_state_parts.owner_gate_decision 
 from med_autoscience.controllers.paper_recovery_state_parts.provider_admission_state import (
     admission_blocked_condition as _admission_blocked_condition,
     provider_admission_pending as _provider_admission_pending,
+    transition_request_pending as _transition_request_pending,
 )
 from med_autoscience.controllers.paper_recovery_state_parts.owner_callable_readiness import (
     current_mas_owner_callable as _current_mas_owner_callable,
@@ -519,6 +520,27 @@ def build_paper_recovery_state(
                 "admit_provider_attempt",
                 provider_admission_allowed=True,
                 owner=owner,
+            ),
+            current_owner=owner,
+        )
+
+    if _transition_request_pending(progress):
+        owner = _text(obligation.get("owner"))
+        return _state(
+            progress,
+            obligation=obligation,
+            phase="transition_request_pending",
+            conditions=[
+                {
+                    "condition": "mas_transition_request_pending_opl_readback",
+                    "required_runtime": "DomainProgressTransitionRuntime",
+                }
+            ],
+            next_safe_action=_next_action(
+                "await_opl_transition_readback_or_non_advancing_apply",
+                provider_admission_allowed=False,
+                owner=owner,
+                required_input="OPL command/event/outbox or StageRun readback for the same transition request",
             ),
             current_owner=owner,
         )

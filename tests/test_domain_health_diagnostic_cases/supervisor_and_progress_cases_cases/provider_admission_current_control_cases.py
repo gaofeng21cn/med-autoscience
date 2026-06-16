@@ -490,9 +490,10 @@ def test_provider_admission_candidate_from_owner_receipt_successor_action(
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert len(result["provider_admission_candidates"]) == 1
-    candidate = result["provider_admission_candidates"][0]
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    candidate = result["transition_request_candidates"][0]
     assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
     assert candidate["study_id"] == study_id
     assert candidate["action_type"] == "run_quality_repair_batch"
@@ -913,11 +914,13 @@ def test_terminal_closeout_suppresses_stale_running_but_preserves_next_handoff(
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == next_work_unit_id
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert result["transition_request_candidates"][0]["work_unit_id"] == next_work_unit_id
     study = result["studies"][0]
     assert study["study_id"] == study_id
-    assert study["quest_status"] == "provider_admission_pending"
+    assert study["quest_status"] == "transition_request_pending"
     assert study["running_provider_attempt"] is False
     assert study["active_stage_attempt_id"] is None
     assert study["terminal_closeout_precedence_evidence"]["stage_attempt_id"] == (

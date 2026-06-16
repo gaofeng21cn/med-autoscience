@@ -97,7 +97,9 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 
 - functional / structural gates 已按 standard OPL Agent source shape 关闭，controller 代码按 domain handler target、authority function、owner receipt / typed blocker producer 或 refs-only projection input 读取。
 - `study_runtime_execution.py`、`study_runtime_transport.py` 和旧 router transport helper 只能作为 retired provenance / migration input / tombstone 语境出现；当前测试约束它们不得重新变成 importable MAS 私有 runtime 控制面。
-- former wrapper / private runtime surface 的物理删除只在 replacement parity、MAS owner receipt 或 stable typed blocker、no-active-caller proof、focused tests 与 tombstone/provenance proof 同时成立时执行，不把未授权删除门写回 active functional / structural gap。
+- former wrapper / private runtime surface 的物理删除只在 replacement parity、MAS owner receipt 或 stable typed blocker、no-active-caller proof、no-forbidden-write proof、focused tests 与 tombstone/provenance proof 同时成立时执行，不把未授权删除门写回 active functional / structural gap。
+- `contracts/functional_privatization_audit.json#/retirement_disposition_matrix` 是 controller / wrapper / projection 退役分类读根；`contracts/private_functional_surface_policy.json#/mas_private_surface_retirement_gate_policy` 是新增或保留 private surface 的 admission gate。controller retained path 必须落到 OPL primitive、temporary refs projection、retained minimal authority function 或 tombstone-only；active caller、operator UI、docs reference 或测试绿不能单独保留 MAS-private runtime-like 面。
+- Plan Completion Audit 中，controller / private surface 退役条目只有在 fresh evidence 覆盖 no-active-caller、replacement parity、no-forbidden-write、tombstone/provenance，以及 owner receipt / stable typed blocker / human gate / route-back evidence 或同 current identity OPL StageRun readback时才能写 `100%`。否则只写 `partial` 或 evidence tail open。
 
 对于数据资产层，当前已经区分两类 controller 能力：
 

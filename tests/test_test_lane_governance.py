@@ -87,6 +87,92 @@ def test_functional_privatization_audit_exposes_standard_agent_purity_guard() ->
     assert_standard_agent_purity_boundary(boundary)
 
 
+def test_private_surface_retirement_contracts_expose_completion_gates() -> None:
+    audit = json.loads(_read("contracts/functional_privatization_audit.json"))
+    policy = json.loads(_read("contracts/private_functional_surface_policy.json"))
+    inventory = json.loads(_read("contracts/authority_kernel_inventory.json"))
+
+    disposition = audit["retirement_disposition_matrix"]
+    assert disposition["surface_kind"] == "mas_private_surface_retirement_disposition_matrix"
+    assert disposition["source_of_truth_chain"] == (
+        "DomainIntent -> OPL Command/Event/Outbox/StageRun -> MAS OwnerAnswer -> Derived Projection"
+    )
+    assert disposition["completion_claim_policy"] == {
+        "contracts_or_tests_alone_can_claim_100_percent": False,
+        "live_proof_required_before_100_percent": True,
+        "ready_claim_authorized": False,
+    }
+    assert disposition["required_retirement_gate_fields"] == [
+        "no_active_caller",
+        "no_forbidden_write_proof",
+        "replacement_parity",
+        "retirement_gate",
+        "tombstone_or_provenance",
+    ]
+    dispositions_by_id = {
+        module_id: item["disposition"]
+        for item in disposition["surface_dispositions"]
+        for module_id in item["module_ids"]
+    }
+    assert dispositions_by_id["generic_daemon_or_scheduler_lifecycle"] == "tombstone_only"
+    assert dispositions_by_id["generic_queue_attempt_retry_dead_letter"] == (
+        "opl_primitive_replacement"
+    )
+    assert dispositions_by_id["generic_transition_runner"] == "opl_primitive_replacement"
+    assert dispositions_by_id["workbench_portal_generic_shell"] == "temporary_refs_projection"
+    assert dispositions_by_id["owner_route_reconcile_materialize_dispatch_shell"] == (
+        "temporary_refs_projection"
+    )
+    assert dispositions_by_id["owner_receipt"] == "retained_minimal_authority_function"
+    for item in disposition["surface_dispositions"]:
+        for required_field in disposition["required_retirement_gate_fields"]:
+            assert item[required_field], item["disposition"]
+
+    boundary_followthrough = audit["functional_consumer_boundary"][
+        "functional_followthrough_gap_summary"
+    ]
+    assert audit["functional_followthrough_gap_summary"]["retirement_gate_checklist"] == (
+        boundary_followthrough["retirement_gate_checklist"]
+    )
+    checklist = boundary_followthrough["retirement_gate_checklist"]
+    assert checklist["surface_kind"] == "mas_private_surface_retirement_gate_checklist"
+    assert checklist["completion_percent_policy"].startswith("do_not_report_100_percent")
+    assert {item["gate_id"] for item in checklist["gate_items"]} == {
+        "no_active_caller",
+        "replacement_parity",
+        "no_forbidden_write_proof",
+        "tombstone_or_provenance",
+        "live_owner_or_stable_blocker",
+    }
+
+    private_policy = policy["mas_private_surface_retirement_gate_policy"]
+    assert private_policy["surface_kind"] == "mas_private_surface_retirement_gate_policy"
+    assert private_policy["active_caller_alone_retains_surface"] is False
+    assert private_policy["allowed_dispositions"] == [
+        "opl_primitive",
+        "temporary_refs_projection",
+        "retained_minimal_authority_function",
+        "tombstone_only",
+    ]
+    assert "current_tests_green" in private_policy["forbidden_retention_reasons"]
+    assert "100_percent_complete_without_live_proof" in private_policy["must_not_claim"]
+    assert policy["classification_required_for_private_surfaces"] is True
+
+    inventory_policy = inventory["retirement_gate_policy"]
+    assert inventory_policy["surface_kind"] == "mas_authority_kernel_retirement_gate_policy"
+    assert inventory_policy["completion_percent_policy"].startswith(
+        "inventory_or_test_green_is_not_100_percent"
+    )
+    required_item_fields = set(inventory_policy["required_item_fields"])
+    for item in inventory["items"]:
+        assert required_item_fields <= set(item), item["item_id"]
+        assert item["no_forbidden_write_proof"].startswith("required_no_write_to_")
+        if item["category"] in {"refs_only_helper", "diagnostic_probe"}:
+            assert item["disposition"] == "temporary_refs_projection", item["item_id"]
+        else:
+            assert item["disposition"] == "retained_minimal_authority_function", item["item_id"]
+
+
 def test_smoke_lane_files_do_not_perform_subprocess_or_repo_root_writes() -> None:
     manifest = _test_lane_manifest()
 

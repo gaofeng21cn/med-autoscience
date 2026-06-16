@@ -40,3 +40,39 @@ def provider_candidate(profile, study_id: str, *, action_fingerprint: str) -> di
             "work_unit_fingerprint": action_fingerprint,
         },
     }
+
+
+def opl_transition_readback(
+    study_id: str,
+    *,
+    action_fingerprint: str,
+    stage_run_id: str | None = None,
+) -> dict[str, object]:
+    stage_run_id = stage_run_id or f"stage-run::{study_id}::{action_fingerprint}"
+    return {
+        "surface_kind": "opl_domain_progress_transition_result",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "outcome_kind": "provider_admission_pending",
+        "event_id": f"opl-domain-progress-event::{study_id}::{action_fingerprint}",
+        "outbox_item_id": f"opl-domain-progress-outbox::{study_id}::{action_fingerprint}",
+        "stage_run_id": stage_run_id,
+    }
+
+
+def provider_candidate_with_opl_readback(
+    profile,
+    study_id: str,
+    *,
+    action_fingerprint: str,
+) -> dict[str, object]:
+    candidate = provider_candidate(
+        profile,
+        study_id,
+        action_fingerprint=action_fingerprint,
+    )
+    candidate["opl_domain_progress_transition_result"] = opl_transition_readback(
+        study_id,
+        action_fingerprint=action_fingerprint,
+    )
+    return candidate

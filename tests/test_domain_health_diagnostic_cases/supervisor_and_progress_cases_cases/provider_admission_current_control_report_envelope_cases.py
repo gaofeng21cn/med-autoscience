@@ -9,6 +9,50 @@ globals().update({
 })
 
 
+def _opl_transition_result(*, study_id: str, fingerprint: str) -> dict[str, object]:
+    return {
+        "surface_kind": "opl_domain_progress_transition_result",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "outcome_kind": "provider_admission_pending",
+        "event_id": f"opl-domain-progress-event::{study_id}::{fingerprint}",
+        "outbox_item_id": f"opl-domain-progress-outbox::{study_id}::{fingerprint}",
+        "stage_run_id": f"stage-run::{study_id}::{fingerprint}",
+    }
+
+
+def _mas_transition_request(
+    *,
+    study_id: str,
+    action_type: str,
+    work_unit_id: str,
+    fingerprint: str,
+) -> dict[str, object]:
+    return {
+        "surface_kind": "mas_domain_progress_transition_request",
+        "schema_version": 1,
+        "target_runtime_owner": "one-person-lab",
+        "target_runtime_kind": "DomainProgressTransitionRuntime",
+        "recommended_transition_kind": "StartProviderAttempt",
+        "aggregate_identity": {
+            "aggregate_kind": "paper_progress_work_unit",
+            "aggregate_id": f"{study_id}:{work_unit_id}:{fingerprint}",
+            "study_id": study_id,
+            "work_unit_id": work_unit_id,
+        },
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+        "source_generation": fingerprint,
+        "expected_version": fingerprint,
+        "required_postcondition": {"kind": "provider_admission_enqueued_or_blocked"},
+        "mas_can_create_opl_outbox_record": False,
+    }
+
+
 def test_runtime_report_prefers_fresh_progress_envelope_over_stale_user_waiting_action() -> None:
     report_aggregation = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
@@ -152,6 +196,7 @@ def test_runtime_report_preserves_user_gate_when_provider_admission_is_pending()
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
     gate = {
         "gate_kind": "developer_supervisor",
         "blocked": True,
@@ -186,7 +231,11 @@ def test_runtime_report_preserves_user_gate_when_provider_admission_is_pending()
                 "status": "provider_admission_pending",
                 "action_type": "run_quality_repair_batch",
                 "work_unit_id": work_unit_id,
-                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "work_unit_fingerprint": fingerprint,
+                "opl_domain_progress_transition_result": _opl_transition_result(
+                    study_id=study_id,
+                    fingerprint=fingerprint,
+                ),
             }
         ],
         managed_study_progress_currentness={
@@ -197,7 +246,7 @@ def test_runtime_report_preserves_user_gate_when_provider_admission_is_pending()
                     "owner": "write",
                     "action_type": "run_quality_repair_batch",
                     "work_unit_id": work_unit_id,
-                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "work_unit_fingerprint": fingerprint,
                 },
                 "current_execution_envelope": {
                     "state_kind": "executable_owner_action",
@@ -278,6 +327,12 @@ def test_runtime_report_uses_managed_action_runtime_health_for_recovery_state() 
                     "state": {
                         "state_kind": "executable_owner_action",
                         "provider_admission_pending": True,
+                        "opl_domain_progress_transition_request": _mas_transition_request(
+                            study_id=study_id,
+                            action_type="run_gate_clearing_batch",
+                            work_unit_id="publication_gate_replay",
+                            fingerprint=fingerprint,
+                        ),
                     },
                 },
                 "current_executable_owner_action": {

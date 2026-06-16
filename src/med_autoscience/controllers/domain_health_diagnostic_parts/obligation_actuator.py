@@ -14,6 +14,9 @@ from med_autoscience.controllers import (
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import (
     _non_empty_text,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 MAS_OWNER_CALLABLE_DRAIN_MAX_PASSES = 3
@@ -453,7 +456,7 @@ def _provider_admission_pending_outcome(
     )
     if not candidates:
         return None
-    runtime_result = _candidate_opl_runtime_result(candidates[0])
+    runtime_result = candidate_opl_transition_readback(candidates[0])
     if not runtime_result:
         return None
     return _obligation_outcome(
@@ -1157,37 +1160,6 @@ def _mas_transition_request_has_runtime_field(request: Mapping[str, Any]) -> boo
         "read_model_generation_metadata",
     }
     return any(field in request for field in forbidden_fields)
-
-
-def _candidate_opl_runtime_result(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    for value in (
-        candidate.get("opl_domain_progress_transition_result"),
-        candidate.get("opl_domain_progress_runtime_result"),
-        candidate.get("opl_runtime_result"),
-        _mapping(candidate.get("paper_progress_policy_result")).get("opl_runtime_result"),
-    ):
-        result = _mapping(value)
-        if _valid_opl_runtime_result(result):
-            return result
-    return {}
-
-
-def _valid_opl_runtime_result(result: Mapping[str, Any]) -> bool:
-    if not result:
-        return False
-    if _non_empty_text(result.get("runtime_owner")) != OPL_TRANSITION_RUNTIME_OWNER:
-        return False
-    runtime_kind = _non_empty_text(result.get("runtime_kind")) or _non_empty_text(
-        result.get("target_runtime_kind")
-    )
-    if runtime_kind != OPL_TRANSITION_RUNTIME_KIND:
-        return False
-    if _non_empty_text(result.get("outcome_kind")) != "provider_admission_pending":
-        return False
-    return any(
-        _non_empty_text(result.get(key)) is not None
-        for key in ("event_id", "outbox_item_id", "stage_run_id", "stage_run_identity_ref")
-    ) or bool(_mapping(result.get("stage_run_identity")))
 
 
 def _current_typed_blocker_payload(action: Mapping[str, Any]) -> dict[str, Any]:

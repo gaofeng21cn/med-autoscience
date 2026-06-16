@@ -157,7 +157,7 @@ def _resolve_study_ids(
         return ()
     resolved: list[str] = []
     latest = dict(consumer_payload) if consumer_payload is not None else (_read_json_object(_consumer_latest_path(profile)) or {})
-    for dispatch in latest.get("default_executor_dispatches") or []:
+    for dispatch in latest.get("owner_callable_adapters") or latest.get("default_executor_dispatches") or []:
         if isinstance(dispatch, Mapping) and (study_id := _text(dispatch.get("study_id"))) is not None:
             resolved.append(study_id)
     for dispatch_dir in sorted(
@@ -597,6 +597,13 @@ def _dispatch_execution_payload(
     execution_payload = {
         "surface": "default_executor_dispatch_execution",
         "schema_version": SCHEMA_VERSION,
+        "adapter_kind": _text(dispatch.get("adapter_kind")) or "opl_authorized_owner_callable_adapter",
+        "target_runtime_owner": _text(dispatch.get("target_runtime_owner")) or "one-person-lab",
+        "mas_dispatch_authority": dispatch.get("mas_dispatch_authority") is True,
+        "mas_creates_opl_outbox": dispatch.get("mas_creates_opl_outbox") is True,
+        "mas_creates_opl_event": dispatch.get("mas_creates_opl_event") is True,
+        "mas_creates_opl_stage_run": dispatch.get("mas_creates_opl_stage_run") is True,
+        "execution_requires_opl_authorization": True,
         "generated_at": generated_at,
         "study_id": study_id,
         "quest_id": _text(dispatch.get("quest_id")),
@@ -607,6 +614,8 @@ def _dispatch_execution_payload(
         "required_output_surface": _text(dispatch.get("required_output_surface")),
         "dispatch_path": str(dispatch_path),
         "dispatch_authority": _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch",
+        "owner_callable_adapter_contract": _mapping(dispatch.get("owner_callable_adapter_contract")) or None,
+        "domain_intent": _mapping(dispatch.get("domain_intent")) or None,
         "dispatch_contract_valid": guard_ok,
         "dispatch_contract_blocked_reason": guard_reason,
         "executor_boundary": _executor_boundary(dispatch),
@@ -800,7 +809,7 @@ def dispatch_domain_owner_actions(
                 )
             )
     payload = {
-        "surface": "default_executor_dispatch_executor",
+        "surface": "opl_authorized_owner_callable_adapter_dispatch",
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
         "workspace_root": str(profile.workspace_root),
@@ -808,6 +817,12 @@ def dispatch_domain_owner_actions(
         "requested_mode": mode,
         "effective_mode": developer_mode.mode,
         "developer_supervisor_mode": developer_mode_payload,
+        "adapter_kind": "opl_authorized_owner_callable_adapter",
+        "target_runtime_owner": "one-person-lab",
+        "mas_dispatch_authority": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
         "requested_studies": list(resolved_study_ids),
         "requested_action_types": list(resolved_action_types),
         "execution_count": len(executions),

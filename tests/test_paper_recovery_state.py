@@ -43,6 +43,21 @@ def _opl_transition_request(
     }
 
 
+def _opl_transition_result(
+    *,
+    stage_run_id: str = "stage-run-003-medical-prose",
+) -> dict[str, object]:
+    return {
+        "surface_kind": "opl_domain_progress_transition_result",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "outcome_kind": "provider_admission_pending",
+        "event_id": "evt-003-medical-prose",
+        "outbox_item_id": "outbox-003-medical-prose",
+        "stage_run_id": stage_run_id,
+    }
+
+
 def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     state = _module().build_paper_recovery_state(
         {
@@ -159,6 +174,7 @@ def test_observe_only_diagnostic_does_not_block_provider_admission() -> None:
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
                     "opl_domain_progress_transition_request": _opl_transition_request(),
+                    "opl_domain_progress_transition_result": _opl_transition_result(),
                 }
             ],
         },
@@ -338,6 +354,7 @@ def test_matching_provider_admission_supersedes_stale_parked_projection() -> Non
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
                     "action_fingerprint": "publication-blockers::0915410f804b3697",
                     "opl_domain_progress_transition_request": _opl_transition_request(),
+                    "opl_domain_progress_transition_result": _opl_transition_result(),
                 }
             ],
         }
@@ -367,6 +384,9 @@ def test_current_work_unit_provider_admission_pending_supersedes_stale_parked_pr
         "opl_domain_progress_transition_request": _opl_transition_request(
             work_unit_id="publication_gate_replay",
             fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        ),
+        "opl_domain_progress_transition_result": _opl_transition_result(
+            stage_run_id="stage-run-publication-gate-replay"
         ),
     }
 
@@ -971,7 +991,7 @@ def test_naked_provider_admission_candidate_is_diagnostic_not_pending_recovery()
     assert state["next_safe_action"]["provider_admission_allowed"] is True
 
 
-def test_provider_admission_candidate_with_clean_opl_transition_request_stays_pending() -> None:
+def test_provider_admission_candidate_with_clean_mas_transition_request_waits_for_opl_readback() -> None:
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
     fingerprint = "publication-blockers::0915410f804b3697"
@@ -1017,12 +1037,50 @@ def test_provider_admission_candidate_with_clean_opl_transition_request_stays_pe
         }
     )
 
+    assert state["phase"] == "transition_request_pending"
+    assert state["conditions"] == [
+        {
+            "condition": "mas_transition_request_pending_opl_readback",
+            "required_runtime": "DomainProgressTransitionRuntime",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "await_opl_transition_readback_or_non_advancing_apply"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+
+
+def test_provider_admission_candidate_with_opl_runtime_readback_stays_pending() -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": study_id,
+            "current_work_unit": _executable_work_unit(study_id=study_id, fingerprint=fingerprint),
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": study_id,
+                    "status": "provider_admission_pending",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "opl_domain_progress_transition_request": _opl_transition_request(
+                        study_id=study_id,
+                        work_unit_id=work_unit_id,
+                        fingerprint=fingerprint,
+                    ),
+                    "opl_domain_progress_transition_result": _opl_transition_result(),
+                }
+            ],
+        }
+    )
+
     assert state["phase"] == "admission_pending"
     assert state["next_safe_action"]["kind"] == "admit_provider_attempt"
     assert state["next_safe_action"]["provider_admission_allowed"] is True
 
 
-def test_runtime_report_keeps_observe_only_provider_admission_pending() -> None:
+def test_runtime_report_keeps_observe_only_transition_request_pending_until_opl_readback() -> None:
     report_aggregation = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
     )
@@ -1077,20 +1135,17 @@ def test_runtime_report_keeps_observe_only_provider_admission_pending() -> None:
         managed_study_autonomy_repair_actions=[],
     )
 
-    assert result["provider_admission_pending_count"] == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
     assert result["will_start_llm"] is False
     assert result["paper_recovery_provider_admission_blocked_count"] == 0
-    assert result["paper_recovery_states"][study_id]["phase"] == "admission_pending"
+    assert result["paper_recovery_states"][study_id]["phase"] == "owner_action_ready"
     action = result["managed_study_actions"][0]
-    assert len(action["provider_admission_candidates"]) == 1
-    assert action["provider_admission_candidates"][0]["study_id"] == study_id
-    assert action["provider_admission_candidates"][0]["action_type"] == "run_quality_repair_batch"
-    assert action["provider_admission_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
-    assert action["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
-    assert action["paper_recovery_state"]["phase"] == "admission_pending"
+    assert action.get("provider_admission_candidates") in (None, [])
+    assert action["paper_recovery_state"]["phase"] == "owner_action_ready"
     assert action["current_work_unit"]["status"] == "executable_owner_action"
     assert action["current_execution_envelope"]["state_kind"] == "executable_owner_action"
     assert action["supervisor_decision"]["decision"] == "materialize_recovery_action"
-    assert action["provider_admission_state"]["status"] == "pending"
-    assert action["provider_admission_state"]["candidate_count"] == 1
+    assert action["provider_admission_state"]["status"] == "none"
+    assert action["provider_admission_state"]["candidate_count"] == 0
     assert action["provider_admission_state"]["running_provider_attempt"] is False

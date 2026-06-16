@@ -11,6 +11,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.reporting import
 from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
     provider_admission_supervisor_gate,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback,
+)
 from med_autoscience.runtime_protocol import quest_state
 
 
@@ -67,10 +70,14 @@ def build_runtime_report(
         managed_study_actions=managed_study_actions,
         progress_currentness=managed_study_progress_currentness,
     )
+    transition_request_candidates = list(managed_study_opl_provider_admission_candidates)
+    provider_admission_candidates = _provider_admission_candidates_with_opl_readback(
+        transition_request_candidates
+    )
     dispatch_counters = _dispatch_counters(
         dispatches=managed_study_outer_loop_dispatches,
         suppressions=managed_study_no_op_suppressions,
-        provider_admission_candidates=managed_study_opl_provider_admission_candidates,
+        provider_admission_candidates=transition_request_candidates,
     )
     report_action_class = "codex_worker_dispatch" if dispatch_counters["codex_dispatch_count"] else (
         "controller_apply" if managed_study_outer_loop_dispatches else "observe_only"
@@ -78,13 +85,14 @@ def build_runtime_report(
     report_will_start_llm = dispatch_counters["codex_dispatch_count"] > 0
     paper_recovery_states = _paper_recovery_states(
         progress_currentness=managed_study_progress_currentness,
-        provider_admission_candidates=managed_study_opl_provider_admission_candidates,
+        provider_admission_candidates=provider_admission_candidates,
         managed_study_actions=managed_study_actions,
         diagnostic_report={
             "action_class": report_action_class,
             "will_start_llm": report_will_start_llm,
             "codex_dispatch_count": dispatch_counters["codex_dispatch_count"],
-            "provider_admission_pending_count": len(managed_study_opl_provider_admission_candidates),
+            "provider_admission_pending_count": len(provider_admission_candidates),
+            "transition_request_pending_count": len(transition_request_candidates),
         },
     )
     managed_study_actions = _managed_study_actions_with_paper_recovery_state(
@@ -93,7 +101,8 @@ def build_runtime_report(
     )
     managed_study_actions = _managed_study_actions_with_provider_admission_state(
         managed_study_actions=managed_study_actions,
-        provider_admission_candidates=managed_study_opl_provider_admission_candidates,
+        provider_admission_candidates=provider_admission_candidates,
+        transition_request_candidates=transition_request_candidates,
         paper_recovery_states=paper_recovery_states,
     )
     managed_study_opl_runtime_owner_handoffs = _managed_handoffs_with_currentness(
@@ -120,12 +129,15 @@ def build_runtime_report(
         "current_execution_evidence": {
             "no_op": managed_study_no_op_suppressions,
             "managed_study_actions": managed_study_actions,
-            "provider_admission_candidates": managed_study_opl_provider_admission_candidates,
+            "provider_admission_candidates": provider_admission_candidates,
+            "transition_request_candidates": transition_request_candidates,
             "progress_currentness": managed_study_progress_currentness,
         },
         "managed_study_opl_runtime_owner_handoffs": managed_study_opl_runtime_owner_handoffs,
-        "managed_study_opl_provider_admission_candidates": managed_study_opl_provider_admission_candidates,
-        "provider_admission_pending_count": len(managed_study_opl_provider_admission_candidates),
+        "managed_study_opl_provider_admission_candidates": provider_admission_candidates,
+        "managed_study_opl_transition_request_candidates": transition_request_candidates,
+        "provider_admission_pending_count": len(provider_admission_candidates),
+        "transition_request_pending_count": len(transition_request_candidates),
         "paper_recovery_states": paper_recovery_states,
         "paper_recovery_provider_admission_blocked_count": _paper_recovery_provider_admission_blocked_count(
             paper_recovery_states
@@ -206,6 +218,16 @@ def _paper_recovery_states(
         )
         states[study_id] = state
     return states
+
+
+def _provider_admission_candidates_with_opl_readback(
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        dict(candidate)
+        for candidate in candidates
+        if candidate_opl_transition_readback(candidate)
+    ]
 
 
 def _managed_study_action_context_by_study(
@@ -446,10 +468,14 @@ def _managed_study_actions_with_provider_admission_state(
     *,
     managed_study_actions: list[dict[str, Any]],
     provider_admission_candidates: list[dict[str, Any]],
+    transition_request_candidates: list[dict[str, Any]] | None = None,
     paper_recovery_states: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     candidates_by_study = _provider_admission_candidates_by_study(provider_admission_candidates)
-    if not candidates_by_study:
+    transition_requests_by_study = _provider_admission_candidates_by_study(
+        transition_request_candidates or []
+    )
+    if not candidates_by_study and not transition_requests_by_study:
         return [_managed_study_action_without_provider_admission_state(action) for action in managed_study_actions]
     result: list[dict[str, Any]] = []
     for action in managed_study_actions:
@@ -459,6 +485,10 @@ def _managed_study_actions_with_provider_admission_state(
         study_id = _text(action.get("study_id"))
         candidates = candidates_by_study.get(study_id or "")
         if not candidates:
+            transition_requests = transition_requests_by_study.get(study_id or "")
+            if transition_requests:
+                result.append(_managed_study_action_with_no_provider_admission_state(action))
+                continue
             result.append(dict(action))
             continue
         recovery = _mapping(_mapping(paper_recovery_states).get(study_id or ""))
@@ -469,6 +499,19 @@ def _managed_study_actions_with_provider_admission_state(
                 paper_recovery_state=recovery,
             )
         )
+    return result
+
+
+def _managed_study_action_with_no_provider_admission_state(
+    action: Mapping[str, Any],
+) -> dict[str, Any]:
+    result = dict(action)
+    result["provider_admission_candidates"] = []
+    result["provider_admission_state"] = {
+        "status": "none",
+        "candidate_count": 0,
+        "running_provider_attempt": False,
+    }
     return result
 
 

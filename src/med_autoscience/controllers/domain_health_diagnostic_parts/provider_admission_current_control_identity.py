@@ -12,6 +12,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     mapping as _mapping,
     text_items as _text_items,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback,
+)
 
 
 def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> dict[str, Any]:
@@ -21,31 +24,46 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
     study_id = _non_empty_text(provider_identity.get("study_id"))
     route_key = route_identity_key(provider_identity)
     attempt_key = attempt_idempotency_key(provider_identity)
+    opl_readback = candidate_opl_transition_readback(provider_identity)
+    provider_admission_pending = bool(opl_readback)
+    state_kind = "provider_admission_pending" if provider_admission_pending else "transition_request_pending"
+    blocked_reason = (
+        "provider_admission_current_control_state_required"
+        if provider_admission_pending
+        else "opl_transition_readback_required"
+    )
     return {
         "study_id": study_id,
         "quest_id": _non_empty_text(provider_identity.get("quest_id")),
         "handoff_generated_at": _non_empty_text(provider_identity.get("recorded_at")),
         "handoff_scan_status": "provider_admission_from_mas_handoff",
         "study_root": _non_empty_text(provider_identity.get("study_root")),
-        "quest_status": "provider_admission_pending",
+        "quest_status": state_kind,
         "active_run_id": None,
         "active_stage_attempt_id": None,
         "active_workflow_id": None,
         "running_provider_attempt": False,
         "runtime_health": {
-            "health_status": "provider_admission_pending",
+            "health_status": state_kind,
             "runtime_liveness_status": "not_running",
             "blocked_reason": _non_empty_text(provider_identity.get("blocked_reason")),
-            "summary": "Current MAS owner action is ready for OPL provider admission.",
+            "summary": (
+                "OPL transition readback recorded provider admission."
+                if provider_admission_pending
+                else "MAS transition request is waiting for OPL command/event/outbox or StageRun readback."
+            ),
         },
         "action_queue": [action],
         "provider_admission_identity": provider_identity,
         "provider_admission_identity_key": route_key,
         "attempt_idempotency_key": attempt_key,
-        "provider_admission_candidates": [dict(provider_identity)],
-        "provider_admission_pending_count": 1,
-        "why_not_applied": ["provider_admission_current_control_state_required"],
-        "blocked_reason": "provider_admission_current_control_state_required",
+        "provider_admission_candidates": [dict(provider_identity)] if provider_admission_pending else [],
+        "provider_admission_pending_count": 1 if provider_admission_pending else 0,
+        "transition_request_candidates": [dict(provider_identity)] if not provider_admission_pending else [],
+        "transition_request_pending_count": 0 if provider_admission_pending else 1,
+        "opl_domain_progress_transition_result": dict(opl_readback) if opl_readback else None,
+        "why_not_applied": [blocked_reason],
+        "blocked_reason": blocked_reason,
         "next_owner": "one-person-lab",
         "external_supervisor_required": True,
         "owner_route": owner_route,

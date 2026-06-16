@@ -31,7 +31,7 @@ def current_materialized_dispatches(
     requested = set(action_types)
     return [
         dict(dispatch)
-        for dispatch in payload.get("default_executor_dispatches") or []
+        for dispatch in payload.get("owner_callable_adapters") or payload.get("default_executor_dispatches") or []
         if isinstance(dispatch, Mapping)
         and (not requested or text(dispatch.get("action_type")) in requested)
     ]

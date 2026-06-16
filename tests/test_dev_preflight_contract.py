@@ -723,6 +723,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "agent/stages/manuscript_authoring.policy.md",
             "agent/stages/review_and_quality_gate.policy.md",
             "contracts/action_catalog.json",
+            "contracts/authority_kernel_inventory.json",
             "contracts/functional_privatization_audit.json",
             "contracts/generated_surface_handoff.json",
             "contracts/foundry_agent_series.json",

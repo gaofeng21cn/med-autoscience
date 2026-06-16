@@ -119,6 +119,11 @@ def sync_report_provider_admission_current_control_state(
     current_control_state: Mapping[str, Any],
 ) -> None:
     current_execution_evidence = _mapping(report.get("current_execution_evidence"))
+    transition_request_candidates = [
+        dict(item)
+        for item in current_control_state.get("transition_request_candidates") or []
+        if isinstance(item, Mapping)
+    ]
     candidates = _filter_candidates_blocked_by_paper_recovery_state(
         [
             dict(item)
@@ -128,8 +133,11 @@ def sync_report_provider_admission_current_control_state(
         actions=report.get("managed_study_actions"),
     )
     report["managed_study_opl_provider_admission_candidates"] = candidates
+    report["managed_study_opl_transition_request_candidates"] = transition_request_candidates
     report["provider_admission_pending_count"] = len(candidates)
+    report["transition_request_pending_count"] = len(transition_request_candidates)
     current_execution_evidence["provider_admission_candidates"] = candidates
+    current_execution_evidence["transition_request_candidates"] = transition_request_candidates
     if candidates:
         _sync_current_control_runtime_surfaces(report, current_control_state=current_control_state)
     synced_actions = _sync_managed_action_provider_admission_candidates(
@@ -144,7 +152,7 @@ def sync_report_provider_admission_current_control_state(
         )
     report["current_execution_evidence"] = current_execution_evidence
     fingerprints: list[str] = []
-    for candidate in candidates:
+    for candidate in [*candidates, *transition_request_candidates]:
         fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
             candidate.get("action_fingerprint")
         )

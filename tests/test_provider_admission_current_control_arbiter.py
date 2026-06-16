@@ -4,7 +4,10 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.provider_admission_current_control_helpers import provider_candidate as _provider_candidate
+from tests.provider_admission_current_control_helpers import (
+    provider_candidate as _provider_candidate,
+    provider_candidate_with_opl_readback as _provider_candidate_with_opl_readback,
+)
 from tests.test_provider_admission_current_control_cases.test_arbiter_decision_cases import *  # noqa: F403,F401
 
 
@@ -19,7 +22,11 @@ def test_provider_admission_current_control_records_retained_pending_arbiter_dec
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     action_fingerprint = "sha256:current-ai-reviewer"
-    candidate = _provider_candidate(profile, study_id, action_fingerprint=action_fingerprint)
+    candidate = _provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_fingerprint=action_fingerprint,
+    )
 
     result = module.materialize_provider_admission_current_control_state(
         profile=profile,
@@ -100,7 +107,11 @@ def test_provider_admission_current_control_suppresses_candidate_blocked_by_pape
     work_unit_id = "medical_prose_write_repair"
     action_fingerprint = "publication-blockers::0915410f804b3697"
     candidate = {
-        **_provider_candidate(profile, study_id, action_fingerprint=action_fingerprint),
+        **_provider_candidate_with_opl_readback(
+            profile,
+            study_id,
+            action_fingerprint=action_fingerprint,
+        ),
         "action_type": "run_quality_repair_batch",
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": action_fingerprint,
@@ -176,7 +187,11 @@ def test_provider_admission_current_control_requires_execute_supervisor_decision
     work_unit_id = "medical_prose_write_repair"
     action_fingerprint = "publication-blockers::0915410f804b3697"
     candidate = {
-        **_provider_candidate(profile, study_id, action_fingerprint=action_fingerprint),
+        **_provider_candidate_with_opl_readback(
+            profile,
+            study_id,
+            action_fingerprint=action_fingerprint,
+        ),
         "action_type": "run_quality_repair_batch",
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": action_fingerprint,
@@ -346,8 +361,10 @@ def test_provider_admission_current_control_retains_same_tick_materialized_recov
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert len(result["provider_admission_candidates"]) == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert len(result["transition_request_candidates"]) == 1
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }
@@ -447,7 +464,11 @@ def test_provider_admission_report_retains_matching_current_action_candidate_ove
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     action_fingerprint = "sha256:current-ai-reviewer"
-    candidate = _provider_candidate(profile, study_id, action_fingerprint=action_fingerprint)
+    candidate = _provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_fingerprint=action_fingerprint,
+    )
 
     result = report_module.materialize_report_provider_admission_current_control_state(
         profile=profile,

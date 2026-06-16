@@ -14,6 +14,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：近期 MAS 的 `Kernel`、`Supervision`、DHD、`current_work_unit`、domain-handler export、read-model 和 Workbench 修复多次暴露同一根因：局部 projection / selector / supervisor 能看到“下一步”，但没有统一落到 OPL-owned transition event / outbox / StageRun / owner-answer consumption 链，导致 MAS 内部反复复制通用控制面。把理想态明确成 command/event/outbox 链后，新增能力必须先归位，不能以“先修复当前卡点”为由再造 MAS 私有平台。
 - 影响：这是顶层设计和迁移门更新，不执行 live DHD apply、hydrate、tick、redrive，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。它不声明 OPL primitive 全部完成、MAS 私有 residue 物理清零、DM002/DM003 论文推进、publication-ready、domain-ready 或 production-ready；后续完成门必须分别落到 OPL contracts/fixtures/readback、MAS adapter consumption、historical replay、projection demotion、owner receipt / stable blocker / human gate / route-back evidence 或真实 paper-line outcome。
 
+## 2026-06-16：私有控制面退役门进入合同审计与 Plan Completion 口径
+
+- 决策：`contracts/functional_privatization_audit.json#/retirement_disposition_matrix` 是 MAS 私有功能面退役分类入口。旧面只能归为 `tombstone_only`、`opl_primitive_replacement`、`temporary_refs_projection` 或 `retained_minimal_authority_function`；active caller、docs reference、operator UI 依赖或当前测试通过，都不能单独成为保留长期 MAS private surface 的理由。
+- 决策：`contracts/private_functional_surface_policy.json#/mas_private_surface_retirement_gate_policy` 固定新增 / 保留 private surface 必须声明 disposition、replacement owner、no-active-caller、replacement parity、no-forbidden-write proof、tombstone/provenance 和 retirement gate。`contracts/authority_kernel_inventory.json#/retirement_gate_policy` 同步要求 retained authority function 与 refs-only helper 带同类 gate 字段。
+- 决策：Plan Completion Audit 对退役相关条目必须单独列出 `no_active_caller`、`replacement_parity`、`no_forbidden_write_proof`、`tombstone_or_provenance`、`live_owner_or_stable_blocker`。只有有 fresh owner receipt、stable typed blocker、human gate、route-back evidence 或同 current identity OPL StageRun readback 的条目才能写 `100%`；合同落地、docs 更新、read-model 可见、preflight 分类或 focused tests 通过不能单独替代 live proof。
+- 理由：此前 functional structure gap 可以被 `classification_gap_count=0` / tests green 表达，但这不足以说明旧 wrapper 已可物理删除，也不足以说明 live runtime 恢复或论文推进。把退役门放进合同审计后，主会话可以在最终 Plan Completion Audit 中直接区分结构关闭、退役可删、evidence tail open 和 live owner ready。
+- 影响：这是 docs/contracts/preflight 分类与 meta evidence 口径更新，不改 core runtime。它不声明 MAS 私有 residue 物理清零、OPL primitive 全部可运行、DM002/DM003 论文推进、publication-ready、domain-ready、production-ready 或 `100%` 完成。
+
 ## 2026-06-16：provider admission 所有出口必须归一化 authority boundary
 
 - 决策：MAS 暴露给 DHD report、managed study readback、fresh `study_progress` currentness scan、current-control action、persisted default-executor execution 和 OPL intake 的每一个 provider-admission candidate，都必须在出口统一携带 `authority_boundary`、`stage_transition_authority_boundary`，并固定 `provider_completion_is_domain_completion=false`。该归一化必须发生在 provider-admission helper 层，而不是只补某个 report wrapper。

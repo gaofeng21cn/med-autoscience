@@ -943,12 +943,28 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
         apply=True,
     )
 
-    dispatches = result["default_executor_dispatches"]
+    dispatches = result["owner_callable_adapters"]
+    assert result["target_runtime_owner"] == "one-person-lab"
+    assert result["mas_dispatch_authority"] is False
+    assert result["mas_creates_opl_outbox"] is False
+    assert result["mas_creates_opl_event"] is False
+    assert result["mas_creates_opl_stage_run"] is False
+    assert result["default_executor_dispatches"] == dispatches
+    assert result["default_executor_dispatches_compat_role"] == "derived_read_model_for_existing_selectors"
     assert [item["action_type"] for item in dispatches] == [
         "current_package_freshness_required",
         "return_to_ai_reviewer_workflow",
     ]
     assert dispatches[0]["dispatch_status"] == "ready"
+    assert dispatches[0]["adapter_kind"] == "opl_authorized_owner_callable_adapter"
+    assert dispatches[0]["target_runtime_owner"] == "one-person-lab"
+    assert dispatches[0]["mas_dispatch_authority"] is False
+    assert dispatches[0]["mas_creates_opl_outbox"] is False
+    assert dispatches[0]["mas_creates_opl_event"] is False
+    assert dispatches[0]["mas_creates_opl_stage_run"] is False
+    assert dispatches[0]["dispatch_ready_for_execution_authority"] is False
+    assert dispatches[0]["domain_intent"]["target_runtime_transition"] == "OPL Command/Event/Outbox/StageRun"
+    assert dispatches[0]["owner_callable_adapter_contract"]["execution_authority_owner"] == "one-person-lab"
     assert dispatches[1]["dispatch_status"] == "blocked"
     assert dispatches[1]["blocked_reason"] == "owner_route_next_owner_mismatch"
     dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches"

@@ -45,6 +45,7 @@
       ],
       "cannot_lift_to_opl_reason": "The terminal publication handoff receipt signs MAS publication-route owner judgment; OPL may transport StageRun refs but cannot sign the domain owner answer.",
       "category": "owner_receipt_signer",
+      "disposition": "retained_minimal_authority_function",
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -61,6 +62,8 @@
         "manuscript/current_package/**"
       ],
       "item_id": "owner_receipt_signer.publication_handoff_owner_gate",
+      "no_active_caller": "not_required_for_retention_required_before_retirement",
+      "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "notes": [
         "Does not claim publication-ready or submission-ready by inventory presence."
       ],
@@ -69,7 +72,10 @@
         "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
       ],
       "owner": "publication_gate_owner",
+      "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
+      "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
       "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::publication_handoff_owner_gate",
+      "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL StageRun transports receipt refs only"
     },
     {
@@ -90,6 +96,7 @@
       ],
       "cannot_lift_to_opl_reason": "The blocker names missing medical-paper readiness refs and route-back conditions; OPL can carry the blocker ref but cannot decide the MAS domain shortcut being avoided.",
       "category": "typed_blocker_materializer",
+      "disposition": "retained_minimal_authority_function",
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -106,12 +113,17 @@
         "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json"
       ],
       "item_id": "typed_blocker_materializer.medical_paper_readiness_surface",
+      "no_active_caller": "not_required_for_retention_required_before_retirement",
+      "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "output_refs": [
         "artifacts/medical_paper/readiness.json",
         "typed blocker:medical_paper_readiness_surface_input_required"
       ],
       "owner": "MedAutoScience",
+      "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
+      "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
       "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::complete_medical_paper_readiness_surface",
+      "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL StageRun carries typed blocker refs only"
     },
     {
@@ -126,6 +138,7 @@
       ],
       "cannot_lift_to_opl_reason": "Source readiness depends on current study claim, cohort, provenance, source limitations, and medical route impact; generic runtime may only index the receipt refs.",
       "category": "source_readiness",
+      "disposition": "retained_minimal_authority_function",
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -135,13 +148,18 @@
         "current_package"
       ],
       "item_id": "source_readiness.stage_pack_source_readiness_receipt",
+      "no_active_caller": "not_required_for_retention_required_before_retirement",
+      "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "output_refs": [
         "source_readiness_receipt_refs",
         "source_boundary_refs",
         "typed_blocker_refs"
       ],
       "owner": "MedAutoScience",
+      "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
+      "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
       "surface_ref": "contracts/mas-paper-study-stage-pack.json#/stages/2/stable_artifact_roles/2",
+      "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL State Index stores source readiness refs only"
     },
     {
@@ -154,6 +172,7 @@
       ],
       "cannot_lift_to_opl_reason": "Publication quality requires an independent AI reviewer/auditor record against current manuscript and evidence refs; provider completion or generated projection cannot become the verdict.",
       "category": "publication_quality_gate",
+      "disposition": "retained_minimal_authority_function",
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -168,11 +187,16 @@
         "controller_decisions/latest.json"
       ],
       "item_id": "publication_quality_gate.ai_reviewer_publication_eval",
+      "no_active_caller": "not_required_for_retention_required_before_retirement",
+      "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "output_refs": [
         "artifacts/publication_eval/latest.json"
       ],
       "owner": "ai_reviewer",
+      "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
+      "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
       "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::return_to_ai_reviewer_workflow",
+      "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL transports reviewer invocation and eval refs only"
     },
     {
@@ -187,6 +211,7 @@
       ],
       "cannot_lift_to_opl_reason": "Artifact mutation authorization is tied to canonical manuscript/source refs, rebuild proof, package freshness, and MAS owner receipt; lifecycle or cleanup plans cannot authorize mutation.",
       "category": "artifact_mutation_authorization",
+      "disposition": "retained_minimal_authority_function",
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -196,13 +221,18 @@
         "current_package"
       ],
       "item_id": "artifact_mutation_authorization.artifact_package_authority_receipt",
+      "no_active_caller": "not_required_for_retention_required_before_retirement",
+      "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "output_refs": [
         "artifact_package_authority_receipt_refs",
         "artifact_package_refs",
         "typed_blocker_refs"
       ],
       "owner": "MedAutoScience",
+      "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
+      "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
       "surface_ref": "contracts/mas-paper-study-stage-pack.json#/stages/5/stable_artifact_roles/2",
+      "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL Lifecycle Plane handles locator, restore, retention, and cleanup transport"
     },
     {
@@ -218,6 +248,7 @@
       ],
       "cannot_lift_to_opl_reason": "Memory accept/reject is a MAS reviewer or route-authority decision over publication-route memory body and router receipts; OPL can expose locators and receipt metadata only.",
       "category": "memory_accept_reject",
+      "disposition": "retained_minimal_authority_function",
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -227,13 +258,18 @@
         "current_package"
       ],
       "item_id": "memory_accept_reject.publication_route_memory_writeback",
+      "no_active_caller": "not_required_for_retention_required_before_retirement",
+      "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "output_refs": [
         "memory_accept_reject_receipt_refs",
         "publication_route_memory_writeback_receipt_refs",
         "typed_blocker_refs"
       ],
       "owner": "MedAutoScience",
+      "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
+      "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
       "surface_ref": "contracts/mas-paper-study-stage-pack.json#/stages/4/stable_artifact_roles/2",
+      "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL memory locator/index reads receipt metadata only"
     },
     {
@@ -247,6 +283,7 @@
       ],
       "cannot_lift_to_opl_reason": "The sidecar is refs-only and nonblocking, but MAS owns the forbidden authority envelope proving advisory output did not become study truth, quality verdict, artifact authority, or memory authority.",
       "category": "no_forbidden_write_proof",
+      "disposition": "retained_minimal_authority_function",
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -266,12 +303,17 @@
         "memory/**/body"
       ],
       "item_id": "no_forbidden_write_proof.external_learning_sidecar",
+      "no_active_caller": "not_required_for_retention_required_before_retirement",
+      "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "output_refs": [
         "artifacts/advisory/external_learning_sidecar/latest.json",
         "refs-only advisory candidates"
       ],
       "owner": "external_learning_sidecar",
+      "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
+      "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
       "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::run_external_learning_sidecar",
+      "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL Capability Registry invokes advisory workers fail-open"
     },
     {
@@ -288,6 +330,7 @@
       ],
       "cannot_lift_to_opl_reason": "The helper itself is refs-only and can be hosted by OPL, but MAS must keep the domain boundary that prevents capability output from becoming quality, publication, artifact, memory, or study truth authority.",
       "category": "refs_only_helper",
+      "disposition": "temporary_refs_projection",
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -297,6 +340,8 @@
         "current_package"
       ],
       "item_id": "refs_only_helper.scientific_capability_registry",
+      "no_active_caller": "required_before_physical_delete_not_required_for_refs_only_projection_retention",
+      "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "output_refs": [
         "refs-only advisory candidates",
         "reviewer briefing refs",
@@ -304,7 +349,10 @@
         "display_pack_agent_figure_plan"
       ],
       "owner": "MedAutoScience",
+      "replacement_parity": "OPL Capability Registry / Tool Arsenal runtime consumption",
+      "retirement_gate": "retain as refs-only helper until OPL capability registry consumption parity and no-forbidden-write proof",
       "surface_ref": "src/med_autoscience/scientific_capability_registry.py::build_scientific_capability_registry",
+      "tombstone_or_provenance": "required_before_physical_delete",
       "upcollect_target": "OPL Capability Registry / Tool Arsenal runtime consumption"
     },
     {
@@ -320,6 +368,7 @@
       ],
       "cannot_lift_to_opl_reason": "The probe can diagnose currentness and owner-route gaps but cannot be a generic runtime owner; MAS keeps the diagnostic boundary so probe output does not become owner answer, publication verdict, or paper progress.",
       "category": "diagnostic_probe",
+      "disposition": "temporary_refs_projection",
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -329,6 +378,8 @@
         "current_package"
       ],
       "item_id": "diagnostic_probe.domain_health_diagnostic",
+      "no_active_caller": "required_before_retiring_MAS_private_diagnostic_probe",
+      "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "output_refs": [
         "domain_health_diagnostic_ref",
         "currentness_probe_ref",
@@ -336,8 +387,10 @@
         "typed_blocker_candidate_ref"
       ],
       "owner": "MedAutoScience",
+      "replacement_parity": "OPL Route Reconciler and Observability Plane consume same owner receipt and typed blocker refs",
       "retirement_gate": "Retire MAS-private diagnostic implementation only after OPL Route Reconciler consumes the same MAS owner receipt / typed blocker refs and focused parity tests prove no authority drift.",
       "surface_ref": "src/med_autoscience/controllers/domain_health_diagnostic.py",
+      "tombstone_or_provenance": "required_before_physical_delete",
       "upcollect_target": "OPL Route Reconciler and Observability Plane"
     }
   ],
@@ -362,6 +415,25 @@
     "output_refs",
     "cannot_lift_to_opl_reason"
   ],
+  "retirement_gate_policy": {
+    "completion_percent_policy": "inventory_or_test_green_is_not_100_percent_without_fresh_live_owner_or_OPL_readback_evidence",
+    "diagnostic_probe_disposition": "temporary_refs_projection_until_OPL_route_reconciler_parity",
+    "no_active_caller_required_before_delete": true,
+    "no_forbidden_write_proof_required": true,
+    "refs_only_helper_disposition": "temporary_refs_projection",
+    "required_item_fields": [
+      "disposition",
+      "no_active_caller",
+      "replacement_parity",
+      "no_forbidden_write_proof",
+      "retirement_gate",
+      "tombstone_or_provenance"
+    ],
+    "retained_authority_disposition": "retained_minimal_authority_function",
+    "source_of_truth_chain": "DomainIntent -> OPL Command/Event/Outbox/StageRun -> MAS OwnerAnswer -> Derived Projection",
+    "surface_kind": "mas_authority_kernel_retirement_gate_policy",
+    "tombstone_or_provenance_required_before_delete": true
+  },
   "schema_version": 1,
   "source_of_truth_refs": [
     "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md",

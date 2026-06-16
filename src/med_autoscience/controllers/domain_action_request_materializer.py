@@ -56,6 +56,8 @@ CONSUMER_HISTORY_RELATIVE_PATH = Path("runtime/artifacts/supervision/consumer/hi
 DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT = Path(
     "artifacts/supervision/consumer/default_executor_dispatches"
 )
+OWNER_CALLABLE_ADAPTER_KIND = "opl_authorized_owner_callable_adapter"
+TARGET_RUNTIME_OWNER = "one-person-lab"
 SUPPORTED_MODE = "developer_apply_safe"
 RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS = frozenset(
     {
@@ -517,9 +519,34 @@ def _default_executor_dispatch_payload(
     progress_first_closeout_admission: Mapping[str, Any],
     generated_at: str,
 ) -> dict[str, Any]:
+    adapter_contract = _owner_callable_adapter_contract(
+        action_type=action_type,
+        next_executable_owner=next_executable_owner,
+        required_output_surface=required_output_surface,
+    )
     return {
         "surface": "default_executor_dispatch_request",
         "schema_version": SCHEMA_VERSION,
+        "adapter_kind": OWNER_CALLABLE_ADAPTER_KIND,
+        "adapter_status": "intent_materialized",
+        "domain_intent_kind": "mas_owner_callable_transition_request",
+        "target_runtime_owner": TARGET_RUNTIME_OWNER,
+        "target_runtime_owner_authority_required": True,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+        "mas_dispatch_authority": False,
+        "dispatch_ready_for_execution_authority": False,
+        "owner_callable_adapter_contract": adapter_contract,
+        "authority_boundary": {
+            "mas_materializes_domain_intent": True,
+            "mas_creates_owner_callable_carrier": True,
+            "mas_creates_opl_outbox": False,
+            "mas_creates_opl_event": False,
+            "mas_creates_opl_stage_run": False,
+            "target_runtime_owner": TARGET_RUNTIME_OWNER,
+            "execution_requires_opl_authorization": True,
+        },
         **dict(executor_policy),
         "study_id": study_id,
         "quest_id": prompt_contract["quest_id"],
@@ -564,6 +591,15 @@ def _default_executor_dispatch_payload(
         "default_executor_policy": dict(executor_policy),
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "prompt_contract": dict(prompt_contract),
+        "domain_intent": _domain_intent(
+            action=action,
+            action_type=action_type,
+            study_id=study_id,
+            next_executable_owner=next_executable_owner,
+            required_output_surface=required_output_surface,
+            owner_route=owner_route,
+            adapter_contract=adapter_contract,
+        ),
         "progress_first_closeout_admission": dict(progress_first_closeout_admission),
         "executor_prompt": default_executor_prompt.executor_prompt(
             action_type=action_type,
@@ -584,6 +620,69 @@ def _default_executor_dispatch_payload(
             "scan_latest": str(_scan_latest_path(profile)),
             "dispatch_path": str(dispatch_path),
         },
+    }
+
+
+def _owner_callable_adapter_contract(
+    *,
+    action_type: str,
+    next_executable_owner: str,
+    required_output_surface: str,
+) -> dict[str, Any]:
+    return {
+        "surface": "mas_owner_callable_adapter_contract",
+        "schema_version": SCHEMA_VERSION,
+        "adapter_kind": OWNER_CALLABLE_ADAPTER_KIND,
+        "action_type": action_type,
+        "next_executable_owner": next_executable_owner,
+        "required_output_surface": required_output_surface,
+        "target_runtime_owner": TARGET_RUNTIME_OWNER,
+        "execution_authority_owner": TARGET_RUNTIME_OWNER,
+        "required_opl_proof": [
+            "opl_execution_authorization",
+            "opl_provider_attempt",
+            "attempt_lease",
+            "closeout_binding",
+            "accepted_owner_gate_authority",
+        ],
+        "mas_private_outbox_forbidden": True,
+        "mas_private_dispatch_authority_forbidden": True,
+        "mas_stage_run_creation_forbidden": True,
+        "provider_completion_is_domain_completion": False,
+    }
+
+
+def _domain_intent(
+    *,
+    action: Mapping[str, Any],
+    action_type: str,
+    study_id: str,
+    next_executable_owner: str,
+    required_output_surface: str,
+    owner_route: Mapping[str, Any],
+    adapter_contract: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface": "mas_domain_intent",
+        "schema_version": SCHEMA_VERSION,
+        "intent_kind": "owner_callable_transition_request",
+        "study_id": study_id,
+        "quest_id": _text(action.get("quest_id")) or _text(_mapping(action.get("handoff_packet")).get("quest_id")),
+        "action_type": action_type,
+        "next_executable_owner": next_executable_owner,
+        "required_output_surface": required_output_surface,
+        "work_unit_id": _text(action.get("work_unit_id")) or _text(action.get("next_work_unit")),
+        "work_unit_fingerprint": _text(action.get("work_unit_fingerprint"))
+        or _text(action.get("action_fingerprint")),
+        "target_runtime_owner": TARGET_RUNTIME_OWNER,
+        "target_runtime_transition": "OPL Command/Event/Outbox/StageRun",
+        "expected_domain_answer": "MAS OwnerAnswer",
+        "expected_projection": "Derived Projection",
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+        "owner_route": dict(owner_route) if owner_route else None,
+        "adapter_contract": dict(adapter_contract),
     }
 
 
@@ -874,7 +973,7 @@ def materialize_domain_action_requests(
         )
         for action in selected_request_actions
     ]
-    default_executor_dispatches = [
+    owner_callable_adapters = [
         _default_executor_dispatch(
             profile=profile,
             action=action,
@@ -897,11 +996,11 @@ def materialize_domain_action_requests(
         )
         for action in selected_request_actions
     ]
-    ready_default_executor_dispatch_count = _dispatch_status_count(default_executor_dispatches, "ready")
-    blocked_default_executor_dispatch_count = _dispatch_status_count(default_executor_dispatches, "blocked")
+    ready_owner_callable_adapter_count = _dispatch_status_count(owner_callable_adapters, "ready")
+    blocked_owner_callable_adapter_count = _dispatch_status_count(owner_callable_adapters, "blocked")
     _apply_progress_first_closeout_to_request_tasks(
         request_tasks=request_tasks,
-        default_executor_dispatches=default_executor_dispatches,
+        default_executor_dispatches=owner_callable_adapters,
     )
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
@@ -909,7 +1008,7 @@ def materialize_domain_action_requests(
         written_files.extend(
             persistence.persist_default_executor_dispatches(
                 profile=profile,
-                dispatches=default_executor_dispatches,
+                dispatches=owner_callable_adapters,
             )
         )
         written_files.extend(persistence.persist_request_packets(request_tasks))
@@ -943,15 +1042,26 @@ def materialize_domain_action_requests(
         "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
         "dispatch_ready_for_execution_preview": bool(dispatch_ready_for_execution and not apply),
         "runtime_control_owner": "one-person-lab",
+        "target_runtime_owner": TARGET_RUNTIME_OWNER,
+        "adapter_kind": OWNER_CALLABLE_ADAPTER_KIND,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+        "mas_dispatch_authority": False,
         "request_task_count": len(request_tasks),
         "request_tasks": request_tasks,
         "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
         "ai_reviewer_request_refreshes": ai_reviewer_request_refreshes,
-        "default_executor_dispatch_count": len(default_executor_dispatches),
-        "ready_default_executor_dispatch_count": ready_default_executor_dispatch_count,
-        "blocked_default_executor_dispatch_count": blocked_default_executor_dispatch_count,
-        "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in default_executor_dispatches),
-        "default_executor_dispatches": default_executor_dispatches,
+        "owner_callable_adapter_count": len(owner_callable_adapters),
+        "ready_owner_callable_adapter_count": ready_owner_callable_adapter_count,
+        "blocked_owner_callable_adapter_count": blocked_owner_callable_adapter_count,
+        "owner_callable_adapters": owner_callable_adapters,
+        "default_executor_dispatch_count": len(owner_callable_adapters),
+        "ready_default_executor_dispatch_count": ready_owner_callable_adapter_count,
+        "blocked_default_executor_dispatch_count": blocked_owner_callable_adapter_count,
+        "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in owner_callable_adapters),
+        "default_executor_dispatches": owner_callable_adapters,
+        "default_executor_dispatches_compat_role": "derived_read_model_for_existing_selectors",
         "ignored_actions": ignored_actions,
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),

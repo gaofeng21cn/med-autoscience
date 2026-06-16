@@ -912,8 +912,8 @@ def current_consumer_dispatches(
         return [inline_dispatch]
     dispatches: list[dict[str, Any]] = []
     seen: set[tuple[str | None, str | None]] = set()
-    for dispatch in latest.get("default_executor_dispatches") or []:
-        payload = _mapping(dispatch)
+    for dispatch in _owner_callable_adapter_items(latest):
+        payload = _with_owner_callable_adapter_semantics(_mapping(dispatch))
         if _text(payload.get("study_id")) != study_id:
             continue
         if _text(payload.get("dispatch_status")) != "ready":
@@ -942,7 +942,28 @@ def _inline_default_executor_dispatch(payload: Mapping[str, Any], *, study_id: s
         return None
     if not _text(payload.get("action_type")):
         return None
-    return dict(payload)
+    return _with_owner_callable_adapter_semantics(payload)
+
+
+def _owner_callable_adapter_items(payload: Mapping[str, Any]) -> list[object]:
+    adapters = payload.get("owner_callable_adapters")
+    if isinstance(adapters, list):
+        return adapters
+    dispatches = payload.get("default_executor_dispatches")
+    return dispatches if isinstance(dispatches, list) else []
+
+
+def _with_owner_callable_adapter_semantics(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(dispatch)
+    payload.setdefault("adapter_kind", "opl_authorized_owner_callable_adapter")
+    payload.setdefault("target_runtime_owner", "one-person-lab")
+    payload.setdefault("target_runtime_owner_authority_required", True)
+    payload.setdefault("mas_creates_opl_outbox", False)
+    payload.setdefault("mas_creates_opl_event", False)
+    payload.setdefault("mas_creates_opl_stage_run", False)
+    payload.setdefault("mas_dispatch_authority", False)
+    payload.setdefault("dispatch_ready_for_execution_authority", False)
+    return payload
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:

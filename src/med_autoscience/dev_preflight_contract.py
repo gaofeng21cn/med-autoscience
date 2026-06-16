@@ -299,6 +299,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         exact_paths=(
             "contracts/action_catalog.json",
             "contracts/artifact_locator_contract.json",
+            "contracts/authority_kernel_inventory.json",
             "contracts/domain_descriptor.json",
             "contracts/functional_privatization_audit.json",
             "contracts/generated_surface_handoff.json",

@@ -238,7 +238,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | `ToolResultEnvelope` | Tool / OPL / MAS owner surface | 统一 status、output refs、receipt/blocker refs、error class、recovery、retryability 和 no-forbidden-authority proof |
 | `ProvenanceEnvelope` | MAS / OPL refs-only | entity / activity / agent / dataset / run / artifact lineage refs |
 | `ObservabilityEvent` | OPL | trace / metric / log / failure class；永不直接授权 domain verdict |
-| `AuthorityKernelInventory` | MAS authority kernel | 用机器可读 inventory 固定 retained authority function 的 category、owner、active caller、allowed writes、forbidden authority、output refs、不能上收原因和 retirement / upcollect target；它不声明 authority 已退役或 production-ready。 |
+| `AuthorityKernelInventory` | MAS authority kernel | 用机器可读 inventory 固定 retained authority function 的 category、owner、active caller、allowed writes、forbidden authority、output refs、不能上收原因、disposition、no-active-caller 条件、replacement parity、no-forbidden-write proof、retirement gate、tombstone/provenance 和 upcollect target；它不声明 authority 已退役或 production-ready。 |
 
 ## 重构 Lane
 
@@ -319,11 +319,11 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 目标：把 MAS 程序面压到最小医学 authority function 和 refs-only helper。
 
-当前机器落点：`contracts/authority_kernel_inventory.json` 与 `src/med_autoscience/authority_kernel_inventory.py::build_authority_kernel_inventory` 已把 retained authority kernel inventory 落为 repo-native read model。inventory 覆盖 owner receipt signer、typed blocker materializer、source readiness、publication quality gate、artifact mutation authorization、publication-route memory accept/reject、no-forbidden-write proof、refs-only helper 和 diagnostic probe 的 representative surfaces，并固定 owner、active caller refs、allowed writes、forbidden authority、output refs、cannot-lift-to-OPL reason 与 retirement / upcollect target。该 landing 只关闭分类和读面合同缺口；后续仍要按 inventory 做物理收薄、删除旧 wrapper / residue、OPL upcollect 消费和真实 paper-line evidence 验证。
+当前机器落点：`contracts/authority_kernel_inventory.json` 与 `src/med_autoscience/authority_kernel_inventory.py::build_authority_kernel_inventory` 已把 retained authority kernel inventory 落为 repo-native read model。inventory 覆盖 owner receipt signer、typed blocker materializer、source readiness、publication quality gate、artifact mutation authorization、publication-route memory accept/reject、no-forbidden-write proof、refs-only helper 和 diagnostic probe 的 representative surfaces，并固定 owner、active caller refs、allowed writes、forbidden authority、output refs、cannot-lift-to-OPL reason、disposition、no-active-caller 条件、replacement parity、no-forbidden-write proof、retirement gate、tombstone/provenance 与 upcollect target。该 landing 只关闭分类和读面合同缺口；后续仍要按 inventory 做物理收薄、删除旧 wrapper / residue、OPL upcollect 消费和真实 paper-line evidence 验证。
 
 实施步骤：
 
-1. 以 `contracts/authority_kernel_inventory.json` 为分类入口，持续维护每个 retained function 的 owner、active caller、cannot-lift-to-OPL reason、allowed writes、forbidden authority、output refs。
+1. 以 `contracts/authority_kernel_inventory.json` 为分类入口，持续维护每个 retained function 的 owner、active caller、cannot-lift-to-OPL reason、allowed writes、forbidden authority、output refs、disposition、no-active-caller 条件、replacement parity、no-forbidden-write proof、retirement gate 和 tombstone/provenance。
 2. 把开放式医学判断移到 AI reviewer / auditor / stage executor；函数只做校验、签收、物化、索引、阻断。
 3. 对 source/data/artifact/memory/publication authority 分别建 boundary fixture。
 4. 删除只为旧 wrapper /旧 alias /旧 compatibility test 服务的代码。
@@ -333,6 +333,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 - 每个 retained MAS function 都可归类为 authority function、domain handler target、refs-only projection、native helper、diagnostic probe 或 fixture。
 - 程序不能直接生成 publication quality verdict，必须消费 independent reviewer/auditor record。
 - inventory 通过 focused contract tests 后，只能声明 `inventory_landed_physical_thinning_pending`；不能声明 authority fully retired、production-ready、paper-line progress、publication-ready 或 artifact mutation authorized。
+- 旧 private controller / wrapper / projection 的 Plan Completion 只能在 no-active-caller、replacement parity、no-forbidden-write、tombstone/provenance 和 fresh owner-answer / stable blocker / OPL StageRun readback 都有证据时写 `100%`；否则只能写 evidence tail open。
 
 ### Lane 5：Evidence / lineage plane
 
