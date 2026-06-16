@@ -22,6 +22,7 @@ REQUIRED_KEYS = {
     "acceptance_refs",
     "state",
     "currentness_basis",
+    "projection_metadata",
     "authority_boundary",
 }
 

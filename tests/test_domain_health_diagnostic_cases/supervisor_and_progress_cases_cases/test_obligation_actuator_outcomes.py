@@ -190,9 +190,16 @@ def test_domain_health_diagnostic_apply_rejects_unconsumed_owner_receipt_as_clos
         expected_decision_kind="stop_with_owner_receipt",
         expected_obligation_ref=obligation_ref,
     )
-    assert outcome["typed_control_blocker"]["blocker_type"] == (
-        "dhd_apply_no_closed_obligation_outcome"
+    blocker = outcome["typed_control_blocker"]
+    assert blocker["blocker_type"] == "non_advancing_apply"
+    assert blocker["non_advancing_apply"] is True
+    assert blocker["paper_progress_policy_result"]["recommended_opl_transition_kind"] == (
+        "NonAdvancingApply"
     )
+    assert blocker["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
+    assert "provider_admission_pending_requires_mas_transition_request" not in blocker[
+        "authority_boundary"
+    ]
     assert outcome["typed_control_blocker"]["next_safe_action_kind"] == "consume_owner_receipt"
     postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
     assert postcondition["ok"] is False
@@ -201,7 +208,88 @@ def test_domain_health_diagnostic_apply_rejects_unconsumed_owner_receipt_as_clos
     assert postcondition["paper_autonomy_obligation_ref"] == obligation_ref
 
 
-def test_domain_health_diagnostic_apply_accepts_provider_admission_pending_as_closed_outcome(
+def test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as_closed_outcome(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    recovery_state = _ready_provider_recovery_state()
+
+    monkeypatch.setattr(
+        module,
+        "_run_domain_health_diagnostic_for_runtime_impl",
+        lambda **kwargs: _runtime_report_with_recovery_action(
+            study_id=study_id,
+            study_root=study_root,
+            recovery_state=recovery_state,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_materialize_report_provider_admission_current_control_state",
+        lambda **kwargs: {
+            "surface": "opl_current_control_state_handoff",
+            "provider_admission_candidates": [
+                {
+                    "study_id": study_id,
+                    "action_id": "provider-admission:003-write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "opl_domain_progress_transition_request": _mas_transition_request(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id="medical_prose_write_repair",
+                        work_unit_fingerprint="publication-blockers::0915410f804b3697",
+                    ),
+                    "opl_domain_progress_transition_result": {
+                        "surface_kind": "opl_domain_progress_transition_result",
+                        "runtime_owner": "one-person-lab",
+                        "runtime_kind": "DomainProgressTransitionRuntime",
+                        "transition_kind": "StartProviderAttempt",
+                        "outcome_kind": "provider_admission_pending",
+                        "event_id": "opl-domain-progress-event:003-write",
+                        "outbox_item_id": "opl-domain-progress-outbox:003-write",
+                        "stage_run_identity": {
+                            "stage_run_id": "sat_003_write",
+                            "observed_generation": "publication-blockers::0915410f804b3697",
+                        },
+                    },
+                }
+            ],
+            "running_provider_attempt": False,
+        },
+    )
+    monkeypatch.setattr(module, "_sync_report_provider_admission_current_control_state", lambda report, **kwargs: None)
+    monkeypatch.setattr(module, "_fresh_progress_currentness_for_report", lambda **kwargs: {})
+
+    report = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=True,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    outcome = report["managed_study_obligation_actuator_outcomes"][0]
+    _assert_exactly_one_dhd_apply_outcome(outcome, "provider_admission_pending")
+    assert outcome["details"]["opl_runtime_result"]["event_id"] == "opl-domain-progress-event:003-write"
+    assert outcome["authority_boundary"]["can_authorize_provider_admission"] is False
+    assert outcome["authority_boundary"]["opl_transition_runtime_owner"] == "one-person-lab"
+    assert outcome["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
+    assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
+    assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["authority_boundary"][
+        "provider_admission_requires_opl_runtime_result"
+    ] is True
+
+
+def test_domain_health_diagnostic_apply_projects_non_advancing_when_provider_request_has_no_opl_outcome(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -258,13 +346,88 @@ def test_domain_health_diagnostic_apply_accepts_provider_admission_pending_as_cl
     )
 
     outcome = report["managed_study_obligation_actuator_outcomes"][0]
-    _assert_exactly_one_dhd_apply_outcome(outcome, "provider_admission_pending")
-    assert outcome["authority_boundary"]["can_authorize_provider_admission"] is False
-    assert outcome["authority_boundary"]["opl_transition_runtime_owner"] == "one-person-lab"
-    assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
-    assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["authority_boundary"][
-        "provider_admission_pending_requires_mas_transition_request"
-    ] is True
+    _assert_exactly_one_dhd_apply_outcome(outcome, "typed_blocker_ref")
+    blocker = outcome["typed_control_blocker"]
+    assert blocker["blocker_type"] == "non_advancing_apply"
+    assert blocker["non_advancing_apply"] is True
+    assert blocker["paper_progress_policy_result"]["recommended_opl_transition_kind"] == (
+        "NonAdvancingApply"
+    )
+    assert blocker["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
+    postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
+    assert postcondition["ok"] is False
+    assert postcondition["outcome_kind"] == "typed_blocker_ref"
+
+
+def test_domain_health_diagnostic_apply_rejects_runtime_polluted_mas_transition_request(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    recovery_state = _ready_provider_recovery_state()
+    polluted_request = _mas_transition_request(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        work_unit_id="medical_prose_write_repair",
+        work_unit_fingerprint="publication-blockers::0915410f804b3697",
+    )
+    polluted_request["projection_metadata"] = {"authority": False}
+
+    monkeypatch.setattr(
+        module,
+        "_run_domain_health_diagnostic_for_runtime_impl",
+        lambda **kwargs: _runtime_report_with_recovery_action(
+            study_id=study_id,
+            study_root=study_root,
+            recovery_state=recovery_state,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_materialize_report_provider_admission_current_control_state",
+        lambda **kwargs: {
+            "surface": "opl_current_control_state_handoff",
+            "provider_admission_candidates": [
+                {
+                    "study_id": study_id,
+                    "action_id": "provider-admission:003-write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "opl_domain_progress_transition_request": polluted_request,
+                    "opl_domain_progress_transition_result": {
+                        "surface_kind": "opl_domain_progress_transition_result",
+                        "runtime_owner": "one-person-lab",
+                        "runtime_kind": "DomainProgressTransitionRuntime",
+                        "transition_kind": "StartProviderAttempt",
+                        "outcome_kind": "provider_admission_pending",
+                        "event_id": "opl-domain-progress-event:003-write",
+                    },
+                }
+            ],
+            "running_provider_attempt": False,
+        },
+    )
+    monkeypatch.setattr(module, "_sync_report_provider_admission_current_control_state", lambda report, **kwargs: None)
+    monkeypatch.setattr(module, "_fresh_progress_currentness_for_report", lambda **kwargs: {})
+
+    report = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=True,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    outcome = report["managed_study_obligation_actuator_outcomes"][0]
+    _assert_exactly_one_dhd_apply_outcome(outcome, "typed_blocker_ref")
+    assert outcome["typed_control_blocker"]["blocker_type"] == "non_advancing_apply"
 
 
 def test_domain_health_diagnostic_apply_does_not_accept_provider_admission_without_transition_request(
@@ -326,11 +489,15 @@ def test_domain_health_diagnostic_apply_does_not_accept_provider_admission_witho
     outcome = report["managed_study_obligation_actuator_outcomes"][0]
     _assert_exactly_one_dhd_apply_outcome(outcome, "typed_blocker_ref")
     assert outcome["typed_control_blocker"]["blocker_type"] == (
-        "dhd_apply_no_closed_obligation_outcome"
+        "non_advancing_apply"
     )
     assert outcome["typed_control_blocker"]["authority_boundary"][
-        "provider_admission_pending_requires_mas_transition_request"
+        "provider_admission_requires_opl_runtime_result"
     ] is True
+    assert (
+        "provider_admission_pending_requires_mas_transition_request"
+        not in outcome["typed_control_blocker"]["authority_boundary"]
+    )
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is False
 
 

@@ -13,6 +13,49 @@ from tests.test_current_work_unit_cases.terminal_closeout_currentness_cases impo
 from tests.test_current_work_unit_cases.terminal_closeout_identity_cases import *  # noqa: F403,F401
 
 
+def test_current_work_unit_projection_metadata_demotes_transition_authority() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+        },
+        actions=[
+            {
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "next_owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "action_fingerprint": "publication-blockers::0915410f804b3697",
+                "owner_route_currentness_basis": {
+                    "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                    "truth_epoch": "truth-event-1",
+                    "runtime_health_epoch": "runtime-event-1",
+                    "source_eval_id": "publication-eval::003::current",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "derived_from_event_id": "opl-domain-progress-event:003-write",
+                    "observed_generation": "generation-7",
+                },
+            }
+        ],
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["authority_boundary"]["authority"] is False
+    assert work_unit["authority_boundary"]["fixed_point_runtime_owner"] == "one-person-lab"
+    assert work_unit["projection_metadata"]["authority"] is False
+    assert work_unit["projection_metadata"]["fixed_point_runtime_owner"] == "one-person-lab"
+    assert work_unit["projection_metadata"]["derived_from_event_id"] == (
+        "opl-domain-progress-event:003-write"
+    )
+    assert work_unit["projection_metadata"]["observed_generation"] == "generation-7"
+
+
 def test_current_work_unit_preserves_readiness_blocker_over_next_forced_delta_without_paper_delta() -> None:
     module = _module()
 

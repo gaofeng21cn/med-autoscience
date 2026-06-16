@@ -301,9 +301,13 @@
       "provider_admission_pending",
       "running_provider_attempt"
     ],
+    "request_projection_outcome_kinds": [
+      "mas_transition_request_only"
+    ],
     "diagnostic_only_outcome_kinds": [
       "rejected_stale_diagnostic"
     ],
+    "non_advancing_apply_effect": "typed_blocker_ref",
     "forbidden_success_roots": [
       "queue_empty",
       "dry_run_status",
@@ -348,7 +352,9 @@
       "queue_empty_can_create_success_outcome": false,
       "dry_run_can_create_success_outcome": false,
       "old_attempt_can_create_success_outcome": false,
-      "transport_status_can_create_success_outcome": false
+      "transport_status_can_create_success_outcome": false,
+      "mas_transition_request_can_create_success_outcome": false,
+      "provider_admission_pending_requires_opl_runtime_result": true
     }
   },
   "progress_accounting": {

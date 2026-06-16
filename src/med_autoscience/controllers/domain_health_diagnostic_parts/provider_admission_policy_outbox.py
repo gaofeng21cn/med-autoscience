@@ -38,6 +38,11 @@ def candidate_with_opl_transition_request(
         payload["paper_progress_policy_result"] = dict(policy_result)
     if transition_request:
         payload["opl_domain_progress_transition_request"] = dict(transition_request)
+    payload["projection_metadata"] = _projection_metadata(
+        transition_request=transition_request,
+        policy_result=policy_result,
+        candidate=payload,
+    )
     return payload
 
 
@@ -57,6 +62,11 @@ def _candidate_current_work_unit(candidate: Mapping[str, Any]) -> dict[str, Any]
             "action_fingerprint": _non_empty_text(candidate.get("action_fingerprint"))
             or _non_empty_text(candidate.get("work_unit_fingerprint")),
             "currentness_basis": dict(currentness_basis) if currentness_basis else None,
+            "projection_metadata": _projection_metadata(
+                transition_request=_mapping(candidate.get("opl_domain_progress_transition_request")),
+                policy_result=_mapping(candidate.get("paper_progress_policy_result")),
+                candidate=candidate,
+            ),
         }.items()
         if value not in (None, "", [], {})
     }
@@ -85,6 +95,32 @@ def _candidate_current_action(
             "action_fingerprint": _non_empty_text(candidate.get("action_fingerprint"))
             or _non_empty_text(candidate.get("work_unit_fingerprint")),
             "currentness_basis": dict(currentness_basis) if currentness_basis else None,
+            "projection_metadata": _projection_metadata(
+                transition_request=_mapping(candidate.get("opl_domain_progress_transition_request")),
+                policy_result=_mapping(candidate.get("paper_progress_policy_result")),
+                candidate=candidate,
+            ),
         }.items()
         if value not in (None, "", [], {})
+    }
+
+
+def _projection_metadata(
+    *,
+    transition_request: Mapping[str, Any],
+    policy_result: Mapping[str, Any] | None = None,
+    candidate: Mapping[str, Any],
+) -> dict[str, Any]:
+    del transition_request
+    request_metadata = _mapping(_mapping(policy_result).get("projection_metadata"))
+    return {
+        "authority": False,
+        "projection_owner": "med-autoscience",
+        "fixed_point_runtime_owner": "one-person-lab",
+        "derived_from_event_id": _non_empty_text(request_metadata.get("derived_from_event_id"))
+        or _non_empty_text(candidate.get("derived_from_event_id")),
+        "observed_generation": _non_empty_text(request_metadata.get("observed_generation"))
+        or _non_empty_text(candidate.get("observed_generation"))
+        or _non_empty_text(candidate.get("work_unit_fingerprint"))
+        or _non_empty_text(candidate.get("action_fingerprint")),
     }

@@ -60,6 +60,16 @@ def normalize_paper_recovery_execution_projection(
         "refresh_mode": "single_pass_projection_normalization",
         "fixed_point_runtime_owner": "one-person-lab",
         "mas_can_run_fixed_point_runtime": False,
+        "derived_from_event_id": _projection_metadata_value(
+            refreshed,
+            "derived_from_event_id",
+            handoff=handoff,
+        ),
+        "observed_generation": _projection_metadata_value(
+            refreshed,
+            "observed_generation",
+            handoff=handoff,
+        ),
         "source_signature": _refresh_signature(payload),
         "derived_signature": _refresh_signature(refreshed),
     }
@@ -83,6 +93,26 @@ def _without_stale_provider_supervisor_block(payload: dict[str, Any]) -> dict[st
     updated = dict(payload)
     updated.pop("provider_admission_blocked_by_supervisor_decision", None)
     return updated
+
+
+def _projection_metadata_value(
+    payload: Mapping[str, Any],
+    key: str,
+    *,
+    handoff: Mapping[str, Any],
+) -> Any:
+    for source in (
+        _mapping_copy(_mapping_copy(payload.get("current_work_unit")).get("projection_metadata")),
+        _mapping_copy(_mapping_copy(payload.get("current_work_unit")).get("currentness_basis")),
+        _mapping_copy(_mapping_copy(payload.get("current_executable_owner_action")).get("projection_metadata")),
+        _mapping_copy(_mapping_copy(payload.get("current_executable_owner_action")).get("owner_route_currentness_basis")),
+        _mapping_copy(handoff.get("projection_metadata")),
+        _mapping_copy(_mapping_copy(handoff.get("paper_progress_policy_result")).get("projection_metadata")),
+    ):
+        value = source.get(key)
+        if value not in (None, "", [], {}):
+            return value
+    return None
 
 
 def _refresh_signature(payload: Mapping[str, Any]) -> tuple[Any, ...]:

@@ -376,6 +376,7 @@ def current_work_unit(
         "acceptance_refs": list(dict.fromkeys(acceptance_refs)),
         "state": {key: value for key, value in state.items() if value not in (None, "", [], {})},
         "currentness_basis": basis,
+        "projection_metadata": _projection_metadata(basis),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
 
@@ -392,6 +393,16 @@ def _text_items(value: object) -> list[str]:
         if text is not None and text not in result:
             result.append(text)
     return result
+
+
+def _projection_metadata(currentness_basis: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "authority": False,
+        "projection_owner": "med-autoscience",
+        "fixed_point_runtime_owner": "one-person-lab",
+        "derived_from_event_id": _text(currentness_basis.get("derived_from_event_id")),
+        "observed_generation": _text(currentness_basis.get("observed_generation")),
+    }
 
 
 __all__ = [

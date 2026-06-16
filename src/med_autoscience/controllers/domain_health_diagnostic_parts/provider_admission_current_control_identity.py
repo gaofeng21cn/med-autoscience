@@ -90,6 +90,11 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
         transition_request = _mapping(
             paper_policy_result.get("opl_domain_progress_transition_request")
         )
+    projection_metadata = _projection_metadata(
+        candidate,
+        transition_request=transition_request,
+        policy_result=paper_policy_result,
+    )
     source_refs = {
         key: value
         for key, value in {
@@ -166,6 +171,7 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "opl_domain_progress_transition_request": dict(transition_request)
             if transition_request
             else None,
+            "projection_metadata": projection_metadata,
             "authority_boundary": authority_boundary,
             "stage_transition_authority_boundary": stage_boundary,
             "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
@@ -197,6 +203,7 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
                 "opl_domain_progress_transition_request": dict(transition_request)
                 if transition_request
                 else None,
+                "projection_metadata": projection_metadata,
                 "authority_boundary": authority_boundary,
                 "stage_transition_authority_boundary": stage_boundary,
             },
@@ -207,6 +214,27 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
 
 def _candidate_with_authority_boundaries(candidate: Mapping[str, Any]) -> dict[str, Any]:
     return provider_admission_candidate_with_authority_boundaries(candidate)
+
+
+def _projection_metadata(
+    candidate: Mapping[str, Any],
+    *,
+    transition_request: Mapping[str, Any],
+    policy_result: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    del transition_request
+    metadata = _mapping(candidate.get("projection_metadata")) or _mapping(
+        _mapping(policy_result).get("projection_metadata")
+    )
+    return {
+        "authority": False,
+        "projection_owner": "med-autoscience",
+        "fixed_point_runtime_owner": "one-person-lab",
+        "derived_from_event_id": _non_empty_text(metadata.get("derived_from_event_id")),
+        "observed_generation": _non_empty_text(metadata.get("observed_generation"))
+        or _non_empty_text(candidate.get("work_unit_fingerprint"))
+        or _non_empty_text(candidate.get("action_fingerprint")),
+    }
 
 
 def route_identity_key(payload: Mapping[str, Any]) -> str | None:

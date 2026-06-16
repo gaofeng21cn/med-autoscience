@@ -6,7 +6,11 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import gate_clearing_batch, quality_repair_batch
+from med_autoscience.controllers import (
+    gate_clearing_batch,
+    paper_progress_policy_adapter,
+    quality_repair_batch,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import (
     _non_empty_text,
 )
@@ -26,7 +30,7 @@ ACTUATOR_AUTHORITY_BOUNDARY = {
     "can_own_generic_event_log_or_outbox": False,
     "can_run_fixed_point_runtime": False,
     "can_write_opl_current_control_state": False,
-    "provider_admission_pending_requires_mas_transition_request": True,
+    "provider_admission_requires_opl_runtime_result": True,
     "provider_admission_readback_requires_opl_event_or_outbox": True,
     "can_execute_mas_owner_callable": True,
     "can_write_fail_closed_typed_control_blocker": True,
@@ -317,7 +321,7 @@ def _closed_obligation_outcome(
     return _fail_closed_obligation_outcome(
         action=action,
         profile=profile,
-        blocker_type="dhd_apply_no_closed_obligation_outcome",
+        blocker_type="non_advancing_apply",
         reason=(
             "DHD apply reached command end without provider admission, running proof, "
             "owner receipt, typed blocker, human gate, or route-back evidence for the "
@@ -449,6 +453,9 @@ def _provider_admission_pending_outcome(
     )
     if not candidates:
         return None
+    runtime_result = _candidate_opl_runtime_result(candidates[0])
+    if not runtime_result:
+        return None
     return _obligation_outcome(
         action=action,
         outcome_kind="provider_admission_pending",
@@ -456,7 +463,10 @@ def _provider_admission_pending_outcome(
         or _non_empty_text(candidates[0].get("dispatch_path"))
         or f"provider_admission_pending:{_non_empty_text(action.get('study_id')) or 'unknown-study'}",
         phase=phase,
-        details={"provider_admission_candidates": candidates},
+        details={
+            "provider_admission_candidates": candidates,
+            "opl_runtime_result": runtime_result,
+        },
     )
 
 
@@ -615,6 +625,16 @@ def _typed_control_blocker_payload(
 ) -> dict[str, Any]:
     obligation = _action_recovery_obligation(action)
     next_action = _mapping(_mapping(action.get("paper_recovery_state")).get("next_safe_action"))
+    policy_result = paper_progress_policy_adapter.build_non_advancing_policy_blocker(
+        {
+            "study_id": _non_empty_text(action.get("study_id")) or _non_empty_text(obligation.get("study_id")),
+            "quest_id": _non_empty_text(action.get("quest_id")) or _non_empty_text(obligation.get("quest_id")),
+            "current_work_unit": _mapping(action.get("current_work_unit")),
+            "current_executable_owner_action": _mapping(action.get("current_executable_owner_action")),
+            "paper_recovery_state": _mapping(action.get("paper_recovery_state")),
+        },
+        reason=reason,
+    )
     payload = {
         "surface_kind": "domain_health_diagnostic_obligation_actuator_typed_blocker",
         "schema_version": 1,
@@ -651,7 +671,8 @@ def _typed_control_blocker_payload(
         "paper_package_mutation_allowed": False,
         "publication_ready_claim_allowed": False,
         "provider_completion_is_domain_completion": False,
-        "non_advancing_apply": blocker_type == "dhd_apply_no_closed_obligation_outcome",
+        "non_advancing_apply": blocker_type == "non_advancing_apply",
+        "paper_progress_policy_result": policy_result,
         "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
     }
     cleaned = {key: value for key, value in payload.items() if value not in (None, "", [], {})}
@@ -1108,6 +1129,8 @@ def _candidate_has_mas_transition_request(candidate: Mapping[str, Any]) -> bool:
         return False
     if request.get("mas_can_create_opl_outbox_record") is not False:
         return False
+    if _mas_transition_request_has_runtime_field(request):
+        return False
     aggregate_identity = _mapping(request.get("aggregate_identity"))
     required_identity = (
         aggregate_identity.get("aggregate_kind"),
@@ -1121,6 +1144,50 @@ def _candidate_has_mas_transition_request(candidate: Mapping[str, Any]) -> bool:
     if any(_non_empty_text(value) is None for value in required_identity):
         return False
     return bool(_mapping(request.get("required_postcondition")))
+
+
+def _mas_transition_request_has_runtime_field(request: Mapping[str, Any]) -> bool:
+    forbidden_fields = {
+        "current_control_command_outbox_record",
+        "opl_domain_progress_transition_command",
+        "opl_domain_progress_transition_event",
+        "opl_domain_progress_transition_outbox_item",
+        "stage_run_identity",
+        "projection_metadata",
+        "read_model_generation_metadata",
+    }
+    return any(field in request for field in forbidden_fields)
+
+
+def _candidate_opl_runtime_result(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    for value in (
+        candidate.get("opl_domain_progress_transition_result"),
+        candidate.get("opl_domain_progress_runtime_result"),
+        candidate.get("opl_runtime_result"),
+        _mapping(candidate.get("paper_progress_policy_result")).get("opl_runtime_result"),
+    ):
+        result = _mapping(value)
+        if _valid_opl_runtime_result(result):
+            return result
+    return {}
+
+
+def _valid_opl_runtime_result(result: Mapping[str, Any]) -> bool:
+    if not result:
+        return False
+    if _non_empty_text(result.get("runtime_owner")) != OPL_TRANSITION_RUNTIME_OWNER:
+        return False
+    runtime_kind = _non_empty_text(result.get("runtime_kind")) or _non_empty_text(
+        result.get("target_runtime_kind")
+    )
+    if runtime_kind != OPL_TRANSITION_RUNTIME_KIND:
+        return False
+    if _non_empty_text(result.get("outcome_kind")) != "provider_admission_pending":
+        return False
+    return any(
+        _non_empty_text(result.get(key)) is not None
+        for key in ("event_id", "outbox_item_id", "stage_run_id", "stage_run_identity_ref")
+    ) or bool(_mapping(result.get("stage_run_identity")))
 
 
 def _current_typed_blocker_payload(action: Mapping[str, Any]) -> dict[str, Any]:

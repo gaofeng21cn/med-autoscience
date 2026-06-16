@@ -12,7 +12,9 @@ ALLOWED_STATUSES = (
 )
 AUTHORITY_BOUNDARY = {
     "surface_kind": SURFACE_KIND,
-    "authority": "mas_current_work_unit_reducer",
+    "authority": False,
+    "projection_owner": "med-autoscience",
+    "fixed_point_runtime_owner": "one-person-lab",
     "top_level_truth": "status",
     "stage_transition_authority": "OPL Stage Transition Authority",
     "stage_authority_role": "non_authoritative_observation_and_intent_producer",

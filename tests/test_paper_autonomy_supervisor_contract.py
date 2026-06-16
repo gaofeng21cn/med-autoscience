@@ -255,7 +255,9 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         "provider_admission_pending",
         "running_provider_attempt",
     ]
+    assert readback["request_projection_outcome_kinds"] == ["mas_transition_request_only"]
     assert readback["diagnostic_only_outcome_kinds"] == ["rejected_stale_diagnostic"]
+    assert readback["non_advancing_apply_effect"] == "typed_blocker_ref"
     assert readback["forbidden_success_roots"] == [
         "queue_empty",
         "dry_run_status",
@@ -270,6 +272,8 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         "dry_run_can_create_success_outcome": False,
         "old_attempt_can_create_success_outcome": False,
         "transport_status_can_create_success_outcome": False,
+        "mas_transition_request_can_create_success_outcome": False,
+        "provider_admission_pending_requires_opl_runtime_result": True,
     }
 
 

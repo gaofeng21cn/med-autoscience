@@ -1145,7 +1145,10 @@ def _mapping_items(value: object) -> list[dict[str, Any]]:
 
 def _authority_boundary() -> dict[str, bool]:
     return {
+        "authority": False,
         "refs_only": True,
+        "projection_owner": "med-autoscience",
+        "fixed_point_runtime_owner": "one-person-lab",
         "can_write_runtime_owned_surfaces": False,
         "can_write_paper_or_package": False,
         "can_authorize_quality_verdict": False,

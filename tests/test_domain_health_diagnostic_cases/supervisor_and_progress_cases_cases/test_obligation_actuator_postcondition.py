@@ -753,10 +753,17 @@ def test_domain_health_diagnostic_apply_continues_same_tick_for_owner_receipt_co
     ]
     assert len(typed_blocker_outcomes) == 1
     _assert_exactly_one_dhd_apply_outcome(typed_blocker_outcomes[0], "typed_blocker_ref")
-    assert typed_blocker_outcomes[0]["typed_control_blocker"]["blocker_type"] == (
-        "dhd_apply_no_closed_obligation_outcome"
+    blocker = typed_blocker_outcomes[0]["typed_control_blocker"]
+    assert blocker["blocker_type"] == "non_advancing_apply"
+    assert blocker["non_advancing_apply"] is True
+    assert blocker["paper_progress_policy_result"]["recommended_opl_transition_kind"] == (
+        "NonAdvancingApply"
     )
-    assert typed_blocker_outcomes[0]["typed_control_blocker"]["next_safe_action_kind"] == (
+    assert blocker["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
+    assert "provider_admission_pending_requires_mas_transition_request" not in blocker[
+        "authority_boundary"
+    ]
+    assert blocker["next_safe_action_kind"] == (
         "consume_owner_receipt"
     )
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is False
@@ -1087,9 +1094,16 @@ def test_domain_health_diagnostic_apply_fails_closed_when_ready_action_has_no_cl
     outcome = outcomes[0]
     assert outcome["outcome_kind"] == "typed_blocker_ref"
     _assert_exactly_one_dhd_apply_outcome(outcome, "typed_blocker_ref")
-    assert outcome["typed_control_blocker"]["blocker_type"] == (
-        "dhd_apply_no_closed_obligation_outcome"
+    blocker = outcome["typed_control_blocker"]
+    assert blocker["blocker_type"] == "non_advancing_apply"
+    assert blocker["non_advancing_apply"] is True
+    assert blocker["paper_progress_policy_result"]["recommended_opl_transition_kind"] == (
+        "NonAdvancingApply"
     )
+    assert blocker["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
+    assert "provider_admission_pending_requires_mas_transition_request" not in blocker[
+        "authority_boundary"
+    ]
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is False
 
 
