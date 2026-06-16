@@ -38,7 +38,7 @@ def _owner_route(
 
 def test_reconciler_records_dm002_opl_stage_attempt_admission_outbox_receipt(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
-    outbox = importlib.import_module("med_autoscience.controllers.paper_work_unit_outbox")
+    transition_refs = importlib.import_module("med_autoscience.controllers.paper_progress_transition_refs")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
@@ -106,9 +106,14 @@ def test_reconciler_records_dm002_opl_stage_attempt_admission_outbox_receipt(tmp
     assert decision["current_state"]["state"] == "opl_stage_attempt_admission_required"
     assert decision["decision"] == "opl_stage_attempt_admission"
     assert decision["apply_eligible"] is True
-    assert decision["action_receipt"]["receipt_status"] == "started"
-    assert decision["action_receipt"]["worker_start_ref"] == "execution::dm002::request_opl_stage_attempt"
-    assert outbox.worker_starts(study_root=profile.studies_root / study_id)
+    assert decision["action_receipt"]["receipt_status"] == (
+        "transition_request_pending_opl_runtime_required"
+    )
+    assert decision["action_receipt"]["refs_only"] is True
+    assert decision["action_receipt"]["started_worker"] is False
+    assert decision["action_receipt"]["worker_start_ref"] is None
+    assert decision["action_receipt"]["transition_runtime_owner"] == "one-person-lab"
+    assert transition_refs.read_transition_refs(study_root=profile.studies_root / study_id)
 
 
 def test_reconciler_routes_dm003_missing_callable_to_controller_registry_repair(tmp_path: Path) -> None:
@@ -163,9 +168,62 @@ def test_reconciler_routes_dm003_missing_callable_to_controller_registry_repair(
     assert decision["action_receipt"]["receipt_status"] == "dry_run_not_recorded"
 
 
+def test_reconciler_repo_route_gap_uses_typed_blocker_not_controller_inspector(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
+    profile = make_profile(tmp_path)
+    study_id = "004-route-gap"
+    write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    scan = {
+        "studies": [
+            {
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "study_macro_state": {
+                    "writer_state": "parked",
+                    "user_next": "inspect",
+                    "reason": "route_gap",
+                    "details": {"package_delivered": False},
+                },
+                "interaction_arbitration": {
+                    "classification": "blocked_controller_route",
+                    "action": "inspect",
+                    "requires_user_input": False,
+                    "valid_blocking": True,
+                    "next_owner": "MAS/controller",
+                    "blocked_reason": "controller_route_gap",
+                },
+                "current_blockers": ["controller_route_gap"],
+                "progress_freshness": {
+                    "meaningful_artifact_delta_freshness": {"status": "missing"},
+                },
+            }
+        ]
+    }
+
+    receipt = module.build_paper_progress_reconcile_receipt(
+        profile=profile,
+        requested_study_ids=(study_id,),
+        resolved_study_ids=(study_id,),
+        before_scan=scan,
+        consumed={},
+        executed={},
+        after_scan=scan,
+        apply=False,
+        generated_at="2026-06-16T00:00:00+00:00",
+    )
+
+    decision = receipt["decisions"][0]
+    assert decision["decision"] == "repo_level_blocker"
+    assert decision["desired_state"]["owner"] == "med-autoscience"
+    assert decision["desired_state"]["action_type"] == "repo_route_typed_blocker_required"
+    assert decision["callable_contract"]["callable_surface"] == "mas_domain_authority.typed_blocker.repo_route_gap"
+    assert decision["action_receipt"]["receipt_status"] == "dry_run_not_recorded"
+    assert "inspect_controller_route" not in str(decision)
+
+
 def test_reconciler_does_not_record_worker_start_without_dispatch_execution(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
-    outbox = importlib.import_module("med_autoscience.controllers.paper_work_unit_outbox")
+    transition_refs = importlib.import_module("med_autoscience.controllers.paper_progress_transition_refs")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
@@ -214,8 +272,7 @@ def test_reconciler_does_not_record_worker_start_without_dispatch_execution(tmp_
     assert decision["action_receipt"]["receipt_status"] == "not_executed"
     assert decision["action_receipt"]["reason"] == "owner_dispatch_not_executed"
     assert receipt["action_receipt_count"] == 0
-    assert outbox.read_receipts(study_root=profile.studies_root / study_id) == []
-    assert outbox.worker_starts(study_root=profile.studies_root / study_id) == []
+    assert transition_refs.read_transition_refs(study_root=profile.studies_root / study_id) == []
 
 
 def test_reconciler_keeps_obesity_delivery_missing_downstream_only(tmp_path: Path) -> None:

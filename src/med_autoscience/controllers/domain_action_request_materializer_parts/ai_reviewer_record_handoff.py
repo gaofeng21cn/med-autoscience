@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -10,6 +9,7 @@ from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )
+from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
 from med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution.ai_reviewer_record_production import (
     build_ai_reviewer_record_production_request,
     build_ai_reviewer_record_worker_handoff,
@@ -85,12 +85,22 @@ def ai_reviewer_record_production_handoff_dispatch(
     )
     owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
     work_unit_fingerprint = _record_production_route_fingerprint(owner_route)
-    transition_request = _transition_request_identity(
-        dispatch=dispatch,
+    source_generation = work_unit_fingerprint or _text(dispatch.get("source_fingerprint"))
+    transition_request = build_transition_request(
         study_id=study_id,
+        quest_id=_text(dispatch.get("quest_id")) or study_id,
         action_type=action_type,
         work_unit_id=work_unit_id,
         work_unit_fingerprint=work_unit_fingerprint,
+        next_owner=_text(dispatch.get("next_executable_owner")),
+        source_generation=source_generation,
+        expected_version=source_generation,
+        dispatch_authority=_text(dispatch.get("dispatch_authority")),
+        required_output_surface=_text(dispatch.get("required_output_surface")),
+        idempotency_context={
+            "kind": "ai-reviewer-record-transition-request",
+            "dispatch_authority": _text(dispatch.get("dispatch_authority")),
+        },
     )
     dispatch["action_id"] = _text(action.get("action_id")) or dispatch.get("action_id")
     dispatch["blocked_reason"] = None
@@ -137,68 +147,6 @@ def ai_reviewer_record_production_handoff_dispatch(
         }
         dispatch["record_production_satisfaction"] = satisfaction
     return dispatch
-
-
-def _transition_request_identity(
-    *,
-    dispatch: Mapping[str, Any],
-    study_id: str,
-    action_type: str,
-    work_unit_id: str | None,
-    work_unit_fingerprint: str | None,
-) -> dict[str, Any]:
-    source_generation = work_unit_fingerprint or _text(dispatch.get("source_fingerprint"))
-    return {
-        "surface_kind": "mas_domain_progress_transition_request",
-        "target_runtime_kind": "DomainProgressTransitionRuntime",
-        "target_runtime_owner": "one-person-lab",
-        "request_owner": "med-autoscience",
-        "authority_role": "domain_intent_request_only",
-        "mas_can_create_opl_outbox_record": False,
-        "mas_can_create_opl_event": False,
-        "mas_can_create_opl_stage_run": False,
-        "recommended_transition_kind": "MaterializeOwnerAction",
-        "aggregate_identity": {
-            "aggregate_kind": "study_work_unit",
-            "aggregate_id": "::".join(item for item in (study_id, work_unit_id) if item),
-            "study_id": study_id,
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": work_unit_fingerprint,
-        },
-        "study_id": study_id,
-        "quest_id": _text(dispatch.get("quest_id")) or study_id,
-        "action_type": action_type,
-        "next_owner": _text(dispatch.get("next_executable_owner")),
-        "idempotency_key": _fingerprint(
-            {
-                "kind": "ai-reviewer-record-transition-request",
-                "study_id": study_id,
-                "action_type": action_type,
-                "work_unit_id": work_unit_id,
-                "work_unit_fingerprint": work_unit_fingerprint,
-                "dispatch_authority": _text(dispatch.get("dispatch_authority")),
-            }
-        ),
-        "source_generation": source_generation,
-        "expected_version": source_generation,
-        "required_postcondition": {
-            "kind": "owner_action_ref",
-            "outcome_owner": "one-person-lab",
-            "domain_state_owner": "med-autoscience",
-        },
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "dispatch_authority": _text(dispatch.get("dispatch_authority")),
-        "required_output_surface": _text(dispatch.get("required_output_surface")),
-        "forbidden_runtime_fields": [
-            "current_control_command_outbox_record",
-            "opl_domain_progress_transition_event",
-            "opl_domain_progress_transition_outbox_item",
-            "projection_metadata",
-            "read_model_generation_metadata",
-            "stage_run_identity",
-        ],
-    }
 
 
 def _record_production_satisfaction(
@@ -431,11 +379,6 @@ def _string_items(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [text for item in value if (text := _text(item))]
-
-
-def _fingerprint(value: object) -> str:
-    rendered = json.dumps(value, ensure_ascii=False, sort_keys=True)
-    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
 
 
 def _text(value: object) -> str | None:

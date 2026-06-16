@@ -317,7 +317,8 @@ def _action_from_successor_owner_gate(
         "owner_gate": {
             "kind": "materialize_successor_owner_gate",
             "required_input": required_input,
-            "provider_admission_allowed": next_action.get("provider_admission_allowed") is True,
+            "provider_admission_allowed": False,
+            "provider_admission_requires_opl_runtime_result": True,
             "evidence_refs": evidence_refs,
         },
         "owner_route": owner_route,
@@ -343,7 +344,8 @@ def _action_from_successor_owner_gate(
             "owner_gate": {
                 "kind": "materialize_successor_owner_gate",
                 "required_input": required_input,
-                "provider_admission_allowed": next_action.get("provider_admission_allowed") is True,
+                "provider_admission_allowed": False,
+                "provider_admission_requires_opl_runtime_result": True,
                 "evidence_refs": evidence_refs,
             },
             "owner_route": owner_route,

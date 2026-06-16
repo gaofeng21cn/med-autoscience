@@ -46,6 +46,7 @@ from med_autoscience.controllers.current_work_unit_parts.domain_transition impor
     domain_transition_supersedes_provider_completion_blocker as _domain_transition_supersedes_provider_completion_blocker,
 )
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
+    paper_recovery_successor_action_ready as _paper_recovery_successor_action_ready,
     paper_recovery_successor_supersedes_publication_gate_replay_blocker as _paper_recovery_successor_supersedes_publication_gate_replay_blocker,
 )
 from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
@@ -466,8 +467,10 @@ def _action_supersedes_stage_owner_answer(
         return False
     if _paper_recovery_successor_supersedes_publication_gate_replay_blocker(
         action=payload,
-        blocker={"blocker_type": "publication_gate_replay_blocked"},
+        blocker={"blocker_type": "medical_paper_readiness_missing"},
     ):
+        return True
+    if _paper_recovery_successor_action_ready(payload):
         return True
     if _provider_admission_repair_action_supersedes_readiness_blocker(payload):
         return True
@@ -509,7 +512,7 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
     next_action = _mapping(recovery.get("next_safe_action"))
     if _text(next_action.get("kind")) != "materialize_successor_owner_action":
         return None
-    if next_action.get("provider_admission_allowed") is not True:
+    if not _mapping(next_action.get("successor_owner_action")):
         return None
     successor = _mapping(next_action.get("successor_owner_action"))
     action_type = _action_type(successor)
@@ -554,7 +557,9 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
             "paper_recovery_successor": {
                 "phase": _text(recovery.get("phase")),
                 "source_next_safe_action_kind": _text(next_action.get("kind")),
-                "provider_admission_allowed": True,
+                "provider_admission_allowed": False,
+                "provider_admission_requires_opl_runtime_result": True,
+                "opl_transition_runtime_required": True,
                 "source_surface": source_surface,
             },
             "owner_route_currentness_basis": {

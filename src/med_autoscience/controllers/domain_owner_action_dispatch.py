@@ -33,11 +33,13 @@ from .domain_action_request_materializer import (
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
     FORBIDDEN_SURFACES,
     current_default_executor_dispatches,
-    materialize_domain_action_requests,
 )
 from .default_executor_action_policy import SUPPORTED_ACTION_TYPES
 from .domain_health_diagnostic_parts.opl_transition_readback import has_opl_transition_readback
-from .opl_execution_boundary import typed_blocker as opl_execution_authorization_typed_blocker
+from .opl_execution_boundary import (
+    first_trusted_opl_execution_authorization,
+    typed_blocker as opl_execution_authorization_typed_blocker,
+)
 
 
 SCHEMA_VERSION = 1
@@ -67,6 +69,15 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [text for item in value if (text := _text(item)) is not None]
 
 
 def _scan_study(scan_payload: Mapping[str, Any] | None, study_id: str) -> dict[str, Any] | None:
@@ -115,25 +126,6 @@ def _current_materialized_dispatches(
         action_types=action_types,
         mode=mode,
         apply=apply,
-        current_default_executor_dispatches=current_default_executor_dispatches,
-        text=_text,
-    )
-
-
-def _materialize_current_dispatches_for_apply(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    action_types: tuple[str, ...],
-    mode: str,
-) -> list[dict[str, Any]]:
-    return current_dispatch_materialization.materialize_current_dispatches_for_apply(
-        profile=profile,
-        study_id=study_id,
-        action_types=action_types,
-        mode=mode,
-        materialize_domain_action_requests=materialize_domain_action_requests,
-        dispatches=_dispatches,
         current_default_executor_dispatches=current_default_executor_dispatches,
         text=_text,
     )
@@ -439,7 +431,11 @@ def _execute_dispatch(
     execution = _block_transition_request_without_opl_readback(
         dispatch=dispatch,
         execution=execution,
+        owner_route_basis=owner_route_basis,
+        current_study=current_study,
     )
+    if apply:
+        execution = _materialize_post_gate_handoffs(execution)
     action_cost = runtime_dispatch_cost.executor_action_cost(
         action_type=action_type,
         apply=apply,
@@ -551,7 +547,7 @@ def _dispatch_pre_execution_block(
             current_study=current_study,
         )
         if opl_block is not None:
-            return opl_block
+            return _blocked_dispatch_carrier(dispatch=dispatch, block=opl_block)
     return None
 
 
@@ -559,15 +555,64 @@ def _block_transition_request_without_opl_readback(
     *,
     dispatch: Mapping[str, Any],
     execution: Mapping[str, Any],
+    owner_route_basis: str | None,
+    current_study: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     if execution.get("execution_status") == "blocked":
         return dict(execution)
     if not _domain_progress_transition_request_present(dispatch, execution):
         return dict(execution)
-    if _domain_progress_transition_readback_present(dispatch, execution):
+    if _domain_progress_transition_opl_proof_present(
+        dispatch,
+        execution,
+        owner_route_basis=owner_route_basis,
+        current_study=current_study,
+    ):
         return dict(execution)
     return {
         **dict(execution),
+        **_opl_execution_authorization_block_fields(),
+    }
+
+
+def _blocked_dispatch_carrier(
+    *,
+    dispatch: Mapping[str, Any],
+    block: Mapping[str, Any],
+) -> dict[str, Any]:
+    carrier: dict[str, Any] = {}
+    for key in (
+        "ai_reviewer_record_production_request",
+        "ai_reviewer_record_worker_handoff",
+        "ai_reviewer_medical_prose_review_production_request",
+        "ai_reviewer_medical_prose_review_worker_handoff",
+        "writer_worker_handoff",
+        "next_required_actions",
+        "source_record_blocker_reason",
+    ):
+        if key in dispatch:
+            carrier[key] = dispatch[key]
+    if "next_required_actions" not in carrier:
+        source_action = _mapping(dispatch.get("source_action"))
+        if actions := _text_items(source_action.get("next_required_actions")):
+            carrier["next_required_actions"] = actions
+    if "next_required_actions" not in carrier:
+        production_request = _mapping(dispatch.get("ai_reviewer_record_production_request"))
+        if request_kind := _text(production_request.get("request_kind")):
+            carrier["next_required_actions"] = [
+                request_kind,
+                "rematerialize_ai_reviewer_request",
+                "return_to_ai_reviewer_workflow",
+            ]
+    return {
+        **carrier,
+        **dict(block),
+        **_opl_execution_authorization_block_fields(),
+    }
+
+
+def _opl_execution_authorization_block_fields() -> dict[str, Any]:
+    return {
         "execution_status": "blocked",
         "blocked_reason": "opl_execution_authorization_required",
         "typed_blocker": opl_execution_authorization_typed_blocker(),
@@ -581,22 +626,71 @@ def _block_transition_request_without_opl_readback(
         "mas_creates_opl_stage_run": False,
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
-        "provider_attempt_or_lease_required": True,
+        "provider_attempt_or_lease_required": False,
+        "opl_transition_runtime_required": True,
     }
+
+
+def _materialize_post_gate_handoffs(execution: Mapping[str, Any]) -> dict[str, Any]:
+    if _text(execution.get("execution_status")) != "handoff_ready":
+        return dict(execution)
+    result = dict(execution)
+    record_handoff = _mapping(result.get("ai_reviewer_record_worker_handoff"))
+    if record_handoff and "ai_reviewer_record_worker_handoff_path" not in result:
+        result["ai_reviewer_record_worker_handoff_path"] = (
+            action_execution.ai_reviewer_record_production.materialize_ai_reviewer_record_worker_handoff(
+                handoff=record_handoff,
+            )
+        )
+    prose_handoff = _mapping(result.get("ai_reviewer_medical_prose_review_worker_handoff"))
+    if prose_handoff and "ai_reviewer_medical_prose_review_worker_handoff_path" not in result:
+        result["ai_reviewer_medical_prose_review_worker_handoff_path"] = (
+            action_execution.ai_reviewer_medical_prose_review_production.materialize_ai_reviewer_medical_prose_review_worker_handoff(
+                handoff=prose_handoff,
+            )
+        )
+    return result
 
 
 def _domain_progress_transition_request_present(*values: object) -> bool:
     for payload in _iter_transition_payloads(*values):
-        if payload.get("provider_admission_requires_opl_runtime_result") is True:
-            return True
-        request = _mapping(payload.get("opl_domain_progress_transition_request"))
-        if request and _text(request.get("target_runtime_kind")) == "DomainProgressTransitionRuntime":
+        if _payload_has_domain_progress_transition_request(payload):
             return True
     return False
 
 
-def _domain_progress_transition_readback_present(*values: object) -> bool:
-    return any(has_opl_transition_readback(payload) for payload in _iter_transition_payloads(*values))
+def _payload_has_domain_progress_transition_request(payload: Mapping[str, Any]) -> bool:
+    if _text(payload.get("dispatch_status")) == "transition_request_pending":
+        return True
+    if _text(payload.get("execution_status")) == "transition_request_pending":
+        return True
+    request = _mapping(payload.get("opl_domain_progress_transition_request"))
+    return bool(request and _text(request.get("target_runtime_kind")) == "DomainProgressTransitionRuntime")
+
+
+def _domain_progress_transition_opl_proof_present(
+    *values: object,
+    owner_route_basis: str | None,
+    current_study: Mapping[str, Any] | None,
+) -> bool:
+    for payload in _iter_transition_payloads(*values):
+        if not _payload_has_domain_progress_transition_request(payload) and not has_opl_transition_readback(payload):
+            continue
+        if has_opl_transition_readback(payload):
+            return True
+        prompt_contract = _mapping(payload.get("prompt_contract"))
+        owner_route = _mapping(payload.get("owner_route"))
+        if first_trusted_opl_execution_authorization(
+            payload.get("opl_execution_authorization"),
+            payload.get("opl_provider_attempt"),
+            payload.get("stage_attempt"),
+            prompt_contract.get("opl_execution_authorization"),
+            prompt_contract.get("opl_provider_attempt"),
+            owner_route.get("opl_execution_authorization"),
+            owner_route.get("opl_provider_attempt"),
+        ) is not None:
+            return True
+    return False
 
 
 def _iter_transition_payloads(*values: object) -> list[Mapping[str, Any]]:
@@ -617,6 +711,7 @@ def _iter_transition_payloads(*values: object) -> list[Mapping[str, Any]]:
                 "owner_route",
                 "source_action",
                 "ai_reviewer_record_worker_handoff",
+                "ai_reviewer_medical_prose_review_worker_handoff",
                 "writer_worker_handoff",
                 "opl_domain_progress_transition_request",
                 "opl_domain_progress_transition_result",
@@ -689,6 +784,21 @@ def _dispatch_execution_payload(
         "mas_creates_opl_event": dispatch.get("mas_creates_opl_event") is True,
         "mas_creates_opl_stage_run": dispatch.get("mas_creates_opl_stage_run") is True,
         "execution_requires_opl_authorization": True,
+        "opl_execution_authorization_required": dispatch.get("opl_execution_authorization_required") is True
+        or prompt_contract.get("opl_execution_authorization_required") is True,
+        "opl_execution_authorization_present": bool(
+            dispatch.get("opl_execution_authorization_present") is True
+            or prompt_contract.get("opl_execution_authorization_present") is True
+            or
+            _mapping(dispatch.get("opl_execution_authorization"))
+            or _mapping(prompt_contract.get("opl_execution_authorization"))
+        ),
+        "owner_callable_requires_opl_authorization": dispatch.get("owner_callable_requires_opl_authorization") is True
+        or prompt_contract.get("owner_callable_requires_opl_authorization") is True,
+        "provider_admission_pending": dispatch.get("provider_admission_pending") is True
+        or prompt_contract.get("provider_admission_pending") is True,
+        "mas_private_attempt_loop_forbidden": dispatch.get("mas_private_attempt_loop_forbidden") is True
+        or prompt_contract.get("mas_private_attempt_loop_forbidden") is True,
         "generated_at": generated_at,
         "study_id": study_id,
         "quest_id": _text(dispatch.get("quest_id")),
@@ -698,7 +808,13 @@ def _dispatch_execution_payload(
         "next_executable_owner": _text(dispatch.get("next_executable_owner")),
         "required_output_surface": _text(dispatch.get("required_output_surface")),
         "dispatch_path": str(dispatch_path),
+        "dispatch_status": _text(dispatch.get("dispatch_status")),
         "dispatch_authority": _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch",
+        "provider_admission_requires_opl_runtime_result": (
+            dispatch.get("provider_admission_requires_opl_runtime_result") is True
+            or prompt_contract.get("provider_admission_requires_opl_runtime_result") is True
+        ),
+        "blocked_reason": None,
         "owner_callable_adapter_contract": _mapping(dispatch.get("owner_callable_adapter_contract")) or None,
         "domain_intent": _mapping(dispatch.get("domain_intent")) or None,
         "dispatch_contract_valid": guard_ok,
@@ -846,23 +962,9 @@ def dispatch_domain_owner_actions(
             scan_payload=study_scan_payload,
             fresh_progress=study_fresh_progress,
         )
-        if (
-            not selected_dispatches
-            and consumer_payload is None
-            and not persisted_dispatches.consumed_transition_current_control_present(
-                scan_payload=study_scan_payload,
-                study_id=study_id,
-            )
-        ):
+        if not selected_dispatches and consumer_payload is None and not apply:
             selected_dispatches = (
-                _materialize_current_dispatches_for_apply(
-                    profile=profile,
-                    study_id=study_id,
-                    action_types=resolved_action_types,
-                    mode=mode,
-                )
-                if apply
-                else _current_materialized_dispatches(
+                _current_materialized_dispatches(
                     profile=profile,
                     study_id=study_id,
                     action_types=resolved_action_types,

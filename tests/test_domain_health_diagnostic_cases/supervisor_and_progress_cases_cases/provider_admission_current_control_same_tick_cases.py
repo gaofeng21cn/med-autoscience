@@ -133,7 +133,7 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
     assert action["stage_packet_refs"] == [str(dispatch_path)]
 
 
-def test_same_tick_materialized_report_candidate_carries_opl_outbox_record(
+def test_same_tick_materialized_report_candidate_carries_opl_transition_request(
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
@@ -637,7 +637,7 @@ def test_same_tick_recovery_successor_dispatch_survives_stale_opl_authorization_
                         "quest_id": study_id,
                         "action_type": "run_quality_repair_batch",
                         "dispatch_status": "ready",
-                        "dispatch_authority": "paper_recovery_owner_callable",
+                        "dispatch_authority": "consumer_default_executor_dispatch",
                         "dispatch_path": str(dispatch_path),
                         "next_executable_owner": "write",
                         "required_output_surface": "artifacts/controller/repair_execution_receipts/latest.json",

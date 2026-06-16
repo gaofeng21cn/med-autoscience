@@ -10,12 +10,6 @@ from med_autoscience.controllers.opl_execution_boundary import (
     typed_blocker as opl_execution_authorization_typed_blocker,
 )
 
-_PAPER_RECOVERY_OWNER_CALLABLE_BASIS = "paper_recovery_owner_callable"
-_PAPER_RECOVERY_OWNER_CALLABLE_BRIDGE_AUTHORITY = (
-    "domain_action_request_materializer_paper_recovery_owner_callable"
-)
-
-
 def block_if_missing_authorization(
     *,
     dispatch: Mapping[str, Any],
@@ -28,13 +22,6 @@ def block_if_missing_authorization(
         current_study=current_study,
     ):
         return None
-    if _paper_recovery_provider_handoff_authorized(
-        dispatch=dispatch,
-        owner_route_basis=owner_route_basis,
-    ):
-        return _provider_handoff_ready(authority="paper_recovery_successor_owner_action")
-    if _text(dispatch.get("action_type")) == "complete_medical_paper_readiness_surface":
-        return _provider_handoff_ready(authority="medical_paper_readiness_surface")
     return {
         "execution_status": "blocked",
         "blocked_reason": "opl_execution_authorization_required",
@@ -47,7 +34,10 @@ def block_if_missing_authorization(
         "mas_creates_opl_outbox": False,
         "mas_creates_opl_event": False,
         "mas_creates_opl_stage_run": False,
-        "provider_attempt_or_lease_required": True,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "provider_attempt_or_lease_required": False,
+        "opl_transition_runtime_required": True,
     }
 
 
@@ -92,122 +82,6 @@ def _closeout_or_readback_binding_present(dispatch: Mapping[str, Any]) -> bool:
     if _text(binding.get("source_fingerprint")) is None:
         return False
     return _text(binding.get("work_unit_fingerprint")) is not None
-
-
-def _paper_recovery_provider_handoff_authorized(
-    *,
-    dispatch: Mapping[str, Any],
-    owner_route_basis: str | None,
-) -> bool:
-    if owner_route_basis != _PAPER_RECOVERY_OWNER_CALLABLE_BASIS:
-        return False
-    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(
-        _mapping(dispatch.get("prompt_contract")).get("owner_route")
-    )
-    source_refs = _mapping(owner_route.get("source_refs"))
-    if _text(source_refs.get("bridge_authority")) != _PAPER_RECOVERY_OWNER_CALLABLE_BRIDGE_AUTHORITY:
-        return False
-    source_action = _mapping(dispatch.get("source_action"))
-    if _text(source_action.get("authority")) != "paper_recovery_state":
-        return False
-    if _text(source_action.get("source_surface")) != "paper_recovery_state":
-        return False
-    supervisor_decision = _mapping(source_action.get("supervisor_decision")) or _mapping(
-        _mapping(source_action.get("handoff_packet")).get("supervisor_decision")
-    )
-    if _text(supervisor_decision.get("decision")) != "materialize_recovery_action":
-        return False
-    source_next_action = _source_next_safe_action(supervisor_decision)
-    if _text(source_next_action.get("kind")) != "materialize_successor_owner_action":
-        return False
-    if source_next_action.get("provider_admission_allowed") is not True:
-        return False
-    successor = _mapping(source_next_action.get("successor_owner_action"))
-    action_type = _text(dispatch.get("action_type"))
-    if action_type is None or _text(successor.get("action_type")) != action_type:
-        return False
-    if _text(successor.get("owner")) not in {
-        None,
-        _text(dispatch.get("next_executable_owner")),
-        _text(dispatch.get("owner")),
-        _text(owner_route.get("next_owner")),
-    }:
-        return False
-    obligation = _mapping(supervisor_decision.get("paper_autonomy_obligation"))
-    return _paper_recovery_callable_identity_matches(
-        dispatch=dispatch,
-        owner_route=owner_route,
-        source_refs=source_refs,
-        obligation={
-            **obligation,
-            "action_type": action_type,
-            "work_unit_id": _text(successor.get("work_unit_id")),
-            "work_unit_fingerprint": _text(successor.get("work_unit_fingerprint")),
-        },
-        action_type=action_type,
-    )
-
-
-def _source_next_safe_action(supervisor_decision: Mapping[str, Any]) -> Mapping[str, Any]:
-    next_safe_action = _mapping(supervisor_decision.get("next_safe_action"))
-    return _mapping(next_safe_action.get("source_next_safe_action")) or next_safe_action
-
-
-def _provider_handoff_ready(*, authority: str) -> dict[str, Any]:
-    return {
-        "execution_status": "handoff_ready",
-        "blocked_reason": None,
-        "owner_callable_surface": "opl_default_executor.stage_attempt",
-        "provider_attempt_or_lease_required": True,
-        "provider_completion_is_domain_completion": False,
-        "authority_boundary": {
-            "opl": "provider_attempt_admission_and_execution_authorization",
-            "domain": "truth_quality_artifact_gate_owner",
-            "can_write_domain_truth": False,
-            "can_authorize_quality_verdict": False,
-            "provider_completion_is_domain_ready": False,
-            "handoff_authority": authority,
-        },
-    }
-
-
-def _paper_recovery_callable_identity_matches(
-    *,
-    dispatch: Mapping[str, Any],
-    owner_route: Mapping[str, Any],
-    source_refs: Mapping[str, Any],
-    obligation: Mapping[str, Any],
-    action_type: str,
-) -> bool:
-    if _text(obligation.get("action_type")) not in {None, action_type}:
-        return False
-    dispatch_work_unit_id = _dispatch_work_unit_id(dispatch)
-    obligation_work_unit_id = _text(obligation.get("work_unit_id"))
-    route_work_unit_id = _work_unit_id(source_refs.get("work_unit_id"))
-    if obligation_work_unit_id is not None and dispatch_work_unit_id is not None:
-        if obligation_work_unit_id != dispatch_work_unit_id:
-            return False
-    if route_work_unit_id is not None and dispatch_work_unit_id is not None:
-        if route_work_unit_id != dispatch_work_unit_id:
-            return False
-    dispatch_fingerprint = (
-        _text(dispatch.get("work_unit_fingerprint"))
-        or _text(dispatch.get("action_fingerprint"))
-        or _text(owner_route.get("work_unit_fingerprint"))
-        or _text(source_refs.get("work_unit_fingerprint"))
-        or _text(_mapping(source_refs.get("owner_route_currentness_basis")).get("work_unit_fingerprint"))
-    )
-    obligation_fingerprint = _text(obligation.get("work_unit_fingerprint"))
-    route_fingerprint = (
-        _text(owner_route.get("work_unit_fingerprint"))
-        or _text(source_refs.get("work_unit_fingerprint"))
-        or _text(_mapping(source_refs.get("owner_route_currentness_basis")).get("work_unit_fingerprint"))
-    )
-    if obligation_fingerprint is not None and dispatch_fingerprint != obligation_fingerprint:
-        return False
-    if route_fingerprint is not None and dispatch_fingerprint != route_fingerprint:
-        return False
-    return dispatch_work_unit_id is not None and dispatch_fingerprint is not None
 
 
 def with_provider_hosted_opl_authorization(dispatch: Mapping[str, Any]) -> dict[str, Any]:

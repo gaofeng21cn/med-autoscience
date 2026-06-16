@@ -24,21 +24,6 @@ class OwnerCallable:
 
 _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
     OwnerCallable(
-        owner="MAS/controller",
-        action_type="inspect_controller_route",
-        callable_surface="paper_progress_reconciler.inspect_controller_route",
-        required_inputs=(
-            "paper_progress_state",
-            "owner_route",
-            "authority_snapshot",
-        ),
-        required_outputs=("MAS controller redrive receipt or typed blocker",),
-        artifact_delta_predicate="controller_route_gap_resolved_or_typed_blocker_recorded",
-        gate_replay_target=None,
-        idempotency_scope="study_quest_owner_route",
-        source_fingerprint_scope="owner_route.source_fingerprint",
-    ),
-    OwnerCallable(
         owner="ai_reviewer",
         action_type="return_to_ai_reviewer_workflow",
         callable_surface="ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",

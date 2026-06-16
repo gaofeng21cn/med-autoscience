@@ -32,7 +32,12 @@ def _assert_opl_authorization_required(execution: dict[str, object]) -> None:
     assert "ai_reviewer_record_worker_handoff_path" not in execution
     handoff = execution.get("ai_reviewer_record_worker_handoff")
     if isinstance(handoff, dict):
-        assert handoff["dispatch_status"] == "transition_request_pending"
+        assert handoff["dispatch_status"] == "ready"
+        assert handoff["provider_admission_pending"] is False
+        assert handoff["provider_admission_requires_opl_runtime_result"] is True
+        assert handoff["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
+            "DomainProgressTransitionRuntime"
+        )
 
 
 def _required_publication_input_refs(study_root: Path) -> dict[str, object]:

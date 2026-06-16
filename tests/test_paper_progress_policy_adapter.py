@@ -42,18 +42,15 @@ def test_policy_adapter_emits_opl_transition_request_without_claiming_runtime_au
     assert result["surface_kind"] == "paper_progress_policy_adapter_result"
     assert result["authority"] == "med_autoscience.paper_progress_policy_adapter"
     assert result["authority_role"] == "paper_domain_policy_adapter_only"
-    assert result["recommended_opl_transition_kind"] == "StartProviderAttempt"
-    assert result["policy_outcome_kind"] == "provider_admission_requested"
+    assert result["recommended_opl_transition_kind"] == "MaterializeOwnerAction"
+    assert result["policy_outcome_kind"] == "owner_action_requested"
     assert result["authority_boundary"]["mas_can_authorize_provider_admission"] is False
     assert result["authority_boundary"]["opl_owns_transition_runtime"] is True
     assert result["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
     assert result["provider_completion_is_domain_completion"] is False
     assert result["projection_metadata"]["authority"] is False
     assert result["projection_metadata"]["fixed_point_runtime_owner"] == "one-person-lab"
-    assert result["paper_policy_verdict"]["accepted_result_families"] == [
-        "provider_admission_request",
-        "opl_runtime_readback_required",
-    ]
+    assert result["paper_policy_verdict"]["provider_admission_allowed"] is False
     assert "opl_domain_progress_command" not in result
     assert "opl_domain_progress_command_outbox_record" not in result
     forbidden_fields = result["forbidden_runtime_fields"]
@@ -67,8 +64,8 @@ def test_policy_adapter_emits_opl_transition_request_without_claiming_runtime_au
     assert request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
     assert request["target_runtime_owner"] == "one-person-lab"
     assert request["mas_can_create_opl_outbox_record"] is False
-    assert request["recommended_transition_kind"] == "StartProviderAttempt"
-    assert request["required_postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
+    assert request["recommended_transition_kind"] == "MaterializeOwnerAction"
+    assert request["required_postcondition"]["kind"] == "owner_action_ref"
     assert "projection_metadata" not in request
     assert "opl_domain_progress_transition_event" not in request
     assert "opl_domain_progress_transition_outbox_item" not in request

@@ -9,10 +9,20 @@ from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
 from med_autoscience.controllers import domain_action_request_lifecycle
+from med_autoscience.controllers import paper_progress_policy_adapter
 from med_autoscience.controllers import progress_first_closeout
 from med_autoscience.controllers.runtime_ai_repair_policy import (
     default_executor_policy,
     two_layer_ai_repair_policy_payload,
+)
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    has_opl_transition_readback,
+)
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+    domain_progress_transition_request_transport_fields,
+)
+from med_autoscience.controllers.opl_execution_boundary import (
+    first_trusted_opl_execution_authorization,
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     ai_reviewer_record_handoff,
@@ -95,6 +105,13 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _nested_mapping(value: Mapping[str, Any], *keys: str) -> dict[str, Any]:
+    payload: Mapping[str, Any] = value
+    for key in keys:
+        payload = _mapping(payload.get(key))
+    return dict(payload)
 
 
 def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
@@ -495,6 +512,125 @@ def _default_executor_dispatch(
     )
 
 
+def _with_transition_request_projection(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(dispatch)
+    transition_request = _mapping(payload.get("opl_domain_progress_transition_request"))
+    if not transition_request:
+        transition_request = _transition_request_for_owner_callable_adapter(payload)
+    if transition_request:
+        payload["opl_domain_progress_transition_request"] = transition_request
+    payload["provider_admission_pending"] = False
+    payload["provider_admission_requires_opl_runtime_result"] = True
+    payload.update(domain_progress_transition_request_transport_fields())
+
+    prompt_contract = dict(_mapping(payload.get("prompt_contract")))
+    if transition_request:
+        prompt_contract["opl_domain_progress_transition_request"] = transition_request
+    prompt_contract["provider_admission_pending"] = False
+    prompt_contract["provider_admission_requires_opl_runtime_result"] = True
+    prompt_contract.update(domain_progress_transition_request_transport_fields())
+    payload["prompt_contract"] = prompt_contract
+
+    if _text(payload.get("dispatch_status")) == "ready" and not _has_opl_execution_proof(payload):
+        payload["dispatch_status"] = "transition_request_pending"
+        payload["blocked_reason"] = "opl_execution_authorization_required"
+        payload["owner_callable_surface"] = None
+        payload["dispatch_ready_for_execution_authority"] = False
+        payload["mas_dispatch_authority"] = False
+        payload["mas_local_dispatch_carrier_persistence"] = "forbidden"
+        payload["opl_transition_runtime_required_for_durable_carrier"] = True
+        prompt_contract["dispatch_status"] = "transition_request_pending"
+        prompt_contract["owner_callable_surface"] = None
+    return payload
+
+
+def _transition_request_for_owner_callable_adapter(payload: Mapping[str, Any]) -> dict[str, Any]:
+    study_id = _text(payload.get("study_id")) or "unknown-study"
+    action_type = _text(payload.get("action_type")) or "unknown_action"
+    owner_route = _mapping(payload.get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    work_unit_id = (
+        _text(payload.get("work_unit_id"))
+        or _text(source_refs.get("materialized_work_unit_id"))
+        or _text(source_refs.get("work_unit_id"))
+        or _text(_mapping(payload.get("source_action")).get("next_work_unit"))
+    )
+    work_unit_fingerprint = (
+        _text(payload.get("work_unit_fingerprint"))
+        or _text(payload.get("action_fingerprint"))
+        or _text(source_refs.get("work_unit_fingerprint"))
+        or _text(owner_route.get("work_unit_fingerprint"))
+        or _text(payload.get("repeat_suppression_key"))
+    )
+    return paper_progress_policy_adapter.build_transition_request(
+        study_id=study_id,
+        quest_id=_text(payload.get("quest_id")) or study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+        next_owner=_text(payload.get("next_executable_owner")),
+        source_generation=_text(owner_route.get("source_fingerprint")) or work_unit_fingerprint,
+        expected_version=work_unit_fingerprint,
+        dispatch_ref=_text(_mapping(payload.get("refs")).get("dispatch_path")),
+        dispatch_authority=_text(payload.get("dispatch_authority")),
+        required_output_surface=_text(payload.get("required_output_surface")),
+        currentness_basis=currentness_basis,
+        idempotency_context={
+            "action_id": _text(payload.get("action_id")),
+            "idempotency_key": _text(payload.get("idempotency_key")),
+            "dispatch_authority": _text(payload.get("dispatch_authority")),
+        },
+    )
+
+
+def _has_opl_execution_proof(payload: Mapping[str, Any]) -> bool:
+    if any(has_opl_transition_readback(item) for item in _iter_payloads(payload)):
+        return True
+    return any(
+        first_trusted_opl_execution_authorization(
+            item.get("opl_execution_authorization"),
+            item.get("opl_provider_attempt"),
+            item.get("stage_attempt"),
+        )
+        is not None
+        for item in _iter_payloads(payload)
+    )
+
+
+def _iter_payloads(value: object) -> list[Mapping[str, Any]]:
+    payloads: list[Mapping[str, Any]] = []
+    stack = [value]
+    seen: set[int] = set()
+    while stack:
+        item = stack.pop()
+        if isinstance(item, Mapping):
+            identity = id(item)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            payload = _mapping(item)
+            payloads.append(payload)
+            for key in (
+                "prompt_contract",
+                "owner_route",
+                "source_action",
+                "opl_domain_progress_transition_request",
+                "opl_domain_progress_transition_result",
+                "opl_domain_progress_runtime_result",
+                "opl_runtime_result",
+                "paper_progress_policy_result",
+                "state",
+            ):
+                nested = payload.get(key)
+                if isinstance(nested, Mapping):
+                    stack.append(nested)
+            continue
+        if isinstance(item, (list, tuple)):
+            stack.extend(candidate for candidate in item if isinstance(candidate, Mapping))
+    return payloads
+
+
 def _default_executor_dispatch_payload(
     *,
     profile: WorkspaceProfile,
@@ -737,6 +873,24 @@ def _request_task(
     )
 
 
+def _with_transition_request_task_semantics(task: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(task)
+    if _text(payload.get("dispatch_status")) == "applied":
+        payload["dispatch_status"] = "transition_request_pending"
+        payload["blocked_reason"] = "opl_execution_authorization_required"
+    payload["mas_local_request_packet_persistence"] = "forbidden"
+    payload["opl_transition_runtime_required_for_durable_carrier"] = True
+    payload["provider_admission_pending"] = False
+    payload["provider_admission_requires_opl_runtime_result"] = True
+    handoff = dict(_mapping(payload.get("handoff_packet")))
+    handoff["dispatch_status"] = "transition_request_pending"
+    handoff["provider_admission_pending"] = False
+    handoff["provider_admission_requires_opl_runtime_result"] = True
+    handoff["mas_local_request_packet_persistence"] = "forbidden"
+    payload["handoff_packet"] = handoff
+    return payload
+
+
 def _ignored_action(action: Mapping[str, Any], reason: str) -> dict[str, Any]:
     return {
         "study_id": _text(action.get("study_id")),
@@ -965,67 +1119,64 @@ def materialize_domain_action_requests(
         study_ids=resolved_study_ids,
     )
     request_tasks = [
-        _request_task(
-            profile=profile,
-            action=action,
-            developer_mode_payload=developer_mode_payload,
-            apply=apply,
+        _with_transition_request_task_semantics(
+            _request_task(
+                profile=profile,
+                action=action,
+                developer_mode_payload=developer_mode_payload,
+                apply=apply,
+            )
         )
         for action in selected_request_actions
     ]
     owner_callable_adapters = [
-        _default_executor_dispatch(
-            profile=profile,
-            action=action,
-            action_type=_text(action.get("action_type")) or "unknown_action",
-            next_executable_owner=_owner_from_action(action, _text(action.get("action_type")) or "unknown_action"),
-            required_output_surface=_required_output_surface(action, _text(action.get("action_type")) or "unknown_action"),
-            apply=apply,
-            developer_mode_payload=(
-                {
-                    **developer_mode_payload,
-                    "mode": SUPPORTED_MODE,
-                    "safe_actions_enabled": True,
-                    "dry_run_executor_dispatch": True,
-                }
-                if dispatch_ready_for_execution and not apply
-                else developer_mode_payload
-            ),
-            scan_payload=scan_payload,
-            generated_at=generated_at,
+        _with_transition_request_projection(
+            _default_executor_dispatch(
+                profile=profile,
+                action=action,
+                action_type=_text(action.get("action_type")) or "unknown_action",
+                next_executable_owner=_owner_from_action(
+                    action,
+                    _text(action.get("action_type")) or "unknown_action",
+                ),
+                required_output_surface=_required_output_surface(
+                    action,
+                    _text(action.get("action_type")) or "unknown_action",
+                ),
+                apply=apply,
+                developer_mode_payload=(
+                    {
+                        **developer_mode_payload,
+                        "mode": SUPPORTED_MODE,
+                        "safe_actions_enabled": True,
+                        "dry_run_executor_dispatch": True,
+                    }
+                    if dispatch_ready_for_execution and not apply
+                    else developer_mode_payload
+                ),
+                scan_payload=scan_payload,
+                generated_at=generated_at,
+            )
         )
         for action in selected_request_actions
     ]
     ready_owner_callable_adapter_count = _dispatch_status_count(owner_callable_adapters, "ready")
     blocked_owner_callable_adapter_count = _dispatch_status_count(owner_callable_adapters, "blocked")
+    transition_request_pending_owner_callable_adapter_count = _dispatch_status_count(
+        owner_callable_adapters,
+        "transition_request_pending",
+    )
     _apply_progress_first_closeout_to_request_tasks(
         request_tasks=request_tasks,
         default_executor_dispatches=owner_callable_adapters,
     )
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
-    if apply and developer_mode.safe_actions_enabled:
-        written_files.extend(
-            persistence.persist_default_executor_dispatches(
-                profile=profile,
-                dispatches=owner_callable_adapters,
-            )
-        )
-        written_files.extend(persistence.persist_request_packets(request_tasks))
-        ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
-            profile=profile,
-            study_ids=resolved_study_ids,
-            apply=True,
-        )
-        for refresh in ai_reviewer_request_refreshes:
-            if refresh.get("written") is True:
-                written_files.append(str(refresh["request_path"]))
-    else:
-        ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
-            profile=profile,
-            study_ids=resolved_study_ids,
-            apply=False,
-        )
+    ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
+        profile=profile,
+        study_ids=resolved_study_ids,
+        apply=False,
+    )
 
     payload = {
         "surface": "domain_action_request_materializer",
@@ -1040,6 +1191,10 @@ def materialize_domain_action_requests(
         "github_gate": dict(developer_mode.github_user_gate),
         "developer_supervisor_mode": developer_mode_payload,
         "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
+        "apply_writes_domain_intent_projection_only": bool(apply and developer_mode.safe_actions_enabled),
+        "mas_local_dispatch_carrier_persistence": "forbidden",
+        "mas_local_request_packet_persistence": "forbidden",
+        "opl_transition_runtime_required_for_durable_carrier": True,
         "dispatch_ready_for_execution_preview": bool(dispatch_ready_for_execution and not apply),
         "runtime_control_owner": "one-person-lab",
         "target_runtime_owner": TARGET_RUNTIME_OWNER,
@@ -1055,10 +1210,16 @@ def materialize_domain_action_requests(
         "owner_callable_adapter_count": len(owner_callable_adapters),
         "ready_owner_callable_adapter_count": ready_owner_callable_adapter_count,
         "blocked_owner_callable_adapter_count": blocked_owner_callable_adapter_count,
+        "transition_request_pending_owner_callable_adapter_count": (
+            transition_request_pending_owner_callable_adapter_count
+        ),
         "owner_callable_adapters": owner_callable_adapters,
         "default_executor_dispatch_count": len(owner_callable_adapters),
         "ready_default_executor_dispatch_count": ready_owner_callable_adapter_count,
         "blocked_default_executor_dispatch_count": blocked_owner_callable_adapter_count,
+        "transition_request_pending_default_executor_dispatch_count": (
+            transition_request_pending_owner_callable_adapter_count
+        ),
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in owner_callable_adapters),
         "default_executor_dispatches": owner_callable_adapters,
         "ignored_actions": ignored_actions,

@@ -93,6 +93,22 @@ def test_runtime_health_treats_opl_provider_attempt_as_live_worker_signal(tmp_pa
     assert boundary["canonical_runtime_action_is_authority"] is False
     assert boundary["attempt_state_is_lifecycle_authority"] is False
     assert boundary["worker_liveness_is_residency_authority"] is False
+    assert snapshot["canonical_runtime_action_is_authority"] is False
+    assert snapshot["allowed_controller_actions_are_authority"] is False
+    assert snapshot["runtime_action_hint"] == snapshot["canonical_runtime_action"]
+    assert snapshot["runtime_action_hint_is_authority"] is False
+    assert snapshot["allowed_controller_action_hints"] == snapshot["allowed_controller_actions"]
+    assert snapshot["allowed_controller_action_hints_are_authority"] is False
+    assert snapshot["opl_observability_readback_required"] is True
+    assert snapshot["opl_current_control_or_stage_run_readback_required"] is True
+    assert snapshot["mas_private_attempt_loop_forbidden"] is True
+    hint_contract = snapshot["diagnostic_hint_contract"]
+    assert hint_contract["hint_only"] is True
+    assert hint_contract["canonical_runtime_action_hint"] == snapshot["canonical_runtime_action"]
+    assert hint_contract["canonical_runtime_action_is_authority"] is False
+    assert hint_contract["opl_observability_readback_required"] is True
+    assert hint_contract["opl_current_control_or_stage_run_readback_required"] is True
+    assert hint_contract["mas_private_attempt_loop_forbidden"] is True
 
 
 def test_runtime_health_missing_live_session_recovers_with_stale_run_as_last_known(tmp_path: Path) -> None:

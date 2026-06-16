@@ -429,13 +429,21 @@ def test_provider_admission_projection_materializes_gate_followthrough_owner_act
         study_root=study_root,
     )
 
-    assert fields["provider_admission_pending_count"] == 1
-    candidate = fields["provider_admission_candidates"][0]
+    assert fields["provider_admission_pending_count"] == 0
+    assert fields["provider_admission_candidates"] == []
+    assert fields["transition_request_pending_count"] == 1
+    candidate = fields["transition_request_candidates"][0]
     assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
     assert candidate["action_type"] == "run_quality_repair_batch"
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["work_unit_fingerprint"] == fingerprint
     assert candidate["currentness_basis"]["source_eval_id"] == source_eval_id
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["provider_admission_pending"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+    assert candidate["mas_owner_action_source"] == (
+        "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    )
     expected_identity = f"provider-admission::{study_id}::{fingerprint}"
     expected_stage_packet_ref = (
         f"studies/{study_id}/artifacts/supervision/consumer/"

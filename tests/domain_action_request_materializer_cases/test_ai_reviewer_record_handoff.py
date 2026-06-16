@@ -142,18 +142,25 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
     ) is None
     assert dispatch["source_action"]["record_only_surface"] is True
     assert dispatch["source_action"]["publication_eval_latest_write_allowed"] is False
-    persisted = json.loads(
-        (
-            study_root
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "default_executor_dispatches"
-            / "return_to_ai_reviewer_workflow.json"
-        ).read_text(encoding="utf-8")
+    assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert result["mas_local_request_packet_persistence"] == "forbidden"
+    assert result["opl_transition_runtime_required_for_durable_carrier"] is True
+    assert result["written_files"] == [
+        str(profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json")
+    ]
+    persisted_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
     )
-    assert set(persisted["prompt_contract"]["forbidden_surfaces"]) == prompt_forbidden_surfaces
-    assert persisted["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert not persisted_path.exists()
+    assert set(dispatch["prompt_contract"]["forbidden_surfaces"]) == prompt_forbidden_surfaces
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )
 
 
 def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_current_record(
@@ -303,5 +310,10 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
     assert result["ready_default_executor_dispatch_count"] == 0
     assert result["repeat_suppressed_count"] == 1
     persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
-    assert persisted["dispatch_status"] == "repeat_suppressed"
-    assert persisted["record_production_satisfaction"]["eval_id"] == eval_id
+    assert persisted["dispatch_status"] == "ready"
+    assert "record_production_satisfaction" not in persisted
+    assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert result["written_files"] == [
+        str(profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json")
+    ]
+    assert dispatch["record_production_satisfaction"]["eval_id"] == eval_id

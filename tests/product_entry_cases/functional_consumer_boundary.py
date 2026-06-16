@@ -189,7 +189,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     ]
     assert classification["domain_authority_refs"] == [
         "domain_authority_refs_index",
-        "paper_work_unit_outbox_index",
+        "paper_progress_transition_refs",
         "runtime_storage_maintenance",
         "publication_route_memory_locator_transport_shell",
         "artifact_lifecycle_storage_audit_shell",
@@ -221,7 +221,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "src/med_autoscience/opl_domain_pack/",
         "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py",
     ]
-    assert by_id["paper_work_unit_outbox_index"]["classification"] == "domain_authority_refs"
+    assert by_id["paper_progress_transition_refs"]["classification"] == "domain_authority_refs"
     assert by_id["publication_quality_verdict"]["classification"] == "minimal_authority_function"
     assert by_id["publication_quality_verdict"]["cannot_absorb_reason"] == (
         "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."

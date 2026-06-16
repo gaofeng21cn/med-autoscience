@@ -168,7 +168,7 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
         "shared_release_pin_strategy": {
             "owner_release_contract_ref": "contracts/family-release/shared-owner-release.json",
             "owner_commit_pin_required": True,
-            "owner_commit_pin": "a48d07b5c807cd2ecc5ee04d81a9c27bf67b105a",
+            "owner_commit_pin": "778ed35b2b8a1171521c4e532d30351ad94d405f",
             "domain_dependency_pin_required": True,
             "supported_pin_sources": ["pyproject.toml", "uv.lock"],
             "consumer_alignment_check": "family:shared-release",

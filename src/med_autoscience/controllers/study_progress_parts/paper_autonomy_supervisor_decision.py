@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    has_opl_transition_readback as _has_opl_transition_readback,
+)
+
 
 EXECUTE_DECISION = "execute_current_owner_delta"
 BLOCK_REASON = "paper_autonomy_supervisor_decision_blocks_provider_admission"
@@ -141,11 +145,13 @@ def _supervisor_decision_allows_provider_admission_materialization(
     if _text(supervisor_decision.get("decision")) != "materialize_recovery_action":
         return False
     recovery = _mapping(paper_recovery_state) or _mapping(payload.get("paper_recovery_state"))
+    if _payload_has_opl_transition_readback(payload):
+        return _text(recovery.get("phase")) == "admission_pending"
     next_safe_action = _mapping(recovery.get("next_safe_action"))
-    if next_safe_action.get("provider_admission_allowed") is not True:
+    if next_safe_action.get("provider_admission_requires_opl_runtime_result") is not False:
         return False
     phase = _text(recovery.get("phase"))
-    if phase not in {"owner_action_ready", "admission_pending"}:
+    if phase != "admission_pending":
         return False
     action_kind = _text(next_safe_action.get("kind"))
     return action_kind in {
@@ -154,6 +160,15 @@ def _supervisor_decision_allows_provider_admission_materialization(
         "admit_provider_attempt",
         "admit_identity_bound_stage_packet",
     }
+
+
+def _payload_has_opl_transition_readback(payload: Mapping[str, Any]) -> bool:
+    return any(
+        _has_opl_transition_readback(item)
+        for field in ("provider_admission_candidates", "transition_request_candidates")
+        for item in payload.get(field) or []
+        if isinstance(item, Mapping)
+    )
 
 
 def supervisor_block_projection(gate: Mapping[str, Any]) -> dict[str, Any]:

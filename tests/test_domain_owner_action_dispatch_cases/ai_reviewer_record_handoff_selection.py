@@ -135,10 +135,20 @@ def test_execute_dispatch_prefers_persisted_record_only_handoff_over_stale_consu
 
     assert result["execution_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "dry_run"
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["owner_callable_surface"] is None
+    assert execution["provider_admission_pending"] is False
+    assert execution["provider_admission_requires_opl_runtime_result"] is True
     assert execution["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert execution["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
-    assert execution["owner_callable_surface"] == "publication materialize-ai-reviewer-record"
+    handoff = execution["ai_reviewer_record_worker_handoff"]
+    assert handoff["dispatch_status"] == "ready"
+    assert handoff["provider_admission_pending"] is False
+    assert handoff["provider_admission_requires_opl_runtime_result"] is True
+    assert handoff["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()

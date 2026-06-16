@@ -10,7 +10,6 @@ def test_owner_callable_registry_exposes_paper_progress_slo_owners() -> None:
 
     assert set(registry) == {
         "MedAutoScience",
-        "MAS/controller",
         "analysis_harmonization_owner",
         "ai_reviewer",
         "decision",
@@ -46,6 +45,7 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
     handoff = module.owner_callable_for_action("publication_handoff_owner_gate")
     readiness = module.owner_callable_for_action("complete_medical_paper_readiness_surface")
     external_learning = module.owner_callable_for_action("run_external_learning_sidecar")
+    controller_route = module.owner_callable_for_action("inspect_controller_route")
 
     assert gate["owner"] == "gate_clearing_batch"
     assert gate["gate_replay_target"] == "publication_gate.run_controller"
@@ -81,3 +81,4 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
         "artifacts/advisory/external_learning_sidecar/latest.json",
         "refs-only advisory candidates",
     )
+    assert controller_route is None

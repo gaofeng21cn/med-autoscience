@@ -88,7 +88,7 @@
     "legacy_mas_sqlite_policy": {
       "domain_authority_refs_sqlite_role": "refs_only_domain_authority_index_adapter",
       "runtime_lifecycle_sqlite_role": "retired_or_domain_authority_refs_provenance_not_generic_lifecycle_owner",
-      "paper_work_unit_outbox_role": "domain_work_unit_identity_and_receipt_refs_only",
+      "paper_progress_transition_refs_role": "domain_work_unit_identity_and_policy_request_refs_only",
       "mas_can_claim_generic_persistence_engine": false,
       "mas_can_claim_generic_lifecycle_owner": false,
       "mas_can_claim_generic_queue_owner": false,

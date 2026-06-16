@@ -24,6 +24,8 @@ def build(
     opl_execution_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     repeat_key = repeat_suppression.repeat_key(owner_route)
+    has_opl_authorization = bool(opl_execution_authorization)
+    dispatch_status = "ready" if has_opl_authorization else "transition_request_pending"
     prompt_contract = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -45,6 +47,9 @@ def build(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
+        "opl_execution_authorization_required": True,
+        "opl_execution_authorization_present": has_opl_authorization,
+        "owner_callable_requires_opl_authorization": True,
     }
     return {
         "surface": "default_executor_dispatch_request",
@@ -56,7 +61,7 @@ def build(
         "action_id": f"paper-repair::{study_id}::{action_type}::{_work_unit_id(work_unit)}",
         "next_executable_owner": "ai_reviewer",
         "required_output_surface": "artifacts/publication_eval/latest.json",
-        "dispatch_status": "ready",
+        "dispatch_status": dispatch_status,
         "dispatch_authority": "paper_repair_executor_inline_owner_dispatch",
         "owner_route": dict(owner_route),
         "opl_execution_authorization": dict(opl_execution_authorization or {}),
@@ -69,6 +74,11 @@ def build(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
+        "opl_execution_authorization_required": True,
+        "opl_execution_authorization_present": has_opl_authorization,
+        "provider_admission_pending": False,
+        "owner_callable_requires_opl_authorization": True,
+        "mas_private_attempt_loop_forbidden": True,
         "source_action": {
             "surface": surface,
             "work_unit_id": _work_unit_id(work_unit),

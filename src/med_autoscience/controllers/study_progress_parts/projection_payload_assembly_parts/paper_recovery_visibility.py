@@ -268,12 +268,8 @@ def _paper_recovery_allows_provider_admission(
         return False
     if phase in {"admission_pending", "attempt_running"}:
         return True
-    if phase == "owner_action_ready" and next_safe_action.get("provider_admission_allowed") is True:
-        return _non_empty_text(next_safe_action.get("kind")) in {
-            "materialize_mas_transition_request_or_owner_callable",
-            "materialize_successor_owner_action",
-            "admit_identity_bound_stage_packet",
-        }
+    if phase == "owner_action_ready":
+        return False
     return False
 
 

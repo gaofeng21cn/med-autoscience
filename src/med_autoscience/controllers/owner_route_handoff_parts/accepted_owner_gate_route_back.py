@@ -90,7 +90,8 @@ def accepted_owner_gate_route_back_action(
         "action_fingerprint": work_unit_fingerprint,
         "source_fingerprint": work_unit_fingerprint,
         "source_ref": _text(accepted.get("route_back_evidence_ref")),
-        "provider_admission_allowed": next_safe_action.get("provider_admission_allowed") is True,
+        "provider_admission_allowed": False,
+        "provider_admission_requires_opl_runtime_result": True,
         "owner_route": owner_route,
         "owner_route_currentness_basis": currentness_basis,
     }

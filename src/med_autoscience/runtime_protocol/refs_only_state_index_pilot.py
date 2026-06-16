@@ -209,9 +209,9 @@ def _candidate_refs(
         )
         candidates.extend(
             _glob_candidates(
-                study_root / "artifacts" / "runtime" / "paper_work_unit_outbox",
+                study_root / "artifacts" / "runtime" / "paper_progress_transition_refs",
                 "*.jsonl",
-                "outbox",
+                "paper_progress_transition_ref",
             )
         )
         candidates.extend(_glob_candidates(study_root / "artifacts" / "runtime" / "cursors", "*.json", "cursor"))

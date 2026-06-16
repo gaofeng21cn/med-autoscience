@@ -7,8 +7,6 @@ from med_autoscience.profiles import WorkspaceProfile
 
 
 CurrentDefaultDispatches = Callable[..., dict[str, Any]]
-Dispatches = Callable[..., list[dict[str, Any]]]
-MaterializeRequests = Callable[..., dict[str, Any]]
 
 
 def current_materialized_dispatches(
@@ -37,35 +35,4 @@ def current_materialized_dispatches(
     ]
 
 
-def materialize_current_dispatches_for_apply(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    action_types: tuple[str, ...],
-    mode: str,
-    materialize_domain_action_requests: MaterializeRequests,
-    dispatches: Dispatches,
-    current_default_executor_dispatches: CurrentDefaultDispatches,
-    text: Callable[[object], str | None],
-) -> list[dict[str, Any]]:
-    materialize_domain_action_requests(
-        profile=profile,
-        study_ids=(study_id,),
-        mode=mode,
-        apply=True,
-    )
-    selected = dispatches(profile, study_id, action_types)
-    if selected:
-        return selected
-    return current_materialized_dispatches(
-        profile=profile,
-        study_id=study_id,
-        action_types=action_types,
-        mode=mode,
-        apply=False,
-        current_default_executor_dispatches=current_default_executor_dispatches,
-        text=text,
-    )
-
-
-__all__ = ["current_materialized_dispatches", "materialize_current_dispatches_for_apply"]
+__all__ = ["current_materialized_dispatches"]

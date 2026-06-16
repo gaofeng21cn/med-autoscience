@@ -191,7 +191,7 @@ def test_external_learning_authoring_and_review_workers_do_not_write_files(tmp_p
     assert list(tmp_path.rglob("*")) == []
 
 
-def test_external_learning_sidecar_owner_action_executes_without_authority_writes(
+def test_external_learning_sidecar_owner_action_writes_opl_request_only(
     tmp_path: Path,
 ) -> None:
     router = importlib.import_module(
@@ -225,6 +225,10 @@ def test_external_learning_sidecar_owner_action_executes_without_authority_write
         quest_root_resolver=lambda *_: None,
     )
     assert dry_run["execution_status"] == "dry_run"
+    assert dry_run["status"] == "opl_capability_request_preview"
+    assert dry_run["request_only"] is True
+    assert dry_run["mas_local_capability_actuator"] is False
+    assert dry_run["opl_capability_runtime_required"] is True
     assert not (study_root / "artifacts" / "advisory" / "external_learning_sidecar" / "latest.json").exists()
 
     executed = router.execute_owner_dispatch_action(
@@ -240,16 +244,23 @@ def test_external_learning_sidecar_owner_action_executes_without_authority_write
     request_path = study_root / "artifacts/supervision/requests/external_learning_sidecar/latest.json"
     result_path = study_root / "artifacts/advisory/external_learning_sidecar/latest.json"
 
-    assert executed["execution_status"] == "executed"
-    assert executed["blocked_reason"] is None
+    assert executed["execution_status"] == "blocked"
+    assert executed["blocked_reason"] == "opl_capability_runtime_required"
+    assert executed["typed_blocker"]["owner"] == "one-person-lab"
+    assert executed["status"] == "opl_capability_request_pending"
+    assert executed["request_only"] is True
+    assert executed["mas_local_capability_actuator"] is False
+    assert executed["mas_can_invoke_capability_sidecar"] is False
+    assert executed["opl_capability_runtime_required"] is True
+    assert executed["provider_admission_pending"] is False
     assert request_path.is_file()
-    assert result_path.is_file()
+    assert not result_path.exists()
     assert output_readiness.required_output_pending(
         profile=profile,
         study_id=study_id,
         action_type="run_external_learning_sidecar",
         current_study={},
-    ) is False
+    ) is True
     assert not (study_root / "paper" / "draft.md").exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()

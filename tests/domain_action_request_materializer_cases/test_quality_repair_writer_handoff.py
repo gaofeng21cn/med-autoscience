@@ -12,6 +12,30 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _assert_transition_request_projection(dispatch: dict[str, object]) -> dict[str, object]:
+    transition_request = dispatch["opl_domain_progress_transition_request"]
+    assert isinstance(transition_request, dict)
+    assert dispatch["dispatch_status"] == "transition_request_pending"
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert dispatch["opl_transition_runtime_required_for_durable_carrier"] is True
+    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert transition_request["recommended_transition_kind"] == "MaterializeOwnerAction"
+    assert transition_request["mas_can_create_opl_outbox_record"] is False
+    return transition_request
+
+
+def _assert_request_task_projection(task: dict[str, object]) -> None:
+    assert task["dispatch_status"] == "transition_request_pending"
+    assert task["provider_admission_pending"] is False
+    assert task["provider_admission_requires_opl_runtime_result"] is True
+    assert task["mas_local_request_packet_persistence"] == "forbidden"
+    assert task["opl_transition_runtime_required_for_durable_carrier"] is True
+
+
 def _owner_route(
     *,
     study_id: str,
@@ -128,7 +152,7 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
 
     dispatch = result["default_executor_dispatches"][0]
     written_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
-    immutable_dispatch_path = Path(written_dispatch["refs"]["immutable_dispatch_path"])
+    transition_request = _assert_transition_request_projection(dispatch)
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["medical_claim_authoring_allowed"] is True
     assert dispatch["prompt_contract"]["medical_claim_authoring_allowed"] is True
@@ -144,14 +168,15 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
     assert "runtime/.ds/**" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_path_globs"]
     assert dispatch["source_action"]["surface"] == "quality_repair_batch"
     assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert transition_request["dispatch_ref"] == str(dispatch_path)
     assert written_dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert written_dispatch["medical_claim_authoring_allowed"] is True
-    assert immutable_dispatch_path.is_file()
-    assert immutable_dispatch_path.parent.name == "run_quality_repair_batch"
-    assert immutable_dispatch_path.parent.parent.name == "immutable"
-    immutable_dispatch = json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))
-    assert immutable_dispatch["owner_route"] == route
-    assert immutable_dispatch["prompt_contract"]["search_boundaries"] == dispatch["prompt_contract"]["search_boundaries"]
+    assert "immutable_dispatch_path" not in written_dispatch.get("refs", {})
+    assert result["apply_writes_domain_intent_projection_only"] is True
+    assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert result["mas_local_request_packet_persistence"] == "forbidden"
+    assert result["ready_default_executor_dispatch_count"] == 0
+    assert result["transition_request_pending_default_executor_dispatch_count"] == 1
 
 
 def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
@@ -261,7 +286,7 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
         / "default_executor_dispatches"
         / "run_quality_repair_batch.json"
     )
-    written_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    transition_request = _assert_transition_request_projection(dispatch)
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["medical_claim_authoring_allowed"] is True
     assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
@@ -285,8 +310,11 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
         prompt_contract,
         forbidden_surfaces=module.FORBIDDEN_SURFACES,
     ) is None
-    assert written_dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
-    assert written_dispatch["prompt_contract"]["allowed_write_surfaces"] == prompt_contract["allowed_write_surfaces"]
+    assert not dispatch_path.exists()
+    assert "dispatch_ref" not in transition_request
+    assert result["apply_writes_domain_intent_projection_only"] is True
+    assert result["ready_default_executor_dispatch_count"] == 0
+    assert result["transition_request_pending_default_executor_dispatch_count"] == 1
 
 
 def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_to_writer_handoff(
@@ -452,7 +480,8 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
         / "default_executor_dispatches"
         / "run_quality_repair_batch.json"
     )
-    written_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    transition_request = _assert_transition_request_projection(dispatch)
+    _assert_request_task_projection(request)
     assert request["reason"] == "manuscript_story_surface_delta_missing"
     assert request["source_action"]["next_work_unit"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
@@ -478,8 +507,10 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
         prompt_contract,
         forbidden_surfaces=module.FORBIDDEN_SURFACES,
     ) is None
-    assert written_dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
-    assert written_dispatch["medical_claim_authoring_allowed"] is True
+    assert not dispatch_path.exists()
+    assert "dispatch_ref" not in transition_request
+    assert result["ready_default_executor_dispatch_count"] == 0
+    assert result["transition_request_pending_default_executor_dispatch_count"] == 1
     monkeypatch.setattr(
         dispatch_module.action_execution.quality_repair,
         "execute_quality_repair_batch",
@@ -499,11 +530,11 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
         apply=True,
     )
 
-    execution = dispatch_result["executions"][0]
+    summary = dispatch_result["per_study_execution_summary"][0]
+    assert summary["selected_dispatch_count"] == 0
+    assert summary["zero_dispatch_reason"] == "no_selected_dispatch_for_requested_action_types"
+    assert dispatch_result["execution_count"] == 0
     assert dispatch_result["blocked_count"] == 0
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["owner_route_current"] is True
-    assert execution["owner_route_basis"] == "bridged_writer_handoff"
 
 
 def test_materialize_prefers_current_writer_handoff_over_consumed_reviewer_transition(

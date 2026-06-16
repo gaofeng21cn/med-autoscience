@@ -1060,8 +1060,19 @@ def test_materialize_dry_run_reports_paper_recovery_callable_as_would_be_ready(
     assert result["dispatch_ready_for_execution_preview"] is True
     assert result["written_files"] == []
     assert result["default_executor_dispatch_count"] == 1
-    assert result["ready_default_executor_dispatch_count"] == 1
+    assert result["ready_default_executor_dispatch_count"] == 0
+    assert result["transition_request_pending_default_executor_dispatch_count"] == 1
     dispatch = result["default_executor_dispatches"][0]
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
+    assert dispatch["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert dispatch["opl_transition_runtime_required_for_durable_carrier"] is True
+    assert dispatch["dispatch_ready_for_execution_authority"] is False
+    assert dispatch["mas_dispatch_authority"] is False
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )
     assert dispatch["work_unit_id"] == "publication_gate_replay"
     assert dispatch["work_unit_fingerprint"] == fingerprint

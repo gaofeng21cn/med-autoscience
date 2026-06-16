@@ -55,7 +55,7 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
     assert all(item["can_block_current_owner_action"] is False for item in selected.values())
 
 
-def test_scientific_capability_registry_invokes_external_learning_sidecar_refs_only(
+def test_scientific_capability_registry_invokes_external_learning_as_opl_request_only(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.scientific_capability_registry")
@@ -78,14 +78,21 @@ def test_scientific_capability_registry_invokes_external_learning_sidecar_refs_o
 
     result_path = study_root / "artifacts/advisory/external_learning_sidecar/latest.json"
     assert result["surface_kind"] == "mas_scientific_capability_invocation"
-    assert result["status"] == "invoked"
+    assert result["status"] == "opl_capability_request_pending"
     assert result["refs_only"] is True
+    assert result["request_only"] is True
+    assert result["mas_local_capability_actuator"] is False
+    assert result["mas_can_invoke_capability_sidecar"] is False
+    assert result["opl_capability_runtime_required"] is True
     assert result["mainline_waits_for_capability"] is False
     assert result["authority_boundary"]["can_write_publication_eval"] is False
-    assert result_path.is_file()
-    payload = json.loads(result_path.read_text(encoding="utf-8"))
-    assert payload["surface_kind"] == "mas_external_learning_sidecar_result"
-    assert payload["refs_only"] is True
+    request = result["opl_capability_invocation_request"]
+    assert request["surface_kind"] == "mas_opl_capability_invocation_request"
+    assert request["target_runtime_owner"] == "one-person-lab"
+    assert request["target_runtime_kind"] == "CapabilityRegistry"
+    assert request["mas_can_run_capability_actuator"] is False
+    assert result["result"]["surface_kind"] == "mas_scientific_capability_invocation_request_projection"
+    assert not result_path.exists()
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
 
@@ -208,7 +215,7 @@ def test_scientific_capability_registry_consumption_evidence_with_owner_refs_sta
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
 
 
-def test_scientific_capability_registry_invokes_light_and_evo_without_authority_writes(
+def test_scientific_capability_registry_requests_light_and_evo_without_mas_actuator(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.scientific_capability_registry")
@@ -244,15 +251,23 @@ def test_scientific_capability_registry_invokes_light_and_evo_without_authority_
         apply=True,
     )
 
-    assert light["result"]["surface_kind"] == "light_external_advisory_materializer"
-    assert light["result"]["light_runtime_dependency"] is False
-    assert (
+    assert light["status"] == "opl_capability_request_pending"
+    assert light["mas_local_capability_actuator"] is False
+    assert light["result"]["surface_kind"] == "mas_scientific_capability_invocation_request_projection"
+    assert light["opl_capability_invocation_request"]["expected_output_refs"] == [
+        "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json"
+    ]
+    assert not (
         study_root
         / "artifacts/stage_outputs/current_owner_action/advisory/light_external_pattern_refs.json"
-    ).is_file()
-    assert evo["result"]["surface_kind"] == "mas_evo_scientist_sidecar_observation"
-    assert evo["result"]["counts_as_owner_answer"] is False
-    assert (study_root / "artifacts/runtime/evo_scientist_sidecar/latest.json").is_file()
+    ).exists()
+    assert evo["status"] == "opl_capability_request_pending"
+    assert evo["mas_local_capability_actuator"] is False
+    assert evo["result"]["surface_kind"] == "mas_scientific_capability_invocation_request_projection"
+    assert evo["opl_capability_invocation_request"]["expected_output_refs"] == [
+        "artifacts/runtime/evo_scientist_sidecar/latest.json"
+    ]
+    assert not (study_root / "artifacts/runtime/evo_scientist_sidecar/latest.json").exists()
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
 
@@ -332,6 +347,8 @@ def test_scientific_capability_registry_mcp_modes_and_tool_arsenal_card(
     assert invoke_envelope["structured_payload"]["surface_kind"] == (
         "mas_scientific_capability_invocation"
     )
+    assert invoke_envelope["structured_payload"]["status"] == "opl_capability_request_pending"
+    assert invoke_envelope["structured_payload"]["mas_local_capability_actuator"] is False
 
     arsenal = arsenal_module.build_agent_tool_arsenal_index()
     assert arsenal["scientific_capability_registry"]["surface_kind"] == (
@@ -400,4 +417,6 @@ def test_scientific_capability_registry_cli_modes_emit_json(tmp_path: Path, caps
     invoke_payload = json.loads(capsys.readouterr().out)
     assert invoke_payload["surface_kind"] == "mas_scientific_capability_invocation"
     assert invoke_payload["refs_only"] is True
-    assert (study_root / "artifacts/advisory/external_learning_sidecar/latest.json").is_file()
+    assert invoke_payload["status"] == "opl_capability_request_pending"
+    assert invoke_payload["mas_local_capability_actuator"] is False
+    assert not (study_root / "artifacts/advisory/external_learning_sidecar/latest.json").exists()

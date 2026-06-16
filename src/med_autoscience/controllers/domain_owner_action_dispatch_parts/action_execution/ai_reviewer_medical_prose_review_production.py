@@ -9,6 +9,10 @@ from typing import Any
 from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+    domain_progress_transition_request_transport_fields,
+)
+from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.medical_prose_review_request import materialize_medical_prose_review_request
 from med_autoscience.profiles import WorkspaceProfile
@@ -128,6 +132,31 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
     repeat_key = _text(owner_route.get("work_unit_fingerprint")) if owner_route else None
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    work_unit_id = (
+        _text(source_refs.get("work_unit_id"))
+        or _text(production_request.get("request_kind"))
+        or _text(owner_route.get("owner_reason"))
+    )
+    source_generation = repeat_key or _text(owner_route.get("idempotency_key"))
+    transition_request = build_transition_request(
+        study_id=study_id,
+        quest_id=study_id,
+        action_type=ACTION_TYPE,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=repeat_key,
+        next_owner="ai_reviewer",
+        source_generation=source_generation,
+        expected_version=source_generation,
+        dispatch_authority=DISPATCH_AUTHORITY,
+        required_output_surface=REVIEW_OUTPUT_SURFACE,
+        currentness_basis=_mapping(source_refs.get("owner_route_currentness_basis")),
+        idempotency_context={
+            "kind": "ai-reviewer-medical-prose-review-transition-request",
+            "request_kind": _text(production_request.get("request_kind")),
+        },
+    )
+    transition_authority_fields = domain_progress_transition_request_transport_fields()
     prompt_contract = {
         "study_id": study_id,
         "quest_id": study_id,
@@ -149,6 +178,10 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
+        "opl_domain_progress_transition_request": transition_request,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        **transition_authority_fields,
     }
     return {
         "surface": "default_executor_dispatch_request",
@@ -176,6 +209,10 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
+        "opl_domain_progress_transition_request": transition_request,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        **transition_authority_fields,
         "ai_reviewer_medical_prose_review_production_request": dict(production_request),
         "source_action": {
             "surface": "ai_reviewer_medical_prose_review_production_request",
@@ -268,10 +305,6 @@ def medical_prose_review_production_handoff_execution(
         "ai_reviewer_medical_prose_review_worker_handoff": handoff,
         "next_required_actions": list(owner_result["next_required_actions"]),
     }
-    if apply:
-        result["ai_reviewer_medical_prose_review_worker_handoff_path"] = (
-            materialize_ai_reviewer_medical_prose_review_worker_handoff(handoff=handoff)
-        )
     return result
 
 

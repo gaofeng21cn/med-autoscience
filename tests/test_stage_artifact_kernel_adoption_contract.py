@@ -123,7 +123,9 @@ def test_legacy_mas_sqlite_policy_remains_domain_authority_refs_not_generic_runt
     assert policy["runtime_lifecycle_sqlite_role"] == (
         "retired_or_domain_authority_refs_provenance_not_generic_lifecycle_owner"
     )
-    assert policy["paper_work_unit_outbox_role"] == "domain_work_unit_identity_and_receipt_refs_only"
+    assert policy["paper_progress_transition_refs_role"] == (
+        "domain_work_unit_identity_and_policy_request_refs_only"
+    )
     assert policy["mas_can_claim_generic_persistence_engine"] is False
     assert policy["mas_can_claim_generic_lifecycle_owner"] is False
     assert policy["mas_can_claim_generic_queue_owner"] is False

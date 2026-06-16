@@ -10,8 +10,14 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
 from med_autoscience.controllers.current_work_unit_parts.primitives import mapping, text
 
 
+PAPER_RECOVERY_SUCCESSOR_SOURCE = "paper_recovery_state.next_safe_action.successor_owner_action"
+PAPER_RECOVERY_SUCCESSOR_DELTA_KIND = "paper_recovery_successor_owner_delta_or_typed_blocker"
+
+
 SUPERSEDED_RECOVERY_SUCCESSOR_BLOCKERS = frozenset(
     {
+        "medical_paper_readiness_missing",
+        "medical_paper_readiness_not_ready",
         "opl_execution_authorization_required",
         "publication_gate_replay_blocked",
     }
@@ -31,10 +37,24 @@ def paper_recovery_successor_supersedes_publication_gate_replay_blocker(
     )
     if blocker_type not in SUPERSEDED_RECOVERY_SUCCESSOR_BLOCKERS:
         return False
-    if text(action.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
+    if not paper_recovery_successor_action_ready(action):
+        return False
+    return True
+
+
+def paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
+    if text(action.get("source")) != PAPER_RECOVERY_SUCCESSOR_SOURCE:
+        return False
+    if action.get("owner_receipt_required") is not True:
+        return False
+    if text(action.get("required_delta_kind")) != PAPER_RECOVERY_SUCCESSOR_DELTA_KIND:
         return False
     successor = mapping(action.get("paper_recovery_successor"))
-    if successor.get("provider_admission_allowed") is not True:
+    if (
+        successor
+        and text(successor.get("source_next_safe_action_kind"))
+        not in {None, "materialize_successor_owner_action"}
+    ):
         return False
     currentness_basis = mapping(action.get("owner_route_currentness_basis"))
     return (
@@ -44,4 +64,7 @@ def paper_recovery_successor_supersedes_publication_gate_replay_blocker(
     )
 
 
-__all__ = ["paper_recovery_successor_supersedes_publication_gate_replay_blocker"]
+__all__ = [
+    "paper_recovery_successor_action_ready",
+    "paper_recovery_successor_supersedes_publication_gate_replay_blocker",
+]

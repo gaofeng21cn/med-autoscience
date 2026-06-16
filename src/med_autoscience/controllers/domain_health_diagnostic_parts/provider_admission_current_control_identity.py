@@ -108,6 +108,14 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
         transition_request = _mapping(
             paper_policy_result.get("opl_domain_progress_transition_request")
         )
+    opl_readback = candidate_opl_transition_readback(candidate)
+    provider_admission_pending = bool(opl_readback)
+    provider_attempt_required = provider_admission_pending
+    action_status = "queued" if provider_admission_pending else "transition_request_pending"
+    action_reason = (
+        _non_empty_text(candidate.get("blocked_reason"))
+        or ("provider_admission_pending" if provider_admission_pending else "await_opl_transition_readback")
+    )
     projection_metadata = _projection_metadata(
         candidate,
         transition_request=transition_request,
@@ -164,8 +172,8 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "quest_id": _non_empty_text(candidate.get("quest_id")),
             "action_type": action_type,
             "action_id": f"provider-admission::{study_id}::{action_type}",
-            "status": "queued",
-            "reason": _non_empty_text(candidate.get("blocked_reason")) or "provider_admission_pending",
+            "status": action_status,
+            "reason": action_reason,
             "owner": _non_empty_text(candidate.get("next_executable_owner")),
             "request_owner": _non_empty_text(candidate.get("next_executable_owner")),
             "recommended_owner": _non_empty_text(candidate.get("next_executable_owner")),
@@ -183,8 +191,11 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "checkpoint_refs": checkpoint_refs or None,
             "source_surface": "mas_opl_runtime_owner_handoff.provider_admission_identity",
             "source_ref": _non_empty_text(candidate.get("execution_ref")),
-            "provider_attempt_or_lease_required": True,
+            "provider_attempt_or_lease_required": provider_attempt_required,
+            "provider_admission_pending": provider_admission_pending,
+            "provider_admission_requires_opl_runtime_result": not provider_admission_pending,
             "provider_completion_is_domain_completion": False,
+            "opl_domain_progress_transition_result": dict(opl_readback) if opl_readback else None,
             "paper_progress_policy_result": dict(paper_policy_result) if paper_policy_result else None,
             "opl_domain_progress_transition_request": dict(transition_request)
             if transition_request
@@ -214,7 +225,13 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
                 "checkpoint_refs": checkpoint_refs or None,
                 "source_ref": _non_empty_text(candidate.get("execution_ref")),
                 "owner_route": owner_route,
+                "status": action_status,
+                "reason": action_reason,
+                "provider_admission_pending": provider_admission_pending,
+                "provider_admission_requires_opl_runtime_result": not provider_admission_pending,
+                "provider_attempt_or_lease_required": provider_attempt_required,
                 "provider_completion_is_domain_completion": False,
+                "opl_domain_progress_transition_result": dict(opl_readback) if opl_readback else None,
                 "paper_progress_policy_result": dict(paper_policy_result)
                 if paper_policy_result
                 else None,

@@ -31,11 +31,11 @@ FORBIDDEN_RUNTIME_FIELDS = [
 _PROVIDER_ADMISSION_NEXT_KINDS = {
     "admit_provider_attempt",
     "admit_identity_bound_stage_packet",
-    "materialize_successor_owner_action",
 }
 _OWNER_ACTION_NEXT_KINDS = {
     "run_mas_owner_callable",
     "materialize_mas_transition_request_or_owner_callable",
+    "materialize_successor_owner_action",
     "materialize_successor_owner_gate",
     "resolve_owner_gate_decision",
     "route_back_to_owner_or_repair_materialization",
@@ -178,6 +178,61 @@ def build_non_advancing_policy_blocker(
     return _clean(result)
 
 
+def build_transition_request(
+    *,
+    study_id: str,
+    action_type: str,
+    quest_id: str | None = None,
+    work_unit_id: str | None = None,
+    work_unit_fingerprint: str | None = None,
+    next_owner: str | None = None,
+    policy_kind: str = MATERIALIZE_OWNER_ACTION,
+    source_generation: str | None = None,
+    expected_version: str | None = None,
+    dispatch_ref: str | None = None,
+    dispatch_authority: str | None = None,
+    required_output_surface: str | None = None,
+    currentness_basis: Mapping[str, Any] | None = None,
+    idempotency_context: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build the MAS policy-adapter request consumed by OPL transition runtime."""
+    identity = _clean(
+        {
+            "study_id": study_id,
+            "quest_id": quest_id or study_id,
+            "owner": next_owner,
+            "action_type": action_type,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "source_generation": source_generation or work_unit_fingerprint,
+            "observed_generation": source_generation or work_unit_fingerprint,
+        }
+    )
+    request = _opl_domain_progress_transition_request(
+        policy_kind=policy_kind,
+        identity=identity,
+    )
+    if expected_version is not None:
+        request["expected_version"] = expected_version
+    if idempotency_context:
+        request["idempotency_key"] = _stable_id(
+            "paper-policy-request",
+            [policy_kind, identity, dict(idempotency_context)],
+        )
+    request.update(
+        _clean(
+            {
+                "dispatch_ref": dispatch_ref,
+                "dispatch_authority": dispatch_authority,
+                "required_output_surface": required_output_surface,
+                "currentness_basis": dict(currentness_basis or {}),
+                "action_fingerprint": work_unit_fingerprint,
+            }
+        )
+    )
+    return _clean(request)
+
+
 def _policy_kind(
     *,
     payload: Mapping[str, Any],
@@ -199,10 +254,22 @@ def _policy_kind(
         return STOP_LOSS
     if status in {"typed_blocker", "blocked_current_work_unit"} or _mapping(payload.get("typed_blocker")):
         return RECORD_TYPED_BLOCKER
-    if next_kind in _PROVIDER_ADMISSION_NEXT_KINDS and next_action.get("provider_admission_allowed") is True:
+    if (
+        next_kind == "await_opl_transition_readback"
+        and next_action.get("provider_admission_requires_opl_runtime_result") is True
+    ):
+        return START_PROVIDER_ATTEMPT
+    if phase == "transition_request_pending":
+        return START_PROVIDER_ATTEMPT
+    if (
+        next_kind in _PROVIDER_ADMISSION_NEXT_KINDS
+        and next_action.get("provider_admission_allowed") is True
+    ):
         return START_PROVIDER_ATTEMPT
     if phase == "admission_pending":
         return START_PROVIDER_ATTEMPT
+    if next_kind == "materialize_successor_owner_action":
+        return MATERIALIZE_OWNER_ACTION
     if status == "owner_receipt_recorded" or phase == "owner_receipt_recorded":
         return CONSUME_OWNER_RECEIPT
     if next_kind == "consume_owner_receipt":
@@ -317,6 +384,8 @@ def _opl_domain_progress_transition_request(
         "request_owner": "med-autoscience",
         "authority_role": "domain_policy_request_only",
         "mas_can_create_opl_outbox_record": False,
+        "mas_can_create_opl_event": False,
+        "mas_can_create_opl_stage_run": False,
         "runtime_kind": "DomainProgressTransitionRuntime",
         "recommended_transition_kind": policy_kind,
         "aggregate_identity": {
@@ -326,6 +395,8 @@ def _opl_domain_progress_transition_request(
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": fingerprint,
         },
+        "study_id": study_id,
+        "quest_id": identity.get("quest_id"),
         "action_type": identity.get("action_type"),
         "next_owner": identity.get("owner"),
         "idempotency_key": _stable_id("paper-policy-request", [policy_kind, identity]),
@@ -337,6 +408,8 @@ def _opl_domain_progress_transition_request(
             "domain_state_owner": "med-autoscience",
         },
         "domain_policy_result_ref": _stable_id("paper-policy", [policy_kind, identity]),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
         "forbidden_runtime_fields": list(FORBIDDEN_RUNTIME_FIELDS),
     }
     return _clean(request)

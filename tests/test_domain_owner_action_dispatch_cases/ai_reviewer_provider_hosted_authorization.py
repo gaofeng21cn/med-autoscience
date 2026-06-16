@@ -166,7 +166,8 @@ def test_provider_hosted_stage_attempt_identity_authorizes_ai_reviewer_dispatch(
         apply=True,
     )
 
-    assert result["executed_count"] == 1, result
+    assert result["executed_count"] == 0, result
+    assert result["handoff_ready_count"] == 1
     assert result["blocked_count"] == 0
     execution = result["executions"][0]
     assert execution["execution_status"] == "handoff_ready"

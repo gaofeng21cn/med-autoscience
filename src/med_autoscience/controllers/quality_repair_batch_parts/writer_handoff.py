@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.default_executor_action_policy import default_executor_search_discipline
-from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.controllers.default_executor_closeout_contract import default_executor_typed_closeout_contract
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+    domain_progress_transition_request_transport_fields,
+)
+from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
+from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.study_decision_record import StudyDecisionActionType
@@ -123,6 +128,41 @@ def build_writer_worker_handoff(
     typed_closeout_contract = default_executor_typed_closeout_contract(
         action_type=StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
     )
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
+        _mapping(owner_route.get("currentness_contract")).get("basis")
+    )
+    work_unit_id = (
+        _non_empty_text(source_refs.get("materialized_work_unit_id"))
+        or _non_empty_text(source_refs.get("work_unit_id"))
+        or _non_empty_text(basis.get("work_unit_id"))
+        or "medical_prose_write_repair"
+    )
+    work_unit_fingerprint = (
+        _non_empty_text(owner_route.get("work_unit_fingerprint"))
+        or _non_empty_text(source_refs.get("work_unit_fingerprint"))
+        or _non_empty_text(basis.get("work_unit_fingerprint"))
+        or _non_empty_text(owner_route.get("idempotency_key"))
+    )
+    source_generation = work_unit_fingerprint or _non_empty_text(owner_route.get("source_fingerprint"))
+    transition_request = build_transition_request(
+        study_id=study_id,
+        quest_id=quest_id,
+        action_type=StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+        next_owner=NEXT_OWNER,
+        source_generation=source_generation,
+        expected_version=source_generation,
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        required_output_surface=REQUIRED_OUTPUT,
+        currentness_basis=basis,
+        idempotency_context={
+            "kind": "quality-repair-writer-handoff-transition-request",
+            "source_eval_id": source_eval_id,
+        },
+    )
+    transition_authority_fields = domain_progress_transition_request_transport_fields()
     prompt_contract = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -153,6 +193,10 @@ def build_writer_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": True,
+        "opl_domain_progress_transition_request": transition_request,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        **transition_authority_fields,
     }
     return {
         "surface": "default_executor_dispatch_request",
@@ -179,6 +223,10 @@ def build_writer_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": True,
+        "opl_domain_progress_transition_request": transition_request,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        **transition_authority_fields,
         "source_action": {
             "surface": "quality_repair_batch",
             "blocked_reason": blocked_repair_reason,

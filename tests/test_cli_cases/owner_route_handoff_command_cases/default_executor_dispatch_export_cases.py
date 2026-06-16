@@ -176,7 +176,7 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
     }
     assert {key: task["payload"][key] for key in expected_payload_core} == expected_payload_core
     assert task["payload"]["authority_boundary"]["authority"] == (
-        "med_autoscience.domain_intent_adapter"
+        "med_autoscience.paper_progress_policy_adapter"
     )
     assert task["payload"]["authority_boundary"]["target_runtime_kind"] == (
         "DomainProgressTransitionRuntime"
@@ -939,7 +939,7 @@ def test_domain_handler_export_projects_ai_reviewer_default_executor_dispatch_re
     )
     assert task["payload"]["dispatch_ref"] == dispatch_ref
     assert task["payload"]["authority_boundary"]["authority"] == (
-        "med_autoscience.domain_intent_adapter"
+        "med_autoscience.paper_progress_policy_adapter"
     )
     assert task["payload"]["authority_boundary"]["target_runtime_kind"] == (
         "DomainProgressTransitionRuntime"

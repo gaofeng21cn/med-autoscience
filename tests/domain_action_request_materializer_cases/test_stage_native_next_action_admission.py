@@ -475,16 +475,38 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
         apply=True,
     )
 
-    assert result["ready_default_executor_dispatch_count"] == 1
+    assert result["ready_default_executor_dispatch_count"] == 0
+    assert result["transition_request_pending_default_executor_dispatch_count"] == 1
+    assert result["written_files"] == [
+        str(profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json")
+    ]
     dispatch = result["default_executor_dispatches"][0]
-    immutable_path = Path(dispatch["refs"]["immutable_dispatch_path"])
-    persisted = json.loads(immutable_path.read_text(encoding="utf-8"))
-    assert persisted["dispatch_status"] == "ready"
+    persisted_dispatch_path = (
+        profile.workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    assert not persisted_dispatch_path.exists()
+    consumer_latest = Path(result["refs"]["latest_path"])
+    consumer_payload = json.loads(consumer_latest.read_text(encoding="utf-8"))
+    persisted = consumer_payload["default_executor_dispatches"][0]
+    assert dispatch == persisted
+    assert persisted["dispatch_status"] == "transition_request_pending"
+    assert persisted["blocked_reason"] == "opl_execution_authorization_required"
     assert persisted["action_type"] == "return_to_ai_reviewer_workflow"
+    assert persisted["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert persisted["opl_transition_runtime_required_for_durable_carrier"] is True
+    assert persisted["dispatch_ready_for_execution_authority"] is False
+    assert persisted["mas_dispatch_authority"] is False
     assert persisted["provider_completion_is_domain_completion"] is False
     assert persisted["provider_admission_pending"] is False
     assert persisted["provider_admission_requires_opl_runtime_result"] is True
-    assert persisted["authority_boundary"]["authority"] == "med_autoscience.domain_intent_adapter"
+    assert persisted["authority_boundary"]["authority"] == "med_autoscience.paper_progress_policy_adapter"
     assert persisted["authority_boundary"]["mas_can_authorize_provider_admission"] is False
     assert persisted["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
     assert (

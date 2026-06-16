@@ -480,6 +480,8 @@ def _is_downstream_only(payload: Mapping[str, Any], blocking_reasons: list[str])
 def _owner_callable_surface_missing(payload: Mapping[str, Any], next_owner: str | None) -> bool:
     if next_owner == "supervisor_only/live_quality_repair":
         return False
+    if next_owner == "MAS/controller":
+        return False
     interaction = _mapping(payload.get("interaction_arbitration"))
     if _text(interaction.get("blocked_reason")) == "owner_callable_surface_missing":
         return True

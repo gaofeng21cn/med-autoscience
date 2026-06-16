@@ -88,6 +88,16 @@ def test_autonomy_state_surface_uses_opl_runtime_refs_for_no_live_projection() -
     assert surface["canonical_next_action"] == surface["authority_snapshot"]["canonical_next_action"]
     assert surface["canonical_next_action"] == "read_runtime_status"
     assert surface["domain_next_action_projection"]["canonical_next_action"] == "request_opl_runtime_owner"
+    assert surface["domain_next_action_projection"]["authority"] is False
+    assert surface["domain_next_action_projection"]["projection_role"] == "body_free_diagnostic_projection"
+    assert surface["domain_next_action_projection"]["canonical_next_action_is_authority"] is False
+    assert surface["domain_next_action_projection"]["runtime_health_action_is_authority"] is False
+    assert surface["domain_next_action_projection"]["can_authorize_provider_admission"] is False
+    assert surface["domain_next_action_projection"]["can_create_opl_command_event_or_outbox"] is False
+    assert surface["domain_next_action_projection"]["can_start_worker"] is False
+    assert surface["domain_next_action_projection"]["opl_readback_required_for_execution"] is True
+    assert surface["domain_next_action_projection"]["opl_current_control_or_stage_run_readback_required"] is True
+    assert surface["domain_next_action_projection"]["mas_private_attempt_loop_forbidden"] is True
 
 
 def test_domain_next_action_projection_prioritizes_recovery_over_pending_work_unit() -> None:
@@ -123,6 +133,9 @@ def test_domain_next_action_projection_prioritizes_recovery_over_pending_work_un
     assert surface["domain_next_action_projection"]["work_unit_pending"] is True
     assert surface["domain_next_action_projection"]["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert surface["domain_next_action_projection"]["canonical_next_action"] == "request_opl_runtime_owner"
+    assert surface["domain_next_action_projection"]["authority"] is False
+    assert surface["domain_next_action_projection"]["opl_readback_required_for_execution"] is True
+    assert surface["domain_next_action_projection"]["can_create_opl_command_event_or_outbox"] is False
     assert surface["auto_runtime_parked"]["parked"] is False
 
 
@@ -148,6 +161,8 @@ def test_autonomy_state_surface_canonical_action_uses_authority_snapshot() -> No
     assert surface["authority_snapshot"]["canonical_next_action"] == "resume_same_study_line"
     assert surface["canonical_next_action"] == "resume_same_study_line"
     assert surface["authority_epoch"] == "truth-event-control-plane"
+    assert surface["domain_next_action_projection"]["authority"] is False
+    assert surface["domain_next_action_projection"]["canonical_next_action_is_authority"] is False
     assert surface["domain_next_action_projection"]["canonical_next_action"] == "request_opl_runtime_owner"
 
 

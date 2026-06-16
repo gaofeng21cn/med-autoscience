@@ -5,10 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import external_learning_adoption_closure
-from med_autoscience.controllers.light_advisory_materializer import (
-    materialize_light_advisory_refs,
-)
-from med_autoscience.display_pack_agent import display_pack_orchestrate
 from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 
 
@@ -108,75 +104,42 @@ def invoke_scientific_capability(
 ) -> dict[str, Any]:
     capability = _capability_by_id(capability_id)
     delta = _mapping(current_owner_delta)
+    runtime_request = _opl_capability_invocation_request(
+        capability=capability,
+        current_owner_delta=delta,
+        study_root=study_root,
+        payload=payload,
+    )
     invocation: dict[str, Any] = {
         "surface_kind": INVOCATION_SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
         "capability_id": capability["capability_id"],
         "capability_family": capability["capability_family"],
-        "status": "invoked",
+        "status": "opl_capability_request_pending",
         "apply": bool(apply),
         "refs_only": True,
+        "request_only": True,
         "mainline_waits_for_capability": False,
         "can_block_current_owner_action": False,
+        "mas_local_capability_actuator": False,
+        "mas_can_invoke_capability_sidecar": False,
+        "opl_capability_runtime_required": True,
+        "opl_capability_invocation_request": runtime_request,
+        "output_refs": list(capability.get("output_refs") or []),
         "authority_boundary": _authority_boundary(),
-        "result": None,
-    }
-    if capability["invocation_kind"] == "external_learning_sidecar":
-        root = _require_study_root(study_root)
-        invocation["result"] = external_learning_adoption_closure.run_external_learning_sidecar(
-            study_root=root,
-            dispatch=delta,
-            apply=apply,
-        )
-    elif capability["invocation_kind"] == "light_advisory_materializer":
-        root = _require_study_root(study_root)
-        invocation["result"] = materialize_light_advisory_refs(
-            study_root=root,
-            study_id=_text(delta.get("study_id")),
-            work_unit_id=(
-                _text(delta.get("work_unit_id"))
-                or _text(delta.get("action_id"))
-                or _text(delta.get("action_type"))
-                or "current_owner_delta"
-            ),
-            owner_action=_text(delta.get("action_type")) or _text(delta.get("owner")) or "current_owner_delta",
-            stage=_text(delta.get("stage_id")) or _text(delta.get("stage")),
-            source_refs=_text_list(delta.get("source_refs")),
-            payload=_mapping(payload),
-            route_required_ref_kinds=_text_list(delta.get("route_required_ref_kinds")),
-            hard_gate=bool(delta.get("hard_gate")),
-            apply=apply,
-        )
-    elif capability["invocation_kind"] == "evo_scientist_sidecar":
-        root = _require_study_root(study_root)
-        invocation["result"] = evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation(
-            study_root=root,
-            event=_evo_event(delta=delta, payload=_mapping(payload)),
-            apply=apply,
-        )
-    elif capability["invocation_kind"] == "display_pack_agent":
-        figure_request = _mapping(payload.get("figure_request") if isinstance(payload, Mapping) else None)
-        invocation["result"] = display_pack_orchestrate(
-            repo_root=_path_or_none(payload, "repo_root"),
-            paper_root=_path_or_none(payload, "paper_root"),
+        "result": _capability_request_projection(
+            capability=capability,
             current_owner_delta=delta,
-            claim_ref=_text(payload.get("claim_ref")) if isinstance(payload, Mapping) else "",
-            data_ref=_text(payload.get("data_ref")) if isinstance(payload, Mapping) else "",
-            paper_target=_text(payload.get("paper_target")) if isinstance(payload, Mapping) else "",
-            intent=_text(payload.get("intent")) if isinstance(payload, Mapping) else "",
-            figure_request=figure_request,
-            max_recommendations=_int_or_default(payload, "max_recommendations", 5),
-            check_runtime_dependencies=(
-                bool(payload.get("check_runtime_dependencies"))
-                if isinstance(payload, Mapping) and "check_runtime_dependencies" in payload
-                else True
-            ),
-        )
-    else:
+            runtime_request=runtime_request,
+        ),
+    }
+    if capability["invocation_kind"] == "descriptor_only_current_owner_input_refs":
         invocation["status"] = "descriptor_only"
         invocation["result"] = {
             "capability_ref": capability["capability_ref"],
             "next_step": capability["invocation_kind"],
+            "opl_capability_invocation_request": runtime_request,
+            "mas_local_capability_actuator": False,
         }
     return invocation
 
@@ -408,6 +371,7 @@ def _capability_output_refs(invocation: Mapping[str, Any]) -> list[str]:
     refs: list[str] = []
     for key in ("allowed_writes", "written_refs", "output_refs"):
         refs.extend(_text_list(result.get(key)))
+    refs.extend(_text_list(_mapping(invocation.get("opl_capability_invocation_request")).get("expected_output_refs")))
     refs.extend(_text_list(invocation.get("output_refs")))
     bundle_ref = _text(result.get("bundle_ref"))
     if bundle_ref:
@@ -421,6 +385,65 @@ def _capability_output_refs(invocation: Mapping[str, Any]) -> list[str]:
     if not refs:
         refs = _text_list(_capability_by_id(_text(invocation.get("capability_id"))).get("output_refs"))
     return _dedupe_texts(refs)
+
+
+def _opl_capability_invocation_request(
+    *,
+    capability: Mapping[str, Any],
+    current_owner_delta: Mapping[str, Any],
+    study_root: Path | str | None,
+    payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    delta = _mapping(current_owner_delta)
+    request_payload = _mapping(payload)
+    study_root_ref = _text(study_root)
+    return {
+        "surface_kind": "mas_opl_capability_invocation_request",
+        "schema_version": SCHEMA_VERSION,
+        "target_runtime_owner": "one-person-lab",
+        "target_runtime_kind": "CapabilityRegistry",
+        "request_owner": "med-autoscience",
+        "authority_role": "capability_request_only",
+        "capability_id": capability["capability_id"],
+        "capability_family": capability["capability_family"],
+        "invocation_kind": capability["invocation_kind"],
+        "callable_surface": capability["callable_surface"],
+        "study_root_ref": study_root_ref or None,
+        "current_owner_delta_identity": _current_owner_summary(delta),
+        "expected_output_refs": list(capability.get("output_refs") or []),
+        "payload_ref": _text(request_payload.get("payload_ref")) or None,
+        "mas_can_create_opl_outbox_record": False,
+        "mas_can_create_opl_event": False,
+        "mas_can_create_opl_stage_run": False,
+        "mas_can_run_capability_actuator": False,
+        "mainline_waits_for_capability": False,
+    }
+
+
+def _capability_request_projection(
+    *,
+    capability: Mapping[str, Any],
+    current_owner_delta: Mapping[str, Any],
+    runtime_request: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_scientific_capability_invocation_request_projection",
+        "schema_version": SCHEMA_VERSION,
+        "status": "opl_capability_request_pending",
+        "capability_ref": capability["capability_ref"],
+        "capability_id": capability["capability_id"],
+        "capability_family": capability["capability_family"],
+        "invocation_kind": capability["invocation_kind"],
+        "refs_only": True,
+        "body_included": False,
+        "current_owner_delta_identity": _current_owner_summary(current_owner_delta),
+        "output_refs": list(capability.get("output_refs") or []),
+        "opl_capability_invocation_request": dict(runtime_request),
+        "mas_local_capability_actuator": False,
+        "mainline_waits_for_capability": False,
+        "can_block_current_owner_action": False,
+        "authority_boundary": _authority_boundary(),
+    }
 
 
 def _owner_response_refs(value: Mapping[str, Any] | None) -> dict[str, str | None]:

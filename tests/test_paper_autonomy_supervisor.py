@@ -175,6 +175,64 @@ def test_identity_bound_admission_pending_without_stage_run_readback_materialize
     assert decision["paper_autonomy_obligation"]["attempt_idempotency_key"] == identity
 
 
+def test_typed_blocker_identity_uses_currentness_basis_when_top_level_work_unit_is_sparse() -> None:
+    fingerprint = "publication-blockers::0915410f804b3697"
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "action_queue": [],
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "typed_blocker",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "owner": "one-person-lab",
+            "work_unit_fingerprint": fingerprint,
+            "currentness_basis": {
+                "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "explicit_publication_work_unit_id": "medical_prose_write_repair",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "idempotency_key": "idem::dm003::medical-prose-write-repair",
+            },
+            "state": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_type": "runtime_recovery_retry_budget_exhausted",
+                    "owner": "one-person-lab",
+                    "owner_answer_shape": "typed_blocker_ref",
+                },
+            },
+        },
+        "current_execution_envelope": {
+            "state_kind": "typed_blocker",
+            "owner": "one-person-lab",
+            "typed_blocker": {
+                "blocker_type": "runtime_recovery_retry_budget_exhausted",
+                "owner": "one-person-lab",
+                "owner_answer_shape": "typed_blocker_ref",
+            },
+        },
+        "owner_action_admission": {
+            "allowed_actions": ["run_quality_repair_batch"],
+            "next_owner": "write",
+            "work_unit_id": "medical_prose_write_repair",
+        },
+    }
+
+    decision = build_supervisor_decision(payload)
+
+    assert decision["decision"] == "stop_with_stable_typed_blocker"
+    assert decision["identity_match"] is True
+    obligation = decision["paper_autonomy_obligation"]
+    assert obligation["action_type"] == "run_quality_repair_batch"
+    assert obligation["work_unit_id"] == "medical_prose_write_repair"
+    assert "unknown-action" not in obligation["paper_autonomy_obligation_id"]
+    assert "unknown-work-unit" not in obligation["paper_autonomy_obligation_id"]
+
+
 def test_terminal_closeout_phase_consumes_closeout() -> None:
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",

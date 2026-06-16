@@ -14,6 +14,9 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
     mapping as _mapping,
     text as _text,
 )
+from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
+    paper_recovery_successor_action_ready as _paper_recovery_successor_identity_ready,
+)
 from med_autoscience.controllers.study_progress_parts.current_executable_owner_action_parts.repair_progress import (
     owner_action_from_repair_progress_projection,
 )
@@ -232,17 +235,7 @@ def _repair_progress_matches_current_successor(
 
 
 def _paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
-    if _text(action.get("source")) != PAPER_RECOVERY_SUCCESSOR_SOURCE:
-        return False
-    successor = _mapping(action.get("paper_recovery_successor"))
-    if successor.get("provider_admission_allowed") is not True:
-        return False
-    return (
-        _action_type(action) is not None
-        and _work_unit_id(action.get("work_unit_id")) is not None
-        and (_text(action.get("work_unit_fingerprint")) or _text(action.get("action_fingerprint")))
-        is not None
-    )
+    return _paper_recovery_successor_identity_ready(action)
 
 
 def _gate_followthrough_successor_action_ready(action: Mapping[str, Any]) -> bool:

@@ -30,7 +30,11 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("controller_decisions", Path("artifacts/controller_decisions/latest.json"), "controller_decisions"),
     ("autonomy_slo_status", Path("artifacts/autonomy/slo_status/latest.json"), "slo_status"),
     ("publication_eval", Path("artifacts/publication_eval/latest.json"), "publication_eval"),
-    ("paper_work_unit_outbox_receipts", Path("artifacts/runtime/paper_work_unit_outbox/receipts.jsonl"), "paper_work_unit_receipts"),
+    (
+        "paper_progress_transition_ref_receipts",
+        Path("artifacts/runtime/paper_progress_transition_refs/receipts.jsonl"),
+        "paper_progress_transition_refs",
+    ),
     ("owner_route_handoff", Path("artifacts/supervision/owner_route_handoff/latest.json"), "owner_route_handoff"),
 )
 _OPL_CURRENT_CONTROL_REF = Path("runtime/artifacts/supervision/opl_current_control_state/latest.json")

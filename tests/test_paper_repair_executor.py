@@ -280,6 +280,37 @@ def test_paper_repair_executor_accepts_quality_repair_writer_handoff_without_ter
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
+def test_paper_repair_executor_does_not_promote_unproven_writer_handoff() -> None:
+    results = importlib.import_module("med_autoscience.controllers.paper_repair_executor_parts.owner_callable_results")
+    owner_result = {
+        "ok": True,
+        "status": "handoff_ready",
+        "writer_worker_handoff": {
+            "surface": "default_executor_dispatch_request",
+            "dispatch_status": "ready",
+            "next_executable_owner": "write",
+        },
+    }
+
+    assert results.owner_result_executed(owner_result) is False
+    assert results.owner_result_handoff_ready(owner_result) is False
+    assert results.owner_result_blocker(owner_result) == "opl_execution_authorization_required"
+    assert results.writer_worker_handoff(owner_result) == {}
+
+    assert results.owner_result_executed(
+        owner_result,
+        opl_execution_authorization=_opl_auth("quality-handoff"),
+    ) is True
+    assert results.owner_result_handoff_ready(
+        owner_result,
+        opl_execution_authorization=_opl_auth("quality-handoff"),
+    ) is True
+    assert results.writer_worker_handoff(
+        owner_result,
+        opl_execution_authorization=_opl_auth("quality-handoff"),
+    )["next_executable_owner"] == "write"
+
+
 def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
     monkeypatch,
     tmp_path: Path,
@@ -545,6 +576,12 @@ def test_paper_repair_executor_ai_reviewer_callable_materializes_dispatch_before
     assert execution["execution_status"] == "executed"
     assert execution["action_type"] == "return_to_ai_reviewer_workflow"
     assert execution["dispatch_authority"] == "paper_repair_executor_inline_owner_dispatch"
+    assert execution["opl_execution_authorization_required"] is True
+    assert execution["opl_execution_authorization_present"] is True
+    assert execution["provider_admission_pending"] is False
+    assert execution["owner_callable_requires_opl_authorization"] is True
+    assert execution["mas_private_attempt_loop_forbidden"] is True
+    assert execution["blocked_reason"] is None
     assert execution["owner_route_current"] is True
     assert calls
     assert calls[0]["manuscript_ref"] == str(manuscript.resolve())

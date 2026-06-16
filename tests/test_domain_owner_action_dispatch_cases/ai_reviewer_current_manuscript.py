@@ -166,7 +166,7 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     ]
     handoff = execution["ai_reviewer_record_worker_handoff"]
     assert handoff["surface"] == "default_executor_dispatch_request"
-    assert handoff["dispatch_status"] == "transition_request_pending"
+    assert handoff["dispatch_status"] == "ready"
     assert handoff["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert handoff["next_executable_owner"] == "ai_reviewer"
     assert handoff["required_output_surface"] == (
@@ -176,7 +176,11 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     assert handoff["refs"]["owner_callable_payload_ref"] == payload_ref
     assert handoff["prompt_contract"]["owner_callable_payload_ref"] == payload_ref
     assert handoff["prompt_contract"]["owner_callable_command"] == production_request["owner_callable_command"]
-    assert handoff["prompt_contract"]["dispatch_status"] == "transition_request_pending"
+    assert handoff["provider_admission_pending"] is False
+    assert handoff["provider_admission_requires_opl_runtime_result"] is True
+    assert handoff["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )
     assert handoff["prompt_contract"]["record_payload_authoring_target_surface"] == (
         "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json"
     )
@@ -280,7 +284,7 @@ def test_ai_reviewer_record_handoff_renders_executable_owner_callable_with_profi
     assert handoff["provider_completion_is_domain_completion"] is False
     assert handoff["provider_admission_pending"] is False
     assert handoff["provider_admission_requires_opl_runtime_result"] is True
-    assert handoff["authority_boundary"]["authority"] == "med_autoscience.domain_intent_adapter"
+    assert handoff["authority_boundary"]["authority"] == "med_autoscience.paper_progress_policy_adapter"
     assert handoff["authority_boundary"]["mas_can_authorize_provider_admission"] is False
     assert handoff["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
     assert (

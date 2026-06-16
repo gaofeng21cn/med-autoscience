@@ -238,6 +238,7 @@ def test_materializer_selects_owner_gate_route_back_followthrough_over_typed_blo
         "kind": "owner_gate_route_back",
         "route_back_evidence_ref": route_back_ref,
         "provider_admission_allowed": False,
+        "provider_admission_requires_opl_runtime_result": True,
     }
     assert result["default_executor_dispatches"][0]["action_fingerprint"] == fingerprint
     assert {

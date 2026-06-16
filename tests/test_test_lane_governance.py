@@ -469,7 +469,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     ]
     assert classification["domain_authority_refs"] == [
         "domain_authority_refs_index",
-        "paper_work_unit_outbox_index",
+        "paper_progress_transition_refs",
         "runtime_storage_maintenance",
         "publication_route_memory_locator_transport_shell",
         "artifact_lifecycle_storage_audit_shell",
@@ -544,7 +544,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "generic_runtime_lifecycle_owner",
         "generic_restore_retention_owner",
     }
-    assert inventory_by_id["paper_work_unit_outbox_index"]["classification"] == "domain_authority_refs"
+    assert inventory_by_id["paper_progress_transition_refs"]["classification"] == "domain_authority_refs"
     assert inventory_by_id["publication_quality_verdict"]["cannot_absorb_reason"] == (
         "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
     )

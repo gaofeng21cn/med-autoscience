@@ -14,6 +14,11 @@ from .paper_autonomy_supervisor_decision import (
 )
 from .shared import _mapping_copy, _non_empty_text
 
+_REQUEST_ONLY_OWNER_ACTION_SOURCES = {
+    "gate_clearing_batch_followthrough.actionable_current_work_unit",
+    "paper_recovery_state.next_safe_action.successor_owner_action",
+}
+
 
 def provider_admission_projection_fields(
     *,
@@ -24,15 +29,6 @@ def provider_admission_projection_fields(
     handoff_fields = _identity_bound_handoff_provider_admission_fields(handoff=handoff, payload=payload)
     if handoff_fields is not None:
         return handoff_fields
-    supervisor_gate = provider_admission_supervisor_gate(payload)
-    if supervisor_gate.get("blocked") is True:
-        supervisor_decision = _mapping_copy(supervisor_gate.get("supervisor_decision"))
-        return {
-            "provider_admission_pending_count": 0,
-            "provider_admission_candidates": [],
-            "paper_autonomy_supervisor_decision": supervisor_decision,
-            "provider_admission_blocked_by_supervisor_decision": supervisor_block_projection(supervisor_gate),
-        }
     if _handoff_typed_blocker_consumes_current_action(payload=payload, handoff=handoff):
         return {
             "provider_admission_pending_count": 0,
@@ -49,15 +45,70 @@ def provider_admission_projection_fields(
         current_control_ref=_non_empty_text(_mapping_copy(handoff.get("refs")).get("latest_path"))
         or _non_empty_text(handoff.get("source_path")),
     )
-    provider_admission_candidates = [
-        candidate for candidate in candidates if _has_opl_transition_readback(candidate)
+    transition_request_candidates = [
+        _transition_request_only_candidate(candidate)
+        if _request_only_owner_action_candidate(candidate)
+        else dict(candidate)
+        for candidate in candidates
     ]
+    provider_admission_candidates = [
+        candidate
+        for candidate in transition_request_candidates
+        if _has_opl_transition_readback(candidate)
+        and not _request_only_owner_action_candidate(candidate)
+    ]
+    gate_payload = {
+        **dict(payload),
+        "provider_admission_pending_count": len(provider_admission_candidates),
+        "provider_admission_candidates": provider_admission_candidates,
+        "transition_request_pending_count": len(transition_request_candidates),
+        "transition_request_candidates": list(transition_request_candidates),
+    }
+    supervisor_gate = provider_admission_supervisor_gate(gate_payload)
+    if supervisor_gate.get("blocked") is True:
+        supervisor_decision = _mapping_copy(supervisor_gate.get("supervisor_decision"))
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": len(transition_request_candidates),
+            "transition_request_candidates": list(transition_request_candidates),
+            "paper_autonomy_supervisor_decision": supervisor_decision,
+            "provider_admission_blocked_by_supervisor_decision": supervisor_block_projection(supervisor_gate),
+        }
     return {
         "provider_admission_pending_count": len(provider_admission_candidates),
         "provider_admission_candidates": provider_admission_candidates,
-        "transition_request_pending_count": len(candidates),
-        "transition_request_candidates": list(candidates),
+        "transition_request_pending_count": len(transition_request_candidates),
+        "transition_request_candidates": list(transition_request_candidates),
     }
+
+
+def _request_only_owner_action_candidate(candidate: Mapping[str, Any]) -> bool:
+    basis = _mapping_copy(candidate.get("currentness_basis"))
+    source_refs = _mapping_copy(candidate.get("source_refs"))
+    source = (
+        _non_empty_text(candidate.get("mas_owner_action_source"))
+        or _non_empty_text(source_refs.get("mas_owner_action_source"))
+        or _non_empty_text(basis.get("mas_owner_action_source"))
+        or _non_empty_text(basis.get("source"))
+    )
+    return source in _REQUEST_ONLY_OWNER_ACTION_SOURCES
+
+
+def _transition_request_only_candidate(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(candidate)
+    for key in (
+        "opl_domain_progress_transition_result",
+        "opl_domain_progress_runtime_result",
+        "opl_runtime_result",
+    ):
+        payload.pop(key, None)
+    payload["status"] = "transition_request_pending"
+    payload["provider_admission_pending"] = False
+    payload["provider_attempt_or_lease_required"] = False
+    payload["provider_admission_requires_opl_runtime_result"] = True
+    payload["opl_transition_runtime_required"] = True
+    return payload
 
 
 def _identity_bound_handoff_provider_admission_fields(

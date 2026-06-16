@@ -151,28 +151,17 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
         request_opl_stage_attempts=True,
     )
 
-    assert result["provider_admission_pending_count"] == 1
-    candidate = result["managed_study_opl_provider_admission_candidates"][0]
-    assert candidate["source"] == "opl_current_control_state.action_queue"
-    assert candidate["action_type"] == "return_to_ai_reviewer_workflow"
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["action_fingerprint"] == action_fingerprint
-    assert candidate["dispatch_path"] == str(dispatch_path)
-    boundary = candidate["authority_boundary"]
-    assert boundary["stage_transition_authority"] == "OPL Stage Transition Authority"
-    assert boundary["stage_authority_role"] == "non_authoritative_observation_and_intent_producer"
-    assert boundary["can_write_stage_current_pointer"] is False
-    assert boundary["can_write_current_owner_delta"] is False
-    assert boundary["can_write_stage_terminal_state"] is False
-    assert boundary["can_mark_provider_attempt_running"] is False
-    stage_boundary = candidate["stage_transition_authority_boundary"]
-    assert stage_boundary["producer_kind"] == "runtime_provider"
-    assert stage_boundary["intent_kind"] == "provider_observation"
-    assert stage_boundary["stage_transition_authority"] == "one-person-lab"
-    assert stage_boundary["intent_can_write_stage_current_pointer"] is False
-    assert stage_boundary["intent_can_write_stage_run_terminal_state"] is False
-    assert stage_boundary["intent_can_publish_current_owner_delta"] is False
-    assert stage_boundary["intent_can_write_domain_truth"] is False
-    assert result["action_fingerprints"] == [action_fingerprint]
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 0
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    assert result["managed_study_opl_transition_request_candidates"] == []
+    action = result["managed_study_actions"][0]
+    assert action["decision"] == "human_gate"
+    assert action["paper_recovery_state"]["phase"] == "human_gate"
+    assert action["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is False
+    assert action["current_executable_owner_action"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert action["current_executable_owner_action"]["work_unit_id"] == work_unit_id
+    assert action["current_executable_owner_action"]["action_fingerprint"] == action_fingerprint
+    assert result["action_fingerprints"] == []
     assert progress_projection_calls
     assert all(call.get("sync_runtime_summary") is False for call in progress_projection_calls)

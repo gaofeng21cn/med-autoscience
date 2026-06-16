@@ -11,6 +11,20 @@ from tests.domain_owner_action_dispatch_helpers import (
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
+def _opl_transition_readback(study_id: str, action_type: str = "run_quality_repair_batch") -> dict[str, object]:
+    return {
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "outcome_kind": "provider_admission_pending",
+        "event_id": f"dpte::{study_id}::{action_type}",
+        "outbox_item_id": f"dpto::{study_id}::{action_type}",
+        "stage_run_identity": {
+            "stage_run_id": f"stage-run::{study_id}::{action_type}",
+            "route_identity_key": f"owner-route::{study_id}::{action_type}",
+        },
+    }
+
+
 def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_context(
     monkeypatch,
     tmp_path: Path,
@@ -182,16 +196,22 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
         apply=True,
     )
 
-    assert result["executed_count"] == 1, result
-    assert result["blocked_count"] == 0
+    assert result["executed_count"] == 0, result
+    assert result["handoff_ready_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["will_start_llm"] is True
-    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert execution["will_start_llm"] is False
+    assert execution["owner_callable_surface"] is None
+    assert execution["provider_attempt_or_lease_required"] is False
+    assert execution["provider_admission_requires_opl_runtime_result"] is True
     handoff_route = execution["writer_worker_handoff"]["owner_route"]
     assert handoff_route["source_refs"]["work_unit_id"] == original_work_unit_id
     assert handoff_route["source_refs"]["materialized_work_unit_id"] == materialized_work_unit_id
     assert handoff_route["source_refs"]["source_eval_id"] == "publication-eval::dm002::current"
+    assert called == {}
 
 
 def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_packet(
@@ -282,7 +302,7 @@ def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_pa
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [],
+            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     request_path = (
@@ -312,13 +332,16 @@ def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_pa
         apply=True,
     )
 
-    assert result["executed_count"] == 1
-    assert result["blocked_count"] == 0
+    assert result["executed_count"] == 0
+    assert result["handoff_ready_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
     assert execution["owner_route_current"] is True
-    assert execution["will_start_llm"] is True
-    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+    assert execution["will_start_llm"] is False
+    assert execution["owner_callable_surface"] is None
+    assert execution["provider_attempt_or_lease_required"] is False
     assert execution["writer_worker_handoff"]["source_action"]["next_work_unit"]["unit_id"] == "medical_prose_write_repair"
 
 
@@ -467,7 +490,7 @@ def test_default_dispatch_picks_quality_repair_writer_handoff_from_owner_request
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [],
+            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
@@ -490,14 +513,17 @@ def test_default_dispatch_picks_quality_repair_writer_handoff_from_owner_request
     summary = result["per_study_execution_summary"][0]
     assert summary["selected_dispatch_count"] == 1
     assert summary["zero_dispatch_reason"] is None
-    assert result["executed_count"] == 1
-    assert result["blocked_count"] == 0
+    assert result["executed_count"] == 0
+    assert result["handoff_ready_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
     assert execution["action_type"] == "run_quality_repair_batch"
-    assert execution["execution_status"] == "handoff_ready"
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
     assert execution["owner_route_basis"] == "owner_request"
-    assert execution["will_start_llm"] is True
-    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+    assert execution["will_start_llm"] is False
+    assert execution["owner_callable_surface"] is None
+    assert execution["provider_attempt_or_lease_required"] is False
 
 
 def test_execute_dispatch_consumes_quality_repair_writer_handoff_as_stage_attempt(
@@ -530,6 +556,7 @@ def test_execute_dispatch_consumes_quality_repair_writer_handoff_as_stage_attemp
         ),
         owner_route=route,
     )
+    dispatch_payload["opl_domain_progress_transition_result"] = _opl_transition_readback(study_id)
     dispatch_payload["dispatch_authority"] = "quality_repair_batch_writer_handoff"
     dispatch_payload["source_action"] = {
         "surface": "quality_repair_batch",
@@ -588,7 +615,7 @@ def test_execute_dispatch_consumes_quality_repair_writer_handoff_as_stage_attemp
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [],
+            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
@@ -609,7 +636,8 @@ def test_execute_dispatch_consumes_quality_repair_writer_handoff_as_stage_attemp
         apply=True,
     )
 
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["handoff_ready_count"] == 1
     assert result["blocked_count"] == 0
     assert result["codex_dispatch_count"] == 1
     execution = result["executions"][0]
@@ -706,10 +734,11 @@ def test_quality_repair_writer_handoff_rejects_package_write_surface(
     )
 
     assert result["executed_count"] == 0
-    assert result["blocked_count"] == 1
-    execution = result["executions"][0]
-    assert execution["dispatch_contract_valid"] is False
-    assert execution["dispatch_contract_blocked_reason"] == "allowed_write_surfaces_incomplete"
+    assert result["blocked_count"] == 0
+    assert result["execution_count"] == 0
+    summary = result["per_study_execution_summary"][0]
+    assert summary["selected_dispatch_count"] == 0
+    assert summary["zero_dispatch_reason"] == "no_selected_dispatch_for_requested_action_types"
 
 
 def test_quality_repair_writer_handoff_retries_after_guard_block(
@@ -826,10 +855,10 @@ def test_quality_repair_writer_handoff_retries_after_guard_block(
         apply=True,
     )
 
-    execution = result["executions"][0]
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["handoff_ready_count"] == 0
     assert result["repeat_suppressed_count"] == 0
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["will_start_llm"] is True
-    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
-    assert execution["repeat_suppression"]["repeat_suppressed"] is False
+    assert result["execution_count"] == 0
+    summary = result["per_study_execution_summary"][0]
+    assert summary["selected_dispatch_count"] == 0
+    assert summary["zero_dispatch_reason"] == "no_selected_dispatch_for_requested_action_types"

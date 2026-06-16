@@ -524,8 +524,8 @@ def _paper_recovery_state_blocks_provider_admission(
         supervisor_decision=supervisor_decision,
     ):
         return {}
-    if (
-        next_safe_action.get("provider_admission_allowed") is True
+    if _non_empty_text(recovery.get("phase")) == "admission_pending" and (
+        next_safe_action.get("provider_admission_requires_opl_runtime_result") is False
         or _non_empty_text(next_safe_action.get("kind")) == "admit_provider_attempt"
     ):
         return {}
@@ -556,9 +556,16 @@ def _provider_admission_candidate_materializes_recovery_action(
     recovery: Mapping[str, Any],
     supervisor_decision: Mapping[str, Any],
 ) -> bool:
-    if identity.get("same_tick_materialized_provider_admission") is not True:
-        return False
-    if _non_empty_text(identity.get("source")) != "same_tick_materialized_dispatch":
+    identity_source = _non_empty_text(identity.get("source"))
+    materializes_successor = (
+        identity.get("same_tick_materialized_provider_admission") is True
+        and identity_source == "same_tick_materialized_dispatch"
+    ) or (
+        identity_source == "opl_current_control_state.study_current_executable_owner_action"
+        and _non_empty_text(identity.get("mas_owner_action_source"))
+        == "paper_recovery_state.next_safe_action.successor_owner_action"
+    )
+    if not materializes_successor:
         return False
     if _non_empty_text(supervisor_decision.get("decision")) != "materialize_recovery_action":
         return False
@@ -568,11 +575,18 @@ def _provider_admission_candidate_materializes_recovery_action(
     if _non_empty_text(next_safe_action.get("kind")) != "materialize_recovery_work_unit_or_receipt":
         return False
     source_next_safe_action = _mapping(next_safe_action.get("source_next_safe_action"))
-    if _non_empty_text(source_next_safe_action.get("kind")) != "run_mas_owner_callable":
+    source_next_kind = _non_empty_text(source_next_safe_action.get("kind"))
+    if source_next_kind == "materialize_successor_owner_action":
+        successor = _mapping(source_next_safe_action.get("successor_owner_action"))
+        if not successor or not _identity_matches(successor, identity=identity):
+            return False
+    elif source_next_kind != "run_mas_owner_callable":
         return False
     owner = _non_empty_text(identity.get("next_executable_owner")) or _non_empty_text(identity.get("owner"))
     supervisor_owner = _non_empty_text(supervisor_decision.get("next_owner")) or _non_empty_text(
         source_next_safe_action.get("owner")
+    ) or _non_empty_text(
+        _mapping(source_next_safe_action.get("successor_owner_action")).get("owner")
     )
     return owner is not None and supervisor_owner in {None, owner}
 

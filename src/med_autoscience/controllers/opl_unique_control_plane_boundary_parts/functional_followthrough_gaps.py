@@ -374,7 +374,7 @@ PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX = {
             "disposition": "temporary_refs_projection",
             "module_ids": [
                 "domain_authority_refs_index",
-                "paper_work_unit_outbox_index",
+                "paper_progress_transition_refs",
                 "runtime_storage_maintenance",
                 "publication_route_memory_locator_transport_shell",
                 "artifact_lifecycle_storage_audit_shell",

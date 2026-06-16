@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import shlex
 from collections.abc import Mapping
@@ -20,12 +19,7 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
-    has_opl_transition_readback,
-)
-from med_autoscience.controllers.opl_execution_boundary import (
-    typed_blocker as opl_execution_authorization_typed_blocker,
-)
+from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.policies.publication_critique import (
@@ -73,11 +67,6 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _digest(value: object) -> str:
-    rendered = json.dumps(value, ensure_ascii=False, sort_keys=True)
-    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
 
 
 def _utc_now() -> str:
@@ -191,21 +180,6 @@ def _record_payload_authoring_target(
     }
 
 
-def _authorization_fields(dispatch: Mapping[str, Any] | None) -> dict[str, Any]:
-    source = _mapping(dispatch)
-    prompt_contract = _mapping(source.get("prompt_contract"))
-    owner_route = _mapping(source.get("owner_route"))
-    fields: dict[str, Any] = {}
-    for key in ("opl_execution_authorization", "opl_provider_attempt", "stage_attempt"):
-        if key in source:
-            fields[key] = _mapping(source.get(key)) or source.get(key)
-        elif key in prompt_contract:
-            fields[key] = _mapping(prompt_contract.get(key)) or prompt_contract.get(key)
-        elif key in owner_route:
-            fields[key] = _mapping(owner_route.get(key)) or owner_route.get(key)
-    return fields
-
-
 def build_ai_reviewer_record_production_request(
     *,
     request: Mapping[str, Any],
@@ -313,15 +287,31 @@ def build_ai_reviewer_record_worker_handoff(
     repeat_key = _text(owner_route.get("work_unit_fingerprint")) if owner_route else None
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
-    transition_request = _transition_request_identity(
+    source_refs = _mapping(owner_route.get("source_refs"))
+    work_unit_id = (
+        _text(source_refs.get("work_unit_id"))
+        or _text(production_request.get("request_kind"))
+        or _text(owner_route.get("owner_reason"))
+    )
+    source_generation = repeat_key or _text(owner_route.get("idempotency_key"))
+    transition_request = build_transition_request(
         study_id=study_id,
         quest_id=quest_id,
-        owner_route=owner_route,
-        production_request=production_request,
+        action_type=ACTION_TYPE,
+        work_unit_id=work_unit_id,
         work_unit_fingerprint=repeat_key,
+        next_owner="ai_reviewer",
+        source_generation=source_generation,
+        expected_version=source_generation,
+        dispatch_authority=DISPATCH_AUTHORITY,
+        required_output_surface=RECORD_OUTPUT_SURFACE,
+        currentness_basis=_mapping(source_refs.get("owner_route_currentness_basis")),
+        idempotency_context={
+            "kind": "ai-reviewer-record-transition-request",
+            "request_kind": _text(production_request.get("request_kind")),
+        },
     )
     transition_authority_fields = domain_progress_transition_request_transport_fields()
-    authorization_fields = _authorization_fields(dispatch)
     owner_route_currentness_basis = _mapping(_mapping(owner_route.get("source_refs")).get("owner_route_currentness_basis"))
     prompt_contract = {
         "study_id": study_id,
@@ -361,7 +351,6 @@ def build_ai_reviewer_record_worker_handoff(
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
         **transition_authority_fields,
-        **authorization_fields,
     }
     dispatch_shell = {
         "action_type": ACTION_TYPE,
@@ -411,7 +400,6 @@ def build_ai_reviewer_record_worker_handoff(
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
         **transition_authority_fields,
-        **authorization_fields,
         "ai_reviewer_record_production_request": dict(production_request),
         "source_action": {
             "surface": "ai_reviewer_record_production_request",
@@ -434,75 +422,6 @@ def build_ai_reviewer_record_worker_handoff(
             "expected_next_effect": "ai_reviewer emits a current record-only publication-eval response",
         },
         "generated_at": _utc_now(),
-    }
-
-
-def _transition_request_identity(
-    *,
-    study_id: str,
-    quest_id: str | None,
-    owner_route: Mapping[str, Any],
-    production_request: Mapping[str, Any],
-    work_unit_fingerprint: str | None,
-) -> dict[str, Any]:
-    source_refs = _mapping(owner_route.get("source_refs"))
-    work_unit_id = (
-        _text(source_refs.get("work_unit_id"))
-        or _text(production_request.get("request_kind"))
-        or _text(owner_route.get("owner_reason"))
-    )
-    source_generation = work_unit_fingerprint or _text(owner_route.get("idempotency_key"))
-    return {
-        "surface_kind": "mas_domain_progress_transition_request",
-        "target_runtime_kind": "DomainProgressTransitionRuntime",
-        "target_runtime_owner": "one-person-lab",
-        "request_owner": "med-autoscience",
-        "authority_role": "domain_intent_request_only",
-        "mas_can_create_opl_outbox_record": False,
-        "mas_can_create_opl_event": False,
-        "mas_can_create_opl_stage_run": False,
-        "recommended_transition_kind": "MaterializeOwnerAction",
-        "aggregate_identity": {
-            "aggregate_kind": "study_work_unit",
-            "aggregate_id": "::".join(item for item in (study_id, work_unit_id) if item),
-            "study_id": study_id,
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": work_unit_fingerprint,
-        },
-        "study_id": study_id,
-        "quest_id": quest_id or study_id,
-        "action_type": ACTION_TYPE,
-        "next_owner": "ai_reviewer",
-        "idempotency_key": _digest(
-            {
-                "kind": "ai-reviewer-record-transition-request",
-                "study_id": study_id,
-                "quest_id": quest_id or study_id,
-                "work_unit_id": work_unit_id,
-                "work_unit_fingerprint": work_unit_fingerprint,
-                "request_kind": _text(production_request.get("request_kind")),
-            }
-        ),
-        "source_generation": source_generation,
-        "expected_version": source_generation,
-        "required_postcondition": {
-            "kind": "owner_action_ref",
-            "outcome_owner": "one-person-lab",
-            "domain_state_owner": "med-autoscience",
-        },
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "dispatch_authority": DISPATCH_AUTHORITY,
-        "required_output_surface": RECORD_OUTPUT_SURFACE,
-        "currentness_basis": _mapping(source_refs.get("owner_route_currentness_basis")),
-        "forbidden_runtime_fields": [
-            "current_control_command_outbox_record",
-            "opl_domain_progress_transition_event",
-            "opl_domain_progress_transition_outbox_item",
-            "projection_metadata",
-            "read_model_generation_metadata",
-            "stage_run_identity",
-        ],
     }
 
 
@@ -577,12 +496,6 @@ def record_production_handoff_execution(
         dispatch=dispatch,
         production_request=production_request,
     )
-    if _domain_progress_transition_request_without_readback(dispatch, handoff):
-        return _blocked_record_production_handoff(
-            record_blocker=record_blocker,
-            payload=payload,
-            handoff=handoff,
-        )
     result = {
         "execution_status": "handoff_ready" if apply else "dry_run",
         "blocked_reason": None,
@@ -595,113 +508,6 @@ def record_production_handoff_execution(
         ),
         "ai_reviewer_record_worker_handoff": handoff,
     }
-    if apply:
-        result["ai_reviewer_record_worker_handoff_path"] = materialize_ai_reviewer_record_worker_handoff(
-            handoff=handoff,
-        )
-    return result
-
-
-def _domain_progress_transition_request_without_readback(*values: object) -> bool:
-    has_request = False
-    for payload in _iter_transition_payloads(*values):
-        if payload.get("provider_admission_requires_opl_runtime_result") is True:
-            has_request = True
-        request = _mapping(payload.get("opl_domain_progress_transition_request"))
-        if request and _text(request.get("target_runtime_kind")) == "DomainProgressTransitionRuntime":
-            has_request = True
-        if has_opl_transition_readback(payload):
-            return False
-    return has_request
-
-
-def _iter_transition_payloads(*values: object) -> list[Mapping[str, Any]]:
-    payloads: list[Mapping[str, Any]] = []
-    stack = list(values)
-    seen: set[int] = set()
-    while stack:
-        value = stack.pop()
-        if isinstance(value, Mapping):
-            identity = id(value)
-            if identity in seen:
-                continue
-            seen.add(identity)
-            payload = _mapping(value)
-            payloads.append(payload)
-            for key in (
-                "prompt_contract",
-                "owner_route",
-                "source_action",
-                "ai_reviewer_record_worker_handoff",
-                "opl_domain_progress_transition_request",
-                "opl_domain_progress_transition_result",
-                "opl_domain_progress_runtime_result",
-                "opl_runtime_result",
-                "paper_progress_policy_result",
-                "state",
-            ):
-                nested = payload.get(key)
-                if isinstance(nested, Mapping):
-                    stack.append(nested)
-            continue
-        if isinstance(value, (list, tuple)):
-            stack.extend(item for item in value if isinstance(item, Mapping))
-    return payloads
-
-
-def _blocked_record_production_handoff(
-    *,
-    record_blocker: Mapping[str, Any],
-    payload: Mapping[str, Any],
-    handoff: Mapping[str, Any],
-) -> dict[str, Any]:
-    blocked_handoff = _transition_request_pending_handoff(handoff)
-    return {
-        "execution_status": "blocked",
-        "blocked_reason": "opl_execution_authorization_required",
-        "typed_blocker": opl_execution_authorization_typed_blocker(),
-        "source_record_blocker_reason": _text(record_blocker.get("reason")),
-        "owner_callable_surface": None,
-        "next_owner": "ai_reviewer",
-        **dict(payload),
-        "ai_reviewer_record_production_request": dict(
-            _mapping(blocked_handoff.get("ai_reviewer_record_production_request"))
-        ),
-        "ai_reviewer_record_worker_handoff": blocked_handoff,
-        "adapter_kind": "opl_authorized_owner_callable_adapter",
-        "target_runtime_owner": "one-person-lab",
-        "mas_private_attempt_loop_forbidden": True,
-        "mas_dispatch_authority": False,
-        "mas_creates_opl_outbox": False,
-        "mas_creates_opl_event": False,
-        "mas_creates_opl_stage_run": False,
-        "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
-        "provider_attempt_or_lease_required": True,
-    }
-
-
-def _transition_request_pending_handoff(handoff: Mapping[str, Any]) -> dict[str, Any]:
-    prompt_contract = dict(_mapping(handoff.get("prompt_contract")))
-    prompt_contract["dispatch_status"] = "transition_request_pending"
-    prompt_contract["provider_admission_pending"] = False
-    prompt_contract["provider_admission_requires_opl_runtime_result"] = True
-    prompt_contract["owner_callable_surface"] = None
-    result = {
-        **dict(handoff),
-        "dispatch_status": "transition_request_pending",
-        "handoff_semantics": {
-            **_mapping(handoff.get("handoff_semantics")),
-            "status": "await_opl_domain_progress_transition_runtime",
-            "terminal_blocker": True,
-            "expected_next_effect": "OPL DomainProgressTransitionRuntime authorizes the owner callable or returns a typed blocker",
-        },
-        "owner_callable_surface": None,
-        "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
-        "prompt_contract": prompt_contract,
-    }
-    result.pop("ai_reviewer_record_worker_handoff_path", None)
     return result
 
 

@@ -159,6 +159,7 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
     owner_route_currentness_basis = {
         **dict(current_action_basis),
         **dict(owner_route_currentness_basis),
+        "mas_owner_action_source": _non_empty_text(current.get("source")),
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": action_fingerprint,
     }
@@ -167,6 +168,7 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         for key, value in {
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": action_fingerprint,
+            "mas_owner_action_source": _non_empty_text(current.get("source")),
             "source_eval_id": source_eval_id,
             "eval_bound_work_unit_fingerprint": eval_bound_fingerprint,
             "owner_route_currentness_basis": owner_route_currentness_basis,
@@ -177,7 +179,7 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "study_id": study_id,
         "quest_id": _non_empty_text(study.get("quest_id")),
         "action_type": action_type,
-        "status": "queued",
+        "status": "transition_request_pending",
         "owner": executable_owner,
         "next_executable_owner": executable_owner,
         "next_work_unit": work_unit_id,
@@ -185,8 +187,12 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "action_fingerprint": action_fingerprint,
         "work_unit_fingerprint": action_fingerprint,
         "required_output_surface": _required_output_surface(current),
-        "provider_attempt_or_lease_required": True,
+        "provider_attempt_or_lease_required": False,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_transition_runtime_required": True,
         "provider_completion_is_domain_completion": False,
+        "mas_owner_action_source": _non_empty_text(current.get("source")),
         "source_surface": _study_current_action_source_surface(current),
         "paper_progress_policy_result": paper_policy_result,
         "opl_domain_progress_transition_request": paper_policy_result.get(
@@ -210,11 +216,13 @@ def _study_current_action_source_surface(current: Mapping[str, Any]) -> str:
 def _provider_admission_recovery(*, owner: str) -> dict[str, Any]:
     return {
         "surface_kind": "paper_recovery_state",
-        "phase": "admission_pending",
+        "phase": "transition_request_pending",
         "next_safe_action": {
-            "kind": "admit_provider_attempt",
-            "owner": owner,
-            "provider_admission_allowed": True,
+            "kind": "await_opl_transition_readback",
+            "owner": "one-person-lab",
+            "provider_admission_allowed": False,
+            "provider_admission_requires_opl_runtime_result": True,
+            "requested_owner": owner,
         },
     }
 
@@ -286,8 +294,6 @@ def _current_action_from_paper_recovery_successor(
         "materialize_successor_owner_action",
         "materialize_successor_owner_gate",
     }:
-        return {}
-    if next_safe_action.get("provider_admission_allowed") is not True:
         return {}
     successor = _mapping(next_safe_action.get("successor_owner_action"))
     action_type = _non_empty_text(successor.get("action_type"))
@@ -778,7 +784,12 @@ def _current_control_action_requests_provider_admission(action: Mapping[str, Any
     action_type = _non_empty_text(action.get("action_type"))
     if action_type is None:
         return False
-    if _non_empty_text(action.get("status")) not in {"queued", "pending", "ready"}:
+    if _non_empty_text(action.get("status")) not in {
+        "queued",
+        "pending",
+        "ready",
+        "transition_request_pending",
+    }:
         return False
     owner = _non_empty_text(action.get("next_executable_owner")) or _non_empty_text(action.get("owner"))
     return _current_control_executable_owner(action_type=action_type, owner=owner) is not None

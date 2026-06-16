@@ -247,14 +247,16 @@ def test_scientific_capability_registry_invokes_display_pack_agent_native_plan()
 
     assert result["surface_kind"] == "mas_scientific_capability_invocation"
     assert result["capability_id"] == "display_pack_visual_capability"
-    assert result["status"] == "invoked"
+    assert result["status"] == "opl_capability_request_pending"
     assert result["refs_only"] is True
     assert result["can_block_current_owner_action"] is False
     assert result["authority_boundary"]["can_authorize_publication_readiness"] is False
+    assert result["mas_local_capability_actuator"] is False
 
-    orchestration = result["result"]
-    assert orchestration["surface_kind"] == "display_pack_agent_orchestration"
-    assert orchestration["figure_intent"]["claim_ref"] == CLAIM_REF
-    assert orchestration["figure_request"]["query"] == "roc"
-    assert orchestration["quality_floor"]["publication_readiness_verdict"] is False
-    assert orchestration["next_callable"] in {"display-pack-render", "display-pack-repair"}
+    projection = result["result"]
+    assert projection["surface_kind"] == "mas_scientific_capability_invocation_request_projection"
+    request = result["opl_capability_invocation_request"]
+    assert request["target_runtime_owner"] == "one-person-lab"
+    assert request["target_runtime_kind"] == "CapabilityRegistry"
+    assert request["mas_can_run_capability_actuator"] is False
+    assert request["expected_output_refs"] == ["display_pack_agent_orchestration"]

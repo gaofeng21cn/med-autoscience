@@ -460,12 +460,14 @@ def test_domain_handler_export_does_not_fall_back_when_current_control_action_ha
     assert tasks == []
 
 
-def test_domain_handler_export_exports_provider_admission_when_current_work_unit_renames_dispatch_unit(
+def test_default_executor_task_exports_transition_request_when_current_work_unit_renames_dispatch_unit(
     tmp_path: Path,
-    capsys,
-    monkeypatch,
 ) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    from med_autoscience.controllers.owner_route_handoff_parts.default_executor_dispatch_tasks import (
+        default_executor_dispatch_tasks,
+    )
+    from med_autoscience.profiles import load_profile
+
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -474,6 +476,7 @@ def test_domain_handler_export_exports_provider_admission_when_current_work_unit
     action_type = "run_quality_repair_batch"
     current_work_unit_id = "medical_prose_write_repair"
     current_fingerprint = "publication-blockers::0915410f804b3697"
+    previous_fingerprint = "publication-blockers::previous-writer-closeout"
     stale_stage_native_route = _owner_route(
         study_id=study_id,
         next_owner="write",
@@ -504,6 +507,27 @@ def test_domain_handler_export_exports_provider_admission_when_current_work_unit
             "studies/<study_id>/artifacts/controller/repair_execution_evidence/latest.json",
         ],
     )
+    dispatch_path = (
+        workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    stage_packet_path = (
+        dispatch_path.parent
+        / "immutable"
+        / "run_quality_repair_batch"
+        / "medical-prose-write-repair-current.json"
+    )
+    dispatch_payload = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    dispatch_payload["refs"]["immutable_dispatch_path"] = str(stage_packet_path)
+    dispatch_payload["refs"]["stage_packet_path"] = str(stage_packet_path)
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(stage_packet_path, dispatch_payload)
     _write_json(
         workspace_root
         / "studies"
@@ -522,13 +546,13 @@ def test_domain_handler_export_exports_provider_admission_when_current_work_unit
             "quest_id": study_id,
             "action_type": action_type,
             "work_unit_id": current_work_unit_id,
-            "work_unit_fingerprint": current_fingerprint,
-            "action_fingerprint": current_fingerprint,
+            "work_unit_fingerprint": previous_fingerprint,
+            "action_fingerprint": previous_fingerprint,
             "truth_epoch": "truth-event-current",
             "runtime_health_epoch": "runtime-health-event-current",
             "owner_route_currentness_basis": {
                 "work_unit_id": current_work_unit_id,
-                "work_unit_fingerprint": current_fingerprint,
+                "work_unit_fingerprint": previous_fingerprint,
                 "truth_epoch": "truth-event-current",
                 "runtime_health_epoch": "runtime-health-event-current",
                 "source_eval_id": (
@@ -538,16 +562,16 @@ def test_domain_handler_export_exports_provider_admission_when_current_work_unit
             "owner_route": {
                 **stale_stage_native_route,
                 "next_owner": "write",
-                "work_unit_fingerprint": current_fingerprint,
-                "source_fingerprint": current_fingerprint,
+                "work_unit_fingerprint": previous_fingerprint,
+                "source_fingerprint": previous_fingerprint,
                 "source_refs": {
                     "work_unit_id": current_work_unit_id,
-                    "work_unit_fingerprint": current_fingerprint,
+                    "work_unit_fingerprint": previous_fingerprint,
                     "truth_epoch": "truth-event-current",
                     "runtime_health_epoch": "runtime-health-event-current",
                     "owner_route_currentness_basis": {
                         "work_unit_id": current_work_unit_id,
-                        "work_unit_fingerprint": current_fingerprint,
+                        "work_unit_fingerprint": previous_fingerprint,
                         "truth_epoch": "truth-event-current",
                         "runtime_health_epoch": "runtime-health-event-current",
                         "source_eval_id": (
@@ -609,121 +633,68 @@ def test_domain_handler_export_exports_provider_admission_when_current_work_unit
         },
     )
 
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "status": "executable_owner_action",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner": "write",
+        "action_type": action_type,
+        "work_unit_id": current_work_unit_id,
+        "work_unit_fingerprint": current_fingerprint,
+        "action_fingerprint": current_fingerprint,
+        "currentness_basis": {
+            "work_unit_id": current_work_unit_id,
+            "work_unit_fingerprint": current_fingerprint,
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+        },
+        "state": {
+            "state_kind": "executable_owner_action",
+            "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+            "provider_admission_pending": True,
+        },
+    }
+    current_execution_envelope = {
+        "state_kind": "executable_owner_action",
+        "owner": "write",
+        "next_work_unit": current_work_unit_id,
+    }
+    current_owner_action = {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+        "next_owner": "write",
+        "action_type": action_type,
+        "work_unit_id": current_work_unit_id,
+        "work_unit_fingerprint": current_fingerprint,
+        "action_fingerprint": current_fingerprint,
+        "owner_route_currentness_basis": {
+            "work_unit_id": current_work_unit_id,
+            "work_unit_fingerprint": current_fingerprint,
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+            "source_eval_id": (
+                "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::current"
+            ),
+        },
+        "allowed_actions": [action_type],
+        "publication_eval_id": (
+            "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::current"
+        ),
+    }
+    profile = load_profile(profile_path)
 
-    def _read_study_progress(**_: object) -> dict[str, object]:
-        dispatch_path = (
-            workspace_root
-            / "studies"
-            / study_id
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "default_executor_dispatches"
-            / "run_quality_repair_batch.json"
-        )
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "current_work_unit": {
-                "surface_kind": "current_work_unit",
-                "status": "executable_owner_action",
-                "study_id": study_id,
-                "quest_id": study_id,
-                "owner": "write",
-                "action_type": action_type,
-                "work_unit_id": current_work_unit_id,
-                "work_unit_fingerprint": current_fingerprint,
-                "action_fingerprint": current_fingerprint,
-                "currentness_basis": {
-                    "work_unit_id": current_work_unit_id,
-                    "work_unit_fingerprint": current_fingerprint,
-                    "truth_epoch": "truth-event-current",
-                    "runtime_health_epoch": "runtime-health-event-current",
-                },
-                "state": {
-                    "state_kind": "executable_owner_action",
-                    "source": "publication_eval.recommended_actions.readiness_blocker_repair",
-                    "provider_admission_pending": True,
-                },
-            },
-            "current_execution_envelope": {
-                "state_kind": "executable_owner_action",
-                "owner": "write",
-                "next_work_unit": current_work_unit_id,
-            },
-            "current_executable_owner_action": {
-                "surface_kind": "current_executable_owner_action",
-                "status": "ready",
-                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
-                "next_owner": "write",
-                "action_type": action_type,
-                "work_unit_id": current_work_unit_id,
-                "work_unit_fingerprint": current_fingerprint,
-                "action_fingerprint": current_fingerprint,
-                "allowed_actions": [action_type],
-                "publication_eval_id": (
-                    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::current"
-                ),
-            },
-            "provider_admission_candidates": [
-                {
-                    "surface": "opl_provider_admission_candidate",
-                    "schema_version": 1,
-                    "status": "provider_admission_pending",
-                    "source": "opl_current_control_state.study_current_executable_owner_action",
-                    "execution_ref": str(
-                        workspace_root
-                        / "runtime"
-                        / "artifacts"
-                        / "supervision"
-                        / "opl_current_control_state"
-                        / "latest.json"
-                    ),
-                    "study_id": study_id,
-                    "quest_id": study_id,
-                    "action_type": action_type,
-                    "work_unit_id": current_work_unit_id,
-                    "work_unit_fingerprint": current_fingerprint,
-                    "action_fingerprint": current_fingerprint,
-                    "dispatch_path": str(dispatch_path),
-                    "next_executable_owner": "write",
-                    "provider_attempt_or_lease_required": True,
-                    "owner_route_current": True,
-                    "currentness_basis": {
-                        "work_unit_id": current_work_unit_id,
-                        "work_unit_fingerprint": current_fingerprint,
-                        "truth_epoch": "truth-event-current",
-                        "runtime_health_epoch": "runtime-health-event-current",
-                        "source_eval_id": (
-                            "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::current"
-                        ),
-                    },
-                    "source_refs": {
-                        "dispatch_path": str(dispatch_path),
-                        "stage_packet_ref": (
-                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-                            "supervision/consumer/default_executor_dispatches/"
-                            "run_quality_repair_batch.json"
-                        ),
-                        "route_identity_key": "provider-admission::dm003::medical-prose",
-                        "attempt_idempotency_key": "provider-admission::dm003::medical-prose",
-                    },
-                }
-            ],
-        }
+    tasks = default_executor_dispatch_tasks(
+        profile=profile,
+        profile_ref=profile_path,
+        study_id=study_id,
+        current_owner_action=current_owner_action,
+        current_work_unit=current_work_unit,
+        current_execution_envelope=current_execution_envelope,
+        persist_identity=False,
+    )
 
-    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
-
-    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
-    payload = json.loads(capsys.readouterr().out)
-
-    assert exit_code == 0
-    tasks = [
-        task
-        for task in payload["pending_family_tasks"]
-        if task["task_kind"] == "domain_owner/default-executor-dispatch"
-    ]
     assert len(tasks) == 1
     task = tasks[0]
     assert task["study_id"] == study_id
@@ -741,3 +712,4 @@ def test_domain_handler_export_exports_provider_admission_when_current_work_unit
     assert task["payload"]["provider_admission_pending"] is False
     assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
     assert "provider_admission_identity" not in task["payload"]
+    assert "provider_admission_identity" not in task

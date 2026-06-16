@@ -608,7 +608,7 @@ def _accepted_owner_gate_decision_action(
         return None
     quest_id = _text(progress.get("quest_id"))
     owner = request_owner_for_action_type(action_type)
-    provider_admission_allowed = next_safe_action.get("provider_admission_allowed") is True
+    provider_admission_allowed = False
     owner_route = owner_route_part.ensure_owner_route_v2(
         {
             "surface": "domain_route_owner_route",
@@ -659,6 +659,7 @@ def _accepted_owner_gate_decision_action(
         "work_unit_fingerprint": work_unit_fingerprint,
         "action_fingerprint": work_unit_fingerprint,
         "provider_admission_allowed": provider_admission_allowed,
+        "provider_admission_requires_opl_runtime_result": True,
         "paper_progress_stall": (
             None
             if provider_admission_allowed
@@ -666,6 +667,7 @@ def _accepted_owner_gate_decision_action(
                 "kind": "owner_gate_route_back",
                 "route_back_evidence_ref": _text(accepted.get("route_back_evidence_ref")),
                 "provider_admission_allowed": False,
+                "provider_admission_requires_opl_runtime_result": True,
             }
         ),
         "owner_route": owner_route,
@@ -680,6 +682,7 @@ def _accepted_owner_gate_decision_action(
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": work_unit_fingerprint,
             "provider_admission_allowed": provider_admission_allowed,
+            "provider_admission_requires_opl_runtime_result": True,
             "owner_route": owner_route,
             "idempotency_key": _text(owner_route.get("idempotency_key")),
         },

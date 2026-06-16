@@ -58,7 +58,7 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
             "controller_decisions/latest.json",
             "domain_route_owner_route",
             "domain_owner_action_dispatch_receipt",
-            "paper_work_unit_outbox_receipt",
+            "paper_progress_transition_ref_receipt",
         ],
         "standard_agent_purity_absent_surface_ids": [
             "mas_generic_runtime_lifecycle_contract",

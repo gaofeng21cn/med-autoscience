@@ -129,12 +129,20 @@ def test_provider_admission_current_control_prefers_live_attempt_over_pending_ca
     assert decision["work_unit_fingerprint"] == action_fingerprint
     assert decision["active_stage_attempt_id"] == "sat-live"
     assert decision["active_workflow_id"] == "wf-live"
-    assert decision["authority_boundary"] == {
-        "arbiter_surface": "currentness_projection_only",
-        "can_write_domain_truth": False,
-        "can_authorize_publication_ready": False,
-        "provider_completion_is_domain_ready": False,
-    }
+    boundary = decision["authority_boundary"]
+    assert boundary["arbiter_surface"] == "currentness_projection_only"
+    assert boundary["authority"] is False
+    assert boundary["projection_owner"] == "med-autoscience"
+    assert boundary["transition_runtime_owner"] == "one-person-lab"
+    assert boundary["runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert boundary["can_write_domain_truth"] is False
+    assert boundary["can_authorize_provider_admission"] is False
+    assert boundary["provider_admission_requires_mas_transition_request"] is True
+    assert boundary["provider_admission_readback_requires_opl_outbox_or_event"] is True
+    assert boundary["can_own_generic_event_log_or_outbox"] is False
+    assert boundary["can_run_fixed_point_runtime"] is False
+    assert boundary["can_authorize_publication_ready"] is False
+    assert boundary["provider_completion_is_domain_ready"] is False
 
 
 def test_provider_admission_current_control_uses_worker_liveness_as_running_gate(

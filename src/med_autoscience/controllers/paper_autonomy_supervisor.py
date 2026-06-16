@@ -264,14 +264,21 @@ def build_paper_autonomy_obligation(
         _mapping(progress.get("stage_kernel_projection")).get("stage_id"),
         "publication_supervision",
     )
+    owner_action_admission = _mapping(progress.get("owner_action_admission"))
     action_type = _first_text(
         recovery_obligation.get("action_type"),
         current_work_unit.get("action_type"),
         _mapping(progress.get("current_executable_owner_action")).get("action_type"),
+        owner_action_admission.get("action_type"),
+        _single_text_item(owner_action_admission.get("allowed_actions")),
     )
     work_unit_id = _first_text(
         recovery_obligation.get("work_unit_id"),
         current_work_unit.get("work_unit_id"),
+        currentness_basis.get("work_unit_id"),
+        currentness_basis.get("explicit_publication_work_unit_id"),
+        currentness_basis.get("current_publication_work_unit_id"),
+        owner_action_admission.get("work_unit_id"),
         _mapping(progress.get("current_executable_owner_action")).get("work_unit_id"),
     )
     fingerprint = _first_text(
@@ -696,7 +703,49 @@ def _stage_run_identity_refs(progress: Mapping[str, Any], recovery: Mapping[str,
                 _text(item.get("workflow_id")),
             ]
         )
+    for source in (progress, recovery):
+        for candidate in source.get("provider_admission_candidates") or []:
+            refs.extend(_opl_transition_readback_refs(_mapping(candidate)))
+        for candidate in source.get("transition_request_candidates") or []:
+            refs.extend(_opl_transition_readback_refs(_mapping(candidate)))
     return _dedupe(refs)
+
+
+def _opl_transition_readback_refs(candidate: Mapping[str, Any]) -> list[str]:
+    if not candidate:
+        return []
+    from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+        candidate_opl_transition_readback,
+    )
+
+    readback = _mapping(candidate_opl_transition_readback(candidate))
+    if not readback:
+        return []
+    stage_run_identity = _mapping(readback.get("stage_run_identity"))
+    return [
+        ref
+        for ref in (
+            _text(readback.get("stage_run_identity_packet_ref")),
+            _text(readback.get("stage_run_identity_ref")),
+            _text(readback.get("stage_run_id")),
+            _text(readback.get("stage_attempt_id")),
+            _text(readback.get("active_stage_attempt_id")),
+            _text(readback.get("lease_ref")),
+            _text(readback.get("provider_attempt_ref")),
+            _text(readback.get("workflow_id")),
+            _text(readback.get("active_run_id")),
+            _text(readback.get("event_id")),
+            _text(readback.get("outbox_item_id")),
+            _text(stage_run_identity.get("stage_run_identity_packet_ref")),
+            _text(stage_run_identity.get("stage_run_identity_ref")),
+            _text(stage_run_identity.get("stage_run_id")),
+            _text(stage_run_identity.get("stage_attempt_id")),
+            _text(stage_run_identity.get("lease_ref")),
+            _text(stage_run_identity.get("provider_attempt_ref")),
+            _text(stage_run_identity.get("workflow_id")),
+        )
+        if ref
+    ]
 
 
 def _running_proof_refs(progress: Mapping[str, Any], recovery: Mapping[str, Any]) -> list[str]:
@@ -854,6 +903,13 @@ def _text_items(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return [text for item in value if (text := _text(item)) is not None]
+
+
+def _single_text_item(value: Any) -> str | None:
+    items = _text_items(value)
+    if len(items) == 1:
+        return items[0]
+    return None
 
 
 def _dedupe(values: list[str | None]) -> list[str]:

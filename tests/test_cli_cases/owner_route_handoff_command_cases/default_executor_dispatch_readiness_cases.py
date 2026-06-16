@@ -255,7 +255,7 @@ def test_domain_handler_export_carries_stage_current_provider_admission_identity
     assert task["provider_completion_is_domain_completion"] is False
     assert task["provider_admission_pending"] is False
     assert task["provider_admission_requires_opl_runtime_result"] is True
-    assert task["authority_boundary"]["authority"] == "med_autoscience.domain_intent_adapter"
+    assert task["authority_boundary"]["authority"] == "med_autoscience.paper_progress_policy_adapter"
     assert task["authority_boundary"]["mas_can_authorize_provider_admission"] is False
     assert (
         task["stage_transition_authority_boundary"]["stage_transition_authority"]

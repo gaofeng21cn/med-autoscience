@@ -171,7 +171,7 @@ def test_domain_handler_export_materializes_supervisor_successor_dispatch_under_
     assert task["work_unit_id"] == "medical_prose_write_repair"
     assert task["work_unit_fingerprint"] == successor_fingerprint
     assert task["provider_completion_is_domain_completion"] is False
-    assert task["authority_boundary"]["authority"] == "med_autoscience.domain_intent_adapter"
+    assert task["authority_boundary"]["authority"] == "med_autoscience.paper_progress_policy_adapter"
     assert task["authority_boundary"]["target_runtime_kind"] == "DomainProgressTransitionRuntime"
     assert task["authority_boundary"]["target_runtime_owner"] == "one-person-lab"
     assert task["authority_boundary"]["mas_can_authorize_provider_admission"] is False

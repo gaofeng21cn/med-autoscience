@@ -19,10 +19,10 @@ PROVIDER_ADMISSION_AUTHORITY_BOUNDARY = {
 
 DOMAIN_PROGRESS_TRANSITION_REQUEST_AUTHORITY_BOUNDARY = {
     "surface_kind": "mas_domain_progress_transition_request_boundary",
-    "authority": "med_autoscience.domain_intent_adapter",
+    "authority": "med_autoscience.paper_progress_policy_adapter",
     "target_runtime_owner": "one-person-lab",
     "target_runtime_kind": "DomainProgressTransitionRuntime",
-    "authority_role": "domain_intent_request_only",
+    "authority_role": "domain_policy_request_only",
     "mas_can_create_opl_outbox_record": False,
     "mas_can_create_opl_event": False,
     "mas_can_create_opl_stage_run": False,

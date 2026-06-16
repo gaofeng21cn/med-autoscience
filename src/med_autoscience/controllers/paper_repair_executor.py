@@ -109,6 +109,7 @@ def dispatch_repair_work_unit(
             generated_at=generated_at,
             authority_route_context=authority_route_context,
             route_context=route_context,
+            opl_execution_authorization=execution_authorization,
         )
     if callable_surface == AI_REVIEWER_PUBLICATION_EVAL_CALLABLE:
         return _dispatch_ai_reviewer_callable(
@@ -242,6 +243,7 @@ def _dispatch_quality_repair_batch_callable(
     generated_at: str,
     authority_route_context: Mapping[str, Any] | None,
     route_context: Mapping[str, Any] | None,
+    opl_execution_authorization: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     if profile is None:
         return _blocked_result(
@@ -279,13 +281,17 @@ def _dispatch_quality_repair_batch_callable(
         )
     return _owner_callable_result(
         generated_at=generated_at,
-        accepted=owner_result_executed(owner_result),
+        accepted=owner_result_executed(
+            owner_result,
+            opl_execution_authorization=opl_execution_authorization,
+        ),
         study_id=study_id,
         quest_id=quest_id,
         study_root=study_root,
         work_unit=work_unit,
         owner_callable_surface=QUALITY_REPAIR_BATCH_CALLABLE,
         owner_result=owner_result,
+        opl_execution_authorization=opl_execution_authorization,
     )
 
 
@@ -330,13 +336,17 @@ def _dispatch_ai_reviewer_callable(
     )
     return _owner_callable_result(
         generated_at=generated_at,
-        accepted=owner_result_executed(owner_result),
+        accepted=owner_result_executed(
+            owner_result,
+            opl_execution_authorization=opl_execution_authorization,
+        ),
         study_id=study_id,
         quest_id=quest_id,
         study_root=study_root,
         work_unit=work_unit,
         owner_callable_surface=AI_REVIEWER_PUBLICATION_EVAL_CALLABLE,
         owner_result=owner_result,
+        opl_execution_authorization=opl_execution_authorization,
     )
 
 
@@ -471,10 +481,17 @@ def _owner_callable_result(
     work_unit: Mapping[str, Any],
     owner_callable_surface: str,
     owner_result: Mapping[str, Any],
+    opl_execution_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    handoff_ready = owner_result_handoff_ready(owner_result)
+    handoff_ready = owner_result_handoff_ready(
+        owner_result,
+        opl_execution_authorization=opl_execution_authorization,
+    )
     execution_status = "handoff_ready" if handoff_ready else ("executed" if accepted else "blocked")
-    typed_blocker = None if accepted else owner_result_blocker(owner_result)
+    typed_blocker = None if accepted else owner_result_blocker(
+        owner_result,
+        opl_execution_authorization=opl_execution_authorization,
+    )
     changed_refs = owner_result_changed_refs(owner_result)
     evidence_path = owner_result_evidence_path(study_root=study_root, owner_result=owner_result)
     currentness = owner_route_currentness_blockers.materialize(study_id, quest_id, study_root, work_unit, owner_result, typed_blocker, evidence_path)
@@ -495,8 +512,14 @@ def _owner_callable_result(
     receipt["owner_callable_surface"] = owner_callable_surface
     receipt["owner_result_status"] = _text(owner_result.get("status"))
     receipt.update(currentness.receipt_fields)
-    writer_handoff = writer_worker_handoff(owner_result)
-    reviewer_record_handoff = ai_reviewer_record_worker_handoff(owner_result)
+    writer_handoff = writer_worker_handoff(
+        owner_result,
+        opl_execution_authorization=opl_execution_authorization,
+    )
+    reviewer_record_handoff = ai_reviewer_record_worker_handoff(
+        owner_result,
+        opl_execution_authorization=opl_execution_authorization,
+    )
     if writer_handoff:
         receipt["writer_worker_handoff"] = dict(writer_handoff)
     if reviewer_record_handoff:

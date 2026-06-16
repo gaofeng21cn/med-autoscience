@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 import importlib
-import json
 import sqlite3
 from pathlib import Path
-
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _intent(*, unit_id: str = "analysis_claim_evidence_repair", target: str = "claim:C1") -> dict[str, object]:
@@ -25,90 +21,80 @@ def _intent(*, unit_id: str = "analysis_claim_evidence_repair", target: str = "c
     }
 
 
-def _legacy_control_marker() -> str:
-    contract = json.loads(
-        (REPO_ROOT / "contracts" / "runtime" / "legacy-active-path-tombstones.json").read_text(encoding="utf-8")
-    )
-    policy = contract["legacy_control_receipt_exclusion_policy"]
-    assert policy["applies_to"] == "paper_work_unit_outbox_duplicate_source_fingerprint_guard"
-    markers = policy["legacy_markers"]
-    assert markers
-    return markers[0]
-
-
-def test_enqueue_replays_semantically_equivalent_receipt_for_same_idempotency_key_and_intent(
+def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempotency_key_and_intent(
     tmp_path: Path,
 ) -> None:
-    outbox = importlib.import_module("med_autoscience.controllers.paper_work_unit_outbox")
+    refs = importlib.import_module("med_autoscience.controllers.paper_progress_transition_refs")
     refs_index = importlib.import_module("med_autoscience.runtime_protocol.domain_authority_refs_index")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
     db_path = refs_index.workspace_authority_refs_index_path(tmp_path / "workspace")
 
-    first = outbox.enqueue_paper_work_unit(
+    first = refs.record_paper_progress_transition_ref(
         study_root=study_root,
         quest_root=quest_root,
         idempotency_key="paper-work-unit::001",
         intent=_intent(),
-        worker_start_ref="worker::run-001",
         recorded_at="2026-05-10T00:00:00+00:00",
         db_path=db_path,
     )
-    replay = outbox.enqueue_paper_work_unit(
+    replay = refs.record_paper_progress_transition_ref(
         study_root=study_root,
         quest_root=quest_root,
         idempotency_key="paper-work-unit::001",
         intent=_intent(),
-        worker_start_ref="worker::run-002",
         recorded_at="2026-05-10T00:01:00+00:00",
         db_path=db_path,
     )
 
-    assert replay["receipt_status"] == "replayed"
+    assert first["receipt_status"] == "transition_request_pending_opl_runtime_required"
+    assert first["refs_only"] is True
+    assert first["started_worker"] is False
+    assert first["worker_start_ref"] is None
+    assert first["mas_can_create_opl_outbox_record"] is False
+    assert replay["receipt_status"] == "replayed_transition_request_ref"
     assert replay["receipt_id"] == first["receipt_id"]
-    assert replay["worker_start_ref"] == "worker::run-001"
+    assert replay["worker_start_ref"] is None
     assert replay["intent_fingerprint"] == first["intent_fingerprint"]
     assert replay["semantic_receipt"] == first["semantic_receipt"]
-    assert len(outbox.read_receipts(study_root=study_root)) == 1
+    assert len(refs.read_transition_refs(study_root=study_root)) == 1
     with sqlite3.connect(db_path) as conn:
         rows = conn.execute(
             """
-            SELECT idempotency_key, intent_fingerprint, source_fingerprint, worker_start_ref, payload_json
+            SELECT idempotency_key, intent_fingerprint, source_fingerprint, started_worker, worker_start_ref, payload_json
             FROM paper_work_unit_receipts
             WHERE study_root = ?
             """,
             (str(study_root.resolve()),),
         ).fetchall()
     assert len(rows) == 1
-    assert rows[0][:4] == (
+    assert rows[0][:5] == (
         "paper-work-unit::001",
         first["intent_fingerprint"],
         "publication-blockers::same-source",
-        "worker::run-001",
+        0,
+        "",
     )
-    assert json.loads(rows[0][4])["receipt_id"] == first["receipt_id"]
 
 
-def test_enqueue_fails_closed_for_same_idempotency_key_with_different_intent(tmp_path: Path) -> None:
-    outbox = importlib.import_module("med_autoscience.controllers.paper_work_unit_outbox")
+def test_transition_ref_fails_closed_for_same_idempotency_key_with_different_intent(tmp_path: Path) -> None:
+    refs = importlib.import_module("med_autoscience.controllers.paper_progress_transition_refs")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
 
-    outbox.enqueue_paper_work_unit(
+    refs.record_paper_progress_transition_ref(
         study_root=study_root,
         quest_root=quest_root,
         idempotency_key="paper-work-unit::001",
         intent=_intent(target="claim:C1"),
-        worker_start_ref="worker::run-001",
         recorded_at="2026-05-10T00:00:00+00:00",
     )
 
-    conflict = outbox.enqueue_paper_work_unit(
+    conflict = refs.record_paper_progress_transition_ref(
         study_root=study_root,
         quest_root=quest_root,
         idempotency_key="paper-work-unit::001",
         intent=_intent(target="claim:C2"),
-        worker_start_ref="worker::run-002",
         recorded_at="2026-05-10T00:01:00+00:00",
     )
 
@@ -117,79 +103,35 @@ def test_enqueue_fails_closed_for_same_idempotency_key_with_different_intent(tmp
     assert conflict["started_worker"] is False
     assert conflict["worker_start_ref"] is None
     assert conflict["conflicting_receipt_id"] is not None
-    assert len(outbox.read_receipts(study_root=study_root)) == 2
+    assert len(refs.read_transition_refs(study_root=study_root)) == 2
 
 
-def test_enqueue_suppresses_duplicate_worker_start_for_same_source_fingerprint(tmp_path: Path) -> None:
-    outbox = importlib.import_module("med_autoscience.controllers.paper_work_unit_outbox")
+def test_transition_ref_dedupes_same_source_without_worker_start_or_queue_claim(tmp_path: Path) -> None:
+    refs = importlib.import_module("med_autoscience.controllers.paper_progress_transition_refs")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
 
-    first = outbox.enqueue_paper_work_unit(
+    first = refs.record_paper_progress_transition_ref(
         study_root=study_root,
         quest_root=quest_root,
         idempotency_key="paper-work-unit::001",
         intent=_intent(target="claim:C1"),
-        worker_start_ref="worker::run-001",
         recorded_at="2026-05-10T00:00:00+00:00",
     )
-    duplicate_source = outbox.enqueue_paper_work_unit(
+    duplicate_source = refs.record_paper_progress_transition_ref(
         study_root=study_root,
         quest_root=quest_root,
         idempotency_key="paper-work-unit::002",
         intent=_intent(target="claim:C2"),
-        worker_start_ref="worker::run-002",
         recorded_at="2026-05-10T00:01:00+00:00",
     )
 
-    assert first["started_worker"] is True
-    assert duplicate_source["receipt_status"] == "duplicate_source_fingerprint"
+    assert first["started_worker"] is False
+    assert first["worker_start_ref"] is None
+    assert duplicate_source["receipt_status"] == "duplicate_source_fingerprint_ref"
     assert duplicate_source["started_worker"] is False
-    assert duplicate_source["worker_start_ref"] == "worker::run-001"
+    assert duplicate_source["worker_start_ref"] is None
     assert duplicate_source["duplicate_of_receipt_id"] == first["receipt_id"]
-    assert [item["worker_start_ref"] for item in outbox.worker_starts(study_root=study_root)] == ["worker::run-001"]
-
-
-def test_tombstoned_legacy_control_receipt_does_not_suppress_current_worker_start(tmp_path: Path) -> None:
-    outbox = importlib.import_module("med_autoscience.controllers.paper_work_unit_outbox")
-    study_root = tmp_path / "workspace" / "studies" / "001-risk"
-    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
-    retired_marker = _legacy_control_marker()
-
-    outbox.enqueue_paper_work_unit(
-        study_root=study_root,
-        quest_root=quest_root,
-        idempotency_key="paper-work-unit::legacy",
-        intent={
-            **_intent(),
-            "action_type": retired_marker,
-            "retired_surface_marker": retired_marker,
-        },
-        worker_start_ref=f"controller-apply::{retired_marker}::legacy",
-        recorded_at="2026-05-10T00:00:00+00:00",
-    )
-
-    current = outbox.enqueue_paper_work_unit(
-        study_root=study_root,
-        quest_root=quest_root,
-        idempotency_key="paper-work-unit::current",
-        intent={
-            **_intent(unit_id="opl_stage_attempt_admission"),
-            "action_type": "request_opl_stage_attempt",
-            "owner": "one-person-lab",
-            "callable_surface": "opl_stage_attempt.request_admission",
-        },
-        worker_start_ref="opl-worker::current",
-        recorded_at="2026-05-10T00:01:00+00:00",
-    )
-
-    assert current["receipt_status"] == "started"
-    assert current["started_worker"] is True
-    assert current["worker_start_ref"] == "opl-worker::current"
-    assert [item["worker_start_ref"] for item in outbox.worker_starts(study_root=study_root)] == [
-        f"controller-apply::{retired_marker}::legacy",
-        "opl-worker::current",
-    ]
 
 
 def test_repeat_suppression_does_not_block_owner_handoff_dispatch_or_execution() -> None:

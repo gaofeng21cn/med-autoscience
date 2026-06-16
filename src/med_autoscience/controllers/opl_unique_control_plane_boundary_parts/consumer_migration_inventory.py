@@ -7,7 +7,7 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
         "generic_queue_attempt_retry_dead_letter", "generic_transition_runner",
     ],
     "domain_authority_refs": [
-        "domain_authority_refs_index", "paper_work_unit_outbox_index", "runtime_storage_maintenance",
+        "domain_authority_refs_index", "paper_progress_transition_refs", "runtime_storage_maintenance",
         "publication_route_memory_locator_transport_shell", "artifact_lifecycle_storage_audit_shell",
     ],
     "minimal_authority_function": [
@@ -52,20 +52,22 @@ DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE = {
             "paper_closure_verdict",
         ],
     },
-    "paper_work_unit_outbox_index": {
+    "paper_progress_transition_refs": {
         "domain_ref_consumer_refs": [
-            "paper work-unit controller keeps publication-gate context refs",
-            "domain-handler dispatch consumes work-unit source refs",
+            "paper progress policy adapter keeps paper work-unit identity refs",
+            "domain-handler dispatch consumes OPL transition request refs",
         ],
-        "retirement_gate_status": "domain_outbox_refs_until_opl_queue_attempt_parity",
+        "retirement_gate_status": "transition_request_refs_until_opl_runtime_readback_parity",
         "delete_or_tombstone_after": [
-            "opl_queue_attempt_ledger_consumes_domain_refs",
-            "opl_queue_attempt_ledger_parity_proven",
+            "opl_domain_progress_transition_runtime_consumes_policy_refs",
+            "opl_transition_runtime_readback_parity_proven",
             "paper_work_unit_identity_refs_projected_by_opl",
-            "focused_queue_stage_attempt_tests_green",
+            "focused_transition_runtime_tests_green",
         ],
         "must_not_emit": [
             "generic_queue_owner",
+            "generic_outbox_owner",
+            "attempt_lifecycle_owner",
             "attempt_completion_is_publication_ready",
             "paper_closure_verdict",
         ],
@@ -258,16 +260,21 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "mas_domain_authority_refs": ["owner_receipt", "progress_projection"],
     },
     {
-        "module_id": "paper_work_unit_outbox_index",
+        "module_id": "paper_progress_transition_refs",
         "owner": "med-autoscience",
         "classification": "domain_authority_refs",
         "migration_class": "refs_only_domain_adapter",
-        "code_paths": ["src/med_autoscience/controllers/paper_work_unit_outbox.py"],
-        "domain_ref_consumers": ["paper work-unit controller and domain-handler dispatch source refs"],
-        "current_ref_status": "domain_outbox_refs_no_queue_attempt_owner",
-        "migration_action": "declare_paper_work_unit_refs_and_queue_attempt_requirements",
+        "code_paths": ["src/med_autoscience/controllers/paper_progress_transition_refs.py"],
+        "domain_ref_consumers": ["paper policy adapter and domain-handler dispatch transition refs"],
+        "current_ref_status": "transition_request_refs_no_queue_attempt_or_outbox_owner",
+        "migration_action": "declare_paper_transition_refs_and_opl_runtime_readback_requirements",
         "retention_reason": "Paper work-unit identity, publication gate context, and artifact delta obligations are MAS domain facts.",
-        "opl_expected_primitives": ["generic_queue", "generic_attempt_ledger", "attempt_retry_dead_letter"],
+        "opl_expected_primitives": [
+            "domain_progress_transition_runtime",
+            "transactional_outbox",
+            "stage_run_identity",
+            "non_advancing_apply",
+        ],
         "mas_domain_authority_refs": ["paper_work_unit_semantics", "publication_gate", "owner_receipt"],
     },
     {

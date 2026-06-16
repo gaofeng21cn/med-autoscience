@@ -8,8 +8,14 @@ from med_autoscience.controllers import quality_repair_batch
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    has_opl_transition_readback,
+)
 from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
     EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
+)
+from med_autoscience.controllers.opl_execution_boundary import (
+    typed_blocker as opl_execution_authorization_typed_blocker,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -343,6 +349,30 @@ def _writer_stage_attempt_handoff_execution(*, dispatch: Mapping[str, Any], ques
     required_output_surface = _text(dispatch.get("required_output_surface")) or _text(
         _mapping(dispatch.get("prompt_contract")).get("required_output_surface")
     )
+    if not has_opl_transition_readback(dispatch):
+        return {
+            "execution_status": "blocked",
+            "blocked_reason": "opl_execution_authorization_required",
+            "typed_blocker": opl_execution_authorization_typed_blocker(),
+            "owner_callable_surface": None,
+            "writer_worker_handoff": dict(dispatch),
+            "adapter_kind": "opl_authorized_owner_callable_adapter",
+            "target_runtime_owner": "one-person-lab",
+            "mas_private_attempt_loop_forbidden": True,
+            "mas_dispatch_authority": False,
+            "mas_creates_opl_outbox": False,
+            "mas_creates_opl_event": False,
+            "mas_creates_opl_stage_run": False,
+            "provider_admission_pending": False,
+            "provider_admission_requires_opl_runtime_result": True,
+            "provider_attempt_or_lease_required": False,
+            "opl_transition_runtime_required": True,
+            "provider_completion_is_domain_completion": False,
+            "domain_completion_authorized": False,
+            "required_next_owner": "write",
+            "required_output_surface": required_output_surface,
+            "quest_root": str(quest_root),
+        }
     return {
         "execution_status": "handoff_ready",
         "blocked_reason": None,

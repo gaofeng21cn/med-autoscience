@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import current_work_unit as current_work_unit_reducer
+from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
+    paper_recovery_successor_action_ready as _paper_recovery_successor_action_ready,
+)
 
 
 def current_executable_owner_action(progress: Mapping[str, Any]) -> dict[str, Any]:
@@ -61,21 +64,7 @@ def successor_owner_action_from_current_action(action: Mapping[str, Any]) -> dic
 
 
 def paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
-    payload = _mapping(action)
-    if _text(payload.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
-        return False
-    successor = _mapping(payload.get("paper_recovery_successor"))
-    if successor.get("provider_admission_allowed") is not True:
-        return False
-    return (
-        _text(payload.get("action_type")) is not None
-        and _text(payload.get("work_unit_id")) is not None
-        and (
-            _text(payload.get("work_unit_fingerprint"))
-            or _text(payload.get("action_fingerprint"))
-        )
-        is not None
-    )
+    return _paper_recovery_successor_action_ready(action)
 
 
 def current_owner_successor_action(

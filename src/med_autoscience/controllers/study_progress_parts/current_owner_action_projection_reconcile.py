@@ -6,6 +6,9 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_routeback_curr
     gate_followthrough_action_supersedes_publication_gate_replay_blocker,
     gate_followthrough_action_supersedes_transport_or_execution_residue,
 )
+from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
+    paper_recovery_successor_action_ready,
+)
 
 from .current_executable_owner_action import owner_action_next_step
 from .macro_state_projection import compact_study_macro_state_from_payload
@@ -246,8 +249,7 @@ def current_control_typed_blocker_successor_action(
         ):
             return False
     if source == "paper_recovery_state.next_safe_action.successor_owner_action":
-        successor = _mapping_copy(action.get("paper_recovery_successor"))
-        if successor.get("provider_admission_allowed") is not True:
+        if not paper_recovery_successor_action_ready(action):
             return False
     return _non_empty_text(action.get("action_type")) is not None and _non_empty_text(
         action.get("work_unit_id")

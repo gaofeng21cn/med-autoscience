@@ -563,6 +563,22 @@ def _allowed_controller_actions(*, canonical_runtime_action: str) -> list[str]:
     return list(_BASE_ALLOWED_ACTIONS)
 
 
+def _diagnostic_hint_contract(*, canonical_runtime_action: str) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_runtime_health_diagnostic_hint_contract",
+        "hint_only": True,
+        "canonical_runtime_action_hint": canonical_runtime_action,
+        "canonical_runtime_action_is_authority": False,
+        "allowed_controller_action_hints_are_authority": False,
+        "runtime_liveness_hint_is_authority": False,
+        "attempt_state_hint_is_lifecycle_authority": False,
+        "retry_budget_hint_is_lifecycle_authority": False,
+        "opl_observability_readback_required": True,
+        "opl_current_control_or_stage_run_readback_required": True,
+        "mas_private_attempt_loop_forbidden": True,
+    }
+
+
 def _snapshot_from_events(
     *,
     study_root: Path,
@@ -648,6 +664,9 @@ def _snapshot_from_events(
     last_known_run_id = _last_known_run_id(events, strict_live=strict_live, active_run_id=observed_active_run_id)
     failure_reason = _latest_failure_reason(events, runtime_payload, active_run_id=active_budget_run_id)
     blocking_reasons = list(dict.fromkeys(reason for reason in blocking_reasons if reason))
+    allowed_controller_action_hints = _allowed_controller_actions(
+        canonical_runtime_action=canonical_runtime_action
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "surface": "runtime_health_snapshot",
@@ -680,9 +699,21 @@ def _snapshot_from_events(
         "failure_reason": failure_reason,
         "backoff_until": _text(runtime_payload.get("backoff_until")),
         "retry_budget_remaining": retry_budget_remaining,
+        "diagnostic_hint_contract": _diagnostic_hint_contract(
+            canonical_runtime_action=canonical_runtime_action
+        ),
+        "runtime_action_hint": canonical_runtime_action,
+        "runtime_action_hint_is_authority": False,
+        "allowed_controller_action_hints": list(allowed_controller_action_hints),
+        "allowed_controller_action_hints_are_authority": False,
+        "opl_observability_readback_required": True,
+        "opl_current_control_or_stage_run_readback_required": True,
+        "mas_private_attempt_loop_forbidden": True,
         "canonical_runtime_action": canonical_runtime_action,
+        "canonical_runtime_action_is_authority": False,
         "blocking_reasons": blocking_reasons,
-        "allowed_controller_actions": _allowed_controller_actions(canonical_runtime_action=canonical_runtime_action),
+        "allowed_controller_actions": list(allowed_controller_action_hints),
+        "allowed_controller_actions_are_authority": False,
         "dominant_runtime_refs": [_authority_ref(dominant)] if dominant is not None else [],
         "projection_invalidations": _projection_invalidations(
             events=events,

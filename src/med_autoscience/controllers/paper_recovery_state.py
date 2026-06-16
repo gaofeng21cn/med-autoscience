@@ -94,7 +94,7 @@ def build_paper_recovery_state(
         if decision == "route_back_to_mas_packet_materialization_bug":
             phase = "owner_action_ready"
             next_action_kind = "route_back_to_owner_or_repair_materialization"
-            provider_admission_allowed = owner_gate_payload.get("provider_admission_allowed") is True
+            provider_admission_allowed = False
             accepted_owner_gate_decision = _accepted_owner_gate_decision(owner_gate_payload)
         elif decision == "admit_identity_bound_stage_packet":
             phase = "admission_pending"
@@ -519,6 +519,7 @@ def build_paper_recovery_state(
             next_safe_action=_next_action(
                 "admit_provider_attempt",
                 provider_admission_allowed=True,
+                provider_admission_requires_opl_runtime_result=False,
                 owner=owner,
             ),
             current_owner=owner,
@@ -539,6 +540,7 @@ def build_paper_recovery_state(
             next_safe_action=_next_action(
                 "await_opl_transition_readback_or_non_advancing_apply",
                 provider_admission_allowed=False,
+                provider_admission_requires_opl_runtime_result=True,
                 owner=owner,
                 required_input="OPL command/event/outbox or StageRun readback for the same transition request",
             ),
@@ -690,10 +692,13 @@ def _obligation_action_type(
     *,
     current_work_unit: Mapping[str, Any],
 ) -> str | None:
+    owner_action_admission = _mapping(progress.get("owner_action_admission"))
     return _first_text(
         current_work_unit.get("action_type"),
         _mapping(progress.get("current_executable_owner_action")).get("action_type"),
         _mapping(progress.get("current_execution_envelope")).get("action_type"),
+        owner_action_admission.get("action_type"),
+        _single_text_item(owner_action_admission.get("allowed_actions")),
     )
 
 
@@ -702,11 +707,26 @@ def _obligation_work_unit_id(
     *,
     current_work_unit: Mapping[str, Any],
 ) -> str | None:
+    currentness_basis = _mapping(current_work_unit.get("owner_route_currentness_basis")) or _mapping(
+        current_work_unit.get("currentness_basis")
+    )
+    owner_action_admission = _mapping(progress.get("owner_action_admission"))
     return _first_text(
         current_work_unit.get("work_unit_id"),
+        currentness_basis.get("work_unit_id"),
+        currentness_basis.get("explicit_publication_work_unit_id"),
+        currentness_basis.get("current_publication_work_unit_id"),
+        owner_action_admission.get("work_unit_id"),
         _mapping(progress.get("current_execution_envelope")).get("next_work_unit"),
         _mapping(progress.get("current_executable_owner_action")).get("work_unit_id"),
     )
+
+
+def _single_text_item(value: Any) -> str | None:
+    items = _text_items(value)
+    if len(items) == 1:
+        return items[0]
+    return None
 
 
 def _obligation_fingerprint(
@@ -1427,6 +1447,7 @@ def _next_action(
     kind: str,
     *,
     provider_admission_allowed: bool,
+    provider_admission_requires_opl_runtime_result: bool | None = None,
     owner: str | None = None,
     required_input: str | None = None,
     owner_receipt_ref: str | None = None,
@@ -1439,6 +1460,7 @@ def _next_action(
         "kind": kind,
         "owner": owner,
         "provider_admission_allowed": provider_admission_allowed,
+        "provider_admission_requires_opl_runtime_result": provider_admission_requires_opl_runtime_result,
         "required_input": required_input,
         "owner_receipt_ref": owner_receipt_ref,
         "accepted_owner_gate_decision": dict(accepted_owner_gate_decision or {}),

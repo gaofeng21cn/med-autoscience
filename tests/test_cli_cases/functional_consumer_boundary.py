@@ -136,7 +136,7 @@ def test_domain_handler_export_projects_functional_consumer_boundary(tmp_path: P
         "src/med_autoscience/opl_domain_pack/",
         "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py",
     ]
-    assert inventory_by_id["paper_work_unit_outbox_index"]["classification"] == "domain_authority_refs"
+    assert inventory_by_id["paper_progress_transition_refs"]["classification"] == "domain_authority_refs"
     assert inventory_by_id["artifact_authority"]["cannot_absorb_reason"] == (
         "Canonical manuscript/package mutation and submission authority are MAS artifact authority."
     )

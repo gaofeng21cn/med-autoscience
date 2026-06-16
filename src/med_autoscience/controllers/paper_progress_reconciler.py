@@ -6,7 +6,7 @@ from typing import Any
 from med_autoscience.runtime_control.owner_callable_registry import owner_callable_registry
 
 from .paper_progress_state import build_paper_progress_state
-from .paper_work_unit_outbox import enqueue_paper_work_unit
+from .paper_progress_transition_refs import record_paper_progress_transition_ref
 
 
 SCHEMA_VERSION = 1
@@ -174,12 +174,12 @@ def _desired_state(current_state: Mapping[str, Any], study: Mapping[str, Any]) -
         }
     return {
         "state": "repo_level_blocker",
-        "owner": _text(current_state.get("next_owner")) or "MAS/controller",
-        "action_type": "inspect_controller_route",
-        "required_outputs": (),
-        "artifact_delta_predicate": "controller_route_gap_resolved",
+        "owner": "med-autoscience",
+        "action_type": "repo_route_typed_blocker_required",
+        "required_outputs": ("MAS typed blocker", "MAS owner receipt"),
+        "artifact_delta_predicate": "repo_route_gap_typed_blocker_or_owner_receipt_recorded",
         "gate_replay_target": None,
-        "idempotency_key": _idempotency_key(study, owner_route, "blocked_controller_route"),
+        "idempotency_key": _idempotency_key(study, owner_route, "repo_route_typed_blocker"),
         "source_fingerprint": source_fingerprint,
     }
 
@@ -240,12 +240,11 @@ def _action_receipt(
             "callable_surface": intent["callable_surface"],
         }
     study_id = _text(study.get("study_id")) or "unknown-study"
-    return enqueue_paper_work_unit(
+    return record_paper_progress_transition_ref(
         study_root=profile.studies_root / study_id,
         quest_root=profile.runtime_root / _quest_id(study, study_id),
         idempotency_key=str(intent["idempotency_key"]),
         intent=intent,
-        worker_start_ref=_worker_start_ref(execution=execution, desired_state=desired_state, generated_at=generated_at),
         recorded_at=generated_at,
     )
 
@@ -298,6 +297,18 @@ def _callable_contract(desired_state: Mapping[str, Any]) -> dict[str, Any] | Non
             "required_inputs": ("paper_progress_state", "owner_route", "missing_owner_ref"),
             "required_outputs": ("MAS typed blocker", "MAS owner receipt"),
             "artifact_delta_predicate": "domain_owner_contract_resolved_or_typed_blocker_recorded",
+            "gate_replay_target": None,
+            "idempotency_scope": "study_quest_owner_route",
+            "source_fingerprint_scope": "owner_route.source_fingerprint",
+        }
+    if owner == "med-autoscience" and _text(desired_state.get("action_type")) == "repo_route_typed_blocker_required":
+        return {
+            "owner": owner,
+            "action_type": "repo_route_typed_blocker_required",
+            "callable_surface": "mas_domain_authority.typed_blocker.repo_route_gap",
+            "required_inputs": ("paper_progress_state", "owner_route", "authority_snapshot"),
+            "required_outputs": ("MAS typed blocker", "MAS owner receipt"),
+            "artifact_delta_predicate": "repo_route_gap_typed_blocker_or_owner_receipt_recorded",
             "gate_replay_target": None,
             "idempotency_scope": "study_quest_owner_route",
             "source_fingerprint_scope": "owner_route.source_fingerprint",
@@ -384,15 +395,6 @@ def _idempotency_key(study: Mapping[str, Any], owner_route: Mapping[str, Any], s
         return f"paper-progress::{text}::{suffix}"
     study_id = _text(study.get("study_id")) or "unknown-study"
     return f"paper-progress::{study_id}::{_source_fingerprint(study)}::{suffix}"
-
-
-def _worker_start_ref(*, execution: Mapping[str, Any] | None, desired_state: Mapping[str, Any], generated_at: str) -> str:
-    payload = _mapping(execution)
-    return (
-        _text(payload.get("execution_id"))
-        or _text(payload.get("dispatch_id"))
-        or f"controller-apply::{_text(desired_state.get('action_type')) or 'paper-progress'}::{generated_at}"
-    )
 
 
 def _quest_id(study: Mapping[str, Any], study_id: str) -> str:

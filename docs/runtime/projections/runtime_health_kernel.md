@@ -7,7 +7,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 ## 目标
 
-`RuntimeHealthKernel` 是 MAS 针对 `(study_id, quest_id)` 的 domain health / blocker reducer。它消费 OPL current-control-state refs、MAS owner route refs、typed closeout refs、owner receipt、typed blocker、stale progress 与 escalation 事件，归并为一个 domain diagnostic snapshot，供 `progress_projection`、`study_progress`、`domain_health_diagnostic`、workspace cockpit、product entry status 和 MCP compact projection 消费。它不再是 worker/session/runtime lifecycle truth owner。
+`RuntimeHealthKernel` 是 MAS 针对 `(study_id, quest_id)` 的 domain health / blocker diagnostic reducer。它消费 OPL current-control-state refs、MAS owner route refs、typed closeout refs、owner receipt、typed blocker、stale progress 与 escalation 事件，归并为一个 body-free diagnostic snapshot，供 `progress_projection`、`study_progress`、`domain_health_diagnostic`、workspace cockpit、product entry status 和 MCP compact projection 消费。它不再是 worker/session/runtime lifecycle truth owner。
 
 该合同采用四条工程原则：
 
@@ -25,7 +25,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 普通 `progress_projection` / `study_progress` read 只生成 shadow snapshot，不写 `artifacts/runtime/health/latest.json`。只有显式 reconcile、`runtime domain-health-diagnostic --apply` 或 controller tick 可以刷新 materialized snapshot。
 
-`runtime_session` 是 retired worker/session read model 名称；当前 live/no-live、last attempt、worker liveness、retry/dead-letter 和 provider terminal truth 来自 OPL `current_control_state`。MAS projection 只能显示 OPL refs、owner receipt、typed blocker、route-back reason 和 historical fixture / explicit archive import reference；它不判断 scientific quality，不授权 publication/submission readiness，也不替代 OPL attempt ledger。
+`runtime_session` 是 retired worker/session read model 名称；当前 live/no-live、last attempt、worker liveness、retry/dead-letter 和 provider terminal truth 来自 OPL `current_control_state`。MAS projection 只能显示 OPL refs、owner receipt、typed blocker、route-back reason 和 historical fixture / explicit archive import reference；它不判断 scientific quality，不授权 publication/submission readiness，也不替代 OPL attempt ledger。`canonical_runtime_action` 与 `allowed_controller_actions` 只保留为 legacy-compatible diagnostic hint；同一 snapshot 必须同时暴露 `runtime_action_hint_is_authority=false`、`allowed_controller_action_hints_are_authority=false`、`opl_observability_readback_required=true`、`opl_current_control_or_stage_run_readback_required=true` 与 `mas_private_attempt_loop_forbidden=true`，任何执行、恢复、attempt、worker 或 provider admission 都必须回到 OPL Observability / StageRun / current-control readback。
 
 显式 `source_signature` 是 runtime health 的幂等键。同一 `(study_id, quest_id, event_type, source_signature)` 重放只能返回 existing event，不得再次追加并消耗 retry budget。没有显式 source signature 的 recover/launch attempt 仍按真实新尝试追加，继续消耗 retry budget。
 
@@ -54,16 +54,16 @@ uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile
 - `pause-runtime` 后的 terminal control barrier 必须覆盖三个竞态源：due delayed turn 不得 drain 成新 run；旧 active worker 的 late completion 不得把 paused 改回 active；普通 `progress_projection` 读取必须投影为 `quest_user_paused_requires_explicit_wakeup`，直到显式 resume contract 释放。transport 层的释放点固定为 `resume_quest` 发出的 `explicit_resume`，它可以把同一 quest identity 从 paused 重入 running；其他 schedule 原因仍必须被 `terminal_runtime_state` 阻断。
 - 历史残留的裸 `paused` read model 也属于 terminal control barrier：当 runtime state 无 `active_run_id`、无 live worker、无 `stop_reason`、无 controller continuation owner 时，普通 status/read/reconcile 只能投影为 `await_explicit_resume`，不能依赖 `_RESUMABLE_QUEST_STATUSES` 自动发起 `resume`。
 - 历史残留的 `active` read model 也可能承载同一显式恢复屏障：当 `active` quest 无 `active_run_id`、无 live worker，且 runtime health 已把 dominant observation 投影为 `await_explicit_resume / quest_user_paused_requires_explicit_wakeup` 时，显式 user wakeup 只能把 stale human-takeover/user-pause barrier 清成 OPL runtime owner-route handoff；MAS 不直接恢复 provider worker。
-- runtime health 只能影响 runtime action；不得反向覆盖 `StudyTruthKernel.canonical_next_action`、publication gate、package authority 或 delivery state。
+- runtime health 只能提供 diagnostic hint；不得反向覆盖 `StudyTruthKernel.canonical_next_action`、publication gate、package authority 或 delivery state，也不得直接驱动 MAS 私有 attempt loop、worker start、provider admission 或 OPL event/outbox/StageRun 创建。
 
 ## MDS 边界
 
-MDS 只能提供 runtime/native/review/probe 事件，包括 runtime state、daemon probe、worker heartbeat、session probe 与 runtime event observed。MAS 持有 `RuntimeHealthKernel` reducer、`canonical_runtime_action`、domain blocker interpretation 与 allowed controller actions；worker liveness / attempt truth 只能来自 OPL current-control-state refs。任何 MDS 输出如果要影响用户可见运行动作，必须先进入 runtime health event，再由 reducer 产生 domain diagnostic snapshot。
+MDS 只能提供 runtime/native/review/probe 事件，包括 runtime state、daemon probe、worker heartbeat、session probe 与 runtime event observed。MAS 持有 `RuntimeHealthKernel` diagnostic reducer、domain blocker interpretation、owner receipt / typed blocker refs 与 legacy-compatible action hints；worker liveness / attempt truth 只能来自 OPL current-control-state refs。任何 MDS 输出如果要影响用户可见运行动作，必须先进入 runtime health event，再由 reducer 产生 non-authoritative diagnostic snapshot，并由 OPL readback / owner route / typed blocker surface 决定是否可执行。
 
 ## 事故治理
 
 后续 runtime liveness / recovery 事故不能只补 MAS 局部判断。每次事故必须同时留下三类可验证资产：
 
-- reducer rule：把新的 dominance、retry 或 invalidation 规则写进 `RuntimeHealthKernel`。
-- fixture test：把真实冲突脱敏成 golden fixture，证明只产出一个 `canonical_runtime_action`。
+- reducer rule：把新的 dominance、retry 或 invalidation 规则写进 `RuntimeHealthKernel`，并保持 `runtime_action_hint_is_authority=false`。
+- fixture test：把真实冲突脱敏成 golden fixture，证明只产出一个 diagnostic runtime action hint，且执行仍要求 OPL readback。
 - runbook entry：在 runtime/status 文档里记录事故模式、权威来源和禁止旁路。

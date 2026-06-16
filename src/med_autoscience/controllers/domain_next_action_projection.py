@@ -83,6 +83,17 @@ def reconcile_next_action(
     return {
         "surface": "domain_next_action_projection",
         "schema_version": 1,
+        "projection_role": "body_free_diagnostic_projection",
+        "authority": False,
+        "can_authorize_provider_admission": False,
+        "can_create_opl_command_event_or_outbox": False,
+        "can_start_worker": False,
+        "canonical_next_action_is_authority": False,
+        "runtime_health_action_is_authority": False,
+        "opl_readback_required_for_execution": action in {"request_opl_runtime_owner", "run_domain_work_unit"},
+        "opl_current_control_or_stage_run_readback_required": action
+        in {"request_opl_runtime_owner", "run_domain_work_unit"},
+        "mas_private_attempt_loop_forbidden": True,
         "canonical_next_action": action,
         "owner": state_spec.get("owner"),
         "human_gate_required": bool(state_spec.get("human_gate_required")),

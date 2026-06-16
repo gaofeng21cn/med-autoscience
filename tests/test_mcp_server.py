@@ -564,9 +564,15 @@ def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack(tm
     assert invoke_payload["surface_kind"] == "mas_scientific_capability_invocation"
     assert invoke_payload["capability_id"] == "display_pack_visual_capability"
     assert invoke_payload["can_block_current_owner_action"] is False
-    assert invoke_payload["result"]["surface_kind"] == "display_pack_agent_orchestration"
-    assert invoke_payload["result"]["plan"]["recommended_template"]["template_id"] == "roc_curve_binary"
-    assert invoke_payload["result"]["next_callable"] == "display-pack-render"
+    assert invoke_payload["status"] == "opl_capability_request_pending"
+    assert invoke_payload["mas_local_capability_actuator"] is False
+    assert invoke_payload["result"]["surface_kind"] == (
+        "mas_scientific_capability_invocation_request_projection"
+    )
+    request = invoke_payload["opl_capability_invocation_request"]
+    assert request["target_runtime_owner"] == "one-person-lab"
+    assert request["target_runtime_kind"] == "CapabilityRegistry"
+    assert request["mas_can_run_capability_actuator"] is False
 
 
 def test_mcp_server_rejects_ensure_study_runtime_mode_on_retired_mcp_tool(tmp_path: Path) -> None:

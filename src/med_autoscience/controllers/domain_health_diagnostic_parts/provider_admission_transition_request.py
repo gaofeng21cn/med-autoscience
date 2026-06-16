@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.controllers import paper_progress_policy_adapter
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
     mapping as _mapping,
     non_empty_text as _non_empty_text,
@@ -74,16 +77,32 @@ def _candidate_current_work_unit(candidate: Mapping[str, Any]) -> dict[str, Any]
 
 
 def _candidate_provider_admission_recovery(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    if candidate_opl_transition_readback(candidate):
+        return {
+            key: value
+            for key, value in {
+                "surface_kind": "paper_recovery_state",
+                "phase": "admission_pending",
+                "next_safe_action": {
+                    "kind": "admit_provider_attempt",
+                    "owner": _non_empty_text(candidate.get("next_executable_owner"))
+                    or _non_empty_text(candidate.get("owner")),
+                    "provider_admission_allowed": True,
+                    "provider_admission_requires_opl_runtime_result": False,
+                },
+            }.items()
+            if value not in (None, "", [], {})
+        }
     return {
         key: value
         for key, value in {
             "surface_kind": "paper_recovery_state",
-            "phase": "admission_pending",
+            "phase": "transition_request_pending",
             "next_safe_action": {
-                "kind": "admit_provider_attempt",
-                "owner": _non_empty_text(candidate.get("next_executable_owner"))
-                or _non_empty_text(candidate.get("owner")),
-                "provider_admission_allowed": True,
+                "kind": "await_opl_transition_readback",
+                "owner": "one-person-lab",
+                "provider_admission_allowed": False,
+                "provider_admission_requires_opl_runtime_result": True,
             },
         }.items()
         if value not in (None, "", [], {})

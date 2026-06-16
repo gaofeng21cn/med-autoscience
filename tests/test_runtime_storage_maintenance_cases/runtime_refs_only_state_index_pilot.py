@@ -40,7 +40,7 @@ def test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies(t
         "cursor": 1,
         "index": 1,
         "lifecycle": 1,
-        "outbox": 1,
+        "paper_progress_transition_ref": 1,
         "receipt_ref": 2,
     }
     assert result["sqlite_ref"]["workspace_relative_path"] == (
@@ -71,7 +71,7 @@ def test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies(t
         "runtime/quests/quest-001/artifacts/runtime/state/runtime_state.json",
         "studies/001-risk/artifacts/runtime/owner_route/latest.json",
         "studies/001-risk/artifacts/runtime/opl_family_domain_handler/dispatch_receipts/dispatch-001.json",
-        "studies/001-risk/artifacts/runtime/paper_work_unit_outbox/receipts.jsonl",
+        "studies/001-risk/artifacts/runtime/paper_progress_transition_refs/receipts.jsonl",
         "studies/001-risk/artifacts/runtime/cursors/owner-route.cursor.json",
         "studies/001-risk/artifacts/runtime/indexes/stage_artifact_index.json",
     } == source_refs
@@ -195,7 +195,7 @@ def test_maintain_runtime_storage_can_write_refs_only_state_index_pilot_summary(
             "cursor": 1,
             "index": 1,
             "lifecycle": 1,
-            "outbox": 1,
+            "paper_progress_transition_ref": 1,
             "receipt_ref": 2,
         },
         "sqlite_summary_ref": "artifacts/runtime/mas_refs_only_state_index_pilot.sqlite",
@@ -405,9 +405,9 @@ def _write_refs_only_pilot_fixture(*, study_root: Path, quest_root: Path) -> Non
     for path, payload in payloads.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    outbox = study_root / "artifacts" / "runtime" / "paper_work_unit_outbox" / "receipts.jsonl"
-    outbox.parent.mkdir(parents=True, exist_ok=True)
-    outbox.write_text(
+    transition_refs = study_root / "artifacts" / "runtime" / "paper_progress_transition_refs" / "receipts.jsonl"
+    transition_refs.parent.mkdir(parents=True, exist_ok=True)
+    transition_refs.write_text(
         json.dumps(
             {
                 "receipt_id": "receipt-001",

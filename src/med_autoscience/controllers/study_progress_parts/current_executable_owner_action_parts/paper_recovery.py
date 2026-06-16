@@ -9,6 +9,10 @@ from med_autoscience.controllers.study_progress_parts.shared import (
 )
 
 
+PAPER_RECOVERY_SUCCESSOR_SOURCE = "paper_recovery_state.next_safe_action.successor_owner_action"
+PAPER_RECOVERY_SUCCESSOR_DELTA_KIND = "paper_recovery_successor_owner_delta_or_typed_blocker"
+
+
 def owner_action_from_paper_recovery_state(
     payload: Mapping[str, Any],
     *,
@@ -102,7 +106,9 @@ def owner_action_from_paper_recovery_state(
             "paper_recovery_successor": {
                 "phase": "owner_action_ready",
                 "source_next_safe_action_kind": "materialize_successor_owner_action",
-                "provider_admission_allowed": next_safe_action.get("provider_admission_allowed") is True,
+                "provider_admission_allowed": False,
+                "provider_admission_requires_opl_runtime_result": True,
+                "opl_transition_runtime_required": True,
                 "source_surface": source_surface,
             },
             "authority_boundary": _authority_boundary(),
@@ -119,8 +125,6 @@ def paper_recovery_successor_supersedes_gate_replay_blocker(
     if not action:
         return False
     successor = _mapping_copy(action.get("paper_recovery_successor"))
-    if successor.get("provider_admission_allowed") is not True:
-        return False
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
     if _non_empty_text(current_work_unit.get("status")) != "typed_blocker":
         return False
@@ -137,11 +141,7 @@ def paper_recovery_successor_supersedes_gate_replay_blocker(
     )
     if blocker_type != "publication_gate_replay_blocked":
         return False
-    return (
-        _non_empty_text(action.get("action_type")) is not None
-        and _non_empty_text(action.get("work_unit_id")) is not None
-        and _non_empty_text(action.get("work_unit_fingerprint")) is not None
-    )
+    return paper_recovery_successor_action_ready(action)
 
 
 def paper_recovery_successor_action_ready(
@@ -150,10 +150,17 @@ def paper_recovery_successor_action_ready(
     action = _mapping_copy(paper_recovery_action)
     if not action:
         return False
-    if _non_empty_text(action.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
+    if _non_empty_text(action.get("source")) != PAPER_RECOVERY_SUCCESSOR_SOURCE:
+        return False
+    if action.get("owner_receipt_required") is not True:
         return False
     successor = _mapping_copy(action.get("paper_recovery_successor"))
-    if successor.get("provider_admission_allowed") is not True:
+    if successor and _non_empty_text(successor.get("source_next_safe_action_kind")) not in {
+        None,
+        "materialize_successor_owner_action",
+    }:
+        return False
+    if _non_empty_text(action.get("required_delta_kind")) != PAPER_RECOVERY_SUCCESSOR_DELTA_KIND:
         return False
     return (
         _non_empty_text(action.get("action_type")) is not None
