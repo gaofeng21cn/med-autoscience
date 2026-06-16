@@ -11,8 +11,7 @@ from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
-    provider_admission_authority_transport_fields,
-    provider_admission_candidate_with_authority_boundaries,
+    domain_progress_transition_request_transport_fields,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -126,29 +125,19 @@ def _materialized_default_executor_dispatch_task(
         or "write"
     )
     dispatch_ref = _text(_mapping(dispatch.get("refs")).get("dispatch_path"))
-    provider_candidate = provider_admission_candidate_with_authority_boundaries(
-        {
-            "surface": "opl_provider_admission_candidate",
-            "schema_version": 1,
-            "status": "provider_admission_pending",
-            "source": "same_tick_materialized_dispatch",
-            "study_id": study_id,
-            "quest_id": _text(dispatch.get("quest_id")) or study_id,
-            "action_type": action_type,
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": work_unit_fingerprint,
-            "action_fingerprint": _text(dispatch.get("action_fingerprint"))
-            or work_unit_fingerprint,
-            "dispatch_path": dispatch_ref,
-            "dispatch_authority": _text(dispatch.get("dispatch_authority")),
-            "next_executable_owner": next_owner,
-            "provider_attempt_or_lease_required": True,
-            "provider_completion_is_domain_completion": False,
-            "owner_route_current": True,
-            "currentness_basis": owner_route_currentness_basis or None,
-        }
+    transition_request = _transition_request_identity(
+        study_id=study_id,
+        quest_id=_text(dispatch.get("quest_id")) or study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+        dispatch_ref=dispatch_ref,
+        dispatch_authority=_text(dispatch.get("dispatch_authority")),
+        next_owner=next_owner,
+        owner_route_currentness_basis=owner_route_currentness_basis,
+        source_fingerprint=source_fingerprint,
     )
-    provider_authority_fields = _provider_admission_authority_fields(provider_candidate)
+    transition_authority_fields = domain_progress_transition_request_transport_fields()
     payload = {
         "profile": str(profile_ref),
         "study_id": study_id,
@@ -160,8 +149,10 @@ def _materialized_default_executor_dispatch_task(
         "dispatch_ref": dispatch_ref,
         "authority_boundary": "mas_default_executor_dispatch_request_only",
         "next_executable_owner": next_owner,
-        **provider_authority_fields,
-        "provider_admission_identity": provider_candidate,
+        **transition_authority_fields,
+        "opl_domain_progress_transition_request": transition_request,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
         "owner_route_currentness_basis": owner_route_currentness_basis or None,
         "paper_autonomy_supervisor_decision": _mapping(
             _mapping(dispatch.get("source_action")).get("supervisor_decision")
@@ -195,8 +186,10 @@ def _materialized_default_executor_dispatch_task(
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
         "profile_name": profile.name,
-        **provider_authority_fields,
-        "provider_admission_identity": provider_candidate,
+        **transition_authority_fields,
+        "opl_domain_progress_transition_request": transition_request,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
         "domain_dispatch_evidence_record_payload": evidence_record_payload,
     }
 
@@ -255,13 +248,71 @@ def _materialized_dispatch_source_refs(
     return refs
 
 
-def _provider_admission_authority_fields(
-    provider_admission_identity_payload: Mapping[str, Any],
+def _transition_request_identity(
+    *,
+    study_id: str,
+    quest_id: str,
+    action_type: str,
+    work_unit_id: str | None,
+    work_unit_fingerprint: str | None,
+    dispatch_ref: str | None,
+    dispatch_authority: str | None,
+    next_owner: str | None,
+    owner_route_currentness_basis: Mapping[str, Any],
+    source_fingerprint: str,
 ) -> dict[str, Any]:
-    fields = provider_admission_authority_transport_fields(
-        provider_admission_identity_payload
-    )
-    return {key: value for key, value in fields.items() if value not in (None, "", [], {})}
+    source_generation = work_unit_fingerprint or source_fingerprint
+    return {
+        "surface_kind": "mas_domain_progress_transition_request",
+        "target_runtime_kind": "DomainProgressTransitionRuntime",
+        "target_runtime_owner": "one-person-lab",
+        "request_owner": "med-autoscience",
+        "authority_role": "domain_intent_request_only",
+        "mas_can_create_opl_outbox_record": False,
+        "mas_can_create_opl_event": False,
+        "mas_can_create_opl_stage_run": False,
+        "recommended_transition_kind": "MaterializeOwnerAction",
+        "aggregate_identity": {
+            "aggregate_kind": "study_work_unit",
+            "aggregate_id": "::".join(item for item in (study_id, work_unit_id) if item),
+            "study_id": study_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        },
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": action_type,
+        "next_owner": next_owner,
+        "idempotency_key": _fingerprint(
+            {
+                "kind": "paper-recovery-transition-request",
+                "study_id": study_id,
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "dispatch_ref": dispatch_ref,
+                "source_fingerprint": source_fingerprint,
+            }
+        ),
+        "source_generation": source_generation,
+        "expected_version": source_generation,
+        "required_postcondition": {
+            "kind": "owner_action_ref",
+            "outcome_owner": "one-person-lab",
+            "domain_state_owner": "med-autoscience",
+        },
+        "dispatch_ref": dispatch_ref,
+        "dispatch_authority": dispatch_authority,
+        "currentness_basis": dict(owner_route_currentness_basis) if owner_route_currentness_basis else None,
+        "forbidden_runtime_fields": [
+            "current_control_command_outbox_record",
+            "opl_domain_progress_transition_event",
+            "opl_domain_progress_transition_outbox_item",
+            "projection_metadata",
+            "read_model_generation_metadata",
+            "stage_run_identity",
+        ],
+    }
 
 
 def _consumer_latest_path_for_source_ref(profile: WorkspaceProfile) -> Path:

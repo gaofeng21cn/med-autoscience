@@ -10,6 +10,10 @@ from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_ca
 from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration import (
     build_functional_consumer_boundary,
 )
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.functional_followthrough_gaps import (
+    PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX,
+    PRIVATE_SURFACE_RETIREMENT_GATE_POLICY,
+)
 from med_autoscience.hosted_ordinary_path_consumption import (
     build_hosted_ordinary_path_consumption_contract,
 )
@@ -594,6 +598,9 @@ def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> d
             ],
         },
         "functional_followthrough_gap_summary": dict(functional_boundary["functional_followthrough_gap_summary"]),
+        "retirement_disposition_matrix": _json_ready(
+            PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX
+        ),
         "authority_boundary": {
             "opl_can_write_domain_truth": False,
             "opl_can_write_memory_body": False,
@@ -639,6 +646,10 @@ def _private_functional_surface_policy() -> dict[str, Any]:
             "domain_truth_verdict_authorizer",
             "*_authorizer",
         ],
+        "classification_required_for_private_surfaces": True,
+        "mas_private_surface_retirement_gate_policy": _json_ready(
+            PRIVATE_SURFACE_RETIREMENT_GATE_POLICY
+        ),
         "forbidden_mechanical_decision_surfaces": FORBIDDEN_MECHANICAL_DECISION_SURFACES,
         "independent_executor_reviewer_agent_policy": INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY,
         "requires_ai_first_record": True,

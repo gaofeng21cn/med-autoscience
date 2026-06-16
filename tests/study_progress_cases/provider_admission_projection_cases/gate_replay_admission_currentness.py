@@ -7,6 +7,15 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 from ..shared import _write_json
 
 
+def _opl_transition_result(*, stage_run_id: str = "stage-run-gate-replay") -> dict[str, str]:
+    return {
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "outcome_kind": "provider_admission_pending",
+        "stage_run_id": stage_run_id,
+    }
+
+
 def test_existing_projection_refresh_replays_gate_admission_after_recovery_state_materializes(
     monkeypatch,
     tmp_path,
@@ -44,6 +53,7 @@ def test_existing_projection_refresh_replays_gate_admission_after_recovery_state
             "work_unit_fingerprint": fingerprint,
             "action_fingerprint": fingerprint,
             "dispatch_path": str(dispatch_path),
+            "opl_domain_progress_transition_result": _opl_transition_result(),
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
         },
     )

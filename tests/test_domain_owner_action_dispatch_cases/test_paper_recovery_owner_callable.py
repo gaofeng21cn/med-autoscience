@@ -743,7 +743,8 @@ def test_execute_dispatch_handoffs_paper_recovery_provider_successor_without_ext
     )
 
     assert result["execution_count"] == 1
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["handoff_ready_count"] == 1
     assert result["blocked_count"] == 0
     execution = result["executions"][0]
     assert execution["execution_status"] == "handoff_ready"

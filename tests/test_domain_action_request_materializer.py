@@ -950,7 +950,6 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert result["mas_creates_opl_event"] is False
     assert result["mas_creates_opl_stage_run"] is False
     assert result["default_executor_dispatches"] == dispatches
-    assert result["default_executor_dispatches_compat_role"] == "derived_read_model_for_existing_selectors"
     assert [item["action_type"] for item in dispatches] == [
         "current_package_freshness_required",
         "return_to_ai_reviewer_workflow",

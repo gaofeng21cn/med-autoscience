@@ -62,7 +62,7 @@ def materialize_report_provider_admission_current_control_state(
         report=report,
     )
     supervisor_tick = _mapping(report.get("developer_supervisor_same_tick"))
-    if supervisor_tick.get("stop_reason") == "provider_handoff_written_admission_pending":
+    if supervisor_tick.get("stop_reason") == "provider_handoff_written_transition_request_pending":
         terminal_materialize = _mapping(supervisor_tick.get("materialize"))
         if terminal_materialize:
             candidates = _provider_admission_candidates_from_same_tick_materialize(

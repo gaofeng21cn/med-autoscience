@@ -18,86 +18,6 @@
   ],
   "classification_policy": "classify_private_functional_surfaces_as_standard_pack_refs_or_minimal_authority",
   "domain_id": "med-autoscience",
-  "retirement_disposition_matrix": {
-    "classification_source": "functional_consumer_boundary.functional_module_inventory",
-    "completion_claim_policy": {
-      "contracts_or_tests_alone_can_claim_100_percent": false,
-      "live_proof_required_before_100_percent": true,
-      "ready_claim_authorized": false
-    },
-    "required_retirement_gate_fields": [
-      "no_active_caller",
-      "no_forbidden_write_proof",
-      "replacement_parity",
-      "retirement_gate",
-      "tombstone_or_provenance"
-    ],
-    "source_of_truth_chain": "DomainIntent -> OPL Command/Event/Outbox/StageRun -> MAS OwnerAnswer -> Derived Projection",
-    "surface_dispositions": [
-      {
-        "disposition": "tombstone_only",
-        "module_ids": [
-          "generic_daemon_or_scheduler_lifecycle"
-        ],
-        "no_active_caller": "required_before_physical_delete_or_removed_from_default_caller",
-        "no_forbidden_write_proof": "required",
-        "replacement_parity": "opl_scheduler_provider_lifecycle_or_retired_provenance_only",
-        "retirement_gate": "tombstone_or_provenance_only_no_runtime_owner_resurrection",
-        "tombstone_or_provenance": "required"
-      },
-      {
-        "disposition": "opl_primitive_replacement",
-        "module_ids": [
-          "generic_queue_attempt_retry_dead_letter",
-          "generic_transition_runner"
-        ],
-        "no_active_caller": "required_before_mas_physical_delete",
-        "no_forbidden_write_proof": "required",
-        "replacement_parity": "OPL queue_attempt_retry_dead_letter_and_transition_runtime_readback",
-        "retirement_gate": "OPL primitive parity plus MAS owner-answer consumption",
-        "tombstone_or_provenance": "required"
-      },
-      {
-        "disposition": "temporary_refs_projection",
-        "module_ids": [
-          "domain_authority_refs_index",
-          "paper_work_unit_outbox_index",
-          "runtime_storage_maintenance",
-          "publication_route_memory_locator_transport_shell",
-          "artifact_lifecycle_storage_audit_shell",
-          "workspace_source_intake_shell",
-          "workbench_portal_generic_shell",
-          "owner_route_reconcile_materialize_dispatch_shell",
-          "generic_cli_mcp_product_wrappers"
-        ],
-        "no_active_caller": "required_before_physical_delete_not_required_for_refs_projection_retention",
-        "no_forbidden_write_proof": "required",
-        "replacement_parity": "OPL generated_or_hosted_surface_consumes_same_refs_without_MAS_generic_owner_claim",
-        "retirement_gate": "retain_only_as_refs_receipts_blockers_locators_or_body_free_diagnostic_projection_until_parity",
-        "tombstone_or_provenance": "required_before_removing_legacy_entrypoint"
-      },
-      {
-        "disposition": "retained_minimal_authority_function",
-        "module_ids": [
-          "study_truth",
-          "publication_quality_verdict",
-          "artifact_authority",
-          "owner_receipt",
-          "typed_blocker",
-          "safe_action_refs",
-          "domain_transition_table",
-          "publication_route_memory_body",
-          "memory_writeback_decision"
-        ],
-        "no_active_caller": "not_required_for_retention_required_before_retirement",
-        "no_forbidden_write_proof": "required",
-        "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_refs_transport_allowed",
-        "retirement_gate": "retained_until_MAS_owner_answer_or_authority_record_supersedes_surface",
-        "tombstone_or_provenance": "required_if_surface_is_later_retired"
-      }
-    ],
-    "surface_kind": "mas_private_surface_retirement_disposition_matrix"
-  },
   "functional_consumer_boundary": {
     "consumer_role": "domain_authority_pack_thin_program_surface",
     "declarative_pack_compiler_input": {
@@ -612,6 +532,9 @@
       "remaining_functional_followthrough_gate_ids": [],
       "remaining_functional_followthrough_gates": [],
       "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
+      "remaining_items_are_evidence_gates": true,
+      "repo_local_wrapper_tail_count": 0,
+      "repo_local_wrapper_tail_module_ids": [],
       "retirement_gate_checklist": {
         "completion_percent_policy": "do_not_report_100_percent_without_fresh_live_owner_or_OPL_readback_evidence_for_each_open_gate",
         "gate_items": [
@@ -643,9 +566,6 @@
         ],
         "surface_kind": "mas_private_surface_retirement_gate_checklist"
       },
-      "remaining_items_are_evidence_gates": true,
-      "repo_local_wrapper_tail_count": 0,
-      "repo_local_wrapper_tail_module_ids": [],
       "source_purity_cutover_status": "standard_agent_source_shape_landed",
       "status": "functional_structure_closed_evidence_gates_remaining",
       "surface_kind": "mas_functional_followthrough_gap_summary"
@@ -2716,6 +2636,9 @@
     "remaining_functional_followthrough_gate_ids": [],
     "remaining_functional_followthrough_gates": [],
     "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
+    "remaining_items_are_evidence_gates": true,
+    "repo_local_wrapper_tail_count": 0,
+    "repo_local_wrapper_tail_module_ids": [],
     "retirement_gate_checklist": {
       "completion_percent_policy": "do_not_report_100_percent_without_fresh_live_owner_or_OPL_readback_evidence_for_each_open_gate",
       "gate_items": [
@@ -2747,9 +2670,6 @@
       ],
       "surface_kind": "mas_private_surface_retirement_gate_checklist"
     },
-    "remaining_items_are_evidence_gates": true,
-    "repo_local_wrapper_tail_count": 0,
-    "repo_local_wrapper_tail_module_ids": [],
     "source_purity_cutover_status": "standard_agent_source_shape_landed",
     "status": "functional_structure_closed_evidence_gates_remaining",
     "surface_kind": "mas_functional_followthrough_gap_summary"
@@ -2774,6 +2694,86 @@
     "state": "manifest_projected_for_opl_unified_audit",
     "surface_kind": "mas_privatized_functional_module_audit",
     "target_domain_id": "med-autoscience"
+  },
+  "retirement_disposition_matrix": {
+    "classification_source": "functional_consumer_boundary.functional_module_inventory",
+    "completion_claim_policy": {
+      "contracts_or_tests_alone_can_claim_100_percent": false,
+      "live_proof_required_before_100_percent": true,
+      "ready_claim_authorized": false
+    },
+    "required_retirement_gate_fields": [
+      "no_active_caller",
+      "no_forbidden_write_proof",
+      "replacement_parity",
+      "retirement_gate",
+      "tombstone_or_provenance"
+    ],
+    "source_of_truth_chain": "DomainIntent -> OPL Command/Event/Outbox/StageRun -> MAS OwnerAnswer -> Derived Projection",
+    "surface_dispositions": [
+      {
+        "disposition": "tombstone_only",
+        "module_ids": [
+          "generic_daemon_or_scheduler_lifecycle"
+        ],
+        "no_active_caller": "required_before_physical_delete_or_removed_from_default_caller",
+        "no_forbidden_write_proof": "required",
+        "replacement_parity": "opl_scheduler_provider_lifecycle_or_retired_provenance_only",
+        "retirement_gate": "tombstone_or_provenance_only_no_runtime_owner_resurrection",
+        "tombstone_or_provenance": "required"
+      },
+      {
+        "disposition": "opl_primitive_replacement",
+        "module_ids": [
+          "generic_queue_attempt_retry_dead_letter",
+          "generic_transition_runner"
+        ],
+        "no_active_caller": "required_before_mas_physical_delete",
+        "no_forbidden_write_proof": "required",
+        "replacement_parity": "OPL queue_attempt_retry_dead_letter_and_transition_runtime_readback",
+        "retirement_gate": "OPL primitive parity plus MAS owner-answer consumption",
+        "tombstone_or_provenance": "required"
+      },
+      {
+        "disposition": "temporary_refs_projection",
+        "module_ids": [
+          "domain_authority_refs_index",
+          "paper_work_unit_outbox_index",
+          "runtime_storage_maintenance",
+          "publication_route_memory_locator_transport_shell",
+          "artifact_lifecycle_storage_audit_shell",
+          "workspace_source_intake_shell",
+          "workbench_portal_generic_shell",
+          "owner_route_reconcile_materialize_dispatch_shell",
+          "generic_cli_mcp_product_wrappers"
+        ],
+        "no_active_caller": "required_before_physical_delete_not_required_for_refs_projection_retention",
+        "no_forbidden_write_proof": "required",
+        "replacement_parity": "OPL generated_or_hosted_surface_consumes_same_refs_without_MAS_generic_owner_claim",
+        "retirement_gate": "retain_only_as_refs_receipts_blockers_locators_or_body_free_diagnostic_projection_until_parity",
+        "tombstone_or_provenance": "required_before_removing_legacy_entrypoint"
+      },
+      {
+        "disposition": "retained_minimal_authority_function",
+        "module_ids": [
+          "study_truth",
+          "publication_quality_verdict",
+          "artifact_authority",
+          "owner_receipt",
+          "typed_blocker",
+          "safe_action_refs",
+          "domain_transition_table",
+          "publication_route_memory_body",
+          "memory_writeback_decision"
+        ],
+        "no_active_caller": "not_required_for_retention_required_before_retirement",
+        "no_forbidden_write_proof": "required",
+        "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_refs_transport_allowed",
+        "retirement_gate": "retained_until_MAS_owner_answer_or_authority_record_supersedes_surface",
+        "tombstone_or_provenance": "required_if_surface_is_later_retired"
+      }
+    ],
+    "surface_kind": "mas_private_surface_retirement_disposition_matrix"
   },
   "schema_version": 1,
   "standard_agent_purity_policy": "default_surfaces_must_remain_standard_agent_purity_guarded",

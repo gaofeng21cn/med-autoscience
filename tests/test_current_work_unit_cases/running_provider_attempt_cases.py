@@ -376,7 +376,7 @@ def test_current_work_unit_ignores_terminal_log_without_matching_attempt_id() ->
     assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-live-gate"
 
 
-def test_current_work_unit_treats_handoff_ready_as_pending_evidence_not_running() -> None:
+def test_current_work_unit_does_not_treat_handoff_ready_as_provider_admission_without_opl_readback() -> None:
     module = _module()
     handoff = {
         "execution_status": "handoff_ready",
@@ -411,6 +411,53 @@ def test_current_work_unit_treats_handoff_ready_as_pending_evidence_not_running(
 
     _assert_contract_shape(work_unit)
     assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["state"]["provider_admission_pending"] is True
-    assert work_unit["state"]["pending_provider_admission_evidence"]["execution_status"] == "handoff_ready"
+    assert work_unit["state"]["provider_admission_pending"] is False
+    assert "pending_provider_admission_evidence" not in work_unit["state"]
     assert work_unit["status"] != "running_provider_attempt"
+
+
+def test_current_work_unit_treats_opl_transition_readback_as_provider_admission_pending() -> None:
+    module = _module()
+    handoff = {
+        "execution_status": "handoff_ready",
+        "provider_attempt_or_lease_required": True,
+        "running_provider_attempt": False,
+        "provider_admission_pending_count": 1,
+        "opl_domain_progress_transition_result": {
+            "runtime_owner": "one-person-lab",
+            "runtime_kind": "DomainProgressTransitionRuntime",
+            "outcome_kind": "provider_admission_pending",
+            "event_id": "evt-provider-admission",
+        },
+    }
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-cvd-mortality-risk",
+            "quest_id": "002-dm-cvd-mortality-risk",
+            "current_stage": "publication_supervision",
+        },
+        actions=[
+            {
+                "action_type": "run_quality_repair_batch",
+                "owner": "write",
+                "next_owner": "write",
+                "next_work_unit": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "authority": "mas_provider_admission_identity",
+                "action_id": "provider-admission::002-dm::run_quality_repair_batch",
+                "work_unit_fingerprint": "provider-admission::002::repair",
+                "action_fingerprint": "provider-admission::002::repair",
+            }
+        ],
+        provider_admission=handoff,
+        blocked_reason="provider_admission_current_control_state_required",
+        next_owner="write",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["state"]["provider_admission_pending"] is True
+    evidence = work_unit["state"]["pending_provider_admission_evidence"]
+    assert evidence["execution_status"] == "handoff_ready"
+    assert evidence["opl_transition_readback_present"] is True

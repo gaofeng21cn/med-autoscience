@@ -426,7 +426,7 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
     assert supervisor_tick["mode"] == "developer_apply_safe"
     assert supervisor_tick["study_ids"] == ["001-risk", "002-risk"]
     assert supervisor_tick["pass_count"] == 1
-    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
+    assert supervisor_tick["stop_reason"] == "provider_handoff_written_transition_request_pending"
     assert supervisor_tick["actions"] == [
         "owner-route-reconcile",
         "domain-action-request-materialize",
@@ -444,7 +444,7 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
     }
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 1
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
-    assert diagnostic["requires_provider_admission"] is True
+    assert diagnostic["requires_opl_transition_readback"] is True
     assert diagnostic["next_forced_delta"]["required_delta_kind"] == "opl_provider_attempt_admission"
     assert diagnostic["forbidden_next_actions"] == [
         "repeat_receipt_reconcile_without_owner_delta",

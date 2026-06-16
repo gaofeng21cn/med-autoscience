@@ -36,6 +36,8 @@ from .domain_action_request_materializer import (
     materialize_domain_action_requests,
 )
 from .default_executor_action_policy import SUPPORTED_ACTION_TYPES
+from .domain_health_diagnostic_parts.opl_transition_readback import has_opl_transition_readback
+from .opl_execution_boundary import typed_blocker as opl_execution_authorization_typed_blocker
 
 
 SCHEMA_VERSION = 1
@@ -434,6 +436,10 @@ def _execute_dispatch(
         dispatch=dispatch,
         apply=apply,
     )
+    execution = _block_transition_request_without_opl_readback(
+        dispatch=dispatch,
+        execution=execution,
+    )
     action_cost = runtime_dispatch_cost.executor_action_cost(
         action_type=action_type,
         apply=apply,
@@ -547,6 +553,85 @@ def _dispatch_pre_execution_block(
         if opl_block is not None:
             return opl_block
     return None
+
+
+def _block_transition_request_without_opl_readback(
+    *,
+    dispatch: Mapping[str, Any],
+    execution: Mapping[str, Any],
+) -> dict[str, Any]:
+    if execution.get("execution_status") == "blocked":
+        return dict(execution)
+    if not _domain_progress_transition_request_present(dispatch, execution):
+        return dict(execution)
+    if _domain_progress_transition_readback_present(dispatch, execution):
+        return dict(execution)
+    return {
+        **dict(execution),
+        "execution_status": "blocked",
+        "blocked_reason": "opl_execution_authorization_required",
+        "typed_blocker": opl_execution_authorization_typed_blocker(),
+        "owner_callable_surface": None,
+        "adapter_kind": "opl_authorized_owner_callable_adapter",
+        "target_runtime_owner": "one-person-lab",
+        "mas_private_attempt_loop_forbidden": True,
+        "mas_dispatch_authority": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "provider_attempt_or_lease_required": True,
+    }
+
+
+def _domain_progress_transition_request_present(*values: object) -> bool:
+    for payload in _iter_transition_payloads(*values):
+        if payload.get("provider_admission_requires_opl_runtime_result") is True:
+            return True
+        request = _mapping(payload.get("opl_domain_progress_transition_request"))
+        if request and _text(request.get("target_runtime_kind")) == "DomainProgressTransitionRuntime":
+            return True
+    return False
+
+
+def _domain_progress_transition_readback_present(*values: object) -> bool:
+    return any(has_opl_transition_readback(payload) for payload in _iter_transition_payloads(*values))
+
+
+def _iter_transition_payloads(*values: object) -> list[Mapping[str, Any]]:
+    payloads: list[Mapping[str, Any]] = []
+    stack = list(values)
+    seen: set[int] = set()
+    while stack:
+        value = stack.pop()
+        if isinstance(value, Mapping):
+            identity = id(value)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            payload = _mapping(value)
+            payloads.append(payload)
+            for key in (
+                "prompt_contract",
+                "owner_route",
+                "source_action",
+                "ai_reviewer_record_worker_handoff",
+                "writer_worker_handoff",
+                "opl_domain_progress_transition_request",
+                "opl_domain_progress_transition_result",
+                "opl_domain_progress_runtime_result",
+                "opl_runtime_result",
+                "paper_progress_policy_result",
+                "state",
+            ):
+                nested = payload.get(key)
+                if isinstance(nested, Mapping):
+                    stack.append(nested)
+            continue
+        if isinstance(value, (list, tuple)):
+            stack.extend(item for item in value if isinstance(item, Mapping))
+    return payloads
 
 
 def _execute_owner_dispatch_action(
@@ -693,7 +778,8 @@ def _persist_study_executions(
         "execution_ledger": execution_ledger,
         "ledger_execution_count": len(execution_ledger),
         "ledger_retention_limit": EXECUTION_LEDGER_LIMIT,
-        "executed_count": sum(item.get("execution_status") in {"executed", "handoff_ready"} for item in study_executions),
+        "executed_count": sum(item.get("execution_status") == "executed" for item in study_executions),
+        "handoff_ready_count": sum(item.get("execution_status") == "handoff_ready" for item in study_executions),
         "blocked_count": sum(item.get("execution_status") == "blocked" for item in study_executions),
         "codex_dispatch_count": sum(item.get("will_start_llm") is True for item in study_executions),
         "suppressed_dispatch_count": sum(
@@ -826,7 +912,8 @@ def dispatch_domain_owner_actions(
         "requested_studies": list(resolved_study_ids),
         "requested_action_types": list(resolved_action_types),
         "execution_count": len(executions),
-        "executed_count": sum(item.get("execution_status") in {"executed", "handoff_ready"} for item in executions),
+        "executed_count": sum(item.get("execution_status") == "executed" for item in executions),
+        "handoff_ready_count": sum(item.get("execution_status") == "handoff_ready" for item in executions),
         "blocked_count": sum(item.get("execution_status") == "blocked" for item in executions),
         "repeat_suppressed_count": sum(item.get("execution_status") == "repeat_suppressed" for item in executions),
         "dry_run_count": sum(item.get("execution_status") == "dry_run" for item in executions),

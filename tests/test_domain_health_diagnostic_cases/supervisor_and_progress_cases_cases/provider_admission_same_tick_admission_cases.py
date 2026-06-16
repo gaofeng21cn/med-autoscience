@@ -180,7 +180,7 @@ def test_domain_health_diagnostic_keeps_same_tick_provider_admission_closed_with
             or {
                 "surface": "developer_supervisor_same_tick",
                 "schema_version": 1,
-                "stop_reason": "provider_handoff_written_admission_pending",
+                "stop_reason": "provider_handoff_written_transition_request_pending",
                 "study_ids": [study_id],
                 "iterations": [],
                 "materialize": {

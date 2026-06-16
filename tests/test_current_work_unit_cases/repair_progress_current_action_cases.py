@@ -716,7 +716,7 @@ def test_current_work_unit_gate_followthrough_successor_supersedes_same_gate_sta
     assert "typed_blocker" not in work_unit["state"]
 
 
-def test_current_work_unit_keeps_provider_handoff_over_repair_progress_followup() -> None:
+def test_current_work_unit_ignores_provider_handoff_residue_without_opl_readback_for_repair_progress_receipt() -> None:
     module = _module()
     repair_fingerprint = "publication-blockers::provider-handoff-current"
     source_eval_id = (
@@ -772,12 +772,14 @@ def test_current_work_unit_keeps_provider_handoff_over_repair_progress_followup(
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "write"
-    assert work_unit["action_type"] == "run_quality_repair_batch"
-    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["status"] == "owner_receipt_recorded"
+    assert work_unit["owner"] == "gate_clearing_batch"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "publication_gate_replay"
     assert work_unit["work_unit_fingerprint"] == repair_fingerprint
-    assert work_unit["state"]["source"] == "owner_route_reconcile.current_executable_owner_action"
+    assert work_unit["state"]["state_kind"] == "owner_receipt_recorded"
+    assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert work_unit["state"]["stale_queue_or_handoff_can_override"] is False
 
 
 def test_current_work_unit_keeps_refs_only_handoff_successor_over_prior_repair_receipt() -> None:

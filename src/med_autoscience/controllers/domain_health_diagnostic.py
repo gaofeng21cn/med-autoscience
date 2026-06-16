@@ -715,7 +715,7 @@ def _refresh_report_progress_currentness_after_same_tick(
     supervisor_tick: Mapping[str, Any],
 ) -> None:
     if _non_empty_text(supervisor_tick.get("stop_reason")) not in {
-        "provider_handoff_written_admission_pending",
+        "provider_handoff_written_transition_request_pending",
         "provider_attempt_started",
         "typed_blocker_or_dispatch_blocker_observed",
         "repeat_suppressed_owner_delta_required",

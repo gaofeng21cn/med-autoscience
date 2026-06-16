@@ -884,8 +884,10 @@ def test_existing_projection_refresh_promotes_gate_followthrough_over_terminal_g
     assert action["work_unit_id"] == "analysis_claim_evidence_repair"
     assert result["current_work_unit"]["status"] == "executable_owner_action"
     assert result["current_work_unit"]["owner"] == "analysis-campaign"
-    assert result["provider_admission_pending_count"] == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert result["transition_request_candidates"][0]["work_unit_id"] == "analysis_claim_evidence_repair"
 
 
 def test_gate_followthrough_same_explicit_current_work_unit_still_routes_to_repair() -> None:

@@ -1061,7 +1061,6 @@ def materialize_domain_action_requests(
         "blocked_default_executor_dispatch_count": blocked_owner_callable_adapter_count,
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in owner_callable_adapters),
         "default_executor_dispatches": owner_callable_adapters,
-        "default_executor_dispatches_compat_role": "derived_read_model_for_existing_selectors",
         "ignored_actions": ignored_actions,
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),

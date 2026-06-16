@@ -29,7 +29,7 @@ def materialized_record_only_provider_handoffs(
     return handoffs
 
 
-def provider_admission_pending_dispatch_result(
+def transition_request_pending_dispatch_result(
     *,
     materialize_result: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -44,13 +44,21 @@ def provider_admission_pending_dispatch_result(
                 "work_unit_id": handoff_work_unit_id(handoff),
                 "dispatch_path": handoff_dispatch_path(handoff),
                 "dispatch_authority": _non_empty_text(handoff.get("dispatch_authority")),
-                "execution_status": "provider_admission_pending",
-                "blocked_reason": None,
+                "execution_status": "transition_request_pending",
+                "blocked_reason": "await_opl_transition_readback",
                 "next_executable_owner": _non_empty_text(handoff.get("next_executable_owner")),
                 "required_output_surface": _non_empty_text(handoff.get("required_output_surface")),
                 "will_start_llm": False,
                 "provider_attempt_or_lease_required": True,
+                "provider_admission_requires_opl_runtime_result": True,
+                "provider_admission_pending": False,
                 "provider_completion_is_domain_completion": False,
+                "non_advancing_apply": {
+                    "blocker_id": "await_opl_transition_readback_or_non_advancing_apply",
+                    "owner": "one-person-lab",
+                    "write_permitted": False,
+                    "required_runtime": "DomainProgressTransitionRuntime",
+                },
             }
         )
     return {
@@ -63,7 +71,8 @@ def provider_admission_pending_dispatch_result(
         "dry_run_count": 0,
         "codex_dispatch_count": 0,
         "suppressed_dispatch_count": len(executions),
-        "provider_admission_pending_count": len(executions),
+        "provider_admission_pending_count": 0,
+        "transition_request_pending_count": len(executions),
         "executions": executions,
         "written_files": [],
     }
@@ -100,5 +109,5 @@ __all__ = [
     "handoff_work_unit_id",
     "materialized_record_only_provider_handoff",
     "materialized_record_only_provider_handoffs",
-    "provider_admission_pending_dispatch_result",
+    "transition_request_pending_dispatch_result",
 ]

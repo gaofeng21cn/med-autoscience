@@ -35,6 +35,12 @@ def test_provider_admission_current_control_wrappers_preserve_stage_authority_bo
         "stage_packet_refs": [stage_packet_ref],
         "next_executable_owner": "ai_reviewer",
         "provider_attempt_or_lease_required": True,
+        "opl_domain_progress_transition_result": {
+            "runtime_owner": "one-person-lab",
+            "runtime_kind": "DomainProgressTransitionRuntime",
+            "outcome_kind": "provider_admission_pending",
+            "stage_run_id": "stage-run-ai-reviewer-quality-review",
+        },
         "provider_completion_is_domain_completion": True,
         "owner_route_current": True,
         "route_identity_key": f"provider-admission::{study_id}::{fingerprint}",

@@ -311,7 +311,8 @@ def test_study_progress_envelope_prefers_live_opl_attempt_over_handoff_action_qu
     assert envelope["owner"] == "MedAutoScience"
     assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
     assert envelope["typed_blocker"] is None
-    assert result["current_execution_evidence"]["action_queue"][0]["action_type"] == (
+    assert result["current_execution_evidence"]["action_queue"] == []
+    assert result["current_execution_evidence"]["opl_current_control_state_handoff"]["action_type"] == (
         "complete_medical_paper_readiness_surface"
     )
 

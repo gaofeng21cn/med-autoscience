@@ -1444,7 +1444,38 @@
         "repo_local_wrapper_tail_module_ids": [],
         "source_purity_cutover_status": "standard_agent_source_shape_landed",
         "status": "functional_structure_closed_evidence_gates_remaining",
-        "surface_kind": "mas_functional_followthrough_gap_summary"
+        "surface_kind": "mas_functional_followthrough_gap_summary",
+        "retirement_gate_checklist": {
+          "surface_kind": "mas_private_surface_retirement_gate_checklist",
+          "completion_percent_policy": "do_not_report_100_percent_without_fresh_live_owner_or_OPL_readback_evidence_for_each_open_gate",
+          "gate_items": [
+            {
+              "gate_id": "no_active_caller",
+              "required_evidence": "repo scan or OPL generated default-caller report proves the legacy MAS surface has no default/runtime caller",
+              "status": "required_before_physical_delete"
+            },
+            {
+              "gate_id": "replacement_parity",
+              "required_evidence": "OPL primitive or generated surface consumes the same refs and preserves MAS owner-answer boundary",
+              "status": "required_before_physical_delete"
+            },
+            {
+              "gate_id": "no_forbidden_write_proof",
+              "required_evidence": "proof shows the replacement/projection did not write study truth, memory body, artifact body, publication eval, controller decision, current package, owner receipt, or typed blocker",
+              "status": "required_before_physical_delete"
+            },
+            {
+              "gate_id": "tombstone_or_provenance",
+              "required_evidence": "history/tombstone/provenance ref exists before removing legacy entrypoint or wrapper",
+              "status": "required_before_physical_delete"
+            },
+            {
+              "gate_id": "live_owner_or_stable_blocker",
+              "required_evidence": "fresh MAS owner receipt, stable typed blocker, human gate, route-back evidence, or same-current-identity OPL StageRun readback exists when claiming runtime completion",
+              "status": "required_before_completion_claim"
+            }
+          ]
+        }
       },
       "functional_module_inventory": [
         {

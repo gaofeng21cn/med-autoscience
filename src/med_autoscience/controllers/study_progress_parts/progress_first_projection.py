@@ -8,6 +8,9 @@ from med_autoscience.controllers.default_executor_action_policy import (
     request_output_target_surface_for_action_type,
     request_owner_for_action_type,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    has_opl_transition_readback as _has_opl_transition_readback,
+)
 from med_autoscience.controllers.ai_reviewer_record_work_units import (
     AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS,
 )
@@ -302,12 +305,12 @@ def _stale_provider_admission_route(
         return False
     if not transition_route:
         return False
-    if not _provider_admission_handoff_action_queue(handoff):
+    if not _provider_transition_or_admission_handoff_action_queue(handoff):
         return False
     return not _same_owner_route_identity(route, transition_route)
 
 
-def _provider_admission_handoff_action_queue(handoff: Mapping[str, Any]) -> bool:
+def _provider_transition_or_admission_handoff_action_queue(handoff: Mapping[str, Any]) -> bool:
     action = _first_current_action_queue_item(handoff.get("action_queue"))
     if action is None:
         return False
@@ -315,9 +318,12 @@ def _provider_admission_handoff_action_queue(handoff: Mapping[str, Any]) -> bool
     if authority != "mas_provider_admission_identity":
         return False
     status = _text(action.get("status")) or _text(handoff.get("quest_status"))
-    return status == "provider_admission_pending" or handoff.get("provider_admission_pending_count") not in (
-        None,
-        0,
+    return (
+        _has_opl_transition_readback(handoff)
+        or _has_opl_transition_readback(action)
+        or status in {"provider_admission_pending", "transition_request_pending"}
+        or handoff.get("provider_admission_pending_count") not in (None, 0)
+        or handoff.get("transition_request_pending_count") not in (None, 0)
     )
 
 

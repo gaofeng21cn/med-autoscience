@@ -460,8 +460,10 @@ def test_existing_projection_refresh_promotes_gate_followthrough_successor_over_
     assert result["current_work_unit"]["work_unit_id"] == "medical_prose_write_repair"
     assert result["current_work_unit"]["work_unit_fingerprint"] == repair_fingerprint
     assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
-    assert result["provider_admission_pending_count"] == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert result["transition_request_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
 
 
 def test_existing_projection_refresh_keeps_paper_recovery_successor_over_stage_readiness_residue(
@@ -652,11 +654,13 @@ def test_existing_projection_refresh_keeps_paper_recovery_successor_over_stage_r
     assert result["current_work_unit"]["work_unit_id"] == "medical_prose_write_repair"
     assert result["current_work_unit"]["work_unit_fingerprint"] == repair_fingerprint
     assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
-    assert result["provider_admission_pending_count"] == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert result["transition_request_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
 
 
-def test_existing_projection_refresh_honors_current_control_executable_handoff_over_stale_gate_replay(
+def test_existing_projection_refresh_ignores_current_control_executable_residue_without_opl_readback(
     tmp_path,
 ) -> None:
     module = importlib.import_module(
@@ -774,19 +778,19 @@ def test_existing_projection_refresh_honors_current_control_executable_handoff_o
     )
 
     action = result["current_executable_owner_action"]
-    assert action["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
-    assert action["next_owner"] == "write"
-    assert action["action_type"] == "run_quality_repair_batch"
-    assert action["work_unit_id"] == "medical_prose_write_repair"
+    assert action["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert action["next_owner"] == "gate_clearing_batch"
+    assert action["action_type"] == "run_gate_clearing_batch"
+    assert action["work_unit_id"] == "publication_gate_replay"
     assert action["work_unit_fingerprint"] == repair_fingerprint
     assert result["current_work_unit"]["status"] == "executable_owner_action"
-    assert result["current_work_unit"]["owner"] == "write"
-    assert result["current_work_unit"]["work_unit_id"] == "medical_prose_write_repair"
+    assert result["current_work_unit"]["owner"] == "gate_clearing_batch"
+    assert result["current_work_unit"]["work_unit_id"] == "publication_gate_replay"
     assert result["current_work_unit"]["work_unit_fingerprint"] == repair_fingerprint
     assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
-    assert result["current_execution_envelope"]["owner"] == "write"
-    assert result["provider_admission_pending_count"] == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
+    assert result["current_execution_envelope"]["owner"] == "gate_clearing_batch"
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
 
 
 def test_existing_projection_refresh_consumes_current_repair_progress_over_stale_gate_replay(
@@ -1170,7 +1174,15 @@ def test_existing_projection_refresh_consumes_current_repair_successor_over_refs
     assert result["current_work_unit"]["work_unit_id"] == "publication_gate_replay"
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
-    assert result["paper_recovery_state"]["phase"] != "owner_action_ready"
+    recovery_next = result["paper_recovery_state"]["next_safe_action"]
+    assert recovery_next["owner"] == "gate_clearing_batch"
+    assert recovery_next["kind"] in {
+        "consume_owner_receipt",
+        "materialize_mas_transition_request_or_owner_callable",
+    }
+    assert recovery_next.get("successor_owner_action", {}).get("work_unit_id") != (
+        "medical_prose_write_repair"
+    )
 
 
 def test_existing_projection_refresh_promotes_domain_transition_after_consumed_provider_completion_blocker(

@@ -7,8 +7,8 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
     action_type as _action_type,
     work_unit_id as _work_unit_id,
 )
-from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
-    PROVIDER_ADMISSION_AUTHORITIES,
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    has_opl_transition_readback as _has_opl_transition_readback,
 )
 from med_autoscience.controllers.current_work_unit_parts.primitives import (
     mapping as _mapping,
@@ -116,16 +116,21 @@ def _handoff_is_active_provider_control(handoff: Mapping[str, Any]) -> bool:
     if handoff.get("running_provider_attempt") is True:
         return True
     if handoff.get("provider_admission_pending_count") not in (None, 0):
-        return True
-    if handoff.get("provider_attempt_or_lease_required") is True:
-        return True
-    if _text(handoff.get("execution_status")) == "handoff_ready":
-        return True
-    if any(_mapping(item) for item in handoff.get("provider_admission_candidates") or []):
+        return _has_opl_transition_readback(handoff) or any(
+            _has_opl_transition_readback(item)
+            for item in handoff.get("provider_admission_candidates") or []
+            if isinstance(item, Mapping)
+        )
+    if any(
+        _has_opl_transition_readback(item)
+        for item in handoff.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+    ):
         return True
     return any(
-        _text(_mapping(item).get("authority")) in PROVIDER_ADMISSION_AUTHORITIES
+        _has_opl_transition_readback(item)
         for item in handoff.get("action_queue") or []
+        if isinstance(item, Mapping)
     )
 
 

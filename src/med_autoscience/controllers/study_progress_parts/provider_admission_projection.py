@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    has_opl_transition_readback as _has_opl_transition_readback,
+)
 
 from .paper_autonomy_supervisor_decision import (
     provider_admission_supervisor_gate,
@@ -46,9 +49,14 @@ def provider_admission_projection_fields(
         current_control_ref=_non_empty_text(_mapping_copy(handoff.get("refs")).get("latest_path"))
         or _non_empty_text(handoff.get("source_path")),
     )
+    provider_admission_candidates = [
+        candidate for candidate in candidates if _has_opl_transition_readback(candidate)
+    ]
     return {
-        "provider_admission_pending_count": len(candidates),
-        "provider_admission_candidates": list(candidates),
+        "provider_admission_pending_count": len(provider_admission_candidates),
+        "provider_admission_candidates": provider_admission_candidates,
+        "transition_request_pending_count": len(candidates),
+        "transition_request_candidates": list(candidates),
     }
 
 
@@ -61,6 +69,7 @@ def _identity_bound_handoff_provider_admission_fields(
         dict(item)
         for item in handoff.get("provider_admission_candidates") or []
         if isinstance(item, Mapping)
+        and _has_opl_transition_readback(item)
     ]
     pending_count = int(handoff.get("provider_admission_pending_count") or 0)
     if pending_count <= 0 and not candidates:

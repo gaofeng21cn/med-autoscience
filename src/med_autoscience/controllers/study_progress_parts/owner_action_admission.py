@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    has_opl_transition_readback as _has_opl_transition_readback,
+)
+
 from .paper_autonomy_supervisor_decision import provider_admission_supervisor_gate
 
 
@@ -100,13 +104,7 @@ def _provider_admission_candidate_present(
 
 
 def _action_queue_item_is_provider_admission_candidate(item: Mapping[str, Any]) -> bool:
-    if _text(item.get("authority")) == "mas_provider_admission_identity":
-        return True
-    if item.get("provider_attempt_or_lease_required") is True:
-        return True
-    if _text(item.get("execution_status")) == "handoff_ready":
-        return True
-    return _text(item.get("source_surface")) == "mas_opl_runtime_owner_handoff.provider_admission_identity"
+    return _has_opl_transition_readback(item)
 
 
 def _matching_provider_admission_candidates(
@@ -118,6 +116,7 @@ def _matching_provider_admission_candidates(
         dict(item)
         for item in value or []
         if isinstance(item, Mapping)
+        and _has_opl_transition_readback(item)
         and _candidate_matches_current_action(item, current_action=current_action)
     ]
 

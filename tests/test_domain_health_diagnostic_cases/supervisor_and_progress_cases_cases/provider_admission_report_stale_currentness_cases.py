@@ -180,14 +180,22 @@ def test_stale_report_provider_admission_candidate_is_suppressed_by_fresh_progre
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert [candidate["action_type"] for candidate in result["provider_admission_candidates"]] == [
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert [candidate["action_type"] for candidate in result["transition_request_candidates"]] == [
         "run_quality_repair_batch"
     ]
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == current_work_unit_id
-    assert result["provider_admission_candidates"][0]["action_fingerprint"] == current_fingerprint
+    candidate = result["transition_request_candidates"][0]
+    assert candidate["work_unit_id"] == current_work_unit_id
+    assert candidate["action_fingerprint"] == current_fingerprint
+    assert candidate["opl_domain_progress_transition_request"]["surface_kind"] == (
+        "mas_domain_progress_transition_request"
+    )
+    assert candidate["opl_domain_progress_transition_request"]["target_runtime_owner"] == "one-person-lab"
     assert [action["action_type"] for action in result["action_queue"]] == ["run_quality_repair_batch"]
     assert result["studies"][0]["handoff_scan_status"] == "provider_admission_from_mas_handoff"
+    assert result["studies"][0]["quest_status"] == "transition_request_pending"
     assert result["studies"][0]["current_execution_envelope"]["owner"] == "write"
     assert result["studies"][0]["current_execution_envelope"]["next_work_unit"] == current_work_unit_id
 
@@ -388,7 +396,7 @@ def test_same_tick_materialized_candidate_requires_explicit_current_identity(
                 },
             },
             "developer_supervisor_same_tick": {
-                "stop_reason": "provider_handoff_written_admission_pending",
+                "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
                     "default_executor_dispatches": [
                         {

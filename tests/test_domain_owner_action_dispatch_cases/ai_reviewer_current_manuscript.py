@@ -20,6 +20,18 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 REPO_LOCAL_CLI = f"PYTHONPATH={REPO_ROOT}/src:{REPO_ROOT} python3 -m med_autoscience.cli"
 
 
+def _assert_opl_authorization_required(execution: dict[str, object]) -> None:
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["owner_callable_surface"] is None
+    assert execution["adapter_kind"] == "opl_authorized_owner_callable_adapter"
+    assert execution["target_runtime_owner"] == "one-person-lab"
+    assert execution["mas_dispatch_authority"] is False
+    assert execution["mas_creates_opl_outbox"] is False
+    assert execution["mas_creates_opl_event"] is False
+    assert execution["mas_creates_opl_stage_run"] is False
+
+
 def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_record_stale_after_current_manuscript(
     monkeypatch,
     tmp_path: Path,
@@ -116,14 +128,11 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
         apply=True,
     )
 
-    assert result["executed_count"] == 1
-    assert result["blocked_count"] == 0
-    assert result["codex_dispatch_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
+    assert result["codex_dispatch_count"] == 0
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["blocked_reason"] is None
-    assert execution["action_class"] == "codex_worker_dispatch"
-    assert execution["will_start_llm"] is True
+    _assert_opl_authorization_required(execution)
     assert execution["stale_record_ref"] == str(stale_record_path)
     assert execution["required_currentness_refs"] == [str(manuscript_path)]
     production_request = execution["ai_reviewer_record_production_request"]
@@ -157,7 +166,7 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     ]
     handoff = execution["ai_reviewer_record_worker_handoff"]
     assert handoff["surface"] == "default_executor_dispatch_request"
-    assert handoff["dispatch_status"] == "ready"
+    assert handoff["dispatch_status"] == "transition_request_pending"
     assert handoff["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert handoff["next_executable_owner"] == "ai_reviewer"
     assert handoff["required_output_surface"] == (
@@ -167,6 +176,7 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     assert handoff["refs"]["owner_callable_payload_ref"] == payload_ref
     assert handoff["prompt_contract"]["owner_callable_payload_ref"] == payload_ref
     assert handoff["prompt_contract"]["owner_callable_command"] == production_request["owner_callable_command"]
+    assert handoff["prompt_contract"]["dispatch_status"] == "transition_request_pending"
     assert handoff["prompt_contract"]["record_payload_authoring_target_surface"] == (
         "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json"
     )
@@ -201,27 +211,13 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     assert "artifacts/publication_eval/latest.json" in handoff["forbidden_surfaces"]
     assert "artifacts/controller_decisions/latest.json" in handoff["forbidden_surfaces"]
     persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
-    immutable_dispatch_path = Path(persisted["refs"]["immutable_dispatch_path"])
-    assert persisted["refs"]["stage_packet_path"] == str(immutable_dispatch_path)
-    assert immutable_dispatch_path.is_file()
-    assert immutable_dispatch_path.parent.name == "return_to_ai_reviewer_workflow"
-    assert immutable_dispatch_path.parent.parent.name == "immutable"
-    immutable_dispatch = json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))
-    assert immutable_dispatch["dispatch_authority"] == "ai_reviewer_record_production_handoff"
-    assert immutable_dispatch["owner_route"] == persisted["owner_route"]
+    assert persisted["action_id"] == f"dispatch::{study_id}::return_to_ai_reviewer_workflow"
+    assert persisted.get("dispatch_authority") != "ai_reviewer_record_production_handoff"
+    assert "immutable_dispatch_path" not in persisted.get("refs", {})
+    assert "stage_packet_path" not in persisted.get("refs", {})
     payload_path = Path(payload_ref)
-    assert payload_path.is_file()
-    payload = json.loads(payload_path.read_text(encoding="utf-8"))
-    assert payload["surface"] == "ai_reviewer_record_payload_authoring_target"
-    assert payload["request_kind"] == production_request["request_kind"]
-    assert payload["study_id"] == study_id
-    assert payload["stale_record_ref"] == str(stale_record_path)
-    assert payload["required_currentness_refs"] == [str(manuscript_path)]
-    assert payload["record_payload"] is None
-    assert payload["allowed_write_surfaces"] == [
-        "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json",
-        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
-    ]
+    assert not payload_path.exists()
+    assert "ai_reviewer_record_worker_handoff_path" not in execution
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
@@ -282,8 +278,11 @@ def test_ai_reviewer_record_handoff_renders_executable_owner_callable_with_profi
         "reviewer_operating_system trace and write the record-only archive."
     )
     assert handoff["provider_completion_is_domain_completion"] is False
-    assert handoff["authority_boundary"]["authority"] == "mas_provider_admission_identity"
-    assert handoff["authority_boundary"]["can_write_current_owner_delta"] is False
+    assert handoff["provider_admission_pending"] is False
+    assert handoff["provider_admission_requires_opl_runtime_result"] is True
+    assert handoff["authority_boundary"]["authority"] == "med_autoscience.domain_intent_adapter"
+    assert handoff["authority_boundary"]["mas_can_authorize_provider_admission"] is False
+    assert handoff["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
     assert (
         handoff["stage_transition_authority_boundary"]["stage_transition_authority"]
         == "one-person-lab"
@@ -294,15 +293,14 @@ def test_ai_reviewer_record_handoff_renders_executable_owner_callable_with_profi
         ]
         is False
     )
-    assert handoff["provider_admission_identity"]["action_type"] == (
-        "return_to_ai_reviewer_workflow"
-    )
-    assert handoff["provider_admission_identity"]["next_executable_owner"] == "ai_reviewer"
-    assert handoff["provider_admission_identity"]["provider_completion_is_domain_completion"] is False
-    assert (
-        handoff["provider_admission_identity"]["required_output_surface"]
-        == "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
-    )
+    assert "provider_admission_identity" not in handoff
+    transition_request = handoff["opl_domain_progress_transition_request"]
+    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["action_type"] == "return_to_ai_reviewer_workflow"
+    assert transition_request["next_owner"] == "ai_reviewer"
+    assert transition_request["mas_can_create_opl_outbox_record"] is False
     assert handoff["prompt_contract"]["authority_boundary"] == handoff["authority_boundary"]
     assert (
         handoff["prompt_contract"]["stage_transition_authority_boundary"]
@@ -425,14 +423,11 @@ def test_execute_dispatch_accepts_record_only_handoff_contract_when_selected_fro
         apply=True,
     )
 
-    assert result["executed_count"] == 1
-    assert result["blocked_count"] == 0
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
     assert execution["dispatch_authority"] == "ai_reviewer_record_production_handoff"
-    assert execution["dispatch_contract_valid"] is True
-    assert execution["dispatch_contract_blocked_reason"] is None
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["blocked_reason"] is None
+    _assert_opl_authorization_required(execution)
     assert execution["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
@@ -574,12 +569,10 @@ def test_execute_dispatch_canonicalizes_legacy_record_only_handoff_before_contra
         apply=True,
     )
 
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["dispatch_contract_valid"] is True
-    assert execution["dispatch_contract_blocked_reason"] is None
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["blocked_reason"] is None
+    _assert_opl_authorization_required(execution)
     canonical_prompt = execution["prompt_contract"]
     assert canonical_prompt["owner_callable_payload_ref"].endswith(
         "record_production_payloads/return_to_ai_reviewer_workflow_payload.json"
@@ -693,8 +686,7 @@ def test_execute_dispatch_canonicalizes_record_only_handoff_with_stale_medautosc
     )
 
     execution = result["executions"][0]
-    assert execution["dispatch_contract_valid"] is True
-    assert execution["execution_status"] == "handoff_ready"
+    _assert_opl_authorization_required(execution)
     assert execution["prompt_contract"]["owner_callable_command"].startswith(REPO_LOCAL_CLI)
     assert execution["ai_reviewer_record_production_request"]["owner_callable_command"].startswith(REPO_LOCAL_CLI)
 
@@ -811,12 +803,11 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
         apply=True,
     )
 
-    assert result["executed_count"] == 1
-    assert result["blocked_count"] == 0
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
     assert execution["dispatch_authority"] == "ai_reviewer_record_production_handoff"
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["blocked_reason"] is None
+    _assert_opl_authorization_required(execution)
     enriched_request = execution["ai_reviewer_record_production_request"]
     assert enriched_request["request_kind"] == production_request["request_kind"]
     assert enriched_request["required_currentness_refs"] == production_request["required_currentness_refs"]
@@ -973,8 +964,8 @@ def test_execute_dispatch_allows_repair_followup_when_opl_authorization_blocker_
         apply=True,
     )
 
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
     assert execution["dispatch_authority"] == "ai_reviewer_record_production_handoff"
-    assert execution["blocked_reason"] is None
+    _assert_opl_authorization_required(execution)

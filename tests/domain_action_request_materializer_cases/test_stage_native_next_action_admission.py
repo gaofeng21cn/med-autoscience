@@ -482,8 +482,11 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
     assert persisted["dispatch_status"] == "ready"
     assert persisted["action_type"] == "return_to_ai_reviewer_workflow"
     assert persisted["provider_completion_is_domain_completion"] is False
-    assert persisted["authority_boundary"]["authority"] == "mas_provider_admission_identity"
-    assert persisted["authority_boundary"]["can_write_current_owner_delta"] is False
+    assert persisted["provider_admission_pending"] is False
+    assert persisted["provider_admission_requires_opl_runtime_result"] is True
+    assert persisted["authority_boundary"]["authority"] == "med_autoscience.domain_intent_adapter"
+    assert persisted["authority_boundary"]["mas_can_authorize_provider_admission"] is False
+    assert persisted["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
     assert (
         persisted["stage_transition_authority_boundary"]["stage_transition_authority"]
         == "one-person-lab"
@@ -494,9 +497,13 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
         ]
         is False
     )
-    assert persisted["provider_admission_identity"]["action_type"] == "return_to_ai_reviewer_workflow"
-    assert persisted["provider_admission_identity"]["work_unit_id"] == work_unit_id
-    assert (
-        persisted["provider_admission_identity"]["work_unit_fingerprint"]
-        == work_unit_fingerprint
-    )
+    assert "provider_admission_identity" not in persisted
+    transition_request = persisted["opl_domain_progress_transition_request"]
+    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["action_type"] == "return_to_ai_reviewer_workflow"
+    assert transition_request["work_unit_id"] == work_unit_id
+    assert transition_request["work_unit_fingerprint"] == work_unit_fingerprint
+    assert transition_request["mas_can_create_opl_outbox_record"] is False
+    assert transition_request["required_postcondition"]["kind"] == "owner_action_ref"

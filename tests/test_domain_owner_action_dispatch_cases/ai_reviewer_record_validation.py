@@ -17,6 +17,24 @@ from tests.reviewer_os_fixture_helpers import (
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
+def _assert_opl_authorization_required(execution: dict[str, object]) -> None:
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["owner_callable_surface"] is None
+    assert execution["adapter_kind"] == "opl_authorized_owner_callable_adapter"
+    assert execution["target_runtime_owner"] == "one-person-lab"
+    assert execution["mas_dispatch_authority"] is False
+    assert execution["mas_creates_opl_outbox"] is False
+    assert execution["mas_creates_opl_event"] is False
+    assert execution["mas_creates_opl_stage_run"] is False
+    assert execution["provider_admission_pending"] is False
+    assert execution["provider_admission_requires_opl_runtime_result"] is True
+    assert "ai_reviewer_record_worker_handoff_path" not in execution
+    handoff = execution.get("ai_reviewer_record_worker_handoff")
+    if isinstance(handoff, dict):
+        assert handoff["dispatch_status"] == "transition_request_pending"
+
+
 def _required_publication_input_refs(study_root: Path) -> dict[str, object]:
     return {
         "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
@@ -248,10 +266,9 @@ def test_execute_dispatch_rejects_request_record_with_item_only_future_facing_li
         apply=True,
     )
 
-    assert result["blocked_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["blocked_reason"] is None
+    _assert_opl_authorization_required(execution)
     assert execution["source_record_blocker_reason"] == "ai_reviewer_record_invalid"
     assert execution["invalid_record_fields"] == ["future_facing_limitations_plan"]
     assert "future_facing_limitations_plan[0].limitation" in "\n".join(
@@ -312,10 +329,9 @@ def test_execute_dispatch_rejects_request_record_with_invalid_evaluation_scope(
         apply=True,
     )
 
-    assert result["blocked_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["blocked_reason"] is None
+    _assert_opl_authorization_required(execution)
     assert execution["source_record_blocker_reason"] == "ai_reviewer_record_invalid"
     assert execution["invalid_record_fields"] == ["evaluation_scope"]
     production_request = execution["ai_reviewer_record_production_request"]
@@ -392,25 +408,21 @@ def test_execute_dispatch_materializes_handoff_for_incomplete_current_ai_reviewe
         apply=True,
     )
 
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["blocked_reason"] is None
+    _assert_opl_authorization_required(execution)
     assert execution["next_owner"] == "ai_reviewer"
     production_request = execution["ai_reviewer_record_production_request"]
     assert production_request["request_kind"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     assert production_request["stale_record_ref"] == "publication-eval::current-incomplete"
     assert production_request["record_must_consume_refs"] == [str(manuscript_path)]
     payload_ref = Path(production_request["owner_callable_payload_ref"])
-    assert payload_ref.is_file()
-    payload = json.loads(payload_ref.read_text(encoding="utf-8"))
-    assert payload["surface"] == "ai_reviewer_record_payload_authoring_target"
-    assert payload["record_payload"] is None
-    assert payload["owner_callable_command"].startswith(
+    assert not payload_ref.exists()
+    assert production_request["owner_callable_command"].startswith(
         f"PYTHONPATH={Path(__file__).resolve().parents[2]}/src:{Path(__file__).resolve().parents[2]} "
         "python3 -m med_autoscience.cli publication materialize-ai-reviewer-record "
     )
-    assert Path(execution["ai_reviewer_record_worker_handoff_path"]).is_file()
 
 
 def test_execute_dispatch_materializes_handoff_when_request_record_only_needs_production_trace(
@@ -465,15 +477,16 @@ def test_execute_dispatch_materializes_handoff_when_request_record_only_needs_pr
         apply=True,
     )
 
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
+    _assert_opl_authorization_required(execution)
     production_request = execution["ai_reviewer_record_production_request"]
     assert production_request["stale_record_ref"] == "publication-eval::request-record-needs-trace"
     assert production_request["request_kind"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
-    payload = json.loads(Path(production_request["owner_callable_payload_ref"]).read_text(encoding="utf-8"))
-    assert payload["record_payload"] is None
-    assert payload["record_payload_contract"]["record_payload_must_be_authored_by_ai_reviewer"] is True
+    payload_ref = Path(production_request["owner_callable_payload_ref"])
+    assert not payload_ref.exists()
+    assert production_request["owner_callable_payload_contract"]["record_payload_must_be_authored_by_ai_reviewer"] is True
 
 
 def test_execute_dispatch_rejects_request_record_with_invalid_reviewer_operating_system(
@@ -543,10 +556,9 @@ def test_execute_dispatch_rejects_request_record_with_invalid_reviewer_operating
         apply=True,
     )
 
-    assert result["blocked_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["blocked_reason"] is None
+    _assert_opl_authorization_required(execution)
     assert execution["source_record_blocker_reason"] == "ai_reviewer_record_invalid"
     assert execution["invalid_record_fields"] == ["reviewer_operating_system"]
     assert "reviewer_operating_system.contract_id" in "\n".join(execution["reviewer_operating_system_errors"])
@@ -554,4 +566,3 @@ def test_execute_dispatch_rejects_request_record_with_invalid_reviewer_operating
     assert production_request["request_kind"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     assert production_request["record_must_consume_refs"] == [str(manuscript_path)]
     assert execution["ai_reviewer_record_worker_handoff"]["dispatch_authority"] == "ai_reviewer_record_production_handoff"
-    assert Path(execution["ai_reviewer_record_worker_handoff_path"]).is_file()

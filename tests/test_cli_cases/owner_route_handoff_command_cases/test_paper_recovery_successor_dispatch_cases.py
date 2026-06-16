@@ -171,7 +171,12 @@ def test_domain_handler_export_materializes_supervisor_successor_dispatch_under_
     assert task["work_unit_id"] == "medical_prose_write_repair"
     assert task["work_unit_fingerprint"] == successor_fingerprint
     assert task["provider_completion_is_domain_completion"] is False
-    assert task["authority_boundary"]["authority"] == "mas_provider_admission_identity"
+    assert task["authority_boundary"]["authority"] == "med_autoscience.domain_intent_adapter"
+    assert task["authority_boundary"]["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert task["authority_boundary"]["target_runtime_owner"] == "one-person-lab"
+    assert task["authority_boundary"]["mas_can_authorize_provider_admission"] is False
+    assert task["provider_admission_pending"] is False
+    assert task["provider_admission_requires_opl_runtime_result"] is True
     assert (
         task["stage_transition_authority_boundary"]["stage_transition_authority"]
         == "one-person-lab"
@@ -188,11 +193,18 @@ def test_domain_handler_export_materializes_supervisor_successor_dispatch_under_
         task["payload"]["stage_transition_authority_boundary"]
         == task["stage_transition_authority_boundary"]
     )
-    assert task["payload"]["provider_admission_identity"] == task["provider_admission_identity"]
-    assert (
-        task["payload"]["provider_admission_identity"]["stage_transition_authority_boundary"]
-        == task["stage_transition_authority_boundary"]
-    )
+    transition_request = task["opl_domain_progress_transition_request"]
+    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["mas_can_create_opl_outbox_record"] is False
+    assert transition_request["mas_can_create_opl_stage_run"] is False
+    assert transition_request["recommended_transition_kind"] == "MaterializeOwnerAction"
+    assert transition_request["required_postcondition"]["kind"] == "owner_action_ref"
+    assert "provider_admission_identity" not in task
+    assert task["payload"]["opl_domain_progress_transition_request"] == transition_request
+    assert task["payload"]["provider_admission_pending"] is False
+    assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
     assert task["payload"]["next_executable_owner"] == "write"
     assert task["payload"]["paper_autonomy_supervisor_decision"]["decision"] == (
         "materialize_recovery_action"

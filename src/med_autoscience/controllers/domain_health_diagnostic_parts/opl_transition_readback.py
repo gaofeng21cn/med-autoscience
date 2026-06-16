@@ -30,11 +30,17 @@ def candidate_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str,
         candidate.get("opl_domain_progress_runtime_result"),
         candidate.get("opl_runtime_result"),
         _mapping(candidate.get("paper_progress_policy_result")).get("opl_runtime_result"),
+        _mapping(candidate.get("state")).get("opl_domain_progress_transition_result"),
+        _mapping(candidate.get("state")).get("opl_runtime_result"),
     ):
         result = _mapping(value)
         if valid_opl_transition_readback(result):
             return dict(result)
     return {}
+
+
+def has_opl_transition_readback(candidate: Mapping[str, Any]) -> bool:
+    return bool(candidate_opl_transition_readback(candidate))
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -52,5 +58,6 @@ __all__ = [
     "OPL_TRANSITION_RUNTIME_KIND",
     "OPL_TRANSITION_RUNTIME_OWNER",
     "candidate_opl_transition_readback",
+    "has_opl_transition_readback",
     "valid_opl_transition_readback",
 ]

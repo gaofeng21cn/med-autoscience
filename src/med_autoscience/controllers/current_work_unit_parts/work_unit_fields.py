@@ -6,12 +6,12 @@ from typing import Any
 from med_autoscience.controllers.current_work_unit_parts.action_projection_fields import (
     work_unit_id as _work_unit_id,
 )
-from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
-    PROVIDER_ADMISSION_AUTHORITIES,
-)
 from med_autoscience.controllers.current_work_unit_parts.primitives import (
     mapping as _mapping,
     text as _text,
+)
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    has_opl_transition_readback as _has_opl_transition_readback,
 )
 
 
@@ -26,15 +26,11 @@ def provider_admission_pending(provider_admission: Mapping[str, Any] | None) -> 
         return False
     if payload.get("running_provider_attempt") is True:
         return False
-    return (
-        payload.get("provider_admission_pending_count") not in (None, 0)
-        or payload.get("provider_attempt_or_lease_required") is True
-        or _text(payload.get("execution_status")) == "handoff_ready"
-        or any(
-            _text(item.get("authority")) in PROVIDER_ADMISSION_AUTHORITIES
-            for item in payload.get("action_queue") or []
-            if isinstance(item, Mapping)
-        )
+    return _has_opl_transition_readback(payload) or any(
+        _has_opl_transition_readback(item)
+        for collection_key in ("provider_admission_candidates", "action_queue")
+        for item in payload.get(collection_key) or []
+        if isinstance(item, Mapping)
     )
 
 
@@ -42,9 +38,17 @@ def pending_provider_admission_evidence(provider_admission: Mapping[str, Any] | 
     payload = _mapping(provider_admission)
     return {
         "provider_admission_pending_count": payload.get("provider_admission_pending_count"),
+        "transition_request_pending_count": payload.get("transition_request_pending_count"),
         "execution_status": _text(payload.get("execution_status")),
         "provider_attempt_or_lease_required": payload.get("provider_attempt_or_lease_required") is True,
         "running_provider_attempt": payload.get("running_provider_attempt") is True,
+        "opl_transition_readback_present": _has_opl_transition_readback(payload)
+        or any(
+            _has_opl_transition_readback(item)
+            for collection_key in ("provider_admission_candidates", "action_queue")
+            for item in payload.get(collection_key) or []
+            if isinstance(item, Mapping)
+        ),
     }
 
 

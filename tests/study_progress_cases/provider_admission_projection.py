@@ -7,6 +7,15 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 from .shared import _write_json
 
 
+def _opl_transition_result(*, stage_run_id: str = "stage-run-provider-admission") -> dict[str, str]:
+    return {
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "outcome_kind": "provider_admission_pending",
+        "stage_run_id": stage_run_id,
+    }
+
+
 def _write_ready_quality_repair_dispatch(study_root, *, study_id: str, fingerprint: str) -> None:
     dispatch_path = (
         study_root
@@ -27,6 +36,7 @@ def _write_ready_quality_repair_dispatch(study_root, *, study_id: str, fingerpri
             "action_type": "run_quality_repair_batch",
             "next_executable_owner": "write",
             "provider_attempt_or_lease_required": True,
+            "opl_domain_progress_transition_result": _opl_transition_result(),
             "provider_completion_is_domain_completion": False,
             "owner_route_current": True,
             "work_unit_id": "medical_prose_write_repair",
@@ -78,6 +88,7 @@ def _quality_repair_handoff(*, study_id: str, fingerprint: str) -> dict:
                 "work_unit_fingerprint": fingerprint,
                 "action_fingerprint": fingerprint,
                 "provider_attempt_or_lease_required": True,
+                "opl_domain_progress_transition_result": _opl_transition_result(),
                 "provider_completion_is_domain_completion": False,
                 "owner_route": {
                     "next_owner": "write",
@@ -189,6 +200,8 @@ def test_provider_admission_projection_clears_candidates_under_typed_blocker(tmp
     assert fields == {
         "provider_admission_pending_count": 0,
         "provider_admission_candidates": [],
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
     }
 
 
@@ -471,6 +484,7 @@ def test_provider_admission_projection_uses_current_work_unit_pending_identity(t
             "work_unit_fingerprint": fingerprint,
             "action_fingerprint": fingerprint,
             "dispatch_path": str(dispatch_path),
+            "opl_domain_progress_transition_result": _opl_transition_result(),
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
         },
     )
@@ -609,6 +623,7 @@ def test_existing_projection_refresh_promotes_progress_first_owner_action_admiss
             "work_unit_fingerprint": fingerprint,
             "action_fingerprint": fingerprint,
             "dispatch_path": str(dispatch_path),
+            "opl_domain_progress_transition_result": _opl_transition_result(),
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
         },
     )

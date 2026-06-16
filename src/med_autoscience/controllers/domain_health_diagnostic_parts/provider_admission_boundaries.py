@@ -17,6 +17,20 @@ PROVIDER_ADMISSION_AUTHORITY_BOUNDARY = {
     "provider_completion_is_domain_completion": False,
 }
 
+DOMAIN_PROGRESS_TRANSITION_REQUEST_AUTHORITY_BOUNDARY = {
+    "surface_kind": "mas_domain_progress_transition_request_boundary",
+    "authority": "med_autoscience.domain_intent_adapter",
+    "target_runtime_owner": "one-person-lab",
+    "target_runtime_kind": "DomainProgressTransitionRuntime",
+    "authority_role": "domain_intent_request_only",
+    "mas_can_create_opl_outbox_record": False,
+    "mas_can_create_opl_event": False,
+    "mas_can_create_opl_stage_run": False,
+    "mas_can_authorize_provider_admission": False,
+    "mas_can_mark_provider_attempt_running": False,
+    "provider_completion_is_domain_completion": False,
+}
+
 STAGE_TRANSITION_AUTHORITY_BOUNDARY = {
     "producer_kind": "runtime_provider",
     "intent_kind": "provider_observation",
@@ -39,6 +53,13 @@ def provider_admission_authority_boundary(value: object = None) -> dict[str, Any
     return {
         **_mapping(value),
         **PROVIDER_ADMISSION_AUTHORITY_BOUNDARY,
+    }
+
+
+def domain_progress_transition_request_authority_boundary(value: object = None) -> dict[str, Any]:
+    return {
+        **_mapping(value),
+        **DOMAIN_PROGRESS_TRANSITION_REQUEST_AUTHORITY_BOUNDARY,
     }
 
 
@@ -73,6 +94,17 @@ def provider_admission_authority_transport_fields(
         "stage_transition_authority_boundary": normalized[
             "stage_transition_authority_boundary"
         ],
+        "provider_completion_is_domain_completion": False,
+    }
+
+
+def domain_progress_transition_request_transport_fields(
+    value: object = None,
+) -> dict[str, Any]:
+    authority_boundary = domain_progress_transition_request_authority_boundary(value)
+    return {
+        "authority_boundary": authority_boundary,
+        "stage_transition_authority_boundary": stage_transition_authority_boundary(),
         "provider_completion_is_domain_completion": False,
     }
 

@@ -15,7 +15,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     handoff_work_unit_id,
     materialized_record_only_provider_handoff,
     materialized_record_only_provider_handoffs,
-    provider_admission_pending_dispatch_result,
+    transition_request_pending_dispatch_result,
 )
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
@@ -493,13 +493,22 @@ def _candidate_with_paper_progress_policy_result(
     )
     if not policy_result:
         return dict(candidate)
-    return {
+    payload = {
         **dict(candidate),
         "paper_progress_policy_result": dict(policy_result),
         "opl_domain_progress_transition_request": _mapping(
             policy_result.get("opl_domain_progress_transition_request")
         ),
     }
+    for key in (
+        "opl_domain_progress_transition_result",
+        "opl_domain_progress_runtime_result",
+        "opl_runtime_result",
+    ):
+        readback = _mapping(execution.get(key)) or _mapping(candidate.get(key))
+        if readback:
+            payload[key] = dict(readback)
+    return payload
 
 
 def _paper_progress_policy_payload(

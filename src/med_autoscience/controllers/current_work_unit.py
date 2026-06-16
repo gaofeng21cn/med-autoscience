@@ -66,6 +66,7 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
 )
 from med_autoscience.controllers.current_work_unit_parts.repair_progress_precedence import (
     gate_replay_action_supersedes_stage_packet_blocker,
+    repair_progress_gate_replay_action_supersedes_gate_replay_blocker,
 )
 from med_autoscience.controllers.current_work_unit_parts.repair_progress_action import (
     repair_progress_action_consuming_current_action as _repair_progress_action_consuming_current_action,
@@ -878,6 +879,12 @@ def _action_supersedes_typed_blocker(
         return True
     blocker_type = _text(payload.get("blocker_type"))
     if gate_replay_action_supersedes_stage_packet_blocker(
+        action=action,
+        blocker=payload,
+        gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
+    ):
+        return True
+    if repair_progress_gate_replay_action_supersedes_gate_replay_blocker(
         action=action,
         blocker=payload,
         gate_replay_work_units=GATE_REPLAY_WORK_UNITS,

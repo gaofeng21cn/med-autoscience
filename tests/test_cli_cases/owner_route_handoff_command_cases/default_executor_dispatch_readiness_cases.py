@@ -239,16 +239,24 @@ def test_domain_handler_export_carries_stage_current_provider_admission_identity
         for task in payload["pending_family_tasks"]
         if task["task_kind"] == "domain_owner/default-executor-dispatch"
     )
-    identity = task["provider_admission_identity"]
-    assert identity["action_type"] == "complete_medical_paper_readiness_surface"
-    assert identity["work_unit_id"] == "complete_medical_paper_readiness_surface"
-    assert identity["action_fingerprint"] == work_unit_fingerprint
-    assert identity["dispatch_path"] == str(dispatch_path)
+    assert "provider_admission_identity" not in task
+    transition_request = task["opl_domain_progress_transition_request"]
+    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["aggregate_identity"]["work_unit_id"] == (
+        "complete_medical_paper_readiness_surface"
+    )
+    assert transition_request["aggregate_identity"]["work_unit_fingerprint"] == work_unit_fingerprint
+    assert transition_request["dispatch_ref"].endswith(dispatch_path.name)
     assert task["work_unit_fingerprint"] == work_unit_fingerprint
     assert task["source_fingerprint"] == work_unit_fingerprint
     assert task["dedupe_key"].endswith(work_unit_fingerprint)
     assert task["provider_completion_is_domain_completion"] is False
-    assert task["authority_boundary"]["authority"] == "mas_provider_admission_identity"
+    assert task["provider_admission_pending"] is False
+    assert task["provider_admission_requires_opl_runtime_result"] is True
+    assert task["authority_boundary"]["authority"] == "med_autoscience.domain_intent_adapter"
+    assert task["authority_boundary"]["mas_can_authorize_provider_admission"] is False
     assert (
         task["stage_transition_authority_boundary"]["stage_transition_authority"]
         == "one-person-lab"
@@ -259,7 +267,10 @@ def test_domain_handler_export_carries_stage_current_provider_admission_identity
         ]
         is False
     )
-    assert task["payload"]["provider_admission_identity"] == identity
+    assert "provider_admission_identity" not in task["payload"]
+    assert task["payload"]["opl_domain_progress_transition_request"] == transition_request
+    assert task["payload"]["provider_admission_pending"] is False
+    assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
     assert task["payload"]["provider_completion_is_domain_completion"] is False
     assert task["payload"]["authority_boundary"] == task["authority_boundary"]
     assert (

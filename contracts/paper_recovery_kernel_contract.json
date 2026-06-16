@@ -216,6 +216,7 @@
         "materialize_successor_owner_action",
         "materialize_successor_owner_gate",
         "materialize_mas_transition_request_or_owner_callable",
+        "await_opl_transition_readback_or_non_advancing_apply",
         "provide_opl_execution_authorization_or_human_gate",
         "resolve_owner_gate_decision",
         "route_back_to_owner_or_repair_materialization",
@@ -308,6 +309,13 @@
         "mas_can_create_opl_outbox_record": false,
         "mas_can_authorize_provider_admission": false,
         "provider_admission_pending_requires_opl_transition_boundary": true
+      },
+      "await_opl_transition_readback_or_non_advancing_apply": {
+        "meaning": "MAS has emitted or observed a domain transition request, but provider admission is not pending until OPL DomainProgressTransitionRuntime returns event, outbox, and StageRun identity readback; without advancing evidence MAS must surface a NonAdvancingApply typed blocker.",
+        "mas_can_create_opl_outbox_record": false,
+        "mas_can_authorize_provider_admission": false,
+        "provider_admission_pending_requires_opl_transition_boundary": true,
+        "non_advancing_apply_is_typed_blocker": true
       },
       "admit_provider_attempt": {
         "meaning": "A clean MAS transition request or OPL transition readback already exists; provider execution still belongs to OPL.",

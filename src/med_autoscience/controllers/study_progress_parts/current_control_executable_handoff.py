@@ -50,9 +50,20 @@ def current_control_executable_currentness_handoff(
     updated["next_owner"] = _non_empty_text(action.get("next_owner")) or _non_empty_text(
         current_work_unit.get("owner")
     )
-    if _non_empty_text(current_work_unit.get("status")) == "executable_owner_action":
+    work_unit_matches_action = (
+        _non_empty_text(current_work_unit.get("status")) == "executable_owner_action"
+        and action_matches_canonical_executable_work_unit(
+            action=action,
+            current_work_unit=current_work_unit,
+            require_ready_status=True,
+        )
+    )
+    if work_unit_matches_action:
         updated["current_work_unit"] = current_work_unit
-    if _non_empty_text(current_envelope.get("state_kind")) == "executable_owner_action":
+    if _non_empty_text(current_envelope.get("state_kind")) == "executable_owner_action" and (
+        work_unit_matches_action
+        or _envelope_matches_action_identity(envelope=current_envelope, action=action)
+    ):
         updated["current_execution_envelope"] = current_envelope
     updated["current_executable_owner_action"] = dict(action)
     return updated
@@ -102,4 +113,34 @@ def _envelope_matches_executable_action(
         and envelope_fingerprint != canonical_fingerprint
     ):
         return False
+    return True
+
+
+def _envelope_matches_action_identity(
+    *,
+    envelope: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    action_owner = _non_empty_text(action.get("next_owner"))
+    envelope_owner = _non_empty_text(envelope.get("owner"))
+    if action_owner is None or envelope_owner != action_owner:
+        return False
+    action_work_unit = _non_empty_text(action.get("work_unit_id"))
+    envelope_work_unit = _non_empty_text(envelope.get("next_work_unit")) or _non_empty_text(
+        envelope.get("work_unit_id")
+    )
+    if action_work_unit is None or envelope_work_unit != action_work_unit:
+        return False
+    action_type = _non_empty_text(action.get("action_type"))
+    envelope_action = _non_empty_text(envelope.get("action_type"))
+    if envelope_action is not None and action_type is not None and envelope_action != action_type:
+        return False
+    action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(
+        action.get("action_fingerprint")
+    )
+    envelope_fingerprint = _non_empty_text(envelope.get("work_unit_fingerprint")) or _non_empty_text(
+        envelope.get("action_fingerprint")
+    )
+    if envelope_fingerprint is not None and action_fingerprint is not None:
+        return envelope_fingerprint == action_fingerprint
     return True

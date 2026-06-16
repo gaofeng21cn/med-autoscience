@@ -562,12 +562,12 @@ def test_domain_health_diagnostic_same_tick_treats_opl_authorization_blocker_as_
 
     assert len(scan_calls) == 2
     assert scan_calls[1]["persist_surfaces"] is True
-    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
+    assert supervisor_tick["stop_reason"] == "provider_handoff_written_transition_request_pending"
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
-    assert diagnostic["requires_provider_admission"] is True
+    assert diagnostic["requires_opl_transition_readback"] is True
     assert diagnostic["requires_dispatch_blocker_resolution"] is False
     assert diagnostic["same_tick_terminal_projection"] == {
-        "terminal_state": "provider_handoff_written_admission_pending",
+        "terminal_state": "provider_handoff_written_transition_request_pending",
         "owner_delta_produced": False,
         "provider_attempt_running": False,
         "stable_typed_blocker_observed": False,
@@ -661,7 +661,7 @@ def test_domain_health_diagnostic_same_tick_rejects_authorization_blocker_withou
     assert len(scan_calls) == 1
     assert supervisor_tick["stop_reason"] == "typed_blocker_or_dispatch_blocker_observed"
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
-    assert diagnostic["requires_provider_admission"] is False
+    assert diagnostic["requires_opl_transition_readback"] is False
     assert diagnostic["requires_dispatch_blocker_resolution"] is True
     assert diagnostic["same_tick_terminal_projection"] == {
         "terminal_state": "stable_typed_blocker_observed",
@@ -781,9 +781,9 @@ def test_domain_health_diagnostic_opl_authorization_blocker_matches_current_iden
     )
 
     assert len(scan_calls) == 2
-    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
+    assert supervisor_tick["stop_reason"] == "provider_handoff_written_transition_request_pending"
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
-    assert diagnostic["requires_provider_admission"] is True
+    assert diagnostic["requires_opl_transition_readback"] is True
     assert diagnostic["same_tick_terminal_projection"]["provider_attempt_running"] is False
     assert diagnostic["provider_admission_probe"] == {
         "observed": False,

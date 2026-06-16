@@ -22,6 +22,8 @@ def owner_action_from_domain_transition(
     if owner is None and work_unit_id is None and action is None:
         return None
     decision_type = _non_empty_text(transition.get("decision_type"))
+    if _runtime_diagnostic_transition(decision_type=decision_type, work_unit_id=work_unit_id, action=action):
+        return None
     work_unit_fingerprint = _non_empty_text(transition.get("work_unit_fingerprint"))
     if work_unit_fingerprint is None and decision_type is not None and work_unit_id is not None:
         work_unit_fingerprint = f"domain-transition::{decision_type}::{work_unit_id}"
@@ -131,6 +133,19 @@ def _source_eval_id(transition: Mapping[str, Any]) -> str | None:
         or _non_empty_text(transition.get("source_eval_id"))
         or _non_empty_text(transition.get("publication_eval_id"))
         or _non_empty_text(publication_eval_ref.get("eval_id"))
+    )
+
+
+def _runtime_diagnostic_transition(
+    *,
+    decision_type: str | None,
+    work_unit_id: str | None,
+    action: str | None,
+) -> bool:
+    return (
+        decision_type == "active_domain_health_diagnostic"
+        or work_unit_id == "domain_health_diagnostic_active_run"
+        or action == "domain_health_diagnostic"
     )
 
 

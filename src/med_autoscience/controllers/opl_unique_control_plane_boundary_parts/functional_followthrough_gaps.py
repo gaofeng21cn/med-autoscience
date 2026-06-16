@@ -240,6 +240,187 @@ OPL_REPLACEMENT_EXPECTATION_AUDIT = {
     "mas_allowed_role_until_replacement": "domain_authority_refs_index_refs_only",
 }
 
+PRIVATE_SURFACE_RETIREMENT_GATE_CHECKLIST = {
+    "surface_kind": "mas_private_surface_retirement_gate_checklist",
+    "completion_percent_policy": (
+        "do_not_report_100_percent_without_fresh_live_owner_or_OPL_readback_"
+        "evidence_for_each_open_gate"
+    ),
+    "gate_items": [
+        {
+            "gate_id": "no_active_caller",
+            "required_evidence": (
+                "repo scan or OPL generated default-caller report proves the "
+                "legacy MAS surface has no default/runtime caller"
+            ),
+            "status": "required_before_physical_delete",
+        },
+        {
+            "gate_id": "replacement_parity",
+            "required_evidence": (
+                "OPL primitive or generated surface consumes the same refs and "
+                "preserves MAS owner-answer boundary"
+            ),
+            "status": "required_before_physical_delete",
+        },
+        {
+            "gate_id": "no_forbidden_write_proof",
+            "required_evidence": (
+                "proof shows the replacement/projection did not write study truth, "
+                "memory body, artifact body, publication eval, controller decision, "
+                "current package, owner receipt, or typed blocker"
+            ),
+            "status": "required_before_physical_delete",
+        },
+        {
+            "gate_id": "tombstone_or_provenance",
+            "required_evidence": (
+                "history/tombstone/provenance ref exists before removing legacy "
+                "entrypoint or wrapper"
+            ),
+            "status": "required_before_physical_delete",
+        },
+        {
+            "gate_id": "live_owner_or_stable_blocker",
+            "required_evidence": (
+                "fresh MAS owner receipt, stable typed blocker, human gate, "
+                "route-back evidence, or same-current-identity OPL StageRun readback "
+                "exists when claiming runtime completion"
+            ),
+            "status": "required_before_completion_claim",
+        },
+    ],
+}
+
+PRIVATE_SURFACE_RETIREMENT_GATE_POLICY = {
+    "surface_kind": "mas_private_surface_retirement_gate_policy",
+    "active_caller_alone_retains_surface": False,
+    "allowed_dispositions": [
+        "opl_primitive",
+        "temporary_refs_projection",
+        "retained_minimal_authority_function",
+        "tombstone_only",
+    ],
+    "forbidden_retention_reasons": [
+        "current_tests_green",
+        "legacy_caller_exists",
+        "read_model_projection_needed",
+        "operator_ui_uses_path",
+        "docs_reference_exists",
+    ],
+    "must_not_claim": [
+        "live_runtime_ready",
+        "publication_ready",
+        "domain_ready",
+        "production_ready",
+        "physical_delete_authorized",
+        "100_percent_complete_without_live_proof",
+    ],
+    "required_fields": [
+        "disposition",
+        "replacement_owner",
+        "no_active_caller",
+        "replacement_parity",
+        "no_forbidden_write_proof",
+        "tombstone_or_provenance",
+        "retirement_gate",
+    ],
+}
+
+PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX = {
+    "surface_kind": "mas_private_surface_retirement_disposition_matrix",
+    "classification_source": "functional_consumer_boundary.functional_module_inventory",
+    "source_of_truth_chain": (
+        "DomainIntent -> OPL Command/Event/Outbox/StageRun -> MAS OwnerAnswer -> "
+        "Derived Projection"
+    ),
+    "completion_claim_policy": {
+        "contracts_or_tests_alone_can_claim_100_percent": False,
+        "live_proof_required_before_100_percent": True,
+        "ready_claim_authorized": False,
+    },
+    "required_retirement_gate_fields": [
+        "no_active_caller",
+        "no_forbidden_write_proof",
+        "replacement_parity",
+        "retirement_gate",
+        "tombstone_or_provenance",
+    ],
+    "surface_dispositions": [
+        {
+            "disposition": "tombstone_only",
+            "module_ids": ["generic_daemon_or_scheduler_lifecycle"],
+            "no_active_caller": "required_before_physical_delete_or_removed_from_default_caller",
+            "no_forbidden_write_proof": "required",
+            "replacement_parity": "opl_scheduler_provider_lifecycle_or_retired_provenance_only",
+            "retirement_gate": "tombstone_or_provenance_only_no_runtime_owner_resurrection",
+            "tombstone_or_provenance": "required",
+        },
+        {
+            "disposition": "opl_primitive_replacement",
+            "module_ids": [
+                "generic_queue_attempt_retry_dead_letter",
+                "generic_transition_runner",
+            ],
+            "no_active_caller": "required_before_mas_physical_delete",
+            "no_forbidden_write_proof": "required",
+            "replacement_parity": (
+                "OPL queue_attempt_retry_dead_letter_and_transition_runtime_readback"
+            ),
+            "retirement_gate": "OPL primitive parity plus MAS owner-answer consumption",
+            "tombstone_or_provenance": "required",
+        },
+        {
+            "disposition": "temporary_refs_projection",
+            "module_ids": [
+                "domain_authority_refs_index",
+                "paper_work_unit_outbox_index",
+                "runtime_storage_maintenance",
+                "publication_route_memory_locator_transport_shell",
+                "artifact_lifecycle_storage_audit_shell",
+                "workspace_source_intake_shell",
+                "workbench_portal_generic_shell",
+                "owner_route_reconcile_materialize_dispatch_shell",
+                "generic_cli_mcp_product_wrappers",
+            ],
+            "no_active_caller": (
+                "required_before_physical_delete_not_required_for_refs_projection_retention"
+            ),
+            "no_forbidden_write_proof": "required",
+            "replacement_parity": (
+                "OPL generated_or_hosted_surface_consumes_same_refs_without_MAS_"
+                "generic_owner_claim"
+            ),
+            "retirement_gate": (
+                "retain_only_as_refs_receipts_blockers_locators_or_body_free_"
+                "diagnostic_projection_until_parity"
+            ),
+            "tombstone_or_provenance": "required_before_removing_legacy_entrypoint",
+        },
+        {
+            "disposition": "retained_minimal_authority_function",
+            "module_ids": [
+                "study_truth",
+                "publication_quality_verdict",
+                "artifact_authority",
+                "owner_receipt",
+                "typed_blocker",
+                "safe_action_refs",
+                "domain_transition_table",
+                "publication_route_memory_body",
+                "memory_writeback_decision",
+            ],
+            "no_active_caller": "not_required_for_retention_required_before_retirement",
+            "no_forbidden_write_proof": "required",
+            "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_refs_transport_allowed",
+            "retirement_gate": (
+                "retained_until_MAS_owner_answer_or_authority_record_supersedes_surface"
+            ),
+            "tombstone_or_provenance": "required_if_surface_is_later_retired",
+        },
+    ],
+}
+
 
 def _closure_gate_is_closed(gate: Mapping[str, Any]) -> bool:
     proof_refs = gate.get("closure_proof_refs")
@@ -302,6 +483,10 @@ def build_functional_followthrough_gap_summary(
         "owner_followthrough_evidence": [
             dict(MEMORY_ARTIFACT_LIFECYCLE_OWNER_FOLLOWTHROUGH),
         ],
+        "retirement_gate_checklist": {
+            key: [dict(item) for item in value] if isinstance(value, list) else value
+            for key, value in PRIVATE_SURFACE_RETIREMENT_GATE_CHECKLIST.items()
+        },
         "cleared_by_surfaces": [
             "functional_module_inventory",
             "declarative_pack_compiler_input",

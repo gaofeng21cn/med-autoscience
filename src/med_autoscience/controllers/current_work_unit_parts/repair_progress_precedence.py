@@ -19,6 +19,7 @@ STALE_STAGE_PACKET_BLOCKERS = frozenset(
         "stage_packet_not_current_selected_dispatch",
     }
 )
+GATE_REPLAY_BLOCKERS = frozenset({"publication_gate_replay_blocked"})
 
 
 def gate_replay_action_supersedes_stage_packet_blocker(
@@ -54,6 +55,35 @@ def gate_replay_action_supersedes_stage_packet_blocker(
     return source_work_unit is not None and source_work_unit == blocker_work_unit
 
 
+def repair_progress_gate_replay_action_supersedes_gate_replay_blocker(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+    gate_replay_work_units: Collection[str],
+) -> bool:
+    blocker_type = (
+        _text(blocker.get("blocker_type"))
+        or _text(blocker.get("blocker_id"))
+        or _text(blocker.get("blocked_reason"))
+    )
+    if blocker_type not in GATE_REPLAY_BLOCKERS:
+        return False
+    if (_text(action.get("source_surface")) or _text(action.get("source"))) != REPAIR_PROGRESS_EVIDENCE_SOURCE:
+        return False
+    if _text(action.get("action_type")) != "run_gate_clearing_batch":
+        return False
+    if _work_unit_id(action.get("work_unit_id")) not in gate_replay_work_units:
+        return False
+    precedence = _mapping(action.get("repair_progress_precedence"))
+    if precedence.get("paper_delta_observed") is not True:
+        return False
+    if precedence.get("accepted_owner_receipt") is not True:
+        return False
+    source_work_unit = _work_unit_id(precedence.get("source_work_unit_id"))
+    return source_work_unit is not None and source_work_unit not in gate_replay_work_units
+
+
 __all__ = [
     "gate_replay_action_supersedes_stage_packet_blocker",
+    "repair_progress_gate_replay_action_supersedes_gate_replay_blocker",
 ]

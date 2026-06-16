@@ -146,7 +146,6 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
         "next_executable_owner": "write",
         "executor_kind": "codex_cli_default",
         "dispatch_ref": dispatch_ref,
-        "authority_boundary": "mas_default_executor_dispatch_request_only",
         "owner_route_currentness_basis": {
             "source_eval_id": "publication-eval::002::current",
             "work_unit_id": "medical_prose_write_repair",
@@ -176,6 +175,21 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
         },
     }
     assert {key: task["payload"][key] for key in expected_payload_core} == expected_payload_core
+    assert task["payload"]["authority_boundary"]["authority"] == (
+        "med_autoscience.domain_intent_adapter"
+    )
+    assert task["payload"]["authority_boundary"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )
+    assert task["payload"]["authority_boundary"]["mas_can_authorize_provider_admission"] is False
+    assert task["payload"]["provider_admission_pending"] is False
+    assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
+    transition_request = task["payload"]["opl_domain_progress_transition_request"]
+    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["mas_can_create_opl_outbox_record"] is False
+    assert transition_request["mas_can_create_opl_stage_run"] is False
+    assert "provider_admission_identity" not in task["payload"]
     assert task["payload"]["decision_trace"] is None
     assert task["payload"]["decision_trace_refs"] is None
     assert task["payload"]["failed_path_ledger"] is None
@@ -924,7 +938,19 @@ def test_domain_handler_export_projects_ai_reviewer_default_executor_dispatch_re
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     )
     assert task["payload"]["dispatch_ref"] == dispatch_ref
-    assert task["payload"]["authority_boundary"] == "mas_default_executor_dispatch_request_only"
+    assert task["payload"]["authority_boundary"]["authority"] == (
+        "med_autoscience.domain_intent_adapter"
+    )
+    assert task["payload"]["authority_boundary"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )
+    assert task["payload"]["authority_boundary"]["mas_can_authorize_provider_admission"] is False
+    assert task["payload"]["provider_admission_pending"] is False
+    assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
+    assert task["payload"]["opl_domain_progress_transition_request"]["surface_kind"] == (
+        "mas_domain_progress_transition_request"
+    )
+    assert "provider_admission_identity" not in task["payload"]
     assert task["payload"]["owner_route_currentness_basis"] == {
         "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
         "work_unit_fingerprint": "truth-snapshot::085b4164f248a2f4c92bf66b",

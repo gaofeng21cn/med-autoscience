@@ -161,7 +161,7 @@ def _stage_native_quality_repair_dispatch(
     return payload
 
 
-def test_stage_native_write_repair_dispatch_is_authorized_by_current_next_action(
+def test_stage_native_write_repair_dispatch_requires_opl_authorization_after_current_next_action_selection(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -181,16 +181,10 @@ def test_stage_native_write_repair_dispatch_is_authorized_by_current_next_action
         / "run_quality_repair_batch.json"
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
-    monkeypatch.setattr(
-        module.action_execution.quality_repair,
-        "execute_quality_repair_batch",
-        lambda **_: {
-            "execution_status": "executed",
-            "blocked_reason": None,
-            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
-            "owner_result": {"status": "executed"},
-        },
-    )
+    def fail_if_called(**_: object) -> dict[str, object]:
+        raise AssertionError("MAS dispatcher must not execute stage-native owner callable without OPL proof")
+
+    monkeypatch.setattr(module.action_execution.quality_repair, "execute_quality_repair_batch", fail_if_called)
 
     result = module.dispatch_domain_owner_actions(
         profile=profile,
@@ -200,10 +194,12 @@ def test_stage_native_write_repair_dispatch_is_authorized_by_current_next_action
         apply=True,
     )
 
-    assert result["blocked_count"] == 0
-    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 1
+    assert result["executed_count"] == 0
     execution = result["executions"][0]
-    assert execution["execution_status"] == "executed"
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
     assert execution["owner_route_basis"] == "stage_native_workspace_next_action"
     assert execution["owner_route_current"] is True
 
@@ -312,16 +308,10 @@ def test_stage_native_write_repair_owner_request_survives_stale_readiness_scan(
             "default_executor_dispatches": [],
         },
     )
-    monkeypatch.setattr(
-        module.action_execution.quality_repair,
-        "execute_quality_repair_batch",
-        lambda **_: {
-            "execution_status": "executed",
-            "blocked_reason": None,
-            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
-            "owner_result": {"status": "executed"},
-        },
-    )
+    def fail_if_called(**_: object) -> dict[str, object]:
+        raise AssertionError("MAS dispatcher must not execute owner-request callable without OPL proof")
+
+    monkeypatch.setattr(module.action_execution.quality_repair, "execute_quality_repair_batch", fail_if_called)
 
     result = module.dispatch_domain_owner_actions(
         profile=profile,
@@ -332,9 +322,12 @@ def test_stage_native_write_repair_owner_request_survives_stale_readiness_scan(
     )
 
     assert result["execution_count"] == 1
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
     assert execution["action_type"] == "run_quality_repair_batch"
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
     assert execution["owner_route_current"] is True
     assert execution["owner_route_basis"] in {"owner_request", "stage_native_workspace_next_action"}
 
@@ -383,16 +376,10 @@ def test_stage_native_write_repair_dispatch_survives_readiness_missing_typed_blo
             "current_owner_ticket": None,
         },
     )
-    monkeypatch.setattr(
-        module.action_execution.quality_repair,
-        "execute_quality_repair_batch",
-        lambda **_: {
-            "execution_status": "executed",
-            "blocked_reason": None,
-            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
-            "owner_result": {"status": "executed"},
-        },
-    )
+    def fail_if_called(**_: object) -> dict[str, object]:
+        raise AssertionError("MAS dispatcher must not execute typed-blocker-envelope callable without OPL proof")
+
+    monkeypatch.setattr(module.action_execution.quality_repair, "execute_quality_repair_batch", fail_if_called)
 
     result = module.dispatch_domain_owner_actions(
         profile=profile,
@@ -403,9 +390,12 @@ def test_stage_native_write_repair_dispatch_survives_readiness_missing_typed_blo
     )
 
     assert result["execution_count"] == 1
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
     assert execution["action_type"] == "run_quality_repair_batch"
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
     assert execution["owner_route_current"] is True
 
 

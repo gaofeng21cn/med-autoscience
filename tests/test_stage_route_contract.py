@@ -350,7 +350,7 @@ def test_stage_route_contract_declares_machine_anti_loop_policy() -> None:
     assert {
         "dispatch_materialized_but_not_selected",
         "typed_blocker_or_dispatch_blocker_observed",
-        "provider_handoff_written_admission_pending",
+        "provider_handoff_written_transition_request_pending",
         "provider_attempt_started",
         "max_passes_exhausted_owner_delta_required",
     } <= set(policy["terminal_diagnostics"])

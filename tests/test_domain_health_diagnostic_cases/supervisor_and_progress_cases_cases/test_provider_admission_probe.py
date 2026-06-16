@@ -66,16 +66,16 @@ def test_domain_health_diagnostic_same_tick_reports_handoff_pending_without_prov
 
     supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=3)
 
-    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
+    assert supervisor_tick["stop_reason"] == "provider_handoff_written_transition_request_pending"
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
     assert diagnostic["same_tick_terminal_projection"] == {
-        "terminal_state": "provider_handoff_written_admission_pending",
+        "terminal_state": "provider_handoff_written_transition_request_pending",
         "owner_delta_produced": False,
         "provider_attempt_running": False,
         "stable_typed_blocker_observed": False,
         "provider_handoff_written": True,
     }
-    assert diagnostic["requires_provider_admission"] is True
+    assert diagnostic["requires_opl_transition_readback"] is True
     assert diagnostic["provider_admission_probe"] == {
         "observed": False,
         "running_provider_attempt_count": 0,

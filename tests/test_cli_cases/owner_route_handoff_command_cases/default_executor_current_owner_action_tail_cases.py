@@ -730,5 +730,14 @@ def test_domain_handler_export_exports_provider_admission_when_current_work_unit
     assert task["payload"]["action_type"] == action_type
     assert task["payload"]["work_unit_id"] == current_work_unit_id
     assert task["payload"]["work_unit_fingerprint"] == current_fingerprint
-    assert task["payload"]["provider_admission_identity"]["work_unit_id"] == current_work_unit_id
-    assert task["payload"]["provider_attempt_or_lease_required"] is True
+    transition_request = task["payload"]["opl_domain_progress_transition_request"]
+    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["work_unit_id"] == current_work_unit_id
+    assert transition_request["work_unit_fingerprint"] == current_fingerprint
+    assert transition_request["mas_can_create_opl_outbox_record"] is False
+    assert transition_request["mas_can_create_opl_stage_run"] is False
+    assert task["payload"]["provider_admission_pending"] is False
+    assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
+    assert "provider_admission_identity" not in task["payload"]

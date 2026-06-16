@@ -396,7 +396,7 @@ When validating a docs-only change in this repo, use documentation review plus g
 - 当 study-level `owner_route` 是非 dispatchable placeholder，而 `action_queue` 已有当前 owner action route 时，仍让默认 dispatch 返回空 execution。应让 action-queue route 成为当前 dispatch authority，不能继续重复 read-model reconcile。
 - 当 consumed `domain_transition.controller_action` 已指向下一 owner action，且 consumer dispatch 已 ready，但 `action_queue` 暂空时，仍因 consumed transition 非空而清空 fallback dispatch。应按 consumed-transition owner action bridge 执行当前 dispatch，不能让论文推进等待下一轮同义 reconcile。
 - 在 `ai_reviewer_record_production_handoff` persisted dispatch 已存在后，继续让 stale `consumer/latest.json` inline dispatch 覆盖它，导致重复写 handoff 而不是把 AI reviewer record-production owner action 交给下一 owner。应优先 persisted record-only handoff，并把旧 inline 当作 read-model lag。
-- 把 provider handoff 写出当作 provider attempt 已启动。缺 running proof 时只能写 `provider_handoff_written_admission_pending`。
+- 把 provider handoff 写出当作 provider attempt 已启动。缺 running proof 时只能写 `provider_handoff_written_transition_request_pending`。
 - 把 telemetry、duration/token/cost、Portal card wording、read-model hygiene、refs-only ledger record/verify 当成 paper progress。
 - 把 `provider_admission_pending_count>0` 但 `execution_gate.blocked=true` 的状态当成 running、idle bug 或 hydrate/redrive 请求。应先解除 developer-supervisor / user config / repo-write gate，或记录 typed blocker / human gate。
 - 把 `paper_stage_log` 中补齐的 duration/token/cost 当成论文产出或 quality verdict。它只是 terminal stage accounting 的 observability fallback。

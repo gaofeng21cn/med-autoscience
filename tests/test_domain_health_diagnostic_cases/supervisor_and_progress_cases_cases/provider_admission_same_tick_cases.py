@@ -100,7 +100,7 @@ def test_domain_health_diagnostic_same_tick_refreshes_materialize_after_pending_
 
     supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=3)
 
-    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
+    assert supervisor_tick["stop_reason"] == "provider_handoff_written_transition_request_pending"
     assert len(scan_calls) == 2
     assert scan_calls[1]["persist_surfaces"] is True
     assert len(materialize_calls) == 2
@@ -110,7 +110,7 @@ def test_domain_health_diagnostic_same_tick_refreshes_materialize_after_pending_
     )
     assert supervisor_tick["materialize"] == iteration["post_admission_materialize"]
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
-    assert diagnostic["requires_provider_admission"] is True
+    assert diagnostic["requires_opl_transition_readback"] is True
     assert diagnostic["post_admission_materialize"] == {
         "observed": True,
         "default_executor_dispatch_count": 1,
@@ -203,7 +203,7 @@ def test_domain_health_diagnostic_same_tick_reports_provider_attempt_started_aft
         "stable_typed_blocker_observed": False,
         "provider_handoff_written": True,
     }
-    assert diagnostic["requires_provider_admission"] is False
+    assert diagnostic["requires_opl_transition_readback"] is False
     assert diagnostic["provider_admission_probe"] == {
         "observed": True,
         "running_provider_attempt_count": 1,
@@ -305,10 +305,10 @@ def test_domain_health_diagnostic_same_tick_rejects_stale_provider_attempt_for_n
     supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=1)
 
     assert len(scan_calls) == 2
-    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
+    assert supervisor_tick["stop_reason"] == "provider_handoff_written_transition_request_pending"
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
     assert diagnostic["same_tick_terminal_projection"]["provider_attempt_running"] is False
-    assert diagnostic["requires_provider_admission"] is True
+    assert diagnostic["requires_opl_transition_readback"] is True
 
 
 def test_domain_health_diagnostic_same_tick_continues_after_partial_provider_admission(

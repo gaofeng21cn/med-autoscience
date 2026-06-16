@@ -14,10 +14,10 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     handoff_work_unit_id,
     materialized_record_only_provider_handoff,
     materialized_record_only_provider_handoffs,
-    provider_admission_pending_dispatch_result,
     provider_probe_has_matching_attempt,
     provider_probe_has_non_running_actions,
     study_has_running_provider_attempt,
+    transition_request_pending_dispatch_result,
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.profiles import WorkspaceProfile
@@ -73,7 +73,7 @@ def _run_developer_supervisor_same_tick(
             materialize_result = carried_materialize_result
             carried_materialize_result = None
         if materialized_record_only_provider_handoff(materialize_result):
-            dispatch_result = provider_admission_pending_dispatch_result(
+            dispatch_result = transition_request_pending_dispatch_result(
                 materialize_result=materialize_result,
             )
         else:
@@ -215,11 +215,11 @@ def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
             if provider_probe_has_non_running_actions(provider_admission_probe):
                 return "continue_same_tick_after_provider_admission_delta"
             return "provider_attempt_started"
-        return "provider_handoff_written_admission_pending"
+        return "provider_handoff_written_transition_request_pending"
     if _int_value(delta.get("blocked_default_executor_dispatch_count")) > 0:
         return "typed_blocker_or_dispatch_blocker_observed"
     if _same_tick_provider_admission_blocker_written(iteration):
-        return "provider_handoff_written_admission_pending"
+        return "provider_handoff_written_transition_request_pending"
     if _int_value(delta.get("dispatch_blocked_count")) > 0:
         return "typed_blocker_or_dispatch_blocker_observed"
     if _int_value(delta.get("dispatch_repeat_suppressed_count")) > 0:
@@ -471,7 +471,7 @@ def _same_tick_terminal_diagnostic(
         "repeat_suppressed_owner_delta_required",
         "max_passes_exhausted_owner_delta_required",
     }
-    requires_provider_admission = stop_reason == "provider_handoff_written_admission_pending"
+    requires_opl_transition_readback = stop_reason == "provider_handoff_written_transition_request_pending"
     requires_dispatch_blocker_resolution = (
         stop_reason == "typed_blocker_or_dispatch_blocker_observed"
         and (
@@ -490,7 +490,7 @@ def _same_tick_terminal_diagnostic(
             provider_admission_probe=provider_admission_probe,
         ),
         "requires_next_owner_delta": requires_next_owner_delta,
-        "requires_provider_admission": requires_provider_admission,
+        "requires_opl_transition_readback": requires_opl_transition_readback,
         "requires_dispatch_blocker_resolution": requires_dispatch_blocker_resolution,
         "dispatch_blocker_summary": (
             _dispatch_blocker_summary(last_iteration)
@@ -507,7 +507,7 @@ def _same_tick_terminal_diagnostic(
                     if isinstance(study, Mapping) and _non_empty_text(study.get("study_id"))
                 ],
             }
-            if requires_provider_admission
+            if requires_opl_transition_readback
             else (
                 {
                     "observed": True,
@@ -557,23 +557,24 @@ def _same_tick_terminal_diagnostic(
             if requires_next_owner_delta
             else (
                 {
-                    "required_delta_kind": "opl_provider_attempt_admission",
+                    "required_delta_kind": "opl_domain_progress_transition_readback",
                     "reason": stop_reason,
                     "target_surface": {
-                        "surface_ref": "OPL provider attempt receipt with active stage attempt id",
+                        "surface_ref": "OPL DomainProgressTransitionRuntime event/outbox/StageRun readback",
                         "owner": "one-person-lab",
                     },
                     "acceptance_refs": [
-                        "running_provider_attempt",
-                        "active_stage_attempt_id",
-                        "active_run_id",
+                        "opl_domain_progress_transition_result.event_id",
+                        "opl_domain_progress_transition_result.outbox_item_id",
+                        "opl_domain_progress_transition_result.stage_run_id",
+                        "opl_domain_progress_transition_result.stage_run_identity_ref",
                     ],
                     "recommended_owner_commands": [
-                        "opl family-runtime worker status --provider temporal",
-                        "opl family-runtime scheduler tick --provider temporal",
+                        "OPL DomainProgressTransitionRuntime intake",
+                        "OPL StageRun lease or human gate readback",
                     ],
                 }
-                if requires_provider_admission
+                if requires_opl_transition_readback
                 else (
                     {
                         "required_delta_kind": "dispatch_blocker_resolution_or_owner_route_currentness_delta",
@@ -600,7 +601,7 @@ def _same_tick_terminal_diagnostic(
                 "repeat_read_model_reconcile_without_owner_delta",
                 "start_new_provider_attempt_for_same_source_without_owner_delta",
             ]
-            if requires_next_owner_delta or requires_provider_admission or requires_dispatch_blocker_resolution
+            if requires_next_owner_delta or requires_opl_transition_readback or requires_dispatch_blocker_resolution
             else []
         ),
     }

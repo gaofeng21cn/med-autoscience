@@ -75,7 +75,7 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
                 },
             },
             "developer_supervisor_same_tick": {
-                "stop_reason": "provider_handoff_written_admission_pending",
+                "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
                     "default_executor_dispatches": [
                         {
@@ -181,7 +181,7 @@ def test_same_tick_materialized_report_candidate_carries_opl_outbox_record(
                 },
             },
             "developer_supervisor_same_tick": {
-                "stop_reason": "provider_handoff_written_admission_pending",
+                "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
                     "generated_at": "2026-06-16T02:58:00+00:00",
                     "default_executor_dispatches": [
@@ -318,7 +318,7 @@ def test_same_tick_materialized_dispatch_without_stage_packet_fails_closed(
                 },
             },
             "developer_supervisor_same_tick": {
-                "stop_reason": "provider_handoff_written_admission_pending",
+                "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
                     "default_executor_dispatches": [
                         {
@@ -420,7 +420,7 @@ def test_same_tick_owner_route_apply_refreshes_report_currentness_before_provide
         lambda **_: {
             "surface": "developer_supervisor_same_tick",
             "schema_version": 1,
-            "stop_reason": "provider_handoff_written_admission_pending",
+            "stop_reason": "provider_handoff_written_transition_request_pending",
             "study_ids": [study_id],
             "iterations": [],
             "materialize": {
@@ -624,7 +624,7 @@ def test_same_tick_recovery_successor_dispatch_survives_stale_opl_authorization_
         lambda **_: {
             "surface": "developer_supervisor_same_tick",
             "schema_version": 1,
-            "stop_reason": "provider_handoff_written_admission_pending",
+            "stop_reason": "provider_handoff_written_transition_request_pending",
             "study_ids": [study_id],
             "iterations": [],
             "materialize": {

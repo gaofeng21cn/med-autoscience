@@ -101,7 +101,6 @@ def current_default_executor_dispatches(
         "blocked_default_executor_dispatch_count": _dispatch_status_count(dispatches, "blocked", text=text),
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in dispatches),
         "default_executor_dispatches": dispatches,
-        "default_executor_dispatches_compat_role": "derived_read_model_for_existing_selectors",
     }
 
 
