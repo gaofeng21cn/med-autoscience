@@ -9,6 +9,40 @@ from tests.test_paper_recovery_state_cases.shared import (
 )
 
 
+def _opl_transition_request(
+    *,
+    study_id: str = "003-dpcc-primary-care-phenotype-treatment-gap",
+    work_unit_id: str = "medical_prose_write_repair",
+    fingerprint: str = "publication-blockers::0915410f804b3697",
+    transition_kind: str = "StartProviderAttempt",
+) -> dict[str, object]:
+    return {
+        "surface_kind": "mas_domain_progress_transition_request",
+        "target_runtime_kind": "DomainProgressTransitionRuntime",
+        "target_runtime_owner": "one-person-lab",
+        "request_owner": "med-autoscience",
+        "authority_role": "domain_policy_request_only",
+        "mas_can_create_opl_outbox_record": False,
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "recommended_transition_kind": transition_kind,
+        "aggregate_identity": {
+            "aggregate_kind": "study_work_unit",
+            "aggregate_id": f"{study_id}::{work_unit_id}",
+            "study_id": study_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+        },
+        "idempotency_key": f"paper-policy-request::{study_id}::{work_unit_id}::{fingerprint}",
+        "source_generation": fingerprint,
+        "expected_version": fingerprint,
+        "required_postcondition": {
+            "kind": "provider_admission_enqueued_or_blocked",
+            "outcome_owner": "one-person-lab",
+            "domain_state_owner": "med-autoscience",
+        },
+    }
+
+
 def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     state = _module().build_paper_recovery_state(
         {
@@ -37,7 +71,7 @@ def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     assert state["current_authority"]["owner"] == "one-person-lab"
     assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
-    assert state["suppressed_surfaces"] == ["current_executable_owner_action", "provider_admission_candidates"]
+    assert state["suppressed_surfaces"] == ["current_executable_owner_action"]
 
 
 def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
@@ -124,6 +158,7 @@ def test_observe_only_diagnostic_does_not_block_provider_admission() -> None:
                     "action_type": "run_quality_repair_batch",
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "opl_domain_progress_transition_request": _opl_transition_request(),
                 }
             ],
         },
@@ -169,7 +204,7 @@ def test_executable_owner_action_without_candidate_is_owner_action_ready_not_adm
 
     assert state["phase"] == "owner_action_ready"
     assert state["conditions"] == [{"condition": "current_owner_action_ready"}]
-    assert state["next_safe_action"]["kind"] == "materialize_provider_admission_or_owner_callable"
+    assert state["next_safe_action"]["kind"] == "materialize_mas_transition_request_or_owner_callable"
     assert state["next_safe_action"]["provider_admission_allowed"] is True
 
 
@@ -195,6 +230,10 @@ def test_runtime_retry_exhausted_provider_admission_fails_closed() -> None:
                     "action_type": "run_gate_clearing_batch",
                     "work_unit_id": "publication_gate_replay",
                     "work_unit_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                    "opl_domain_progress_transition_request": _opl_transition_request(
+                        work_unit_id="publication_gate_replay",
+                        fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                    ),
                 }
             ],
             "runtime_health_snapshot": {
@@ -242,7 +281,7 @@ def test_runtime_retry_exhausted_without_admission_candidate_keeps_owner_action_
 
     assert state["phase"] == "owner_action_ready"
     assert state["conditions"] == [{"condition": "current_owner_action_ready"}]
-    assert state["next_safe_action"]["kind"] == "materialize_provider_admission_or_owner_callable"
+    assert state["next_safe_action"]["kind"] == "materialize_mas_transition_request_or_owner_callable"
     assert state["next_safe_action"]["provider_admission_allowed"] is True
 
 
@@ -298,6 +337,7 @@ def test_matching_provider_admission_supersedes_stale_parked_projection() -> Non
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
                     "action_fingerprint": "publication-blockers::0915410f804b3697",
+                    "opl_domain_progress_transition_request": _opl_transition_request(),
                 }
             ],
         }
@@ -324,6 +364,10 @@ def test_current_work_unit_provider_admission_pending_supersedes_stale_parked_pr
             "running_provider_attempt": False,
             "provider_attempt_or_lease_required": False,
         },
+        "opl_domain_progress_transition_request": _opl_transition_request(
+            work_unit_id="publication_gate_replay",
+            fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        ),
     }
 
     state = _module().build_paper_recovery_state(
@@ -362,6 +406,10 @@ def test_current_work_unit_provider_admission_without_candidate_observe_only_is_
     current_work_unit["state"] = {
         "state_kind": "executable_owner_action",
         "provider_admission_pending": True,
+        "opl_domain_progress_transition_request": _opl_transition_request(
+            work_unit_id="publication_gate_replay",
+            fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        ),
     }
 
     state = _module().build_paper_recovery_state(
@@ -679,6 +727,7 @@ def test_paper_recovery_admission_blocked_suppresses_active_provider_admission_p
                     "action_type": "run_quality_repair_batch",
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "opl_domain_progress_transition_request": _opl_transition_request(),
                 }
             ],
             "runtime_health_snapshot": {
@@ -702,6 +751,7 @@ def test_paper_recovery_admission_blocked_suppresses_active_provider_admission_p
                     "action_type": "run_quality_repair_batch",
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "opl_domain_progress_transition_request": _opl_transition_request(),
                 }
             ],
             "owner_action_admission": {
@@ -721,6 +771,7 @@ def test_paper_recovery_admission_blocked_suppresses_active_provider_admission_p
                     "pending_provider_admission_evidence": {
                         "provider_admission_pending_count": 1,
                     },
+                    "opl_domain_progress_transition_request": _opl_transition_request(),
                 },
             },
             "user_visible_projection": {
@@ -873,7 +924,7 @@ def test_terminal_closeout_with_stale_fingerprint_does_not_match_current_obligat
     )
 
     assert state["phase"] == "owner_action_ready"
-    assert state["next_safe_action"]["kind"] == "materialize_provider_admission_or_owner_callable"
+    assert state["next_safe_action"]["kind"] == "materialize_mas_transition_request_or_owner_callable"
     assert state["next_safe_action"]["provider_admission_allowed"] is True
     assert not state.get("evidence_refs")
 
@@ -894,6 +945,81 @@ def test_foreground_file_delta_without_owner_receipt_is_unadopted() -> None:
     assert state["phase"] == "manual_foreground_unadopted"
     assert state["next_safe_action"]["kind"] == "adopt_manual_delta_through_mas_owner_receipt"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
+
+
+def test_naked_provider_admission_candidate_is_diagnostic_not_pending_recovery() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(),
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "status": "provider_admission_pending",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                }
+            ],
+        }
+    )
+
+    assert state["phase"] != "admission_pending"
+    assert state["phase"] == "owner_action_ready"
+    assert state["next_safe_action"]["kind"] == "materialize_mas_transition_request_or_owner_callable"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+
+
+def test_provider_admission_candidate_with_clean_opl_transition_request_stays_pending() -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": study_id,
+            "current_work_unit": _executable_work_unit(study_id=study_id, fingerprint=fingerprint),
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": study_id,
+                    "status": "provider_admission_pending",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "opl_domain_progress_transition_request": {
+                        "surface_kind": "mas_domain_progress_transition_request",
+                        "target_runtime_kind": "DomainProgressTransitionRuntime",
+                        "target_runtime_owner": "one-person-lab",
+                        "request_owner": "med-autoscience",
+                        "authority_role": "domain_policy_request_only",
+                        "mas_can_create_opl_outbox_record": False,
+                        "runtime_kind": "DomainProgressTransitionRuntime",
+                        "recommended_transition_kind": "StartProviderAttempt",
+                        "aggregate_identity": {
+                            "aggregate_kind": "study_work_unit",
+                            "aggregate_id": f"{study_id}::{work_unit_id}",
+                            "study_id": study_id,
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                        },
+                        "idempotency_key": "paper-policy-request::003::medical-prose",
+                        "source_generation": fingerprint,
+                        "expected_version": fingerprint,
+                        "required_postcondition": {
+                            "kind": "provider_admission_enqueued_or_blocked",
+                            "outcome_owner": "one-person-lab",
+                            "domain_state_owner": "med-autoscience",
+                        },
+                    },
+                }
+            ],
+        }
+    )
+
+    assert state["phase"] == "admission_pending"
+    assert state["next_safe_action"]["kind"] == "admit_provider_attempt"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
 
 
 def test_runtime_report_keeps_observe_only_provider_admission_pending() -> None:
@@ -927,6 +1053,10 @@ def test_runtime_report_keeps_observe_only_provider_admission_pending() -> None:
                 "action_type": "run_quality_repair_batch",
                 "work_unit_id": "medical_prose_write_repair",
                 "work_unit_fingerprint": fingerprint,
+                "opl_domain_progress_transition_request": _opl_transition_request(
+                    study_id=study_id,
+                    fingerprint=fingerprint,
+                ),
             }
         ],
         managed_study_progress_currentness={

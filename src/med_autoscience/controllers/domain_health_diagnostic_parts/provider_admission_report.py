@@ -32,7 +32,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     sync_current_control_runtime_surfaces as _sync_current_control_runtime_surfaces,
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_policy_outbox import (
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_request import (
     candidate_with_opl_transition_request as _candidate_with_opl_transition_request,
 )
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
@@ -259,7 +259,7 @@ def _paper_recovery_provider_admission_blocked_studies_from_states(states: Any) 
 def _paper_recovery_blocks_provider_admission(recovery: Mapping[str, Any]) -> bool:
     next_safe_action = _mapping(recovery.get("next_safe_action"))
     if _non_empty_text(next_safe_action.get("kind")) in {
-        "materialize_provider_admission_or_owner_callable",
+        "materialize_mas_transition_request_or_owner_callable",
         "materialize_successor_owner_action",
         "materialize_successor_owner_gate",
         "run_mas_owner_callable",

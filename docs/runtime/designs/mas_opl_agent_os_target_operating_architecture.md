@@ -4,7 +4,7 @@ Owner: `MedAutoScience`
 Purpose: `target_operating_architecture_support_reference`
 State: `active_support_reference`
 Machine boundary: 本文是人读目标运行架构参考。机器真相继续归 `agent/` pack、`contracts/`、源码、CLI/MCP/API 行为、OPL generated/hosted surfaces、runtime/controller durable surfaces、owner receipt、typed blocker、真实 workspace artifact 与 repo-native verification；当前差距、执行顺序、完成判断和下一轮 prompt 只回到 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)。
-Date: `2026-06-11`
+Date: `2026-06-16`
 
 ## 读法
 
@@ -35,6 +35,29 @@ Date: `2026-06-11`
 - Agent Tool Arsenal 把 action catalog、owner callable、MCP tool、stage skill、external capability 和 OPL hosted action 统一成 model-discoverable tool cards、invocation plans、risk annotations、structured result envelopes 和 receipt/blocker closeout。
 - Scientific capability 只帮助当前 owner delta 更快产生 evidence、repair hint、reviewer briefing、candidate refs 或 no-loop signal；它不能新增默认前置流程，不能关闭 quality / publication / artifact / memory authority。
 
+2026-06-16 顶层重设计补充：理想运行模型应进一步收敛为一条可审计链：
+
+`DomainIntent -> OPL Command -> OPL Event -> OPL Transactional Outbox -> StageRun / ToolInvocation -> MAS OwnerAnswer -> Derived Projection`
+
+这条链的含义是：
+
+- MAS 只发布 domain intent、policy result、accepted owner answer shape 和 authority refs；不能在 MAS 内自建 command log、event log、outbox、fixed-point runtime、attempt lifecycle 或 worker residency。
+- OPL 只把 MAS intent 事务化为 runtime command / event / outbox / StageRun / tool invocation / human gate transport；不能签 MAS owner receipt、创建 MAS typed blocker、解释 publication-ready、写 paper body 或授权 artifact mutation。
+- 所有 status、DHD、Portal、Workbench、state index、sidecar、lineage、trace 和 raw worklist 都是 projection / observation / audit plane。它们必须带 `derived_from_event_id`、`observed_generation`、`authority=false` 或等价边界；缺这些字段时只能作为 diagnostic。
+- 任何新能力先归位到 OPL primitive、MAS authority function、MAS declarative pack、Scientific Capability Registry 或 refs-only audit sidecar；不能先落 MAS 私有 helper 再以后续上收为理由保留。
+
+### 理想运行平面
+
+| Plane | 长期 owner | 职责 | 禁止越界 |
+| --- | --- | --- | --- |
+| Intent / Policy Plane | MAS pack + MAS policy adapter | `current_owner_delta`、stage semantics、source/data/artifact/publication/memory policy、accepted answer shape。 | 不持有 queue、attempt、fixed-point apply、worker residency 或 generic scheduler。 |
+| Command / Event Plane | OPL Runway / DomainProgressTransitionRuntime | command normalization、event append、expected version、idempotency、replay、NonAdvancingApply。 | 不解释医学 quality、publication-ready、artifact authority 或 memory verdict。 |
+| Transactional Outbox Plane | OPL Runway | provider start、MAS owner callable、human gate、tool invocation 的 outbox item；同一 transition 内提交。 | MAS 不创建 OPL outbox record；read model 不反向入队。 |
+| Execution Plane | OPL StageRun + Codex/default executor | attempt identity、lease、retry/dead-letter、resume、worker liveness、terminal closeout refs。 | provider completion 不等于 MAS owner answer 或 paper progress。 |
+| Authority Answer Plane | MAS Medical Authority Kernel | owner receipt、typed blocker、quality gate receipt、human answer consumption、route-back evidence、artifact/memory/source authority。 | 程序函数不替代 independent reviewer / auditor 的开放式质量判断。 |
+| Projection / Workbench Plane | OPL Console / Vault / MAS read-model publishers | current owner cockpit、operator drilldown、lineage、trace、lifecycle locator、status snapshot。 | zero worklist、queue empty、trace visible、projection fresh 都不能声明 ready。 |
+| Capability / Tool Plane | OPL Pack + Atlas + Stagecraft + MAS declared capability refs | current-delta-bound tool cards、resolver、invocation plan、structured result envelope、fail-open advisory refs。 | 不新增 MAS 私有 selector、always-on sidecar、默认 preflight 或第二 active backlog。 |
+
 ## 外部成熟经验的转译
 
 | 外部经验 | 可取之处 | MAS / OPL 目标转译 | 禁止误用 |
@@ -45,8 +68,12 @@ Date: `2026-06-11`
 | Co-Scientist scientific loop | generate、debate / tournament、evolve、meta-review、research overview | 放入 Scientific Capability Registry，作为 stage 内 hypothesis / review / arbitration affordance，输出 refs-only candidate、briefing、repair hint | 不复制 Co-Scientist runtime；不默认每轮 tournament；不把 ranking / Elo / proximity 写成 quality verdict |
 | Temporal durable execution | workflow history、activity retry、signal/query、deterministic resume | OPL provider 承担 stage attempt lifecycle、retry/dead-letter、resume、long-running execution；MAS 只声明 stage pack、owner ticket、idempotency、receipt/blocker | MAS 不再拥有 generic attempt loop、queue、worker residency 或 private scheduler |
 | Kubernetes reconciliation | desired/current 分离，controller 只把 current 推近 desired | OPL Reconciler 消费 MAS desired route / current owner delta，投影 next safe action；MAS reducer 给出唯一 owner truth | read-model、worklist 或 sidecar 不能成为第二 current truth |
+| CloudEvents event envelope | `id` / `source` / `type` / `specversion` 等 context 与 payload 分离，支持跨系统事件互操作 | OPL transition event 使用稳定 context + domain refs；payload 只携 refs / boundary / small metadata | 不把 CloudEvents envelope 当 domain verdict；event data 不存 paper/artifact/memory body |
+| Debezium transactional outbox | outbox table 以 `id`、`aggregatetype`、`aggregateid`、`type`、`payload` 表达可靠发布与聚合顺序 | OPL outbox item 绑定 aggregate identity、event id、transition type、idempotency key 和 side-effect target | MAS 不写 OPL outbox；outbox emitted 不等于 provider running 或 MAS progress |
 | W3C PROV / OpenLineage | entity / activity / agent、dataset / job / run / facet lineage | StageRun、artifact、data release、analysis job、figure/table、claim/evidence 建立 refs-only lineage envelope | lineage 只证明来源关系，不授权 publication-ready、artifact mutation 或 source readiness |
 | OpenTelemetry | trace / metrics / logs 分层 observability | OPL Observability Plane 暴露 stage trace、runtime SLO、failure class、drilldown；MAS 输出 domain refs 与 diagnostic explanation | traces、metrics、logs 不能关闭 owner receipt、quality gate 或 typed blocker |
+| Dagster software-defined assets | asset definition 声明持久对象、依赖和 materialization / observation 分账 | MAS artifact / evidence / figure / table 以 declarative asset refs + receipt refs 管理；OPL 只执行 materialization / observation | asset observed 或 materialized 不等于 MAS artifact mutation authorization |
+| MLflow tracking | experiment / run / artifact / tag 组织实验证据和模型产物 | analysis campaign、model run、display candidate 以 refs-only run packet + artifact locator + metric refs 进入 evidence plane | run complete、metric better 或 artifact logged 不等于 scientific conclusion 或 publication readiness |
 | LangGraph workflow / agent split | workflow 编排与 agent open-ended work 分层，持久化与 human interrupt | OPL 承接 workflow / handoff / persistence / human gate；MAS stage executor 保持 open-ended scientific work | 不把 workflow graph 拆成过细小状态，不让 supervisor 取代 stage owner |
 
 参考来源：
@@ -59,9 +86,13 @@ Date: `2026-06-11`
 - Anthropic tool-use documentation: <https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use>
 - Temporal durable execution docs: <https://docs.temporal.io/evaluate/understanding-temporal>
 - Kubernetes controller pattern: <https://kubernetes.io/docs/concepts/architecture/controller/>
+- CloudEvents specification: <https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md>
+- Debezium Outbox Event Router: <https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html>
 - W3C PROV overview: <https://www.w3.org/TR/prov-overview/>
 - OpenLineage facets and object model: <https://openlineage.io/docs/spec/facets/>
 - OpenTelemetry observability docs: <https://opentelemetry.io/docs/what-is-opentelemetry/>
+- Dagster assets: <https://docs.dagster.io/guides/build/assets>
+- MLflow tracking: <https://mlflow.org/docs/latest/ml/tracking/>
 - LangGraph overview: <https://docs.langchain.com/oss/python/langgraph/overview>
 
 ## 目标分层
@@ -410,14 +441,27 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | --- | --- | --- |
 | Pack Compiler | `compile_domain_agent_pack(pack_root)` | 从 MAS `agent/` 和 `contracts/` 生成 hosted surfaces |
 | StageRun Kernel | `start/query/signal/closeout_stage_run` | MAS 只消费 attempt refs、lease refs、closeout binding |
+| DomainProgressTransitionRuntime | `submit_transition_command` / `append_transition_event` / `replay_transition_stream` / `read_projection_with_generation` | MAS 只提交 policy result / transition request，并消费 OPL command/event/outbox/StageRun readback；MAS 不持有 fixed-point runtime |
+| Transactional Outbox | `enqueue_side_effect_from_transition_event` / `read_outbox_item` / `mark_outbox_delivered` | MAS owner callable 只消费绑定同一 transition event 的 outbox item；outbox item 不等于 owner receipt 或 running proof |
+| RecoveryObligationStore | `open/query/update_obligation` with expected version | MAS 生成 obligation input；OPL 存储 desired/current/status、timeout、decision 和 no-progress budget |
 | State Index Kernel | `rebuild/read/checkpoint refs index` | MAS 提供 file truth / receipt refs；OPL 生成 read model |
 | Route Reconciler | `reconcile_current_owner_delta` | 只对齐 desired/current，不生成医学 verdict |
+| HumanGateTransport | `open/answer/resume human_gate` | MAS 声明 gate 与 accepted answer shape；OPL 持久化 token / timeout / resume，MAS 只消费同 identity answer refs |
 | Tool Arsenal | `list_tool_cards_for_current_delta` / `load_tool_card` / `invoke_tool_with_envelope` | 给 autonomous agent 低摩擦工具发现、延迟加载、结构化调用和结果 envelope |
 | Capability Registry | `resolve_capability_for_current_delta` / `invoke_capability_for_current_delta` | OPL 选择 current-delta-bound capability；MAS 只消费 refs-only advisory / candidate / briefing |
-| Human Gate Transport | `open/answer/resume human_gate` | MAS 声明 gate，OPL 承运，MAS 消费 answer refs |
 | Lifecycle Plane | `locate/retain/restore/gc refs` | MAS 授权 artifact mutation，OPL 执行 generic lifecycle |
 | Observability Plane | `trace/metric/log/failure_class` | MAS 只读诊断，不把 observability 当 authority |
 | Workbench Shell | `render_current_owner_delta + audit drilldown` | 默认显示 next action，drilldown 显示 audit refs |
+
+OPL primitive 的目标 ABI 必须统一满足以下字段族：
+
+- `identity`：`domain_id`、`study_id` / `quest_id`、`stage_id`、`action_type`、`work_unit_id`、`work_unit_fingerprint`、`route_identity_key`、`attempt_idempotency_key`、`source_generation`。
+- `causality`：`command_id`、`event_id`、`causal_event_id`、`expected_version`、`observed_generation`、`derived_from_event_id`。
+- `authority boundary`：`opl_can_write_domain_truth=false`、`opl_can_sign_owner_receipt=false`、`opl_can_create_domain_typed_blocker=false`、`domain_authority_owner`。
+- `outcome`：exactly one of event accepted、outbox emitted、running proof observed、terminal closeout observed、owner answer consumed、human gate opened/resumed、stable typed blocker, `NonAdvancingApply`。
+- `projection metadata`：projection freshness, lag status, source event refs, rebuild cursor and `authority=false`.
+
+缺任一字段族的 OPL runtime 输出只能进入 drilldown / diagnostic，不得进入 MAS ordinary owner route。
 
 ## MAS 需要优化的接口
 
@@ -425,6 +469,8 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | --- | --- | --- |
 | Stage pack | `agent/stages/*.yaml|md` | OPL compile / discovery |
 | Agent tool affordance | action catalog + owner callable + stage refs + MCP registry | OPL 生成 ToolArsenalIndex / ToolUseCard；MAS 声明 authority boundary 和 result shape |
+| PaperProgressPolicyAdapter | `evaluate_current_owner_delta` / `accept_transition_readback` / `emit_policy_result` | OPL 只消费 policy result / transition request；不能从 MAS read-model 文案推导 domain action |
+| PaperAuthorityResultShapes | owner receipt / typed blocker / quality gate receipt / human gate / route-back / no-forbidden-write envelope | OPL 只验证 shape 与 identity，不能生成或修改语义 |
 | Authority functions | `runtime/authority_functions/*` / `src/...` | OPL dispatch 回 MAS owner surface |
 | Owner route | `current_owner_delta` | OPL 默认读面和 stage admission |
 | Receipt / blocker | `OwnerReceipt` / `TypedBlocker` | OPL closeout / workbench / retry decision |
@@ -452,6 +498,8 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 ### Anti-regression gate
 
 - `current_owner_delta` 不得被 worklist 空、sidecar 缺失、old dispatch 或 stale read-model 覆盖。
+- `DomainProgressTransitionRuntime` 未给出 command/event/outbox/readback 时，MAS provider admission 只能停在 transition request / diagnostic，不得自签 provider admission 或 materialize ready dispatch。
+- `Paper Autonomy Supervisor`、DHD、`current_work_unit`、`paper_recovery_state`、domain-handler export 和 Workbench 只能消费 OPL transition event + MAS policy result；不得各自从 queue、stage index、old dispatch、provider count 或 prose status 重新选择下一步。
 - external advisory 缺失默认 fail open。
 - observability、lineage、provider completion、queue completion、descriptor ready 都不能声明 paper closure。
 - MAS function 不得重新持有 generic scheduler、queue、worker residency、session store、workbench 或 private lifecycle owner。

@@ -59,6 +59,8 @@ def test_policy_adapter_emits_opl_transition_request_without_claiming_runtime_au
     forbidden_fields = result["forbidden_runtime_fields"]
     assert "opl_domain_progress_transition_event" in forbidden_fields
     assert "opl_domain_progress_transition_outbox_item" in forbidden_fields
+    assert "projection_metadata" in forbidden_fields
+    assert "read_model_generation_metadata" in forbidden_fields
     assert "stage_run_identity" in forbidden_fields
     request = result["opl_domain_progress_transition_request"]
     assert request["surface_kind"] == "mas_domain_progress_transition_request"
@@ -104,6 +106,42 @@ def test_policy_adapter_rejects_provider_admission_for_owner_callable_recovery()
     assert result["authority_boundary"]["mas_can_run_fixed_point_reconciler"] is False
     assert result["opl_domain_progress_transition_request"]["required_postcondition"]["kind"] == "owner_action_ref"
     assert "opl_domain_progress_command_outbox_record" not in result
+
+
+def test_policy_adapter_materializes_executable_owner_action_as_mas_transition_request() -> None:
+    adapter = importlib.import_module("med_autoscience.controllers.paper_progress_policy_adapter")
+    result = adapter.build_policy_result(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_action_ready",
+                "next_safe_action": {
+                    "kind": "materialize_mas_transition_request_or_owner_callable",
+                    "owner": "write",
+                    "provider_admission_allowed": True,
+                },
+            },
+        },
+        source="test",
+    )
+
+    assert result["recommended_opl_transition_kind"] == "MaterializeOwnerAction"
+    assert result["policy_outcome_kind"] == "owner_action_requested"
+    assert result["authority_boundary"]["mas_can_authorize_provider_admission"] is False
+    assert result["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
+    request = result["opl_domain_progress_transition_request"]
+    assert request["recommended_transition_kind"] == "MaterializeOwnerAction"
+    assert request["required_postcondition"]["kind"] == "owner_action_ref"
+    assert "opl_domain_progress_transition_outbox_item" not in request
+    assert "stage_run_identity" not in request
 
 
 def test_policy_adapter_classifies_domain_owner_results_without_runtime_fields() -> None:

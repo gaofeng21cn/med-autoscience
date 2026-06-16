@@ -65,7 +65,7 @@ def _paper_recovery_requests_default_executor_dispatch(current_progress: Mapping
     return _text(next_safe_action.get("kind")) in {
         "run_mas_owner_callable",
         "materialize_successor_owner_action",
-        "materialize_provider_admission_or_owner_callable",
+        "materialize_mas_transition_request_or_owner_callable",
     }
 
 

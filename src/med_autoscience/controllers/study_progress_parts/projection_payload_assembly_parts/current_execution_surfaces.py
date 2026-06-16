@@ -9,6 +9,10 @@ from med_autoscience.controllers.current_work_unit_parts.policy_constants import
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
     OPL_RUNTIME_TERMINAL_BLOCKERS,
 )
+from med_autoscience.runtime_control.owner_route_attempt_protocol import (
+    currentness_basis as owner_route_currentness_basis,
+    owner_reason_contract,
+)
 
 from ..current_owner_action_projection_reconcile import (
     current_control_typed_blocker_successor_action,
@@ -297,6 +301,9 @@ def _canonical_typed_blocker_for_execution_refresh(handoff: Mapping[str, Any]) -
         return typed_blocker
     if not current_execution_handoff_consumes_current_action(handoff):
         return {}
+    handoff_blocker = _typed_blocker_from_current_control_blocked_reason(handoff)
+    if handoff_blocker:
+        return handoff_blocker
     latest_closeout = _mapping_copy(handoff.get("latest_typed_default_executor_closeout"))
     embedded = _mapping_copy(latest_closeout.get("typed_blocker"))
     blocked_reason = (
@@ -334,6 +341,56 @@ def _canonical_typed_blocker_for_execution_refresh(handoff: Mapping[str, Any]) -
             or _non_empty_text(latest_closeout.get("source_path")),
             "typed_blocker_ref": _non_empty_text(latest_closeout.get("receipt_ref"))
             or _non_empty_text(latest_closeout.get("source_path")),
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _typed_blocker_from_current_control_blocked_reason(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    blocked_reason = _non_empty_text(handoff.get("blocked_reason"))
+    if blocked_reason is None:
+        return {}
+    contract = owner_reason_contract(
+        reason=blocked_reason,
+        owner=_non_empty_text(handoff.get("next_owner")),
+    )
+    if contract.get("registered") is not True:
+        return {}
+    if _non_empty_text(contract.get("owner")) != "one-person-lab":
+        return {}
+    if any(_non_empty_text(action) is not None for action in contract.get("allowed_actions") or []):
+        return {}
+    owner_route = _mapping_copy(handoff.get("owner_route"))
+    source_refs = _mapping_copy(owner_route.get("source_refs"))
+    basis = owner_route_currentness_basis(owner_route) if owner_route else {}
+    owner = _non_empty_text(handoff.get("next_owner")) or _non_empty_text(contract.get("owner")) or "one-person-lab"
+    return {
+        key: value
+        for key, value in {
+            "blocker_type": blocked_reason,
+            "blocker_id": blocked_reason,
+            "blocked_reason": blocked_reason,
+            "owner": owner,
+            "work_unit_id": _non_empty_text(source_refs.get("work_unit_id"))
+            or _non_empty_text(owner_route.get("work_unit_id"))
+            or _non_empty_text(basis.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(owner_route.get("work_unit_fingerprint"))
+            or _non_empty_text(source_refs.get("work_unit_fingerprint"))
+            or _non_empty_text(basis.get("work_unit_fingerprint"))
+            or _non_empty_text(handoff.get("source_fingerprint")),
+            "action_fingerprint": _non_empty_text(owner_route.get("action_fingerprint"))
+            or _non_empty_text(source_refs.get("action_fingerprint"))
+            or _non_empty_text(owner_route.get("work_unit_fingerprint"))
+            or _non_empty_text(source_refs.get("work_unit_fingerprint"))
+            or _non_empty_text(basis.get("work_unit_fingerprint"))
+            or _non_empty_text(handoff.get("source_fingerprint")),
+            "source_fingerprint": _non_empty_text(owner_route.get("source_fingerprint"))
+            or _non_empty_text(source_refs.get("source_fingerprint"))
+            or _non_empty_text(handoff.get("source_fingerprint")),
+            "source_eval_id": _non_empty_text(source_refs.get("source_eval_id"))
+            or _non_empty_text(basis.get("source_eval_id")),
+            "source_ref": _non_empty_text(handoff.get("source_ref")) or _non_empty_text(handoff.get("source_path")),
+            "required_output": _non_empty_text(contract.get("required_output")),
         }.items()
         if value not in (None, "", [], {})
     }

@@ -215,7 +215,7 @@
         "honor_stable_typed_blocker",
         "materialize_successor_owner_action",
         "materialize_successor_owner_gate",
-        "materialize_provider_admission_or_owner_callable",
+        "materialize_mas_transition_request_or_owner_callable",
         "provide_opl_execution_authorization_or_human_gate",
         "resolve_owner_gate_decision",
         "route_back_to_owner_or_repair_materialization",
@@ -301,6 +301,19 @@
         "retire_duplicate_projection_precedence_logic"
       ],
       "same_write_set_boundary": "implementation_must_not_overlap_live_recovery_reducer_or_provider_admission_lanes_without_fresh_owner"
+    },
+    "next_safe_action_authority_boundary": {
+      "materialize_mas_transition_request_or_owner_callable": {
+        "meaning": "MAS may emit domain policy intent or run a MAS owner callable; OPL owns command/event/outbox/StageRun materialization.",
+        "mas_can_create_opl_outbox_record": false,
+        "mas_can_authorize_provider_admission": false,
+        "provider_admission_pending_requires_opl_transition_boundary": true
+      },
+      "admit_provider_attempt": {
+        "meaning": "A clean MAS transition request or OPL transition readback already exists; provider execution still belongs to OPL.",
+        "mas_can_create_opl_outbox_record": false,
+        "provider_completion_is_domain_completion": false
+      }
     }
   },
   "status": {

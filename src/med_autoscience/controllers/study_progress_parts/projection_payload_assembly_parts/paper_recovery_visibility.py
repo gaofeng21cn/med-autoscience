@@ -270,7 +270,7 @@ def _paper_recovery_allows_provider_admission(
         return True
     if phase == "owner_action_ready" and next_safe_action.get("provider_admission_allowed") is True:
         return _non_empty_text(next_safe_action.get("kind")) in {
-            "materialize_provider_admission_or_owner_callable",
+            "materialize_mas_transition_request_or_owner_callable",
             "materialize_successor_owner_action",
             "admit_identity_bound_stage_packet",
         }
@@ -292,7 +292,7 @@ def _supervisor_decision_allows_provider_admission(
     decision_action = _mapping_copy(supervisor_decision.get("next_safe_action"))
     decision_action_kind = _non_empty_text(decision_action.get("kind"))
     allowed_action_kinds = {
-        "materialize_provider_admission_or_owner_callable",
+        "materialize_mas_transition_request_or_owner_callable",
         "materialize_successor_owner_action",
         "admit_provider_attempt",
         "admit_identity_bound_stage_packet",

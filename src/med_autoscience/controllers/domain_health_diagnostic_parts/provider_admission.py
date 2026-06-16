@@ -538,6 +538,20 @@ def _paper_progress_policy_payload(
         "quest_id": _non_empty_text(candidate.get("quest_id")),
         "current_work_unit": current_work_unit,
         "current_executable_owner_action": current_action,
+        "paper_recovery_state": _provider_admission_recovery(candidate),
+    }
+
+
+def _provider_admission_recovery(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "surface_kind": "paper_recovery_state",
+        "phase": "admission_pending",
+        "next_safe_action": {
+            "kind": "admit_provider_attempt",
+            "owner": _non_empty_text(candidate.get("next_executable_owner"))
+            or _non_empty_text(candidate.get("owner")),
+            "provider_admission_allowed": True,
+        },
     }
 
 

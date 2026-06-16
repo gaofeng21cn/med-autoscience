@@ -23,6 +23,8 @@ FORBIDDEN_RUNTIME_FIELDS = [
     "current_control_command_outbox_record",
     "opl_domain_progress_transition_event",
     "opl_domain_progress_transition_outbox_item",
+    "projection_metadata",
+    "read_model_generation_metadata",
     "stage_run_identity",
 ]
 
@@ -33,7 +35,7 @@ _PROVIDER_ADMISSION_NEXT_KINDS = {
 }
 _OWNER_ACTION_NEXT_KINDS = {
     "run_mas_owner_callable",
-    "materialize_provider_admission_or_owner_callable",
+    "materialize_mas_transition_request_or_owner_callable",
     "materialize_successor_owner_gate",
     "resolve_owner_gate_decision",
     "route_back_to_owner_or_repair_materialization",
@@ -199,14 +201,14 @@ def _policy_kind(
         return RECORD_TYPED_BLOCKER
     if next_kind in _PROVIDER_ADMISSION_NEXT_KINDS and next_action.get("provider_admission_allowed") is True:
         return START_PROVIDER_ATTEMPT
+    if phase == "admission_pending":
+        return START_PROVIDER_ATTEMPT
     if status == "owner_receipt_recorded" or phase == "owner_receipt_recorded":
         return CONSUME_OWNER_RECEIPT
     if next_kind == "consume_owner_receipt":
         return CONSUME_OWNER_RECEIPT
     if status == "executable_owner_action" or current_action:
-        if next_action and next_action.get("provider_admission_allowed") is False:
-            return MATERIALIZE_OWNER_ACTION
-        return START_PROVIDER_ATTEMPT
+        return MATERIALIZE_OWNER_ACTION
     if next_kind in _OWNER_ACTION_NEXT_KINDS:
         return MATERIALIZE_OWNER_ACTION
     return None

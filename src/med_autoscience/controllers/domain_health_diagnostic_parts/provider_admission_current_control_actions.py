@@ -142,7 +142,11 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
     if action_fingerprint is None:
         return None
     paper_policy_result = paper_progress_policy_adapter.build_policy_result(
-        {**dict(study), "current_executable_owner_action": current},
+        {
+            **dict(study),
+            "current_executable_owner_action": current,
+            "paper_recovery_state": _provider_admission_recovery(owner=executable_owner),
+        },
         source="dhd.provider_admission_candidate",
     )
     owner_route_currentness_basis = study_currentness_basis(
@@ -201,6 +205,18 @@ def _study_current_action_source_surface(current: Mapping[str, Any]) -> str:
     if _non_empty_text(current.get("source")) == "canonical_current_work_unit":
         return "opl_current_control_state.study_current_work_unit"
     return "opl_current_control_state.study_current_executable_owner_action"
+
+
+def _provider_admission_recovery(*, owner: str) -> dict[str, Any]:
+    return {
+        "surface_kind": "paper_recovery_state",
+        "phase": "admission_pending",
+        "next_safe_action": {
+            "kind": "admit_provider_attempt",
+            "owner": owner,
+            "provider_admission_allowed": True,
+        },
+    }
 
 
 def _current_action_from_executable_current_work_unit(

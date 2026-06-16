@@ -149,7 +149,7 @@ def _supervisor_decision_allows_provider_admission_materialization(
         return False
     action_kind = _text(next_safe_action.get("kind"))
     return action_kind in {
-        "materialize_provider_admission_or_owner_callable",
+        "materialize_mas_transition_request_or_owner_callable",
         "materialize_successor_owner_action",
         "admit_provider_attempt",
         "admit_identity_bound_stage_packet",

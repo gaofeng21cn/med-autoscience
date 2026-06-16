@@ -25,7 +25,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     candidate_with_progress_currentness_identity as _candidate_with_progress_currentness_identity,
     provider_admission_current_control_study,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_policy_outbox import (
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_request import (
     candidate_with_opl_transition_request as _candidate_with_opl_transition_request,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (

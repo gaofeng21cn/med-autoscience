@@ -7,12 +7,12 @@ from typing import Any
 
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import ai_reviewer_publication_eval_records
-from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
 from med_autoscience.controllers.study_domain_transition_table_parts import default_executor_receipts
 from med_autoscience.controllers.study_domain_transition_table_parts import family_transition_spec
 from med_autoscience.controllers.study_domain_transition_table_parts import publication_gate_lifecycle_transitions
 from med_autoscience.controllers.study_domain_transition_table_parts import story_surface_recheck_transition
+from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 from med_autoscience.study_delivery_package_contract import delivered_package_handoff_allowed, live_delivered_package_handoff_allowed
 
 
@@ -600,19 +600,16 @@ def _current_controller_runtime_route_transition(
     decision_type = _domain_transition_decision_type(route.get("work_unit_fingerprint"))
     if decision_type is None:
         return None
-    action_types = set(_text_list(route.get("controller_actions")))
-    controller_action = _domain_transition_controller_action(
-        decision_type=decision_type,
-        action_types=action_types,
-    )
-    if controller_action is None:
-        return None
     next_work_unit = _compact_work_unit(route.get("next_work_unit")) or _work_unit(
         work_unit_id,
         route_target,
         "Continue the current MAS controller-authorized domain route.",
     )
     decision_path = _text(route.get("decision_path"))
+    action_types = set(_text_list(route.get("controller_actions")))
+    controller_action = _domain_transition_controller_action(decision_type=decision_type, action_types=action_types)
+    if controller_action is None:
+        return None
     return _transition(
         study_id=study_id,
         decision_type=decision_type,

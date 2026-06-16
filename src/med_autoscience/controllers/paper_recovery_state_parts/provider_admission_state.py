@@ -1,7 +1,23 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any
+
+
+MAS_TRANSITION_REQUEST_SURFACE = "mas_domain_progress_transition_request"
+OPL_TRANSITION_RUNTIME_OWNER = "one-person-lab"
+OPL_TRANSITION_RUNTIME_KIND = "DomainProgressTransitionRuntime"
+FORBIDDEN_MAS_REQUEST_RUNTIME_FIELDS = frozenset(
+    {
+        "current_control_command_outbox_record",
+        "opl_domain_progress_transition_command",
+        "opl_domain_progress_transition_event",
+        "opl_domain_progress_transition_outbox_item",
+        "stage_run_identity",
+        "projection_metadata",
+        "read_model_generation_metadata",
+    }
+)
 
 
 def admission_blocked_condition(
@@ -42,15 +58,100 @@ def admission_blocked_condition(
 
 
 def provider_admission_pending(progress: Mapping[str, Any]) -> bool:
-    if int(progress.get("provider_admission_pending_count") or 0) > 0:
+    candidates = _provider_admission_candidates(progress)
+    if int(progress.get("provider_admission_pending_count") or 0) > 0 and any(
+        _has_opl_transition_boundary(candidate) for candidate in candidates
+    ):
         return True
     current_work_unit = _mapping(progress.get("current_work_unit"))
     if (
         _current_work_unit_status(current_work_unit) == "executable_owner_action"
         and _mapping(current_work_unit.get("state")).get("provider_admission_pending") is True
+        and _has_opl_transition_boundary(current_work_unit)
     ):
         return True
-    return bool([item for item in progress.get("provider_admission_candidates") or [] if isinstance(item, Mapping)])
+    return any(_has_opl_transition_boundary(candidate) for candidate in candidates)
+
+
+def _provider_admission_candidates(progress: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    return [item for item in progress.get("provider_admission_candidates") or [] if isinstance(item, Mapping)]
+
+
+def _has_opl_transition_boundary(value: Mapping[str, Any]) -> bool:
+    return _has_mas_transition_request(value) or _has_opl_runtime_readback(value)
+
+
+def _has_mas_transition_request(value: Mapping[str, Any]) -> bool:
+    request = _mapping(value.get("opl_domain_progress_transition_request"))
+    if not request:
+        request = _mapping(
+            _mapping(value.get("paper_progress_policy_result")).get("opl_domain_progress_transition_request")
+        )
+    if not request:
+        request = _mapping(_mapping(value.get("state")).get("opl_domain_progress_transition_request"))
+    if not request:
+        request = _mapping(
+            _mapping(_mapping(value.get("state")).get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    if _text(request.get("surface_kind")) != MAS_TRANSITION_REQUEST_SURFACE:
+        return False
+    if _text(request.get("target_runtime_owner")) != OPL_TRANSITION_RUNTIME_OWNER:
+        return False
+    runtime_kind = _text(request.get("target_runtime_kind")) or _text(request.get("runtime_kind"))
+    if runtime_kind != OPL_TRANSITION_RUNTIME_KIND:
+        return False
+    if request.get("mas_can_create_opl_outbox_record") is not False:
+        return False
+    if any(field in request for field in FORBIDDEN_MAS_REQUEST_RUNTIME_FIELDS):
+        return False
+    aggregate_identity = _mapping(request.get("aggregate_identity"))
+    required_identity = (
+        aggregate_identity.get("aggregate_kind"),
+        aggregate_identity.get("aggregate_id"),
+        aggregate_identity.get("study_id"),
+        aggregate_identity.get("work_unit_id"),
+        request.get("idempotency_key"),
+        request.get("source_generation"),
+        request.get("expected_version"),
+    )
+    if any(_text(item) is None for item in required_identity):
+        return False
+    return bool(_mapping(request.get("required_postcondition")))
+
+
+def _has_opl_runtime_readback(value: Mapping[str, Any]) -> bool:
+    for candidate in _opl_runtime_readback_candidates(value):
+        if _valid_opl_runtime_readback(_mapping(candidate)):
+            return True
+    return False
+
+
+def _opl_runtime_readback_candidates(value: Mapping[str, Any]) -> Iterable[object]:
+    yield value.get("opl_domain_progress_transition_result")
+    yield value.get("opl_domain_progress_runtime_result")
+    yield value.get("opl_runtime_result")
+    yield _mapping(value.get("paper_progress_policy_result")).get("opl_runtime_result")
+    state = _mapping(value.get("state"))
+    yield state.get("opl_domain_progress_transition_result")
+    yield state.get("opl_runtime_result")
+
+
+def _valid_opl_runtime_readback(result: Mapping[str, Any]) -> bool:
+    if not result:
+        return False
+    if _text(result.get("runtime_owner")) != OPL_TRANSITION_RUNTIME_OWNER:
+        return False
+    runtime_kind = _text(result.get("runtime_kind")) or _text(result.get("target_runtime_kind"))
+    if runtime_kind != OPL_TRANSITION_RUNTIME_KIND:
+        return False
+    if _text(result.get("outcome_kind")) != "provider_admission_pending":
+        return False
+    return any(
+        _text(result.get(key)) is not None
+        for key in ("event_id", "outbox_item_id", "stage_run_id", "stage_run_identity_ref")
+    ) or bool(_mapping(result.get("stage_run_identity")))
 
 
 def _current_work_unit_status(work_unit: Mapping[str, Any]) -> str | None:

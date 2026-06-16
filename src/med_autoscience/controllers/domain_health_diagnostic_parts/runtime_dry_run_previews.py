@@ -196,7 +196,7 @@ def _recovery_requests_materialization(recovery: Mapping[str, Any]) -> bool:
         "run_mas_owner_callable",
         "materialize_successor_owner_action",
         "materialize_successor_owner_gate",
-        "materialize_provider_admission_or_owner_callable",
+        "materialize_mas_transition_request_or_owner_callable",
     }
 
 

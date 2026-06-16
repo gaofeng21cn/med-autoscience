@@ -508,7 +508,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_files_matches_paper_progress_transition_runtime_surface() -> None:
+def test_classify_changed_files_matches_paper_progress_transition_boundary_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
@@ -523,7 +523,7 @@ def test_classify_changed_files_matches_paper_progress_transition_runtime_surfac
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_actions.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_arbiter.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_identity.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_policy_outbox.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_transition_request.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
             "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
             "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
@@ -542,7 +542,7 @@ def test_classify_changed_files_matches_paper_progress_transition_runtime_surfac
 
     assert result.matched_categories == (
         "documentation_review_only",
-        "paper_progress_transition_runtime_surface",
+        "paper_progress_transition_boundary_surface",
     )
     assert result.unclassified_changes == ()
     planned_commands = module.plan_commands_for_categories(result.matched_categories)
@@ -924,6 +924,29 @@ def test_classify_changed_files_matches_domain_action_materializer_surface() -> 
             "tests/domain_action_request_materializer_cases/test_dm002_effective_eval_gate_sprint.py -q"
         ),
         "scripts/run-pytest-clean.sh tests/test_domain_action_request_materializer.py -q",
+    ]
+
+
+def test_classify_changed_files_matches_paper_autonomy_supervisor_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "contracts/paper_autonomy_supervisor_contract.json",
+            "src/med_autoscience/controllers/paper_autonomy_supervisor.py",
+            "tests/test_paper_autonomy_supervisor.py",
+            "tests/test_paper_autonomy_supervisor_contract.py",
+        ]
+    )
+
+    assert result.matched_categories == ("paper_autonomy_supervisor_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        (
+            "scripts/run-pytest-clean.sh "
+            "tests/test_paper_autonomy_supervisor.py "
+            "tests/test_paper_autonomy_supervisor_contract.py -q"
+        ),
     ]
 
 

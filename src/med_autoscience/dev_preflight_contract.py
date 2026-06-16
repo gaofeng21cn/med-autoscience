@@ -405,6 +405,23 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
+        category_id="paper_autonomy_supervisor_surface",
+        exact_paths=(
+            "contracts/paper_autonomy_supervisor_contract.json",
+            "src/med_autoscience/controllers/paper_autonomy_supervisor.py",
+            "tests/test_paper_autonomy_supervisor.py",
+            "tests/test_paper_autonomy_supervisor_contract.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            (
+                f"{PYTEST_CLEAN_RUNNER} "
+                "tests/test_paper_autonomy_supervisor.py "
+                "tests/test_paper_autonomy_supervisor_contract.py -q"
+            ),
+        ),
+    ),
+    PreflightCategorySpec(
         category_id="production_acceptance_surface",
         exact_paths=(
             "contracts/agent_lab_handoff.json",
@@ -508,7 +525,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
-        category_id="paper_progress_transition_runtime_surface",
+        category_id="paper_progress_transition_boundary_surface",
         exact_paths=(
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/obligation_actuator.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission.py",
@@ -516,7 +533,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_actions.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_arbiter.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_identity.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_policy_outbox.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_transition_request.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
             "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
             "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",

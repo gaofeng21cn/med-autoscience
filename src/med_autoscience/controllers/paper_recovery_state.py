@@ -549,7 +549,7 @@ def build_paper_recovery_state(
             phase="owner_action_ready",
             conditions=[{"condition": "current_owner_action_ready"}],
             next_safe_action=_next_action(
-                "materialize_provider_admission_or_owner_callable",
+                "materialize_mas_transition_request_or_owner_callable",
                 provider_admission_allowed=True,
                 owner=owner,
             ),

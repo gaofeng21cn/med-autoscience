@@ -11,6 +11,7 @@ from .current_executable_owner_action import owner_action_next_step
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .shared import _mapping_copy, _non_empty_text
 from ..stage_route_currentness_identity import currentness_identities_match
+from ...runtime_control.owner_route_attempt_protocol import owner_reason_contract
 
 CURRENT_OWNER_ACTION_SOURCES = frozenset(
     {
@@ -364,6 +365,8 @@ def current_execution_handoff_consumes_current_action(handoff: Mapping[str, Any]
     blocker = _mapping_copy(handoff.get("typed_blocker"))
     if blocker:
         return True
+    if _handoff_blocked_reason_is_current_control_typed_blocker(handoff):
+        return True
     latest_closeout = _mapping_copy(handoff.get("latest_typed_default_executor_closeout"))
     if _non_empty_text(latest_closeout.get("status")) == "typed_blocker":
         return True
@@ -372,6 +375,21 @@ def current_execution_handoff_consumes_current_action(handoff: Mapping[str, Any]
         or _non_empty_text(latest_closeout.get("progress_delta_classification")) == "typed_blocker"
         or _non_empty_text(latest_closeout.get("terminal_closeout_status")) == "blocked"
     )
+
+
+def _handoff_blocked_reason_is_current_control_typed_blocker(handoff: Mapping[str, Any]) -> bool:
+    blocked_reason = _non_empty_text(handoff.get("blocked_reason"))
+    if blocked_reason is None:
+        return False
+    contract = owner_reason_contract(
+        reason=blocked_reason,
+        owner=_non_empty_text(handoff.get("next_owner")),
+    )
+    if contract.get("registered") is not True:
+        return False
+    if _non_empty_text(contract.get("owner")) != "one-person-lab":
+        return False
+    return not any(_non_empty_text(action) is not None for action in contract.get("allowed_actions") or [])
 
 
 def _current_action_consumed_by_handoff(

@@ -94,7 +94,7 @@ def test_dm002_replay_fixture_converges_to_exactly_one_stable_typed_blocker_tran
     _assert_mas_adapter_only(step)
 
 
-def test_dm003_replay_fixture_records_non_advancing_apply_when_provider_request_lacks_opl_readback() -> None:
+def test_dm003_replay_fixture_records_non_advancing_apply_when_owner_action_request_lacks_opl_readback() -> None:
     stable_request = _stable_transition_step(
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -121,7 +121,7 @@ def test_dm003_replay_fixture_records_non_advancing_apply_when_provider_request_
                     }
                 },
                 "next_safe_action": {
-                    "kind": "materialize_provider_admission_or_owner_callable",
+                    "kind": "materialize_mas_transition_request_or_owner_callable",
                     "owner": "write",
                     "provider_admission_allowed": True,
                 },
@@ -142,9 +142,9 @@ def test_dm003_replay_fixture_records_non_advancing_apply_when_provider_request_
         }
     )
 
-    assert stable_request["transition_kind"] == "StartProviderAttempt"
-    assert stable_request["postcondition_kind"] == "provider_admission_enqueued_or_blocked"
-    assert stable_request["outcome_kind"] == "provider_admission_requested"
+    assert stable_request["transition_kind"] == "MaterializeOwnerAction"
+    assert stable_request["postcondition_kind"] == "owner_action_ref"
+    assert stable_request["outcome_kind"] == "owner_action_requested"
     assert non_advancing["transition_kind"] == "NonAdvancingApply"
     assert non_advancing["postcondition_kind"] == "non_advancing_apply_typed_blocker_ref"
     assert non_advancing["outcome_kind"] == "non_advancing_apply_typed_blocker"

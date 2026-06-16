@@ -653,7 +653,7 @@ def _ready_provider_recovery_state() -> dict[str, object]:
             }
         },
         "next_safe_action": {
-            "kind": "materialize_provider_admission_or_owner_callable",
+            "kind": "materialize_mas_transition_request_or_owner_callable",
             "owner": "write",
             "provider_admission_allowed": True,
         },

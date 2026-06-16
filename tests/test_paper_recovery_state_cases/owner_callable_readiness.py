@@ -1218,7 +1218,7 @@ def test_gate_followthrough_successor_action_is_not_closed_by_prior_repair_recei
 
     assert state["phase"] == "owner_action_ready"
     assert state["conditions"] == [{"condition": "current_owner_action_ready"}]
-    assert state["next_safe_action"]["kind"] == "materialize_provider_admission_or_owner_callable"
+    assert state["next_safe_action"]["kind"] == "materialize_mas_transition_request_or_owner_callable"
     assert state["current_authority"]["obligation"]["work_unit_fingerprint"] == repair_fingerprint
     assert receipt_ref not in state.get("evidence_refs", [])
     assert state["supervisor_decision"]["decision"] == "materialize_recovery_action"

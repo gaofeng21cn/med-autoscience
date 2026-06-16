@@ -150,7 +150,7 @@ def test_opl_authorization_blocker_yields_owner_action_ready_when_repair_followu
     assert state["current_authority"]["owner"] == "gate_clearing_batch"
     assert state["conditions"] == [{"condition": "current_owner_action_ready"}]
     assert state["next_safe_action"] == {
-        "kind": "materialize_provider_admission_or_owner_callable",
+        "kind": "materialize_mas_transition_request_or_owner_callable",
         "owner": "gate_clearing_batch",
         "provider_admission_allowed": True,
     }

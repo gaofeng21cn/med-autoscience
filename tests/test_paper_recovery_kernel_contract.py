@@ -411,7 +411,7 @@ def test_paper_recovery_conditions_next_safe_action_and_manual_adoption() -> Non
         "honor_stable_typed_blocker",
         "materialize_successor_owner_action",
         "materialize_successor_owner_gate",
-        "materialize_provider_admission_or_owner_callable",
+        "materialize_mas_transition_request_or_owner_callable",
         "provide_opl_execution_authorization_or_human_gate",
         "resolve_owner_gate_decision",
         "route_back_to_owner_or_repair_materialization",
@@ -428,6 +428,11 @@ def test_paper_recovery_conditions_next_safe_action_and_manual_adoption() -> Non
         "consume_terminal_closeout",
         "reject_terminal_closeout_as_stale",
     ]
+    authority_boundary = contract["spec"]["next_safe_action_authority_boundary"]
+    mas_transition_request = authority_boundary["materialize_mas_transition_request_or_owner_callable"]
+    assert mas_transition_request["mas_can_create_opl_outbox_record"] is False
+    assert mas_transition_request["mas_can_authorize_provider_admission"] is False
+    assert mas_transition_request["provider_admission_pending_requires_opl_transition_boundary"] is True
     assert next_action["owner_receipt_recorded_requires"] == [
         "consume_owner_receipt"
     ]

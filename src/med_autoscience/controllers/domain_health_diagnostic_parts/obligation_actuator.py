@@ -246,7 +246,7 @@ def _recovery_requires_obligation_actuator(recovery: Mapping[str, Any]) -> bool:
         "human_gate",
     } or next_kind in {
         "run_mas_owner_callable",
-        "materialize_provider_admission_or_owner_callable",
+        "materialize_mas_transition_request_or_owner_callable",
         "materialize_successor_owner_action",
         "materialize_successor_owner_gate",
         "admit_provider_attempt",

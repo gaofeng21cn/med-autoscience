@@ -988,7 +988,7 @@ def test_domain_health_diagnostic_apply_fails_closed_when_ready_action_has_no_cl
         "surface_kind": "paper_recovery_state",
         "phase": "owner_action_ready",
         "next_safe_action": {
-            "kind": "materialize_provider_admission_or_owner_callable",
+            "kind": "materialize_mas_transition_request_or_owner_callable",
             "owner": "write",
             "provider_admission_allowed": True,
         },
@@ -997,7 +997,7 @@ def test_domain_health_diagnostic_apply_fails_closed_when_ready_action_has_no_cl
             "next_safe_action": {
                 "kind": "materialize_recovery_work_unit_or_receipt",
                 "source_next_safe_action": {
-                    "kind": "materialize_provider_admission_or_owner_callable",
+                    "kind": "materialize_mas_transition_request_or_owner_callable",
                     "owner": "write",
                     "provider_admission_allowed": True,
                 },

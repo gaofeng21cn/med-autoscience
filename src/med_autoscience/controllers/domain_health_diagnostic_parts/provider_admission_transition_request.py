@@ -30,6 +30,7 @@ def candidate_with_opl_transition_request(
                     payload,
                     current_action_source=current_action_source,
                 ),
+                "paper_recovery_state": _candidate_provider_admission_recovery(payload),
             },
             source=source,
         )
@@ -67,6 +68,23 @@ def _candidate_current_work_unit(candidate: Mapping[str, Any]) -> dict[str, Any]
                 policy_result=_mapping(candidate.get("paper_progress_policy_result")),
                 candidate=candidate,
             ),
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _candidate_provider_admission_recovery(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in {
+            "surface_kind": "paper_recovery_state",
+            "phase": "admission_pending",
+            "next_safe_action": {
+                "kind": "admit_provider_attempt",
+                "owner": _non_empty_text(candidate.get("next_executable_owner"))
+                or _non_empty_text(candidate.get("owner")),
+                "provider_admission_allowed": True,
+            },
         }.items()
         if value not in (None, "", [], {})
     }
