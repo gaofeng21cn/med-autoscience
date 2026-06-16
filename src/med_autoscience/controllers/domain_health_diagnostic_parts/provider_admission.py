@@ -480,12 +480,12 @@ def _candidate_with_paper_progress_policy_result(
     existing_policy = _mapping(execution.get("paper_progress_policy_result")) or _mapping(
         candidate.get("paper_progress_policy_result")
     )
-    existing_outbox_record = _mapping(
-        existing_policy.get("opl_domain_progress_command_outbox_record")
+    existing_transition_request = _mapping(
+        existing_policy.get("opl_domain_progress_transition_request")
     )
     policy_result = (
         existing_policy
-        if existing_policy and existing_outbox_record
+        if existing_policy and existing_transition_request
         else paper_progress_policy_adapter.build_policy_result(
             _paper_progress_policy_payload(candidate, execution=execution),
             source="dhd.provider_admission_candidate",
@@ -496,8 +496,8 @@ def _candidate_with_paper_progress_policy_result(
     return {
         **dict(candidate),
         "paper_progress_policy_result": dict(policy_result),
-        "current_control_command_outbox_record": _mapping(
-            policy_result.get("opl_domain_progress_command_outbox_record")
+        "opl_domain_progress_transition_request": _mapping(
+            policy_result.get("opl_domain_progress_transition_request")
         ),
     }
 

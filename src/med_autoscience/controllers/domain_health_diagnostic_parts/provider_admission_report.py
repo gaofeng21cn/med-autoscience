@@ -33,7 +33,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_policy_outbox import (
-    candidate_with_opl_outbox_record as _candidate_with_opl_outbox_record,
+    candidate_with_opl_transition_request as _candidate_with_opl_transition_request,
 )
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.controllers.owner_route_handoff_parts.accepted_owner_gate_route_back import (
@@ -878,7 +878,7 @@ def _provider_admission_candidates_from_same_tick_materialize(
         if currentness_basis:
             candidate["currentness_basis"] = currentness_basis
         candidate = _same_tick_candidate_with_stage_run_identity(candidate)
-        candidate = _candidate_with_opl_outbox_record(
+        candidate = _candidate_with_opl_transition_request(
             candidate,
             source="dhd.provider_admission_same_tick_materialized_dispatch",
             current_action_source="same_tick_materialized_dispatch",

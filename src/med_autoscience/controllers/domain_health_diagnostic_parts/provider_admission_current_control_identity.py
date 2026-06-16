@@ -85,10 +85,10 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
         candidate.get("stage_transition_authority_boundary")
     )
     paper_policy_result = _mapping(candidate.get("paper_progress_policy_result"))
-    outbox_record = _mapping(candidate.get("current_control_command_outbox_record"))
-    if not outbox_record:
-        outbox_record = _mapping(
-            paper_policy_result.get("opl_domain_progress_command_outbox_record")
+    transition_request = _mapping(candidate.get("opl_domain_progress_transition_request"))
+    if not transition_request:
+        transition_request = _mapping(
+            paper_policy_result.get("opl_domain_progress_transition_request")
         )
     source_refs = {
         key: value
@@ -163,7 +163,9 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "provider_attempt_or_lease_required": True,
             "provider_completion_is_domain_completion": False,
             "paper_progress_policy_result": dict(paper_policy_result) if paper_policy_result else None,
-            "current_control_command_outbox_record": dict(outbox_record) if outbox_record else None,
+            "opl_domain_progress_transition_request": dict(transition_request)
+            if transition_request
+            else None,
             "authority_boundary": authority_boundary,
             "stage_transition_authority_boundary": stage_boundary,
             "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
@@ -192,8 +194,8 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
                 "paper_progress_policy_result": dict(paper_policy_result)
                 if paper_policy_result
                 else None,
-                "current_control_command_outbox_record": dict(outbox_record)
-                if outbox_record
+                "opl_domain_progress_transition_request": dict(transition_request)
+                if transition_request
                 else None,
                 "authority_boundary": authority_boundary,
                 "stage_transition_authority_boundary": stage_boundary,

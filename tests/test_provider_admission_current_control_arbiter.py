@@ -58,24 +58,27 @@ def test_provider_admission_current_control_records_retained_pending_arbiter_dec
     assert boundary["transition_runtime_owner"] == "one-person-lab"
     assert boundary["runtime_kind"] == "DomainProgressTransitionRuntime"
     assert boundary["can_authorize_provider_admission"] is False
-    assert boundary["provider_admission_requires_opl_outbox_record"] is True
+    assert boundary["provider_admission_requires_mas_transition_request"] is True
+    assert boundary["provider_admission_readback_requires_opl_outbox_or_event"] is True
     assert boundary["can_run_fixed_point_runtime"] is False
     retained = result["provider_admission_candidates"][0]
-    outbox_record = retained["current_control_command_outbox_record"]
-    assert outbox_record["surface_kind"] == "opl_generic_current_control_command_outbox_record"
-    assert outbox_record["runtime_owner"] == "one-person-lab"
-    assert outbox_record["runtime_kind"] == "DomainProgressTransitionRuntime"
-    assert outbox_record["transition_kind"] == "StartProviderAttempt"
-    assert outbox_record["aggregate_identity"]["study_id"] == study_id
-    assert outbox_record["aggregate_identity"]["work_unit_id"] == work_unit_id
-    assert outbox_record["idempotency_key"]
-    assert outbox_record["source_generation"]
-    assert outbox_record["expected_version"]
-    assert outbox_record["postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
+    transition_request = retained["opl_domain_progress_transition_request"]
+    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert transition_request["recommended_transition_kind"] == "StartProviderAttempt"
+    assert transition_request["aggregate_identity"]["study_id"] == study_id
+    assert transition_request["aggregate_identity"]["work_unit_id"] == work_unit_id
+    assert transition_request["idempotency_key"]
+    assert transition_request["source_generation"]
+    assert transition_request["expected_version"]
+    assert transition_request["required_postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
+    assert transition_request["mas_can_create_opl_outbox_record"] is False
     action = result["action_queue"][0]
     assert action["paper_progress_policy_result"]["authority_role"] == "paper_domain_policy_adapter_only"
-    assert action["current_control_command_outbox_record"] == outbox_record
-    assert action["handoff_packet"]["current_control_command_outbox_record"] == outbox_record
+    assert action["opl_domain_progress_transition_request"] == transition_request
+    assert action["handoff_packet"]["opl_domain_progress_transition_request"] == transition_request
+    assert "current_control_command_outbox_record" not in action
     decision = result["stage_route_arbiter_decisions"][0]
     assert decision["decision"] == "pending_provider_admission"
     assert decision["effect"] == "retain_provider_admission_pending"

@@ -127,10 +127,11 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
     assert candidate["next_executable_owner"] == "ai_reviewer"
     assert candidate["paper_progress_policy_result"]["authority_role"] == "paper_domain_policy_adapter_only"
     assert "current_control_command" not in candidate
-    assert candidate["current_control_command_outbox_record"]["surface_kind"] == (
-        "opl_generic_current_control_command_outbox_record"
-    )
-    assert candidate["current_control_command_outbox_record"]["runtime_owner"] == "one-person-lab"
+    assert "current_control_command_outbox_record" not in candidate
+    request = candidate["opl_domain_progress_transition_request"]
+    assert request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert request["target_runtime_owner"] == "one-person-lab"
+    assert request["mas_can_create_opl_outbox_record"] is False
 
 
 def test_provider_admission_candidate_from_analysis_campaign_quality_repair_current_action(
@@ -232,7 +233,7 @@ def test_provider_admission_candidate_from_analysis_campaign_quality_repair_curr
     assert candidate["next_executable_owner"] == "analysis-campaign"
     assert candidate["required_output_surface"] == "artifacts/controller/repair_execution_evidence/latest.json"
     assert candidate["paper_progress_policy_result"]["authority_boundary"]["mas_can_authorize_provider_admission"] is False
-    assert candidate["current_control_command_outbox_record"]["postcondition"]["kind"] == (
+    assert candidate["opl_domain_progress_transition_request"]["required_postcondition"]["kind"] == (
         "provider_admission_enqueued_or_blocked"
     )
 
@@ -358,7 +359,8 @@ def test_provider_admission_candidate_from_quality_repair_current_work_unit_with
     assert candidate["next_executable_owner"] == "write"
     assert candidate["required_output_surface"] == "artifacts/controller/repair_execution_evidence/latest.json"
     assert candidate["paper_progress_policy_result"]["authority_boundary"]["opl_owns_transition_runtime"] is True
-    assert candidate["current_control_command_outbox_record"]["transition_kind"] == "StartProviderAttempt"
+    assert candidate["opl_domain_progress_transition_request"]["recommended_transition_kind"] == "StartProviderAttempt"
+    assert "current_control_command_outbox_record" not in candidate
 
 
 def test_provider_admission_candidate_from_owner_receipt_successor_action(
@@ -498,10 +500,11 @@ def test_provider_admission_candidate_from_owner_receipt_successor_action(
     assert candidate["work_unit_fingerprint"] == action_fingerprint
     assert candidate["next_executable_owner"] == "write"
     assert candidate["dispatch_path"] == str(dispatch_path)
-    assert candidate["current_control_command_outbox_record"]["surface_kind"] == (
-        "opl_generic_current_control_command_outbox_record"
+    assert candidate["opl_domain_progress_transition_request"]["surface_kind"] == (
+        "mas_domain_progress_transition_request"
     )
-    assert candidate["current_control_command_outbox_record"]["runtime_owner"] == "one-person-lab"
+    assert candidate["opl_domain_progress_transition_request"]["target_runtime_owner"] == "one-person-lab"
+    assert "current_control_command_outbox_record" not in candidate
     assert result["action_queue"]
 
 

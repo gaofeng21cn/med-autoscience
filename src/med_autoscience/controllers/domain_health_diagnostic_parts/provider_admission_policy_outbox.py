@@ -9,7 +9,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 
 
-def candidate_with_opl_outbox_record(
+def candidate_with_opl_transition_request(
     candidate: Mapping[str, Any],
     *,
     source: str,
@@ -17,10 +17,10 @@ def candidate_with_opl_outbox_record(
 ) -> dict[str, Any]:
     payload = dict(candidate)
     policy_result = _mapping(payload.get("paper_progress_policy_result"))
-    outbox_record = _mapping(payload.get("current_control_command_outbox_record")) or _mapping(
-        policy_result.get("opl_domain_progress_command_outbox_record")
+    transition_request = _mapping(payload.get("opl_domain_progress_transition_request")) or _mapping(
+        policy_result.get("opl_domain_progress_transition_request")
     )
-    if not policy_result or not outbox_record:
+    if not policy_result or not transition_request:
         policy_result = paper_progress_policy_adapter.build_policy_result(
             {
                 "study_id": _non_empty_text(payload.get("study_id")),
@@ -33,11 +33,11 @@ def candidate_with_opl_outbox_record(
             },
             source=source,
         )
-        outbox_record = _mapping(policy_result.get("opl_domain_progress_command_outbox_record"))
+        transition_request = _mapping(policy_result.get("opl_domain_progress_transition_request"))
     if policy_result:
         payload["paper_progress_policy_result"] = dict(policy_result)
-    if outbox_record:
-        payload["current_control_command_outbox_record"] = dict(outbox_record)
+    if transition_request:
+        payload["opl_domain_progress_transition_request"] = dict(transition_request)
     return payload
 
 

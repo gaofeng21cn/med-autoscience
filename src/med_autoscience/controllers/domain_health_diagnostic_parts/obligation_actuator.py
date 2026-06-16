@@ -15,7 +15,7 @@ from med_autoscience.profiles import WorkspaceProfile
 MAS_OWNER_CALLABLE_DRAIN_MAX_PASSES = 3
 OPL_TRANSITION_RUNTIME_OWNER = "one-person-lab"
 OPL_TRANSITION_RUNTIME_KIND = "DomainProgressTransitionRuntime"
-OPL_CURRENT_CONTROL_OUTBOX_SURFACE = "opl_generic_current_control_command_outbox_record"
+MAS_TRANSITION_REQUEST_SURFACE = "mas_domain_progress_transition_request"
 ACTUATOR_AUTHORITY_BOUNDARY = {
     "surface_kind": "mas_obligation_outcome_projection_authority_boundary",
     "authority": "med_autoscience.paper_progress_policy_adapter",
@@ -26,7 +26,8 @@ ACTUATOR_AUTHORITY_BOUNDARY = {
     "can_own_generic_event_log_or_outbox": False,
     "can_run_fixed_point_runtime": False,
     "can_write_opl_current_control_state": False,
-    "provider_admission_outcome_requires_opl_outbox_record": True,
+    "provider_admission_pending_requires_mas_transition_request": True,
+    "provider_admission_readback_requires_opl_event_or_outbox": True,
     "can_execute_mas_owner_callable": True,
     "can_write_fail_closed_typed_control_blocker": True,
 }
@@ -477,7 +478,7 @@ def _current_obligation_provider_admission_candidates(
             if (
                 isinstance(candidate, Mapping)
                 and _candidate_matches_action_obligation(candidate, action)
-                and _candidate_has_opl_transition_outbox_record(candidate)
+                and _candidate_has_mas_transition_request(candidate)
             ):
                 candidates.append(dict(candidate))
     return candidates
@@ -1086,30 +1087,40 @@ def _candidate_matches_action_obligation(
     return True
 
 
-def _candidate_has_opl_transition_outbox_record(candidate: Mapping[str, Any]) -> bool:
-    record = _mapping(candidate.get("current_control_command_outbox_record"))
-    if not record:
+def _candidate_has_mas_transition_request(candidate: Mapping[str, Any]) -> bool:
+    request = _mapping(candidate.get("opl_domain_progress_transition_request"))
+    if not request:
+        request = _mapping(
+            _mapping(candidate.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    if not request:
         return False
-    if _non_empty_text(record.get("surface_kind")) != OPL_CURRENT_CONTROL_OUTBOX_SURFACE:
+    if _non_empty_text(request.get("surface_kind")) != MAS_TRANSITION_REQUEST_SURFACE:
         return False
-    if _non_empty_text(record.get("runtime_owner")) != OPL_TRANSITION_RUNTIME_OWNER:
+    if _non_empty_text(request.get("target_runtime_owner")) != OPL_TRANSITION_RUNTIME_OWNER:
         return False
-    runtime_kind = _non_empty_text(record.get("runtime_kind"))
-    if runtime_kind is not None and runtime_kind != OPL_TRANSITION_RUNTIME_KIND:
+    runtime_kind = _non_empty_text(request.get("target_runtime_kind")) or _non_empty_text(
+        request.get("runtime_kind")
+    )
+    if runtime_kind != OPL_TRANSITION_RUNTIME_KIND:
         return False
-    aggregate_identity = _mapping(record.get("aggregate_identity"))
+    if request.get("mas_can_create_opl_outbox_record") is not False:
+        return False
+    aggregate_identity = _mapping(request.get("aggregate_identity"))
     required_identity = (
         aggregate_identity.get("aggregate_kind"),
         aggregate_identity.get("aggregate_id"),
         aggregate_identity.get("study_id"),
         aggregate_identity.get("work_unit_id"),
-        record.get("idempotency_key"),
-        record.get("source_generation"),
-        record.get("expected_version"),
+        request.get("idempotency_key"),
+        request.get("source_generation"),
+        request.get("expected_version"),
     )
     if any(_non_empty_text(value) is None for value in required_identity):
         return False
-    return bool(_mapping(record.get("postcondition")) or _mapping(record.get("outcome")))
+    return bool(_mapping(request.get("required_postcondition")))
 
 
 def _current_typed_blocker_payload(action: Mapping[str, Any]) -> dict[str, Any]:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 
 
-def test_policy_adapter_emits_opl_command_without_claiming_transition_authority() -> None:
+def test_policy_adapter_emits_opl_transition_request_without_claiming_runtime_authority() -> None:
     adapter = importlib.import_module("med_autoscience.controllers.paper_progress_policy_adapter")
     result = adapter.build_policy_result(
         {
@@ -46,12 +46,14 @@ def test_policy_adapter_emits_opl_command_without_claiming_transition_authority(
     assert result["authority_boundary"]["mas_can_authorize_provider_admission"] is False
     assert result["authority_boundary"]["opl_owns_transition_runtime"] is True
     assert "opl_domain_progress_command" not in result
-    command = result["opl_domain_progress_command_outbox_record"]
-    assert command["surface_kind"] == "opl_generic_current_control_command_outbox_record"
-    assert command["runtime_kind"] == "DomainProgressTransitionRuntime"
-    assert command["runtime_owner"] == "one-person-lab"
-    assert command["transition_kind"] == "StartProviderAttempt"
-    assert command["postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
+    assert "opl_domain_progress_command_outbox_record" not in result
+    request = result["opl_domain_progress_transition_request"]
+    assert request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert request["target_runtime_owner"] == "one-person-lab"
+    assert request["mas_can_create_opl_outbox_record"] is False
+    assert request["recommended_transition_kind"] == "StartProviderAttempt"
+    assert request["required_postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
 
 
 def test_policy_adapter_rejects_provider_admission_for_owner_callable_recovery() -> None:
@@ -82,4 +84,5 @@ def test_policy_adapter_rejects_provider_admission_for_owner_callable_recovery()
     assert result["recommended_opl_transition_kind"] == "MaterializeOwnerAction"
     assert result["paper_policy_verdict"]["provider_admission_allowed"] is False
     assert result["authority_boundary"]["mas_can_run_fixed_point_reconciler"] is False
-    assert result["opl_domain_progress_command_outbox_record"]["postcondition"]["kind"] == "owner_action_ref"
+    assert result["opl_domain_progress_transition_request"]["required_postcondition"]["kind"] == "owner_action_ref"
+    assert "opl_domain_progress_command_outbox_record" not in result

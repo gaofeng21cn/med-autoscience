@@ -65,7 +65,7 @@ def build_policy_result(payload: Mapping[str, Any], *, source: str = "paper_prog
         "work_unit_id": identity.get("work_unit_id"),
         "work_unit_fingerprint": identity.get("work_unit_fingerprint"),
         "paper_policy_verdict": _paper_policy_verdict(policy_kind),
-        "opl_domain_progress_command_outbox_record": _opl_domain_progress_command_outbox_record(
+        "opl_domain_progress_transition_request": _opl_domain_progress_transition_request(
             policy_kind=policy_kind,
             identity=identity,
         ),
@@ -173,7 +173,7 @@ def _paper_policy_verdict(policy_kind: str) -> dict[str, Any]:
     return {"verdict": "non_advancing_apply_requires_typed_blocker"}
 
 
-def _opl_domain_progress_command_outbox_record(
+def _opl_domain_progress_transition_request(
     *,
     policy_kind: str,
     identity: Mapping[str, Any],
@@ -182,11 +182,15 @@ def _opl_domain_progress_command_outbox_record(
     work_unit_id = _text(identity.get("work_unit_id"))
     fingerprint = _text(identity.get("work_unit_fingerprint"))
     source_generation = _text(identity.get("source_generation")) or fingerprint
-    command = {
-        "surface_kind": "opl_generic_current_control_command_outbox_record",
+    request = {
+        "surface_kind": "mas_domain_progress_transition_request",
+        "target_runtime_kind": "DomainProgressTransitionRuntime",
+        "target_runtime_owner": "one-person-lab",
+        "request_owner": "med-autoscience",
+        "authority_role": "domain_policy_request_only",
+        "mas_can_create_opl_outbox_record": False,
         "runtime_kind": "DomainProgressTransitionRuntime",
-        "runtime_owner": "one-person-lab",
-        "transition_kind": policy_kind,
+        "recommended_transition_kind": policy_kind,
         "aggregate_identity": {
             "aggregate_kind": "study_work_unit",
             "aggregate_id": "::".join(item for item in [study_id, work_unit_id] if item),
@@ -196,17 +200,23 @@ def _opl_domain_progress_command_outbox_record(
         },
         "action_type": identity.get("action_type"),
         "next_owner": identity.get("owner"),
-        "idempotency_key": _stable_id("paper-policy-command", [policy_kind, identity]),
+        "idempotency_key": _stable_id("paper-policy-request", [policy_kind, identity]),
         "source_generation": source_generation,
         "expected_version": source_generation,
-        "postcondition": {
+        "required_postcondition": {
             "kind": _postcondition_kind(policy_kind),
             "outcome_owner": "one-person-lab",
             "domain_state_owner": "med-autoscience",
         },
         "domain_policy_result_ref": _stable_id("paper-policy", [policy_kind, identity]),
+        "forbidden_runtime_fields": [
+            "current_control_command_outbox_record",
+            "opl_domain_progress_transition_event",
+            "opl_domain_progress_transition_outbox_item",
+            "stage_run_identity",
+        ],
     }
-    return _clean(command)
+    return _clean(request)
 
 
 def _postcondition_kind(policy_kind: str) -> str:

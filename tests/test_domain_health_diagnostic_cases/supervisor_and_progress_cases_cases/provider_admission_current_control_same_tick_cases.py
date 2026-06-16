@@ -247,23 +247,25 @@ def test_same_tick_materialized_report_candidate_carries_opl_outbox_record(
 
     assert result is not None
     candidate = result["provider_admission_candidates"][0]
-    outbox_record = candidate["current_control_command_outbox_record"]
-    assert outbox_record["surface_kind"] == "opl_generic_current_control_command_outbox_record"
-    assert outbox_record["runtime_owner"] == "one-person-lab"
-    assert outbox_record["runtime_kind"] == "DomainProgressTransitionRuntime"
-    assert outbox_record["transition_kind"] == "StartProviderAttempt"
-    assert outbox_record["aggregate_identity"]["study_id"] == study_id
-    assert outbox_record["aggregate_identity"]["work_unit_id"] == work_unit_id
-    assert outbox_record["idempotency_key"]
-    assert outbox_record["source_generation"]
-    assert outbox_record["expected_version"]
-    assert outbox_record["postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
+    transition_request = candidate["opl_domain_progress_transition_request"]
+    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert transition_request["recommended_transition_kind"] == "StartProviderAttempt"
+    assert transition_request["aggregate_identity"]["study_id"] == study_id
+    assert transition_request["aggregate_identity"]["work_unit_id"] == work_unit_id
+    assert transition_request["idempotency_key"]
+    assert transition_request["source_generation"]
+    assert transition_request["expected_version"]
+    assert transition_request["required_postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
+    assert transition_request["mas_can_create_opl_outbox_record"] is False
     action = result["action_queue"][0]
     assert action["paper_progress_policy_result"]["authority_role"] == (
         "paper_domain_policy_adapter_only"
     )
-    assert action["current_control_command_outbox_record"] == outbox_record
-    assert action["handoff_packet"]["current_control_command_outbox_record"] == outbox_record
+    assert action["opl_domain_progress_transition_request"] == transition_request
+    assert action["handoff_packet"]["opl_domain_progress_transition_request"] == transition_request
+    assert "current_control_command_outbox_record" not in action
 
 
 def test_same_tick_materialized_dispatch_without_stage_packet_fails_closed(

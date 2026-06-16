@@ -235,7 +235,7 @@ def test_domain_health_diagnostic_apply_accepts_provider_admission_pending_as_cl
                     "action_type": "run_quality_repair_batch",
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
-                    "current_control_command_outbox_record": _opl_current_control_outbox_record(
+                    "opl_domain_progress_transition_request": _mas_transition_request(
                         study_id=study_id,
                         action_type="run_quality_repair_batch",
                         work_unit_id="medical_prose_write_repair",
@@ -263,11 +263,11 @@ def test_domain_health_diagnostic_apply_accepts_provider_admission_pending_as_cl
     assert outcome["authority_boundary"]["opl_transition_runtime_owner"] == "one-person-lab"
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["authority_boundary"][
-        "provider_admission_outcome_requires_opl_outbox_record"
+        "provider_admission_pending_requires_mas_transition_request"
     ] is True
 
 
-def test_domain_health_diagnostic_apply_does_not_accept_provider_admission_without_opl_outbox_record(
+def test_domain_health_diagnostic_apply_does_not_accept_provider_admission_without_transition_request(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -329,7 +329,7 @@ def test_domain_health_diagnostic_apply_does_not_accept_provider_admission_witho
         "dhd_apply_no_closed_obligation_outcome"
     )
     assert outcome["typed_control_blocker"]["authority_boundary"][
-        "provider_admission_outcome_requires_opl_outbox_record"
+        "provider_admission_pending_requires_mas_transition_request"
     ] is True
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is False
 
@@ -494,7 +494,7 @@ def _ready_provider_recovery_state() -> dict[str, object]:
     }
 
 
-def _opl_current_control_outbox_record(
+def _mas_transition_request(
     *,
     study_id: str,
     action_type: str,
@@ -502,10 +502,14 @@ def _opl_current_control_outbox_record(
     work_unit_fingerprint: str,
 ) -> dict[str, object]:
     return {
-        "surface_kind": "opl_generic_current_control_command_outbox_record",
+        "surface_kind": "mas_domain_progress_transition_request",
+        "target_runtime_kind": "DomainProgressTransitionRuntime",
+        "target_runtime_owner": "one-person-lab",
+        "request_owner": "med-autoscience",
+        "authority_role": "domain_policy_request_only",
+        "mas_can_create_opl_outbox_record": False,
         "runtime_kind": "DomainProgressTransitionRuntime",
-        "runtime_owner": "one-person-lab",
-        "transition_kind": "StartProviderAttempt",
+        "recommended_transition_kind": "StartProviderAttempt",
         "aggregate_identity": {
             "aggregate_kind": "study_work_unit",
             "aggregate_id": f"{study_id}::{work_unit_id}",
@@ -518,7 +522,7 @@ def _opl_current_control_outbox_record(
         "idempotency_key": f"provider-admission::{study_id}::{work_unit_id}",
         "source_generation": work_unit_fingerprint,
         "expected_version": work_unit_fingerprint,
-        "postcondition": {
+        "required_postcondition": {
             "kind": "provider_admission_enqueued_or_blocked",
             "outcome_owner": "one-person-lab",
             "domain_state_owner": "med-autoscience",

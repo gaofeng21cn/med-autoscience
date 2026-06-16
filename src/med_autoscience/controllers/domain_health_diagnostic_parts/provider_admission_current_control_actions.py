@@ -185,8 +185,8 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "provider_completion_is_domain_completion": False,
         "source_surface": _study_current_action_source_surface(current),
         "paper_progress_policy_result": paper_policy_result,
-        "current_control_command_outbox_record": paper_policy_result.get(
-            "opl_domain_progress_command_outbox_record"
+        "opl_domain_progress_transition_request": paper_policy_result.get(
+            "opl_domain_progress_transition_request"
         ),
         "owner_route": {
             "next_owner": executable_owner,
