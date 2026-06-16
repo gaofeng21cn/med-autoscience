@@ -45,7 +45,7 @@ from .projection_payload_assembly_parts.paper_recovery_visibility import (
     apply_paper_recovery_state_user_visible_status as _apply_paper_recovery_state_user_visible_status,
 )
 from .projection_payload_assembly_parts.paper_recovery_execution_refresh import (
-    refresh_after_paper_recovery_state as _refresh_after_paper_recovery_state,
+    normalize_paper_recovery_execution_projection as _normalize_paper_recovery_execution_projection,
 )
 from .projection_payload_assembly_parts.payload_sync import (
     sync_progress_first_owner_action_admission as _sync_progress_first_owner_action_admission,
@@ -345,7 +345,7 @@ def assemble_study_progress_payload(
         )
     payload = _sync_progress_first_owner_action_admission(payload)
     payload["paper_recovery_state"] = build_paper_recovery_state(payload)
-    payload = _refresh_after_paper_recovery_state(
+    payload = _normalize_paper_recovery_execution_projection(
         payload=payload,
         status=status,
         handoff=handoff,

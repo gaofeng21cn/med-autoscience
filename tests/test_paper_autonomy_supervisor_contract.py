@@ -47,7 +47,7 @@ def test_paper_autonomy_supervisor_declares_schema_external_patterns_and_boundar
     assert patterns["adoption_mode"] == "pattern_only_no_foreign_runtime_dependency"
     assert patterns["adopted_rules"] == [
         "query_signal_update_split",
-        "durable_callback_resume_token",
+        "opl_owned_durable_callback_resume_token",
         "scheduler_agent_supervisor_state_store",
         "persistent_interrupt_resume_same_identity",
         "identity_bound_idempotent_redrive",
@@ -158,11 +158,17 @@ def test_supervisor_decision_taxonomy_is_closed_and_identity_bound() -> None:
     assert cases["wait_for_owner_with_resume_token"]["required_resume_fields"] == [
         "human_gate_ref",
         "resume_token",
+        "resume_token_owner",
+        "mas_can_generate_resume_token",
         "allowed_decisions",
         "timeout_policy",
         "default_safe_branch",
         "current_identity",
     ]
+    assert cases["wait_for_owner_with_resume_token"]["next_safe_action"] == (
+        "consume_opl_human_gate_resume_token"
+    )
+    assert cases["wait_for_owner_with_resume_token"]["mas_resume_token_generation_allowed"] is False
     assert cases["stop_with_stable_typed_blocker"]["required_evidence_refs"] == [
         "paper_autonomy_obligation_ref",
         "stable_typed_blocker_ref",
@@ -290,6 +296,7 @@ def test_opl_foundation_and_mas_authority_split_forbid_read_model_authority() ->
         "OPL queue or attempt ledger owns medical truth",
         "DHD read-model can close owner receipt",
         "Portal or workbench text can resume human gate",
+        "MAS can generate human gate resume tokens",
         "trace span can close quality gate",
         "provider admission or completion is paper progress",
         "migration receipt updates publication readiness",
@@ -317,6 +324,7 @@ def test_opl_foundation_and_mas_authority_split_forbid_read_model_authority() ->
         "default_safe_branch",
         "same_current_identity",
     ]
+    assert opl["HumanGateTransport"]["mas_can_generate_resume_token"] is False
 
 
 def test_migration_status_records_opl_readback_and_mas_owner_gate_materializer() -> None:

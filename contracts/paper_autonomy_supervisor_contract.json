@@ -26,7 +26,7 @@
       {
         "label": "AWS Step Functions callback task token",
         "url": "https://docs.aws.amazon.com/step-functions/latest/dg/connect-to-resource.html",
-        "mapped_rule": "human or external owner waits must persist a callback/resume token instead of relying on chat prose or operator memory"
+        "mapped_rule": "OPL HumanGateTransport must persist the callback/resume token; MAS may only consume the token and accepted answer shape for the same current identity"
       },
       {
         "label": "Azure Scheduler Agent Supervisor",
@@ -42,7 +42,7 @@
     "adoption_mode": "pattern_only_no_foreign_runtime_dependency",
     "adopted_rules": [
       "query_signal_update_split",
-      "durable_callback_resume_token",
+      "opl_owned_durable_callback_resume_token",
       "scheduler_agent_supervisor_state_store",
       "persistent_interrupt_resume_same_identity",
       "identity_bound_idempotent_redrive"
@@ -74,7 +74,7 @@
       "recovery materializer"
     ],
     "signal_surfaces": [
-      "human gate resume token",
+      "OPL human gate resume token",
       "owner answer callback",
       "stable typed blocker acknowledge or successor identity"
     ],
@@ -202,7 +202,7 @@
       {
         "decision": "wait_for_owner_with_resume_token",
         "next_owner": "Human or named owner",
-        "next_safe_action": "persist_gate_and_resume_token",
+        "next_safe_action": "consume_opl_human_gate_resume_token",
         "required_evidence_refs": [
           "paper_autonomy_obligation_ref",
           "human_gate_ref"
@@ -210,11 +210,16 @@
         "required_resume_fields": [
           "human_gate_ref",
           "resume_token",
+          "resume_token_owner",
+          "mas_can_generate_resume_token",
           "allowed_decisions",
           "timeout_policy",
           "default_safe_branch",
           "current_identity"
         ],
+        "resume_token_owner": "OPL Framework",
+        "mas_resume_token_generation_allowed": false,
+        "missing_opl_token_effect": "MAS must not synthesize a resume token; the wait state remains diagnostic-only until OPL HumanGateTransport provides the durable token/readback.",
         "paper_progress_classification": "human_gate_pending_no_credit",
         "platform_repair_classification": "wait_state"
       },
@@ -403,6 +408,7 @@
       "OPL queue or attempt ledger owns medical truth",
       "DHD read-model can close owner receipt",
       "Portal or workbench text can resume human gate",
+      "MAS can generate human gate resume tokens",
       "trace span can close quality gate",
       "provider admission or completion is paper progress",
       "migration receipt updates publication readiness"
@@ -437,7 +443,8 @@
         "default_safe_branch",
         "same_current_identity"
       ],
-      "chat_text_can_resume": false
+      "chat_text_can_resume": false,
+      "mas_can_generate_resume_token": false
     },
     {
       "surface": "RecoveryObligationStore",
@@ -561,7 +568,7 @@
       ],
       "does_not_claim": [
         "OPL runtime surface implemented",
-        "MAS authority kernel fully routed",
+        "MAS policy adapter consumption fully routed",
         "DM002 or DM003 paper progress"
       ]
     },

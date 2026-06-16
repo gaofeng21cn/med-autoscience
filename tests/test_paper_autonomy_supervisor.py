@@ -191,7 +191,7 @@ def test_terminal_closeout_phase_consumes_closeout() -> None:
     assert "closeout:dm003" in decision["evidence_refs"]
 
 
-def test_human_gate_phase_persists_resume_token() -> None:
+def test_human_gate_phase_consumes_opl_resume_token_without_mas_generation() -> None:
     payload = {
         "study_id": "002-dm-china-us-mortality-attribution",
         "current_work_unit": _typed_blocker_work_unit(
@@ -227,9 +227,51 @@ def test_human_gate_phase_persists_resume_token() -> None:
     decision = build_supervisor_decision(payload)
 
     assert decision["decision"] == "wait_for_owner_with_resume_token"
-    assert decision["next_safe_action"]["kind"] == "persist_gate_and_resume_token"
+    assert decision["next_safe_action"]["kind"] == "consume_opl_human_gate_resume_token"
     assert decision["next_safe_action"]["resume_token"] == "resume:dm002"
     assert decision["next_safe_action"]["human_gate_ref"] == "human-gate:dm002"
+    assert decision["next_safe_action"]["resume_token_owner"] == "one-person-lab"
+    assert decision["next_safe_action"]["mas_can_generate_resume_token"] is False
+
+
+def test_human_gate_phase_does_not_synthesize_resume_token() -> None:
+    payload = {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "current_work_unit": _typed_blocker_work_unit(
+            study_id="002-dm-china-us-mortality-attribution",
+            owner="user",
+            action_type="complete_medical_paper_readiness_surface",
+            work_unit_id="complete_medical_paper_readiness_surface",
+            blocker_type="owner_decision_required",
+        ),
+        "human_gate_transport": {
+            "human_gate_ref": "human-gate:dm002",
+        },
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "human_gate",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_authority": {
+                "owner": "user",
+                "obligation": {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "quest_id": "002-dm-china-us-mortality-attribution",
+                    "owner": "user",
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "work_unit_fingerprint": "readiness-fp",
+                },
+            },
+            "next_safe_action": {"kind": "record_human_or_owner_gate"},
+        },
+    }
+
+    decision = build_supervisor_decision(payload)
+
+    assert decision["decision"] == "wait_for_owner_with_resume_token"
+    assert "resume_token" not in decision["next_safe_action"]
+    assert decision["next_safe_action"]["resume_token_owner"] == "one-person-lab"
+    assert decision["next_safe_action"]["mas_can_generate_resume_token"] is False
 
 
 def test_stable_typed_blocker_stops_same_identity_redrive() -> None:

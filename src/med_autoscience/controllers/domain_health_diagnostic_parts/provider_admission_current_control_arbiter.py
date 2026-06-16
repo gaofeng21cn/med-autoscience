@@ -33,7 +33,15 @@ STALE_STAGE_PACKET_BLOCKER = "stage_packet_not_current_selected_dispatch"
 ACCEPTED_OWNER_GATE_DECISION_SOURCE = "paper_recovery_state.accepted_owner_gate_decision"
 ARBITER_AUTHORITY_BOUNDARY = {
     "arbiter_surface": "currentness_projection_only",
+    "authority": False,
+    "projection_owner": "med-autoscience",
+    "transition_runtime_owner": "one-person-lab",
+    "runtime_kind": "DomainProgressTransitionRuntime",
     "can_write_domain_truth": False,
+    "can_authorize_provider_admission": False,
+    "provider_admission_requires_opl_outbox_record": True,
+    "can_own_generic_event_log_or_outbox": False,
+    "can_run_fixed_point_runtime": False,
     "can_authorize_publication_ready": False,
     "provider_completion_is_domain_ready": False,
 }

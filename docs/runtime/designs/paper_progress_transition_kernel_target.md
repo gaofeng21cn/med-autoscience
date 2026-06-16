@@ -10,9 +10,9 @@ Date: `2026-06-16`
 
 当前已完成 first slice 的方向纠偏：OPL `one-person-lab` 已落地 `DomainProgressTransitionRuntime` 最小切片，覆盖 command normalization、transition event、transactional outbox item、projection metadata、StageRun identity、idempotency、`NonAdvancingApply` 和 replay/readback 测试。该能力落在 OPL 既有 Runway / Pack / Stagecraft / Console / Vault 分工内，没有新增第 11 品牌模块，也没有保留旧 `paper_autonomy_supervisor_apply` 兼容字段。
 
-MAS 侧已删除私有 `paper_progress_transition_kernel` 方向，保留 `PaperProgressPolicyAdapter`。DHD provider-admission 候选现在只携带 `paper_progress_policy_result` 和 `current_control_command_outbox_record`，其中 MAS 明确 `mas_can_authorize_provider_admission=false`、`mas_can_run_fixed_point_reconciler=false`、`mas_can_own_event_log_or_outbox=false`，并把 transition runtime owner 指向 OPL。root `action_queue`、study `current_executable_owner_action` 和 `current_work_unit` 三类候选入口都必须走同一 adapter / outbox-record shape。
+MAS 侧已删除私有 `paper_progress_transition_kernel` 方向，保留 `PaperProgressPolicyAdapter`。DHD provider-admission 候选现在只携带 MAS `paper_progress_policy_result` 和 OPL-owned `current_control_command_outbox_record` readback；MAS 明确 `mas_can_authorize_provider_admission=false`、`mas_can_run_fixed_point_reconciler=false`、`mas_can_own_event_log_or_outbox=false`，并把 transition runtime owner 指向 OPL。root `action_queue`、study `current_executable_owner_action` 和 `current_work_unit` 三类候选入口都必须消费同一 adapter / outbox-record shape，不能把该 outbox record 作为 MAS 生成的新 authority。
 
-DHD `obligation_actuator` 现在只作为 MAS policy / owner-answer readback 和 fail-closed typed blocker 投影：它可以识别 MAS owner callable receipt、MAS typed blocker、human/route-back diagnostic 和 OPL readback，但不能自签 provider admission。`provider_admission_pending` 只有在候选携带 OPL-owned `current_control_command_outbox_record` 时才算 closed outcome；旧 `current_control_command`、ready dispatch、queue item 或 read-model carrier 不能作为入站 alias。provider admission arbiter、`paper_recovery_state`、`current_work_unit`、`current_executable_owner_action` 和 study_progress refresh 在迁移完成前只能是 projection / migration adapter；它们必须逐步消费 OPL transition event + MAS policy result，不能重新持有 event log、outbox、StageRun lifecycle、fixed-point 或 provider admission authority。
+DHD `obligation_actuator` 现在只作为 MAS policy / owner-answer readback 和 fail-closed typed blocker 投影：它可以识别 MAS owner callable receipt、MAS typed blocker、human/route-back diagnostic 和 OPL readback，但不能自签 provider admission。`provider_admission_pending` 只有在候选携带 OPL-owned `current_control_command_outbox_record` 时才算 closed outcome；旧 `current_control_command`、ready dispatch、queue item 或 read-model carrier 不能作为入站 alias。provider admission arbiter、`paper_recovery_state`、`current_work_unit`、`current_executable_owner_action` 和 study_progress refresh 在迁移完成前只能是 projection / migration adapter；当前 MAS refresh 只允许 single-pass projection normalization，fixed-point runtime owner 是 OPL。它们必须逐步消费 OPL transition event + MAS policy result，不能重新持有 event log、outbox、StageRun lifecycle、fixed-point 或 provider admission authority。
 
 这仍不是 live paper progress claim。完成门继续要求 replay fixture、exactly-one transition、`NonAdvancingApply` typed blocker、OPL outbox / StageRun identity readback，以及 DM002 / DM003 fresh live outcome。docs、contract、focused tests、projection clean、queue empty 或 DHD dry-run 仍不能替代 running proof、owner receipt、stable typed blocker、human gate、route-back evidence 或 paper-gate-artifact semantic delta。
 
@@ -136,7 +136,7 @@ repeat until stable outcome
 | Read models | 投影 OPL runtime status、attempt health、transport refs、workbench drilldown。 | 投影 MAS domain status、current owner delta、paper progress ledger、authority refs。 |
 | Recovery | OPL runtime repair、stale worker、attempt identity、human gate transport。 | MAS control-plane repair、paper recovery semantics、Yang workspace migration receipt、medical typed blocker。 |
 
-OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；MAS 不私有实现 generic scheduler、attempt lifecycle、event log、outbox、projection rebuild 或 fixed-point runtime。双方通过 MAS 发出的 `current_control_command_outbox_record`、OPL command/event/outbox runtime result 与 MAS policy adapter 连接。
+OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；MAS 不私有实现 generic scheduler、attempt lifecycle、event log、outbox、projection rebuild 或 fixed-point runtime。双方通过 OPL-owned `current_control_command_outbox_record` / command-event-outbox runtime result 与 MAS policy adapter 连接。
 
 ## 现有 surface 的目标读法
 
@@ -147,7 +147,7 @@ OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；
 | `current_work_unit` | 当前 aggregate 的 projection。 | 覆盖 kernel transition 或发明 provider admission。 |
 | `current_executable_owner_action` | operator/executor read model。 | 把 stage index / DHD preview 当 authority。 |
 | DHD dry-run | diagnostic query。 | 声明恢复或 paper progress。 |
-| DHD apply | fixed-point controller entry。 | 单次 materialize 后没有 postcondition 仍 ok=true。 |
+| DHD apply | OPL fixed-point controller 的 consumer/readback 入口；MAS 只提供 policy adapter 和 owner-answer/fail-closed projection。 | 在 MAS 内自建 fixed-point loop，或单次 materialize 后没有 postcondition 仍 ok=true。 |
 | OPL current-control | generic execution state。 | 签 MAS owner receipt 或解释 publication readiness。 |
 | Stage artifact index | rebuildable diagnostic / fallback projection。 | 在 current owner surface 存在时反向覆盖 currentness。 |
 | Workbench / Portal | query / drilldown / operator UX。 | 以 UI visible、queue empty 或 active_run_id 声明 progress。 |
@@ -218,7 +218,7 @@ OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；
 
 ## 与现有文档的关系
 
-- [Paper Autonomy Supervisor 目标设计](./paper_autonomy_supervisor_target.md) 继续定义 obligation 和五类 supervisor decision；本文把其中通用 obligation / reconcile / replay 能力上收到 OPL transition runtime，把 MAS 部分收薄为 paper-specific policy adapter。
+- [Paper Autonomy Supervisor 目标设计](./paper_autonomy_supervisor_target.md) 继续定义 obligation 和六类 supervisor decision；本文把其中通用 obligation / reconcile / replay 能力上收到 OPL transition runtime，把 MAS 部分收薄为 paper-specific policy adapter。
 - [PaperRecovery Obligation 目标架构](./paper_recovery_obligation_target_architecture.md) 继续定义 recovery obligation 的输入/输出和派生面规则；本文要求 recovery obligation 长期由 OPL runtime 承载，MAS 只解释 paper recovery domain policy。
 - [MAS / OPL Agent OS 目标运行架构](./mas_opl_agent_os_target_operating_architecture.md) 继续定义 OPL Agent OS / MAS Medical Research Pack / Authority Kernel 总体分层；本文是 OPL domain progress runtime 在 MAS paper-line 上的目标消费设计。
 - [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md) 维护当前执行顺序、状态、完成门和 open evidence tail。

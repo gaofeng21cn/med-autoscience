@@ -101,19 +101,18 @@ def build_supervisor_decision(
 
     if phase == "human_gate" or _resume_token_payload(progress, recovery):
         resume = _resume_token_payload(progress, recovery)
-        return _decision(
-            progress,
-            recovery,
-            obligation,
-            decision="wait_for_owner_with_resume_token",
-            next_owner=_owner(recovery, obligation) or "Human or named owner",
-            next_safe_action={
-                "kind": "persist_gate_and_resume_token",
-                "resume_token": _text(resume.get("resume_token")) or _deterministic_token(obligation),
-                "human_gate_ref": _first_text(
-                    resume.get("human_gate_ref"),
-                    *_evidence_refs(recovery),
-                ),
+        resume_token = _text(resume.get("resume_token"))
+        human_gate_ref = _first_text(
+            resume.get("human_gate_ref"),
+            *_evidence_refs(recovery),
+        )
+        next_safe_action = _clean_mapping(
+            {
+                "kind": "consume_opl_human_gate_resume_token",
+                "resume_token": resume_token,
+                "human_gate_ref": human_gate_ref,
+                "resume_token_owner": "one-person-lab",
+                "mas_can_generate_resume_token": False,
                 "allowed_decisions": [
                     "materialize_recovery_action",
                     "stop_with_stable_typed_blocker",
@@ -121,7 +120,15 @@ def build_supervisor_decision(
                 "timeout_policy": _timeout_policy(progress),
                 "default_safe_branch": "stop_with_stable_typed_blocker",
                 "current_identity": _identity(obligation),
-            },
+            }
+        )
+        return _decision(
+            progress,
+            recovery,
+            obligation,
+            decision="wait_for_owner_with_resume_token",
+            next_owner=_owner(recovery, obligation) or "Human or named owner",
+            next_safe_action=next_safe_action,
             evidence_refs=[
                 _obligation_ref(obligation),
                 *_human_gate_refs(progress, recovery),
@@ -792,10 +799,6 @@ def _owner(recovery: Mapping[str, Any], obligation: Mapping[str, Any]) -> str | 
         _mapping(recovery.get("current_authority")).get("owner"),
         _mapping(obligation.get("desired_delta")).get("owner"),
     )
-
-
-def _deterministic_token(obligation: Mapping[str, Any]) -> str:
-    return "resume-token::" + _short_hash(_identity(obligation))
 
 
 def _clean_mapping(value: Mapping[str, Any]) -> dict[str, Any]:

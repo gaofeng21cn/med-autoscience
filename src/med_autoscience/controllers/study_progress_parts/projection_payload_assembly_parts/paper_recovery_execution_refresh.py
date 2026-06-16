@@ -6,7 +6,7 @@ from typing import Any
 from ..shared import _mapping_copy
 
 
-def refresh_after_paper_recovery_state(
+def normalize_paper_recovery_execution_projection(
     *,
     payload: dict[str, Any],
     status: Mapping[str, Any],
@@ -20,33 +20,50 @@ def refresh_after_paper_recovery_state(
     build_paper_recovery_state: Callable[[Mapping[str, Any]], dict[str, Any]],
 ) -> dict[str, Any]:
     updated = _with_recovery_supervisor_decision(dict(payload))
-    for _ in range(4):
-        before = _refresh_signature(updated)
-        recovery_current_action = build_current_executable_owner_action(updated)
-        refreshed = refresh_current_execution_surfaces(
-            payload={**updated, "current_executable_owner_action": recovery_current_action},
-            status=status,
-            handoff=handoff,
-            runtime_health_snapshot=runtime_health_snapshot,
-        )
-        refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
-        refreshed = _with_recovery_supervisor_decision(refreshed)
+    recovery_current_action = build_current_executable_owner_action(updated)
+    refreshed = refresh_current_execution_surfaces(
+        payload={**updated, "current_executable_owner_action": recovery_current_action},
+        status=status,
+        handoff=handoff,
+        runtime_health_snapshot=runtime_health_snapshot,
+    )
+    refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
+    refreshed = _with_recovery_supervisor_decision(refreshed)
+    refreshed = _without_stale_provider_supervisor_block(refreshed)
+    normalized_current_action = build_current_executable_owner_action(refreshed)
+    refreshed = refresh_current_execution_surfaces(
+        payload={**refreshed, "current_executable_owner_action": normalized_current_action},
+        status=status,
+        handoff=handoff,
+        runtime_health_snapshot=runtime_health_snapshot,
+    )
+    refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
+    refreshed = _with_recovery_supervisor_decision(refreshed)
+    refreshed = _without_stale_provider_supervisor_block(refreshed)
+    provider_fields = provider_admission_projection_fields(
+        payload=refreshed,
+        handoff=handoff,
+        study_root=study_root,
+    )
+    refreshed.update(provider_fields)
+    refreshed = sync_progress_first_owner_action_admission(refreshed)
+    refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
+    refreshed = _with_recovery_supervisor_decision(refreshed)
+    if "provider_admission_blocked_by_supervisor_decision" not in provider_fields:
         refreshed = _without_stale_provider_supervisor_block(refreshed)
-        provider_fields = provider_admission_projection_fields(
-            payload=refreshed,
-            handoff=handoff,
-            study_root=study_root,
-        )
-        refreshed.update(provider_fields)
-        refreshed = sync_progress_first_owner_action_admission(refreshed)
-        refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
-        refreshed = _with_recovery_supervisor_decision(refreshed)
-        if "provider_admission_blocked_by_supervisor_decision" not in provider_fields:
-            refreshed = _without_stale_provider_supervisor_block(refreshed)
-        if _refresh_signature(refreshed) == before:
-            return refreshed
-        updated = refreshed
-    return updated
+    refreshed["paper_recovery_execution_projection"] = {
+        "surface_kind": "paper_recovery_execution_projection",
+        "schema_version": 1,
+        "authority": False,
+        "projection_owner": "med-autoscience",
+        "transition_runtime_owner": "one-person-lab",
+        "refresh_mode": "single_pass_projection_normalization",
+        "fixed_point_runtime_owner": "one-person-lab",
+        "mas_can_run_fixed_point_runtime": False,
+        "source_signature": _refresh_signature(payload),
+        "derived_signature": _refresh_signature(refreshed),
+    }
+    return refreshed
 
 
 def _with_recovery_supervisor_decision(payload: dict[str, Any]) -> dict[str, Any]:
@@ -85,4 +102,4 @@ def _refresh_signature(payload: Mapping[str, Any]) -> tuple[Any, ...]:
     )
 
 
-__all__ = ["refresh_after_paper_recovery_state"]
+__all__ = ["normalize_paper_recovery_execution_projection"]

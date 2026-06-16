@@ -53,6 +53,13 @@ def test_provider_admission_current_control_records_retained_pending_arbiter_dec
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }
+    boundary = result["stage_route_arbiter"]["authority_boundary"]
+    assert boundary["authority"] is False
+    assert boundary["transition_runtime_owner"] == "one-person-lab"
+    assert boundary["runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert boundary["can_authorize_provider_admission"] is False
+    assert boundary["provider_admission_requires_opl_outbox_record"] is True
+    assert boundary["can_run_fixed_point_runtime"] is False
     retained = result["provider_admission_candidates"][0]
     outbox_record = retained["current_control_command_outbox_record"]
     assert outbox_record["surface_kind"] == "opl_generic_current_control_command_outbox_record"

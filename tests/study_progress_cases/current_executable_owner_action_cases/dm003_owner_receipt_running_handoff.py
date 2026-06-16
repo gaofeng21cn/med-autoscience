@@ -334,7 +334,7 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
         "work_unit_fingerprint": AI_REVIEWER_FINGERPRINT,
     }
 
-    result = refresh_module.refresh_after_paper_recovery_state(
+    result = refresh_module.normalize_paper_recovery_execution_projection(
         payload=payload,
         status={},
         handoff={},
@@ -361,6 +361,12 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
     assert result["current_work_unit"]["work_unit_id"] == AI_REVIEWER_WORK_UNIT
     assert result["provider_admission_pending_count"] == 1
     assert "provider_admission_blocked_by_supervisor_decision" not in result
+    projection = result["paper_recovery_execution_projection"]
+    assert projection["authority"] is False
+    assert projection["transition_runtime_owner"] == "one-person-lab"
+    assert projection["fixed_point_runtime_owner"] == "one-person-lab"
+    assert projection["mas_can_run_fixed_point_runtime"] is False
+    assert projection["refresh_mode"] == "single_pass_projection_normalization"
 
 
 def test_progress_first_projects_running_ai_reviewer_handoff_over_consumed_write_receipt() -> None:
