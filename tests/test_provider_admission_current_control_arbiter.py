@@ -53,6 +53,22 @@ def test_provider_admission_current_control_records_retained_pending_arbiter_dec
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }
+    retained = result["provider_admission_candidates"][0]
+    outbox_record = retained["current_control_command_outbox_record"]
+    assert outbox_record["surface_kind"] == "opl_generic_current_control_command_outbox_record"
+    assert outbox_record["runtime_owner"] == "one-person-lab"
+    assert outbox_record["runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert outbox_record["transition_kind"] == "StartProviderAttempt"
+    assert outbox_record["aggregate_identity"]["study_id"] == study_id
+    assert outbox_record["aggregate_identity"]["work_unit_id"] == work_unit_id
+    assert outbox_record["idempotency_key"]
+    assert outbox_record["source_generation"]
+    assert outbox_record["expected_version"]
+    assert outbox_record["postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
+    action = result["action_queue"][0]
+    assert action["paper_progress_policy_result"]["authority_role"] == "paper_domain_policy_adapter_only"
+    assert action["current_control_command_outbox_record"] == outbox_record
+    assert action["handoff_packet"]["current_control_command_outbox_record"] == outbox_record
     decision = result["stage_route_arbiter_decisions"][0]
     assert decision["decision"] == "pending_provider_admission"
     assert decision["effect"] == "retain_provider_admission_pending"

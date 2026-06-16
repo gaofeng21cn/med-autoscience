@@ -32,6 +32,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     sync_current_control_runtime_surfaces as _sync_current_control_runtime_surfaces,
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_policy_outbox import (
+    candidate_with_opl_outbox_record as _candidate_with_opl_outbox_record,
+)
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.controllers.owner_route_handoff_parts.accepted_owner_gate_route_back import (
     accepted_owner_gate_route_back_action as _accepted_owner_gate_route_back_action,
@@ -875,6 +878,11 @@ def _provider_admission_candidates_from_same_tick_materialize(
         if currentness_basis:
             candidate["currentness_basis"] = currentness_basis
         candidate = _same_tick_candidate_with_stage_run_identity(candidate)
+        candidate = _candidate_with_opl_outbox_record(
+            candidate,
+            source="dhd.provider_admission_same_tick_materialized_dispatch",
+            current_action_source="same_tick_materialized_dispatch",
+        )
         if candidate["study_id"] is not None and candidate["action_type"] is not None:
             current_action_identity = current_action_by_study.get(candidate["study_id"])
             if current_action_identity is not None and not _same_tick_candidate_matches_current_action(

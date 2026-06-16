@@ -84,6 +84,12 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
     stage_boundary = stage_transition_authority_boundary(
         candidate.get("stage_transition_authority_boundary")
     )
+    paper_policy_result = _mapping(candidate.get("paper_progress_policy_result"))
+    outbox_record = _mapping(candidate.get("current_control_command_outbox_record"))
+    if not outbox_record:
+        outbox_record = _mapping(
+            paper_policy_result.get("opl_domain_progress_command_outbox_record")
+        )
     source_refs = {
         key: value
         for key, value in {
@@ -156,6 +162,8 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "source_ref": _non_empty_text(candidate.get("execution_ref")),
             "provider_attempt_or_lease_required": True,
             "provider_completion_is_domain_completion": False,
+            "paper_progress_policy_result": dict(paper_policy_result) if paper_policy_result else None,
+            "current_control_command_outbox_record": dict(outbox_record) if outbox_record else None,
             "authority_boundary": authority_boundary,
             "stage_transition_authority_boundary": stage_boundary,
             "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
@@ -181,6 +189,12 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
                 "source_ref": _non_empty_text(candidate.get("execution_ref")),
                 "owner_route": owner_route,
                 "provider_completion_is_domain_completion": False,
+                "paper_progress_policy_result": dict(paper_policy_result)
+                if paper_policy_result
+                else None,
+                "current_control_command_outbox_record": dict(outbox_record)
+                if outbox_record
+                else None,
                 "authority_boundary": authority_boundary,
                 "stage_transition_authority_boundary": stage_boundary,
             },

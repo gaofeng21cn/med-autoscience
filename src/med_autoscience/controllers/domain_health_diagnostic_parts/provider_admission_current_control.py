@@ -25,6 +25,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     candidate_with_progress_currentness_identity as _candidate_with_progress_currentness_identity,
     provider_admission_current_control_study,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_policy_outbox import (
+    candidate_with_opl_outbox_record as _candidate_with_opl_outbox_record,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
     mapping as _mapping,
     text_items as _text_items,
@@ -53,11 +56,14 @@ def materialize_provider_admission_current_control_state(
         if (study_id := _non_empty_text(study.get("study_id"))) is not None
     }
     candidates = [
-        _candidate_with_identity(
-            _candidate_with_progress_currentness_identity(
-                candidate,
-                scanned_studies_by_id=scanned_studies_by_id,
-            )
+        _candidate_with_opl_outbox_record(
+            _candidate_with_identity(
+                _candidate_with_progress_currentness_identity(
+                    candidate,
+                    scanned_studies_by_id=scanned_studies_by_id,
+                )
+            ),
+            source="dhd.provider_admission_current_control",
         )
         for candidate in candidates
     ]

@@ -132,6 +132,140 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
     assert action["stage_packet_refs"] == [str(dispatch_path)]
 
 
+def test_same_tick_materialized_report_candidate_carries_opl_outbox_record(
+    tmp_path: Path,
+) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    action_fingerprint = "publication-blockers::0915410f804b3697"
+    dispatch_path = (
+        profile.studies_root
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+
+    result = report_module.materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        report={
+            "managed_study_opl_provider_admission_candidates": [],
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "quest_id": study_id,
+                        "current_work_unit": {
+                            "surface_kind": "current_work_unit",
+                            "status": "executable_owner_action",
+                            "owner": "write",
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "action_fingerprint": action_fingerprint,
+                            "currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-event-current",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
+                },
+            },
+            "developer_supervisor_same_tick": {
+                "stop_reason": "provider_handoff_written_admission_pending",
+                "materialize": {
+                    "generated_at": "2026-06-16T02:58:00+00:00",
+                    "default_executor_dispatches": [
+                        {
+                            "dispatch_status": "ready",
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "action_fingerprint": action_fingerprint,
+                            "dispatch_path": str(dispatch_path),
+                            "stage_packet_ref": str(dispatch_path),
+                            "stage_packet_refs": [str(dispatch_path)],
+                            "dispatch_authority": "consumer_default_executor_dispatch",
+                            "next_executable_owner": "write",
+                            "required_output_surface": (
+                                "artifacts/controller/repair_execution_evidence/latest.json"
+                            ),
+                        }
+                    ],
+                },
+            },
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "running_provider_attempt": False,
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "executable_owner_action",
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": action_fingerprint,
+                        "action_fingerprint": action_fingerprint,
+                    },
+                    "paper_recovery_state": {
+                        "surface_kind": "paper_recovery_state",
+                        "phase": "admission_pending",
+                        "current_authority": {
+                            "owner": "write",
+                            "obligation": {
+                                "study_id": study_id,
+                                "quest_id": study_id,
+                                "owner": "write",
+                                "action_type": "run_quality_repair_batch",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                        "next_safe_action": {
+                            "kind": "admit_provider_attempt",
+                            "owner": "write",
+                            "provider_admission_allowed": True,
+                        },
+                    },
+                }
+            ],
+        },
+        apply=False,
+        generated_at="2026-06-16T02:58:00+00:00",
+    )
+
+    assert result is not None
+    candidate = result["provider_admission_candidates"][0]
+    outbox_record = candidate["current_control_command_outbox_record"]
+    assert outbox_record["surface_kind"] == "opl_generic_current_control_command_outbox_record"
+    assert outbox_record["runtime_owner"] == "one-person-lab"
+    assert outbox_record["runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert outbox_record["transition_kind"] == "StartProviderAttempt"
+    assert outbox_record["aggregate_identity"]["study_id"] == study_id
+    assert outbox_record["aggregate_identity"]["work_unit_id"] == work_unit_id
+    assert outbox_record["idempotency_key"]
+    assert outbox_record["source_generation"]
+    assert outbox_record["expected_version"]
+    assert outbox_record["postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
+    action = result["action_queue"][0]
+    assert action["paper_progress_policy_result"]["authority_role"] == (
+        "paper_domain_policy_adapter_only"
+    )
+    assert action["current_control_command_outbox_record"] == outbox_record
+    assert action["handoff_packet"]["current_control_command_outbox_record"] == outbox_record
+
+
 def test_same_tick_materialized_dispatch_without_stage_packet_fails_closed(
     tmp_path: Path,
 ) -> None:
