@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers import control_identity
+from med_autoscience.controllers import paper_progress_policy_adapter
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
     provider_admission_authority_boundary,
     provider_admission_candidate_with_authority_boundaries,
@@ -464,11 +465,71 @@ def provider_admission_candidate_from_execution(
     }
     return candidate_with_authority_boundaries(
         _candidate_with_stage_run_admission_identity(
-            candidate,
+            _candidate_with_paper_progress_policy_result(candidate, execution=execution),
             execution=execution,
             allow_dispatch_ref_stage_packet_authority=True,
         )
     )
+
+
+def _candidate_with_paper_progress_policy_result(
+    candidate: Mapping[str, Any],
+    *,
+    execution: Mapping[str, Any],
+) -> dict[str, Any]:
+    existing_policy = _mapping(execution.get("paper_progress_policy_result")) or _mapping(
+        candidate.get("paper_progress_policy_result")
+    )
+    policy_result = existing_policy or paper_progress_policy_adapter.build_policy_result(
+        _paper_progress_policy_payload(candidate, execution=execution),
+        source="dhd.provider_admission_candidate",
+    )
+    if not policy_result:
+        return dict(candidate)
+    return {
+        **dict(candidate),
+        "paper_progress_policy_result": dict(policy_result),
+        "current_control_command": _mapping(policy_result.get("opl_domain_progress_command")),
+    }
+
+
+def _paper_progress_policy_payload(
+    candidate: Mapping[str, Any],
+    *,
+    execution: Mapping[str, Any],
+) -> dict[str, Any]:
+    currentness_basis = _mapping(candidate.get("currentness_basis"))
+    current_action = {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": _non_empty_text(candidate.get("source")) or _non_empty_text(execution.get("source")),
+        "next_owner": _non_empty_text(candidate.get("next_executable_owner"))
+        or _non_empty_text(execution.get("next_executable_owner")),
+        "owner": _non_empty_text(candidate.get("next_executable_owner"))
+        or _non_empty_text(execution.get("next_executable_owner")),
+        "action_type": _non_empty_text(candidate.get("action_type")),
+        "work_unit_id": _non_empty_text(candidate.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(candidate.get("work_unit_fingerprint")),
+        "action_fingerprint": _non_empty_text(candidate.get("action_fingerprint"))
+        or _non_empty_text(candidate.get("work_unit_fingerprint")),
+        "currentness_basis": dict(currentness_basis) if currentness_basis else None,
+    }
+    current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "status": "executable_owner_action",
+        "owner": current_action["next_owner"],
+        "action_type": current_action["action_type"],
+        "work_unit_id": current_action["work_unit_id"],
+        "work_unit_fingerprint": current_action["work_unit_fingerprint"],
+        "action_fingerprint": current_action["action_fingerprint"],
+        "currentness_basis": dict(currentness_basis) if currentness_basis else None,
+    }
+    return {
+        "study_id": _non_empty_text(candidate.get("study_id")),
+        "quest_id": _non_empty_text(candidate.get("quest_id")),
+        "current_work_unit": current_work_unit,
+        "current_executable_owner_action": current_action,
+    }
 
 
 def candidate_with_authority_boundaries(candidate: Mapping[str, Any]) -> dict[str, Any]:

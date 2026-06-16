@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers import control_identity
+from med_autoscience.controllers import paper_progress_policy_adapter
 from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
     current_ai_reviewer_gate_replay_fingerprint,
     current_ai_reviewer_gate_replay_source_eval_id,
@@ -138,6 +139,10 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         )
     if action_fingerprint is None:
         return None
+    paper_policy_result = paper_progress_policy_adapter.build_policy_result(
+        {**dict(study), "current_executable_owner_action": current},
+        source="dhd.provider_admission_candidate",
+    )
     source_refs = {
         key: value
         for key, value in {
@@ -170,6 +175,8 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "provider_attempt_or_lease_required": True,
         "provider_completion_is_domain_completion": False,
         "source_surface": _study_current_action_source_surface(current),
+        "paper_progress_policy_result": paper_policy_result,
+        "current_control_command": paper_policy_result.get("opl_domain_progress_command"),
         "owner_route": {
             "next_owner": executable_owner,
             "allowed_actions": [action_type],

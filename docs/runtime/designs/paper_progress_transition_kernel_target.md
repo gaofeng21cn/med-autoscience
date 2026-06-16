@@ -6,6 +6,14 @@ State: `active_target_design`
 Machine boundary: 本文是人读目标设计和落地路线。机器真相继续归 `contracts/`、源码、CLI/MCP/API payload、OPL current-control / StageRun ledger、MAS runtime/controller durable surfaces、owner receipt、typed blocker、human gate、route-back evidence、fresh `study_progress` / DHD readback 和真实 workspace artifact。
 Date: `2026-06-16`
 
+## 2026-06-16 落地状态
+
+当前已完成 first slice 的方向纠偏：OPL `one-person-lab@8a834bb7` 已落地 `DomainProgressTransitionRuntime` 最小切片，覆盖 command normalization、transition event、transactional outbox item、projection metadata、StageRun identity、idempotency、`NonAdvancingApply` 和 replay/readback 测试。该能力落在 OPL 既有 Runway / Pack / Stagecraft / Console / Vault 分工内，没有新增第 11 品牌模块，也没有保留旧 `paper_autonomy_supervisor_apply` 兼容字段。
+
+MAS 侧已删除私有 `paper_progress_transition_kernel` 方向，保留 `PaperProgressPolicyAdapter`。DHD provider-admission 候选现在只携带 `paper_progress_policy_result` 和 `current_control_command`，其中 MAS 明确 `mas_can_authorize_provider_admission=false`、`mas_can_run_fixed_point_reconciler=false`、`mas_can_own_event_log_or_outbox=false`，并把 transition runtime owner 指向 OPL。root `action_queue`、study `current_executable_owner_action` 和 `current_work_unit` 三类候选入口都必须走同一 adapter / command shape。
+
+这仍不是 live paper progress claim。完成门继续要求 replay fixture、exactly-one transition、`NonAdvancingApply` typed blocker、OPL outbox / StageRun identity readback，以及 DM002 / DM003 fresh live outcome。docs、contract、focused tests、projection clean、queue empty 或 DHD dry-run 仍不能替代 running proof、owner receipt、stable typed blocker、human gate、route-back evidence 或 paper-gate-artifact semantic delta。
+
 ## 目标判断
 
 DM002 / DM003 最近一个月反复暴露的 currentness、owner-route、owner receipt、provider admission 和 supervision 修复，不是因为 MAS 缺少又一个私有控制模块，而是因为 OPL 尚未把“domain agent 的 current owner delta 如何事务化前进”做成一等通用基座。论文推进状态机因此被拆散在多个 projection / selector / arbiter / actuator 中：`current_work_unit`、`paper_recovery_state`、`current_executable_owner_action`、DHD provider admission、OPL current-control、Paper Autonomy Supervisor 和 read-model projection 都可能重新解释同一个 owner receipt、typed blocker、closeout 或 queue residue。
