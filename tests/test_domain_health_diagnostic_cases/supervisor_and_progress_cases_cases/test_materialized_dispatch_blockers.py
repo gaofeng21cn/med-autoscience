@@ -573,7 +573,7 @@ def test_domain_health_diagnostic_same_tick_treats_opl_authorization_blocker_as_
         "stable_typed_blocker_observed": False,
         "provider_handoff_written": True,
     }
-    assert diagnostic["next_forced_delta"]["required_delta_kind"] == "opl_provider_attempt_admission"
+    assert diagnostic["next_forced_delta"]["required_delta_kind"] == "opl_domain_progress_transition_readback"
 
 
 def test_domain_health_diagnostic_same_tick_rejects_authorization_blocker_without_current_identity(

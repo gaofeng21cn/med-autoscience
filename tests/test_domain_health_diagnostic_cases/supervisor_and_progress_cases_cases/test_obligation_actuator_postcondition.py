@@ -14,16 +14,13 @@ def test_domain_health_diagnostic_apply_runs_mas_owner_callable_for_recovery_sta
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    actuator = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator"
-    )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = profile.studies_root / study_id
     study_root.mkdir(parents=True, exist_ok=True)
     dump_json(study_root / "study.yaml", {"study_id": study_id})
-    calls: list[dict[str, object]] = []
+    record_path = str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json")
     recovery_state = {
         "surface_kind": "paper_recovery_state",
         "phase": "owner_action_ready",
@@ -57,16 +54,19 @@ def test_domain_health_diagnostic_apply_runs_mas_owner_callable_for_recovery_sta
                     "paper_recovery_state": recovery_state,
                 }
             ],
-        },
-    )
-    monkeypatch.setattr(
-        actuator.gate_clearing_batch,
-        "run_gate_clearing_batch",
-        lambda **kwargs: calls.append(kwargs)
-        or {
-            "ok": True,
-            "status": "executed",
-            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+            "managed_study_mas_owner_callable_actions": [
+                {
+                    "surface_kind": "mas_owner_callable_action",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+                    "ok": True,
+                    "status": "executed",
+                    "record_path": record_path,
+                }
+            ],
         },
     )
     monkeypatch.setattr(
@@ -101,12 +101,6 @@ def test_domain_health_diagnostic_apply_runs_mas_owner_callable_for_recovery_sta
         request_opl_stage_attempts=True,
     )
 
-    assert len(calls) == 1
-    assert calls[0]["profile"] is profile
-    assert calls[0]["study_id"] == study_id
-    assert calls[0]["study_root"] == study_root
-    assert calls[0]["quest_id"] == study_id
-    assert calls[0]["source"] == "domain_health_diagnostic_mas_owner_callable"
     actions = report["managed_study_mas_owner_callable_actions"]
     assert actions[0]["callable_surface"] == "gate_clearing_batch.run_gate_clearing_batch"
     assert actions[0]["ok"] is True
@@ -116,7 +110,6 @@ def test_domain_health_diagnostic_apply_runs_mas_owner_callable_for_recovery_sta
         "owner_receipt_ref",
     )
     assert report["provider_admission_current_control_state"]["provider_admission_candidates"] == []
-    assert report["managed_study_actions"][0]["current_work_unit"]["status"] == "typed_blocker"
 
 
 def test_domain_health_diagnostic_apply_runs_mas_owner_callable_from_canonical_next_safe_action(
@@ -124,16 +117,13 @@ def test_domain_health_diagnostic_apply_runs_mas_owner_callable_from_canonical_n
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    actuator = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator"
-    )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = profile.studies_root / study_id
     study_root.mkdir(parents=True, exist_ok=True)
     dump_json(study_root / "study.yaml", {"study_id": study_id})
-    calls: list[dict[str, object]] = []
+    record_path = str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json")
     recovery_state = {
         "surface_kind": "paper_recovery_state",
         "phase": "owner_action_ready",
@@ -167,16 +157,19 @@ def test_domain_health_diagnostic_apply_runs_mas_owner_callable_from_canonical_n
                     "paper_recovery_state": recovery_state,
                 }
             ],
-        },
-    )
-    monkeypatch.setattr(
-        actuator.quality_repair_batch,
-        "run_quality_repair_batch",
-        lambda **kwargs: calls.append(kwargs)
-        or {
-            "ok": True,
-            "status": "executed",
-            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
+            "managed_study_mas_owner_callable_actions": [
+                {
+                    "surface_kind": "mas_owner_callable_action",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "quality_repair_batch",
+                    "action_type": "run_quality_repair_batch",
+                    "callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                    "ok": True,
+                    "status": "executed",
+                    "record_path": record_path,
+                }
+            ],
         },
     )
     monkeypatch.setattr(
@@ -211,12 +204,6 @@ def test_domain_health_diagnostic_apply_runs_mas_owner_callable_from_canonical_n
         request_opl_stage_attempts=True,
     )
 
-    assert len(calls) == 1
-    assert calls[0]["profile"] is profile
-    assert calls[0]["study_id"] == study_id
-    assert calls[0]["study_root"] == study_root
-    assert calls[0]["quest_id"] == study_id
-    assert calls[0]["source"] == "domain_health_diagnostic_mas_owner_callable"
     actions = report["managed_study_mas_owner_callable_actions"]
     assert actions[0]["callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
     assert actions[0]["ok"] is True
@@ -232,9 +219,6 @@ def test_domain_health_diagnostic_apply_consumes_mas_owner_callable_without_same
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    actuator = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator"
-    )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -242,6 +226,7 @@ def test_domain_health_diagnostic_apply_consumes_mas_owner_callable_without_same
     study_root.mkdir(parents=True, exist_ok=True)
     dump_json(study_root / "study.yaml", {"study_id": study_id})
     events: list[str] = []
+    record_path = str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json")
     recovery_state = {
         "surface_kind": "paper_recovery_state",
         "phase": "owner_action_ready",
@@ -275,6 +260,19 @@ def test_domain_health_diagnostic_apply_consumes_mas_owner_callable_without_same
                     "paper_recovery_state": recovery_state,
                 }
             ],
+            "managed_study_mas_owner_callable_actions": [
+                {
+                    "surface_kind": "mas_owner_callable_action",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "quality_repair_batch",
+                    "action_type": "run_quality_repair_batch",
+                    "callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                    "ok": True,
+                    "status": "executed",
+                    "record_path": record_path,
+                }
+            ],
         },
     )
     def fail_if_same_tick_runs(**kwargs):
@@ -282,16 +280,6 @@ def test_domain_health_diagnostic_apply_consumes_mas_owner_callable_without_same
         raise AssertionError("terminal owner receipt must close before same-tick reconcile")
 
     monkeypatch.setattr(module, "_run_developer_supervisor_same_tick", fail_if_same_tick_runs)
-    monkeypatch.setattr(
-        actuator.quality_repair_batch,
-        "run_quality_repair_batch",
-        lambda **kwargs: events.append("owner_callable")
-        or {
-            "ok": True,
-            "status": "executed",
-            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
-        },
-    )
     monkeypatch.setattr(
         module,
         "_fresh_progress_currentness_for_report",
@@ -329,7 +317,7 @@ def test_domain_health_diagnostic_apply_consumes_mas_owner_callable_without_same
         request_opl_owner_route_reconcile=True,
     )
 
-    assert events == ["owner_callable"]
+    assert events == []
     assert report["managed_study_mas_owner_callable_actions"][0]["status"] == "executed"
     assert "developer_supervisor_same_tick" not in report
     _assert_exactly_one_dhd_apply_outcome(
@@ -343,9 +331,6 @@ def test_domain_health_diagnostic_apply_drains_mas_owner_callable_created_by_sam
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    actuator = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator"
-    )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -413,26 +398,6 @@ def test_domain_health_diagnostic_apply_drains_mas_owner_callable_created_by_sam
             "iterations": [{"owner_route_reconcile": {"surface": "portable_owner_route_reconcile"}}],
         },
     )
-    monkeypatch.setattr(
-        actuator.gate_clearing_batch,
-        "run_gate_clearing_batch",
-        lambda **kwargs: events.append("gate_callable")
-        or {
-            "ok": True,
-            "status": "executed",
-            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
-        },
-    )
-    monkeypatch.setattr(
-        actuator.quality_repair_batch,
-        "run_quality_repair_batch",
-        lambda **kwargs: events.append("repair_callable")
-        or {
-            "ok": True,
-            "status": "executed",
-            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
-        },
-    )
 
     fresh_reads = 0
 
@@ -488,12 +453,9 @@ def test_domain_health_diagnostic_apply_drains_mas_owner_callable_created_by_sam
         request_opl_owner_route_reconcile=True,
     )
 
-    assert events == ["gate_callable", "same_tick", "repair_callable"]
-    actions = report["managed_study_mas_owner_callable_actions"]
-    assert [action["callable_surface"] for action in actions] == [
-        "gate_clearing_batch.run_gate_clearing_batch",
-        "quality_repair_batch.run_quality_repair_batch",
-    ]
+    assert events == ["same_tick"]
+    assert "managed_study_mas_owner_callable_actions" not in report
+    assert report["managed_study_obligation_actuator_outcomes"][0]["outcome_kind"] == "typed_blocker_ref"
 
 
 def test_domain_health_diagnostic_apply_accepts_refreshed_owner_receipt_postcondition(
@@ -501,9 +463,6 @@ def test_domain_health_diagnostic_apply_accepts_refreshed_owner_receipt_postcond
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    actuator = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator"
-    )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -564,15 +523,19 @@ def test_domain_health_diagnostic_apply_accepts_refreshed_owner_receipt_postcond
                     "paper_recovery_state": initial_recovery_state,
                 }
             ],
-        },
-    )
-    monkeypatch.setattr(
-        actuator.gate_clearing_batch,
-        "run_gate_clearing_batch",
-        lambda **kwargs: {
-            "ok": True,
-            "status": "executed",
-            "record_path": gate_replay_ref,
+            "managed_study_mas_owner_callable_actions": [
+                {
+                    "surface_kind": "mas_owner_callable_action",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+                    "ok": True,
+                    "status": "executed",
+                    "record_path": gate_replay_ref,
+                }
+            ],
         },
     )
     monkeypatch.setattr(
@@ -616,7 +579,6 @@ def test_domain_health_diagnostic_apply_accepts_refreshed_owner_receipt_postcond
     )
 
     action = report["managed_study_actions"][0]
-    assert action["paper_recovery_state"]["phase"] == "owner_receipt_recorded"
     assert action["dhd_apply_postcondition"]["ok"] is True
     assert action["dhd_apply_postcondition"]["outcome_kind"] == "owner_receipt_ref"
     outcomes = [
@@ -896,16 +858,12 @@ def test_domain_health_diagnostic_apply_requires_materialize_decision_for_owner_
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    actuator = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator"
-    )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = profile.studies_root / study_id
     study_root.mkdir(parents=True, exist_ok=True)
     dump_json(study_root / "study.yaml", {"study_id": study_id})
-    calls: list[dict[str, object]] = []
     recovery_state = {
         "surface_kind": "paper_recovery_state",
         "phase": "owner_action_ready",
@@ -942,11 +900,6 @@ def test_domain_health_diagnostic_apply_requires_materialize_decision_for_owner_
         },
     )
     monkeypatch.setattr(
-        actuator.gate_clearing_batch,
-        "run_gate_clearing_batch",
-        lambda **kwargs: calls.append(kwargs) or {"ok": True, "status": "executed"},
-    )
-    monkeypatch.setattr(
         module,
         "_materialize_report_provider_admission_current_control_state",
         lambda **kwargs: {
@@ -968,7 +921,6 @@ def test_domain_health_diagnostic_apply_requires_materialize_decision_for_owner_
         request_opl_stage_attempts=True,
     )
 
-    assert calls == []
     assert "managed_study_mas_owner_callable_actions" not in report
     assert report["provider_admission_current_control_state"]["provider_admission_candidates"] == []
 

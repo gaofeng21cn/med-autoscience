@@ -11,6 +11,9 @@ globals().update({
 
 def _assert_identity_extends_handoff(candidate: dict, handoff_identity: dict) -> None:
     for key, value in handoff_identity.items():
+        if isinstance(value, dict) and isinstance(candidate.get(key), dict):
+            assert candidate[key] | value == candidate[key]
+            continue
         assert candidate.get(key) == value
     route_identity_key = (
         f"provider-admission::{handoff_identity['study_id']}::"
@@ -174,7 +177,10 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
         "status": "ready",
         "source": "stage_kernel_projection.current_owner_delta",
         "next_owner": "MedAutoScience",
+        "action_type": "complete_medical_paper_readiness_surface",
         "work_unit_id": "complete_medical_paper_readiness_surface",
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
         "allowed_actions": ["complete_medical_paper_readiness_surface"],
         "surface_key": "authoring_runtime_authorization",
         "source_ref": str(typed_blocker_ref),
@@ -197,6 +203,28 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
             "study_id": study_id,
             "generated_at": "2026-06-07T19:56:40+00:00",
             "current_executable_owner_action": current_action,
+            "transition_request_candidates": [
+                {
+                    "surface": "opl_provider_admission_candidate",
+                    "schema_version": 1,
+                    "status": "transition_request_pending",
+                    "source": "default_executor_execution",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "action_fingerprint": work_unit_fingerprint,
+                    "dispatch_path": str(dispatch_path),
+                    "owner_callable_surface": "opl_default_executor.stage_attempt",
+                    "next_executable_owner": "MedAutoScience",
+                    "provider_attempt_or_lease_required": False,
+                    "provider_admission_requires_opl_runtime_result": True,
+                    "opl_transition_runtime_required": True,
+                    "provider_completion_is_domain_completion": False,
+                    "owner_route_current": True,
+                }
+            ],
         },
     )
 
@@ -209,9 +237,11 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
         request_opl_stage_attempts=True,
     )
 
-    assert result["provider_admission_pending_count"] == 1
-    candidate = result["managed_study_opl_provider_admission_candidates"][0]
-    assert candidate["status"] == "provider_admission_pending"
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    candidate = result["managed_study_opl_transition_request_candidates"][0]
+    assert candidate["status"] == "transition_request_pending"
     assert candidate["source"] == "default_executor_execution"
     assert candidate["study_id"] == study_id
     assert candidate["action_type"] == "complete_medical_paper_readiness_surface"
@@ -220,15 +250,18 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
     assert candidate["action_fingerprint"] == work_unit_fingerprint
     assert candidate["dispatch_path"] == str(dispatch_path)
     assert candidate["owner_callable_surface"] == "opl_default_executor.stage_attempt"
-    assert candidate["provider_attempt_or_lease_required"] is True
+    assert candidate["provider_attempt_or_lease_required"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
     envelope = result["current_execution_envelopes"][study_id]
     assert envelope["state_kind"] == "executable_owner_action"
     assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
-    assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 1
+    assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 0
+    assert result["provider_admission_current_control_state"]["transition_request_pending_count"] == 1
     current_control_study = result["provider_admission_current_control_state"]["studies"][0]
     assert current_control_study["current_execution_envelope"]["state_kind"] == "executable_owner_action"
     assert current_control_study["current_execution_envelope"]["next_work_unit"] == "complete_medical_paper_readiness_surface"
     current_control_action = current_control_study["action_queue"][0]
+    assert current_control_action["status"] == "transition_request_pending"
     assert current_control_action["work_unit_fingerprint"] == work_unit_fingerprint
     assert current_control_action["handoff_packet"]["work_unit_fingerprint"] == work_unit_fingerprint
     assert result["action_fingerprints"] == [work_unit_fingerprint]
@@ -316,6 +349,8 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
             "next_owner": "ai_reviewer",
             "action_type": "return_to_ai_reviewer_workflow",
             "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_fingerprint": action_fingerprint,
+            "action_fingerprint": action_fingerprint,
             "allowed_actions": ["return_to_ai_reviewer_workflow"],
         },
     }
@@ -330,6 +365,29 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
             "generated_at": "2026-06-08T05:50:00+00:00",
             "current_execution_envelope": status_payload["current_execution_envelope"],
             "current_executable_owner_action": status_payload["current_executable_owner_action"],
+            "transition_request_candidates": [
+                {
+                    "surface": "opl_provider_admission_candidate",
+                    "schema_version": 1,
+                    "status": "transition_request_pending",
+                    "source": "default_executor_execution",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "work_unit_fingerprint": action_fingerprint,
+                    "action_fingerprint": action_fingerprint,
+                    "dispatch_path": str(dispatch_path),
+                    "blocked_reason": "opl_execution_authorization_required",
+                    "next_executable_owner": "ai_reviewer",
+                    "required_output_surface": "artifacts/publication_eval/latest.json",
+                    "provider_attempt_or_lease_required": False,
+                    "provider_admission_requires_opl_runtime_result": True,
+                    "opl_transition_runtime_required": True,
+                    "provider_completion_is_domain_completion": False,
+                    "owner_route_current": True,
+                }
+            ],
         },
     )
     current_control_path = (
@@ -389,20 +447,26 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
         )
     )
 
-    assert result["provider_admission_pending_count"] == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
     identity = handoff["provider_admission_identity"]
     assert identity["study_id"] == study_id
     assert identity["action_type"] == "return_to_ai_reviewer_workflow"
     assert identity["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     assert identity["action_fingerprint"] == action_fingerprint
     assert identity["blocked_reason"] == "opl_execution_authorization_required"
+    assert identity["status"] == "transition_request_pending"
+    assert identity["provider_attempt_or_lease_required"] is False
+    assert identity["provider_admission_requires_opl_runtime_result"] is True
     assert handoff["provider_admission_candidates"] == [identity]
     assert latest_handoff["provider_admission_identity"] == identity
     assert latest_handoff["provider_admission_candidates"] == [identity]
     current_control = json.loads(current_control_path.read_text(encoding="utf-8"))
-    assert current_control["provider_admission_pending_count"] == 1
-    assert len(current_control["provider_admission_candidates"]) == 1
-    _assert_identity_extends_handoff(current_control["provider_admission_candidates"][0], identity)
+    assert current_control["provider_admission_pending_count"] == 0
+    assert current_control["provider_admission_candidates"] == []
+    assert current_control["transition_request_pending_count"] == 1
+    assert len(current_control["transition_request_candidates"]) == 1
+    _assert_identity_extends_handoff(current_control["transition_request_candidates"][0], identity)
     assert current_control["current_control_refresh_source"] == (
         "domain_health_diagnostic.provider_admission_candidates"
     )

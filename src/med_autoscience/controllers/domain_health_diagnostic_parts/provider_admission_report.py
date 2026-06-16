@@ -35,6 +35,9 @@ from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUT
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_request import (
     candidate_with_opl_transition_request as _candidate_with_opl_transition_request,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback,
+)
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.controllers.owner_route_handoff_parts.accepted_owner_gate_route_back import (
     accepted_owner_gate_route_back_action as _accepted_owner_gate_route_back_action,
@@ -49,11 +52,7 @@ def materialize_report_provider_admission_current_control_state(
     apply: bool,
     generated_at: str,
 ) -> dict[str, Any] | None:
-    candidates = [
-        dict(item)
-        for item in report.get("managed_study_opl_provider_admission_candidates") or []
-        if isinstance(item, Mapping)
-    ]
+    candidates = _report_provider_admission_candidates(report)
     progress_currentness = _mapping(
         _mapping(report.get("current_execution_evidence")).get("progress_currentness")
     )
@@ -98,6 +97,7 @@ def materialize_report_provider_admission_current_control_state(
         candidates,
         actions=report.get("managed_study_actions"),
         paper_recovery_states=report.get("paper_recovery_states"),
+        allow_transition_requests=True,
     )
     scanned_studies = _with_candidate_root_closeout_scans(
         profile=profile,
@@ -111,6 +111,20 @@ def materialize_report_provider_admission_current_control_state(
         apply=apply,
         scanned_studies=scanned_studies,
     )
+
+
+def _report_provider_admission_candidates(report: Mapping[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    for key in (
+        "managed_study_opl_transition_request_candidates",
+        "managed_study_opl_provider_admission_candidates",
+    ):
+        candidates.extend(
+            dict(item)
+            for item in report.get(key) or []
+            if isinstance(item, Mapping)
+        )
+    return _merge_provider_admission_candidates(candidates)
 
 
 def sync_report_provider_admission_current_control_state(
@@ -138,7 +152,7 @@ def sync_report_provider_admission_current_control_state(
     report["transition_request_pending_count"] = len(transition_request_candidates)
     current_execution_evidence["provider_admission_candidates"] = candidates
     current_execution_evidence["transition_request_candidates"] = transition_request_candidates
-    if candidates:
+    if candidates or transition_request_candidates:
         _sync_current_control_runtime_surfaces(report, current_control_state=current_control_state)
     synced_actions = _sync_managed_action_provider_admission_candidates(
         report.get("managed_study_actions"),
@@ -166,6 +180,7 @@ def _filter_candidates_blocked_by_paper_recovery_state(
     *,
     actions: Any,
     paper_recovery_states: Any = None,
+    allow_transition_requests: bool = False,
 ) -> list[dict[str, Any]]:
     blocked_studies = _paper_recovery_provider_admission_blocked_studies(actions)
     blocked_studies.update(
@@ -178,6 +193,7 @@ def _filter_candidates_blocked_by_paper_recovery_state(
         dict(item)
         for item in candidates
         if _non_empty_text(item.get("study_id")) not in blocked_studies
+        or (allow_transition_requests and not candidate_opl_transition_readback(item))
     ]
 
 
@@ -636,6 +652,12 @@ def _provider_admission_candidates_from_progress_currentness(
             if envelope:
                 status_payload["current_execution_envelope"] = envelope
         candidates.extend(
+            _explicit_provider_admission_candidates_from_progress_currentness(
+                status_payload,
+                source="dhd.provider_admission_progress_currentness",
+            )
+        )
+        candidates.extend(
             current_control_provider_admission_candidates(
                 {
                     "surface": "opl_current_control_state_handoff",
@@ -648,6 +670,37 @@ def _provider_admission_candidates_from_progress_currentness(
                 current_control_ref=current_control_ref,
             )
         )
+    return candidates
+
+
+def _explicit_provider_admission_candidates_from_progress_currentness(
+    progress_payload: Mapping[str, Any],
+    *,
+    source: str,
+) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    for key in ("transition_request_candidates", "provider_admission_candidates"):
+        for item in progress_payload.get(key) or []:
+            if not isinstance(item, Mapping):
+                continue
+            enriched = {
+                **dict(item),
+                **(
+                    {
+                        "current_execution_envelope": dict(
+                            _mapping(progress_payload.get("current_execution_envelope"))
+                        )
+                    }
+                    if _mapping(progress_payload.get("current_execution_envelope"))
+                    else {}
+                ),
+            }
+            candidate = _candidate_with_opl_transition_request(
+                enriched,
+                source=source,
+                current_action_source=_non_empty_text(item.get("source")) or "progress_currentness",
+            )
+            candidates.append(candidate_with_authority_boundaries(candidate))
     return candidates
 
 
@@ -725,10 +778,44 @@ def _merge_provider_admission_candidates(
                 existing_index = index_by_key[key]
                 existing = merged[existing_index]
                 if _provider_admission_identity_rank(candidate) > _provider_admission_identity_rank(existing):
-                    merged[existing_index] = dict(candidate)
+                    merged[existing_index] = _merge_provider_admission_candidate_payloads(
+                        existing,
+                        candidate,
+                    )
+                else:
+                    merged[existing_index] = _merge_provider_admission_candidate_payloads(
+                        candidate,
+                        existing,
+                    )
                 continue
             index_by_key[key] = len(merged)
             merged.append(dict(candidate))
+    return merged
+
+
+def _merge_provider_admission_candidate_payloads(
+    weaker: Mapping[str, Any],
+    stronger: Mapping[str, Any],
+) -> dict[str, Any]:
+    merged = {
+        **dict(weaker),
+        **dict(stronger),
+        **{
+            key: dict(value)
+            for key in (
+                "current_execution_envelope",
+                "paper_progress_policy_result",
+                "opl_domain_progress_transition_request",
+                "projection_metadata",
+                "authority_boundary",
+                "stage_transition_authority_boundary",
+            )
+            if isinstance((value := stronger.get(key)), Mapping)
+        },
+    }
+    for key, value in weaker.items():
+        if merged.get(key) in (None, "", [], {}):
+            merged[key] = value
     return merged
 
 

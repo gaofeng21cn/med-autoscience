@@ -329,7 +329,13 @@ def test_domain_blocked_recovery_state_suppresses_progress_currentness_provider_
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
     assert result["action_queue"] == []
-    assert result["stage_route_arbiter"]["candidate_count"] == 0
+    assert result["stage_route_arbiter"]["candidate_count"] == 1
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "weak_provider_admission_identity": 1,
+    }
+    assert result["stage_route_arbiter_decisions"][0]["effect"] == (
+        "suppress_provider_admission_pending"
+    )
     study = result["studies"][0]
     assert study["study_id"] == study_id
     assert study["current_work_unit"]["status"] == "typed_blocker"

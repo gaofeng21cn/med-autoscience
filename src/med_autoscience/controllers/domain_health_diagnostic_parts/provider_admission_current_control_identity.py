@@ -32,6 +32,16 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
         if provider_admission_pending
         else "opl_transition_readback_required"
     )
+    current_execution_envelope = _mapping(provider_identity.get("current_execution_envelope")) or {
+        "state_kind": "executable_owner_action",
+        "owner": _non_empty_text(provider_identity.get("next_executable_owner")) or "one-person-lab",
+        "next_work_unit": _non_empty_text(provider_identity.get("work_unit_id")),
+        "typed_blocker": None,
+        "parked_state": None,
+        "source": "mas_provider_admission_identity",
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": attempt_key,
+    }
     return {
         "study_id": study_id,
         "quest_id": _non_empty_text(provider_identity.get("quest_id")),
@@ -67,16 +77,7 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
         "next_owner": "one-person-lab",
         "external_supervisor_required": True,
         "owner_route": owner_route,
-        "current_execution_envelope": {
-            "state_kind": "executable_owner_action",
-            "owner": _non_empty_text(provider_identity.get("next_executable_owner")) or "one-person-lab",
-            "next_work_unit": _non_empty_text(provider_identity.get("work_unit_id")),
-            "typed_blocker": None,
-            "parked_state": None,
-            "source": "mas_provider_admission_identity",
-            "route_identity_key": route_key,
-            "attempt_idempotency_key": attempt_key,
-        },
+        "current_execution_envelope": current_execution_envelope,
     }
 
 

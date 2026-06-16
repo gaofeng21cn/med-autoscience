@@ -388,7 +388,9 @@ def test_provider_admission_candidate_accepts_gate_replay_authorization_after_cu
 
     assert len(result) == 1
     candidate = result[0]
-    assert candidate["status"] == "provider_admission_pending"
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["provider_attempt_or_lease_required"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
     assert candidate["study_id"] == study_id
     assert candidate["action_type"] == "run_gate_clearing_batch"
     assert candidate["work_unit_id"] == gate_work_unit_id
@@ -609,8 +611,31 @@ def test_domain_health_diagnostic_dry_run_aggregates_gate_admission_candidates_f
                     "action_type": "run_gate_clearing_batch",
                     "work_unit_id": "publication_gate_replay",
                     "work_unit_fingerprint": dm002_fingerprint,
+                    "action_fingerprint": dm002_fingerprint,
                     "allowed_actions": ["run_gate_clearing_batch"],
                 },
+                "transition_request_candidates": [
+                    {
+                        "surface": "opl_provider_admission_candidate",
+                        "schema_version": 1,
+                        "status": "transition_request_pending",
+                        "source": "default_executor_execution",
+                        "study_id": dm002,
+                        "quest_id": dm002,
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": dm002_fingerprint,
+                        "action_fingerprint": dm002_fingerprint,
+                        "dispatch_path": dm002_dispatch_ref,
+                        "next_executable_owner": "gate_clearing_batch",
+                        "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+                        "provider_attempt_or_lease_required": False,
+                        "provider_admission_requires_opl_runtime_result": True,
+                        "opl_transition_runtime_required": True,
+                        "provider_completion_is_domain_completion": False,
+                        "owner_route_current": True,
+                    }
+                ],
             }
         return {
             "study_id": study_id,
@@ -645,11 +670,15 @@ def test_domain_health_diagnostic_dry_run_aggregates_gate_admission_candidates_f
         request_opl_stage_attempts=True,
     )
 
-    assert result["provider_admission_pending_count"] == 1
-    candidates = result["managed_study_opl_provider_admission_candidates"]
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    candidates = result["managed_study_opl_transition_request_candidates"]
     assert [candidate["study_id"] for candidate in candidates] == [dm002]
     assert [candidate["action_type"] for candidate in candidates] == ["run_gate_clearing_batch"]
     assert [candidate["work_unit_fingerprint"] for candidate in candidates] == [dm002_fingerprint]
+    assert candidates[0]["status"] == "transition_request_pending"
+    assert candidates[0]["provider_admission_requires_opl_runtime_result"] is True
     assert result["action_fingerprints"] == [dm002_fingerprint]
     assert dm003_fingerprint not in result["action_fingerprints"]
     assert result["provider_admission_current_control_state"]["stage_route_arbiter"][
@@ -915,7 +944,9 @@ def test_provider_admission_candidate_survives_readiness_typed_blocker_for_stage
     assert candidate["action_type"] == "run_quality_repair_batch"
     assert candidate["work_unit_id"] == "run_quality_repair_batch"
     assert candidate["work_unit_fingerprint"] == fingerprint
-    assert candidate["provider_attempt_or_lease_required"] is True
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["provider_attempt_or_lease_required"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
     assert candidate["owner_route_basis"] == "stage_native_workspace_next_action"
 
 

@@ -57,6 +57,8 @@ PROGRESS_CURRENTNESS_KEYS = (
     "study_intervention_events",
     "provider_admission_candidates",
     "provider_admission_pending_count",
+    "transition_request_candidates",
+    "transition_request_pending_count",
     "paper_recovery_state",
 )
 

@@ -830,31 +830,86 @@ def _provider_admission_candidates_for_status(
         )
     if _status_has_running_provider_attempt(status_payload):
         return []
-    current_progress_candidates = [
-        provider_admission.candidate_with_authority_boundaries(item)
-        for item in status_payload.get("provider_admission_candidates") or []
-        if isinstance(item, Mapping)
-    ]
-    if current_progress_candidates:
-        return current_progress_candidates
+    current_progress_candidates = _current_progress_provider_candidates(status_payload)
     candidates = provider_admission.persisted_provider_admission_candidates(
         study_root=study_root,
         status_payload=status_payload,
     )
     if candidates or profile is None:
-        return candidates
+        return _merge_current_provider_candidates(current_progress_candidates, candidates)
     current_control_path = supervision_surfaces.latest_path(profile)
     current_control_payload = supervision_surfaces.read_json_object(current_control_path)
     current_control_payload = provider_admission.current_control_payload_with_status_currentness(
         current_control_payload,
         status_payload=status_payload,
     )
-    return provider_admission.current_control_provider_admission_candidates(
+    candidates = provider_admission.current_control_provider_admission_candidates(
         current_control_payload,
         study_root=study_root,
         status_payload=status_payload,
         current_control_ref=str(current_control_path),
     )
+    return _merge_current_provider_candidates(current_progress_candidates, candidates)
+
+
+def _current_progress_provider_candidates(status_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    seen: set[tuple[str | None, str | None, str | None, str | None]] = set()
+    for key in ("transition_request_candidates", "provider_admission_candidates"):
+        for item in status_payload.get(key) or []:
+            if not isinstance(item, Mapping):
+                continue
+            candidate = provider_admission.candidate_with_authority_boundaries(item)
+            identity = (
+                _non_empty_text(candidate.get("study_id")),
+                _non_empty_text(candidate.get("action_type")),
+                _non_empty_text(candidate.get("work_unit_id")),
+                _non_empty_text(candidate.get("work_unit_fingerprint"))
+                or _non_empty_text(candidate.get("action_fingerprint")),
+            )
+            if identity in seen:
+                continue
+            seen.add(identity)
+            candidates.append(candidate)
+    return candidates
+
+
+def _merge_current_provider_candidates(
+    *candidate_groups: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    index_by_key: dict[tuple[str | None, str | None, str | None, str | None], int] = {}
+    for group in candidate_groups:
+        for candidate in group:
+            key = (
+                _non_empty_text(candidate.get("study_id")),
+                _non_empty_text(candidate.get("action_type")),
+                _non_empty_text(candidate.get("work_unit_id")),
+                _non_empty_text(candidate.get("work_unit_fingerprint"))
+                or _non_empty_text(candidate.get("action_fingerprint")),
+            )
+            if key in index_by_key:
+                existing_index = index_by_key[key]
+                existing = merged[existing_index]
+                merged[existing_index] = _merge_current_provider_candidate_payloads(
+                    existing,
+                    candidate,
+                )
+                continue
+            index_by_key[key] = len(merged)
+            merged.append(dict(candidate))
+    return merged
+
+
+def _merge_current_provider_candidate_payloads(
+    first: Mapping[str, Any],
+    second: Mapping[str, Any],
+) -> dict[str, Any]:
+    merged = {**dict(first), **dict(second)}
+    for key, value in first.items():
+        if merged.get(key) in (None, "", [], {}):
+            merged[key] = value
+    return merged
 
 
 def _status_has_running_provider_attempt(status_payload: Mapping[str, Any]) -> bool:

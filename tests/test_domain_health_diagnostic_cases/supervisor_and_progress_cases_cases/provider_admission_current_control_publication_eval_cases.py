@@ -170,10 +170,13 @@ def test_materialized_current_control_keeps_publication_eval_write_repair_after_
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
-    assert result["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert result["transition_request_candidates"][0]["work_unit_id"] == work_unit_id
+    assert result["transition_request_candidates"][0]["work_unit_fingerprint"] == fingerprint
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
+    assert result["action_queue"][0]["status"] == "transition_request_pending"
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }
@@ -321,10 +324,13 @@ def test_materialized_current_control_retains_publication_eval_write_repair_afte
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
-    assert result["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert result["transition_request_candidates"][0]["work_unit_id"] == work_unit_id
+    assert result["transition_request_candidates"][0]["work_unit_fingerprint"] == fingerprint
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
+    assert result["action_queue"][0]["status"] == "transition_request_pending"
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }
@@ -474,8 +480,10 @@ def test_materialized_current_control_retains_publication_eval_write_repair_afte
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert result["transition_request_candidates"][0]["work_unit_id"] == work_unit_id
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }

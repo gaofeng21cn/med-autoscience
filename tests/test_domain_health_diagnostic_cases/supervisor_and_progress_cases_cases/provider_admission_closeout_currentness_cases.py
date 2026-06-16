@@ -190,9 +190,12 @@ def test_materialized_current_control_retains_record_only_closeout_without_curre
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert len(result["provider_admission_candidates"]) == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert len(result["transition_request_candidates"]) == 1
     assert len(result["action_queue"]) == 1
+    assert result["action_queue"][0]["status"] == "transition_request_pending"
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }
@@ -664,9 +667,12 @@ def test_report_current_control_retains_dm002_current_pending_over_stale_anti_lo
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert len(result["provider_admission_candidates"]) == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert len(result["transition_request_candidates"]) == 1
     assert len(result["action_queue"]) == 1
+    assert result["action_queue"][0]["status"] == "transition_request_pending"
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }

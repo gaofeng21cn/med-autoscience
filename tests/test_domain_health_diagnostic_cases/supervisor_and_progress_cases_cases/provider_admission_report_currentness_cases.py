@@ -135,16 +135,21 @@ def test_materialized_currentness_current_action_becomes_provider_admission_cand
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    candidate = result["provider_admission_candidates"][0]
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    candidate = result["transition_request_candidates"][0]
     assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
+    assert candidate["status"] == "transition_request_pending"
     assert candidate["study_id"] == study_id
     assert candidate["action_type"] == "run_gate_clearing_batch"
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["action_fingerprint"] == action_fingerprint
     assert candidate["dispatch_path"] == str(dispatch_path)
     assert result["studies"][0]["handoff_scan_status"] == "provider_admission_from_mas_handoff"
+    assert result["studies"][0]["quest_status"] == "transition_request_pending"
     assert result["action_queue"][0]["work_unit_fingerprint"] == action_fingerprint
+    assert result["action_queue"][0]["provider_attempt_or_lease_required"] is False
 
 
 def test_materialized_currentness_ignores_study_root_closeout_without_native_current_identity(
@@ -312,14 +317,17 @@ def test_materialized_currentness_ignores_study_root_closeout_without_native_cur
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
-    assert result["provider_admission_candidates"][0]["work_unit_fingerprint"] == action_fingerprint
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert result["transition_request_candidates"][0]["work_unit_id"] == work_unit_id
+    assert result["transition_request_candidates"][0]["work_unit_fingerprint"] == action_fingerprint
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }
     assert result["stage_route_arbiter_decisions"][0]["decision"] == "pending_provider_admission"
+    assert result["action_queue"][0]["status"] == "transition_request_pending"
 
 
 def test_opl_route_owner_gate_current_action_becomes_provider_admission_candidate(
@@ -409,9 +417,12 @@ def test_opl_route_owner_gate_current_action_becomes_provider_admission_candidat
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    candidate = result["provider_admission_candidates"][0]
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    candidate = result["transition_request_candidates"][0]
     assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
+    assert candidate["status"] == "transition_request_pending"
     assert candidate["study_id"] == study_id
     assert candidate["action_type"] == "run_gate_clearing_batch"
     assert candidate["work_unit_id"] == work_unit_id
@@ -420,6 +431,7 @@ def test_opl_route_owner_gate_current_action_becomes_provider_admission_candidat
     assert candidate["next_executable_owner"] == "gate_clearing_batch"
     assert result["action_queue"][0]["owner"] == "gate_clearing_batch"
     assert result["action_queue"][0]["work_unit_fingerprint"] == action_fingerprint
+    assert result["action_queue"][0]["provider_attempt_or_lease_required"] is False
 
 
 def test_domain_health_diagnostic_syncs_materialized_currentness_candidate_to_top_level_report(
@@ -523,13 +535,17 @@ def test_domain_health_diagnostic_syncs_materialized_currentness_candidate_to_to
         request_opl_stage_attempts=True,
     )
 
-    assert result["provider_admission_pending_count"] == 1
-    candidates = result["managed_study_opl_provider_admission_candidates"]
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
+    candidates = result["managed_study_opl_transition_request_candidates"]
     assert len(candidates) == 1
     assert candidates[0]["source"] == "opl_current_control_state.study_current_executable_owner_action"
     assert candidates[0]["work_unit_id"] == work_unit_id
-    assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 1
-    assert result["current_execution_evidence"]["provider_admission_candidates"] == candidates
+    assert candidates[0]["status"] == "transition_request_pending"
+    assert candidates[0]["provider_admission_requires_opl_runtime_result"] is True
+    assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 0
+    assert result["provider_admission_current_control_state"]["transition_request_pending_count"] == 1
+    assert result["current_execution_evidence"]["transition_request_candidates"] == candidates
     assert result["action_fingerprints"] == [action_fingerprint]
 
 
@@ -693,11 +709,14 @@ def test_domain_health_diagnostic_retains_pending_over_stale_authorization_close
         request_opl_stage_attempts=True,
     )
 
-    assert result["provider_admission_pending_count"] == 1
-    assert len(result["managed_study_opl_provider_admission_candidates"]) == 1
-    assert len(result["current_execution_evidence"]["provider_admission_candidates"]) == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    assert len(result["managed_study_opl_transition_request_candidates"]) == 1
+    assert len(result["current_execution_evidence"]["transition_request_candidates"]) == 1
     control = result["provider_admission_current_control_state"]
-    assert control["provider_admission_pending_count"] == 1
+    assert control["provider_admission_pending_count"] == 0
+    assert control["transition_request_pending_count"] == 1
     assert control["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }

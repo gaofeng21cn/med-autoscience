@@ -23,6 +23,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity import (
     closeout_core_identity_matches_candidate as _closeout_core_identity_matches_candidate,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback,
+)
 from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
     provider_admission_supervisor_gate,
 )
@@ -119,7 +122,11 @@ def _stage_route_arbiter_decisions(
                 )
             )
             continue
-        weak_identity = _current_control_weak_provider_admission_identity(candidate)
+        weak_identity = (
+            _current_control_weak_provider_admission_identity(candidate)
+            if _candidate_requires_strong_current_control_identity(candidate)
+            else {}
+        )
         if weak_identity:
             if _unconsumed_closeout_blocks_weak_identity_suppression(
                 scanned_study,
@@ -489,8 +496,9 @@ def _candidates_not_covered_by_live_attempt(
             continue
         if _paper_recovery_state_blocks_provider_admission(scanned_study, identity=candidate):
             continue
-        if _current_control_weak_provider_admission_identity(
-            candidate
+        if (
+            _current_control_weak_provider_admission_identity(candidate)
+            and _candidate_requires_strong_current_control_identity(candidate)
         ) and not _unconsumed_closeout_blocks_weak_identity_suppression(
             scanned_study,
             identity=candidate,
@@ -503,6 +511,18 @@ def _candidates_not_covered_by_live_attempt(
             continue
         pending.append(dict(candidate))
     return pending
+
+
+def _candidate_requires_strong_current_control_identity(candidate: Mapping[str, Any]) -> bool:
+    if candidate_opl_transition_readback(candidate):
+        return True
+    if candidate.get("same_tick_materialized_provider_admission") is True:
+        return True
+    return _non_empty_text(candidate.get("source")) in {
+        "same_tick_materialized_dispatch",
+        "opl_current_control_state.action_queue",
+        "opl_current_control_state.study_current_executable_owner_action",
+    }
 
 
 def _paper_recovery_state_blocks_provider_admission(
@@ -528,6 +548,8 @@ def _paper_recovery_state_blocks_provider_admission(
         next_safe_action.get("provider_admission_requires_opl_runtime_result") is False
         or _non_empty_text(next_safe_action.get("kind")) == "admit_provider_attempt"
     ):
+        return {}
+    if _non_empty_text(recovery.get("phase")) == "human_gate":
         return {}
     if (
         not supervisor_decision

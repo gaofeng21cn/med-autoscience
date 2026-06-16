@@ -445,7 +445,7 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 1
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
     assert diagnostic["requires_opl_transition_readback"] is True
-    assert diagnostic["next_forced_delta"]["required_delta_kind"] == "opl_provider_attempt_admission"
+    assert diagnostic["next_forced_delta"]["required_delta_kind"] == "opl_domain_progress_transition_readback"
     assert diagnostic["forbidden_next_actions"] == [
         "repeat_receipt_reconcile_without_owner_delta",
         "repeat_read_model_reconcile_without_owner_delta",

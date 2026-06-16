@@ -339,6 +339,9 @@ def test_provider_admission_candidate_survives_readiness_typed_blocker_for_publi
     assert candidate["action_fingerprint"] == fingerprint
     assert candidate["next_executable_owner"] == "write"
     assert candidate["dispatch_path"] == str(dispatch_path)
-    assert candidate["provider_attempt_or_lease_required"] is True
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["provider_attempt_or_lease_required"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+    assert candidate["opl_transition_runtime_required"] is True
     assert candidate["currentness_basis"]["work_unit_id"] == "medical_prose_write_repair"
     assert candidate["currentness_basis"]["work_unit_fingerprint"] == fingerprint
