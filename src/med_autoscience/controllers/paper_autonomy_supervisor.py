@@ -8,6 +8,12 @@ from typing import Any
 SURFACE_KIND = "paper_autonomy_supervisor_decision"
 OBLIGATION_SURFACE_KIND = "paper_autonomy_obligation"
 SCHEMA_VERSION = 1
+SOURCE_OF_TRUTH_CHAIN = (
+    "DomainIntent",
+    "OPL Command/Event/Outbox/StageRun",
+    "MAS OwnerAnswer",
+    "Derived Projection",
+)
 
 ALLOWED_DECISIONS = {
     "execute_current_owner_delta",
@@ -34,16 +40,27 @@ AUTHORITY_BOUNDARY = {
     "surface_kind": SURFACE_KIND,
     "authority": "mas_paper_progress_policy_projection",
     "authority_role": "paper_policy_projection_only_opl_transition_runtime_consumer",
+    "adapter_kind": "mas_policy_adapter",
+    "projection_role": "derived_policy_adapter_projection",
     "opl_transition_runtime_owner": "one-person-lab",
+    "opl_recovery_obligation_store_owner": "one-person-lab",
+    "opl_human_gate_transport_owner": "one-person-lab",
+    "opl_stage_run_owner": "one-person-lab",
     "top_level_truth": "decision",
     "allowed_decisions": sorted(ALLOWED_DECISIONS),
     "read_models_can_create_decision": False,
+    "can_store_recovery_obligation": False,
+    "can_generate_supervisor_decision_authority": False,
     "provider_admission_requires_execute_decision": True,
+    "provider_admission_requires_opl_stage_run_readback": True,
     "provider_completion_is_paper_progress": False,
     "can_write_study_truth": False,
     "can_authorize_publication_ready": False,
     "can_write_paper_or_package": False,
     "can_own_generic_event_log_or_outbox": False,
+    "can_create_opl_command_event_or_outbox": False,
+    "can_own_stage_run": False,
+    "can_generate_human_gate_resume_token": False,
     "can_run_fixed_point_runtime": False,
 }
 
@@ -359,6 +376,10 @@ def _decision(
     payload = {
         "surface_kind": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
+        "projection_role": "mas_policy_adapter_decision_projection",
+        "authority": False,
+        "source_of_truth_chain": list(SOURCE_OF_TRUTH_CHAIN),
+        "runtime_substrate_owner": "one-person-lab",
         "decision_id": _decision_id(obligation, decision=decision, evidence_refs=evidence),
         "decision": decision,
         "identity_match": _identity_complete(obligation),
@@ -392,6 +413,8 @@ def _execute_decision_ready(
         missing.append("provider_admission_identity")
     if not _admission_obligation_identity_complete(obligation):
         missing.append("complete_paper_autonomy_obligation_identity")
+    if not _stage_run_identity_refs(progress, recovery):
+        missing.append("opl_stage_run_readback")
     if _terminal_closeout_refs(progress, recovery):
         missing.append("no_terminal_closeout_for_same_identity")
     return not missing, missing

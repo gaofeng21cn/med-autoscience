@@ -39,6 +39,18 @@ _AUTHORITY_BOUNDARY = {
     "sqlite_record_counts_as_stage_complete": False,
     "generic_state_index_owner": "one-person-lab",
 }
+_PROJECTION_POLICY = {
+    "surface_kind": "mas_refs_only_state_index_projection_policy",
+    "projection_status": "temporary_refs_projection",
+    "projection_role": "diagnostic_refs_index_only",
+    "state_body_store": False,
+    "lifecycle_authority": False,
+    "attempt_lifecycle_authority": False,
+    "retry_or_dead_letter_authority": False,
+    "worker_residency_authority": False,
+    "can_authorize_currentness": False,
+    "can_authorize_stage_completion": False,
+}
 
 
 def refs_only_state_index_path(workspace_root: Path) -> Path:
@@ -152,6 +164,7 @@ def rebuild_refs_only_state_index(
         "skipped_forbidden_ref_sample": skipped[:FORBIDDEN_REF_SAMPLE_LIMIT],
         "body_included": False,
         "payload_role": "ref_metadata_only",
+        "projection_policy": dict(_PROJECTION_POLICY),
         "index_version": INDEX_VERSION,
         "rebuild_epoch": rebuild_epoch,
         "stage_folder_attempt_projection": _stage_folder_attempt_projection(

@@ -6,11 +6,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import (
-    gate_clearing_batch,
-    paper_progress_policy_adapter,
-    quality_repair_batch,
-)
+from med_autoscience.controllers import paper_progress_policy_adapter
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import (
     _non_empty_text,
 )
@@ -19,58 +15,54 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_r
 )
 from med_autoscience.profiles import WorkspaceProfile
 
-MAS_OWNER_CALLABLE_DRAIN_MAX_PASSES = 3
 OPL_TRANSITION_RUNTIME_OWNER = "one-person-lab"
 OPL_TRANSITION_RUNTIME_KIND = "DomainProgressTransitionRuntime"
 MAS_TRANSITION_REQUEST_SURFACE = "mas_domain_progress_transition_request"
+SOURCE_OF_TRUTH_CHAIN = (
+    "DomainIntent",
+    "OPL Command/Event/Outbox/StageRun",
+    "MAS OwnerAnswer",
+    "Derived Projection",
+)
 ACTUATOR_AUTHORITY_BOUNDARY = {
     "surface_kind": "mas_obligation_outcome_projection_authority_boundary",
     "authority": "med_autoscience.paper_progress_policy_adapter",
     "authority_role": "paper_policy_and_owner_answer_readback_only",
+    "adapter_kind": "mas_policy_adapter",
+    "projection_role": "derived_obligation_outcome_readback_projection",
+    "source_of_truth_chain": list(SOURCE_OF_TRUTH_CHAIN),
     "opl_transition_runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
     "opl_transition_runtime_kind": OPL_TRANSITION_RUNTIME_KIND,
+    "opl_recovery_obligation_store_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    "opl_human_gate_transport_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    "opl_stage_run_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    "accepts_opl_recovery_obligation_store_readback": True,
+    "accepts_opl_human_gate_transport_readback": True,
+    "accepts_opl_stage_run_readback": True,
+    "accepts_mas_policy_result": True,
+    "accepts_mas_owner_answer_result": True,
     "can_authorize_provider_admission": False,
     "can_own_generic_event_log_or_outbox": False,
+    "can_create_opl_command_event_or_outbox": False,
+    "can_store_recovery_obligation": False,
     "can_run_fixed_point_runtime": False,
+    "can_run_supervisor_decision_engine": False,
     "can_write_opl_current_control_state": False,
     "provider_admission_requires_opl_runtime_result": True,
     "provider_admission_readback_requires_opl_event_or_outbox": True,
-    "can_execute_mas_owner_callable": True,
+    "can_execute_mas_owner_callable": False,
     "can_write_fail_closed_typed_control_blocker": True,
 }
 
 
-def _drain_mas_owner_callable_actions(
-    *,
-    report: dict[str, Any],
-    profile: WorkspaceProfile,
-    study_ids: tuple[str, ...],
-    refresh_owner_callable_actions: Callable[[list[dict[str, Any]]], None] | None = None,
-    max_passes: int = MAS_OWNER_CALLABLE_DRAIN_MAX_PASSES,
-) -> list[dict[str, Any]]:
+def _mas_owner_answer_readbacks(*, report: dict[str, Any]) -> list[dict[str, Any]]:
     all_actions = [
         dict(action)
         for action in report.get("managed_study_mas_owner_callable_actions") or []
         if isinstance(action, Mapping)
     ]
-    seen = {
-        key
-        for action in all_actions
-        if (key := _mas_owner_callable_action_dedupe_key(action)) is not None
-    }
-    for _ in range(max(1, max_passes)):
-        owner_callable_actions = _apply_mas_owner_callable_actions(
-            report=report,
-            profile=profile,
-            study_ids=study_ids,
-            seen=seen,
-        )
-        if not owner_callable_actions:
-            break
-        all_actions.extend(owner_callable_actions)
+    if all_actions:
         report["managed_study_mas_owner_callable_actions"] = all_actions
-        if refresh_owner_callable_actions is not None:
-            refresh_owner_callable_actions(owner_callable_actions)
     return all_actions
 
 
@@ -84,12 +76,7 @@ def apply_managed_study_obligation_actuator(
     phase: str,
     refresh_owner_callable_actions: Callable[[list[dict[str, Any]]], None] | None = None,
 ) -> list[dict[str, Any]]:
-    owner_callable_actions = _drain_mas_owner_callable_actions(
-        report=report,
-        profile=profile,
-        study_ids=study_ids,
-        refresh_owner_callable_actions=refresh_owner_callable_actions,
-    )
+    owner_callable_actions = _mas_owner_answer_readbacks(report=report)
     current_control = _mapping(current_control_state)
     outcomes = [
         dict(item)
@@ -585,7 +572,7 @@ def _fail_closed_obligation_outcome(
     phase: str,
 ) -> dict[str, Any]:
     study_id = _non_empty_text(action.get("study_id")) or "unknown-study"
-    study_root = _study_root_for_owner_callable(action=action, profile=profile, study_id=study_id)
+    study_root = _study_root_for_obligation_outcome(action=action, profile=profile, study_id=study_id)
     payload = _typed_control_blocker_payload(
         action=action,
         blocker_type=blocker_type,
@@ -1224,76 +1211,6 @@ def _clean_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     return cleaned
 
 
-def _apply_mas_owner_callable_actions(
-    *,
-    report: Mapping[str, Any],
-    profile: WorkspaceProfile,
-    study_ids: tuple[str, ...],
-    seen: set[tuple[str, str, str, str]] | None = None,
-) -> list[dict[str, Any]]:
-    seen_keys = seen if seen is not None else set()
-    explicit_study_ids = {item for item in _text_items(study_ids)}
-    results: list[dict[str, Any]] = []
-    for action in report.get("managed_study_actions") or []:
-        if not isinstance(action, Mapping):
-            continue
-        study_id = _non_empty_text(action.get("study_id"))
-        if study_id is None:
-            continue
-        if explicit_study_ids and study_id not in explicit_study_ids:
-            continue
-        owner_callable = _mas_owner_callable_request(action)
-        if owner_callable is None:
-            continue
-        dedupe_key = _mas_owner_callable_request_dedupe_key(
-            action=action,
-            study_id=study_id,
-            owner_callable=owner_callable,
-        )
-        if dedupe_key in seen_keys:
-            continue
-        seen_keys.add(dedupe_key)
-        result = _run_mas_owner_callable(
-            profile=profile,
-            study_id=study_id,
-            study_root=_study_root_for_owner_callable(action=action, profile=profile, study_id=study_id),
-            quest_id=_non_empty_text(action.get("quest_id")) or study_id,
-            owner_callable=owner_callable,
-        )
-        result["work_unit_fingerprint"] = _mas_owner_callable_action_fingerprint(action)
-        results.append(result)
-    return results
-
-
-def _mas_owner_callable_request_dedupe_key(
-    *,
-    action: Mapping[str, Any],
-    study_id: str,
-    owner_callable: Mapping[str, Any],
-) -> tuple[str, str, str, str]:
-    return (
-        study_id,
-        _non_empty_text(owner_callable.get("callable_surface")) or "",
-        _non_empty_text(owner_callable.get("action_type")) or "",
-        _mas_owner_callable_action_fingerprint(action),
-    )
-
-
-def _mas_owner_callable_action_dedupe_key(
-    action: Mapping[str, Any],
-) -> tuple[str, str, str, str] | None:
-    study_id = _non_empty_text(action.get("study_id"))
-    surface = _non_empty_text(action.get("callable_surface"))
-    if study_id is None or surface is None:
-        return None
-    return (
-        study_id,
-        surface,
-        _non_empty_text(action.get("action_type")) or "",
-        _non_empty_text(action.get("work_unit_fingerprint")) or "",
-    )
-
-
 def _mas_owner_callable_action_fingerprint(action: Mapping[str, Any]) -> str:
     for key in ("work_unit_fingerprint", "action_fingerprint"):
         text = _non_empty_text(action.get(key))
@@ -1314,27 +1231,7 @@ def _mas_owner_callable_action_fingerprint(action: Mapping[str, Any]) -> str:
     return ""
 
 
-def _mas_owner_callable_request(action: Mapping[str, Any]) -> dict[str, Any] | None:
-    recovery = _mapping(action.get("paper_recovery_state"))
-    supervisor_decision = _mapping(recovery.get("supervisor_decision"))
-    if _non_empty_text(supervisor_decision.get("decision")) != "materialize_recovery_action":
-        return None
-    next_safe_action = _mapping(recovery.get("next_safe_action"))
-    if _non_empty_text(next_safe_action.get("kind")) != "run_mas_owner_callable":
-        return None
-    if next_safe_action.get("provider_admission_allowed") is True:
-        return None
-    owner_callable = _mapping(next_safe_action.get("owner_callable"))
-    surface = _non_empty_text(owner_callable.get("callable_surface"))
-    if surface not in {
-        "gate_clearing_batch.run_gate_clearing_batch",
-        "quality_repair_batch.run_quality_repair_batch",
-    }:
-        return None
-    return owner_callable
-
-
-def _study_root_for_owner_callable(
+def _study_root_for_obligation_outcome(
     *,
     action: Mapping[str, Any],
     profile: WorkspaceProfile,
@@ -1345,48 +1242,6 @@ def _study_root_for_owner_callable(
         if text is not None:
             return Path(text).expanduser().resolve()
     return (Path(profile.studies_root) / study_id).expanduser().resolve()
-
-
-def _run_mas_owner_callable(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    study_root: Path,
-    quest_id: str,
-    owner_callable: Mapping[str, Any],
-) -> dict[str, Any]:
-    surface = _non_empty_text(owner_callable.get("callable_surface"))
-    if surface == "gate_clearing_batch.run_gate_clearing_batch":
-        result = gate_clearing_batch.run_gate_clearing_batch(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            quest_id=quest_id,
-            source="domain_health_diagnostic_mas_owner_callable",
-        )
-    elif surface == "quality_repair_batch.run_quality_repair_batch":
-        result = quality_repair_batch.run_quality_repair_batch(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            quest_id=quest_id,
-            source="domain_health_diagnostic_mas_owner_callable",
-        )
-    else:
-        raise ValueError(f"unsupported MAS owner callable surface: {surface}")
-    return {
-        "surface_kind": "mas_owner_callable_action",
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "owner": _non_empty_text(owner_callable.get("owner")),
-        "action_type": _non_empty_text(owner_callable.get("action_type")),
-        "callable_surface": surface,
-        "study_root": str(study_root),
-        "result": result,
-        "ok": bool(_mapping(result).get("ok")),
-        "status": _non_empty_text(_mapping(result).get("status")),
-        "record_path": _non_empty_text(_mapping(result).get("record_path")),
-    }
 
 
 def _text_items(values: object) -> list[str]:

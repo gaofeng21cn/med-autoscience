@@ -20,6 +20,12 @@ EVENT_LOG_RELATIVE_PATH = Path("artifacts") / "runtime" / "health" / "events.jso
 SNAPSHOT_RELATIVE_PATH = Path("artifacts") / "runtime" / "health" / "latest.json"
 MAX_RECOVERY_ATTEMPTS = 3
 NEW_RUN_ACTIVITY_GRACE_SECONDS = 30 * 60
+SOURCE_OF_TRUTH_CHAIN = (
+    "DomainIntent",
+    "OPL Command/Event/Outbox/StageRun",
+    "MAS OwnerAnswer",
+    "Derived Projection",
+)
 
 RUNTIME_HEALTH_EVENT_TYPES = frozenset(
     {
@@ -92,6 +98,26 @@ _STABLE_RUNTIME_LIVENESS_AUDIT_KEYS = (
     "liveness_guard_reason",
     "error",
 )
+RUNTIME_HEALTH_AUTHORITY_BOUNDARY = {
+    "surface_kind": "mas_runtime_health_diagnostic_authority_boundary",
+    "surface_role": "mas_diagnostic_publisher_read_only_projection",
+    "source_of_truth_chain": list(SOURCE_OF_TRUTH_CHAIN),
+    "diagnostic_publisher_only": True,
+    "read_only_projection": True,
+    "can_authorize_runtime_currentness": False,
+    "can_authorize_supervisor_action": False,
+    "can_own_attempt_lifecycle": False,
+    "can_own_retry_or_dead_letter": False,
+    "can_authorize_worker_residency": False,
+    "can_write_opl_current_control_state": False,
+    "can_create_opl_outbox_record": False,
+    "runtime_health_epoch_is_currentness_authority": False,
+    "canonical_runtime_action_is_authority": False,
+    "allowed_controller_actions_are_authority": False,
+    "attempt_state_is_lifecycle_authority": False,
+    "retry_budget_is_lifecycle_authority": False,
+    "worker_liveness_is_residency_authority": False,
+}
 
 
 def runtime_health_events_path(*, study_root: Path) -> Path:
@@ -625,6 +651,10 @@ def _snapshot_from_events(
     return {
         "schema_version": SCHEMA_VERSION,
         "surface": "runtime_health_snapshot",
+        "projection_role": "mas_runtime_health_diagnostic_publisher",
+        "authority": False,
+        "source_of_truth_chain": list(SOURCE_OF_TRUTH_CHAIN),
+        "authority_boundary": dict(RUNTIME_HEALTH_AUTHORITY_BOUNDARY),
         "study_id": study_id,
         "quest_id": quest_id,
         "study_root": str(Path(study_root).expanduser().resolve()),

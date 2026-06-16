@@ -60,6 +60,21 @@ def test_execute_decision_requires_provider_and_stage_run_identity() -> None:
     decision = build_supervisor_decision(payload)
 
     assert decision["surface_kind"] == "paper_autonomy_supervisor_decision"
+    assert decision["projection_role"] == "mas_policy_adapter_decision_projection"
+    assert decision["authority"] is False
+    assert decision["source_of_truth_chain"] == [
+        "DomainIntent",
+        "OPL Command/Event/Outbox/StageRun",
+        "MAS OwnerAnswer",
+        "Derived Projection",
+    ]
+    assert decision["authority_boundary"]["adapter_kind"] == "mas_policy_adapter"
+    assert decision["authority_boundary"]["can_store_recovery_obligation"] is False
+    assert decision["authority_boundary"]["can_generate_supervisor_decision_authority"] is False
+    assert decision["authority_boundary"]["can_create_opl_command_event_or_outbox"] is False
+    assert decision["authority_boundary"]["can_own_stage_run"] is False
+    assert decision["authority_boundary"]["can_generate_human_gate_resume_token"] is False
+    assert decision["authority_boundary"]["provider_admission_requires_opl_stage_run_readback"] is True
     assert decision["decision"] == "execute_current_owner_delta"
     assert decision["next_owner"] == "OPL Framework"
     assert decision["next_safe_action"]["kind"] == "admit_or_resume_stage_run"
@@ -109,10 +124,11 @@ def test_admission_pending_without_identity_bound_provider_admission_materialize
     assert decision["next_safe_action"]["recovery_kind"] == "opl_runtime_repair"
     assert decision["missing_evidence_refs"] == [
         "complete_paper_autonomy_obligation_identity",
+        "opl_stage_run_readback",
     ]
 
 
-def test_identity_bound_admission_pending_executes_without_stage_run_identity() -> None:
+def test_identity_bound_admission_pending_without_stage_run_readback_materializes_recovery() -> None:
     fingerprint = "publication-blockers::0915410f804b3697"
     identity = f"provider-admission::003-dpcc::{fingerprint}"
     payload = {
@@ -152,9 +168,9 @@ def test_identity_bound_admission_pending_executes_without_stage_run_identity() 
 
     decision = build_supervisor_decision(payload)
 
-    assert decision["decision"] == "execute_current_owner_delta"
-    assert decision["next_safe_action"]["kind"] == "admit_or_resume_stage_run"
-    assert decision.get("missing_evidence_refs", []) == []
+    assert decision["decision"] == "materialize_recovery_action"
+    assert decision["next_safe_action"]["kind"] == "materialize_recovery_work_unit_or_receipt"
+    assert decision["missing_evidence_refs"] == ["opl_stage_run_readback"]
     assert decision["paper_autonomy_obligation"]["route_identity_key"] == identity
     assert decision["paper_autonomy_obligation"]["attempt_idempotency_key"] == identity
 

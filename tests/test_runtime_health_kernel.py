@@ -72,6 +72,27 @@ def test_runtime_health_treats_opl_provider_attempt_as_live_worker_signal(tmp_pa
     assert snapshot["active_run_id"] == "opl-stage-attempt://sat-live"
     assert snapshot["blocking_reasons"] == []
     assert snapshot["canonical_runtime_action"] == "continue_supervising_runtime"
+    assert snapshot["projection_role"] == "mas_runtime_health_diagnostic_publisher"
+    assert snapshot["authority"] is False
+    assert snapshot["source_of_truth_chain"] == [
+        "DomainIntent",
+        "OPL Command/Event/Outbox/StageRun",
+        "MAS OwnerAnswer",
+        "Derived Projection",
+    ]
+    boundary = snapshot["authority_boundary"]
+    assert boundary["surface_role"] == "mas_diagnostic_publisher_read_only_projection"
+    assert boundary["can_authorize_runtime_currentness"] is False
+    assert boundary["can_authorize_supervisor_action"] is False
+    assert boundary["can_own_attempt_lifecycle"] is False
+    assert boundary["can_own_retry_or_dead_letter"] is False
+    assert boundary["can_authorize_worker_residency"] is False
+    assert boundary["can_write_opl_current_control_state"] is False
+    assert boundary["can_create_opl_outbox_record"] is False
+    assert boundary["runtime_health_epoch_is_currentness_authority"] is False
+    assert boundary["canonical_runtime_action_is_authority"] is False
+    assert boundary["attempt_state_is_lifecycle_authority"] is False
+    assert boundary["worker_liveness_is_residency_authority"] is False
 
 
 def test_runtime_health_missing_live_session_recovers_with_stale_run_as_last_known(tmp_path: Path) -> None:

@@ -282,6 +282,12 @@ def test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as
     assert outcome["details"]["opl_runtime_result"]["event_id"] == "opl-domain-progress-event:003-write"
     assert outcome["authority_boundary"]["can_authorize_provider_admission"] is False
     assert outcome["authority_boundary"]["opl_transition_runtime_owner"] == "one-person-lab"
+    assert outcome["authority_boundary"]["can_store_recovery_obligation"] is False
+    assert outcome["authority_boundary"]["can_run_supervisor_decision_engine"] is False
+    assert outcome["authority_boundary"]["can_create_opl_command_event_or_outbox"] is False
+    assert outcome["authority_boundary"]["can_execute_mas_owner_callable"] is False
+    assert outcome["authority_boundary"]["accepts_opl_stage_run_readback"] is True
+    assert outcome["authority_boundary"]["accepts_mas_owner_answer_result"] is True
     assert outcome["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["authority_boundary"][
@@ -354,6 +360,8 @@ def test_domain_health_diagnostic_apply_projects_non_advancing_when_provider_req
         "NonAdvancingApply"
     )
     assert blocker["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
+    assert blocker["authority_boundary"]["can_execute_mas_owner_callable"] is False
+    assert "managed_study_mas_owner_callable_actions" not in report
     postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
     assert postcondition["ok"] is False
     assert postcondition["outcome_kind"] == "typed_blocker_ref"
