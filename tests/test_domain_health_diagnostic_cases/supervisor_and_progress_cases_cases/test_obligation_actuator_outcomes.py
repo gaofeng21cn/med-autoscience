@@ -301,7 +301,7 @@ def test_domain_health_diagnostic_apply_does_not_accept_provider_admission_witho
                     "action_type": "run_quality_repair_batch",
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
-                    "current_control_command": _opl_current_control_outbox_record(
+                    "legacy_opl_current_control_command": _legacy_opl_current_control_command(
                         study_id=study_id,
                         action_type="run_quality_repair_batch",
                         work_unit_id="medical_prose_write_repair",
@@ -523,6 +523,37 @@ def _mas_transition_request(
         "source_generation": work_unit_fingerprint,
         "expected_version": work_unit_fingerprint,
         "required_postcondition": {
+            "kind": "provider_admission_enqueued_or_blocked",
+            "outcome_owner": "one-person-lab",
+            "domain_state_owner": "med-autoscience",
+        },
+    }
+
+
+def _legacy_opl_current_control_command(
+    *,
+    study_id: str,
+    action_type: str,
+    work_unit_id: str,
+    work_unit_fingerprint: str,
+) -> dict[str, object]:
+    return {
+        "surface_kind": "opl_generic_current_control_command_outbox_record",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "command_kind": "provider_admission_requested",
+        "aggregate_identity": {
+            "aggregate_kind": "study_work_unit",
+            "aggregate_id": f"{study_id}::{work_unit_id}",
+            "study_id": study_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        },
+        "action_type": action_type,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "idempotency_key": f"legacy-provider-admission::{study_id}::{work_unit_id}",
+        "source_generation": work_unit_fingerprint,
+        "expected_version": work_unit_fingerprint,
+        "postcondition": {
             "kind": "provider_admission_enqueued_or_blocked",
             "outcome_owner": "one-person-lab",
             "domain_state_owner": "med-autoscience",

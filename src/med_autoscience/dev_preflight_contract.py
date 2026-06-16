@@ -498,13 +498,46 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "tests/test_autonomy_state_surface.py",
             "tests/test_study_delivery_sync.py",
             "tests/test_truth_projection_surfaces.py",
+            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
         ),
         prefix_paths=(
             "src/med_autoscience/controllers/control_plane_",
-            "tests/test_domain_health_diagnostic_cases/",
         ),
         commands=(
             "make test-control-plane",
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="paper_progress_transition_runtime_surface",
+        exact_paths=(
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/obligation_actuator.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_actions.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_arbiter.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_identity.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_policy_outbox.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
+            "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
+            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
+            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_same_tick_cases.py",
+            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
+            "tests/test_paper_progress_policy_adapter.py",
+            "tests/test_provider_admission_current_control_arbiter.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            (
+                f"{PYTEST_CLEAN_RUNNER} "
+                "tests/test_paper_progress_policy_adapter.py "
+                "tests/test_provider_admission_current_control_arbiter.py "
+                "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
+                "provider_admission_current_control_cases.py "
+                "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
+                "provider_admission_current_control_same_tick_cases.py "
+                "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
+                "test_obligation_actuator_outcomes.py -q"
+            ),
         ),
     ),
     PreflightCategorySpec(
