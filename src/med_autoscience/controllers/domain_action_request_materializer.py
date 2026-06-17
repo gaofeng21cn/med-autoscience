@@ -531,6 +531,9 @@ def _with_transition_request_projection(dispatch: Mapping[str, Any]) -> dict[str
     payload["surface"] = "mas_domain_progress_transition_request_projection"
     payload["legacy_surface"] = _text(dispatch.get("surface"))
     payload["projection_only"] = True
+    payload["owner_callable_adapter_diagnostic_only"] = True
+    payload["owner_callable_adapter_readiness_authority"] = False
+    payload["owner_callable_adapter_can_create_success_outcome"] = False
     payload["owner_callable_carrier_projection_only"] = True
     payload["mas_materializes_domain_intent"] = True
     payload["mas_creates_owner_callable_carrier"] = False
@@ -1386,6 +1389,10 @@ def materialize_domain_action_requests(
         ),
         "owner_callable_adapter_list_role": "legacy_transition_request_projection_list",
         "owner_callable_adapter_list_deprecated": True,
+        "owner_callable_adapter_list_diagnostic_only": True,
+        "owner_callable_adapter_counts_authority": False,
+        "owner_callable_adapter_readiness_authority": False,
+        "owner_callable_adapter_list_can_create_success_outcome": False,
         "owner_callable_adapter_list_deprecated_reason": (
             "domain_progress_transition_requests is the canonical MAS->OPL transition request readback"
         ),

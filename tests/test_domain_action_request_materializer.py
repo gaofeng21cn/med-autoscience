@@ -944,6 +944,10 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert result["target_runtime_owner"] == "one-person-lab"
     assert result["canonical_transition_request_surface"] == "domain_progress_transition_requests"
     assert result["owner_callable_adapter_list_deprecated"] is True
+    assert result["owner_callable_adapter_list_diagnostic_only"] is True
+    assert result["owner_callable_adapter_counts_authority"] is False
+    assert result["owner_callable_adapter_readiness_authority"] is False
+    assert result["owner_callable_adapter_list_can_create_success_outcome"] is False
     assert result["domain_progress_transition_request_count"] == 2
     transition_requests = result["domain_progress_transition_requests"]
     assert [item["action_type"] for item in transition_requests] == [
@@ -976,6 +980,9 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
         "return_to_ai_reviewer_workflow",
     ]
     assert dispatches[0]["dispatch_status"] == "transition_request_pending"
+    assert dispatches[0]["owner_callable_adapter_diagnostic_only"] is True
+    assert dispatches[0]["owner_callable_adapter_readiness_authority"] is False
+    assert dispatches[0]["owner_callable_adapter_can_create_success_outcome"] is False
     assert dispatches[0]["adapter_kind"] == "opl_authorized_owner_callable_adapter"
     assert dispatches[0]["target_runtime_owner"] == "one-person-lab"
     assert dispatches[0]["mas_dispatch_authority"] is False

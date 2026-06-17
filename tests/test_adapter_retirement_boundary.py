@@ -107,6 +107,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "domain_action_request_materializer_local_carrier_persistence_api",
         "owner_callable_adapter_legacy_dispatch_projection_alias",
         "domain_action_request_materializer_current_default_executor_dispatches_api",
+        "domain_action_request_materializer_owner_callable_adapter_projection",
         "default_executor_execution_latest_wire_projection",
         "domain_owner_action_dispatch",
         "domain_health_diagnostic_obligation_actuator",
@@ -188,6 +189,27 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "domain_action_request_materializer_parts.current_default_executor_dispatches",
     }
     assert "legacy_current_default_executor_dispatches_preview_api" in current_default_preview["forbidden_claims"]
+
+    owner_callable_projection = surfaces["domain_action_request_materializer_owner_callable_adapter_projection"]
+    assert owner_callable_projection["current_disposition"] == "legacy_diagnostic_projection"
+    assert owner_callable_projection["retained_mas_role"] == "migration_diagnostic_projection_only"
+    assert owner_callable_projection["canonical_surface"] == "domain_progress_transition_requests"
+    assert owner_callable_projection["legacy_projection_boundary"] == {
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "owner_callable_adapter_counts_authority": False,
+        "owner_callable_adapter_item_can_create_success_outcome": False,
+        "owner_callable_adapter_item_diagnostic_only": True,
+        "owner_callable_adapter_item_readiness_authority": False,
+        "owner_callable_adapter_list_can_create_success_outcome": False,
+        "owner_callable_adapter_list_diagnostic_only": True,
+        "owner_callable_adapter_readiness_authority": False,
+    }
+    assert "ready_owner_callable_adapter_count_as_provider_admission" in owner_callable_projection[
+        "forbidden_claims"
+    ]
+    assert "owner_callable_adapters_as_success_outcome" in owner_callable_projection[
+        "forbidden_claims"
+    ]
 
     execution_latest = surfaces["default_executor_execution_latest_wire_projection"]
     assert execution_latest["active_caller_migrated"] is True
@@ -531,6 +553,14 @@ def test_owner_callable_projection_requires_canonical_transition_request_surface
     assert projection.with_owner_callable_adapter_projection(legacy_payload)[
         "domain_progress_transition_request_count"
     ] == 0
+    legacy_projected = projection.with_owner_callable_adapter_projection(legacy_payload)
+    assert legacy_projected["owner_callable_adapter_list_diagnostic_only"] is True
+    assert legacy_projected["owner_callable_adapter_counts_authority"] is False
+    assert legacy_projected["owner_callable_adapter_readiness_authority"] is False
+    assert legacy_projected["owner_callable_adapter_list_can_create_success_outcome"] is False
+    assert legacy_projected["canonical_transition_request_surface"] == (
+        "domain_progress_transition_requests"
+    )
 
     canonical_payload = {
         "domain_progress_transition_requests": [
@@ -568,6 +598,10 @@ def test_owner_callable_projection_requires_canonical_transition_request_surface
     assert requests[0]["provider_admission_requires_opl_runtime_result"] is True
     projected = projection.with_owner_callable_adapter_projection(canonical_payload)
     assert projected["domain_progress_transition_request_count"] == 1
+    assert projected["owner_callable_adapter_list_diagnostic_only"] is True
+    assert projected["owner_callable_adapter_counts_authority"] is False
+    assert projected["owner_callable_adapter_readiness_authority"] is False
+    assert projected["owner_callable_adapter_list_can_create_success_outcome"] is False
 
 
 def test_current_default_executor_dispatch_preview_api_is_physically_retired() -> None:

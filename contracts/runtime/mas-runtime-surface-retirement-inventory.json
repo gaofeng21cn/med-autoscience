@@ -212,6 +212,38 @@
       "surface_id": "domain_action_request_materializer_current_default_executor_dispatches_api"
     },
     {
+      "active_caller_migrated": false,
+      "canonical_surface": "domain_progress_transition_requests",
+      "compatibility_alias_allowed": false,
+      "current_disposition": "legacy_diagnostic_projection",
+      "forbidden_claims": [
+        "mas_owned_generic_runtime",
+        "mas_owned_queue",
+        "mas_owned_attempt_ledger",
+        "mas_owned_retry_dead_letter",
+        "owner_callable_adapter_count_as_controller_readback_authority",
+        "ready_owner_callable_adapter_count_as_provider_admission",
+        "ready_owner_callable_adapter_count_as_next_action_authority",
+        "owner_callable_adapters_as_success_outcome",
+        "provider_completion_as_domain_ready"
+      ],
+      "generic_runtime_owner": "one-person-lab",
+      "legacy_projection_boundary": {
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "owner_callable_adapter_counts_authority": false,
+        "owner_callable_adapter_item_can_create_success_outcome": false,
+        "owner_callable_adapter_item_diagnostic_only": true,
+        "owner_callable_adapter_item_readiness_authority": false,
+        "owner_callable_adapter_list_can_create_success_outcome": false,
+        "owner_callable_adapter_list_diagnostic_only": true,
+        "owner_callable_adapter_readiness_authority": false
+      },
+      "mas_owner_claim_allowed": false,
+      "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime readback",
+      "retained_mas_role": "migration_diagnostic_projection_only",
+      "surface_id": "domain_action_request_materializer_owner_callable_adapter_projection"
+    },
+    {
       "active_caller_migrated": true,
       "canonical_first_readers": [
         "domain_health_diagnostic_parts.provider_admission.persisted_provider_admission_candidates",
