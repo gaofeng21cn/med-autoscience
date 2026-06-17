@@ -654,7 +654,74 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
         runtime_health["runtime_liveness_status"] = "terminal"
         runtime_health["health_status"] = "terminal"
         updated["runtime_health"] = runtime_health
+    if int(updated.get("provider_admission_pending_count") or 0) > 0:
+        provider_admission_candidates = [
+            dict(item)
+            for item in updated.get("provider_admission_candidates") or []
+            if isinstance(item, Mapping)
+        ]
+        matching_provider_admissions = [
+            item
+            for item in provider_admission_candidates
+            if _terminal_closeout_matches_handoff_action(terminal=terminal, action=item)
+        ]
+        updated["provider_admission_pending_count"] = 0
+        updated["provider_admission_candidates"] = []
+        updated["transition_request_pending_count"] = 0
+        updated["transition_request_candidates"] = []
+        updated["provider_admission_terminal_closeout_consumed"] = _provider_admission_terminal_closeout_consumed(
+            terminal=terminal,
+            matching_provider_admission=matching_provider_admissions[0] if matching_provider_admissions else None,
+        )
     return _apply_terminal_closeout_owner_answer_gate(updated)
+
+
+def _provider_admission_terminal_closeout_consumed(
+    *,
+    terminal: Mapping[str, Any],
+    matching_provider_admission: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    admission = _observability_mapping(matching_provider_admission)
+    paper_stage_log = _observability_mapping(terminal.get("paper_stage_log"))
+    next_forced_delta = _observability_mapping(paper_stage_log.get("next_forced_delta"))
+    owner_action = _observability_mapping(next_forced_delta.get("owner_action"))
+    consumed = {
+        "surface_kind": "provider_admission_terminal_closeout_consumed",
+        "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
+        "stage_attempt_id": _non_empty_text(terminal.get("stage_attempt_id")),
+        "action_type": _non_empty_text(terminal.get("action_type"))
+        or _non_empty_text(admission.get("action_type"))
+        or _non_empty_text(owner_action.get("action_type")),
+        "work_unit_id": _work_unit_identity(terminal.get("work_unit_id"))
+        or _work_unit_identity(admission.get("work_unit_id"))
+        or _work_unit_identity(admission.get("next_work_unit"))
+        or _work_unit_identity(next_forced_delta.get("work_unit_id"))
+        or _work_unit_identity(owner_action.get("work_unit_id"))
+        or _work_unit_identity(owner_action.get("next_work_unit")),
+        "work_unit_fingerprint": _non_empty_text(terminal.get("work_unit_fingerprint"))
+        or _non_empty_text(admission.get("work_unit_fingerprint"))
+        or _non_empty_text(admission.get("action_fingerprint"))
+        or _non_empty_text(admission.get("fingerprint"))
+        or _non_empty_text(owner_action.get("work_unit_fingerprint"))
+        or _non_empty_text(owner_action.get("action_fingerprint")),
+        "action_fingerprint": _non_empty_text(terminal.get("action_fingerprint"))
+        or _non_empty_text(admission.get("action_fingerprint"))
+        or _non_empty_text(admission.get("work_unit_fingerprint"))
+        or _non_empty_text(admission.get("fingerprint"))
+        or _non_empty_text(owner_action.get("action_fingerprint"))
+        or _non_empty_text(owner_action.get("work_unit_fingerprint")),
+        "owner_receipt_ref": _non_empty_text(terminal.get("owner_receipt_ref")),
+        "typed_blocker_ref": _non_empty_text(terminal.get("typed_blocker_ref")),
+        "authority_boundary": {
+            "projection_only": True,
+            "runtime_owner": "one-person-lab",
+            "domain_truth_owner": "med-autoscience",
+            "can_authorize_provider_admission": False,
+            "can_start_provider_attempt": False,
+            "provider_completion_is_domain_completion": False,
+        },
+    }
+    return {key: value for key, value in consumed.items() if value not in (None, "", [], {})}
 
 
 def _apply_terminal_closeout_owner_answer_gate(projection: dict[str, Any]) -> dict[str, Any]:

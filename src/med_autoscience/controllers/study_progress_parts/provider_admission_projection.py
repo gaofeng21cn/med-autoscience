@@ -30,6 +30,12 @@ def provider_admission_projection_fields(
     handoff: Mapping[str, Any],
     study_root: Path,
 ) -> dict[str, Any]:
+    consumed_terminal_closeout = _handoff_consumed_terminal_closeout_fields(
+        payload=payload,
+        handoff=handoff,
+    )
+    if consumed_terminal_closeout is not None:
+        return consumed_terminal_closeout
     running_proof = _handoff_running_proof_consumes_provider_admission(
         payload=payload,
         handoff=handoff,
@@ -111,6 +117,30 @@ def provider_admission_projection_fields(
         "provider_admission_candidates": provider_admission_candidates,
         "transition_request_pending_count": len(transition_request_candidates),
         "transition_request_candidates": list(transition_request_candidates),
+    }
+
+
+def _handoff_consumed_terminal_closeout_fields(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        return None
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if not (
+        (current_action and _same_action_identity(current_action, consumed))
+        or _same_action_identity(current_work_unit, consumed)
+    ):
+        return None
+    return {
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
+        "provider_admission_terminal_closeout_consumed": dict(consumed),
     }
 
 

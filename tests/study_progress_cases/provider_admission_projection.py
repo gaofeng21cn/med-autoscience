@@ -353,6 +353,81 @@ def test_provider_admission_projection_emits_candidate_for_current_executable_ac
     assert candidate["stage_packet_refs"] == [candidate["stage_packet_ref"]]
 
 
+def test_provider_admission_projection_consumes_matching_terminal_closeout_over_current_action(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_ready_quality_repair_dispatch(study_root, study_id=study_id, fingerprint=fingerprint)
+
+    fields = module.provider_admission_projection_fields(
+        payload={
+            "study_id": study_id,
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "current_work_unit": _quality_repair_current_work_unit(
+                study_id=study_id,
+                fingerprint=fingerprint,
+                status="executable_owner_action",
+            ),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+        },
+        handoff={
+            "surface_kind": "opl_current_control_state_handoff",
+            "provider_admission_terminal_closeout_consumed": {
+                "surface_kind": "provider_admission_terminal_closeout_consumed",
+                "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
+                "stage_attempt_id": "sat-terminal",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "owner_receipt_ref": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                    "controller/repair_execution_receipts/latest.json"
+                ),
+                "authority_boundary": {
+                    "projection_only": True,
+                    "runtime_owner": "one-person-lab",
+                    "domain_truth_owner": "med-autoscience",
+                    "can_authorize_provider_admission": False,
+                    "can_start_provider_attempt": False,
+                    "provider_completion_is_domain_completion": False,
+                },
+            },
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+            "action_queue": [],
+        },
+        study_root=study_root,
+    )
+
+    assert fields["provider_admission_pending_count"] == 0
+    assert fields["provider_admission_candidates"] == []
+    assert fields["transition_request_pending_count"] == 0
+    assert fields["transition_request_candidates"] == []
+    assert fields["provider_admission_terminal_closeout_consumed"]["stage_attempt_id"] == "sat-terminal"
+
+
 def test_provider_admission_projection_blocks_queue_residue_under_supervisor_stop_decision(
     tmp_path,
 ) -> None:

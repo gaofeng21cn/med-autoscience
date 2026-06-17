@@ -139,6 +139,89 @@ def test_study_progress_opl_current_control_state_handoff_merges_top_level_provi
     assert "typed_blocker" not in projection
 
 
+def test_study_progress_opl_current_control_state_handoff_consumes_provider_admission_with_matching_terminal_closeout(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-17T23:22:40+00:00",
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "status": "provider_admission_pending",
+                    "study_id": "001-risk",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::abc",
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "blocked",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::abc",
+                }
+            ],
+        },
+    )
+    closeout_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "sat-terminal.closeout.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "generated_at": "2026-06-17T23:13:46Z",
+            "study_id": "001-risk",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_attempt_id": "sat-terminal",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::abc",
+            "status": "closed_with_domain_owner_refs",
+            "owner_receipt_ref": "studies/001-risk/artifacts/controller/repair_execution_receipts/latest.json",
+            "paper_stage_log": {
+                "stage_name": "run_quality_repair_batch",
+                "problem_summary": "The owner callable produced a repair receipt.",
+                "stage_goal": "Produce owner-authorized repair evidence.",
+                "stage_work_done": ["Verified the current repair surface."],
+                "paper_work_done": ["Verified the current repair surface."],
+                "changed_stage_surfaces": [
+                    "studies/001-risk/artifacts/controller/repair_execution_receipts/latest.json"
+                ],
+                "changed_paper_surfaces": [
+                    "studies/001-risk/paper/draft.md"
+                ],
+                "progress_delta_classification": "deliverable_progress",
+                "outcome": "owner_receipt_recorded",
+                "remaining_blockers": [],
+            },
+            "closeout_refs": [
+                "studies/001-risk/artifacts/supervision/consumer/default_executor_execution/sat-terminal.closeout.json"
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    assert projection["provider_admission_pending_count"] == 0
+    assert projection["provider_admission_candidates"] == []
+    assert projection["provider_admission_terminal_closeout_consumed"]["stage_attempt_id"] == "sat-terminal"
+    assert projection["latest_terminal_stage_log"]["owner_receipt_ref"] == (
+        "studies/001-risk/artifacts/controller/repair_execution_receipts/latest.json"
+    )
+
+
 def test_study_progress_opl_current_control_state_handoff_projects_latest_terminal_stage_log(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
