@@ -529,10 +529,5 @@ def test_paper_progress_replay_live_evidence_status_contract_keeps_live_acceptan
         "observed_generation",
         "lag_status",
     ]
-    assert contract["projection_metadata_completion_gate"]["lag_status_status"] == (
-        "blocked_by_current_write_set"
-    )
-    assert contract["projection_metadata_completion_gate"]["blocking_write_set"] == [
-        "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
-        "src/med_autoscience/controllers/current_work_unit_parts/projection.py",
-    ]
+    assert contract["projection_metadata_completion_gate"]["lag_status_status"] == "covered_by_focused_tests"
+    assert contract["projection_metadata_completion_gate"]["blocking_write_set"] == []

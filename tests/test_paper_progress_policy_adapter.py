@@ -119,6 +119,7 @@ def test_policy_adapter_emits_opl_transition_request_without_claiming_runtime_au
     assert result["projection_metadata"]["fixed_point_runtime_owner"] == "one-person-lab"
     assert result["projection_metadata"]["derived_from_event_id"] is None
     assert result["projection_metadata"]["observed_generation"] == "truth-event-1"
+    assert result["projection_metadata"]["lag_status"] == "empty"
     assert result["paper_policy_verdict"]["provider_admission_allowed"] is False
     assert "opl_domain_progress_command" not in result
     assert "opl_domain_progress_command_outbox_record" not in result
@@ -294,6 +295,7 @@ def test_policy_adapter_projection_metadata_keeps_event_and_generation_diagnosti
         "fixed_point_runtime_owner": "one-person-lab",
         "derived_from_event_id": "opl-event:dm003:owner-receipt",
         "observed_generation": "runtime-generation:dm003:17",
+        "lag_status": "current",
     }
     request = result["opl_domain_progress_transition_request"]
     assert "projection_metadata" not in request

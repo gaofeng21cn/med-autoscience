@@ -54,6 +54,7 @@ def test_current_work_unit_projection_metadata_demotes_transition_authority() ->
         "opl-domain-progress-event:003-write"
     )
     assert work_unit["projection_metadata"]["observed_generation"] == "generation-7"
+    assert work_unit["projection_metadata"]["lag_status"] == "current"
 
 
 def test_current_work_unit_owner_receipt_blocks_stale_dispatch_revival() -> None:

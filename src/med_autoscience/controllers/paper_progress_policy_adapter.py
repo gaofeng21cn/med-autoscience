@@ -461,13 +461,17 @@ def _opl_domain_progress_transition_request(
 
 
 def _projection_metadata(identity: Mapping[str, Any]) -> dict[str, Any]:
+    derived_from_event_id = _text(identity.get("derived_from_event_id"))
+    observed_generation = _text(identity.get("observed_generation")) or _text(
+        identity.get("source_generation")
+    )
     return {
         "authority": False,
         "projection_owner": "med-autoscience",
         "fixed_point_runtime_owner": "one-person-lab",
-        "derived_from_event_id": _text(identity.get("derived_from_event_id")),
-        "observed_generation": _text(identity.get("observed_generation"))
-        or _text(identity.get("source_generation")),
+        "derived_from_event_id": derived_from_event_id,
+        "observed_generation": observed_generation,
+        "lag_status": "current" if derived_from_event_id and observed_generation else "empty",
     }
 
 

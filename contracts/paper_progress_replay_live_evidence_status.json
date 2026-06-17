@@ -137,14 +137,20 @@
           "tests/test_current_work_unit.py::test_current_work_unit_projection_metadata_demotes_transition_authority",
           "tests/test_paper_progress_policy_adapter.py::test_policy_adapter_projection_metadata_keeps_event_and_generation_diagnostic_only"
         ]
+      },
+      {
+        "field": "lag_status",
+        "status": "covered_by_focused_tests",
+        "test_refs": [
+          "tests/test_current_work_unit.py::test_current_work_unit_projection_metadata_demotes_transition_authority",
+          "tests/test_paper_progress_policy_adapter.py::test_policy_adapter_emits_opl_transition_request_without_claiming_runtime_authority",
+          "tests/test_paper_progress_policy_adapter.py::test_policy_adapter_projection_metadata_keeps_event_and_generation_diagnostic_only"
+        ]
       }
     ],
-    "lag_status_status": "blocked_by_current_write_set",
-    "blocking_write_set": [
-      "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
-      "src/med_autoscience/controllers/current_work_unit_parts/projection.py"
-    ],
-    "blocker_reason": "Target designs require projection_metadata.lag_status, but the current allowed write set excludes the source producers that would have to emit it. This contract records the exact blocker instead of treating docs, tests, or contract updates as projection completion."
+    "lag_status_status": "covered_by_focused_tests",
+    "blocking_write_set": [],
+    "blocker_reason": null
   },
   "forbidden_completion_interpretations": [
     "queue_empty",

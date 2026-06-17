@@ -396,12 +396,15 @@ def _text_items(value: object) -> list[str]:
 
 
 def _projection_metadata(currentness_basis: Mapping[str, Any]) -> dict[str, Any]:
+    derived_from_event_id = _text(currentness_basis.get("derived_from_event_id"))
+    observed_generation = _text(currentness_basis.get("observed_generation"))
     return {
         "authority": False,
         "projection_owner": "med-autoscience",
         "fixed_point_runtime_owner": "one-person-lab",
-        "derived_from_event_id": _text(currentness_basis.get("derived_from_event_id")),
-        "observed_generation": _text(currentness_basis.get("observed_generation")),
+        "derived_from_event_id": derived_from_event_id,
+        "observed_generation": observed_generation,
+        "lag_status": "current" if derived_from_event_id and observed_generation else "empty",
     }
 
 
