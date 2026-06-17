@@ -7,7 +7,6 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
     adapter_count,
     adapter_status_count,
     domain_progress_transition_requests,
-    owner_callable_adapters,
     transition_request_count,
     transition_request_status_count,
     with_owner_callable_adapter_projection,
@@ -116,7 +115,7 @@ def _attach_materialization_preview_to_managed_actions(
     if not isinstance(actions, list):
         return
     request_tasks_by_study = _items_by_study(preview.get("request_tasks"))
-    adapters_by_study = _items_by_study(owner_callable_adapters(preview))
+    legacy_adapters_by_study = _items_by_study(preview.get("owner_callable_adapters"))
     transition_requests_by_study = _items_by_study(domain_progress_transition_requests(preview))
     for index, action in enumerate(actions):
         if not isinstance(action, Mapping):
@@ -125,9 +124,9 @@ def _attach_materialization_preview_to_managed_actions(
         if study_id is None:
             continue
         request_tasks = request_tasks_by_study.get(study_id, [])
-        adapters = adapters_by_study.get(study_id, [])
+        legacy_adapters = legacy_adapters_by_study.get(study_id, [])
         transition_requests = transition_requests_by_study.get(study_id, [])
-        if not request_tasks and not adapters and not transition_requests:
+        if not request_tasks and not transition_requests:
             continue
         updated = dict(action)
         updated["domain_action_request_materialization_preview"] = {
@@ -154,9 +153,8 @@ def _attach_materialization_preview_to_managed_actions(
                 _non_empty_text(item.get("dispatch_status")) == "transition_request_pending"
                 for item in transition_requests
             ),
-            "legacy_owner_callable_adapter_count": len(adapters),
+            "legacy_owner_callable_adapter_count": len(legacy_adapters),
             "request_tasks": request_tasks,
-            "owner_callable_adapters": adapters,
             "domain_progress_transition_requests": transition_requests,
         }
         actions[index] = updated

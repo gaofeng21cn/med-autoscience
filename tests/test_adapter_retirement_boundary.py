@@ -806,6 +806,21 @@ def test_dhd_same_tick_blocker_summary_ignores_legacy_adapter_list() -> None:
     assert "legacy_adapter_blocker_should_not_drive_summary" not in summary["blocked_reasons"]
 
 
+def test_dhd_dry_run_preview_does_not_consume_legacy_adapter_list_as_carrier() -> None:
+    source = (
+        REPO_ROOT
+        / "src"
+        / "med_autoscience"
+        / "controllers"
+        / "domain_health_diagnostic_parts"
+        / "runtime_dry_run_previews.py"
+    ).read_text(encoding="utf-8")
+
+    assert "import owner_callable_adapters" not in source
+    assert "owner_callable_adapters(preview)" not in source
+    assert "domain_progress_transition_requests(preview)" in source
+
+
 def test_paper_recovery_export_consumes_only_canonical_transition_request_preview(
     tmp_path: Path,
     monkeypatch,
