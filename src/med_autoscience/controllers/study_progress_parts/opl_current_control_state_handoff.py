@@ -266,16 +266,30 @@ def opl_current_control_state_study_handoff_projection(
         if isinstance(item, Mapping) and _non_empty_text(item.get("study_id")) == study_id:
             matching = dict(item)
             break
+    matching_top_level_provider_admissions = _top_level_provider_admission_candidates_for_study(
+        payload,
+        study_id=study_id,
+    )
     if matching is None:
-        if latest_terminal_stage_log is None and latest_typed_closeout is None:
+        if (
+            latest_terminal_stage_log is None
+            and latest_typed_closeout is None
+            and not matching_top_level_provider_admissions
+        ):
             return None
-        return _closeout_only_study_handoff_projection(
+        projection = _closeout_only_study_handoff_projection(
             handoff_path=handoff_path,
             latest_terminal_stage_log=latest_terminal_stage_log,
             latest_typed_closeout=latest_typed_closeout,
             study_id=study_id,
             payload=payload,
         )
+        if matching_top_level_provider_admissions:
+            projection = _apply_top_level_provider_admissions_to_handoff(
+                projection,
+                matching_top_level_provider_admissions,
+            )
+        return projection
     action_queue = [
         {
             **_copy_mapping_keys(
@@ -383,6 +397,11 @@ def opl_current_control_state_study_handoff_projection(
         "blocked_reason": _non_empty_text(matching.get("blocked_reason")),
     }
     projection.update(_current_control_currentness_fields(matching))
+    if matching_top_level_provider_admissions:
+        projection = _apply_top_level_provider_admissions_to_handoff(
+            projection,
+            matching_top_level_provider_admissions,
+        )
     if _typed_closeout_supersedes_terminal(
         typed_closeout=latest_typed_closeout,
         terminal_stage_log=latest_terminal_stage_log or matching_terminal_stage_log,
@@ -398,6 +417,39 @@ def opl_current_control_state_study_handoff_projection(
         projection["latest_terminal_stage_log"] = matching_terminal_stage_log
     projection.update(_opl_current_control_state_mode_fields(payload))
     return _apply_matching_terminal_closeout_to_handoff(projection)
+
+
+def _top_level_provider_admission_candidates_for_study(
+    payload: Mapping[str, Any],
+    *,
+    study_id: str,
+) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in payload.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping) and _non_empty_text(item.get("study_id")) == study_id
+    ]
+
+
+def _apply_top_level_provider_admissions_to_handoff(
+    projection: Mapping[str, Any],
+    candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    updated = dict(projection)
+    updated["provider_admission_pending_count"] = len(candidates)
+    updated["provider_admission_candidates"] = [dict(item) for item in candidates]
+    current = candidates[0]
+    for key in ("action_type", "work_unit_fingerprint", "action_fingerprint"):
+        text = _non_empty_text(current.get(key))
+        if text is not None:
+            updated[key] = text
+    work_unit_id = _work_unit_identity(current.get("work_unit_id"))
+    if work_unit_id is not None:
+        updated["work_unit_id"] = work_unit_id
+    if _non_empty_text(current.get("status")) == "provider_admission_pending":
+        updated["blocked_reason"] = None
+        updated.pop("typed_blocker", None)
+    return updated
 
 
 def _closeout_only_study_handoff_projection(
