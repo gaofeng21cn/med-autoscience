@@ -962,7 +962,7 @@ def test_current_default_dispatch_for_execution_marks_paper_recovery_callable_re
     )
 
     assert observe_payload["owner_callable_adapters"][0]["dispatch_status"] == "dry_run"
-    assert execution_payload["owner_callable_adapters"][0]["dispatch_status"] == "ready"
+    assert execution_payload["owner_callable_adapters"][0]["dispatch_status"] == "transition_request_pending"
 
 
 def test_materialize_dry_run_reports_paper_recovery_callable_as_would_be_ready(
@@ -1057,7 +1057,11 @@ def test_materialize_dry_run_reports_paper_recovery_callable_as_would_be_ready(
     )
 
     assert result["dry_run"] is True
-    assert result["dispatch_ready_for_execution_preview"] is True
+    assert result["dispatch_ready_for_execution_preview"] is False
+    assert result["dispatch_ready_for_execution_preview_requested"] is True
+    assert result["dispatch_ready_for_execution_preview_blocked_reason"] == (
+        "opl_execution_authorization_required"
+    )
     assert result["written_files"] == []
     assert result["owner_callable_adapter_count"] == 1
     assert result["ready_owner_callable_adapter_count"] == 0

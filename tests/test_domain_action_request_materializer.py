@@ -946,7 +946,7 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert result["mas_creates_opl_outbox"] is False
     assert result["mas_creates_opl_event"] is False
     assert result["mas_creates_opl_stage_run"] is False
-    assert result["apply_writes_domain_intent_projection_only"] is False
+    assert result["apply_writes_domain_intent_projection_only"] is True
     assert result["apply_writes_disabled_reason"] == (
         "opl_domain_progress_transition_runtime_owns_durable_carrier"
     )

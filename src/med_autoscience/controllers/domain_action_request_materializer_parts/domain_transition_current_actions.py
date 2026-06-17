@@ -106,7 +106,7 @@ def owner_route_for_generated(
             ensure_owner_route_v2=owner_route_part.ensure_owner_route_v2,
             action_allowed_by_owner_route=current_action_authority.action_allowed_by_owner_route,
         )
-        return owner_route_part.build_owner_route(
+        route = owner_route_part.build_owner_route(
             study_id=study_id,
             quest_id=quest_id,
             status=current_study,
@@ -116,7 +116,36 @@ def owner_route_for_generated(
             next_owner=_text(generated[0].get("owner")) or _text(generated[0].get("request_owner")),
             active_run_id=_text(current_study.get("active_run_id")),
         )
+        return _with_transition_source_eval_id(route, transition=transition)
     return owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
+
+
+def _with_transition_source_eval_id(
+    route: Mapping[str, Any],
+    *,
+    transition: Mapping[str, Any],
+) -> dict[str, Any]:
+    source_eval_id = (
+        _text(_mapping(transition.get("completion_receipt_consumption")).get("eval_id"))
+        or _text(transition.get("source_eval_id"))
+        or _text(transition.get("publication_eval_id"))
+        or _text(_mapping(transition.get("publication_eval_ref")).get("eval_id"))
+    )
+    payload = dict(route)
+    if source_eval_id is None:
+        return payload
+    source_refs = dict(_mapping(payload.get("source_refs")))
+    source_refs["source_eval_id"] = source_eval_id
+    basis = dict(_mapping(source_refs.get("owner_route_currentness_basis")))
+    basis["source_eval_id"] = source_eval_id
+    source_refs["owner_route_currentness_basis"] = basis
+    payload["source_refs"] = source_refs
+    currentness_contract = dict(_mapping(payload.get("currentness_contract")))
+    contract_basis = dict(_mapping(currentness_contract.get("basis")))
+    contract_basis["source_eval_id"] = source_eval_id
+    currentness_contract["basis"] = contract_basis
+    payload["currentness_contract"] = currentness_contract
+    return payload
 
 
 def _mapping(value: object) -> dict[str, Any]:

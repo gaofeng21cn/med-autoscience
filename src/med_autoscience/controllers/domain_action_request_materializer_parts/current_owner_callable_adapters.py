@@ -89,6 +89,16 @@ def current_owner_callable_adapters(
         "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
         "adapter_kind": "opl_authorized_owner_callable_adapter",
         "target_runtime_owner": "one-person-lab",
+        "dispatch_ready_for_execution_preview": False,
+        "dispatch_ready_for_execution_preview_requested": bool(dispatch_ready_for_execution and not apply),
+        "dispatch_ready_for_execution_preview_blocked_reason": (
+            "opl_execution_authorization_required"
+            if dispatch_ready_for_execution and not apply
+            else None
+        ),
+        "owner_callable_adapter_list_role": "legacy_transition_request_projection_list",
+        "owner_callable_adapters_are_transition_request_projections": True,
+        "mas_creates_owner_callable_carrier": False,
         "mas_creates_opl_outbox": False,
         "mas_creates_opl_event": False,
         "mas_creates_opl_stage_run": False,

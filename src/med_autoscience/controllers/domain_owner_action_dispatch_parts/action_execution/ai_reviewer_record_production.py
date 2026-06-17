@@ -288,6 +288,10 @@ def build_ai_reviewer_record_worker_handoff(
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
     source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = {
+        **_mapping(_mapping(owner_route.get("currentness_contract")).get("basis")),
+        **_mapping(source_refs.get("owner_route_currentness_basis")),
+    }
     work_unit_id = (
         _text(source_refs.get("work_unit_id"))
         or _text(production_request.get("request_kind"))
@@ -305,14 +309,14 @@ def build_ai_reviewer_record_worker_handoff(
         expected_version=source_generation,
         dispatch_authority=DISPATCH_AUTHORITY,
         required_output_surface=RECORD_OUTPUT_SURFACE,
-        currentness_basis=_mapping(source_refs.get("owner_route_currentness_basis")),
+        currentness_basis=currentness_basis,
         idempotency_context={
             "kind": "ai-reviewer-record-transition-request",
             "request_kind": _text(production_request.get("request_kind")),
         },
     )
     transition_authority_fields = domain_progress_transition_request_transport_fields()
-    owner_route_currentness_basis = _mapping(_mapping(owner_route.get("source_refs")).get("owner_route_currentness_basis"))
+    owner_route_currentness_basis = currentness_basis
     prompt_contract = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -338,7 +342,10 @@ def build_ai_reviewer_record_worker_handoff(
             "Do not inspect MAS source code to discover alternate CLI spellings or write artifacts/publication_eval/latest.json.",
             "Emit the required typed closeout packet with the materialized record ref.",
         ],
-        "ai_reviewer_record_production_request": dict(production_request),
+        "ai_reviewer_record_production_request": {
+            **dict(production_request),
+            "owner_callable_runtime": _text(production_request.get("owner_callable_runtime")),
+        },
         "required_closeout_packet": closeout_contract,
         "terminal_output_instruction": closeout_contract["terminal_output_instruction"],
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),

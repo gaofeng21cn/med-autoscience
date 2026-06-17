@@ -83,8 +83,14 @@ def ai_reviewer_record_production_handoff_dispatch(
         dispatch={"owner_route": owner_route, "prompt_contract": {"owner_route": owner_route}},
         production_request=production_request,
     )
+    transition_owner_route = _with_route_currentness_basis(
+        _mapping(dispatch.get("owner_route")) or dict(owner_route),
+        source_route=owner_route,
+        action=action,
+    )
+    dispatch["owner_route"] = transition_owner_route
     owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
-    work_unit_fingerprint = _record_production_route_fingerprint(owner_route)
+    work_unit_fingerprint = _record_production_route_fingerprint(transition_owner_route)
     source_generation = work_unit_fingerprint or _text(dispatch.get("source_fingerprint"))
     transition_request = build_transition_request(
         study_id=study_id,
@@ -97,6 +103,7 @@ def ai_reviewer_record_production_handoff_dispatch(
         expected_version=source_generation,
         dispatch_authority=_text(dispatch.get("dispatch_authority")),
         required_output_surface=_text(dispatch.get("required_output_surface")),
+        currentness_basis=_record_production_route_basis(transition_owner_route),
         idempotency_context={
             "kind": "ai-reviewer-record-transition-request",
             "dispatch_authority": _text(dispatch.get("dispatch_authority")),
@@ -281,10 +288,65 @@ def _record_production_record_basis(record: Mapping[str, Any]) -> dict[str, Any]
 
 def _record_production_route_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     source_refs = _mapping(owner_route.get("source_refs"))
-    return (
-        _mapping(source_refs.get("owner_route_currentness_basis"))
-        or _mapping(_mapping(owner_route.get("currentness_contract")).get("basis"))
+    return {
+        **_mapping(_mapping(owner_route.get("currentness_contract")).get("basis")),
+        **_mapping(source_refs.get("owner_route_currentness_basis")),
+    }
+
+
+def _with_route_currentness_basis(
+    owner_route: Mapping[str, Any],
+    *,
+    source_route: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> dict[str, Any]:
+    route = dict(owner_route)
+    basis = _compact_currentness_basis(
+        _record_production_route_basis(route),
+        _record_production_route_basis(source_route),
+        _record_production_action_basis(action),
     )
+    if not basis:
+        return route
+    source_refs = dict(_mapping(route.get("source_refs")))
+    source_refs["owner_route_currentness_basis"] = _compact_currentness_basis(
+        source_refs.get("owner_route_currentness_basis"),
+        basis,
+    )
+    if _text(basis.get("source_eval_id")) is not None:
+        source_refs["source_eval_id"] = basis["source_eval_id"]
+    route["source_refs"] = source_refs
+    currentness_contract = dict(_mapping(route.get("currentness_contract")))
+    currentness_contract["basis"] = _compact_currentness_basis(
+        currentness_contract.get("basis"),
+        basis,
+    )
+    route["currentness_contract"] = currentness_contract
+    return route
+
+
+def _record_production_action_basis(action: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in {
+            "source_eval_id": _text(action.get("source_eval_id")),
+            "work_unit_id": _text(action.get("controller_work_unit_id"))
+            or _text(action.get("executable_work_unit"))
+            or _text(action.get("work_unit_id")),
+            "work_unit_fingerprint": _text(action.get("work_unit_fingerprint"))
+            or _text(action.get("action_fingerprint")),
+        }.items()
+        if value is not None
+    }
+
+
+def _compact_currentness_basis(*candidates: object) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for candidate in candidates:
+        for key, value in _mapping(candidate).items():
+            if _text(value) is not None:
+                payload[key] = value
+    return payload
 
 
 def _record_production_route_fingerprint(owner_route: Mapping[str, Any]) -> str | None:

@@ -127,9 +127,9 @@ def test_materialize_domain_action_requests_keeps_current_prose_routeback_dispat
     )
 
     dispatch = result["owner_callable_adapters"][0]
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["repeat_suppressed"] is False
-    assert dispatch["blocked_reason"] is None
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
     assert result["repeat_suppressed_count"] == 0
 
 
@@ -200,7 +200,7 @@ def test_materialize_domain_action_requests_honors_consumed_transition_owner_act
     assert result["ignored_actions"] == []
     assert result["owner_callable_adapter_count"] == 1
     dispatch = result["owner_callable_adapters"][0]
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["action_type"] == "run_gate_clearing_batch"
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
     assert dispatch["source_action"]["controller_work_unit_id"] == (
@@ -866,21 +866,23 @@ def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_ref
             / "latest.json"
         ).read_text(encoding="utf-8")
     )
-    dispatch = json.loads(
-        (
-            study_root
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "owner_callable_adapters"
-            / "return_to_ai_reviewer_workflow.json"
-        ).read_text(encoding="utf-8")
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "owner_callable_adapters"
+        / "return_to_ai_reviewer_workflow.json"
     )
+    assert not dispatch_path.exists()
+    dispatch = result["owner_callable_adapters"][0]
     expected_refs = [str(manuscript_path.resolve()), str(review_manuscript_path.resolve())]
-    assert result["request_tasks"][0]["dispatch_status"] == "applied"
+    assert result["request_tasks"][0]["dispatch_status"] == "transition_request_pending"
     assert request["request_lifecycle"]["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
     assert request["request_lifecycle"]["required_currentness_refs"] == expected_refs
-    assert request["request_lifecycle"]["stale_record_ref"] == str(stale_response_record_ref.resolve())
+    assert request["request_lifecycle"]["stale_record_ref"] == str(
+        (study_root / "artifacts" / "publication_eval" / "latest.json").resolve()
+    )
     assert request["request_lifecycle"]["source_ref"] == str(source_ref.resolve())
     assert request["source_workflow_ref"]["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     assert dispatch["source_action"]["required_currentness_refs"] == expected_refs
@@ -888,3 +890,8 @@ def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_ref
     assert dispatch["source_action"]["record_only_surface"] is True
     assert dispatch["source_action"]["publication_eval_latest_write_allowed"] is False
     assert dispatch["source_action"]["controller_decision_write_allowed"] is False
+    assert dispatch["surface"] == "mas_domain_progress_transition_request_projection"
+    assert dispatch["mas_creates_owner_callable_carrier"] is False
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )

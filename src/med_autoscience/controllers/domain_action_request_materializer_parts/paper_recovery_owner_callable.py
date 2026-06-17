@@ -407,6 +407,17 @@ def _action_from_successor_owner_action(
         or _text(typed_blocker.get("blocker_type"))
         or _text(current_work_unit.get("blocker_type"))
     )
+    transition_source_eval_id = _source_eval_id_from_domain_transition(
+        _mapping(study.get("domain_transition"))
+    )
+    source_eval_id = (
+        _text(successor_owner_action.get("source_eval_id"))
+        or _text(next_action.get("source_eval_id"))
+        or transition_source_eval_id
+        or _text(obligation.get("source_eval_id"))
+        or _text(current_work_unit.get("source_eval_id"))
+        or _text(typed_blocker.get("source_eval_id"))
+    )
     owner = (
         _text(successor_owner_action.get("owner"))
         or _text(successor_owner_action.get("next_owner"))
@@ -418,6 +429,7 @@ def _action_from_successor_owner_action(
         "work_unit_id": predecessor_work_unit_id,
         "work_unit_fingerprint": predecessor_work_unit_fingerprint,
         "blocker_type": predecessor_blocker_type,
+        "source_eval_id": source_eval_id,
     }
     owner_route = owner_route_part.ensure_owner_route_v2(
         _owner_route(
@@ -432,6 +444,7 @@ def _action_from_successor_owner_action(
             predecessor=predecessor,
             source_surface=_text(successor_owner_action.get("source_surface")),
             source_ref=_text(successor_owner_action.get("source_ref")),
+            source_eval_id=source_eval_id,
         )
     )
     supervisor_decision_ref = _text(supervisor_decision.get("decision_id"))
@@ -451,6 +464,7 @@ def _action_from_successor_owner_action(
         "required_output_surface": request_output_surface_for_action_type(action_type),
         "source_surface": "paper_recovery_state",
         "source_ref": source_ref,
+        "source_eval_id": source_eval_id,
         "supervisor_decision": supervisor_decision or None,
         "supervisor_decision_ref": supervisor_decision_ref,
         "supervisor_authority": "paper_autonomy_supervisor_decision" if supervisor_decision else None,
@@ -469,6 +483,7 @@ def _action_from_successor_owner_action(
             "next_executable_owner": owner,
             "source_surface": "paper_recovery_state",
             "source_ref": source_ref,
+            "source_eval_id": source_eval_id,
             "supervisor_decision": supervisor_decision or None,
             "supervisor_decision_ref": supervisor_decision_ref,
             "supervisor_authority": (
@@ -502,6 +517,7 @@ def _owner_route(
     predecessor: Mapping[str, Any] | None = None,
     source_surface: str | None = None,
     source_ref: str | None = None,
+    source_eval_id: str | None = None,
 ) -> dict[str, Any]:
     decision = _mapping(supervisor_decision)
     predecessor_payload = _mapping(predecessor)
@@ -530,6 +546,7 @@ def _owner_route(
             "source_surface": "paper_recovery_state",
             "successor_source_surface": source_surface,
             "successor_source_ref": source_ref,
+            "source_eval_id": source_eval_id,
             "supervisor_authority": "paper_autonomy_supervisor_decision" if decision else None,
             "supervisor_decision_ref": supervisor_decision_ref,
             "predecessor_action_type": _text(predecessor_payload.get("action_type")),
@@ -543,6 +560,7 @@ def _owner_route(
                 "runtime_health_epoch": work_unit_fingerprint,
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": work_unit_fingerprint,
+                "source_eval_id": source_eval_id,
             },
         },
     }
@@ -551,6 +569,17 @@ def _owner_route(
 def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     return _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+
+
+def _source_eval_id_from_domain_transition(transition: Mapping[str, Any]) -> str | None:
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    publication_eval_ref = _mapping(transition.get("publication_eval_ref"))
+    return _first_text(
+        completion.get("eval_id"),
+        transition.get("source_eval_id"),
+        transition.get("publication_eval_id"),
+        publication_eval_ref.get("eval_id"),
+    )
 
 
 def _current_recovery_state(

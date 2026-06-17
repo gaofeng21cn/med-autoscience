@@ -116,8 +116,9 @@ def current_actions_for_studies(
         )
         fresh_paper_recovery_action = fresh_paper_recovery_by_study.get(study_id)
         scan_paper_recovery_action = paper_recovery_owner_callable.action_for_study(study_payload)
-        paper_recovery_owner_callable_action = (
-            fresh_paper_recovery_action or scan_paper_recovery_action
+        paper_recovery_owner_callable_action = _with_scan_transition_source_eval_id(
+            fresh_paper_recovery_action or scan_paper_recovery_action,
+            study=study_payload,
         )
         canonical_current_action = current_work_unit_action.canonical_current_work_unit_action(study_payload)
         writer_handoff_owner_action = _current_writer_handoff_owner_action(
@@ -1002,6 +1003,65 @@ def _fresh_repair_progress_action_matches_action_currentness(
     return repair_progress_currentness.generated_action_matches_action_currentness(
         fresh_action=fresh_action,
         currentness_action=currentness_action,
+    )
+
+
+def _with_scan_transition_source_eval_id(
+    action: Mapping[str, Any] | None,
+    *,
+    study: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if action is None:
+        return None
+    source_eval_id = _domain_transition_source_eval_id(study)
+    if source_eval_id is None:
+        return dict(action)
+    payload = dict(action)
+    payload["source_eval_id"] = source_eval_id
+    handoff_packet = dict(_mapping(payload.get("handoff_packet")))
+    handoff_packet["source_eval_id"] = source_eval_id
+    payload["handoff_packet"] = handoff_packet
+    owner_route = _with_owner_route_source_eval_id(
+        _mapping(payload.get("owner_route")),
+        source_eval_id=source_eval_id,
+    )
+    if owner_route:
+        payload["owner_route"] = owner_route
+        handoff_packet["owner_route"] = owner_route
+    return payload
+
+
+def _with_owner_route_source_eval_id(
+    owner_route: Mapping[str, Any],
+    *,
+    source_eval_id: str,
+) -> dict[str, Any]:
+    if not owner_route:
+        return {}
+    route = dict(owner_route)
+    source_refs = dict(_mapping(route.get("source_refs")))
+    source_refs["source_eval_id"] = source_eval_id
+    basis = dict(_mapping(source_refs.get("owner_route_currentness_basis")))
+    basis["source_eval_id"] = source_eval_id
+    source_refs["owner_route_currentness_basis"] = basis
+    route["source_refs"] = source_refs
+    currentness_contract = dict(_mapping(route.get("currentness_contract")))
+    contract_basis = dict(_mapping(currentness_contract.get("basis")))
+    contract_basis["source_eval_id"] = source_eval_id
+    currentness_contract["basis"] = contract_basis
+    route["currentness_contract"] = currentness_contract
+    return route
+
+
+def _domain_transition_source_eval_id(study: Mapping[str, Any]) -> str | None:
+    transition = _mapping(study.get("domain_transition"))
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    publication_eval_ref = _mapping(transition.get("publication_eval_ref"))
+    return (
+        _text(completion.get("eval_id"))
+        or _text(transition.get("source_eval_id"))
+        or _text(transition.get("publication_eval_id"))
+        or _text(publication_eval_ref.get("eval_id"))
     )
 
 

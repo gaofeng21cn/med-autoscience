@@ -171,7 +171,7 @@ def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surf
     assert request["action_type"] == "run_quality_repair_batch"
     assert request["request_owner"] == "write"
     assert request["reason"] == "manuscript_story_surface_delta_missing"
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
     assert source_refs["bridge_authority"] == "domain_action_request_materializer_story_surface_bridge"
     assert source_refs["bridged_from_owner_reason"] == "quest_waiting_opl_runtime_owner_route"

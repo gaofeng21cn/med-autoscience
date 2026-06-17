@@ -106,11 +106,15 @@ def test_materialize_domain_action_requests_writes_quality_repair_request_to_can
         / "run_quality_repair_batch.json"
     )
     task = result["request_tasks"][0]
-    assert task["dispatch_status"] == "applied"
+    assert task["dispatch_status"] == "transition_request_pending"
+    assert task["blocked_reason"] == "opl_execution_authorization_required"
+    assert task["provider_admission_pending"] is False
+    assert task["provider_admission_requires_opl_runtime_result"] is True
+    assert task["mas_local_request_packet_persistence"] == "forbidden"
+    assert task["opl_transition_runtime_required_for_durable_carrier"] is True
     assert task["request_packet_ref"] == "artifacts/supervision/requests/quality_repair_batch/latest.json"
     assert task["refs"]["request_packet_path"] == str(canonical_request_path)
-    assert canonical_request_path.is_file()
+    assert not canonical_request_path.exists()
     assert not legacy_consumer_request_path.exists()
-    request_packet = json.loads(canonical_request_path.read_text(encoding="utf-8"))
-    assert request_packet["request_kind"] == "run_quality_repair_batch"
-    assert request_packet["request_owner"] == "write"
+    assert result["apply_writes_domain_intent_projection_only"] is True
+    assert result["written_files"] == []

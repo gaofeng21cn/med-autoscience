@@ -520,8 +520,21 @@ def _with_transition_request_projection(dispatch: Mapping[str, Any]) -> dict[str
     transition_request = _mapping(payload.get("opl_domain_progress_transition_request"))
     if not transition_request:
         transition_request = _transition_request_for_owner_callable_adapter(payload)
+    else:
+        transition_request = _with_owner_route_currentness_basis(
+            transition_request,
+            payload=payload,
+        )
     if transition_request:
         payload["opl_domain_progress_transition_request"] = transition_request
+    payload["surface"] = "mas_domain_progress_transition_request_projection"
+    payload["legacy_surface"] = _text(dispatch.get("surface"))
+    payload["projection_only"] = True
+    payload["owner_callable_carrier_projection_only"] = True
+    payload["mas_materializes_domain_intent"] = True
+    payload["mas_creates_owner_callable_carrier"] = False
+    payload["mas_local_dispatch_carrier_persistence"] = "forbidden"
+    payload["opl_transition_runtime_required_for_durable_carrier"] = True
     payload["provider_admission_pending"] = False
     payload["provider_admission_requires_opl_runtime_result"] = True
     payload.update(domain_progress_transition_request_transport_fields())
@@ -532,6 +545,10 @@ def _with_transition_request_projection(dispatch: Mapping[str, Any]) -> dict[str
     prompt_contract["provider_admission_pending"] = False
     prompt_contract["provider_admission_requires_opl_runtime_result"] = True
     prompt_contract.update(domain_progress_transition_request_transport_fields())
+    prompt_contract["owner_callable_carrier_projection_only"] = True
+    prompt_contract["mas_creates_owner_callable_carrier"] = False
+    prompt_contract["mas_local_dispatch_carrier_persistence"] = "forbidden"
+    prompt_contract["opl_transition_runtime_required_for_durable_carrier"] = True
     payload["prompt_contract"] = prompt_contract
 
     if _text(payload.get("dispatch_status")) == "ready" and not _has_opl_execution_proof(payload):
@@ -544,6 +561,21 @@ def _with_transition_request_projection(dispatch: Mapping[str, Any]) -> dict[str
         payload["opl_transition_runtime_required_for_durable_carrier"] = True
         prompt_contract["dispatch_status"] = "transition_request_pending"
         prompt_contract["owner_callable_surface"] = None
+    authority_boundary = dict(_mapping(payload.get("authority_boundary")))
+    authority_boundary.update(
+        {
+            "mas_materializes_domain_intent": True,
+            "mas_creates_owner_callable_carrier": False,
+            "mas_creates_opl_outbox": False,
+            "mas_creates_opl_event": False,
+            "mas_creates_opl_stage_run": False,
+            "target_runtime_owner": TARGET_RUNTIME_OWNER,
+            "execution_requires_opl_authorization": True,
+            "durable_carrier_owner": TARGET_RUNTIME_OWNER,
+            "projection_only": True,
+        }
+    )
+    payload["authority_boundary"] = authority_boundary
     return payload
 
 
@@ -552,12 +584,19 @@ def _transition_request_for_owner_callable_adapter(payload: Mapping[str, Any]) -
     action_type = _text(payload.get("action_type")) or "unknown_action"
     owner_route = _mapping(payload.get("owner_route"))
     source_refs = _mapping(owner_route.get("source_refs"))
-    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    prompt_contract = _mapping(payload.get("prompt_contract"))
+    source_action = _mapping(payload.get("source_action"))
+    currentness_basis = _merged_currentness_basis(
+        source_refs.get("owner_route_currentness_basis"),
+        _mapping(owner_route.get("currentness_contract")).get("basis"),
+        prompt_contract.get("owner_route_currentness_basis"),
+        source_action.get("owner_route_currentness_basis"),
+    )
     work_unit_id = (
         _text(payload.get("work_unit_id"))
         or _text(source_refs.get("materialized_work_unit_id"))
         or _text(source_refs.get("work_unit_id"))
-        or _text(_mapping(payload.get("source_action")).get("next_work_unit"))
+        or _text(source_action.get("next_work_unit"))
     )
     work_unit_fingerprint = (
         _text(payload.get("work_unit_fingerprint"))
@@ -585,6 +624,38 @@ def _transition_request_for_owner_callable_adapter(payload: Mapping[str, Any]) -
             "dispatch_authority": _text(payload.get("dispatch_authority")),
         },
     )
+
+
+def _with_owner_route_currentness_basis(
+    transition_request: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    request = dict(transition_request)
+    owner_route = _mapping(payload.get("owner_route"))
+    prompt_contract = _mapping(payload.get("prompt_contract"))
+    source_action = _mapping(payload.get("source_action"))
+    route_basis = owner_route_attempt_protocol.currentness_basis(owner_route) if owner_route else {}
+    currentness_basis = _merged_currentness_basis(
+        request.get("currentness_basis"),
+        route_basis,
+        _mapping(_mapping(owner_route.get("currentness_contract")).get("basis")),
+        _mapping(_mapping(owner_route.get("source_refs")).get("owner_route_currentness_basis")),
+        prompt_contract.get("owner_route_currentness_basis"),
+        source_action.get("owner_route_currentness_basis"),
+    )
+    if currentness_basis:
+        request["currentness_basis"] = currentness_basis
+    return request
+
+
+def _merged_currentness_basis(*candidates: object) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for candidate in candidates:
+        for key, value in _mapping(candidate).items():
+            if _text(value) is not None:
+                payload[key] = value
+    return payload
 
 
 def _has_opl_execution_proof(payload: Mapping[str, Any]) -> bool:
@@ -679,12 +750,14 @@ def _default_executor_dispatch_payload(
         "owner_callable_adapter_contract": adapter_contract,
         "authority_boundary": {
             "mas_materializes_domain_intent": True,
-            "mas_creates_owner_callable_carrier": True,
+            "mas_creates_owner_callable_carrier": False,
             "mas_creates_opl_outbox": False,
             "mas_creates_opl_event": False,
             "mas_creates_opl_stage_run": False,
             "target_runtime_owner": TARGET_RUNTIME_OWNER,
             "execution_requires_opl_authorization": True,
+            "durable_carrier_owner": TARGET_RUNTIME_OWNER,
+            "projection_only": True,
         },
         **dict(executor_policy),
         "study_id": study_id,
@@ -724,7 +797,7 @@ def _default_executor_dispatch_payload(
         "repeat_suppressed": bool(repeat_guard["repeat_suppressed"]),
         "why_not_applied": repeat_guard["why_not_applied"],
         "repeat_suppression": dict(repeat_guard),
-        "consumer_mutation_scope": "executor_dispatch_request_only",
+        "consumer_mutation_scope": "domain_progress_transition_request_projection_only",
         "required_closeout_packet": dict(typed_closeout_contract),
         "owner_route_attempt_envelope": dict(owner_route_attempt_envelope),
         "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
@@ -1105,7 +1178,9 @@ def current_owner_callable_adapters(
         scan_latest_path=_scan_latest_path,
         resolve_study_ids_from_scan=_resolve_study_ids_from_scan,
         selected_actions=_selected_actions,
-        default_executor_dispatch=_default_executor_dispatch,
+        default_executor_dispatch=lambda **kwargs: _with_transition_request_projection(
+            _default_executor_dispatch(**kwargs)
+        ),
         owner_from_action=_owner_from_action,
         required_output_surface=_required_output_surface,
         text=_text,
@@ -1208,12 +1283,21 @@ def materialize_domain_action_requests(
         "github_gate": dict(developer_mode.github_user_gate),
         "developer_supervisor_mode": developer_mode_payload,
         "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
-        "apply_writes_domain_intent_projection_only": False,
+        "apply_writes_domain_intent_projection_only": True,
         "apply_writes_disabled_reason": "opl_domain_progress_transition_runtime_owns_durable_carrier",
         "mas_local_dispatch_carrier_persistence": "forbidden",
         "mas_local_request_packet_persistence": "forbidden",
         "opl_transition_runtime_required_for_durable_carrier": True,
-        "dispatch_ready_for_execution_preview": bool(dispatch_ready_for_execution and not apply),
+        "dispatch_ready_for_execution_preview": False,
+        "dispatch_ready_for_execution_preview_requested": bool(dispatch_ready_for_execution and not apply),
+        "dispatch_ready_for_execution_preview_blocked_reason": (
+            "opl_execution_authorization_required"
+            if dispatch_ready_for_execution and not apply
+            else None
+        ),
+        "owner_callable_adapter_list_role": "legacy_transition_request_projection_list",
+        "owner_callable_adapters_are_transition_request_projections": True,
+        "mas_creates_owner_callable_carrier": False,
         "runtime_control_owner": "one-person-lab",
         "target_runtime_owner": TARGET_RUNTIME_OWNER,
         "adapter_kind": OWNER_CALLABLE_ADAPTER_KIND,

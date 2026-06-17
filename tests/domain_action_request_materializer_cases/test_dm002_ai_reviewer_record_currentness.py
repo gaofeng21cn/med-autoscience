@@ -94,8 +94,8 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
     basis = route["currentness_contract"]["basis"]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
     assert request["request_owner"] == "ai_reviewer"
-    assert dispatch["dispatch_status"] == "ready"
-    assert dispatch["blocked_reason"] is None
+    assert dispatch["dispatch_status"] == "transition_request_pending"
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
     assert dispatch["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert dispatch["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
@@ -108,7 +108,9 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
     assert dispatch["source_action"]["publication_eval_latest_write_allowed"] is False
     assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
     assert route["currentness_contract"]["missing_required_fields"] == []
-    assert basis["source_eval_id"] == eval_id
+    transition_basis = dispatch["opl_domain_progress_transition_request"]["currentness_basis"]
+    assert transition_basis["source_eval_id"] == eval_id
     assert route["source_refs"]["owner_route_currentness_basis"]["source_eval_id"] == eval_id
-    assert result["ready_owner_callable_adapter_count"] == 1
+    assert result["ready_owner_callable_adapter_count"] == 0
+    assert result["transition_request_pending_owner_callable_adapter_count"] == 1
     assert result["blocked_owner_callable_adapter_count"] == 0

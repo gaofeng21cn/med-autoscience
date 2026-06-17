@@ -478,7 +478,7 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
     assert result["ready_owner_callable_adapter_count"] == 0
     assert result["transition_request_pending_owner_callable_adapter_count"] == 1
     assert result["written_files"] == []
-    assert result["apply_writes_domain_intent_projection_only"] is False
+    assert result["apply_writes_domain_intent_projection_only"] is True
     assert result["apply_writes_disabled_reason"] == (
         "opl_domain_progress_transition_runtime_owns_durable_carrier"
     )

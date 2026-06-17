@@ -111,9 +111,19 @@ def test_default_executor_dispatch_materializes_runtime_completion_as_transport_
         / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
-    dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    assert not dispatch_path.exists()
+    dispatch = result["owner_callable_adapters"][0]
     envelope = dispatch["owner_route_attempt_envelope"]
-    assert result["owner_callable_adapters"][0]["dispatch_status"] == "ready"
+    assert dispatch["surface"] == "mas_domain_progress_transition_request_projection"
+    assert dispatch["legacy_surface"] == "default_executor_dispatch_request"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
+    assert dispatch["owner_callable_carrier_projection_only"] is True
+    assert dispatch["mas_creates_owner_callable_carrier"] is False
+    assert dispatch["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert dispatch["opl_transition_runtime_required_for_durable_carrier"] is True
+    assert dispatch["authority_boundary"]["mas_creates_owner_callable_carrier"] is False
+    assert dispatch["authority_boundary"]["durable_carrier_owner"] == "one-person-lab"
     assert envelope["dispatchable"] is True
     assert envelope["authority_boundary"]["opl_owns"] == [
         "queue",

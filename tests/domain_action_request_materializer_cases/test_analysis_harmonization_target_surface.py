@@ -141,6 +141,5 @@ def test_unit_harmonization_uses_body_free_precise_target_surface(
         / "analysis_harmonization"
         / "latest.json"
     )
-    packet = json.loads(packet_path.read_text(encoding="utf-8"))
-    assert packet["required_output_target_surface"] == target_surface
+    assert not packet_path.exists()
     assert task["handoff_packet"]["required_output_target_surface"] == target_surface

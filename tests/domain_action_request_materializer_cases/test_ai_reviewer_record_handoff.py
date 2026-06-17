@@ -145,9 +145,7 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert result["mas_local_request_packet_persistence"] == "forbidden"
     assert result["opl_transition_runtime_required_for_durable_carrier"] is True
-    assert result["written_files"] == [
-        str(profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json")
-    ]
+    assert result["written_files"] == []
     persisted_path = (
         study_root
         / "artifacts"
@@ -158,6 +156,8 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
     )
     assert not persisted_path.exists()
     assert set(dispatch["prompt_contract"]["forbidden_surfaces"]) == prompt_forbidden_surfaces
+    assert dispatch["surface"] == "mas_domain_progress_transition_request_projection"
+    assert dispatch["mas_creates_owner_callable_carrier"] is False
     assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
         "DomainProgressTransitionRuntime"
     )
@@ -313,7 +313,5 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
     assert persisted["dispatch_status"] == "ready"
     assert "record_production_satisfaction" not in persisted
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
-    assert result["written_files"] == [
-        str(profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json")
-    ]
+    assert result["written_files"] == []
     assert dispatch["record_production_satisfaction"]["eval_id"] == eval_id

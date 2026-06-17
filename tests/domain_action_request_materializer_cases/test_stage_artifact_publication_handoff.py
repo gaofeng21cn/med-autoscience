@@ -199,7 +199,7 @@ def test_materialize_domain_action_requests_dispatches_stage_artifact_publicatio
         "publication_handoff_owner_gate"
     ]
     dispatch = result["owner_callable_adapters"][0]
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "publication_gate_owner"
     assert dispatch["owner_route"]["next_owner"] == "publication_gate_owner"
     assert dispatch["owner_route"]["allowed_actions"] == ["publication_handoff_owner_gate"]
@@ -222,8 +222,8 @@ def test_materialize_domain_action_requests_dispatches_stage_artifact_publicatio
         / "owner_callable_adapters"
         / "publication_handoff_owner_gate.json"
     )
-    assert request_path.is_file()
-    assert persisted_dispatch_path.is_file()
+    assert not request_path.exists()
+    assert not persisted_dispatch_path.exists()
 
 
 def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_payload_ref(
@@ -328,7 +328,7 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
         / "owner_callable_adapters"
         / "complete_medical_paper_readiness_surface.json"
     )
-    assert task["dispatch_status"] == "applied"
+    assert task["dispatch_status"] == "transition_request_pending"
     assert task["readiness_surface_identity"] == {
         "action_type": "complete_medical_paper_readiness_surface",
         "surface_key": "literature_provider_runtime",
@@ -344,11 +344,8 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
         "medical_paper_readiness_owner_payload_authoring"
     )
     assert task["payload_authoring_target"]["operator_payload_contract"]["empty_payload_is_not_success_evidence"] is True
-    persisted_request = json.loads(request_path.read_text(encoding="utf-8"))
-    assert persisted_request["operator_payload_present"] is True
-    assert persisted_request["readiness_surface_identity"] == task["readiness_surface_identity"]
-    assert persisted_request["operator_payload"]["provider_payloads"][1]["provider"] == "crossref"
-    assert dispatch["dispatch_status"] == "ready"
+    assert not request_path.exists()
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["readiness_surface_identity"] == task["readiness_surface_identity"]
     assert dispatch["surface_key"] == "literature_provider_runtime"
     assert dispatch["operator_payload_present"] is True
@@ -362,18 +359,7 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     )
     assert dispatch["prompt_contract"]["operator_payload_ref"] == request_ref
     assert dispatch["prompt_contract"]["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
-    assert request_path.is_file()
-    assert persisted_dispatch_path.is_file()
-    persisted_dispatch = json.loads(persisted_dispatch_path.read_text(encoding="utf-8"))
-    immutable_dispatch_path = Path(persisted_dispatch["refs"]["immutable_dispatch_path"])
-    assert persisted_dispatch["readiness_surface_identity"] == task["readiness_surface_identity"]
-    assert persisted_dispatch["prompt_contract"]["readiness_surface_identity"] == task["readiness_surface_identity"]
-    assert immutable_dispatch_path.is_file()
-    immutable_dispatch = json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))
-    assert immutable_dispatch["readiness_surface_identity"] == task["readiness_surface_identity"]
-    assert immutable_dispatch["surface_key"] == "literature_provider_runtime"
-    assert immutable_dispatch["prompt_contract"]["readiness_surface_identity"] == task["readiness_surface_identity"]
-    assert immutable_dispatch["prompt_contract"]["surface_key"] == "literature_provider_runtime"
+    assert not persisted_dispatch_path.exists()
 
 
 def test_materialize_prefers_stage_readiness_followup_over_stale_control_next_action(
@@ -517,7 +503,7 @@ def test_materialize_prefers_stage_readiness_followup_over_stale_control_next_ac
         "complete_medical_paper_readiness_surface"
     ]
     dispatch = result["owner_callable_adapters"][0]
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["surface_key"] == "literature_provider_runtime"
     assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]

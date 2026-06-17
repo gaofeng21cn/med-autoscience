@@ -115,14 +115,14 @@ def test_materialize_domain_action_requests_routes_clean_canonical_rehydrate_to_
     assert task["request_owner"] == "write"
     assert task["required_output_surface"] == "paper/medical_manuscript_blueprint_source.json"
     assert task["request_packet_ref"] == "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["required_output_surface"] == "paper/medical_manuscript_blueprint_source.json"
     assert dispatch["prompt_contract"]["request_packet_ref"] == (
         "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
     )
-    assert packet_path.is_file()
-    assert dispatch_path.is_file()
+    assert not packet_path.exists()
+    assert not dispatch_path.exists()
     assert not (study_root / "paper" / "medical_manuscript_blueprint.json").exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
@@ -205,17 +205,17 @@ def test_materialize_domain_action_requests_routes_hard_methodology_handoff_to_a
         / "owner_callable_adapters"
         / "unit_harmonized_external_validation_rerun.json"
     )
-    assert task["dispatch_status"] == "applied"
+    assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "analysis_harmonization_owner"
     assert task["request_packet_ref"] == "artifacts/supervision/requests/analysis_harmonization/latest.json"
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "analysis_harmonization_owner"
     assert dispatch["prompt_contract"]["request_packet_ref"] == (
         "artifacts/supervision/requests/analysis_harmonization/latest.json"
     )
     assert dispatch["prompt_contract"]["quality_gate_relaxation_allowed"] is False
-    assert packet_path.is_file()
-    assert dispatch_path.is_file()
+    assert not packet_path.exists()
+    assert not dispatch_path.exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
@@ -299,17 +299,17 @@ def test_materialize_domain_action_requests_routes_model_provenance_handoff_to_s
         / "owner_callable_adapters"
         / "recover_transport_model_provenance.json"
     )
-    assert task["dispatch_status"] == "applied"
+    assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "source_provenance_owner"
     assert task["request_packet_ref"] == "artifacts/supervision/requests/source_provenance/latest.json"
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "source_provenance_owner"
     assert dispatch["prompt_contract"]["request_packet_ref"] == (
         "artifacts/supervision/requests/source_provenance/latest.json"
     )
     assert dispatch["prompt_contract"]["quality_gate_relaxation_allowed"] is False
-    assert packet_path.is_file()
-    assert dispatch_path.is_file()
+    assert not packet_path.exists()
+    assert not dispatch_path.exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
@@ -397,15 +397,15 @@ def test_materialize_domain_action_requests_routes_methodology_reframe_to_decisi
         / "owner_callable_adapters"
         / "methodology_reframe_route_decision.json"
     )
-    assert task["dispatch_status"] == "applied"
+    assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "decision"
     assert task["request_packet_ref"] == "artifacts/supervision/requests/decision/latest.json"
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "decision"
     assert dispatch["prompt_contract"]["request_packet_ref"] == "artifacts/supervision/requests/decision/latest.json"
     assert dispatch["prompt_contract"]["quality_gate_relaxation_allowed"] is False
-    assert packet_path.is_file()
-    assert dispatch_path.is_file()
+    assert not packet_path.exists()
+    assert not dispatch_path.exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
