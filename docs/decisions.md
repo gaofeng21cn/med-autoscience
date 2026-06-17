@@ -12,6 +12,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：`runtime_health_kernel` 历史上虽然已声明 false authority，但仍能本地写 recovery attempt / attempt release，并通过 retry budget 和 epoch reducer影响 supervisor/operator 判断。这会让普通 provider-ready 或 status decision 被误读成 MAS-owned runtime lifecycle。硬门把它收回为 OPL Observability / StageRun / Route Reconciler 的 readback projection，避免 MAS 再造私有 attempt ledger 或 retry substrate。
 - 影响：这是 MAS runtime-health diagnostic boundary 修复，不执行 live DHD apply、hydrate、tick、redrive，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。focused tests 和 docs 只证明 repo-level structural/contract behavior；live paper progress、provider running proof、publication-ready、domain-ready 或 production-ready 仍需 fresh OPL StageRun/readback、owner receipt、stable typed blocker、human gate、route-back evidence 或 canonical paper/gate/artifact delta。
 
+## 2026-06-17：两轮调研后的 MAS / OPL 进度运行时理想蓝图
+
+- 决策：[MAS / OPL 进度运行时理想蓝图](./runtime/designs/mas_opl_progress_runtime_ideal_blueprint.md) 成为两轮失败/修复调研后的顶层目标态入口。该蓝图把旧 MAS+MDS 的短闭环优势、OPL-based MAS 的 authority-path split 根因、外部成熟工程模式和 OPL 基座 primitive 统一到 `DomainIntent -> OPL Command -> OPL Event -> OPL Transactional Outbox -> StageRun / ToolInvocation -> MAS OwnerAnswer -> Derived Projection`。
+- 决策：一劳永逸的标准不是“再加一个局部 guard”，而是关闭同类问题再生路径：OPL 是唯一 transition runtime owner；MAS 是唯一 medical authority owner；所有 projection 可重建且 `authority=false`；所有 side effect 由 OPL transactional outbox 发出；所有历史坏轨迹进入 replay；所有无推进 apply 落为 `NonAdvancingApply`；所有 paper progress claim 绑定 fresh runtime / owner evidence。
+- 理由：DM002/DM003、`019ecde0`、`019ece00`、`019eb0e8` 相关修复族显示，局部 projection / selector / supervisor 已能看到不同“下一步”，但没有统一落到 OPL-owned command/event/outbox/StageRun 和 MAS owner-answer consumption 链。外部成熟工程经验也一致指向 durable event history、幂等 reconcile、transactional outbox、read/write projection 分离、observability/lineage 降权这组模式。
+- 影响：这是 target design 和迁移门更新，不执行 live DHD apply、hydrate、tick、redrive，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。该蓝图不声明 OPL primitive 全部完成、MAS 私有 residue 物理清零、DM002/DM003 论文恢复、publication-ready、domain-ready 或 production-ready。
+
 ## 2026-06-16：MAS/OPL 理想运行模型收敛为 OPL command/event/outbox 链
 
 - 决策：MAS / OPL 顶层目标态进一步固定为 `DomainIntent -> OPL Command -> OPL Event -> OPL Transactional Outbox -> StageRun / ToolInvocation -> MAS OwnerAnswer -> Derived Projection`。MAS 只发布 domain intent、policy result、accepted owner answer shape 和 authority refs；OPL 把它们事务化为 command、event、outbox、StageRun、tool invocation、human gate transport 和 generated/hosted projection。
