@@ -496,8 +496,11 @@ def _candidates_not_covered_by_live_attempt(
             continue
         if _paper_recovery_state_blocks_provider_admission(scanned_study, identity=candidate):
             continue
+        weak_identity = _current_control_weak_provider_admission_identity(candidate)
+        if weak_identity and not candidate_opl_transition_readback(candidate):
+            continue
         if (
-            _current_control_weak_provider_admission_identity(candidate)
+            weak_identity
             and _candidate_requires_strong_current_control_identity(candidate)
         ) and not _unconsumed_closeout_blocks_weak_identity_suppression(
             scanned_study,

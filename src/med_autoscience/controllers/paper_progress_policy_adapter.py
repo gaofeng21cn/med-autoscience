@@ -5,6 +5,10 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    required_opl_transition_readback_shape,
+)
+
 SURFACE_KIND = "paper_progress_policy_adapter_result"
 SCHEMA_VERSION = 1
 AUTHORITY = "med_autoscience.paper_progress_policy_adapter"
@@ -447,6 +451,7 @@ def _opl_domain_progress_transition_request(
             "outcome_owner": "one-person-lab",
             "domain_state_owner": "med-autoscience",
         },
+        "provider_admission_requires_opl_readback_shape": required_opl_transition_readback_shape(),
         "domain_policy_result_ref": _stable_id("paper-policy", [policy_kind, identity]),
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": fingerprint,

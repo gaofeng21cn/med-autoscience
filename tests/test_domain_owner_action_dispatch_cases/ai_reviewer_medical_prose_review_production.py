@@ -19,15 +19,61 @@ from tests.test_domain_owner_action_dispatch_cases.ai_reviewer_workflow_helpers 
 
 
 def _opl_transition_readback(*, study_id: str, action_type: str) -> dict[str, object]:
+    fingerprint = f"domain-transition::{study_id}::{action_type}"
+    work_unit_id = action_type
+    route_key = f"provider-admission::{study_id}::{fingerprint}"
     return {
+        "surface_kind": "opl_domain_progress_transition_result",
         "runtime_owner": "one-person-lab",
         "runtime_kind": "DomainProgressTransitionRuntime",
+        "transition_kind": "StartProviderAttempt",
         "outcome_kind": "provider_admission_pending",
         "event_id": f"dpte::{study_id}::{action_type}",
         "outbox_item_id": f"dpto::{study_id}::{action_type}",
         "stage_run_identity": {
             "stage_run_id": f"stage-run::{study_id}::{action_type}",
-            "route_identity_key": f"owner-route::{study_id}::{action_type}",
+            "stage_run_identity_ref": f"stage-run-identity::{study_id}::{action_type}",
+            "observed_generation": fingerprint,
+        },
+        "identity": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "route_identity_key": route_key,
+            "attempt_idempotency_key": route_key,
+        },
+        "causality": {
+            "mas_transition_request_idempotency_key": route_key,
+            "source_generation": fingerprint,
+            "expected_version": fingerprint,
+            "derived_from_request": True,
+        },
+        "authority_boundary": {
+            "runtime_owner": "one-person-lab",
+            "domain_state_owner": "med-autoscience",
+            "mas_can_authorize_provider_admission": False,
+            "mas_can_create_opl_outbox_record": False,
+            "mas_can_create_opl_event": False,
+            "mas_can_create_opl_stage_run": False,
+            "provider_completion_is_domain_completion": False,
+        },
+        "exactly_one_outcome": {
+            "selected": "provider_admission_pending",
+            "allowed": [
+                "provider_admission_pending",
+                "running_provider_attempt",
+                "owner_receipt_ref",
+                "typed_blocker_ref",
+                "human_gate_ref",
+                "route_back_evidence_ref",
+            ],
+        },
+        "projection_metadata": {
+            "authority": False,
+            "projection_owner": "one-person-lab",
+            "consumer": "med-autoscience",
+            "observed_generation": fingerprint,
         },
     }
 

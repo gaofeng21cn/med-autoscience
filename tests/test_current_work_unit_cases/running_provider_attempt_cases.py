@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from tests.test_current_work_unit_cases.shared import _assert_contract_shape, _module
+from tests.provider_admission_current_control_helpers import opl_transition_readback
 
 
 def test_current_work_unit_accepts_strict_running_provider_proof() -> None:
@@ -423,12 +424,12 @@ def test_current_work_unit_treats_opl_transition_readback_as_provider_admission_
         "provider_attempt_or_lease_required": True,
         "running_provider_attempt": False,
         "provider_admission_pending_count": 1,
-        "opl_domain_progress_transition_result": {
-            "runtime_owner": "one-person-lab",
-            "runtime_kind": "DomainProgressTransitionRuntime",
-            "outcome_kind": "provider_admission_pending",
-            "event_id": "evt-provider-admission",
-        },
+        "opl_domain_progress_transition_result": opl_transition_readback(
+            "002-dm-cvd-mortality-risk",
+            action_fingerprint="provider-admission::002::repair",
+            work_unit_id="dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+            request_idempotency_key="provider-admission::002-dm::run_quality_repair_batch",
+        ),
     }
 
     work_unit = module.build_current_work_unit(

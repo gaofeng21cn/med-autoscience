@@ -110,8 +110,12 @@ def test_reconciler_records_dm002_opl_stage_attempt_admission_outbox_receipt(tmp
         "transition_request_pending_opl_runtime_required"
     )
     assert decision["action_receipt"]["refs_only"] is True
-    assert decision["action_receipt"]["started_worker"] is False
-    assert decision["action_receipt"]["worker_start_ref"] is None
+    assert "started_worker" not in decision["action_receipt"]
+    assert "worker_start_ref" not in decision["action_receipt"]
+    assert "outbox_item_id" not in decision["action_receipt"]
+    assert "event_id" not in decision["action_receipt"]
+    assert "stage_run_id" not in decision["action_receipt"]
+    assert "stage_run_identity" not in decision["action_receipt"]
     assert decision["action_receipt"]["transition_runtime_owner"] == "one-person-lab"
     assert transition_refs.read_transition_refs(study_root=profile.studies_root / study_id)
 

@@ -355,6 +355,71 @@
       "transport_status_can_create_success_outcome": false,
       "mas_transition_request_can_create_success_outcome": false,
       "provider_admission_pending_requires_opl_runtime_result": true
+    },
+    "opl_transition_readback_contract": {
+      "surface_kind": "opl_domain_progress_transition_result",
+      "runtime_owner": "one-person-lab",
+      "runtime_kind": "DomainProgressTransitionRuntime",
+      "provider_admission_outcome_kind": "provider_admission_pending",
+      "required_sections": [
+        "identity",
+        "causality",
+        "authority_boundary",
+        "exactly_one_outcome",
+        "projection_metadata"
+      ],
+      "identity_required_fields": [
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key"
+      ],
+      "causality_required_fields": [
+        "mas_transition_request_idempotency_key",
+        "source_generation",
+        "expected_version",
+        "derived_from_request=true"
+      ],
+      "runtime_refs_required": [
+        "event_id",
+        "outbox_item_id",
+        "stage_run_identity.stage_run_id_or_ref"
+      ],
+      "authority_boundary_required": {
+        "runtime_owner": "one-person-lab",
+        "domain_state_owner": "med-autoscience",
+        "mas_can_authorize_provider_admission": false,
+        "mas_can_create_opl_outbox_record": false,
+        "mas_can_create_opl_event": false,
+        "mas_can_create_opl_stage_run": false,
+        "provider_completion_is_domain_completion": false
+      },
+      "exactly_one_outcome": {
+        "selected": "provider_admission_pending",
+        "allowed": [
+          "provider_admission_pending",
+          "running_provider_attempt",
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_evidence_ref"
+        ]
+      },
+      "projection_metadata_required": {
+        "authority": false,
+        "projection_owner": "one-person-lab",
+        "consumer": "med-autoscience",
+        "observed_generation_required": true
+      },
+      "deprecated_projection_fields": [
+        "stage_run_id",
+        "event_id_without_causality",
+        "outbox_item_id_without_authority_boundary"
+      ],
+      "deprecated_projection_authority": false,
+      "request_only_effect": "transition_request_pending",
+      "non_advancing_apply_effect": "typed_blocker_ref"
     }
   },
   "progress_accounting": {

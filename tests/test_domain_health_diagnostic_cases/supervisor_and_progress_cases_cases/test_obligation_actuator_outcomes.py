@@ -4,6 +4,7 @@ from tests.test_domain_health_diagnostic_cases import shared as _shared
 from tests.test_domain_health_diagnostic_cases.supervisor_and_progress_cases_cases.test_obligation_actuator_postcondition import (
     _assert_exactly_one_dhd_apply_outcome,
 )
+from tests.provider_admission_current_control_helpers import opl_transition_readback
 
 globals().update({
     name: value
@@ -248,19 +249,13 @@ def test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as
                         work_unit_id="medical_prose_write_repair",
                         work_unit_fingerprint="publication-blockers::0915410f804b3697",
                     ),
-                    "opl_domain_progress_transition_result": {
-                        "surface_kind": "opl_domain_progress_transition_result",
-                        "runtime_owner": "one-person-lab",
-                        "runtime_kind": "DomainProgressTransitionRuntime",
-                        "transition_kind": "StartProviderAttempt",
-                        "outcome_kind": "provider_admission_pending",
-                        "event_id": "opl-domain-progress-event:003-write",
-                        "outbox_item_id": "opl-domain-progress-outbox:003-write",
-                        "stage_run_identity": {
-                            "stage_run_id": "sat_003_write",
-                            "observed_generation": "publication-blockers::0915410f804b3697",
-                        },
-                    },
+                    "opl_domain_progress_transition_result": opl_transition_readback(
+                        study_id,
+                        action_fingerprint="publication-blockers::0915410f804b3697",
+                        work_unit_id="medical_prose_write_repair",
+                        request_idempotency_key=f"provider-admission::{study_id}::medical_prose_write_repair",
+                        stage_run_id="sat_003_write",
+                    ),
                 }
             ],
             "running_provider_attempt": False,

@@ -7,12 +7,67 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 from ..shared import _write_json
 
 
-def _opl_transition_result(*, stage_run_id: str = "stage-run-gate-replay") -> dict[str, str]:
+def _opl_transition_result(
+    *,
+    study_id: str = "003-dpcc-primary-care-phenotype-treatment-gap",
+    work_unit_id: str = "publication_gate_replay",
+    fingerprint: str = "sha256:6423b231114cbec0e8d1ccb0b69adb117d0f2d8fa58d72751627c049a0dc10e4",
+    stage_run_id: str = "stage-run-gate-replay",
+) -> dict[str, object]:
+    route_key = f"provider-admission::{study_id}::{fingerprint}"
     return {
+        "surface_kind": "opl_domain_progress_transition_result",
         "runtime_owner": "one-person-lab",
         "runtime_kind": "DomainProgressTransitionRuntime",
+        "transition_kind": "StartProviderAttempt",
         "outcome_kind": "provider_admission_pending",
-        "stage_run_id": stage_run_id,
+        "event_id": f"opl-domain-progress-event::{study_id}::{fingerprint}",
+        "outbox_item_id": f"opl-domain-progress-outbox::{study_id}::{fingerprint}",
+        "stage_run_identity": {
+            "stage_run_id": stage_run_id,
+            "stage_run_identity_ref": f"stage-run-identity::{study_id}::{fingerprint}",
+            "observed_generation": fingerprint,
+        },
+        "identity": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "route_identity_key": route_key,
+            "attempt_idempotency_key": route_key,
+        },
+        "causality": {
+            "mas_transition_request_idempotency_key": route_key,
+            "source_generation": fingerprint,
+            "expected_version": fingerprint,
+            "derived_from_request": True,
+        },
+        "authority_boundary": {
+            "runtime_owner": "one-person-lab",
+            "domain_state_owner": "med-autoscience",
+            "mas_can_authorize_provider_admission": False,
+            "mas_can_create_opl_outbox_record": False,
+            "mas_can_create_opl_event": False,
+            "mas_can_create_opl_stage_run": False,
+            "provider_completion_is_domain_completion": False,
+        },
+        "exactly_one_outcome": {
+            "selected": "provider_admission_pending",
+            "allowed": [
+                "provider_admission_pending",
+                "running_provider_attempt",
+                "owner_receipt_ref",
+                "typed_blocker_ref",
+                "human_gate_ref",
+                "route_back_evidence_ref",
+            ],
+        },
+        "projection_metadata": {
+            "authority": False,
+            "projection_owner": "one-person-lab",
+            "consumer": "med-autoscience",
+            "observed_generation": fingerprint,
+        },
     }
 
 

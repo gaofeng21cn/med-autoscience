@@ -28,6 +28,29 @@ def _assert_clean_opl_transition_request(result: dict) -> None:
     assert request["mas_can_create_opl_outbox_record"] is False
     assert request["mas_can_create_opl_event"] is False
     assert request["mas_can_create_opl_stage_run"] is False
+    assert request["provider_admission_requires_opl_readback_shape"] == {
+        "surface_kind": "opl_domain_progress_transition_result",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "required_sections": [
+            "identity",
+            "causality",
+            "authority_boundary",
+            "exactly_one_outcome",
+            "projection_metadata",
+        ],
+        "required_runtime_refs": [
+            "event_id",
+            "outbox_item_id",
+            "stage_run_identity",
+        ],
+        "accepted_outcome_kind": "provider_admission_pending",
+        "deprecated_projection_fields_not_authority": [
+            "stage_run_id",
+            "event_id_without_causality",
+            "outbox_item_id_without_authority_boundary",
+        ],
+    }
     assert OPL_RUNTIME_FIELDS.isdisjoint(request)
 
 
@@ -220,7 +243,11 @@ def test_policy_adapter_non_advancing_apply_requires_typed_blocker_projection() 
 
     assert result["recommended_opl_transition_kind"] == "NonAdvancingApply"
     assert result["policy_outcome_kind"] == "non_advancing_apply_typed_blocker"
-    assert result["paper_policy_verdict"]["typed_blocker_type"] == "non_advancing_apply"
+    assert result["paper_policy_verdict"] == {
+        "verdict": "stable_typed_blocker_required",
+        "typed_blocker_type": "non_advancing_apply",
+        "reason": "fresh_readback_did_not_advance_same_aggregate",
+    }
     assert result["opl_domain_progress_transition_request"]["required_postcondition"]["kind"] == (
         "non_advancing_apply_typed_blocker_ref"
     )

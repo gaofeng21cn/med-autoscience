@@ -49,12 +49,23 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
 
     assert first["receipt_status"] == "transition_request_pending_opl_runtime_required"
     assert first["refs_only"] is True
-    assert first["started_worker"] is False
-    assert first["worker_start_ref"] is None
+    assert "started_worker" not in first
+    assert "worker_start_ref" not in first
+    assert "outbox_item_id" not in first
+    assert "event_id" not in first
+    assert "stage_run_id" not in first
+    assert "stage_run_identity" not in first
     assert first["mas_can_create_opl_outbox_record"] is False
+    assert first["mas_can_create_opl_event"] is False
+    assert first["mas_can_create_opl_stage_run"] is False
+    assert first["provider_admission_authority"] is False
+    assert first["provider_admission_effect"] == "transition_request_pending"
+    assert first["requires_opl_transition_readback"] is True
+    assert first["deprecated_projection_fields_authority"] is False
     assert replay["receipt_status"] == "replayed_transition_request_ref"
     assert replay["receipt_id"] == first["receipt_id"]
-    assert replay["worker_start_ref"] is None
+    assert "started_worker" not in replay
+    assert "worker_start_ref" not in replay
     assert replay["intent_fingerprint"] == first["intent_fingerprint"]
     assert replay["semantic_receipt"] == first["semantic_receipt"]
     assert len(refs.read_transition_refs(study_root=study_root)) == 1
@@ -100,8 +111,8 @@ def test_transition_ref_fails_closed_for_same_idempotency_key_with_different_int
 
     assert conflict["receipt_status"] == "failed_closed"
     assert conflict["fail_closed_reason"] == "idempotency_key_intent_conflict"
-    assert conflict["started_worker"] is False
-    assert conflict["worker_start_ref"] is None
+    assert "started_worker" not in conflict
+    assert "worker_start_ref" not in conflict
     assert conflict["conflicting_receipt_id"] is not None
     assert len(refs.read_transition_refs(study_root=study_root)) == 2
 
@@ -126,11 +137,11 @@ def test_transition_ref_dedupes_same_source_without_worker_start_or_queue_claim(
         recorded_at="2026-05-10T00:01:00+00:00",
     )
 
-    assert first["started_worker"] is False
-    assert first["worker_start_ref"] is None
+    assert "started_worker" not in first
+    assert "worker_start_ref" not in first
     assert duplicate_source["receipt_status"] == "duplicate_source_fingerprint_ref"
-    assert duplicate_source["started_worker"] is False
-    assert duplicate_source["worker_start_ref"] is None
+    assert "started_worker" not in duplicate_source
+    assert "worker_start_ref" not in duplicate_source
     assert duplicate_source["duplicate_of_receipt_id"] == first["receipt_id"]
 
 

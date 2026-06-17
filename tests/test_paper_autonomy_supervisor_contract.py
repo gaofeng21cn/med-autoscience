@@ -275,6 +275,48 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         "mas_transition_request_can_create_success_outcome": False,
         "provider_admission_pending_requires_opl_runtime_result": True,
     }
+    opl_readback = readback["opl_transition_readback_contract"]
+    assert opl_readback["surface_kind"] == "opl_domain_progress_transition_result"
+    assert opl_readback["runtime_owner"] == "one-person-lab"
+    assert opl_readback["runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert opl_readback["provider_admission_outcome_kind"] == "provider_admission_pending"
+    assert opl_readback["required_sections"] == [
+        "identity",
+        "causality",
+        "authority_boundary",
+        "exactly_one_outcome",
+        "projection_metadata",
+    ]
+    assert opl_readback["identity_required_fields"] == [
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key",
+    ]
+    assert opl_readback["causality_required_fields"] == [
+        "mas_transition_request_idempotency_key",
+        "source_generation",
+        "expected_version",
+        "derived_from_request=true",
+    ]
+    assert opl_readback["runtime_refs_required"] == [
+        "event_id",
+        "outbox_item_id",
+        "stage_run_identity.stage_run_id_or_ref",
+    ]
+    assert opl_readback["authority_boundary_required"] == {
+        "runtime_owner": "one-person-lab",
+        "domain_state_owner": "med-autoscience",
+        "mas_can_authorize_provider_admission": False,
+        "mas_can_create_opl_outbox_record": False,
+        "mas_can_create_opl_event": False,
+        "mas_can_create_opl_stage_run": False,
+        "provider_completion_is_domain_completion": False,
+    }
+    assert opl_readback["deprecated_projection_authority"] is False
+    assert opl_readback["request_only_effect"] == "transition_request_pending"
+    assert opl_readback["non_advancing_apply_effect"] == "typed_blocker_ref"
 
 
 def test_opl_foundation_and_mas_authority_split_forbid_read_model_authority() -> None:
