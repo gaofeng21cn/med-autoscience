@@ -47,6 +47,7 @@
       "invocation_steps": [
         "verify_required_input_refs",
         "verify_current_owner_delta_fingerprint",
+        "verify_current_owner_delta_or_human_gate",
         "check_allowed_writes_and_forbidden_authority",
         "invoke_owner_callable_surface",
         "emit_tool_result_envelope",

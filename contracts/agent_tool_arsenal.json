@@ -85,7 +85,8 @@
             "memory_accept_reject",
             "current_package"
           ],
-          "owner_receipt_or_typed_blocker_required": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_required": true,
           "preflight_checks": [
             "confirm_current_owner_delta_matches_card_applicability",
             "verify_required_refs_available",
@@ -188,7 +189,8 @@
             "memory_accept_reject",
             "current_package"
           ],
-          "owner_receipt_or_typed_blocker_required": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_required": true,
           "preflight_checks": [
             "confirm_current_owner_delta_matches_card_applicability",
             "verify_required_refs_available",
@@ -1353,7 +1355,8 @@
             "memory_accept_reject",
             "current_package"
           ],
-          "owner_receipt_or_typed_blocker_required": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_required": true,
           "preflight_checks": [
             "confirm_current_owner_delta_matches_card_applicability",
             "verify_required_refs_available",
@@ -1571,7 +1574,8 @@
             "memory_accept_reject",
             "current_package"
           ],
-          "owner_receipt_or_typed_blocker_required": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_required": true,
           "preflight_checks": [
             "confirm_current_owner_delta_matches_card_applicability",
             "verify_required_refs_available",
@@ -1960,7 +1964,8 @@
             "memory_accept_reject",
             "current_package"
           ],
-          "owner_receipt_or_typed_blocker_required": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_required": true,
           "preflight_checks": [
             "confirm_current_owner_delta_matches_card_applicability",
             "verify_required_refs_available",
@@ -2191,10 +2196,15 @@
       ],
       "artifact_delta_predicate": "medical_paper_readiness_surface_completed_or_stable_blocker_recorded",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "medical_paper_readiness.complete_medical_paper_readiness_surface",
@@ -2332,6 +2342,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -2367,12 +2378,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -2488,10 +2519,15 @@
       "allowed_writes": [],
       "artifact_delta_predicate": "methodology_reframe_route_decision_written",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "decision_owner.methodology_reframe_route_decision",
@@ -2609,6 +2645,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -2644,12 +2681,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -2764,10 +2821,15 @@
       "allowed_writes": [],
       "artifact_delta_predicate": "provenance_limited_audit_or_route_typed_blocker",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "provenance_limited_harmonization_owner.provenance_limited_harmonization_audit_or_typed_blocker",
@@ -2885,6 +2947,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -2920,12 +2983,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -3041,10 +3124,15 @@
       "allowed_writes": [],
       "artifact_delta_predicate": "specific_blocker_targets_materialized",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "publication_gate.write_gate_files+_materialize_publication_eval_latest",
@@ -3162,6 +3250,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -3197,12 +3286,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -3324,10 +3433,15 @@
       ],
       "artifact_delta_predicate": "handoff_owner_receipt_or_typed_blocker_written",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "publication_handoff_owner_gate.evaluate_terminal_handoff",
@@ -3467,6 +3581,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -3503,12 +3618,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -3626,10 +3761,15 @@
       "allowed_writes": [],
       "artifact_delta_predicate": "transport_model_provenance_bundle_or_source_owner_typed_blocker",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "source_provenance_owner.recover_transport_model_provenance_or_typed_blocker",
@@ -3748,6 +3888,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -3784,12 +3925,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -3909,10 +4070,15 @@
       ],
       "artifact_delta_predicate": "ai_reviewer_judgement_updated",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
@@ -4039,6 +4205,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -4076,12 +4243,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -4203,10 +4390,15 @@
       ],
       "artifact_delta_predicate": "external_learning_advisory_refs_written_or_dry_run_projected",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": false
       },
       "callable_surface": "external_learning_sidecar.run_external_learning_sidecar",
@@ -4348,7 +4540,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
@@ -4382,12 +4575,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": false
         },
         "default_invocation": {
@@ -4501,10 +4714,15 @@
       "allowed_writes": [],
       "artifact_delta_predicate": "required_repair_units_or_gate_replay_result",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
@@ -4622,6 +4840,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -4657,12 +4876,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -4786,10 +5025,15 @@
       ],
       "artifact_delta_predicate": "canonical_paper_or_quality_repair_artifact_delta",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "quality_repair_batch.run_quality_repair_batch",
@@ -4930,6 +5174,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -4965,12 +5210,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -5086,10 +5351,15 @@
       "allowed_writes": [],
       "artifact_delta_predicate": "submission_source_or_current_package_freshness_proof",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "study_delivery_sync.sync_study_delivery",
@@ -5207,6 +5477,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -5242,12 +5513,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -5363,10 +5654,15 @@
       "allowed_writes": [],
       "artifact_delta_predicate": "unit_harmonized_rerun_evidence_or_analysis_owner_typed_blocker",
       "authority_boundary": {
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_domain_truth": false,
         "can_write_publication_quality": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "owner_receipt_or_typed_blocker_required": true
       },
       "callable_surface": "analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker",
@@ -5485,6 +5781,7 @@
           "memory_accept_reject",
           "current_package"
         ],
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
@@ -5521,12 +5818,32 @@
           "when": "owner_receipt_or_typed_blocker_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_domain_truth": false,
           "can_write_publication_quality": false,
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "owner_receipt_or_typed_blocker_required": true
         },
         "default_invocation": {
@@ -6157,11 +6474,16 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "can_authorize_provider_admission": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
+        "helper_write_policy": "no_domain_truth_writes",
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false
       },
       "authority_effects": {
         "can_authorize_publication_quality": false,
@@ -6281,7 +6603,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
@@ -6316,6 +6639,21 @@
           "when": "required_refs_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": true,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
           "authoritative_truth_refs": [
@@ -6324,11 +6662,16 @@
             "/publication_eval/latest.json",
             "/controller_decisions/latest.json"
           ],
+          "can_authorize_provider_admission": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "descriptor_projection_owner": "one-person-lab",
           "domain_handler_target_owner": "MedAutoScience",
           "domain_truth_owner": "MedAutoScience",
           "helper_owner": "one-person-lab",
-          "helper_write_policy": "no_domain_truth_writes"
+          "helper_write_policy": "no_domain_truth_writes",
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false
         },
         "default_invocation": {
           "arguments": {
@@ -6455,11 +6798,16 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "can_authorize_provider_admission": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
+        "helper_write_policy": "no_domain_truth_writes",
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false
       },
       "authority_effects": {
         "can_authorize_publication_quality": false,
@@ -6578,7 +6926,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
@@ -6611,6 +6960,21 @@
           "when": "required_refs_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": true,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
           "authoritative_truth_refs": [
@@ -6619,11 +6983,16 @@
             "/publication_eval/latest.json",
             "/controller_decisions/latest.json"
           ],
+          "can_authorize_provider_admission": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "descriptor_projection_owner": "one-person-lab",
           "domain_handler_target_owner": "MedAutoScience",
           "domain_truth_owner": "MedAutoScience",
           "helper_owner": "one-person-lab",
-          "helper_write_policy": "no_domain_truth_writes"
+          "helper_write_policy": "no_domain_truth_writes",
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false
         },
         "default_invocation": {
           "arguments": {
@@ -9618,17 +9987,22 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_readiness": false,
         "can_emit_display_refs_and_receipts": true,
         "can_mutate_data_or_statistics": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_controller_decisions": false,
         "can_write_current_package": false,
         "can_write_publication_eval": false,
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "MedAutoScience",
         "helper_write_policy": "display_artifacts_and_refs_only",
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "surface_authority": "display_pack_render_receipt"
       },
       "authority_effects": {
@@ -9771,7 +10145,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
@@ -9816,6 +10191,21 @@
           "when": "forbidden_authority_or_hard_gate"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
           "authoritative_truth_refs": [
@@ -9824,17 +10214,22 @@
             "/publication_eval/latest.json",
             "/controller_decisions/latest.json"
           ],
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_readiness": false,
           "can_emit_display_refs_and_receipts": true,
           "can_mutate_data_or_statistics": false,
           "can_replace_owner_receipt": false,
           "can_replace_visual_audit": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_controller_decisions": false,
           "can_write_current_package": false,
           "can_write_publication_eval": false,
           "domain_truth_owner": "MedAutoScience",
           "helper_owner": "MedAutoScience",
           "helper_write_policy": "display_artifacts_and_refs_only",
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "surface_authority": "display_pack_render_receipt"
         },
         "default_invocation": {
@@ -10279,11 +10674,14 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "can_authorize_provider_admission": false,
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
         "can_block_current_owner_action": false,
         "can_create_default_selector": false,
         "can_launch_external_runtime": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "can_write_controller_decisions": false,
         "can_write_current_package": false,
         "can_write_owner_receipt": false,
@@ -10292,6 +10690,8 @@
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "refs_only_capability_invocation",
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "surface_authority": "current_delta_bound_capability_resolver"
       },
       "authority_effects": {
@@ -10420,7 +10820,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
@@ -10459,6 +10860,21 @@
           "when": "forbidden_authority_or_hard_gate"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
           "authoritative_truth_refs": [
@@ -10467,11 +10883,14 @@
             "/publication_eval/latest.json",
             "/controller_decisions/latest.json"
           ],
+          "can_authorize_provider_admission": false,
           "can_authorize_publication_quality": false,
           "can_authorize_submission_readiness": false,
           "can_block_current_owner_action": false,
           "can_create_default_selector": false,
           "can_launch_external_runtime": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "can_write_controller_decisions": false,
           "can_write_current_package": false,
           "can_write_owner_receipt": false,
@@ -10480,6 +10899,8 @@
           "domain_truth_owner": "MedAutoScience",
           "helper_owner": "one-person-lab",
           "helper_write_policy": "refs_only_capability_invocation",
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "surface_authority": "current_delta_bound_capability_resolver"
         },
         "default_invocation": {
@@ -11427,11 +11848,16 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "can_authorize_provider_admission": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes"
+        "helper_write_policy": "no_domain_truth_writes",
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false
       },
       "authority_effects": {
         "can_authorize_publication_quality": false,
@@ -11554,7 +11980,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
@@ -11587,6 +12014,21 @@
           "when": "required_refs_missing"
         }
       ],
+      "non_read_only_gate": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_start_worker_attempt": false,
+        "can_substitute_owner_receipt": false,
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
+        "requires_current_owner_delta": true,
+        "requires_current_owner_delta_match": true,
+        "requires_human_gate": false,
+        "requires_human_gate_or_owner_delta": true,
+        "requires_owner_receipt_or_typed_blocker_proof": true,
+        "surface_kind": "mas_agent_tool_non_read_only_gate"
+      },
       "operational": {
         "authority_boundary": {
           "authoritative_truth_refs": [
@@ -11595,11 +12037,16 @@
             "/publication_eval/latest.json",
             "/controller_decisions/latest.json"
           ],
+          "can_authorize_provider_admission": false,
+          "can_start_worker_attempt": false,
+          "can_substitute_owner_receipt": false,
           "descriptor_projection_owner": "one-person-lab",
           "domain_handler_target_owner": "MedAutoScience",
           "domain_truth_owner": "MedAutoScience",
           "helper_owner": "MedAutoScience",
-          "helper_write_policy": "no_domain_truth_writes"
+          "helper_write_policy": "no_domain_truth_writes",
+          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false
         },
         "default_invocation": {
           "arguments": {
@@ -12069,7 +12516,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
@@ -12169,7 +12617,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
@@ -13304,7 +13753,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
@@ -13516,7 +13966,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
@@ -13893,7 +14344,8 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "owner_receipt_or_typed_blocker_required": false,
+        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "owner_receipt_or_typed_blocker_required": true,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
