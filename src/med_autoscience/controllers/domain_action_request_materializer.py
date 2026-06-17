@@ -16,6 +16,7 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
     two_layer_ai_repair_policy_payload,
 )
 from med_autoscience.controllers.owner_callable_adapter_projection import (
+    domain_progress_transition_requests,
     with_owner_callable_adapter_projection,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
@@ -1147,6 +1148,17 @@ def _dispatch_status_count(dispatches: list[dict[str, Any]], status: str) -> int
     return sum(_text(dispatch.get("dispatch_status")) == status for dispatch in dispatches)
 
 
+def _domain_progress_transition_request_projection(dispatches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    records = domain_progress_transition_requests({"owner_callable_adapters": dispatches})
+    for record in records:
+        record["projection_source"] = "domain_action_request_materializer"
+        record["legacy_owner_callable_adapter_readback"] = False
+        record["domain_intent_producer"] = "med_autoscience.paper_progress_policy_adapter"
+        record["durable_carrier_owner"] = TARGET_RUNTIME_OWNER
+        record["opl_transition_runtime_required_for_durable_carrier"] = True
+    return records
+
+
 def current_owner_callable_adapters(
     *,
     profile: WorkspaceProfile,
@@ -1251,6 +1263,7 @@ def materialize_domain_action_requests(
         request_tasks=request_tasks,
         owner_callable_adapters=owner_callable_adapters,
     )
+    transition_requests = _domain_progress_transition_request_projection(owner_callable_adapters)
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
     ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
@@ -1285,8 +1298,15 @@ def materialize_domain_action_requests(
             else None
         ),
         "owner_callable_adapter_list_role": "legacy_transition_request_projection_list",
+        "owner_callable_adapter_list_deprecated": True,
+        "owner_callable_adapter_list_deprecated_reason": (
+            "domain_progress_transition_requests is the canonical MAS->OPL transition request readback"
+        ),
         "owner_callable_adapters_are_transition_request_projections": True,
         "mas_creates_owner_callable_carrier": False,
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "domain_progress_transition_request_count": len(transition_requests),
+        "domain_progress_transition_requests": transition_requests,
         "runtime_control_owner": "one-person-lab",
         "target_runtime_owner": TARGET_RUNTIME_OWNER,
         "adapter_kind": OWNER_CALLABLE_ADAPTER_KIND,

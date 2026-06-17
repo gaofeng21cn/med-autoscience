@@ -23,6 +23,7 @@ from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUT
 from med_autoscience.controllers.owner_callable_adapter_projection import (
     adapter_count,
     adapter_status_count,
+    domain_progress_transition_requests,
     owner_callable_adapters,
     with_owner_callable_adapter_projection,
 )
@@ -298,7 +299,7 @@ def _same_tick_current_dispatch_identities(iteration: Mapping[str, Any]) -> list
     identities.extend(
         identity
         for identity in _same_tick_action_identities(
-            owner_callable_adapters(_mapping(iteration.get("materialize"))),
+            domain_progress_transition_requests(_mapping(iteration.get("materialize"))),
         )
         if _same_tick_identity_has_currentness_anchor(identity)
     )

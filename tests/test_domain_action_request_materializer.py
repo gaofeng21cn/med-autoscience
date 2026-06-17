@@ -942,6 +942,26 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
 
     dispatches = result["owner_callable_adapters"]
     assert result["target_runtime_owner"] == "one-person-lab"
+    assert result["canonical_transition_request_surface"] == "domain_progress_transition_requests"
+    assert result["owner_callable_adapter_list_deprecated"] is True
+    assert result["domain_progress_transition_request_count"] == 2
+    transition_requests = result["domain_progress_transition_requests"]
+    assert [item["action_type"] for item in transition_requests] == [
+        "current_package_freshness_required",
+        "return_to_ai_reviewer_workflow",
+    ]
+    assert transition_requests[0]["dispatch_status"] == "transition_request_pending"
+    assert transition_requests[0]["legacy_owner_callable_adapter_readback"] is False
+    assert transition_requests[0]["durable_carrier_owner"] == "one-person-lab"
+    assert transition_requests[0]["mas_creates_owner_callable_carrier"] is False
+    assert transition_requests[0]["mas_creates_opl_outbox"] is False
+    assert transition_requests[0]["mas_creates_opl_event"] is False
+    assert transition_requests[0]["mas_creates_opl_stage_run"] is False
+    assert transition_requests[0]["provider_admission_pending"] is False
+    assert transition_requests[0]["provider_admission_requires_opl_runtime_result"] is True
+    assert transition_requests[0]["opl_domain_progress_transition_request"]["surface_kind"] == (
+        "mas_domain_progress_transition_request"
+    )
     assert result["mas_dispatch_authority"] is False
     assert result["mas_creates_opl_outbox"] is False
     assert result["mas_creates_opl_event"] is False

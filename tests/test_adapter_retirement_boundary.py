@@ -422,6 +422,68 @@ def test_owner_callable_projection_does_not_accept_legacy_dispatch_alias() -> No
         },
         "ready",
     ) == 0
+    assert projection.domain_progress_transition_requests(
+        {
+            "default_executor_dispatches": [
+                {
+                    "dispatch_status": "ready",
+                    "action_type": "legacy_dispatch",
+                    "opl_domain_progress_transition_request": {
+                        "surface_kind": "mas_domain_progress_transition_request",
+                    },
+                },
+            ],
+        }
+    ) == []
+
+
+def test_owner_callable_projection_derives_canonical_transition_requests_from_explicit_readback() -> None:
+    projection = importlib.import_module("med_autoscience.controllers.owner_callable_adapter_projection")
+
+    payload = {
+        "owner_callable_adapters": [
+            {
+                "study_id": "study-1",
+                "quest_id": "quest-1",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "repair-work",
+                "work_unit_fingerprint": "fingerprint-1",
+                "dispatch_status": "transition_request_pending",
+                "target_runtime_owner": "one-person-lab",
+                "refs": {
+                    "dispatch_path": (
+                        "artifacts/supervision/consumer/default_executor_dispatches/"
+                        "run_quality_repair_batch.json"
+                    )
+                },
+                "opl_domain_progress_transition_request": {
+                    "surface_kind": "mas_domain_progress_transition_request",
+                    "study_id": "study-1",
+                    "quest_id": "quest-1",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "repair-work",
+                    "work_unit_fingerprint": "fingerprint-1",
+                },
+            }
+        ]
+    }
+
+    requests = projection.domain_progress_transition_requests(payload)
+
+    assert len(requests) == 1
+    assert requests[0]["surface"] == "mas_domain_progress_transition_request_projection"
+    assert requests[0]["projection_source"] == "legacy_owner_callable_adapter_readback"
+    assert requests[0]["legacy_owner_callable_adapter_readback"] is True
+    assert requests[0]["study_id"] == "study-1"
+    assert requests[0]["action_type"] == "run_quality_repair_batch"
+    assert requests[0]["work_unit_fingerprint"] == "fingerprint-1"
+    assert requests[0]["mas_dispatch_authority"] is False
+    assert requests[0]["mas_creates_owner_callable_carrier"] is False
+    assert requests[0]["mas_creates_opl_outbox"] is False
+    assert requests[0]["provider_admission_pending"] is False
+    assert requests[0]["provider_admission_requires_opl_runtime_result"] is True
+    projected = projection.with_owner_callable_adapter_projection(payload)
+    assert projected["domain_progress_transition_request_count"] == 1
 
 
 def test_current_default_executor_dispatch_preview_api_is_physically_retired() -> None:
