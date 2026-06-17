@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -220,6 +221,94 @@ def _quality_repair_current_work_unit(*, study_id: str, fingerprint: str, status
     }
 
 
+def _write_transition_runtime_log(
+    study_root,
+    *,
+    study_id: str,
+    work_unit_id: str,
+    fingerprint: str,
+    idempotency_key: str,
+    source_generation: str = "truth::current",
+) -> None:
+    log_path = (
+        study_root.parents[1]
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "domain_progress_transition_runtime"
+        / "command_event_log.jsonl"
+    )
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    aggregate_identity = {
+        "aggregate_kind": "study_work_unit",
+        "aggregate_id": f"{study_id}::{work_unit_id}",
+        "study_id": study_id,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+    }
+    stage_run_identity = {
+        "stage_run_id": f"stage-run:{study_id}:{work_unit_id}",
+        "route_identity_key": idempotency_key,
+        "attempt_idempotency_key": idempotency_key,
+        "provider_attempt_ref": f"opl://provider-admission/{study_id}/{idempotency_key}",
+        "attempt_lease_ref": f"opl://attempt-leases/{idempotency_key}",
+        "source_generation": source_generation,
+    }
+    transaction_id = "dptx_test_log_readback"
+    command_id = "dptc_test_log_readback"
+    event_id = "dpte_test_log_readback"
+    outbox_item_id = "dpto_test_log_readback"
+    entries = [
+        {
+            "entry_kind": "command",
+            "transaction_id": transaction_id,
+            "idempotency_key": idempotency_key,
+            "aggregate_identity": aggregate_identity,
+            "payload": {
+                "transition_kind": "StartProviderAttempt",
+                "command_id": command_id,
+                "source_generation": source_generation,
+                "expected_version": source_generation,
+                "stage_run_identity": stage_run_identity,
+            },
+        },
+        {
+            "entry_kind": "event",
+            "transaction_id": transaction_id,
+            "idempotency_key": idempotency_key,
+            "aggregate_identity": aggregate_identity,
+            "payload": {
+                "transition_kind": "StartProviderAttempt",
+                "command_id": command_id,
+                "event_id": event_id,
+                "source_generation": source_generation,
+                "expected_version": source_generation,
+                "stage_run_identity": stage_run_identity,
+                "outcome": {
+                    "kind": "provider_admission_enqueued_or_blocked",
+                    "stable_outcome": True,
+                },
+            },
+        },
+        {
+            "entry_kind": "outbox_item",
+            "transaction_id": transaction_id,
+            "idempotency_key": idempotency_key,
+            "aggregate_identity": aggregate_identity,
+            "payload": {
+                "outbox_item_id": outbox_item_id,
+                "transition_event_id": event_id,
+                "outbox_kind": "start_provider_attempt",
+                "stage_run_identity": stage_run_identity,
+            },
+        },
+    ]
+    log_path.write_text(
+        "\n".join(json.dumps(entry, sort_keys=True) for entry in entries) + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_provider_admission_projection_clears_candidates_under_typed_blocker(tmp_path) -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
@@ -393,6 +482,118 @@ def test_provider_admission_projection_execute_decision_allows_current_candidate
 
     assert fields["provider_admission_pending_count"] == 1
     assert fields["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
+
+
+def test_provider_admission_projection_materialize_recovery_action_allows_log_readback(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_ready_quality_repair_dispatch(study_root, study_id=study_id, fingerprint=fingerprint)
+    payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "owner_action_ready",
+            "next_safe_action": {
+                "kind": "materialize_successor_owner_action",
+                "owner": "write",
+                "provider_admission_requires_opl_runtime_result": True,
+                "successor_owner_action": {
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+            "supervisor_decision": _supervisor_decision(
+                "materialize_recovery_action",
+                study_id=study_id,
+                fingerprint=fingerprint,
+            ),
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "next_owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+        },
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "executable_owner_action",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "state": {
+                "state_kind": "executable_owner_action",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "provider_admission_pending": False,
+            },
+            "currentness_basis": {
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "truth_epoch": "truth::current",
+                "runtime_health_epoch": "runtime::current",
+            },
+        },
+    }
+    handoff = {
+        "surface_kind": "opl_current_control_state_study_handoff",
+        "source_path": "/tmp/opl_current_control_state/latest.json",
+        "running_provider_attempt": False,
+        "action_queue": [],
+    }
+    current_control = module._current_control_payload_for_provider_admission(
+        payload=payload,
+        handoff=handoff,
+    )
+    candidates = provider_admission.current_control_provider_admission_candidates(
+        current_control,
+        study_root=study_root,
+        status_payload=payload,
+        current_control_ref=handoff["source_path"],
+    )
+    assert len(candidates) == 1
+    request = candidates[0]["opl_domain_progress_transition_request"]
+    _write_transition_runtime_log(
+        study_root,
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+        fingerprint=fingerprint,
+        idempotency_key=request["idempotency_key"],
+    )
+
+    fields = module.provider_admission_projection_fields(
+        payload=payload,
+        handoff=handoff,
+        study_root=study_root,
+    )
+
+    assert fields["provider_admission_pending_count"] == 1
+    assert fields.get("provider_admission_blocked_by_supervisor_decision") is None
+    candidate = fields["provider_admission_candidates"][0]
+    assert candidate["opl_transition_readback_source"] == "opl_domain_progress_transition_runtime_log"
+    assert candidate["opl_domain_progress_transition_result"]["event_id"] == "dpte_test_log_readback"
 
 
 def test_provider_admission_projection_materializes_gate_followthrough_owner_action_without_pending_flag(

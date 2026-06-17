@@ -165,6 +165,8 @@ def _suppress_active_provider_admission_projection(
     *,
     blocked_by: str = "paper_recovery_state",
 ) -> None:
+    if _has_opl_transition_runtime_log_provider_admission(payload):
+        return
     if _has_identity_bound_handoff_provider_admission(payload):
         return
     candidates = [
@@ -208,6 +210,23 @@ def _has_identity_bound_handoff_provider_admission(payload: Mapping[str, Any]) -
         return False
     return any(
         _same_action_identity(candidate, current_action) or _same_action_identity(candidate, current_work_unit)
+        for candidate in payload.get("provider_admission_candidates") or []
+        if isinstance(candidate, Mapping)
+    )
+
+
+def _has_opl_transition_runtime_log_provider_admission(payload: Mapping[str, Any]) -> bool:
+    if int(payload.get("provider_admission_pending_count") or 0) <= 0:
+        return False
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+        return False
+    return any(
+        _non_empty_text(candidate.get("opl_transition_readback_source"))
+        == "opl_domain_progress_transition_runtime_log"
+        and candidate.get("provider_admission_pending") is True
+        and (_same_action_identity(candidate, current_action) or _same_action_identity(candidate, current_work_unit))
         for candidate in payload.get("provider_admission_candidates") or []
         if isinstance(candidate, Mapping)
     )
@@ -269,7 +288,7 @@ def _paper_recovery_allows_provider_admission(
     if phase in {"admission_pending", "attempt_running"}:
         return True
     if phase == "owner_action_ready":
-        return False
+        return next_safe_action.get("provider_admission_allowed") is True
     return False
 
 

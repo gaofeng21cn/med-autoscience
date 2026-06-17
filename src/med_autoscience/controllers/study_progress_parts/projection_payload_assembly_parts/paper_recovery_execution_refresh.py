@@ -76,6 +76,8 @@ def normalize_paper_recovery_execution_projection(
         study_root=study_root,
     )
     refreshed.update(final_provider_fields)
+    if "provider_admission_blocked_by_supervisor_decision" not in final_provider_fields:
+        refreshed = _without_stale_provider_supervisor_block(refreshed)
     refreshed = sync_progress_first_owner_action_admission(refreshed)
     refreshed["paper_recovery_execution_projection"] = {
         "surface_kind": "paper_recovery_execution_projection",

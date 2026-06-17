@@ -41,6 +41,7 @@ _STAGE_RUN_EVIDENCE_MARKERS = (
     "provider_attempt",
     "workflow",
 )
+_OPL_TRANSITION_READBACK_SOURCE = "opl_domain_progress_transition_runtime_log"
 
 
 def supervisor_decision_for_projection(
@@ -145,6 +146,11 @@ def _supervisor_decision_allows_provider_admission_materialization(
     if _text(supervisor_decision.get("decision")) != "materialize_recovery_action":
         return False
     recovery = _mapping(paper_recovery_state) or _mapping(payload.get("paper_recovery_state"))
+    if _payload_has_opl_transition_runtime_log_readback(
+        payload,
+        supervisor_decision=supervisor_decision,
+    ):
+        return True
     if _payload_has_opl_transition_readback(payload):
         return _text(recovery.get("phase")) == "admission_pending"
     next_safe_action = _mapping(recovery.get("next_safe_action"))
@@ -160,6 +166,44 @@ def _supervisor_decision_allows_provider_admission_materialization(
         "admit_provider_attempt",
         "admit_identity_bound_stage_packet",
     }
+
+
+def _payload_has_opl_transition_runtime_log_readback(
+    payload: Mapping[str, Any],
+    *,
+    supervisor_decision: Mapping[str, Any],
+) -> bool:
+    obligation = _mapping(supervisor_decision.get("paper_autonomy_obligation"))
+    return any(
+        _candidate_has_matching_runtime_log_readback(
+            item,
+            obligation=obligation,
+        )
+        for field in ("provider_admission_candidates", "transition_request_candidates")
+        for item in payload.get(field) or []
+        if isinstance(item, Mapping)
+    )
+
+
+def _candidate_has_matching_runtime_log_readback(
+    candidate: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> bool:
+    if _text(candidate.get("opl_transition_readback_source")) != _OPL_TRANSITION_READBACK_SOURCE:
+        return False
+    if not _has_opl_transition_readback(candidate):
+        return False
+    result = _mapping(candidate.get("opl_domain_progress_transition_result"))
+    identity = _mapping(result.get("identity"))
+    if not identity:
+        return False
+    return (
+        _same_text(identity.get("study_id"), obligation.get("study_id"))
+        and _same_text(candidate.get("action_type"), obligation.get("action_type"))
+        and _same_text(identity.get("work_unit_id"), obligation.get("work_unit_id"))
+        and _same_text(identity.get("work_unit_fingerprint"), obligation.get("work_unit_fingerprint"))
+    )
 
 
 def _payload_has_opl_transition_readback(payload: Mapping[str, Any]) -> bool:
@@ -233,6 +277,12 @@ def _text_items(value: object) -> list[str]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _same_text(left: object, right: object) -> bool:
+    left_text = _text(left)
+    right_text = _text(right)
+    return left_text is not None and right_text is not None and left_text == right_text
 
 
 __all__ = [

@@ -6,6 +6,7 @@ from typing import Any, Mapping
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     has_opl_transition_readback as _has_opl_transition_readback,
+    opl_transition_readback_from_log_file as _opl_transition_readback_from_log_file,
 )
 from med_autoscience.controllers.current_work_unit import action_supersedes_typed_blocker
 
@@ -19,6 +20,7 @@ _REQUEST_ONLY_OWNER_ACTION_SOURCES = {
     "gate_clearing_batch_followthrough.actionable_current_work_unit",
     "paper_recovery_state.next_safe_action.successor_owner_action",
 }
+_OPL_TRANSITION_READBACK_SOURCE = "opl_domain_progress_transition_runtime_log"
 
 
 def provider_admission_projection_fields(
@@ -47,9 +49,12 @@ def provider_admission_projection_fields(
         or _non_empty_text(handoff.get("source_path")),
     )
     transition_request_candidates = [
-        _transition_request_only_candidate(candidate)
-        if _request_only_owner_action_candidate(candidate)
-        else dict(candidate)
+        _candidate_with_opl_runtime_readback(
+            _transition_request_only_candidate(candidate)
+            if _request_only_owner_action_candidate(candidate)
+            else dict(candidate),
+            study_root=study_root,
+        )
         for candidate in candidates
     ]
     provider_admission_candidates = [
@@ -85,6 +90,8 @@ def provider_admission_projection_fields(
 
 
 def _request_only_owner_action_candidate(candidate: Mapping[str, Any]) -> bool:
+    if _non_empty_text(candidate.get("opl_transition_readback_source")) == _OPL_TRANSITION_READBACK_SOURCE:
+        return False
     basis = _mapping_copy(candidate.get("currentness_basis"))
     source_refs = _mapping_copy(candidate.get("source_refs"))
     source = (
@@ -94,6 +101,78 @@ def _request_only_owner_action_candidate(candidate: Mapping[str, Any]) -> bool:
         or _non_empty_text(basis.get("source"))
     )
     return source in _REQUEST_ONLY_OWNER_ACTION_SOURCES
+
+
+def _candidate_with_opl_runtime_readback(
+    candidate: Mapping[str, Any],
+    *,
+    study_root: Path,
+) -> dict[str, Any]:
+    payload = dict(candidate)
+    request = _transition_request(payload)
+    idempotency_key = _non_empty_text(request.get("idempotency_key"))
+    study_id = _non_empty_text(payload.get("study_id")) or _non_empty_text(request.get("study_id"))
+    work_unit_id = _non_empty_text(payload.get("work_unit_id")) or _non_empty_text(
+        request.get("work_unit_id")
+    )
+    work_unit_fingerprint = (
+        _non_empty_text(payload.get("work_unit_fingerprint"))
+        or _non_empty_text(payload.get("action_fingerprint"))
+        or _non_empty_text(request.get("work_unit_fingerprint"))
+    )
+    if _has_opl_transition_readback(payload) and (
+        idempotency_key is None
+        or study_id is None
+        or work_unit_id is None
+        or work_unit_fingerprint is None
+    ):
+        return payload
+    if (
+        idempotency_key is None
+        or study_id is None
+        or work_unit_id is None
+        or work_unit_fingerprint is None
+    ):
+        return payload
+    readback = _opl_transition_readback_from_log_file(
+        _opl_transition_log_path(study_root),
+        idempotency_key=idempotency_key,
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+    )
+    if not readback:
+        return payload
+    payload["opl_domain_progress_transition_result"] = readback
+    payload["opl_transition_readback_source"] = _OPL_TRANSITION_READBACK_SOURCE
+    payload["status"] = "provider_admission_pending"
+    payload["provider_admission_pending"] = True
+    payload["provider_attempt_or_lease_required"] = True
+    payload["provider_admission_requires_opl_runtime_result"] = False
+    return payload
+
+
+def _transition_request(candidate: Mapping[str, Any]) -> Mapping[str, Any]:
+    request = _mapping_copy(candidate.get("opl_domain_progress_transition_request"))
+    if request:
+        return request
+    return _mapping_copy(
+        _mapping_copy(candidate.get("paper_progress_policy_result")).get(
+            "opl_domain_progress_transition_request"
+        )
+    )
+
+
+def _opl_transition_log_path(study_root: Path) -> Path:
+    workspace_root = Path(study_root).expanduser().resolve().parents[1]
+    return (
+        workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "domain_progress_transition_runtime"
+        / "command_event_log.jsonl"
+    )
 
 
 def _transition_request_only_candidate(candidate: Mapping[str, Any]) -> dict[str, Any]:
