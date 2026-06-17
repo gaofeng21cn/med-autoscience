@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib
 from pathlib import Path
 
 
@@ -103,6 +104,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "worker_lease_residency_projection",
         "domain_authority_refs_index",
         "default_executor_dispatch_request",
+        "domain_action_request_materializer_local_carrier_persistence_api",
     }
     for surface in surfaces.values():
         assert surface["generic_runtime_owner"] == "one-person-lab"
@@ -112,7 +114,43 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "runtime_transport_core_bridge",
             "runtime_turn_runner_closeout_adapter",
             "worker_lease_residency_projection",
+            "domain_action_request_materializer_local_carrier_persistence_api",
         }:
             assert surface["active_caller_migrated"] is True
             assert surface["current_disposition"] == "physically_retired"
         assert "mas_owned_generic_runtime" in surface["forbidden_claims"]
+
+    carrier_persistence = surfaces["domain_action_request_materializer_local_carrier_persistence_api"]
+    assert carrier_persistence["retained_mas_role"] == "none_physically_retired_no_alias"
+    assert carrier_persistence["replacement_surface"] == (
+        "owner_callable_adapters plus OPL DomainProgressTransitionRuntime durable carrier"
+    )
+    assert set(carrier_persistence["retired_symbols"]) == {
+        "persist_default_executor_dispatches",
+        "persist_request_packets",
+        "persist_consumer_payload",
+        "request_packet_for_persistence",
+        "medical_paper_readiness_packet_for_persistence",
+        "source_workflow_ref_for_ai_reviewer_request",
+    }
+    assert "mas_local_dispatch_carrier_persistence" in carrier_persistence["forbidden_claims"]
+    assert "mas_local_request_packet_persistence" in carrier_persistence["forbidden_claims"]
+
+
+def test_materializer_local_carrier_persistence_api_is_physically_retired() -> None:
+    persistence = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.persistence"
+    )
+
+    for symbol in (
+        "persist_default_executor_dispatches",
+        "persist_request_packets",
+        "persist_consumer_payload",
+        "request_packet_for_persistence",
+        "medical_paper_readiness_packet_for_persistence",
+        "source_workflow_ref_for_ai_reviewer_request",
+    ):
+        assert not hasattr(persistence, symbol), symbol
+
+    assert hasattr(persistence, "read_json_object")
+    assert hasattr(persistence, "write_json")
