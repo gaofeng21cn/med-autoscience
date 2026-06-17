@@ -29,7 +29,11 @@ def provider_admission_projection_fields(
     handoff: Mapping[str, Any],
     study_root: Path,
 ) -> dict[str, Any]:
-    handoff_fields = _identity_bound_handoff_provider_admission_fields(handoff=handoff, payload=payload)
+    handoff_fields = _identity_bound_handoff_provider_admission_fields(
+        handoff=handoff,
+        payload=payload,
+        study_root=study_root,
+    )
     if handoff_fields is not None:
         return handoff_fields
     if _handoff_typed_blocker_consumes_current_action(payload=payload, handoff=handoff):
@@ -153,9 +157,10 @@ def _identity_bound_handoff_provider_admission_fields(
     *,
     handoff: Mapping[str, Any],
     payload: Mapping[str, Any],
+    study_root: Path,
 ) -> dict[str, Any] | None:
     candidates = [
-        dict(item)
+        _candidate_with_opl_runtime_readback(dict(item), study_root=study_root)
         for item in handoff.get("provider_admission_candidates") or []
         if isinstance(item, Mapping)
         and _has_opl_transition_readback(item)
@@ -165,7 +170,10 @@ def _identity_bound_handoff_provider_admission_fields(
         return None
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
-    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+    if _non_empty_text(current_work_unit.get("status")) not in {
+        "executable_owner_action",
+        "owner_receipt_recorded",
+    }:
         return None
     matching = [
         item
@@ -177,6 +185,8 @@ def _identity_bound_handoff_provider_admission_fields(
     return {
         "provider_admission_pending_count": len(matching),
         "provider_admission_candidates": matching,
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
     }
 
 

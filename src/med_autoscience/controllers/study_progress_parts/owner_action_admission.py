@@ -60,6 +60,7 @@ def build_owner_action_admission_projection(
         "allowed_actions": allowed_actions,
         "admission_policy": "hard_gate_only_progress_first",
         "provider_attempt_owner": _text(handoff.get("next_owner")) or owner or "one-person-lab",
+        "admission_authority_boundary": admission_authority_boundary(),
         "observability_diagnostics": _observability_diagnostics(
             stage_progress_log=stage_progress_log,
             latest_terminal_stage_log=latest_terminal_stage_log,
@@ -71,6 +72,27 @@ def build_owner_action_admission_projection(
             "can_authorize_quality_verdict": False,
             "can_authorize_publication_ready": False,
         },
+    }
+
+
+def admission_authority_boundary() -> dict[str, Any]:
+    return {
+        "surface_role": "mas_policy_admission_projection",
+        "mas_role": "owner_action_policy_projection_and_monitoring",
+        "runtime_owner": "one-person-lab",
+        "provider_admission_authority_owner": "one-person-lab",
+        "admission_requested_is_authority": False,
+        "admission_pending_requires_opl_readback": True,
+        "provider_attempt_running_requires_opl_liveness_proof": True,
+        "can_authorize_provider_admission": False,
+        "can_start_provider_attempt": False,
+        "can_create_attempt": False,
+        "can_create_outbox_record": False,
+        "can_generate_next_action": False,
+        "can_claim_runtime_currentness": False,
+        "can_claim_stage_progress": False,
+        "missing_candidate_outcome": "provider_admission_candidate_absent",
+        "replacement_owner_surface": "OPL DomainProgressTransitionRuntime / StageRun provider admission",
     }
 
 

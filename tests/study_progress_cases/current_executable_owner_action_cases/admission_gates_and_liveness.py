@@ -159,6 +159,13 @@ def test_progress_first_monitoring_distinguishes_admission_request_from_running_
         "active_run_id": None,
         "active_workflow_id": "wf-running",
     }
+    boundary = admission["admission_authority_boundary"]
+    assert boundary["runtime_owner"] == "one-person-lab"
+    assert boundary["provider_admission_authority_owner"] == "one-person-lab"
+    assert boundary["provider_attempt_running_requires_opl_liveness_proof"] is True
+    assert boundary["can_authorize_provider_admission"] is False
+    assert boundary["can_start_provider_attempt"] is False
+    assert boundary["can_claim_runtime_currentness"] is False
 
 def test_progress_first_monitoring_keeps_stale_active_run_id_out_of_running_fields() -> None:
     module = importlib.import_module(
@@ -327,6 +334,8 @@ def test_progress_first_monitoring_keeps_running_provider_proof_when_handoff_ide
     admission = monitoring["owner_action_admission"]
     assert admission["provider_attempt_running_proven"] is True
     assert admission["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-current"
+    assert admission["admission_authority_boundary"]["admission_requested_is_authority"] is False
+    assert admission["admission_authority_boundary"]["can_claim_stage_progress"] is False
 
 
 __all__ = [name for name in globals() if name.startswith("test_")]

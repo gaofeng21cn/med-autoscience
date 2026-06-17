@@ -45,6 +45,24 @@ def test_sync_progress_first_owner_action_admission_suppresses_stale_identity() 
     assert admission["provider_attempt_start_requested"] is False
     assert admission["blocked_by"] == "current_execution_identity_mismatch"
     assert admission["stale_admission_suppressed"] is True
+    assert admission["admission_authority_boundary"] == {
+        "surface_role": "mas_policy_admission_projection",
+        "mas_role": "owner_action_policy_projection_and_monitoring",
+        "runtime_owner": "one-person-lab",
+        "provider_admission_authority_owner": "one-person-lab",
+        "admission_requested_is_authority": False,
+        "admission_pending_requires_opl_readback": True,
+        "provider_attempt_running_requires_opl_liveness_proof": True,
+        "can_authorize_provider_admission": False,
+        "can_start_provider_attempt": False,
+        "can_create_attempt": False,
+        "can_create_outbox_record": False,
+        "can_generate_next_action": False,
+        "can_claim_runtime_currentness": False,
+        "can_claim_stage_progress": False,
+        "missing_candidate_outcome": "provider_admission_candidate_absent",
+        "replacement_owner_surface": "OPL DomainProgressTransitionRuntime / StageRun provider admission",
+    }
     monitoring = result["progress_first_monitoring_summary"]["owner_action_admission"]
     assert monitoring == admission
 
@@ -113,4 +131,16 @@ def test_sync_progress_first_owner_action_admission_rebuilds_after_provider_cand
     assert admission["provider_attempt_running_proven"] is False
     assert admission["candidate_present"] is False
     assert admission["blocked_by"] == "provider_admission_candidate_absent"
+    boundary = admission["admission_authority_boundary"]
+    assert boundary["surface_role"] == "mas_policy_admission_projection"
+    assert boundary["admission_requested_is_authority"] is False
+    assert boundary["admission_pending_requires_opl_readback"] is True
+    assert boundary["provider_attempt_running_requires_opl_liveness_proof"] is True
+    assert boundary["can_authorize_provider_admission"] is False
+    assert boundary["can_start_provider_attempt"] is False
+    assert boundary["can_create_outbox_record"] is False
+    assert boundary["can_generate_next_action"] is False
+    assert boundary["replacement_owner_surface"] == (
+        "OPL DomainProgressTransitionRuntime / StageRun provider admission"
+    )
     assert result["progress_first_monitoring_summary"]["owner_action_admission"] == admission

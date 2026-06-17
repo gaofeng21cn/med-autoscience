@@ -86,7 +86,7 @@ def opl_transition_readback(
         "latest_outbox_item_id": outbox_item_id,
         "latest_transaction_id": transaction_id,
         "transition_kind": "StartProviderAttempt",
-        "outcome_kind": "provider_admission_accepted",
+        "outcome_kind": "provider_admission_enqueued_or_blocked",
     }
     causality = {
         "surface_kind": "opl_domain_progress_transition_causality",
@@ -123,7 +123,7 @@ def opl_transition_readback(
         "exactly_one_transition": True,
         "transition_count": 1,
         "transition_kind": "StartProviderAttempt",
-        "outcome_kind": "provider_admission_accepted",
+        "outcome_kind": "provider_admission_enqueued_or_blocked",
         "stable_outcome": True,
         "non_advancing_apply": False,
         "fail_closed": False,

@@ -562,6 +562,106 @@ def test_provider_admission_projection_materialize_recovery_action_requires_live
     assert "opl_domain_progress_transition_result" not in candidate
 
 
+def test_provider_admission_projection_keeps_handoff_live_readback_for_successor_after_owner_receipt(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    readback = _opl_transition_result(
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+        fingerprint=fingerprint,
+    )
+    handoff = {
+        "surface_kind": "opl_current_control_state_study_handoff",
+        "source_path": "/tmp/opl_current_control_state/latest.json",
+        "running_provider_attempt": False,
+        "provider_admission_pending_count": 1,
+        "provider_admission_candidates": [
+            {
+                "source": "opl_current_control_state.provider_admission_candidates",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "status": "provider_admission_pending",
+                "next_executable_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "provider_attempt_or_lease_required": True,
+                "opl_domain_progress_transition_runtime_live_readback": readback,
+            }
+        ],
+        "action_queue": [],
+    }
+    payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "owner_receipt_recorded",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "state": {
+                "state_kind": "owner_receipt_recorded",
+                "provider_admission_pending": False,
+            },
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "next_owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+        },
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "owner_action_ready",
+            "next_safe_action": {
+                "kind": "materialize_successor_owner_action",
+                "owner": "write",
+                "provider_admission_allowed": True,
+                "successor_owner_action": {
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+        },
+    }
+
+    fields = module.provider_admission_projection_fields(
+        payload=payload,
+        handoff=handoff,
+        study_root=study_root,
+    )
+
+    assert fields["provider_admission_pending_count"] == 1
+    assert fields["transition_request_pending_count"] == 0
+    candidate = fields["provider_admission_candidates"][0]
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["work_unit_fingerprint"] == fingerprint
+    assert candidate["opl_transition_readback_source"] == (
+        "opl_domain_progress_transition_runtime_live_readback"
+    )
+
+
 def test_provider_admission_projection_materializes_gate_followthrough_owner_action_without_pending_flag(
     tmp_path,
 ) -> None:

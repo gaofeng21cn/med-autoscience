@@ -10,7 +10,7 @@ OPL_TRANSITION_LIVE_READBACK_SURFACE = (
     "opl_domain_progress_transition_runtime_live_readback"
 )
 OPL_TRANSITION_RESULT_SURFACE = OPL_TRANSITION_LIVE_READBACK_SURFACE
-LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME = "provider_admission_accepted"
+LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME = "provider_admission_enqueued_or_blocked"
 LIVE_READBACK_COMPLETE_STATUS = "complete_transaction"
 
 REQUIRED_READBACK_SECTIONS = (

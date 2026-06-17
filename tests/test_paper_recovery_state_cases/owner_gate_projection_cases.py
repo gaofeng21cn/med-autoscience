@@ -481,6 +481,87 @@ def test_successor_recovery_visibility_keeps_provider_admission_projection() -> 
     assert "paper_recovery_provider_admission_blocked_count" not in result
 
 
+def test_successor_recovery_visibility_keeps_opl_live_readback_with_owner_receipt_current_work_unit() -> None:
+    visibility = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+    )
+    fingerprint = "publication-blockers::0915410f804b3697"
+    result = visibility.apply_paper_recovery_state_user_visible_status(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "owner_receipt_recorded",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "status": "provider_admission_pending",
+                    "provider_admission_pending": True,
+                    "opl_transition_readback_source": (
+                        "opl_domain_progress_transition_runtime_live_readback"
+                    ),
+                }
+            ],
+            "owner_action_admission": {
+                "admission_pending": True,
+                "provider_attempt_start_requested": True,
+            },
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_action_ready",
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "provider_admission_allowed": True,
+                    "owner": "write",
+                    "successor_owner_action": {
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                },
+                "supervisor_decision": {
+                    "decision": "materialize_recovery_action",
+                    "next_safe_action": {
+                        "kind": "materialize_recovery_work_unit_or_receipt",
+                        "source_next_safe_action": {
+                            "kind": "materialize_successor_owner_action",
+                            "provider_admission_allowed": True,
+                        },
+                    },
+                },
+            },
+        }
+    )
+
+    assert result["provider_admission_pending_count"] == 1
+    assert result["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
+    assert result["owner_action_admission"]["admission_pending"] is True
+    assert "blocked_provider_admission_candidates" not in result
+    assert "paper_recovery_provider_admission_blocked_count" not in result
+
+
 def test_runtime_scan_fresh_currentness_carries_owner_gate_events(monkeypatch, tmp_path) -> None:
     runtime_scan_support = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan_support"

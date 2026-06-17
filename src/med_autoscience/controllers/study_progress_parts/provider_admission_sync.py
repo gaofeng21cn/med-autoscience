@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from .owner_action_admission import build_owner_action_admission_projection
+from .owner_action_admission import admission_authority_boundary
 from .shared import _mapping_copy, _non_empty_text
 
 
@@ -120,6 +121,7 @@ def _suppressed_stale_admission(admission: Mapping[str, Any]) -> dict[str, Any]:
         "provider_attempt_running_proven": False,
         "blocked_by": "current_execution_identity_mismatch",
         "stale_admission_suppressed": True,
+        "admission_authority_boundary": admission_authority_boundary(),
     }
 
 
