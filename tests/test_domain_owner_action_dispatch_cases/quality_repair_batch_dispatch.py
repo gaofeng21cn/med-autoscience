@@ -219,7 +219,8 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
         apply=True,
     )
 
-    assert result["executed_count"] == 1, result
+    assert result["executed_count"] == 0, result
+    assert result["handoff_ready_count"] == 1
     assert result["blocked_count"] == 0
     assert result["codex_dispatch_count"] == 1
     execution = result["executions"][0]

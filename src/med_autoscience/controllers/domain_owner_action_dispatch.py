@@ -173,23 +173,68 @@ def _resolve_study_ids(
 
 
 def _contract_guard(dispatch: Mapping[str, Any], *, apply: bool) -> tuple[bool, str | None]:
+    if _is_domain_progress_transition_request_projection(dispatch):
+        if not _has_trusted_opl_execution_authorization(dispatch):
+            return False, "opl_execution_authorization_required"
+        return _legacy_stage_packet_contract_guard(dispatch, apply=apply)
+    if _text(dispatch.get("legacy_surface")) == "default_executor_dispatch_request":
+        return False, "unsupported_dispatch_surface"
+    return _legacy_stage_packet_contract_guard(dispatch, apply=apply)
+
+
+def _legacy_stage_packet_contract_guard(dispatch: Mapping[str, Any], *, apply: bool) -> tuple[bool, str | None]:
+    contract_dispatch = _dispatch_contract_payload(dispatch)
     dispatch_error = dispatch_contract.dispatch_contract_error(
-        dispatch,
+        contract_dispatch,
         apply=apply,
         supported_action_types=SUPPORTED_ACTION_TYPES,
     )
     if dispatch_error is not None:
         return False, dispatch_error
-    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    prompt_contract = _mapping(contract_dispatch.get("prompt_contract"))
     if not prompt_contract:
         return False, "prompt_contract_missing"
     prompt_contract_error = _prompt_contract_error(
         prompt_contract,
-        dispatch_authority=_text(dispatch.get("dispatch_authority")),
+        dispatch_authority=_text(contract_dispatch.get("dispatch_authority")),
     )
     if prompt_contract_error is not None:
         return False, prompt_contract_error
     return True, None
+
+
+def _dispatch_contract_payload(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(dispatch)
+    if _is_domain_progress_transition_request_projection(payload):
+        payload["surface"] = "default_executor_dispatch_request"
+        if _text(payload.get("dispatch_status")) == "transition_request_pending":
+            payload["dispatch_status"] = "ready"
+    return payload
+
+
+def _is_domain_progress_transition_request_projection(dispatch: Mapping[str, Any]) -> bool:
+    return (
+        _text(dispatch.get("surface")) == "mas_domain_progress_transition_request_projection"
+        and _text(dispatch.get("legacy_surface")) == "default_executor_dispatch_request"
+        and dispatch.get("projection_only") is True
+        and dispatch.get("owner_callable_carrier_projection_only") is True
+    )
+
+
+def _has_trusted_opl_execution_authorization(dispatch: Mapping[str, Any]) -> bool:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    owner_route = _mapping(dispatch.get("owner_route"))
+    if first_trusted_opl_execution_authorization(
+        dispatch.get("opl_execution_authorization"),
+        dispatch.get("opl_provider_attempt"),
+        dispatch.get("stage_attempt"),
+        prompt_contract.get("opl_execution_authorization"),
+        prompt_contract.get("opl_provider_attempt"),
+        owner_route.get("opl_execution_authorization"),
+        owner_route.get("opl_provider_attempt"),
+    ) is not None:
+        return True
+    return has_opl_transition_readback(dispatch)
 
 
 def _executor_boundary(dispatch: Mapping[str, Any]) -> dict[str, Any]:
@@ -492,6 +537,8 @@ def _dispatch_pre_execution_block(
     apply: bool,
 ) -> dict[str, Any] | None:
     if not guard_ok:
+        if guard_reason == "opl_execution_authorization_required":
+            return _opl_execution_authorization_block_fields()
         return {
             "execution_status": "blocked",
             "blocked_reason": guard_reason,

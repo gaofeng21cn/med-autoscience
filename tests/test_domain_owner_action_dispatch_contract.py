@@ -3,6 +3,7 @@ from __future__ import annotations
 from med_autoscience.controllers.domain_owner_action_dispatch_parts.dispatch_contract import (
     dispatch_contract_error,
 )
+from med_autoscience.controllers import domain_owner_action_dispatch
 
 
 SUPPORTED_ACTION_TYPES = frozenset({"run_quality_repair_batch"})
@@ -51,3 +52,61 @@ def test_dispatch_contract_rejects_non_opl_runtime_owner() -> None:
         )
         == "target_runtime_owner_mismatch"
     )
+
+
+def _projection(**overrides: object) -> dict[str, object]:
+    payload = _dispatch(
+        surface="mas_domain_progress_transition_request_projection",
+        legacy_surface="default_executor_dispatch_request",
+        projection_only=True,
+        owner_callable_carrier_projection_only=True,
+    )
+    payload["prompt_contract"] = {
+        "prompt_budget": {},
+        "compact_evidence_packet_ref": "packet://evidence",
+        "do_not_repeat": True,
+        "repeat_suppression_key": "repeat-key",
+        "forbidden_surfaces": list(domain_owner_action_dispatch.FORBIDDEN_SURFACES),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def _opl_authorization() -> dict[str, object]:
+    return {
+        "owner": "one-person-lab",
+        "executor_kind": "codex_cli_default",
+        "provider_attempt_ref": "temporal://attempt/sat-current",
+        "attempt_lease_ref": "temporal://lease/sat-current",
+        "attempt_lease_status": "active",
+        "execution_authorization_decision_ref": "opl://execution-authorizations/sat-current",
+        "stage_attempt_id": "sat-current",
+    }
+
+
+def test_transition_request_projection_requires_opl_execution_authorization() -> None:
+    assert domain_owner_action_dispatch._contract_guard(
+        _projection(),
+        apply=False,
+    ) == (False, "opl_execution_authorization_required")
+
+
+def test_transition_request_projection_with_opl_authorization_is_owner_callable_adapter() -> None:
+    payload = _projection(opl_execution_authorization=_opl_authorization())
+
+    assert domain_owner_action_dispatch._contract_guard(payload, apply=False) == (True, None)
+    assert payload["surface"] == "mas_domain_progress_transition_request_projection"
+    contract_payload = domain_owner_action_dispatch._dispatch_contract_payload(payload)
+    assert contract_payload["surface"] == "default_executor_dispatch_request"
+    assert contract_payload["legacy_surface"] == "default_executor_dispatch_request"
+
+
+def test_unknown_dispatch_surface_remains_unsupported() -> None:
+    assert domain_owner_action_dispatch._contract_guard(
+        _dispatch(surface="legacy_unknown_dispatch"),
+        apply=False,
+    ) == (False, "unsupported_dispatch_surface")

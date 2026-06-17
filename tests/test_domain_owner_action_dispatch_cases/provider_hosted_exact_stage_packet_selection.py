@@ -518,5 +518,6 @@ def test_transition_projection_without_exact_stage_packet_remains_non_executable
     )
 
     assert execution["dispatch_contract_valid"] is False
-    assert execution["dispatch_contract_blocked_reason"] == "unsupported_dispatch_surface"
+    assert execution["dispatch_contract_blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
     assert execution["execution_status"] == "blocked"
