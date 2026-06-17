@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import domain_action_request_materializer
+from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
@@ -52,6 +53,23 @@ def paper_recovery_default_executor_dispatch_tasks(
         )
         if task is not None:
             tasks.append(task)
+    if tasks:
+        return tasks
+    dispatch = _successor_owner_action_dispatch(
+        current_progress=current_progress,
+        profile=profile,
+        study_id=study_id,
+    )
+    if dispatch is None:
+        return []
+    task = _materialized_default_executor_dispatch_task(
+        dispatch=dispatch,
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+    )
+    if task is not None:
+        tasks.append(task)
     return tasks
 
 
@@ -200,6 +218,113 @@ def _materialized_default_executor_dispatch_task(
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
         "domain_dispatch_evidence_record_payload": evidence_record_payload,
+    }
+
+
+def _successor_owner_action_dispatch(
+    *,
+    current_progress: Mapping[str, Any],
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> dict[str, Any] | None:
+    recovery = _mapping(current_progress.get("paper_recovery_state"))
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if _text(next_safe_action.get("kind")) != "materialize_successor_owner_action":
+        return None
+    successor = _mapping(next_safe_action.get("successor_owner_action"))
+    action_type = _text(successor.get("action_type"))
+    if action_type is None:
+        return None
+    current_work_unit = _mapping(current_progress.get("current_work_unit"))
+    current_authority = _mapping(recovery.get("current_authority"))
+    obligation = _mapping(current_authority.get("obligation"))
+    supervisor_decision = _mapping(recovery.get("supervisor_decision"))
+    work_unit_id = (
+        _text(successor.get("work_unit_id"))
+        or _text(next_safe_action.get("work_unit_id"))
+        or _text(current_work_unit.get("work_unit_id"))
+    )
+    work_unit_fingerprint = (
+        _text(successor.get("work_unit_fingerprint"))
+        or _text(next_safe_action.get("work_unit_fingerprint"))
+        or _text(current_work_unit.get("work_unit_fingerprint"))
+        or _text(current_work_unit.get("action_fingerprint"))
+    )
+    next_owner = (
+        _text(successor.get("owner"))
+        or _text(next_safe_action.get("owner"))
+        or _text(supervisor_decision.get("next_owner"))
+        or "write"
+    )
+    source_ref = (
+        _text(successor.get("source_ref"))
+        or _text(next_safe_action.get("source_ref"))
+        or "paper_recovery_state.next_safe_action.successor_owner_action"
+    )
+    source_fingerprint = (
+        work_unit_fingerprint
+        or _fingerprint(
+            {
+                "profile": profile.name,
+                "study_id": study_id,
+                "action_type": action_type,
+                "successor_owner_action": successor,
+            }
+        )
+    )
+    basis = currentness_identity.currentness_basis(
+        {
+            "source_eval_id": successor.get("source_eval_id")
+            or next_safe_action.get("source_eval_id")
+            or recovery.get("source_eval_id"),
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "truth_epoch": successor.get("truth_epoch") or next_safe_action.get("truth_epoch"),
+            "runtime_health_epoch": successor.get("runtime_health_epoch")
+            or next_safe_action.get("runtime_health_epoch"),
+        },
+        successor.get("owner_route_currentness_basis"),
+        next_safe_action.get("owner_route_currentness_basis"),
+    )
+    source_refs = {
+        "source_ref": source_ref,
+        "supervisor_decision_ref": _text(supervisor_decision.get("decision_id")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "owner_route_currentness_basis": basis or None,
+    }
+    owner_route = {
+        "next_owner": next_owner,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "source_refs": {key: value for key, value in source_refs.items() if value not in (None, "", [], {})},
+        "currentness_contract": {"basis": basis} if basis else None,
+    }
+    source_action = {
+        "authority": "paper_recovery_state",
+        "reason": _text(obligation.get("blocker_type")) or _text(current_work_unit.get("status")),
+        "supervisor_decision": supervisor_decision or None,
+        "next_safe_action": next_safe_action,
+        "successor_owner_action": successor,
+    }
+    return {
+        "study_id": study_id,
+        "quest_id": _text(current_progress.get("quest_id")) or study_id,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
+        "source_fingerprint": source_fingerprint,
+        "dispatch_status": "ready",
+        "dispatch_authority": "paper_autonomy_supervisor_materialized_default_executor_dispatch",
+        "next_executable_owner": next_owner,
+        "refs": {"dispatch_path": source_ref},
+        "prompt_contract": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "owner_route_currentness_basis": basis or None,
+        },
+        "owner_route": {key: value for key, value in owner_route.items() if value not in (None, "", [], {})},
+        "source_action": {key: value for key, value in source_action.items() if value not in (None, "", [], {})},
     }
 
 
