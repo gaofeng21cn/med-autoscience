@@ -90,15 +90,37 @@ def materialize_provider_admission_current_control_state(
         live_studies_by_id=live_studies_by_id,
         scanned_studies_by_id=scanned_studies_by_id,
     )
+    pending_candidate_keys = {
+        _arbiter_candidate_key(decision)
+        for decision in arbiter_decisions
+        if _non_empty_text(decision.get("decision")) == "pending_provider_admission"
+    }
+    transition_request_candidate_keys = {
+        _arbiter_candidate_key(decision)
+        for decision in arbiter_decisions
+        if _non_empty_text(decision.get("decision")) == "opl_transition_readback_required"
+    }
+    unresolved_keys = {_candidate_key(candidate) for candidate in unresolved_candidates}
+    retained_pending_candidates = [
+        candidate
+        for candidate in candidates
+        if _candidate_key(candidate) in pending_candidate_keys
+        and _candidate_key(candidate) not in unresolved_keys
+    ]
+    projection_candidates = [*unresolved_candidates, *retained_pending_candidates]
     pending_candidates = [
         candidate
-        for candidate in unresolved_candidates
-        if candidate_opl_transition_readback(candidate)
+        for candidate in projection_candidates
+        if _candidate_key(candidate) in pending_candidate_keys
+        or (
+            candidate_opl_transition_readback(candidate)
+            and _candidate_key(candidate) not in transition_request_candidate_keys
+        )
     ]
     transition_request_candidates = [
         candidate
-        for candidate in unresolved_candidates
-        if not candidate_opl_transition_readback(candidate)
+        for candidate in projection_candidates
+        if _candidate_key(candidate) in transition_request_candidate_keys
     ]
     terminal_precedence_by_study = _terminal_precedence_by_study(scanned_studies)
     studies = [
@@ -106,7 +128,7 @@ def materialize_provider_admission_current_control_state(
             provider_admission_current_control_study(candidate),
             terminal_precedence_by_study=terminal_precedence_by_study,
         )
-        for candidate in unresolved_candidates
+        for candidate in projection_candidates
     ]
     candidate_study_ids = {
         study_id
@@ -215,6 +237,26 @@ def materialize_provider_admission_current_control_state(
         )
     payload["written"] = bool(apply)
     return payload
+
+
+def _arbiter_candidate_key(decision: Mapping[str, Any]) -> tuple[str | None, ...]:
+    return (
+        _non_empty_text(decision.get("study_id")),
+        _non_empty_text(decision.get("action_type")),
+        _non_empty_text(decision.get("work_unit_id")),
+        _non_empty_text(decision.get("work_unit_fingerprint"))
+        or _non_empty_text(decision.get("action_fingerprint")),
+    )
+
+
+def _candidate_key(candidate: Mapping[str, Any]) -> tuple[str | None, ...]:
+    return (
+        _non_empty_text(candidate.get("study_id")),
+        _non_empty_text(candidate.get("action_type")),
+        _non_empty_text(candidate.get("work_unit_id")),
+        _non_empty_text(candidate.get("work_unit_fingerprint"))
+        or _non_empty_text(candidate.get("action_fingerprint")),
+    )
 
 
 def _payload_with_consumed_closeout_typed_blockers(payload: dict[str, Any]) -> dict[str, Any]:

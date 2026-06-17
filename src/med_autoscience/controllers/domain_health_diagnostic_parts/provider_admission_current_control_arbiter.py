@@ -166,6 +166,19 @@ def _stage_route_arbiter_decisions(
             continue
         readback_required = _opl_transition_readback_required_evidence(candidate)
         if readback_required:
+            if _unconsumed_closeout_blocks_weak_identity_suppression(
+                scanned_study,
+                identity=candidate,
+            ):
+                decisions.append(
+                    _arbiter_decision(
+                        candidate,
+                        decision="pending_provider_admission",
+                        effect="retain_provider_admission_pending",
+                        evidence={},
+                    )
+                )
+                continue
             decisions.append(
                 _arbiter_decision(
                     candidate,
@@ -586,6 +599,9 @@ def _candidates_not_covered_by_live_attempt(
         if _terminal_closeout_precedence_evidence(scanned_study, identity=candidate):
             continue
         if current_control_receipts.accepted_closeout_matches_identity(
+            scanned_study,
+            identity=candidate,
+        ) and not _unconsumed_closeout_blocks_weak_identity_suppression(
             scanned_study,
             identity=candidate,
         ):
