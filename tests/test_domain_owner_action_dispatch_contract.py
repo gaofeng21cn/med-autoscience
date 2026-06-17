@@ -242,3 +242,61 @@ def test_dispatch_study_discovery_ignores_owner_callable_adapter_list(tmp_path) 
     )
 
     assert resolved == ("canonical-transition-study",)
+
+
+def test_current_consumer_dispatches_ignore_owner_callable_adapter_list(tmp_path) -> None:
+    from med_autoscience.controllers.domain_owner_action_dispatch_parts import persisted_dispatches
+
+    study_id = "study-a"
+    legacy_dispatch = _dispatch(
+        study_id=study_id,
+        refs={"dispatch_path": str(tmp_path / "legacy.json")},
+    )
+    canonical_dispatch = _projection(
+        study_id=study_id,
+        refs={"dispatch_path": str(tmp_path / "canonical.json")},
+    )
+    consumer_payload = {
+        "owner_callable_adapters": [legacy_dispatch],
+        "domain_progress_transition_requests": [canonical_dispatch],
+    }
+
+    dispatches = persisted_dispatches.current_consumer_dispatches(
+        study_id=study_id,
+        consumer_payload=consumer_payload,
+        consumer_latest_path=tmp_path / "missing.json",
+    )
+
+    assert len(dispatches) == 1
+    assert dispatches[0]["refs"]["dispatch_path"] == str(tmp_path / "canonical.json")
+    assert dispatches[0]["surface"] == "mas_domain_progress_transition_request_projection"
+
+
+def test_current_materialized_dispatches_ignore_owner_callable_adapter_list(tmp_path) -> None:
+    from med_autoscience.controllers.domain_owner_action_dispatch_parts import (
+        current_dispatch_materialization,
+    )
+
+    profile = type("Profile", (), {"studies_root": tmp_path / "studies"})()
+    study_id = "study-a"
+    legacy_dispatch = _dispatch(study_id=study_id)
+    canonical_dispatch = _projection(study_id=study_id)
+
+    def current_owner_callable_adapters(**_: object) -> dict[str, object]:
+        return {
+            "owner_callable_adapters": [legacy_dispatch],
+            "domain_progress_transition_requests": [canonical_dispatch],
+        }
+
+    dispatches = current_dispatch_materialization.current_materialized_dispatches(
+        profile=profile,
+        study_id=study_id,
+        action_types=("run_quality_repair_batch",),
+        mode="preview",
+        apply=False,
+        current_owner_callable_adapters=current_owner_callable_adapters,
+        text=lambda value: str(value).strip() if value else None,
+    )
+
+    assert len(dispatches) == 1
+    assert dispatches[0]["surface"] == "mas_domain_progress_transition_request_projection"

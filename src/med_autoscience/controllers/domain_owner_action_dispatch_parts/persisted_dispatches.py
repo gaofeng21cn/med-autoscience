@@ -6,7 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.controllers.owner_callable_adapter_projection import owner_callable_adapters
+from med_autoscience.controllers.owner_callable_adapter_projection import (
+    domain_progress_transition_requests,
+)
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 from . import accepted_owner_gate_decision
@@ -957,7 +959,7 @@ def current_consumer_dispatches(
         return [inline_dispatch]
     dispatches: list[dict[str, Any]] = []
     seen: set[tuple[str | None, str | None]] = set()
-    for dispatch in _owner_callable_adapter_items(latest):
+    for dispatch in _domain_progress_transition_request_items(latest):
         payload = _with_owner_callable_adapter_semantics(_mapping(dispatch))
         if _text(payload.get("study_id")) != study_id:
             continue
@@ -990,8 +992,8 @@ def _inline_default_executor_dispatch(payload: Mapping[str, Any], *, study_id: s
     return _with_owner_callable_adapter_semantics(payload)
 
 
-def _owner_callable_adapter_items(payload: Mapping[str, Any]) -> list[object]:
-    return owner_callable_adapters(payload)
+def _domain_progress_transition_request_items(payload: Mapping[str, Any]) -> list[object]:
+    return domain_progress_transition_requests(payload)
 
 
 def _with_owner_callable_adapter_semantics(dispatch: Mapping[str, Any]) -> dict[str, Any]:
