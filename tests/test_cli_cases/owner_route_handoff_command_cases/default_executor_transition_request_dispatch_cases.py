@@ -217,13 +217,12 @@ def test_domain_handler_export_normalizes_current_control_transition_request_ide
     )
     task_payload = task["payload"]
     expected_basis = {
-        "source_eval_id": "publication-eval::owner-route",
         "source_fingerprint": "candidate-source",
         "work_unit_id": "current-work-unit",
         "work_unit_fingerprint": "current-fingerprint",
         "truth_epoch": "truth-owner-route",
         "runtime_health_epoch": "runtime-owner-route",
-        "route_epoch": "current-fingerprint",
+        "route_epoch": "route-request",
     }
     assert task_payload["owner_route_currentness_basis"] == expected_basis
     assert (
@@ -240,9 +239,7 @@ def test_domain_handler_export_normalizes_current_control_transition_request_ide
         ]
         == expected_basis
     )
-    assert task_payload["current_control_action"]["source_eval_id"] == (
-        "publication-eval::owner-route"
-    )
+    assert "source_eval_id" not in task_payload["current_control_action"]
     assert task_payload["current_control_action"]["source_fingerprint"] == "candidate-source"
     assert task_payload["current_control_action"]["work_unit_id"] == "current-work-unit"
     assert task_payload["current_control_action"]["work_unit_fingerprint"] == "current-fingerprint"
