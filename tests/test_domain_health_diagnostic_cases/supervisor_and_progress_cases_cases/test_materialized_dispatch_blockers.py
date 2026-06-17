@@ -192,6 +192,112 @@ def test_domain_health_diagnostic_dry_run_includes_recovery_materialization_prev
     assert report["action_class"] == "observe_only"
 
 
+def test_domain_health_diagnostic_dry_run_promotes_transition_request_preview_to_top_level(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+
+    monkeypatch.setattr(
+        module,
+        "_run_domain_health_diagnostic_for_runtime_impl",
+        lambda **kwargs: {
+            "surface": "domain_health_diagnostic",
+            "action_class": "observe_only",
+            "scanned_at": "2026-06-17T16:00:00+00:00",
+            "provider_admission_pending_count": 0,
+            "transition_request_pending_count": 0,
+            "managed_study_opl_provider_admission_candidates": [],
+            "managed_study_opl_transition_request_candidates": [],
+            "current_execution_evidence": {
+                "provider_admission_candidates": [],
+                "transition_request_candidates": [],
+                "progress_currentness": {},
+            },
+            "paper_recovery_states": {
+                study_id: {
+                    "phase": "owner_action_ready",
+                    "next_safe_action": {"kind": "materialize_successor_owner_action"},
+                    "supervisor_decision": {"decision": "materialize_recovery_action"},
+                }
+            },
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "paper_recovery_state": {
+                        "phase": "owner_action_ready",
+                        "next_safe_action": {"kind": "materialize_successor_owner_action"},
+                        "supervisor_decision": {"decision": "materialize_recovery_action"},
+                    },
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        lambda **kwargs: {
+            "surface": "domain_action_request_materializer",
+            "dry_run": True,
+            "request_task_count": 1,
+            "owner_callable_adapter_count": 1,
+            "ready_owner_callable_adapter_count": 0,
+            "blocked_owner_callable_adapter_count": 0,
+            "transition_request_pending_owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "dispatch_status": "transition_request_pending",
+                    "provider_admission_pending": False,
+                    "provider_admission_requires_opl_runtime_result": True,
+                    "opl_transition_runtime_required": True,
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_materialize_report_provider_admission_current_control_state",
+        lambda **kwargs: None,
+    )
+
+    report = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=False,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    assert report["provider_admission_pending_count"] == 0
+    assert report["transition_request_pending_count"] == 1
+    assert report["materialization_preview_transition_request_pending_owner_callable_adapter_count"] == 1
+    assert report["managed_study_opl_provider_admission_candidates"] == []
+    [candidate] = report["managed_study_opl_transition_request_candidates"]
+    assert candidate["study_id"] == study_id
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["work_unit_fingerprint"] == fingerprint
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["provider_admission_pending"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+    assert report["current_execution_evidence"]["transition_request_candidates"] == [candidate]
+    action_preview = report["managed_study_actions"][0]["domain_action_request_materialization_preview"]
+    assert action_preview["transition_request_pending_owner_callable_adapter_count"] == 1
+
+
 def test_domain_health_diagnostic_dry_run_includes_owner_resolution_preview(
     tmp_path: Path,
     monkeypatch,

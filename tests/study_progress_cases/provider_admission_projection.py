@@ -590,6 +590,8 @@ def test_provider_admission_projection_materialize_recovery_action_allows_log_re
     )
 
     assert fields["provider_admission_pending_count"] == 1
+    assert fields["transition_request_pending_count"] == 0
+    assert fields["transition_request_candidates"] == []
     assert fields.get("provider_admission_blocked_by_supervisor_decision") is None
     candidate = fields["provider_admission_candidates"][0]
     assert candidate["opl_transition_readback_source"] == "opl_domain_progress_transition_runtime_log"

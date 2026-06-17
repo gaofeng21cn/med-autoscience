@@ -147,6 +147,14 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         default_dispatch["priority_boundary"]
         == "current_control_transition_request_precedes_legacy_dispatch_carrier"
     )
+    assert default_dispatch["projection_counting_boundary"] == {
+        "request_only_candidates_count_as": "transition_request_pending",
+        "opl_log_derived_readback_candidates_count_as": "provider_admission_pending",
+        "mutually_exclusive_pending_counts": True,
+        "forbidden_double_count": (
+            "same_identity_transition_request_pending_and_provider_admission_pending"
+        ),
+    }
 
     legacy_alias = surfaces["owner_callable_adapter_legacy_dispatch_projection_alias"]
     assert legacy_alias["retained_mas_role"] == "none_physically_retired_no_alias"

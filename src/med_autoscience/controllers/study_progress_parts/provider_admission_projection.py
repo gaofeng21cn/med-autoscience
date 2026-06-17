@@ -48,7 +48,7 @@ def provider_admission_projection_fields(
         current_control_ref=_non_empty_text(_mapping_copy(handoff.get("refs")).get("latest_path"))
         or _non_empty_text(handoff.get("source_path")),
     )
-    transition_request_candidates = [
+    normalized_candidates = [
         _candidate_with_opl_runtime_readback(
             _transition_request_only_candidate(candidate)
             if _request_only_owner_action_candidate(candidate)
@@ -59,9 +59,17 @@ def provider_admission_projection_fields(
     ]
     provider_admission_candidates = [
         candidate
-        for candidate in transition_request_candidates
+        for candidate in normalized_candidates
         if _has_opl_transition_readback(candidate)
         and not _request_only_owner_action_candidate(candidate)
+    ]
+    transition_request_candidates = [
+        candidate
+        for candidate in normalized_candidates
+        if not (
+            _has_opl_transition_readback(candidate)
+            and not _request_only_owner_action_candidate(candidate)
+        )
     ]
     gate_payload = {
         **dict(payload),

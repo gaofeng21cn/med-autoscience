@@ -6,6 +6,7 @@ from typing import Any
 from med_autoscience.controllers.owner_callable_adapter_projection import (
     adapter_count,
     adapter_status_count,
+    domain_progress_transition_requests,
     owner_callable_adapters,
     with_owner_callable_adapter_projection,
 )
@@ -41,7 +42,11 @@ def attach_domain_action_request_materialization_preview(
     report["materialization_preview_owner_callable_adapter_count"] = adapter_count(preview)
     report["materialization_preview_ready_owner_callable_adapter_count"] = adapter_status_count(preview, "ready")
     report["materialization_preview_blocked_owner_callable_adapter_count"] = adapter_status_count(preview, "blocked")
+    report["materialization_preview_transition_request_pending_owner_callable_adapter_count"] = (
+        adapter_status_count(preview, "transition_request_pending")
+    )
     _attach_materialization_preview_to_managed_actions(report=report, preview=preview)
+    _sync_transition_request_preview_to_report(report=report, preview=preview)
 
 
 def attach_domain_handler_owner_resolution_preview(
@@ -117,10 +122,101 @@ def _attach_materialization_preview_to_managed_actions(
                 _non_empty_text(item.get("dispatch_status")) == "blocked"
                 for item in adapters
             ),
+            "transition_request_pending_owner_callable_adapter_count": sum(
+                _non_empty_text(item.get("dispatch_status")) == "transition_request_pending"
+                for item in adapters
+            ),
             "request_tasks": request_tasks,
             "owner_callable_adapters": adapters,
         }
         actions[index] = updated
+
+
+def _sync_transition_request_preview_to_report(
+    *,
+    report: dict[str, Any],
+    preview: Mapping[str, Any],
+) -> None:
+    transition_requests = [
+        _transition_request_projection(request)
+        for request in domain_progress_transition_requests(preview)
+    ]
+    transition_requests = [item for item in transition_requests if item]
+    if not transition_requests:
+        return
+    existing = [
+        dict(item)
+        for item in report.get("managed_study_opl_transition_request_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    merged = _merge_transition_request_candidates(existing, transition_requests)
+    report["managed_study_opl_transition_request_candidates"] = merged
+    report["transition_request_pending_count"] = len(merged)
+    report.setdefault("provider_admission_pending_count", 0)
+    current_execution_evidence = _mapping(report.get("current_execution_evidence"))
+    current_execution_evidence["transition_request_candidates"] = merged
+    current_execution_evidence.setdefault(
+        "provider_admission_candidates",
+        [
+            dict(item)
+            for item in report.get("managed_study_opl_provider_admission_candidates") or []
+            if isinstance(item, Mapping)
+        ],
+    )
+    report["current_execution_evidence"] = current_execution_evidence
+    report["action_fingerprints"] = _merged_action_fingerprints(
+        report.get("action_fingerprints"),
+        merged,
+    )
+
+
+def _transition_request_projection(adapter: Mapping[str, Any]) -> dict[str, Any]:
+    projection = dict(adapter)
+    projection.setdefault("status", "transition_request_pending")
+    projection.setdefault("provider_admission_pending", False)
+    projection.setdefault("provider_attempt_or_lease_required", False)
+    projection.setdefault("provider_admission_requires_opl_runtime_result", True)
+    projection.setdefault("opl_transition_runtime_required", True)
+    projection.setdefault(
+        "source",
+        _non_empty_text(adapter.get("source")) or "domain_action_request_materialization_preview",
+    )
+    return projection
+
+
+def _merge_transition_request_candidates(
+    existing: list[dict[str, Any]],
+    incoming: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    seen: set[tuple[str | None, str | None, str | None, str | None]] = set()
+    for item in [*existing, *incoming]:
+        key = (
+            _non_empty_text(item.get("study_id")),
+            _non_empty_text(item.get("action_type")),
+            _non_empty_text(item.get("work_unit_id")),
+            _non_empty_text(item.get("work_unit_fingerprint"))
+            or _non_empty_text(item.get("action_fingerprint")),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(dict(item))
+    return merged
+
+
+def _merged_action_fingerprints(
+    existing: object,
+    transition_requests: list[dict[str, Any]],
+) -> list[str]:
+    values = _text_items(existing)
+    for item in transition_requests:
+        fingerprint = _non_empty_text(item.get("work_unit_fingerprint")) or _non_empty_text(
+            item.get("action_fingerprint")
+        )
+        if fingerprint is not None:
+            values.append(fingerprint)
+    return list(dict.fromkeys(values))
 
 
 def _attach_owner_resolution_preview_to_managed_actions(

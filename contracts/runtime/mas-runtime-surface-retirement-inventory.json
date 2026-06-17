@@ -102,6 +102,12 @@
       "legacy_carrier_fallback_only": true,
       "mas_owner_claim_allowed": false,
       "priority_boundary": "current_control_transition_request_precedes_legacy_dispatch_carrier",
+      "projection_counting_boundary": {
+        "request_only_candidates_count_as": "transition_request_pending",
+        "opl_log_derived_readback_candidates_count_as": "provider_admission_pending",
+        "mutually_exclusive_pending_counts": true,
+        "forbidden_double_count": "same_identity_transition_request_pending_and_provider_admission_pending"
+      },
       "retained_mas_role": "domain_intent_owner_route_typed_blocker_and_owner_receipt_refs",
       "surface_id": "default_executor_dispatch_request"
     },

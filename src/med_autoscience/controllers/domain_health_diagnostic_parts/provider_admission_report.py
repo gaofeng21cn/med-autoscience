@@ -70,6 +70,16 @@ def materialize_report_provider_admission_current_control_state(
                 fallback_candidates=candidates,
                 progress_currentness=progress_currentness,
             )
+    preview_materialize = _mapping(report.get("domain_action_request_materialization_preview"))
+    if preview_materialize:
+        candidates = _merge_provider_admission_candidates(
+            candidates,
+            _provider_admission_candidates_from_same_tick_materialize(
+                materialize_result=preview_materialize,
+                fallback_candidates=candidates,
+                progress_currentness=progress_currentness,
+            ),
+        )
     scanned_studies = _provider_admission_scanned_currentness_studies(
         profile=profile,
         progress_currentness=progress_currentness,
