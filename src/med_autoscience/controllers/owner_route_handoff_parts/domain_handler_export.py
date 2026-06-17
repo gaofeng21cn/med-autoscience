@@ -313,25 +313,25 @@ def _pending_family_tasks(
                     study_id=study_id,
                 )
             )
-        owner_callable_carrier_tasks = default_executor_dispatch_tasks(
+        current_control_transition_tasks = _current_control_transition_request_tasks(
+            study=current_progress or study,
             profile=profile,
             profile_ref=profile_ref,
             study_id=study_id,
-            current_owner_action=current_owner_action,
-            current_work_unit=current_work_unit,
-            current_execution_envelope=current_execution_envelope,
-            paper_recovery_state=mapping(current_progress.get("paper_recovery_state")),
-            persist_identity=False,
         )
-        if owner_callable_carrier_tasks:
-            tasks.extend(owner_callable_carrier_tasks)
+        if current_control_transition_tasks:
+            tasks.extend(current_control_transition_tasks)
         else:
             tasks.extend(
-                _current_control_transition_request_tasks(
-                    study=current_progress or study,
+                default_executor_dispatch_tasks(
                     profile=profile,
                     profile_ref=profile_ref,
                     study_id=study_id,
+                    current_owner_action=current_owner_action,
+                    current_work_unit=current_work_unit,
+                    current_execution_envelope=current_execution_envelope,
+                    paper_recovery_state=mapping(current_progress.get("paper_recovery_state")),
+                    persist_identity=False,
                 )
             )
         if ordinary_task_blocker or legacy_route_tasks_blocked:

@@ -99,7 +99,9 @@
         "provider_completion_as_domain_ready"
       ],
       "generic_runtime_owner": "one-person-lab",
+      "legacy_carrier_fallback_only": true,
       "mas_owner_claim_allowed": false,
+      "priority_boundary": "current_control_transition_request_precedes_legacy_dispatch_carrier",
       "retained_mas_role": "domain_intent_owner_route_typed_blocker_and_owner_receipt_refs",
       "surface_id": "default_executor_dispatch_request"
     },

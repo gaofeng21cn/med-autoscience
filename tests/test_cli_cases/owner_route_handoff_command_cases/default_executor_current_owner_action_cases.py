@@ -700,6 +700,26 @@ def test_domain_handler_export_projects_current_control_transition_request_to_op
         owner="write",
         source="opl_current_control_state.study_current_executable_owner_action",
     )
+    stale_route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason="medical_prose_write_repair",
+        action_type="run_quality_repair_batch",
+        work_unit_id="medical_prose_write_repair",
+        work_unit_fingerprint="publication-blockers::0915410f804b3697",
+        runtime_health_epoch="runtime-health-event-stale-dispatch",
+        blocked_actions=[],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-06-17T00:00:00+00:00",
+        owner_route=stale_route,
+    )
 
     exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
@@ -713,6 +733,7 @@ def test_domain_handler_export_projects_current_control_transition_request_to_op
     assert len(tasks) == 1
     task = tasks[0]
     assert task["reason"] == "current_control_transition_request_pending"
+    assert task["payload"]["authority_boundary"] == "mas_domain_progress_transition_request_only"
     assert task["dispatch_owner"] == "one-person-lab"
     assert task["domain_truth_owner"] == "med-autoscience"
     assert task["queue_owner"] == "one-person-lab"
@@ -732,6 +753,7 @@ def test_domain_handler_export_projects_current_control_transition_request_to_op
     assert task["payload"]["current_control_action"]["opl_domain_progress_transition_request"] == (
         transition_request
     )
+    assert "runtime-health-event-stale-dispatch" not in json.dumps(task, sort_keys=True)
 
 
 def test_domain_handler_export_carries_stage_packet_for_recovery_successor_transition_request(

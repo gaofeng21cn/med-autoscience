@@ -141,6 +141,13 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "mas_local_dispatch_carrier_persistence" in carrier_persistence["forbidden_claims"]
     assert "mas_local_request_packet_persistence" in carrier_persistence["forbidden_claims"]
 
+    default_dispatch = surfaces["default_executor_dispatch_request"]
+    assert default_dispatch["legacy_carrier_fallback_only"] is True
+    assert (
+        default_dispatch["priority_boundary"]
+        == "current_control_transition_request_precedes_legacy_dispatch_carrier"
+    )
+
     legacy_alias = surfaces["owner_callable_adapter_legacy_dispatch_projection_alias"]
     assert legacy_alias["retained_mas_role"] == "none_physically_retired_no_alias"
     assert legacy_alias["replacement_surface"] == (
