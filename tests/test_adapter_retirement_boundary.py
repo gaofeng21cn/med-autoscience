@@ -708,6 +708,18 @@ def test_dhd_same_tick_admission_consumes_only_canonical_transition_requests(tmp
     report_module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
     )
+    source = (
+        REPO_ROOT
+        / "src"
+        / "med_autoscience"
+        / "controllers"
+        / "domain_health_diagnostic_parts"
+        / "provider_admission_report.py"
+    ).read_text(encoding="utf-8")
+
+    assert "import owner_callable_adapters" not in source
+    assert "owner_callable_adapters(materialize_result)" not in source
+
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
