@@ -32,6 +32,20 @@ def test_architecture_owner_boundary_report_confirms_and_guards_duplicate_author
     assert by_layer["runtime_os"]["hub_role"] == "authority"
     assert "runtime_health" in by_layer["runtime_os"]["authority_surfaces"]
     assert "canonical_runtime_action" in by_layer["runtime_os"]["authority_surfaces"]
+    assert by_layer["opl_progress_spine"]["owner"] == "one-person-lab"
+    assert by_layer["opl_progress_spine"]["role"] == "progress_transition_runtime_owner"
+    assert by_layer["opl_progress_spine"]["hub_role"] == "authority"
+    assert set(by_layer["opl_progress_spine"]["authority_surfaces"]) >= {
+        "command_log",
+        "event_log",
+        "transactional_outbox",
+        "fixed_point_reconciler",
+        "provider_admission",
+        "stage_run_lifecycle",
+        "state_index_kernel",
+        "workbench_shell",
+        "tool_selector",
+    }
     assert by_layer["mas_runtime_diagnostic_refs"]["owner"] == "MedAutoScience"
     assert by_layer["mas_runtime_diagnostic_refs"]["role"] == "adapter"
     assert by_layer["mas_runtime_diagnostic_refs"]["hub_role"] == "adapter"
@@ -42,6 +56,8 @@ def test_architecture_owner_boundary_report_confirms_and_guards_duplicate_author
         "opl_current_control_readback_ref",
         "opl_stage_run_readback_ref",
     ]
+    assert "opl_progress_spine" in by_layer["mas_runtime_diagnostic_refs"]["consumes_authority_from"]
+    assert by_layer["mas_runtime_diagnostic_refs"]["owned_progress_spine_surfaces"] == []
     assert by_layer["entry_projection"]["role"] == "projection"
     assert by_layer["entry_projection"]["hub_role"] == "read_model"
     assert by_layer["entry_projection"]["authority_surfaces"] == []
@@ -60,6 +76,7 @@ def test_architecture_owner_boundary_report_confirms_and_guards_duplicate_author
         "mds_oracle_as_quality_owner",
         "observability_as_control",
         "runtime_status_double_parse",
+        "mas_private_progress_spine",
     }
     assert {item["basis_id"] for item in report["external_engineering_basis"]} >= {
         "strangler_fig",
@@ -76,6 +93,12 @@ def test_architecture_owner_boundary_validation_fails_closed_on_owner_drift() ->
     by_layer["entry_projection"]["may_replace_authority"] = True
     by_layer["observability_os"]["authority_surfaces"] = ["publication_readiness"]
     by_layer["mas_runtime_diagnostic_refs"]["authority_surfaces"] = ["runtime_health"]
+    by_layer["mas_runtime_diagnostic_refs"]["owned_progress_spine_surfaces"] = [
+        "transactional_outbox",
+        "fixed_point_reconciler",
+    ]
+    by_layer["entry_projection"]["may_generate_workbench_action"] = True
+    by_layer["observability_os"]["may_select_tool_for_runtime"] = True
     by_layer["mds_backend"]["authority_surfaces"] = ["publication_readiness"]
     by_layer["mds_backend"]["may_replace_authority"] = True
     by_layer["mas_core"]["authority_surfaces"] = []
@@ -93,6 +116,8 @@ def test_architecture_owner_boundary_validation_fails_closed_on_owner_drift() ->
         "mds_claims_mas_authority",
         "mds_can_replace_authority",
         "mas_claims_opl_runtime_lifecycle_authority",
+        "mas_claims_opl_progress_spine_authority",
+        "mas_private_progress_spine_capability_enabled",
         "authority_hub_missing_authority_surface",
         "mas_authority_layer_missing_authority",
     }

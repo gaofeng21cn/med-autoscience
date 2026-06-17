@@ -64,13 +64,6 @@ def test_module_boundary_audit_report_declares_layers_dependencies_and_authority
     assert "src/med_autoscience/controllers/study_progress.py" in by_group["product_entry_projection"]["repo_targets"]
     assert "src/med_autoscience/controllers/audit_compaction_governance.py" in by_group["maintainability"]["repo_targets"]
     assert "src/med_autoscience/controllers/module_boundary_audit.py" in by_group["maintainability"]["repo_targets"]
-    assert [item["boundary_id"] for item in report["truth_boundaries"]] == [
-        "study_truth",
-        "runtime_authority_refs",
-        "quality_truth",
-        "delivery_truth",
-        "maintainability_truth",
-    ]
     acceptance = report["target_architecture"]["high_aggregation_low_coupling_acceptance"]
     assert acceptance == {
         "all_repo_targets_grouped": True,
@@ -83,7 +76,39 @@ def test_module_boundary_audit_report_declares_layers_dependencies_and_authority
         "mds_mas_authority_claims_allowed": False,
         "artifact_delivery_as_study_truth_allowed": False,
         "maintainability_truth_writes_allowed": False,
+        "mas_private_progress_spine_allowed": False,
+        "mas_command_event_outbox_authority_allowed": False,
+        "mas_fixed_point_reconciler_allowed": False,
+        "mas_workbench_or_tool_selector_authority_allowed": False,
     }
+    assert report["target_architecture"]["opl_progress_spine_owner"] == "one-person-lab"
+    assert set(report["target_architecture"]["opl_progress_spine_surfaces"]) >= {
+        "command_log",
+        "event_log",
+        "transactional_outbox",
+        "fixed_point_reconciler",
+        "provider_admission",
+        "state_index_kernel",
+        "workbench_shell",
+        "tool_selector",
+    }
+    assert set(report["target_architecture"]["mas_legal_progress_roles"]) == {
+        "authority_result_validator",
+        "body_free_diagnostic_projection",
+        "derived_projection",
+        "domain_authority_function",
+        "owner_callable_adapter",
+        "policy_adapter",
+        "tombstone_or_provenance",
+    }
+    assert [item["boundary_id"] for item in report["truth_boundaries"]] == [
+        "study_truth",
+        "runtime_authority_refs",
+        "opl_progress_spine",
+        "quality_truth",
+        "delivery_truth",
+        "maintainability_truth",
+    ]
 
     validation = module.validate_module_boundary_audit_report(report)
 
@@ -113,12 +138,23 @@ def test_module_boundary_audit_validation_fails_closed_on_authority_and_control_
         "progress_projection",
     ]
     by_group["maintainability"]["modifies_runtime_or_study_truth"] = True
+    by_group["runtime_authority_refs"]["owned_progress_spine_surfaces"] = [
+        "transactional_outbox",
+        "fixed_point_reconciler",
+    ]
+    by_group["product_entry_projection"]["may_generate_workbench_action"] = True
+    by_group["observability_os"]["may_select_tool_for_runtime"] = True
+    by_group["mas_core"]["writable_authority_surfaces"].append("provider_admission")
     acceptance = report["target_architecture"]["high_aggregation_low_coupling_acceptance"]
     acceptance["projection_authority_claims_allowed"] = True
     acceptance["observability_direct_control_allowed"] = True
     acceptance["mds_mas_authority_claims_allowed"] = True
     acceptance["artifact_delivery_as_study_truth_allowed"] = True
     acceptance["maintainability_truth_writes_allowed"] = True
+    acceptance["mas_private_progress_spine_allowed"] = True
+    acceptance["mas_command_event_outbox_authority_allowed"] = True
+    acceptance["mas_fixed_point_reconciler_allowed"] = True
+    acceptance["mas_workbench_or_tool_selector_authority_allowed"] = True
 
     validation = module.validate_module_boundary_audit_report(report)
 
@@ -136,6 +172,8 @@ def test_module_boundary_audit_validation_fails_closed_on_authority_and_control_
         "artifact_delivery_becomes_study_truth",
         "maintainability_modifies_runtime_or_study_truth",
         "mas_claims_opl_runtime_lifecycle_authority",
+        "mas_claims_opl_progress_spine_authority",
+        "mas_private_progress_spine_capability_enabled",
         "unknown_authority_surface",
         "acceptance_flag_not_fail_closed",
     }

@@ -57,6 +57,55 @@ OPL_RUNTIME_LIFECYCLE_SURFACES = frozenset(
     }
 )
 
+OPL_PROGRESS_SPINE_SURFACES = frozenset(
+    {
+        "command_log",
+        "event_log",
+        "transactional_outbox",
+        "fixed_point_reconciler",
+        "stage_run_lifecycle",
+        "tool_invocation_lifecycle",
+        "human_gate_transport",
+        "recovery_obligation_store",
+        "provider_admission",
+        "provider_attempt",
+        "runtime_queue",
+        "scheduler",
+        "lease",
+        "state_index_kernel",
+        "workbench_shell",
+        "tool_selector",
+        "capability_runtime",
+        "observability_transport",
+        *OPL_RUNTIME_LIFECYCLE_SURFACES,
+    }
+)
+
+MAS_PROGRESS_ADAPTER_ROLES = frozenset(
+    {
+        "domain_authority_function",
+        "policy_adapter",
+        "owner_callable_adapter",
+        "authority_result_validator",
+        "body_free_diagnostic_projection",
+        "derived_projection",
+        "tombstone_or_provenance",
+    }
+)
+
+PRIVATE_PROGRESS_CAPABILITY_FLAGS = (
+    "may_create_opl_command",
+    "may_create_opl_event",
+    "may_create_opl_outbox",
+    "may_create_opl_stage_run",
+    "may_reconcile_fixed_point",
+    "may_own_attempt_lifecycle",
+    "may_own_state_index",
+    "may_generate_workbench_action",
+    "may_select_tool_for_runtime",
+    "may_authorize_provider_admission",
+)
+
 PROJECTION_GROUPS = frozenset({"product_entry_projection", "observability_os"})
 MDS_FORBIDDEN_AUTHORITY = MAS_AUTHORITY_SURFACES | frozenset({"publication_gate_state", "delivery_state"})
 ARTIFACT_FORBIDDEN_STUDY_TRUTH = frozenset(
@@ -153,6 +202,11 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
             "opl_current_control_readback_ref",
             "opl_stage_run_readback_ref",
         ],
+        "legal_progress_roles": [
+            "authority_result_validator",
+            "body_free_diagnostic_projection",
+        ],
+        "owned_progress_spine_surfaces": [],
         "projection_only": False,
         "may_control_runtime": False,
         "lifecycle_authority_owner": "one-person-lab",
@@ -205,6 +259,8 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         "forbidden_dependencies": ["mds_backend_oracle"],
         "hub_role": "read_model",
         "writable_authority_surfaces": [],
+        "legal_progress_roles": ["derived_projection"],
+        "owned_progress_spine_surfaces": [],
         "projection_only": True,
         "may_control_runtime": False,
         "may_authorize_publication": False,
@@ -227,6 +283,8 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         "forbidden_dependencies": ["product_entry_projection", "mds_backend_oracle"],
         "hub_role": "read_model",
         "writable_authority_surfaces": [],
+        "legal_progress_roles": ["derived_projection"],
+        "owned_progress_spine_surfaces": [],
         "projection_only": True,
         "may_control_runtime": False,
         "may_authorize_publication": False,
@@ -301,6 +359,15 @@ BOUNDARY_RULES: tuple[dict[str, Any], ...] = (
         "applies_to": ["maintainability"],
         "requirement": "structure, audit, compaction, and worktree cleanup lanes cannot write runtime or study truth",
     },
+    {
+        "rule_id": "mas_private_progress_spine_forbidden",
+        "applies_to": list(GROUP_IDS),
+        "requirement": (
+            "command/event/outbox/fixed-point reconcile/attempt/state-index/workbench/tool-selector "
+            "surfaces are OPL progress spine primitives; MAS groups may only expose legal adapter, "
+            "authority-result, diagnostic projection, or tombstone roles"
+        ),
+    },
 )
 
 TRUTH_BOUNDARIES: tuple[dict[str, Any], ...] = (
@@ -316,6 +383,21 @@ TRUTH_BOUNDARIES: tuple[dict[str, Any], ...] = (
             "attempt ledger, worker liveness, retry/dead-letter, and canonical runtime action"
         ),
         "projection_consumers": ["progress_projection", "domain_health_diagnostic", "mainline-status"],
+    },
+    {
+        "boundary_id": "opl_progress_spine",
+        "authority_owner": (
+            "one-person-lab DomainProgressTransitionRuntime owns command/event/outbox, fixed-point "
+            "reconcile, StageRun/tool/human transport, provider admission, attempt lifecycle, "
+            "state index, workbench shell, and tool selector"
+        ),
+        "projection_consumers": [
+            "domain_action_request_materializer",
+            "domain_owner_action_dispatch",
+            "domain_health_diagnostic",
+            "study_progress",
+            "workbench",
+        ],
     },
     {
         "boundary_id": "quality_truth",
@@ -353,7 +435,14 @@ def build_module_boundary_audit_report() -> dict[str, Any]:
                 "mds_mas_authority_claims_allowed": False,
                 "artifact_delivery_as_study_truth_allowed": False,
                 "maintainability_truth_writes_allowed": False,
+                "mas_private_progress_spine_allowed": False,
+                "mas_command_event_outbox_authority_allowed": False,
+                "mas_fixed_point_reconciler_allowed": False,
+                "mas_workbench_or_tool_selector_authority_allowed": False,
             },
+            "opl_progress_spine_owner": "one-person-lab",
+            "opl_progress_spine_surfaces": sorted(OPL_PROGRESS_SPINE_SURFACES),
+            "mas_legal_progress_roles": sorted(MAS_PROGRESS_ADAPTER_ROLES),
         },
         "module_groups": [dict(group) for group in MODULE_GROUPS],
         "boundary_rules": [dict(rule) for rule in BOUNDARY_RULES],
@@ -384,6 +473,10 @@ def validate_module_boundary_audit_report(report: Mapping[str, Any]) -> dict[str
         "mds_mas_authority_claims_allowed",
         "artifact_delivery_as_study_truth_allowed",
         "maintainability_truth_writes_allowed",
+        "mas_private_progress_spine_allowed",
+        "mas_command_event_outbox_authority_allowed",
+        "mas_fixed_point_reconciler_allowed",
+        "mas_workbench_or_tool_selector_authority_allowed",
     }
     for key in required_false_flags:
         if acceptance.get(key) is not False:
@@ -415,9 +508,12 @@ def _validate_group(
 ) -> None:
     group_id = _text(group.get("group_id"))
     writable = set(_strings(group.get("writable_authority_surfaces")))
+    owned_progress_spine = set(_strings(group.get("owned_progress_spine_surfaces")))
+    legal_progress_roles = set(_strings(group.get("legal_progress_roles")))
     allowed_dependencies = set(_strings(group.get("allowed_dependencies")))
     forbidden_dependencies = set(_strings(group.get("forbidden_dependencies")))
     hub_role = _text(group.get("hub_role"))
+    owner = _text(group.get("owner"))
 
     if not group_id:
         issues.append({"code": "group_missing_id"})
@@ -438,6 +534,36 @@ def _validate_group(
     for dependency in allowed_dependencies | forbidden_dependencies:
         if dependency not in by_group:
             issues.append({"code": "unknown_dependency_group", "group_id": group_id, "dependency": dependency})
+    unknown_progress_roles = sorted(legal_progress_roles - MAS_PROGRESS_ADAPTER_ROLES)
+    if unknown_progress_roles:
+        issues.append(
+            {
+                "code": "unknown_or_forbidden_progress_adapter_role",
+                "group_id": group_id,
+                "roles": unknown_progress_roles,
+            }
+        )
+    if owner != "one-person-lab" and owned_progress_spine:
+        issues.append(
+            {
+                "code": "mas_claims_opl_progress_spine_authority",
+                "group_id": group_id,
+                "authority_surfaces": sorted(owned_progress_spine),
+            }
+        )
+    enabled_private_flags = [
+        flag
+        for flag in PRIVATE_PROGRESS_CAPABILITY_FLAGS
+        if group.get(flag) is True
+    ]
+    if owner != "one-person-lab" and enabled_private_flags:
+        issues.append(
+            {
+                "code": "mas_private_progress_spine_capability_enabled",
+                "group_id": group_id,
+                "flags": enabled_private_flags,
+            }
+        )
 
     if hub_role in NON_AUTHORITY_HUB_ROLES:
         if writable:
@@ -522,6 +648,15 @@ def _validate_group(
                 "code": "mas_claims_opl_runtime_lifecycle_authority",
                 "group_id": group_id,
                 "authority_surfaces": forbidden_runtime,
+            }
+        )
+    forbidden_progress_spine = sorted((writable | owned_progress_spine) & OPL_PROGRESS_SPINE_SURFACES)
+    if owner != "one-person-lab" and forbidden_progress_spine:
+        issues.append(
+            {
+                "code": "mas_claims_opl_progress_spine_authority",
+                "group_id": group_id,
+                "authority_surfaces": forbidden_progress_spine,
             }
         )
 

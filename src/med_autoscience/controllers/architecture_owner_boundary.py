@@ -42,6 +42,43 @@ OPL_RUNTIME_LIFECYCLE_SURFACES = frozenset(
     }
 )
 
+OPL_PROGRESS_SPINE_SURFACES = frozenset(
+    {
+        "command_log",
+        "event_log",
+        "transactional_outbox",
+        "fixed_point_reconciler",
+        "stage_run_lifecycle",
+        "tool_invocation_lifecycle",
+        "human_gate_transport",
+        "recovery_obligation_store",
+        "provider_admission",
+        "provider_attempt",
+        "runtime_queue",
+        "scheduler",
+        "lease",
+        "state_index_kernel",
+        "workbench_shell",
+        "tool_selector",
+        "capability_runtime",
+        "observability_transport",
+        *OPL_RUNTIME_LIFECYCLE_SURFACES,
+    }
+)
+
+PRIVATE_PROGRESS_CAPABILITY_FLAGS = (
+    "may_create_opl_command",
+    "may_create_opl_event",
+    "may_create_opl_outbox",
+    "may_create_opl_stage_run",
+    "may_reconcile_fixed_point",
+    "may_own_attempt_lifecycle",
+    "may_own_state_index",
+    "may_generate_workbench_action",
+    "may_select_tool_for_runtime",
+    "may_authorize_provider_admission",
+)
+
 OWNER_LAYERS: tuple[dict[str, Any], ...] = (
     {
         "layer_id": "mas_core",
@@ -96,6 +133,24 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "may_replace_authority": True,
     },
     {
+        "layer_id": "opl_progress_spine",
+        "owner": "one-person-lab",
+        "role": "progress_transition_runtime_owner",
+        "hub_role": "authority",
+        "authority_surfaces": sorted(OPL_PROGRESS_SPINE_SURFACES),
+        "canonical_surfaces": [
+            "OPL DomainProgressTransitionRuntime",
+            "OPL command/event log",
+            "OPL transactional outbox",
+            "OPL StageRun / ToolInvocation / HumanGateTransport",
+            "OPL RecoveryObligationStore",
+            "OPL StateIndexKernel",
+            "OPL Workbench Shell",
+            "OPL Tool Arsenal / Capability Runtime",
+        ],
+        "may_replace_authority": True,
+    },
+    {
         "layer_id": "mas_runtime_diagnostic_refs",
         "owner": "MedAutoScience",
         "role": "adapter",
@@ -109,6 +164,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         ],
         "consumes_authority_from": [
             "runtime_os",
+            "opl_progress_spine",
             "mas_core",
             "quality_os",
         ],
@@ -119,6 +175,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
             "opl_stage_run_readback_ref",
         ],
         "may_replace_authority": False,
+        "owned_progress_spine_surfaces": [],
     },
     {
         "layer_id": "entry_projection",
@@ -139,6 +196,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
             "mas_runtime_diagnostic_refs",
         ],
         "may_replace_authority": False,
+        "owned_progress_spine_surfaces": [],
     },
     {
         "layer_id": "observability_os",
@@ -158,6 +216,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
             "mas_runtime_diagnostic_refs",
         ],
         "may_replace_authority": False,
+        "owned_progress_spine_surfaces": [],
     },
     {
         "layer_id": "mds_backend",
@@ -210,6 +269,20 @@ DUPLICATION_RISK_CLASSES: tuple[dict[str, Any], ...] = (
         "trigger": "modules reparse active_run_id, live worker, or recovery action outside RuntimeHealthKernel/control-plane facts",
         "required_guard": "runtime liveness and recovery decisions use OPL current-control / StageRun readback; MAS RuntimeHealthKernel remains diagnostic-only",
         "repair_lane": "continue replacing local parsing with OPL-owned readback and MAS body-free diagnostic refs",
+    },
+    {
+        "risk_id": "mas_private_progress_spine",
+        "current_risk": "controlled_by_contract",
+        "trigger": (
+            "MAS module declares command/event/outbox/reconcile/attempt/state-index/workbench/tool-selector "
+            "authority or enables a private provider-admission capability"
+        ),
+        "required_guard": (
+            "DomainIntent -> OPL Command/Event/Outbox/StageRun -> MAS OwnerAnswer -> Derived Projection "
+            "is the only progress spine; MAS surfaces stay policy adapter, owner answer, typed blocker, "
+            "authority validator, diagnostic projection, or tombstone"
+        ),
+        "repair_lane": "upcollect generic progress runtime to OPL primitives and demote MAS residuals to adapters/projections",
     },
 )
 
@@ -318,6 +391,7 @@ def validate_architecture_owner_boundary_report(report: Mapping[str, Any]) -> di
         "mds_oracle_as_quality_owner",
         "observability_as_control",
         "runtime_status_double_parse",
+        "mas_private_progress_spine",
     }
     missing_risks = sorted(required_risks - risk_ids)
     for risk_id in missing_risks:
@@ -347,6 +421,7 @@ def _validate_owner_layer(layer: Mapping[str, Any], issues: list[dict[str, Any]]
     role = _text(layer.get("role"))
     hub_role = _text(layer.get("hub_role"))
     authority_surfaces = set(_strings(layer.get("authority_surfaces")))
+    owned_progress_spine = set(_strings(layer.get("owned_progress_spine_surfaces")))
 
     if not layer_id:
         issues.append({"code": "layer_missing_id"})
@@ -398,6 +473,28 @@ def _validate_owner_layer(layer: Mapping[str, Any], issues: list[dict[str, Any]]
                     "code": "mas_claims_opl_runtime_lifecycle_authority",
                     "layer_id": layer_id,
                     "authority_surfaces": forbidden_runtime,
+                }
+            )
+        forbidden_progress_spine = sorted((authority_surfaces | owned_progress_spine) & OPL_PROGRESS_SPINE_SURFACES)
+        if forbidden_progress_spine:
+            issues.append(
+                {
+                    "code": "mas_claims_opl_progress_spine_authority",
+                    "layer_id": layer_id,
+                    "authority_surfaces": forbidden_progress_spine,
+                }
+            )
+        enabled_private_flags = [
+            flag
+            for flag in PRIVATE_PROGRESS_CAPABILITY_FLAGS
+            if layer.get(flag) is True
+        ]
+        if enabled_private_flags:
+            issues.append(
+                {
+                    "code": "mas_private_progress_spine_capability_enabled",
+                    "layer_id": layer_id,
+                    "flags": enabled_private_flags,
                 }
             )
 
