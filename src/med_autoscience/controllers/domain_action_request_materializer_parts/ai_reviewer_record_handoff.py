@@ -14,6 +14,7 @@ from med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execu
     build_ai_reviewer_record_production_request,
     build_ai_reviewer_record_worker_handoff,
 )
+from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route_attempt_protocol
@@ -287,11 +288,7 @@ def _record_production_record_basis(record: Mapping[str, Any]) -> dict[str, Any]
 
 
 def _record_production_route_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
-    source_refs = _mapping(owner_route.get("source_refs"))
-    return {
-        **_mapping(_mapping(owner_route.get("currentness_contract")).get("basis")),
-        **_mapping(source_refs.get("owner_route_currentness_basis")),
-    }
+    return currentness_identity.owner_route_basis(owner_route)
 
 
 def _with_route_currentness_basis(
@@ -301,52 +298,14 @@ def _with_route_currentness_basis(
     action: Mapping[str, Any],
 ) -> dict[str, Any]:
     route = dict(owner_route)
-    basis = _compact_currentness_basis(
+    basis = currentness_identity.currentness_basis(
         _record_production_route_basis(route),
         _record_production_route_basis(source_route),
-        _record_production_action_basis(action),
+        currentness_identity.action_basis(action),
     )
     if not basis:
         return route
-    source_refs = dict(_mapping(route.get("source_refs")))
-    source_refs["owner_route_currentness_basis"] = _compact_currentness_basis(
-        source_refs.get("owner_route_currentness_basis"),
-        basis,
-    )
-    if _text(basis.get("source_eval_id")) is not None:
-        source_refs["source_eval_id"] = basis["source_eval_id"]
-    route["source_refs"] = source_refs
-    currentness_contract = dict(_mapping(route.get("currentness_contract")))
-    currentness_contract["basis"] = _compact_currentness_basis(
-        currentness_contract.get("basis"),
-        basis,
-    )
-    route["currentness_contract"] = currentness_contract
-    return route
-
-
-def _record_production_action_basis(action: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        key: value
-        for key, value in {
-            "source_eval_id": _text(action.get("source_eval_id")),
-            "work_unit_id": _text(action.get("controller_work_unit_id"))
-            or _text(action.get("executable_work_unit"))
-            or _text(action.get("work_unit_id")),
-            "work_unit_fingerprint": _text(action.get("work_unit_fingerprint"))
-            or _text(action.get("action_fingerprint")),
-        }.items()
-        if value is not None
-    }
-
-
-def _compact_currentness_basis(*candidates: object) -> dict[str, Any]:
-    payload: dict[str, Any] = {}
-    for candidate in candidates:
-        for key, value in _mapping(candidate).items():
-            if _text(value) is not None:
-                payload[key] = value
-    return payload
+    return currentness_identity.with_owner_route_basis(route, basis=basis)
 
 
 def _record_production_route_fingerprint(owner_route: Mapping[str, Any]) -> str | None:

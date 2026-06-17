@@ -7,6 +7,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_action_authority,
     current_action_queue,
+    currentness_identity,
     domain_transition_current_actions,
     current_work_unit_action,
     current_typed_blocker_transition_barrier,
@@ -1013,55 +1014,12 @@ def _with_scan_transition_source_eval_id(
 ) -> dict[str, Any] | None:
     if action is None:
         return None
-    source_eval_id = _domain_transition_source_eval_id(study)
+    source_eval_id = currentness_identity.source_eval_id_from_study(study)
     if source_eval_id is None:
         return dict(action)
-    payload = dict(action)
-    payload["source_eval_id"] = source_eval_id
-    handoff_packet = dict(_mapping(payload.get("handoff_packet")))
-    handoff_packet["source_eval_id"] = source_eval_id
-    payload["handoff_packet"] = handoff_packet
-    owner_route = _with_owner_route_source_eval_id(
-        _mapping(payload.get("owner_route")),
-        source_eval_id=source_eval_id,
-    )
-    if owner_route:
-        payload["owner_route"] = owner_route
-        handoff_packet["owner_route"] = owner_route
-    return payload
-
-
-def _with_owner_route_source_eval_id(
-    owner_route: Mapping[str, Any],
-    *,
-    source_eval_id: str,
-) -> dict[str, Any]:
-    if not owner_route:
-        return {}
-    route = dict(owner_route)
-    source_refs = dict(_mapping(route.get("source_refs")))
-    source_refs["source_eval_id"] = source_eval_id
-    basis = dict(_mapping(source_refs.get("owner_route_currentness_basis")))
-    basis["source_eval_id"] = source_eval_id
-    source_refs["owner_route_currentness_basis"] = basis
-    route["source_refs"] = source_refs
-    currentness_contract = dict(_mapping(route.get("currentness_contract")))
-    contract_basis = dict(_mapping(currentness_contract.get("basis")))
-    contract_basis["source_eval_id"] = source_eval_id
-    currentness_contract["basis"] = contract_basis
-    route["currentness_contract"] = currentness_contract
-    return route
-
-
-def _domain_transition_source_eval_id(study: Mapping[str, Any]) -> str | None:
-    transition = _mapping(study.get("domain_transition"))
-    completion = _mapping(transition.get("completion_receipt_consumption"))
-    publication_eval_ref = _mapping(transition.get("publication_eval_ref"))
-    return (
-        _text(completion.get("eval_id"))
-        or _text(transition.get("source_eval_id"))
-        or _text(transition.get("publication_eval_id"))
-        or _text(publication_eval_ref.get("eval_id"))
+    return currentness_identity.with_action_handoff_basis(
+        action,
+        basis={"source_eval_id": source_eval_id},
     )
 
 

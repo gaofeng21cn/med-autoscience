@@ -19,6 +19,7 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )
+from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
@@ -288,10 +289,7 @@ def build_ai_reviewer_record_worker_handoff(
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
     source_refs = _mapping(owner_route.get("source_refs"))
-    currentness_basis = {
-        **_mapping(_mapping(owner_route.get("currentness_contract")).get("basis")),
-        **_mapping(source_refs.get("owner_route_currentness_basis")),
-    }
+    currentness_basis = currentness_identity.owner_route_basis(owner_route)
     work_unit_id = (
         _text(source_refs.get("work_unit_id"))
         or _text(production_request.get("request_kind"))

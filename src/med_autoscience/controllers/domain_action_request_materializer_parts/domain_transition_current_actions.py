@@ -13,6 +13,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import (
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_action_authority,
+    currentness_identity,
     owner_route_currentness_projection,
 )
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -125,27 +126,13 @@ def _with_transition_source_eval_id(
     *,
     transition: Mapping[str, Any],
 ) -> dict[str, Any]:
-    source_eval_id = (
-        _text(_mapping(transition.get("completion_receipt_consumption")).get("eval_id"))
-        or _text(transition.get("source_eval_id"))
-        or _text(transition.get("publication_eval_id"))
-        or _text(_mapping(transition.get("publication_eval_ref")).get("eval_id"))
-    )
-    payload = dict(route)
+    source_eval_id = currentness_identity.source_eval_id_from_domain_transition(transition)
     if source_eval_id is None:
-        return payload
-    source_refs = dict(_mapping(payload.get("source_refs")))
-    source_refs["source_eval_id"] = source_eval_id
-    basis = dict(_mapping(source_refs.get("owner_route_currentness_basis")))
-    basis["source_eval_id"] = source_eval_id
-    source_refs["owner_route_currentness_basis"] = basis
-    payload["source_refs"] = source_refs
-    currentness_contract = dict(_mapping(payload.get("currentness_contract")))
-    contract_basis = dict(_mapping(currentness_contract.get("basis")))
-    contract_basis["source_eval_id"] = source_eval_id
-    currentness_contract["basis"] = contract_basis
-    payload["currentness_contract"] = currentness_contract
-    return payload
+        return dict(route)
+    return currentness_identity.with_owner_route_basis(
+        route,
+        basis={"source_eval_id": source_eval_id},
+    )
 
 
 def _mapping(value: object) -> dict[str, Any]:

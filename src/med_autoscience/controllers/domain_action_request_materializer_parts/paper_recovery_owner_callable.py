@@ -7,6 +7,7 @@ from med_autoscience.controllers.default_executor_action_policy import (
     request_output_surface_for_action_type,
     request_owner_for_action_type,
 )
+from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -407,9 +408,7 @@ def _action_from_successor_owner_action(
         or _text(typed_blocker.get("blocker_type"))
         or _text(current_work_unit.get("blocker_type"))
     )
-    transition_source_eval_id = _source_eval_id_from_domain_transition(
-        _mapping(study.get("domain_transition"))
-    )
+    transition_source_eval_id = currentness_identity.source_eval_id_from_study(study)
     source_eval_id = (
         _text(successor_owner_action.get("source_eval_id"))
         or _text(next_action.get("source_eval_id"))
@@ -569,17 +568,6 @@ def _owner_route(
 def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     return _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
-
-
-def _source_eval_id_from_domain_transition(transition: Mapping[str, Any]) -> str | None:
-    completion = _mapping(transition.get("completion_receipt_consumption"))
-    publication_eval_ref = _mapping(transition.get("publication_eval_ref"))
-    return _first_text(
-        completion.get("eval_id"),
-        transition.get("source_eval_id"),
-        transition.get("publication_eval_id"),
-        publication_eval_ref.get("eval_id"),
-    )
 
 
 def _current_recovery_state(

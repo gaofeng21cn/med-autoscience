@@ -30,6 +30,7 @@ from med_autoscience.controllers.opl_execution_boundary import (
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     ai_reviewer_record_handoff,
     current_action_selection,
+    currentness_identity,
     current_owner_callable_adapters as current_owner_callable_adapters_part,
     current_writer_handoff,
     default_executor_prompt,
@@ -586,9 +587,8 @@ def _transition_request_for_owner_callable_adapter(payload: Mapping[str, Any]) -
     source_refs = _mapping(owner_route.get("source_refs"))
     prompt_contract = _mapping(payload.get("prompt_contract"))
     source_action = _mapping(payload.get("source_action"))
-    currentness_basis = _merged_currentness_basis(
-        source_refs.get("owner_route_currentness_basis"),
-        _mapping(owner_route.get("currentness_contract")).get("basis"),
+    currentness_basis = currentness_identity.currentness_basis(
+        currentness_identity.owner_route_basis(owner_route),
         prompt_contract.get("owner_route_currentness_basis"),
         source_action.get("owner_route_currentness_basis"),
     )
@@ -635,27 +635,12 @@ def _with_owner_route_currentness_basis(
     owner_route = _mapping(payload.get("owner_route"))
     prompt_contract = _mapping(payload.get("prompt_contract"))
     source_action = _mapping(payload.get("source_action"))
-    route_basis = owner_route_attempt_protocol.currentness_basis(owner_route) if owner_route else {}
-    currentness_basis = _merged_currentness_basis(
-        request.get("currentness_basis"),
-        route_basis,
-        _mapping(_mapping(owner_route.get("currentness_contract")).get("basis")),
-        _mapping(_mapping(owner_route.get("source_refs")).get("owner_route_currentness_basis")),
+    basis = currentness_identity.currentness_basis(
+        currentness_identity.owner_route_basis(owner_route),
         prompt_contract.get("owner_route_currentness_basis"),
         source_action.get("owner_route_currentness_basis"),
     )
-    if currentness_basis:
-        request["currentness_basis"] = currentness_basis
-    return request
-
-
-def _merged_currentness_basis(*candidates: object) -> dict[str, Any]:
-    payload: dict[str, Any] = {}
-    for candidate in candidates:
-        for key, value in _mapping(candidate).items():
-            if _text(value) is not None:
-                payload[key] = value
-    return payload
+    return currentness_identity.with_transition_request_basis(request, basis=basis)
 
 
 def _has_opl_execution_proof(payload: Mapping[str, Any]) -> bool:
