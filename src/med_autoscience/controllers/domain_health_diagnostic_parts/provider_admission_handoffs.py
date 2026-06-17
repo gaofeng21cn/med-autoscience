@@ -100,7 +100,10 @@ def handoff_work_unit_id(handoff: Mapping[str, Any]) -> str | None:
     source_refs = _mapping(owner_route.get("source_refs"))
     basis = _mapping(source_refs.get("owner_route_currentness_basis"))
     return (
-        _non_empty_text(source_refs.get("work_unit_id"))
+        _non_empty_text(handoff.get("work_unit_id"))
+        or _non_empty_text(handoff.get("next_work_unit"))
+        or _non_empty_text(handoff.get("controller_work_unit_id"))
+        or _non_empty_text(source_refs.get("work_unit_id"))
         or _non_empty_text(owner_route.get("work_unit_id"))
         or _non_empty_text(basis.get("work_unit_id"))
         or _non_empty_text(owner_route.get("work_unit_fingerprint"))

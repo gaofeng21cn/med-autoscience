@@ -253,3 +253,110 @@ def test_provider_admission_candidate_from_current_control_gate_clearing_queue_s
     assert stage_boundary["intent_can_write_stage_run_terminal_state"] is False
     assert stage_boundary["intent_can_publish_current_owner_delta"] is False
     assert stage_boundary["intent_can_write_domain_truth"] is False
+
+
+def test_provider_admission_candidate_carries_top_level_work_unit_identity_from_transition_request(
+    tmp_path: Path,
+) -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    handoffs = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_handoffs"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = tmp_path / "studies" / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    work_unit_id = "medical_prose_write_repair"
+    stale_route_work_unit = "publication_gate_replay"
+    action_fingerprint = "publication-blockers::0915410f804b3697"
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "write",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+            "owner_route": {
+                "next_owner": "write",
+                "source_refs": {
+                    "work_unit_id": stale_route_work_unit,
+                    "work_unit_fingerprint": "stage-native-next-action::stale-dispatch-basis",
+                    "owner_route_currentness_basis": {
+                        "truth_epoch": "truth-event-stale",
+                        "runtime_health_epoch": "runtime-health-stale",
+                        "work_unit_id": stale_route_work_unit,
+                        "work_unit_fingerprint": "stage-native-next-action::stale-dispatch-basis",
+                    },
+                },
+            },
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    action = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "source_surface": "opl_current_control_state.study_current_executable_owner_action",
+        "action_type": "run_quality_repair_batch",
+        "status": "transition_request_pending",
+        "owner": "write",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "refs": {"dispatch_path": str(dispatch_path)},
+    }
+    current_action_identity = {
+        "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "currentness_basis": {
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+        },
+    }
+
+    candidate = provider_admission.provider_admission_candidate_from_current_control_action(
+        action,
+        study_root=study_root,
+        status_study_id=study_id,
+        current_action_identity=current_action_identity,
+        status_payload={"study_id": study_id},
+        current_control_ref=(
+            "/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json"
+        ),
+    )
+
+    assert candidate is not None
+    assert handoffs.handoff_work_unit_id({**action, "owner_route": {}}) == work_unit_id
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["provider_admission_pending"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["action_fingerprint"] == action_fingerprint
+    assert candidate["currentness_basis"]["work_unit_id"] == work_unit_id
+    assert candidate["currentness_basis"]["work_unit_fingerprint"] == action_fingerprint
+    assert candidate["source_refs"]["work_unit_id"] == work_unit_id
+    assert candidate["source_refs"]["work_unit_fingerprint"] == action_fingerprint
+    policy_request = candidate["opl_domain_progress_transition_request"]
+    assert policy_request["work_unit_id"] == work_unit_id
+    assert policy_request["work_unit_fingerprint"] == action_fingerprint

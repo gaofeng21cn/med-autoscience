@@ -243,6 +243,7 @@ def provider_admission_candidate_from_current_control_action(
         "provider_admission_requires_opl_runtime_result": True,
         "opl_transition_runtime_required": True,
         "provider_completion_is_domain_completion": False,
+        "work_unit_id": work_unit_id,
         "mas_owner_action_source": _non_empty_text(action.get("mas_owner_action_source")),
         "owner_route_current": True,
         "dispatch_path": str(dispatch_path),
@@ -303,6 +304,9 @@ def provider_admission_candidate_from_current_control_action(
             }
     candidate["source_refs"] = {
         **_mapping(candidate.get("source_refs")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
         "current_control_ref": current_control_ref,
         "dispatch_path": str(dispatch_path),
     }
@@ -1030,6 +1034,17 @@ def _execution_blocked_reason(execution: Mapping[str, Any]) -> str | None:
 
 
 def _work_unit_fingerprint(execution: Mapping[str, Any]) -> str | None:
+    study_id = _non_empty_text(execution.get("study_id"))
+    action_type = _non_empty_text(execution.get("action_type"))
+    work_unit_id = handoff_work_unit_id(execution)
+    stable_ticket = control_identity.stable_current_owner_ticket_fingerprint(
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+        action_type=action_type,
+    )
+    explicit_action_fingerprint = _non_empty_text(execution.get("action_fingerprint"))
+    if explicit_action_fingerprint is not None and explicit_action_fingerprint == stable_ticket:
+        return explicit_action_fingerprint
     owner_route = _mapping(execution.get("owner_route"))
     source_refs = _mapping(owner_route.get("source_refs"))
     basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
@@ -1037,12 +1052,14 @@ def _work_unit_fingerprint(execution: Mapping[str, Any]) -> str | None:
     )
     return _first_currentness_fingerprint(
         execution.get("action_fingerprint"),
+        execution.get("work_unit_fingerprint"),
+        execution.get("source_fingerprint"),
         owner_route.get("work_unit_fingerprint"),
         source_refs.get("work_unit_fingerprint"),
         basis.get("work_unit_fingerprint"),
-        study_id=_non_empty_text(execution.get("study_id")),
-        action_type=_non_empty_text(execution.get("action_type")),
-        work_unit_id=handoff_work_unit_id(execution),
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
     )
 
 
