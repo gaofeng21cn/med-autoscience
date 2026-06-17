@@ -108,6 +108,7 @@ from med_autoscience.controllers.current_work_unit_parts.work_unit_fields import
 )
 from med_autoscience.runtime_control.owner_route_attempt_protocol import (
     currentness_basis as owner_route_currentness_basis,
+    normalize_currentness_sources,
     owner_reason_contract,
 )
 
@@ -530,11 +531,19 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
     if action_type is None or work_unit_id is None or fingerprint is None or owner is None:
         return None
     source_surface = _text(successor.get("source_surface")) or _text(successor.get("source"))
-    currentness_basis = _mapping(successor.get("owner_route_currentness_basis")) or {
-        "source": source_surface,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-    }
+    currentness_basis = normalize_currentness_sources(
+        _mapping(successor.get("owner_route_currentness_basis")),
+        _mapping(successor.get("currentness_basis")),
+        _mapping(next_action.get("owner_route_currentness_basis")),
+        _mapping(recovery.get("owner_route_currentness_basis")),
+        {
+            "source": source_surface,
+            "source_eval_id": _text(successor.get("source_eval_id")),
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+        },
+    )
     return {
         key: value
         for key, value in {
@@ -562,16 +571,7 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
                 "opl_transition_runtime_required": True,
                 "source_surface": source_surface,
             },
-            "owner_route_currentness_basis": {
-                key: value
-                for key, value in {
-                    **currentness_basis,
-                    "source": source_surface,
-                    "work_unit_id": work_unit_id,
-                    "work_unit_fingerprint": fingerprint,
-                }.items()
-                if value not in (None, "", [], {})
-            },
+            "owner_route_currentness_basis": currentness_basis,
         }.items()
         if value not in (None, "", [], {})
     }
@@ -1183,29 +1183,30 @@ def _currentness_basis(
     )
     publication_eval = _mapping(progress.get("publication_eval"))
     running = _mapping(running_attempt)
-    result = {
-        **basis,
-        **{key: value for key, value in embedded.items() if value not in (None, "", [], {})},
-    }
-    for key, value in {
-        "source_eval_id": (
-            _text(action_payload.get("source_eval_id"))
-            or _text(action_source_refs.get("source_eval_id"))
-            or _text(publication_eval.get("eval_id"))
-        ),
-        "work_unit_id": _work_unit_id(action_payload.get("work_unit_id"))
-        or _work_unit_id(action_payload.get("next_work_unit"))
-        or _route_work_unit_id(owner_route)
-        or running_work_unit_id(running),
-        "work_unit_fingerprint": _work_unit_fingerprint(action_payload, currentness_basis=result)
-        or _text(running.get("work_unit_fingerprint")),
-        "truth_epoch": _text(action_payload.get("truth_epoch")) or _text(progress.get("truth_epoch")),
-        "runtime_health_epoch": _text(runtime_health.get("runtime_health_epoch"))
-        or _text(action_payload.get("runtime_health_epoch")),
-    }.items():
-        if value is not None and result.get(key) in (None, "", [], {}):
-            result[key] = value
-    return {key: value for key, value in result.items() if value not in (None, "", [], {})}
+    fingerprint_basis = normalize_currentness_sources(basis, embedded)
+    return normalize_currentness_sources(
+        basis,
+        embedded,
+        {
+            "source_eval_id": (
+                _text(action_payload.get("source_eval_id"))
+                or _text(action_source_refs.get("source_eval_id"))
+                or _text(publication_eval.get("eval_id"))
+            ),
+            "work_unit_id": _work_unit_id(action_payload.get("work_unit_id"))
+            or _work_unit_id(action_payload.get("next_work_unit"))
+            or _route_work_unit_id(owner_route)
+            or running_work_unit_id(running),
+            "work_unit_fingerprint": _work_unit_fingerprint(
+                action_payload,
+                currentness_basis=fingerprint_basis,
+            )
+            or _text(running.get("work_unit_fingerprint")),
+            "truth_epoch": _text(action_payload.get("truth_epoch")) or _text(progress.get("truth_epoch")),
+            "runtime_health_epoch": _text(runtime_health.get("runtime_health_epoch"))
+            or _text(action_payload.get("runtime_health_epoch")),
+        },
+    )
 
 
 __all__ = [

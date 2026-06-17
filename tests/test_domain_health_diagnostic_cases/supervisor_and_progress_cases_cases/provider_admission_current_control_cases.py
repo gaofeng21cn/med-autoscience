@@ -928,7 +928,7 @@ def test_terminal_closeout_suppresses_stale_running_but_preserves_next_handoff(
     )
     assert study["action_queue"][0]["work_unit_id"] == next_work_unit_id
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
 
 def test_materialized_current_control_clears_candidate_after_executed_typed_blocker_closeout(

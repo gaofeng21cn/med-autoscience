@@ -879,6 +879,78 @@ def test_current_work_unit_uses_latest_terminal_handoff_domain_blocker_over_repe
     )
 
 
+def test_paper_recovery_successor_supersedes_legacy_unsupported_dispatch_surface_closeout() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_action_ready",
+                "current_authority": {
+                    "owner": "write",
+                    "authority": "med-autoscience",
+                    "obligation": {
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                },
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "successor_owner_action": {
+                        "action_type": "run_quality_repair_batch",
+                        "owner": "write",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                    },
+                },
+                "supervisor_decision": {
+                    "decision": "materialize_recovery_action",
+                    "identity_match": True,
+                },
+            },
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_attempt_id": "sat_ff29f3cd92715d39043b1342",
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "status": "blocked",
+                    "outcome": "blocked:unsupported_dispatch_surface",
+                    "progress_delta_classification": "typed_blocker",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "typed_blocker": {
+                        "blocker_type": (
+                            "No MAS owner receipt, artifact delta, or handler-owned typed blocker "
+                            "was produced for the canonical manuscript story-surface target."
+                        ),
+                        "owner": "one-person-lab",
+                    },
+                },
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_reports_consumed_gate_replay_blocker_after_fresh_gate_receipt() -> None:
     module = _module()
     study_id = "002-dm-china-us-mortality-attribution"

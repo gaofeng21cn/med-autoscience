@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity
+from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
 def test_currentness_identity_preserves_non_empty_source_eval_id_across_route_and_transition() -> None:
@@ -104,6 +105,27 @@ def test_normalize_currentness_sources_is_the_shared_non_empty_merge_contract() 
         "runtime_health_epoch": "runtime-old",
         "route_epoch": "route-current",
     }
+    assert normalized == owner_route_attempt_protocol.normalize_currentness_sources(
+        {
+            "source_eval_id": "publication-eval::old",
+            "source_fingerprint": "source-fingerprint::old",
+            "work_unit_id": "work-unit-old",
+            "work_unit_fingerprint": "fingerprint-old",
+            "truth_epoch": "truth-old",
+            "runtime_health_epoch": "runtime-old",
+            "route_epoch": "route-old",
+        },
+        {
+            "source_eval_id": None,
+            "source_fingerprint": "",
+            "work_unit_id": "work-unit-current",
+            "work_unit_fingerprint": None,
+            "truth_epoch": "truth-current",
+            "runtime_health_epoch": None,
+            "route_epoch": "route-current",
+            "private_queue_ref": "must-not-leak",
+        },
+    )
 
 
 def test_normalize_transition_request_currentness_preserves_existing_non_empty_fields() -> None:

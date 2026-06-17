@@ -6,26 +6,11 @@ from typing import Any
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
-CURRENTNESS_BASIS_FIELDS = frozenset(
-    {
-        "source_eval_id",
-        "source_fingerprint",
-        "work_unit_id",
-        "work_unit_fingerprint",
-        "truth_epoch",
-        "runtime_health_epoch",
-        "route_epoch",
-    }
-)
+CURRENTNESS_BASIS_FIELDS = owner_route_attempt_protocol.CURRENTNESS_BASIS_FIELDS
 
 
 def currentness_basis(*candidates: object) -> dict[str, Any]:
-    payload: dict[str, Any] = {}
-    for candidate in candidates:
-        for key, value in _mapping(candidate).items():
-            if key in CURRENTNESS_BASIS_FIELDS and _text(value) is not None:
-                payload[key] = value
-    return payload
+    return owner_route_attempt_protocol.normalize_currentness_sources(*candidates)
 
 
 def normalize_currentness_sources(*candidates: object) -> dict[str, Any]:

@@ -7,6 +7,7 @@ from med_autoscience.controllers.study_progress_parts.shared import (
     _mapping_copy,
     _non_empty_text,
 )
+from med_autoscience.runtime_control.owner_route_attempt_protocol import normalize_currentness_sources
 
 
 PAPER_RECOVERY_SUCCESSOR_SOURCE = "paper_recovery_state.next_safe_action.successor_owner_action"
@@ -57,6 +58,18 @@ def owner_action_from_paper_recovery_state(
         or _non_empty_text(decision.get("paper_autonomy_obligation_ref"))
         or _non_empty_text(decision.get("source_recovery_obligation_ref"))
     )
+    owner_route_currentness_basis = normalize_currentness_sources(
+        _mapping_copy(successor.get("owner_route_currentness_basis")),
+        _mapping_copy(successor.get("currentness_basis")),
+        _mapping_copy(next_safe_action.get("owner_route_currentness_basis")),
+        _mapping_copy(recovery.get("owner_route_currentness_basis")),
+        {
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+        },
+    )
     return _compact(
         {
             "surface_kind": surface_kind,
@@ -93,16 +106,7 @@ def owner_action_from_paper_recovery_state(
                     *_text_items(successor.get("evidence_refs")),
                 ]
             ),
-            "owner_route_currentness_basis": _compact(
-                {
-                    "source": "paper_recovery_state.next_safe_action.successor_owner_action",
-                    "source_eval_id": source_eval_id,
-                    "work_unit_id": work_unit_id,
-                    "work_unit_fingerprint": fingerprint,
-                    "source_surface": source_surface,
-                    "supervisor_decision_ref": supervisor_decision_ref,
-                }
-            ),
+            "owner_route_currentness_basis": owner_route_currentness_basis,
             "paper_recovery_successor": {
                 "phase": "owner_action_ready",
                 "source_next_safe_action_kind": "materialize_successor_owner_action",

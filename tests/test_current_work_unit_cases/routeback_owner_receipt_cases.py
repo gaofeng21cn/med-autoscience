@@ -150,6 +150,7 @@ def test_current_work_unit_projects_recovery_successor_without_current_action() 
         "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
         "work_unit_id": "medical_prose_write_repair",
         "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
     }
 
 

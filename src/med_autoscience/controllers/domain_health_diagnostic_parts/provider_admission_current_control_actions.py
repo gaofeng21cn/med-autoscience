@@ -886,10 +886,14 @@ def _current_control_action_dispatch_path(
     if explicit is not None:
         return Path(explicit).expanduser().resolve()
     root = Path(study_root).expanduser().resolve()
-    transition_request = root / PAPER_PROGRESS_TRANSITION_REQUESTS / f"{action_type}.json"
-    if transition_request.exists():
-        return transition_request
-    return root / DEFAULT_EXECUTOR_DISPATCHES / f"{action_type}.json"
+    for relative_root in (
+        PAPER_PROGRESS_TRANSITION_REQUESTS,
+        DEFAULT_EXECUTOR_DISPATCHES,
+    ):
+        candidate = root / relative_root / f"{action_type}.json"
+        if candidate.exists():
+            return candidate
+    return root / PAPER_PROGRESS_TRANSITION_REQUESTS / f"{action_type}.json"
 
 
 def _merge_owner_route_currentness(
@@ -902,28 +906,27 @@ def _merge_owner_route_currentness(
     route = _mapping(dispatch_payload.get("owner_route"))
     if not route:
         route = dict(owner_route)
-    source_refs = _mapping(route.get("source_refs"))
-    candidate_source_refs = _mapping(owner_route.get("source_refs"))
-    basis = (
-        _mapping(candidate_source_refs.get("owner_route_currentness_basis"))
-        or _mapping(source_refs.get("owner_route_currentness_basis"))
+    basis = currentness_identity.normalize_currentness_sources(
+        currentness_identity.owner_route_basis(route),
+        currentness_identity.owner_route_basis(owner_route),
+        {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        },
     )
-    basis = {
-        **basis,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": work_unit_fingerprint,
-    }
+    route = currentness_identity.with_owner_route_basis(route, basis=basis)
     source_refs = {
-        **source_refs,
+        **_mapping(route.get("source_refs")),
         **{
             key: value
-            for key, value in candidate_source_refs.items()
-            if key not in source_refs or key == "owner_route_currentness_basis"
+            for key, value in _mapping(owner_route.get("source_refs")).items()
+            if key not in _mapping(route.get("source_refs")) or key == "owner_route_currentness_basis"
         },
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "owner_route_currentness_basis": basis,
     }
+    source_refs["owner_route_currentness_basis"] = currentness_identity.normalize_currentness_sources(
+        source_refs.get("owner_route_currentness_basis"),
+        basis,
+    )
     route["source_refs"] = source_refs
     route["work_unit_fingerprint"] = work_unit_fingerprint
     return route

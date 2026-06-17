@@ -258,21 +258,20 @@ def _legacy_currentness_source_refs(
         "runtime_health_epoch",
     }
     refs = dict(source_refs)
-    basis = {
-        key: value
-        for key, value in _mapping(refs.get("owner_route_currentness_basis")).items()
-        if key in allowed_basis_fields
-    }
-    if _text(basis.get("truth_epoch")) is None:
-        basis["truth_epoch"] = truth_epoch
-    if _text(basis.get("source_eval_id")) is None and source_eval_id is not None:
-        basis["source_eval_id"] = source_eval_id
-    if _text(basis.get("work_unit_id")) is None:
-        basis["work_unit_id"] = work_unit_id
-    if _text(basis.get("work_unit_fingerprint")) is None:
-        basis["work_unit_fingerprint"] = work_unit_fingerprint
-    if _text(basis.get("runtime_health_epoch")) is None and runtime_health_epoch is not None:
-        basis["runtime_health_epoch"] = runtime_health_epoch
+    basis = owner_route_attempt_protocol.normalize_currentness_sources(
+        {
+            key: value
+            for key, value in _mapping(refs.get("owner_route_currentness_basis")).items()
+            if key in allowed_basis_fields
+        },
+        {
+            "truth_epoch": truth_epoch,
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "runtime_health_epoch": runtime_health_epoch,
+        },
+    )
     refs["owner_route_currentness_basis"] = basis
     refs.setdefault("study_truth_epoch", truth_epoch)
     if source_eval_id is not None:

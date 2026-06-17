@@ -76,6 +76,29 @@ RUNTIME_COMPLETION_GUARD = {
         "ai_reviewer_or_publication_gate_ref",
     ],
 }
+CURRENTNESS_BASIS_FIELDS = frozenset(
+    {
+        "source_eval_id",
+        "source",
+        "source_fingerprint",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "truth_epoch",
+        "runtime_health_epoch",
+        "route_epoch",
+        "action_fingerprint",
+        "stage_attempt_id",
+        "active_stage_attempt_id",
+        "stage_run_id",
+        "active_run_id",
+        "attempt_idempotency_key",
+        "route_identity_key",
+        "idempotency_key",
+        "derived_from_event_id",
+        "observed_generation",
+        "lineage_ref",
+    }
+)
 CLOSEOUT_PREALLOCATED_REF_TEMPLATE = (
     "studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
     "<stage_attempt_id>.closeout.json"
@@ -150,6 +173,16 @@ def currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
             or embedded_basis.get("runtime_health_epoch"),
         }
     )
+
+
+def normalize_currentness_sources(*candidates: object) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for candidate in candidates:
+        for source in _currentness_source_mappings(candidate):
+            for key, value in source.items():
+                if key in CURRENTNESS_BASIS_FIELDS and _text(value) is not None:
+                    payload[key] = value
+    return payload
 
 
 def currentness_contract(owner_route: Mapping[str, Any]) -> dict[str, Any]:
@@ -935,6 +968,23 @@ def _compact_mapping(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in payload.items() if _text(value) is not None}
 
 
+def _currentness_source_mappings(candidate: object) -> list[dict[str, Any]]:
+    payload = _mapping(candidate)
+    if not payload:
+        return []
+    source_refs = _mapping(payload.get("source_refs"))
+    currentness_contract = _mapping(payload.get("currentness_contract"))
+    sources = [
+        _mapping(source_refs.get("owner_route_currentness_basis")),
+        _mapping(payload.get("owner_route_currentness_basis")),
+        _mapping(payload.get("currentness_basis")),
+        _mapping(currentness_contract.get("basis")),
+        source_refs,
+        payload,
+    ]
+    return [source for source in sources if source]
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -946,6 +996,7 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "AUTHORITY_BOUNDARY",
+    "CURRENTNESS_BASIS_FIELDS",
     "PRIORITY_LATTICE",
     "PROTOCOL_VERSION",
     "ROUTE_TO_ATTEMPT_CONTRACT",
@@ -955,6 +1006,7 @@ __all__ = [
     "currentness_contract",
     "decorate_owner_route",
     "default_executor_attempt_envelope",
+    "normalize_currentness_sources",
     "owner_reason_contract",
     "payload_fields_for_default_executor_dispatch",
     "route_protocol_dispatchable",

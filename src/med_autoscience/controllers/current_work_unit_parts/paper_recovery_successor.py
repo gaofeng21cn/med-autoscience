@@ -22,6 +22,11 @@ SUPERSEDED_RECOVERY_SUCCESSOR_BLOCKERS = frozenset(
         "publication_gate_replay_blocked",
     }
 )
+SUPERSEDED_RECOVERY_SUCCESSOR_TERMINAL_OUTCOMES = frozenset(
+    {
+        "blocked:unsupported_dispatch_surface",
+    }
+)
 
 
 def paper_recovery_successor_supersedes_publication_gate_replay_blocker(
@@ -36,7 +41,9 @@ def paper_recovery_successor_supersedes_publication_gate_replay_blocker(
         or text(blocker.get("reason"))
     )
     if blocker_type not in SUPERSEDED_RECOVERY_SUCCESSOR_BLOCKERS:
-        return False
+        terminal_outcome = text(blocker.get("terminal_closeout_outcome"))
+        if terminal_outcome not in SUPERSEDED_RECOVERY_SUCCESSOR_TERMINAL_OUTCOMES:
+            return False
     if not paper_recovery_successor_action_ready(action):
         return False
     return True
