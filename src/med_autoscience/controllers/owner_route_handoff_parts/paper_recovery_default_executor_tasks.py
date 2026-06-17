@@ -13,6 +13,7 @@ from med_autoscience.controllers.domain_dispatch_evidence_payload import (
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )
+from med_autoscience.controllers.owner_callable_adapter_projection import owner_callable_adapters
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -36,7 +37,7 @@ def paper_recovery_default_executor_dispatch_tasks(
         dispatch_ready_for_execution=True,
     )
     tasks: list[dict[str, Any]] = []
-    for dispatch in preview.get("default_executor_dispatches") or []:
+    for dispatch in owner_callable_adapters(preview):
         if not isinstance(dispatch, Mapping):
             continue
         if _text(dispatch.get("study_id")) != study_id:

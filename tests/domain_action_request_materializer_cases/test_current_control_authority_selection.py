@@ -124,7 +124,7 @@ def test_materializer_rejects_top_level_action_queue_disallowed_by_current_study
     )
 
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert result["ignored_actions"] == [
         {
             "study_id": study_id,
@@ -138,7 +138,7 @@ def test_materializer_rejects_top_level_action_queue_disallowed_by_current_study
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     ).exists()
 
@@ -212,7 +212,7 @@ def test_materializer_rejects_top_level_action_queue_with_stale_owner_route_iden
     )
 
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert result["ignored_actions"] == [
         {
             "study_id": study_id,
@@ -226,7 +226,7 @@ def test_materializer_rejects_top_level_action_queue_with_stale_owner_route_iden
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     ).exists()
 
@@ -386,7 +386,7 @@ def test_materializer_blocks_stale_domain_transition_when_readiness_blocker_has_
     )
 
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert any(
         item["action_type"] == "current_execution_envelope_typed_blocker"
         and item["reason"] == "unsupported_action_type"
@@ -402,7 +402,7 @@ def test_materializer_blocks_stale_domain_transition_when_readiness_blocker_has_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     ).exists()
 
@@ -527,8 +527,8 @@ def test_materializer_allows_explicit_readiness_current_action_to_block_stale_do
     )
 
     assert result["request_task_count"] == 1
-    assert result["default_executor_dispatch_count"] == 1
-    dispatch = result["default_executor_dispatches"][0]
+    assert result["owner_callable_adapter_count"] == 1
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["action_type"] == "complete_medical_paper_readiness_surface"
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["source_action"]["authority"] == "mas_owner_surface"
@@ -544,7 +544,7 @@ def test_materializer_allows_explicit_readiness_current_action_to_block_stale_do
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     ).exists()
 
@@ -633,7 +633,7 @@ def test_materializer_does_not_dispatch_weak_progress_current_owner_ticket(
     )
 
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert any(
         item["action_type"] == "run_gate_clearing_batch"
         and item["reason"]
@@ -645,7 +645,7 @@ def test_materializer_does_not_dispatch_weak_progress_current_owner_ticket(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     ).exists()
 
@@ -726,8 +726,8 @@ def test_materializer_dispatches_fresh_progress_ticket_with_strong_currentness_i
     )
 
     assert result["request_task_count"] == 1
-    assert result["default_executor_dispatch_count"] == 1
-    dispatch = result["default_executor_dispatches"][0]
+    assert result["owner_callable_adapter_count"] == 1
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["action_type"] == "run_gate_clearing_batch"
     assert dispatch["owner_route"]["source_fingerprint"] == "sha256:current-gate-replay-source"
     assert dispatch["owner_route"]["work_unit_fingerprint"] == "sha256:current-gate-replay-work-unit"
@@ -880,7 +880,7 @@ def test_materializer_blocks_stale_provider_admission_when_fresh_progress_is_sto
     )
 
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert any(
         item["action_type"] == "run_quality_repair_batch"
         and item["action_id"] == f"provider-admission::{study_id}::run_quality_repair_batch"
@@ -892,7 +892,7 @@ def test_materializer_blocks_stale_provider_admission_when_fresh_progress_is_sto
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     ).exists()
 

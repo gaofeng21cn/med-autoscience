@@ -19,6 +19,12 @@ from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
+from ..domain_health_diagnostic_parts.provider_admission_current_control_actions import (
+    _study_current_action_for_provider_admission,
+)
+from ..domain_health_diagnostic_parts.provider_admission_current_control_identity import (
+    provider_admission_current_control_action,
+)
 from ..study_domain_transition_table_parts import family_transition_spec
 from .accepted_owner_gate_route_back import accepted_owner_gate_route_back_action
 from .authority_boundary import authority_boundary_payload
@@ -304,18 +310,27 @@ def _pending_family_tasks(
                     study_id=study_id,
                 )
             )
-        tasks.extend(
-            default_executor_dispatch_tasks(
-                profile=profile,
-                profile_ref=profile_ref,
-                study_id=study_id,
-                current_owner_action=current_owner_action,
-                current_work_unit=current_work_unit,
-                current_execution_envelope=current_execution_envelope,
-                paper_recovery_state=mapping(current_progress.get("paper_recovery_state")),
-                persist_identity=False,
-            )
+        owner_callable_carrier_tasks = default_executor_dispatch_tasks(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            current_owner_action=current_owner_action,
+            current_work_unit=current_work_unit,
+            current_execution_envelope=current_execution_envelope,
+            paper_recovery_state=mapping(current_progress.get("paper_recovery_state")),
+            persist_identity=False,
         )
+        if owner_callable_carrier_tasks:
+            tasks.extend(owner_callable_carrier_tasks)
+        else:
+            tasks.extend(
+                _current_control_transition_request_tasks(
+                    study=current_progress or study,
+                    profile=profile,
+                    profile_ref=profile_ref,
+                    study_id=study_id,
+                )
+            )
         if ordinary_task_blocker or legacy_route_tasks_blocked:
             continue
         tasks.extend(
@@ -351,6 +366,118 @@ def _pending_family_tasks(
         if controller_task is not None:
             tasks.append(controller_task)
     return tasks
+
+
+def _current_control_transition_request_tasks(
+    *,
+    study: Mapping[str, Any],
+    profile: WorkspaceProfile,
+    profile_ref: Path,
+    study_id: str,
+) -> list[dict[str, Any]]:
+    candidate = _study_current_action_for_provider_admission(study)
+    if not candidate:
+        return []
+    mas_owner_action_source = text(candidate.get("mas_owner_action_source"))
+    if not _current_control_transition_request_source_supported(mas_owner_action_source):
+        return []
+    source_surface = text(candidate.get("source_surface")) or mas_owner_action_source
+    transition_request = mapping(candidate.get("opl_domain_progress_transition_request"))
+    if not transition_request:
+        return []
+    action = provider_admission_current_control_action(candidate)
+    action_type = text(action.get("action_type")) or text(candidate.get("action_type"))
+    work_unit_id = text(action.get("work_unit_id")) or text(candidate.get("work_unit_id"))
+    work_unit_fingerprint = (
+        text(action.get("work_unit_fingerprint"))
+        or text(candidate.get("work_unit_fingerprint"))
+        or text(candidate.get("action_fingerprint"))
+    )
+    source_fingerprint = (
+        text(candidate.get("action_fingerprint"))
+        or work_unit_fingerprint
+        or text(mapping(transition_request.get("aggregate_identity")).get("work_unit_fingerprint"))
+        or _fingerprint(transition_request)
+    )
+    source_refs = [
+        {
+            "role": "opl_domain_progress_transition_request",
+            "ref": text(transition_request.get("idempotency_key")) or source_fingerprint,
+            "exists": True,
+        },
+        {
+            "role": "current_owner_action_source",
+            "ref": source_surface,
+            "exists": True,
+        },
+    ]
+    evidence_record_payload = build_domain_dispatch_evidence_record_payload(
+        task_kind="domain_owner/default-executor-dispatch",
+        study_id=study_id,
+        reason="current_control_transition_request_pending",
+        evidence_refs=source_refs,
+        source_fingerprint=source_fingerprint,
+        profile_name=profile.name,
+    )
+    payload = {
+        "profile": str(profile_ref),
+        "study_id": study_id,
+        "quest_id": text(candidate.get("quest_id")) or study_id,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "source_fingerprint": source_fingerprint,
+        "dispatch_ref": text(action.get("dispatch_ref")),
+        "authority_boundary": "mas_domain_progress_transition_request_only",
+        "next_executable_owner": text(candidate.get("next_executable_owner")),
+        "owner_route_currentness_basis": mapping(
+            mapping(candidate.get("owner_route")).get("source_refs")
+        ).get("owner_route_currentness_basis"),
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_domain_progress_transition_request": transition_request,
+        "paper_progress_policy_result": mapping(candidate.get("paper_progress_policy_result")),
+        "current_control_action": action,
+    }
+    return [
+        {
+            "domain_id": "medautoscience",
+            "task_kind": "domain_owner/default-executor-dispatch",
+            "study_id": study_id,
+            "quest_id": text(candidate.get("quest_id")) or study_id,
+            "action_type": action_type,
+            "domain_owner": text(candidate.get("next_executable_owner")),
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "priority": 75,
+            "source": "mas-domain-handler-export",
+            "requires_approval": False,
+            "dedupe_key": (
+                f"mas:{profile.name}:{study_id}:current-control-transition-request:"
+                f"{action_type}:{source_fingerprint}"
+            ),
+            "source_fingerprint": source_fingerprint,
+            "reason": "current_control_transition_request_pending",
+            "payload": {key: value for key, value in payload.items() if value not in (None, "", [], {})},
+            "source_refs": [ref for ref in source_refs if ref.get("ref") not in (None, "")],
+            "dispatch_owner": "one-person-lab",
+            "domain_truth_owner": "med-autoscience",
+            "queue_owner": "one-person-lab",
+            "profile_name": profile.name,
+            "provider_admission_pending": False,
+            "provider_admission_requires_opl_runtime_result": True,
+            "opl_domain_progress_transition_request": transition_request,
+            "domain_dispatch_evidence_record_payload": evidence_record_payload,
+        }
+    ]
+
+
+def _current_control_transition_request_source_supported(source: str | None) -> bool:
+    if source is None:
+        return False
+    if source.startswith("opl_current_control_state."):
+        return True
+    return source == "paper_recovery_state.next_safe_action.successor_owner_action"
 
 
 def _ordinary_pending_tasks_blocker(*, current_progress: Mapping[str, Any]) -> Mapping[str, Any]:

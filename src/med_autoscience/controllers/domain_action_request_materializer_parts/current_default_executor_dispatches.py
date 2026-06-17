@@ -5,6 +5,9 @@ from typing import Any, Callable
 
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers.owner_callable_adapter_projection import (
+    with_owner_callable_adapter_projection,
+)
 
 
 CurrentActions = Callable[..., tuple[list[dict[str, Any]] | None, list[dict[str, Any]]]]
@@ -73,7 +76,7 @@ def current_default_executor_dispatches(
         )
         for action in selected_request_actions
     ]
-    return {
+    return with_owner_callable_adapter_projection({
         "surface": "domain_action_request_materializer.current_owner_callable_adapters",
         "schema_version": 1,
         "generated_at": generated_at,
@@ -96,12 +99,8 @@ def current_default_executor_dispatches(
         "ready_owner_callable_adapter_count": _dispatch_status_count(dispatches, "ready", text=text),
         "blocked_owner_callable_adapter_count": _dispatch_status_count(dispatches, "blocked", text=text),
         "owner_callable_adapters": dispatches,
-        "default_executor_dispatch_count": len(dispatches),
-        "ready_default_executor_dispatch_count": _dispatch_status_count(dispatches, "ready", text=text),
-        "blocked_default_executor_dispatch_count": _dispatch_status_count(dispatches, "blocked", text=text),
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in dispatches),
-        "default_executor_dispatches": dispatches,
-    }
+    })
 
 
 def _developer_mode_payload_for_dry_run_execution(

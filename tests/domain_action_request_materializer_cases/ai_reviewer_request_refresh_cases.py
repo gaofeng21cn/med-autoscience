@@ -318,9 +318,9 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
     )
 
     assert result["request_task_count"] == 1
-    assert result["default_executor_dispatch_count"] == 1
+    assert result["owner_callable_adapter_count"] == 1
     request = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert request["action_type"] == "run_gate_clearing_batch"
     assert request["request_owner"] == "gate_clearing_batch"
     assert request["reason"] == "publication_owner_materialization_required"
@@ -425,7 +425,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_missing_current
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
     assert request["request_owner"] == "ai_reviewer"
     assert request["reason"] == "ai_reviewer_record_stale_after_current_manuscript"

@@ -203,7 +203,7 @@ def test_materialize_domain_action_requests_blocks_unbound_stage_native_write_an
     )
 
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert any(
         item["action_type"] == "complete_medical_paper_readiness_surface"
         and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
@@ -255,8 +255,8 @@ def test_materialize_domain_action_requests_routes_bound_stage_native_write_afte
     )
 
     assert result["request_task_count"] == 1
-    assert result["default_executor_dispatch_count"] == 1
-    dispatch = result["default_executor_dispatches"][0]
+    assert result["owner_callable_adapter_count"] == 1
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["action_type"] == "run_quality_repair_batch"
     assert dispatch["next_executable_owner"] == "write"
     source_action = dispatch["source_action"]
@@ -362,10 +362,10 @@ def test_materialize_domain_action_requests_routes_stage_native_write_when_curre
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "run_quality_repair_batch"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "write"
     source_action = dispatch["source_action"]
     assert source_action["authority"] == "stage_native_workspace_next_action"
@@ -475,14 +475,14 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
         apply=True,
     )
 
-    assert result["ready_default_executor_dispatch_count"] == 0
-    assert result["transition_request_pending_default_executor_dispatch_count"] == 1
+    assert result["ready_owner_callable_adapter_count"] == 0
+    assert result["transition_request_pending_owner_callable_adapter_count"] == 1
     assert result["written_files"] == []
     assert result["apply_writes_domain_intent_projection_only"] is False
     assert result["apply_writes_disabled_reason"] == (
         "opl_domain_progress_transition_runtime_owns_durable_carrier"
     )
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     persisted_dispatch_path = (
         profile.workspace_root
         / "studies"
@@ -490,7 +490,7 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     assert not persisted_dispatch_path.exists()

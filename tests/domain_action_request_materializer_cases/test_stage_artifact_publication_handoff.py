@@ -195,10 +195,10 @@ def test_materialize_domain_action_requests_dispatches_stage_artifact_publicatio
         apply=True,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "publication_handoff_owner_gate"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["dispatch_status"] == "ready"
     assert dispatch["next_executable_owner"] == "publication_gate_owner"
     assert dispatch["owner_route"]["next_owner"] == "publication_gate_owner"
@@ -219,7 +219,7 @@ def test_materialize_domain_action_requests_dispatches_stage_artifact_publicatio
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "publication_handoff_owner_gate.json"
     )
     assert request_path.is_file()
@@ -317,7 +317,7 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     request_ref = "artifacts/supervision/requests/medical_paper_readiness/latest.json"
     request_path = study_root / request_ref
     persisted_dispatch_path = (
@@ -325,7 +325,7 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "complete_medical_paper_readiness_surface.json"
     )
     assert task["dispatch_status"] == "applied"
@@ -513,10 +513,10 @@ def test_materialize_prefers_stage_readiness_followup_over_stale_control_next_ac
         apply=True,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "complete_medical_paper_readiness_surface"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["dispatch_status"] == "ready"
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["surface_key"] == "literature_provider_runtime"
@@ -675,10 +675,10 @@ def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_wi
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "complete_medical_paper_readiness_surface"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     source_action = dispatch["source_action"]
     assert source_action["authority"] == "mas_owner_surface"
@@ -818,10 +818,10 @@ def test_materialize_prefers_readiness_blocker_derived_repair_over_old_readiness
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "run_quality_repair_batch"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["source_action"]["next_work_unit"] == "readiness_blocker_publication_repair"
     assert dispatch["source_action"]["readiness_blocker_followup_superseded"] == (

@@ -304,7 +304,7 @@ def test_execute_dispatch_blocks_persisted_paper_recovery_owner_callable_without
         "required_input": "OPL provider attempt, lease, or closeout receipt binding",
     }
     assert execution["mas_private_attempt_loop_forbidden"] is True
-    assert execution["provider_attempt_or_lease_required"] is True
+    assert execution["provider_attempt_or_lease_required"] is False
     assert called == {}
 
 
@@ -594,7 +594,7 @@ def test_execute_dispatch_selects_same_tick_paper_recovery_successor_dispatch(
     assert called == [study_id]
 
 
-def test_execute_dispatch_handoffs_paper_recovery_provider_successor_without_extra_opl_authorization(
+def test_execute_dispatch_blocks_paper_recovery_provider_successor_without_opl_authorization(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -744,13 +744,12 @@ def test_execute_dispatch_handoffs_paper_recovery_provider_successor_without_ext
 
     assert result["execution_count"] == 1
     assert result["executed_count"] == 0
-    assert result["handoff_ready_count"] == 1
-    assert result["blocked_count"] == 0
+    assert result["handoff_ready_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["blocked_reason"] is None
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
     assert execution["owner_route_basis"] == "paper_recovery_owner_callable"
-    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
-    assert execution["authority_boundary"]["handoff_authority"] == (
-        "paper_recovery_successor_owner_action"
-    )
+    assert execution["owner_callable_surface"] is None
+    assert execution["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert execution["provider_attempt_or_lease_required"] is False

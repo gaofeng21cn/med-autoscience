@@ -101,19 +101,19 @@ def test_materializer_selects_identity_different_current_owner_action_over_prior
     )
 
     assert result["request_task_count"] == 1
-    assert result["default_executor_dispatch_count"] == 1
+    assert result["owner_callable_adapter_count"] == 1
     assert result["request_tasks"][0]["action_type"] == "run_quality_repair_batch"
     assert result["request_tasks"][0]["authority"] == (
         "gate_clearing_batch_followthrough.actionable_current_work_unit"
     )
-    assert result["default_executor_dispatches"][0]["dispatch_status"] == "dry_run"
+    assert result["owner_callable_adapters"][0]["dispatch_status"] == "dry_run"
     assert result["request_tasks"][0]["handoff_packet"]["work_unit_id"] == "analysis_claim_evidence_repair"
     assert (
-        result["default_executor_dispatches"][0]["source_action"]["work_unit_id"]
+        result["owner_callable_adapters"][0]["source_action"]["work_unit_id"]
         == "analysis_claim_evidence_repair"
     )
     assert (
-        result["default_executor_dispatches"][0]["action_fingerprint"]
+        result["owner_callable_adapters"][0]["action_fingerprint"]
         == "publication-blockers::497d1260db522f01"
     )
 
@@ -225,7 +225,7 @@ def test_materializer_selects_owner_gate_route_back_followthrough_over_typed_blo
     )
 
     assert result["request_task_count"] == 1
-    assert result["default_executor_dispatch_count"] == 1
+    assert result["owner_callable_adapter_count"] == 1
     assert result["request_tasks"][0]["action_type"] == "run_quality_repair_batch"
     assert result["request_tasks"][0]["authority"] == "paper_recovery_state.accepted_owner_gate_decision"
     assert result["request_tasks"][0]["request_owner"] == "write"
@@ -240,7 +240,7 @@ def test_materializer_selects_owner_gate_route_back_followthrough_over_typed_blo
         "provider_admission_allowed": False,
         "provider_admission_requires_opl_runtime_result": True,
     }
-    assert result["default_executor_dispatches"][0]["action_fingerprint"] == fingerprint
+    assert result["owner_callable_adapters"][0]["action_fingerprint"] == fingerprint
     assert {
         item["action_type"]: item["reason"]
         for item in result["ignored_actions"]
@@ -334,7 +334,7 @@ def test_opl_authorization_typed_blocker_fails_closed_before_gate_replay_materia
     )
 
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert any(
         item["action_type"] == "current_execution_envelope_typed_blocker"
         and item["reason"] == "unsupported_action_type"
@@ -345,7 +345,7 @@ def test_opl_authorization_typed_blocker_fails_closed_before_gate_replay_materia
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     ).exists()
 
@@ -457,7 +457,7 @@ def test_fresh_opl_authorization_blocker_preempts_stale_executable_scan(
     )
 
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert {
         item["action_type"]: item["reason"]
         for item in result["ignored_actions"]

@@ -94,7 +94,7 @@ def test_materialize_domain_action_requests_routes_clean_canonical_rehydrate_to_
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     packet_path = (
         study_root
         / "artifacts"
@@ -108,7 +108,7 @@ def test_materialize_domain_action_requests_routes_clean_canonical_rehydrate_to_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "canonical_paper_inputs_rehydrate_required.json"
     )
     assert task["action_type"] == "canonical_paper_inputs_rehydrate_required"
@@ -188,7 +188,7 @@ def test_materialize_domain_action_requests_routes_hard_methodology_handoff_to_a
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     packet_path = (
         study_root
         / "artifacts"
@@ -202,7 +202,7 @@ def test_materialize_domain_action_requests_routes_hard_methodology_handoff_to_a
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "unit_harmonized_external_validation_rerun.json"
     )
     assert task["dispatch_status"] == "applied"
@@ -282,7 +282,7 @@ def test_materialize_domain_action_requests_routes_model_provenance_handoff_to_s
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     packet_path = (
         study_root
         / "artifacts"
@@ -296,7 +296,7 @@ def test_materialize_domain_action_requests_routes_model_provenance_handoff_to_s
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "recover_transport_model_provenance.json"
     )
     assert task["dispatch_status"] == "applied"
@@ -380,7 +380,7 @@ def test_materialize_domain_action_requests_routes_methodology_reframe_to_decisi
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     packet_path = (
         study_root
         / "artifacts"
@@ -394,7 +394,7 @@ def test_materialize_domain_action_requests_routes_methodology_reframe_to_decisi
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "methodology_reframe_route_decision.json"
     )
     assert task["dispatch_status"] == "applied"
@@ -486,8 +486,8 @@ def test_materialize_domain_action_requests_prefers_current_study_queue_over_sta
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
-    assert result["default_executor_dispatch_count"] == 1
+    dispatch = result["owner_callable_adapters"][0]
+    assert result["owner_callable_adapter_count"] == 1
     assert dispatch["action_type"] == "canonical_paper_inputs_rehydrate_required"
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["owner_route"]["next_owner"] == "write"
@@ -498,7 +498,7 @@ def test_materialize_domain_action_requests_prefers_current_study_queue_over_sta
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     ).exists()
 
@@ -570,7 +570,7 @@ def test_materialize_domain_action_requests_rejects_stale_top_level_queue_when_e
     )
 
     ignored = result["ignored_actions"]
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert result["request_tasks"] == []
     assert ignored[0]["action_type"] == "methodology_reframe_route_decision"
     assert ignored[0]["reason"] == "superseded_by_current_execution_envelope"
@@ -579,6 +579,6 @@ def test_materialize_domain_action_requests_rejects_stale_top_level_queue_when_e
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "methodology_reframe_route_decision.json"
     ).exists()

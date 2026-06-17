@@ -89,7 +89,7 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     route = dispatch["owner_route"]
     basis = route["currentness_contract"]["basis"]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
@@ -110,5 +110,5 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
     assert route["currentness_contract"]["missing_required_fields"] == []
     assert basis["source_eval_id"] == eval_id
     assert route["source_refs"]["owner_route_currentness_basis"]["source_eval_id"] == eval_id
-    assert result["ready_default_executor_dispatch_count"] == 1
-    assert result["blocked_default_executor_dispatch_count"] == 0
+    assert result["ready_owner_callable_adapter_count"] == 1
+    assert result["blocked_owner_callable_adapter_count"] == 0

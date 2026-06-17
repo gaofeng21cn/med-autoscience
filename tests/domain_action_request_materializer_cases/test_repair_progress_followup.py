@@ -160,10 +160,10 @@ def test_materialize_domain_action_requests_prefers_fresh_repair_followup_withou
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "return_to_ai_reviewer_workflow"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
@@ -292,10 +292,10 @@ def test_materialize_domain_action_requests_allows_repair_followup_when_readines
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "return_to_ai_reviewer_workflow"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["source_action"]["current_action_source"] == (
         "repair_progress_projection.mas_owner_repair_execution_evidence"
@@ -417,10 +417,10 @@ def test_materialize_domain_action_requests_prefers_repair_followup_over_provide
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "return_to_ai_reviewer_workflow"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["source_action"]["current_action_source"] == (
         "repair_progress_projection.mas_owner_repair_execution_evidence"
@@ -548,10 +548,10 @@ def test_materialize_domain_action_requests_does_not_bridge_repair_followup_to_o
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "return_to_ai_reviewer_workflow"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert dispatch["source_action"]["current_action_source"] == (
@@ -711,10 +711,10 @@ def test_materialize_domain_action_requests_prefers_repair_followup_over_stale_a
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "return_to_ai_reviewer_workflow"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert dispatch["required_output_surface"] == (
@@ -852,10 +852,10 @@ def test_materialize_domain_action_requests_prefers_terminal_next_forced_write_o
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "run_quality_repair_batch"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["source_action"]["source_surface"] == "study_progress.current_executable_owner_action"
     assert dispatch["source_action"]["current_action_source"] == "study_progress.next_forced_delta.owner_action"

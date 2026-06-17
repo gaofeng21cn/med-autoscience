@@ -31,6 +31,7 @@ from med_autoscience.controllers import (
 from med_autoscience.controllers.domain_health_diagnostic_outer_loop_policy import (
     outer_loop_request_requires_fresh_controller_execution,
 )
+from med_autoscience.controllers.owner_callable_adapter_projection import owner_callable_adapters
 from med_autoscience.controllers.domain_health_diagnostic_parts.autonomy_repair import (
     apply_ready_ai_doctor_repair,
     reconcile_ai_repair_lifecycle,
@@ -908,7 +909,7 @@ def _same_tick_refresh_study_ids(
     materialize = _mapping(supervisor_tick.get("materialize"))
     candidates.extend(
         _non_empty_text(dispatch.get("study_id"))
-        for dispatch in materialize.get("default_executor_dispatches") or []
+        for dispatch in owner_callable_adapters(materialize)
         if isinstance(dispatch, Mapping)
     )
     return tuple(dict.fromkeys(study_id for study_id in candidates if study_id is not None))

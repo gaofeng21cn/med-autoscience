@@ -15,6 +15,9 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
     default_executor_policy,
     two_layer_ai_repair_policy_payload,
 )
+from med_autoscience.controllers.owner_callable_adapter_projection import (
+    with_owner_callable_adapter_projection,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     has_opl_transition_readback,
 )
@@ -1040,10 +1043,10 @@ def _ai_reviewer_request_refreshes(
 def _apply_progress_first_closeout_to_request_tasks(
     *,
     request_tasks: list[dict[str, Any]],
-    default_executor_dispatches: list[dict[str, Any]],
+    owner_callable_adapters: list[dict[str, Any]],
 ) -> None:
     admissions_by_identity: dict[tuple[str | None, str | None], dict[str, Any]] = {}
-    for dispatch in default_executor_dispatches:
+    for dispatch in owner_callable_adapters:
         admission = _mapping(dispatch.get("progress_first_closeout_admission"))
         if _text(admission.get("admission_status")) != "blocked":
             continue
@@ -1092,6 +1095,23 @@ def current_default_executor_dispatches(
         owner_from_action=_owner_from_action,
         required_output_surface=_required_output_surface,
         text=_text,
+    )
+
+
+def current_owner_callable_adapters(
+    *,
+    profile: WorkspaceProfile,
+    study_ids: Iterable[str],
+    mode: str,
+    apply: bool,
+    dispatch_ready_for_execution: bool = False,
+) -> dict[str, Any]:
+    return current_default_executor_dispatches(
+        profile=profile,
+        study_ids=study_ids,
+        mode=mode,
+        apply=apply,
+        dispatch_ready_for_execution=dispatch_ready_for_execution,
     )
 
 
@@ -1168,7 +1188,7 @@ def materialize_domain_action_requests(
     )
     _apply_progress_first_closeout_to_request_tasks(
         request_tasks=request_tasks,
-        default_executor_dispatches=owner_callable_adapters,
+        owner_callable_adapters=owner_callable_adapters,
     )
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
@@ -1178,7 +1198,7 @@ def materialize_domain_action_requests(
         apply=False,
     )
 
-    payload = {
+    payload = with_owner_callable_adapter_projection({
         "surface": "domain_action_request_materializer",
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -1215,14 +1235,7 @@ def materialize_domain_action_requests(
             transition_request_pending_owner_callable_adapter_count
         ),
         "owner_callable_adapters": owner_callable_adapters,
-        "default_executor_dispatch_count": len(owner_callable_adapters),
-        "ready_default_executor_dispatch_count": ready_owner_callable_adapter_count,
-        "blocked_default_executor_dispatch_count": blocked_owner_callable_adapter_count,
-        "transition_request_pending_default_executor_dispatch_count": (
-            transition_request_pending_owner_callable_adapter_count
-        ),
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in owner_callable_adapters),
-        "default_executor_dispatches": owner_callable_adapters,
         "ignored_actions": ignored_actions,
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
@@ -1234,7 +1247,7 @@ def materialize_domain_action_requests(
             "latest_path": str(_consumer_latest_path(profile)),
             "history_path": str(_consumer_history_path(profile)),
         },
-    }
+    })
     return payload
 
 
@@ -1245,5 +1258,6 @@ __all__ = [
     "SCHEMA_VERSION",
     "SUPPORTED_REQUEST_ACTION_TYPES",
     "current_default_executor_dispatches",
+    "current_owner_callable_adapters",
     "materialize_domain_action_requests",
 ]

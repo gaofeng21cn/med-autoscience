@@ -3,6 +3,11 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from med_autoscience.controllers.owner_callable_adapter_projection import (
+    adapter_count,
+    adapter_status_count,
+    owner_callable_adapters,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -30,15 +35,9 @@ def attach_domain_action_request_materialization_preview(
     report["materialization_preview_request_task_count"] = _int_value(
         preview.get("request_task_count")
     )
-    report["materialization_preview_default_executor_dispatch_count"] = _int_value(
-        preview.get("default_executor_dispatch_count")
-    )
-    report["materialization_preview_ready_default_executor_dispatch_count"] = _int_value(
-        preview.get("ready_default_executor_dispatch_count")
-    )
-    report["materialization_preview_blocked_default_executor_dispatch_count"] = _int_value(
-        preview.get("blocked_default_executor_dispatch_count")
-    )
+    report["materialization_preview_owner_callable_adapter_count"] = adapter_count(preview)
+    report["materialization_preview_ready_owner_callable_adapter_count"] = adapter_status_count(preview, "ready")
+    report["materialization_preview_blocked_owner_callable_adapter_count"] = adapter_status_count(preview, "blocked")
     _attach_materialization_preview_to_managed_actions(report=report, preview=preview)
 
 
@@ -88,7 +87,7 @@ def _attach_materialization_preview_to_managed_actions(
     if not isinstance(actions, list):
         return
     request_tasks_by_study = _items_by_study(preview.get("request_tasks"))
-    dispatches_by_study = _items_by_study(preview.get("default_executor_dispatches"))
+    adapters_by_study = _items_by_study(owner_callable_adapters(preview))
     for index, action in enumerate(actions):
         if not isinstance(action, Mapping):
             continue
@@ -96,8 +95,8 @@ def _attach_materialization_preview_to_managed_actions(
         if study_id is None:
             continue
         request_tasks = request_tasks_by_study.get(study_id, [])
-        dispatches = dispatches_by_study.get(study_id, [])
-        if not request_tasks and not dispatches:
+        adapters = adapters_by_study.get(study_id, [])
+        if not request_tasks and not adapters:
             continue
         updated = dict(action)
         updated["domain_action_request_materialization_preview"] = {
@@ -106,17 +105,17 @@ def _attach_materialization_preview_to_managed_actions(
             "dry_run": bool(preview.get("dry_run", True)),
             "study_id": study_id,
             "request_task_count": len(request_tasks),
-            "default_executor_dispatch_count": len(dispatches),
-            "ready_default_executor_dispatch_count": sum(
+            "owner_callable_adapter_count": len(adapters),
+            "ready_owner_callable_adapter_count": sum(
                 _non_empty_text(item.get("dispatch_status")) == "ready"
-                for item in dispatches
+                for item in adapters
             ),
-            "blocked_default_executor_dispatch_count": sum(
+            "blocked_owner_callable_adapter_count": sum(
                 _non_empty_text(item.get("dispatch_status")) == "blocked"
-                for item in dispatches
+                for item in adapters
             ),
             "request_tasks": request_tasks,
-            "default_executor_dispatches": dispatches,
+            "owner_callable_adapters": adapters,
         }
         actions[index] = updated
 

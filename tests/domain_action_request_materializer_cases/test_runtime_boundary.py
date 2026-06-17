@@ -108,12 +108,12 @@ def test_default_executor_dispatch_materializes_runtime_completion_as_transport_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
     envelope = dispatch["owner_route_attempt_envelope"]
-    assert result["default_executor_dispatches"][0]["dispatch_status"] == "ready"
+    assert result["owner_callable_adapters"][0]["dispatch_status"] == "ready"
     assert envelope["dispatchable"] is True
     assert envelope["authority_boundary"]["opl_owns"] == [
         "queue",

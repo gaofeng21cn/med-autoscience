@@ -678,6 +678,62 @@ def test_domain_handler_export_materializes_stage_native_identity_over_stale_wri
     )
 
 
+def test_domain_handler_export_projects_current_control_transition_request_to_opl_task(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    _patch_canonical_current_work_unit(
+        monkeypatch,
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        work_unit_id="medical_prose_write_repair",
+        work_unit_fingerprint="publication-blockers::0915410f804b3697",
+        owner="write",
+        source="opl_current_control_state.study_current_executable_owner_action",
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["reason"] == "current_control_transition_request_pending"
+    assert task["dispatch_owner"] == "one-person-lab"
+    assert task["domain_truth_owner"] == "med-autoscience"
+    assert task["queue_owner"] == "one-person-lab"
+    assert task["provider_admission_pending"] is False
+    assert task["provider_admission_requires_opl_runtime_result"] is True
+    transition_request = task["payload"]["opl_domain_progress_transition_request"]
+    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["recommended_transition_kind"] == "StartProviderAttempt"
+    assert transition_request["mas_can_create_opl_event"] is False
+    assert transition_request["mas_can_create_opl_outbox_record"] is False
+    assert transition_request["mas_can_create_opl_stage_run"] is False
+    assert task["payload"]["authority_boundary"] == "mas_domain_progress_transition_request_only"
+    assert task["payload"]["provider_admission_pending"] is False
+    assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
+    assert task["payload"]["current_control_action"]["status"] == "transition_request_pending"
+    assert task["payload"]["current_control_action"]["opl_domain_progress_transition_request"] == (
+        transition_request
+    )
+
+
 def test_domain_handler_export_does_not_treat_nonconsumable_redrive_budget_as_domain_closeout(
     tmp_path: Path,
     capsys,

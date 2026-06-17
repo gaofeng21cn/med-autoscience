@@ -4,6 +4,7 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers.owner_callable_adapter_projection import owner_callable_adapters
 
 
 CurrentDefaultDispatches = Callable[..., dict[str, Any]]
@@ -29,7 +30,7 @@ def current_materialized_dispatches(
     requested = set(action_types)
     return [
         dict(dispatch)
-        for dispatch in payload.get("owner_callable_adapters") or payload.get("default_executor_dispatches") or []
+        for dispatch in owner_callable_adapters(payload)
         if isinstance(dispatch, Mapping)
         and (not requested or text(dispatch.get("action_type")) in requested)
     ]

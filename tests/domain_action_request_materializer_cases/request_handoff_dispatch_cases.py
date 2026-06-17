@@ -307,7 +307,7 @@ def test_materialize_domain_action_requests_request_handoff_requires_owner_route
     assert not packet_path.exists()
 
 
-def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_dispatches(
+def test_materialize_domain_action_requests_mixed_queue_writes_owner_callable_adapters(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -378,11 +378,11 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
         apply=True,
     )
 
-    dispatches = result["default_executor_dispatches"]
+    dispatches = result["owner_callable_adapters"]
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
-    assert result["default_executor_dispatch_count"] == 2
+    assert result["owner_callable_adapter_count"] == 2
     assert [dispatch["executor_kind"] for dispatch in dispatches] == [
         "codex_cli_default",
         "codex_cli_default",
@@ -404,7 +404,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
     assert dispatches[1]["dispatch_status"] == "blocked"
     assert dispatches[1]["blocked_reason"] == "owner_route_next_owner_mismatch"
 
-    dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches"
+    dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapters"
     written_dispatches = sorted(dispatch_dir.glob("*.json"))
     assert written_dispatches == []
 
@@ -494,7 +494,7 @@ def test_materialize_domain_action_requests_does_not_repeat_suppress_pending_ai_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     _write_json(
@@ -521,7 +521,7 @@ def test_materialize_domain_action_requests_does_not_repeat_suppress_pending_ai_
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["repeat_suppressed"] is False
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"

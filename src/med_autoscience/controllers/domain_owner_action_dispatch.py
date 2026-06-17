@@ -13,6 +13,7 @@ from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 
 from . import runtime_dispatch_cost, domain_status_projection, progress_first_blocker_budget
+from .owner_callable_adapter_projection import owner_callable_adapters
 from .default_executor_stage_log import paper_stage_log_for_default_executor_execution
 from .domain_owner_action_dispatch_parts import action_execution
 from .domain_owner_action_dispatch_parts import action_router
@@ -151,7 +152,7 @@ def _resolve_study_ids(
         return ()
     resolved: list[str] = []
     latest = dict(consumer_payload) if consumer_payload is not None else (_read_json_object(_consumer_latest_path(profile)) or {})
-    for dispatch in latest.get("owner_callable_adapters") or latest.get("default_executor_dispatches") or []:
+    for dispatch in owner_callable_adapters(latest):
         if isinstance(dispatch, Mapping) and (study_id := _text(dispatch.get("study_id"))) is not None:
             resolved.append(study_id)
     for dispatch_dir in sorted(
@@ -939,7 +940,7 @@ def dispatch_domain_owner_actions(
         profile=profile,
         requested_mode=mode,
         apply_safe_actions=apply,
-        scheduler_owner="default_executor_dispatch_executor",
+        scheduler_owner="opl_authorized_owner_callable_adapter_dispatcher",
     )
     developer_mode_payload = developer_mode.to_dict()
     resolved_study_ids = _resolve_study_ids(profile, study_ids, consumer_payload=consumer_payload)

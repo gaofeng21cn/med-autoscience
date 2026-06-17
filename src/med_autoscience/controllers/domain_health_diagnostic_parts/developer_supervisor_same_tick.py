@@ -20,6 +20,11 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     transition_request_pending_dispatch_result,
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
+from med_autoscience.controllers.owner_callable_adapter_projection import (
+    adapter_count,
+    adapter_status_count,
+    owner_callable_adapters,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -180,24 +185,20 @@ def _same_tick_delta(
     materialize_result: Mapping[str, Any],
     dispatch_result: Mapping[str, Any],
 ) -> dict[str, Any]:
-    total_default_executor_dispatch_count = _int_value(materialize_result.get("default_executor_dispatch_count"))
-    ready_default_executor_dispatch_count = (
-        _int_value(materialize_result.get("ready_default_executor_dispatch_count"))
-        if "ready_default_executor_dispatch_count" in materialize_result
-        else total_default_executor_dispatch_count
-    )
-    blocked_default_executor_dispatch_count = (
-        _int_value(materialize_result.get("blocked_default_executor_dispatch_count"))
-        if "blocked_default_executor_dispatch_count" in materialize_result
-        else _materialized_dispatch_status_count(materialize_result, "blocked")
-    )
+    total_owner_callable_adapter_count = adapter_count(materialize_result)
+    ready_owner_callable_adapter_count = adapter_status_count(materialize_result, "ready")
+    blocked_owner_callable_adapter_count = adapter_status_count(materialize_result, "blocked")
     return {
         "scan_action_count": _count(scan_result, "action_queue"),
         "materialized_request_count": _int_value(materialize_result.get("request_task_count")),
-        "default_executor_dispatch_count": ready_default_executor_dispatch_count,
-        "default_executor_dispatch_total_count": total_default_executor_dispatch_count,
-        "ready_default_executor_dispatch_count": ready_default_executor_dispatch_count,
-        "blocked_default_executor_dispatch_count": blocked_default_executor_dispatch_count,
+        "owner_callable_adapter_count": ready_owner_callable_adapter_count,
+        "owner_callable_adapter_total_count": total_owner_callable_adapter_count,
+        "ready_owner_callable_adapter_count": ready_owner_callable_adapter_count,
+        "blocked_owner_callable_adapter_count": blocked_owner_callable_adapter_count,
+        "owner_callable_adapter_count": ready_owner_callable_adapter_count,
+        "owner_callable_adapter_total_count": total_owner_callable_adapter_count,
+        "ready_owner_callable_adapter_count": ready_owner_callable_adapter_count,
+        "blocked_owner_callable_adapter_count": blocked_owner_callable_adapter_count,
         "dispatch_execution_count": _int_value(dispatch_result.get("execution_count")),
         "dispatch_executed_count": _int_value(dispatch_result.get("executed_count")),
         "dispatch_blocked_count": _int_value(dispatch_result.get("blocked_count")),
@@ -216,7 +217,7 @@ def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
                 return "continue_same_tick_after_provider_admission_delta"
             return "provider_attempt_started"
         return "provider_handoff_written_transition_request_pending"
-    if _int_value(delta.get("blocked_default_executor_dispatch_count")) > 0:
+    if _int_value(delta.get("blocked_owner_callable_adapter_count")) > 0:
         return "typed_blocker_or_dispatch_blocker_observed"
     if _same_tick_provider_admission_blocker_written(iteration):
         return "provider_handoff_written_transition_request_pending"
@@ -226,7 +227,7 @@ def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
         return "repeat_suppressed_owner_delta_required"
     if _int_value(delta.get("dispatch_executed_count")) > 0:
         return "continue_same_tick_after_sync_owner_delta"
-    if _int_value(delta.get("default_executor_dispatch_count")) > 0:
+    if _int_value(delta.get("owner_callable_adapter_count")) > 0:
         return "dispatch_materialized_but_not_selected"
     if _int_value(delta.get("scan_action_count")) > 0:
         return "owner_action_projected_but_not_materialized"
@@ -292,7 +293,7 @@ def _same_tick_current_dispatch_identities(iteration: Mapping[str, Any]) -> list
     identities.extend(
         identity
         for identity in _same_tick_action_identities(
-            _mapping(iteration.get("materialize")).get("default_executor_dispatches"),
+            owner_callable_adapters(_mapping(iteration.get("materialize"))),
         )
         if _same_tick_identity_has_currentness_anchor(identity)
     )
@@ -475,7 +476,7 @@ def _same_tick_terminal_diagnostic(
     requires_dispatch_blocker_resolution = (
         stop_reason == "typed_blocker_or_dispatch_blocker_observed"
         and (
-            _int_value(last_delta.get("blocked_default_executor_dispatch_count")) > 0
+            _int_value(last_delta.get("blocked_owner_callable_adapter_count")) > 0
             or _int_value(last_delta.get("dispatch_blocked_count")) > 0
         )
     )
@@ -524,12 +525,12 @@ def _same_tick_terminal_diagnostic(
         "post_admission_materialize": (
             {
                 "observed": isinstance(last_iteration.get("post_admission_materialize"), Mapping),
-                "default_executor_dispatch_count": _int_value(
-                    _mapping(last_iteration.get("post_admission_materialize")).get("default_executor_dispatch_count")
+                "owner_callable_adapter_count": _int_value(
+                    _mapping(last_iteration.get("post_admission_materialize")).get("owner_callable_adapter_count")
                 ),
-                "ready_default_executor_dispatch_count": _int_value(
+                "ready_owner_callable_adapter_count": _int_value(
                     _mapping(last_iteration.get("post_admission_materialize")).get(
-                        "ready_default_executor_dispatch_count"
+                        "ready_owner_callable_adapter_count"
                     )
                 ),
             }
@@ -616,7 +617,7 @@ def _same_tick_terminal_projection(
 ) -> dict[str, Any]:
     provider_attempt_running = _provider_attempt_started_for_iteration(last_iteration)
     stable_typed_blocker_observed = stop_reason == "typed_blocker_or_dispatch_blocker_observed" and (
-        _int_value(last_delta.get("blocked_default_executor_dispatch_count")) > 0
+        _int_value(last_delta.get("blocked_owner_callable_adapter_count")) > 0
         or _int_value(last_delta.get("dispatch_blocked_count")) > 0
     )
     owner_delta_produced = stop_reason in {
@@ -675,21 +676,13 @@ def _execution_status_count(payload: Mapping[str, Any], status: str) -> int:
     )
 
 
-def _materialized_dispatch_status_count(payload: Mapping[str, Any], status: str) -> int:
-    return sum(
-        1
-        for item in payload.get("default_executor_dispatches") or []
-        if isinstance(item, Mapping) and _non_empty_text(item.get("dispatch_status")) == status
-    )
-
-
 def _dispatch_blocker_summary(iteration: Mapping[str, Any]) -> dict[str, Any]:
     delta = _mapping(iteration.get("progress_first_delta"))
     materialize = _mapping(iteration.get("materialize"))
     dispatch = _mapping(iteration.get("dispatch"))
     blocked_reasons: list[str] = []
     blocked_actions: list[str] = []
-    for item in materialize.get("default_executor_dispatches") or []:
+    for item in owner_callable_adapters(materialize):
         if not isinstance(item, Mapping):
             continue
         if _non_empty_text(item.get("dispatch_status")) != "blocked":
@@ -708,9 +701,8 @@ def _dispatch_blocker_summary(iteration: Mapping[str, Any]) -> dict[str, Any]:
         if (action_type := _non_empty_text(item.get("action_type"))) is not None and action_type not in blocked_actions:
             blocked_actions.append(action_type)
     return {
-        "blocked_default_executor_dispatch_count": _int_value(
-            delta.get("blocked_default_executor_dispatch_count")
-        ),
+        "blocked_owner_callable_adapter_count": _int_value(delta.get("blocked_owner_callable_adapter_count")),
+        "blocked_owner_callable_adapter_count": _int_value(delta.get("blocked_owner_callable_adapter_count")),
         "dispatch_blocked_count": _int_value(delta.get("dispatch_blocked_count")),
         "blocked_reasons": blocked_reasons,
         "blocked_actions": blocked_actions,

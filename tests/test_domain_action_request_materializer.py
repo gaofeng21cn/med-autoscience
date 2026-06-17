@@ -134,10 +134,10 @@ def test_materialize_domain_action_requests_prefers_fresh_progress_ticket_over_s
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "run_gate_clearing_batch"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "finalize"
     assert dispatch["owner_route"]["allowed_actions"] == ["run_gate_clearing_batch"]
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
@@ -261,10 +261,10 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "run_gate_clearing_batch"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
     assert dispatch["source_action"]["controller_work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
@@ -357,7 +357,7 @@ def test_materialize_domain_action_requests_blocks_stage_native_write_when_fresh
         apply=False,
     )
 
-    assert result["default_executor_dispatches"] == []
+    assert result["owner_callable_adapters"] == []
     assert any(
         item["action_type"] == "current_execution_envelope_typed_blocker"
         and item["reason"] == "unsupported_action_type"
@@ -477,10 +477,10 @@ def test_materialize_domain_action_requests_routes_consumed_write_closeout_to_ai
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "return_to_ai_reviewer_workflow"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
@@ -592,7 +592,7 @@ def test_materialize_domain_action_requests_blocks_readiness_and_stage_native_wh
     )
 
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert any(
         item["action_type"] == "complete_medical_paper_readiness_surface"
         and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
@@ -680,10 +680,10 @@ def test_materialize_domain_action_requests_prefers_fresh_readiness_action_over_
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "complete_medical_paper_readiness_surface"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["surface_key"] == "authoring_runtime_authorization"
     assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
@@ -790,10 +790,10 @@ def test_materialize_domain_action_requests_routes_publication_eval_recommended_
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
         "run_quality_repair_batch"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["study_id"] == study_id
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["owner_route"]["work_unit_fingerprint"] == fingerprint
@@ -827,7 +827,7 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "unsupported_supervisor_action.json"
     )
     consumer_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json"
@@ -838,8 +838,8 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
         {
             "surface": "domain_action_request_materializer",
             "generated_at": "2026-05-07T16:13:16+00:00",
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [
                 {
                     "study_id": study_id,
                     "action_type": "unsupported_supervisor_action",
@@ -868,9 +868,9 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
 
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["owner_callable_adapter_count"] == 0
     assert result["written_files"] == []
-    assert json.loads(consumer_path.read_text(encoding="utf-8"))["default_executor_dispatch_count"] == 1
+    assert json.loads(consumer_path.read_text(encoding="utf-8"))["owner_callable_adapter_count"] == 1
 
 
 def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_for_route_epoch(
@@ -950,7 +950,7 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert result["apply_writes_disabled_reason"] == (
         "opl_domain_progress_transition_runtime_owns_durable_carrier"
     )
-    assert result["default_executor_dispatches"] == dispatches
+    assert result["owner_callable_adapters"] == dispatches
     assert [item["action_type"] for item in dispatches] == [
         "current_package_freshness_required",
         "return_to_ai_reviewer_workflow",
@@ -971,6 +971,6 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert dispatches[0]["owner_callable_adapter_contract"]["execution_authority_owner"] == "one-person-lab"
     assert dispatches[1]["dispatch_status"] == "blocked"
     assert dispatches[1]["blocked_reason"] == "owner_route_next_owner_mismatch"
-    dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches"
+    dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapters"
     assert not (dispatch_dir / "current_package_freshness_required.json").exists()
     assert not (dispatch_dir / "return_to_ai_reviewer_workflow.json").exists()

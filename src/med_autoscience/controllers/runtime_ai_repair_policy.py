@@ -74,8 +74,8 @@ def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
             ],
             "repair_principles": [
                 "consume_unowned_or_overdue_action_queue",
-                "dispatch_default_codex_executor_request",
-                "execute_ready_default_executor_dispatches",
+                "materialize_owner_callable_transition_request",
+                "execute_only_after_opl_authorized_owner_callable_adapter",
                 "preserve_owner_output_authority",
                 "escalate_when_internal_ai_repair_did_not_apply",
             ],

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers.owner_callable_adapter_projection import owner_callable_adapters
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 from . import accepted_owner_gate_decision
@@ -946,11 +947,7 @@ def _inline_default_executor_dispatch(payload: Mapping[str, Any], *, study_id: s
 
 
 def _owner_callable_adapter_items(payload: Mapping[str, Any]) -> list[object]:
-    adapters = payload.get("owner_callable_adapters")
-    if isinstance(adapters, list):
-        return adapters
-    dispatches = payload.get("default_executor_dispatches")
-    return dispatches if isinstance(dispatches, list) else []
+    return owner_callable_adapters(payload)
 
 
 def _with_owner_callable_adapter_semantics(dispatch: Mapping[str, Any]) -> dict[str, Any]:

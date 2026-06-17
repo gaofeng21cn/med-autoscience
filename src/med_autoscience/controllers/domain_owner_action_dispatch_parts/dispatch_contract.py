@@ -68,6 +68,16 @@ def dispatch_contract_error(
         return "dispatch_not_ready"
     if _text(dispatch.get("executor_kind")) != "codex_cli_default":
         return "unsupported_executor_kind"
+    if _text(dispatch.get("target_runtime_owner")) not in {None, "one-person-lab"}:
+        return "target_runtime_owner_mismatch"
+    for key in (
+        "mas_dispatch_authority",
+        "mas_creates_opl_outbox",
+        "mas_creates_opl_event",
+        "mas_creates_opl_stage_run",
+    ):
+        if dispatch.get(key) is True:
+            return f"{key}_forbidden"
     if dispatch.get("chat_completion_only_executor_forbidden") is not True:
         return "chat_completion_only_guard_missing"
     action_type = _text(dispatch.get("action_type"))

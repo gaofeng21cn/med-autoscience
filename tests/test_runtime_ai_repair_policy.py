@@ -41,6 +41,9 @@ def test_two_layer_ai_repair_policy_freezes_intervals_and_escalation_thresholds(
         "runtime domain-action-request-materialize --mode developer_apply_safe --apply",
         "runtime domain-owner-action-dispatch --mode developer_apply_safe --apply",
     ]
-    assert "execute_ready_default_executor_dispatches" in payload["developer_supervisor"]["repair_principles"]
+    assert (
+        "execute_only_after_opl_authorized_owner_callable_adapter"
+        in payload["developer_supervisor"]["repair_principles"]
+    )
     assert payload["guardrails"]["paper_package_mutation_allowed"] is False
     assert payload["guardrails"]["quality_gate_relaxation_allowed"] is False

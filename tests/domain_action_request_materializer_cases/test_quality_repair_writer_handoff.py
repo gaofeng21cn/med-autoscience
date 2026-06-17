@@ -124,7 +124,7 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     _write_json(dispatch_path, _writer_handoff(study_id=study_id, dispatch_path=dispatch_path, route=route))
@@ -150,7 +150,7 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     written_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
     transition_request = _assert_transition_request_projection(dispatch)
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
@@ -178,8 +178,8 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
     )
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert result["mas_local_request_packet_persistence"] == "forbidden"
-    assert result["ready_default_executor_dispatch_count"] == 0
-    assert result["transition_request_pending_default_executor_dispatch_count"] == 1
+    assert result["ready_owner_callable_adapter_count"] == 0
+    assert result["transition_request_pending_owner_callable_adapter_count"] == 1
 
 
 def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
@@ -279,14 +279,14 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     prompt_contract = dispatch["prompt_contract"]
     dispatch_path = (
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     transition_request = _assert_transition_request_projection(dispatch)
@@ -319,8 +319,8 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
     assert result["apply_writes_disabled_reason"] == (
         "opl_domain_progress_transition_runtime_owns_durable_carrier"
     )
-    assert result["ready_default_executor_dispatch_count"] == 0
-    assert result["transition_request_pending_default_executor_dispatch_count"] == 1
+    assert result["ready_owner_callable_adapter_count"] == 0
+    assert result["transition_request_pending_owner_callable_adapter_count"] == 1
 
 
 def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_to_writer_handoff(
@@ -475,7 +475,7 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     prompt_contract = dispatch["prompt_contract"]
     source_refs = dispatch["owner_route"]["source_refs"]
     dispatch_path = (
@@ -483,7 +483,7 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     transition_request = _assert_transition_request_projection(dispatch)
@@ -515,8 +515,8 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     ) is None
     assert not dispatch_path.exists()
     assert "dispatch_ref" not in transition_request
-    assert result["ready_default_executor_dispatch_count"] == 0
-    assert result["transition_request_pending_default_executor_dispatch_count"] == 1
+    assert result["ready_owner_callable_adapter_count"] == 0
+    assert result["transition_request_pending_owner_callable_adapter_count"] == 1
     monkeypatch.setattr(
         dispatch_module.action_execution.quality_repair,
         "execute_quality_repair_batch",
@@ -690,10 +690,10 @@ def test_materialize_prefers_current_writer_handoff_over_consumed_reviewer_trans
         apply=True,
     )
 
-    assert [dispatch["action_type"] for dispatch in result["default_executor_dispatches"]] == [
+    assert [dispatch["action_type"] for dispatch in result["owner_callable_adapters"]] == [
         "run_quality_repair_batch"
     ]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["source_refs"]["source_eval_id"] == source_eval_id
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id

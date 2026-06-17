@@ -6,6 +6,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     mapping as _mapping,
     non_empty_text as _non_empty_text,
 )
+from med_autoscience.controllers.owner_callable_adapter_projection import owner_callable_adapters
 
 
 def materialized_record_only_provider_handoff(
@@ -18,7 +19,7 @@ def materialized_record_only_provider_handoffs(
     materialize_result: Mapping[str, Any],
 ) -> list[Mapping[str, Any]]:
     handoffs: list[Mapping[str, Any]] = []
-    for item in materialize_result.get("default_executor_dispatches") or []:
+    for item in owner_callable_adapters(materialize_result):
         if not isinstance(item, Mapping):
             continue
         if _non_empty_text(item.get("dispatch_status")) != "ready":
