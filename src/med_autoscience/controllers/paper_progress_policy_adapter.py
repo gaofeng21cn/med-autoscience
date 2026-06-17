@@ -20,12 +20,19 @@ STOP_LOSS = "StopLoss"
 NON_ADVANCING_APPLY = "NonAdvancingApply"
 
 FORBIDDEN_RUNTIME_FIELDS = [
+    "current_control_command",
     "current_control_command_outbox_record",
+    "opl_domain_progress_command",
+    "opl_domain_progress_command_outbox_record",
     "opl_domain_progress_transition_event",
     "opl_domain_progress_transition_outbox_item",
+    "opl_event_log_record",
+    "opl_outbox_record",
     "projection_metadata",
     "read_model_generation_metadata",
+    "stage_run",
     "stage_run_identity",
+    "fixed_point_reconciler_state",
 ]
 
 _PROVIDER_ADMISSION_NEXT_KINDS = {
@@ -99,7 +106,11 @@ def build_policy_result(payload: Mapping[str, Any], *, source: str = "paper_prog
             "mas_can_authorize_provider_admission": False,
             "mas_can_run_fixed_point_reconciler": False,
             "mas_can_own_event_log_or_outbox": False,
+            "mas_can_append_opl_event_log": False,
+            "mas_can_emit_opl_outbox_item": False,
             "mas_can_create_opl_outbox_record": False,
+            "mas_can_create_opl_event": False,
+            "mas_can_create_opl_stage_run": False,
             "opl_owns_transition_runtime": True,
             "provider_completion_is_domain_completion": False,
         },
@@ -152,7 +163,11 @@ def build_non_advancing_policy_blocker(
                 "mas_can_authorize_provider_admission": False,
                 "mas_can_run_fixed_point_reconciler": False,
                 "mas_can_own_event_log_or_outbox": False,
+                "mas_can_append_opl_event_log": False,
+                "mas_can_emit_opl_outbox_item": False,
                 "mas_can_create_opl_outbox_record": False,
+                "mas_can_create_opl_event": False,
+                "mas_can_create_opl_stage_run": False,
                 "opl_owns_transition_runtime": True,
                 "provider_completion_is_domain_completion": False,
             },
@@ -244,6 +259,13 @@ def _policy_kind(
     status = _text(current_work_unit.get("status"))
     phase = _text(recovery.get("phase"))
     next_kind = _text(next_action.get("kind"))
+    if _has_forbidden_write(
+        payload=payload,
+        current_work_unit=current_work_unit,
+        recovery=recovery,
+        next_action=next_action,
+    ):
+        return RECORD_TYPED_BLOCKER
     if _has_paper_delta(payload=payload, recovery=recovery, next_action=next_action):
         return ADOPT_PAPER_DELTA
     if next_kind in {"record_human_or_owner_gate", "wait_for_owner_with_resume_token"} or phase == "human_gate":
@@ -304,6 +326,24 @@ def _paper_policy_verdict(
     recovery: Mapping[str, Any],
     next_action: Mapping[str, Any],
 ) -> dict[str, Any]:
+    if _has_forbidden_write(
+        payload=payload,
+        current_work_unit=current_work_unit,
+        recovery=recovery,
+        next_action=next_action,
+    ):
+        return {
+            "verdict": "forbidden_write_typed_blocker_required",
+            "typed_blocker_type": "forbidden_write",
+            "forbidden_write_refs": _forbidden_write_refs(
+                payload=payload,
+                current_work_unit=current_work_unit,
+                recovery=recovery,
+                next_action=next_action,
+            ),
+            "paper_progress_credit_allowed": False,
+            "forbidden_write_blocks_domain_progress": True,
+        }
     if policy_kind == START_PROVIDER_ATTEMPT:
         return {
             "verdict": "opl_provider_attempt_allowed_by_domain_policy",
@@ -533,20 +573,84 @@ def _paper_delta_refs(
         "paper_delta_ref",
         "gate_delta_ref",
         "artifact_delta_ref",
+        "publication_gate_delta_ref",
         "quality_gate_receipt_ref",
+        "publication_gate_receipt_ref",
     ):
         for source in (next_action, recovery, payload):
             text = _text(source.get(key))
             if text is not None and text not in refs:
                 refs.append(text)
-    for key in ("paper_delta_refs", "gate_delta_refs", "artifact_delta_refs", "evidence_refs"):
+    for key in (
+        "paper_delta_refs",
+        "gate_delta_refs",
+        "artifact_delta_refs",
+        "publication_gate_delta_refs",
+        "quality_gate_receipt_refs",
+        "evidence_refs",
+    ):
         for source in (next_action, recovery, payload):
             for text in _text_items(source.get(key)):
                 if (
-                    text.startswith(("paper_delta:", "gate_delta:", "artifact_delta:", "quality_gate:"))
+                    text.startswith(
+                        (
+                            "paper_delta:",
+                            "gate_delta:",
+                            "artifact_delta:",
+                            "quality_gate:",
+                            "publication_gate:",
+                        )
+                    )
                     and text not in refs
                 ):
                     refs.append(text)
+    return refs
+
+
+def _has_forbidden_write(
+    *,
+    payload: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    recovery: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+) -> bool:
+    return any(
+        source.get("forbidden_write_detected") is True
+        for source in (next_action, recovery, current_work_unit, payload)
+    ) or bool(
+        _forbidden_write_refs(
+            payload=payload,
+            current_work_unit=current_work_unit,
+            recovery=recovery,
+            next_action=next_action,
+        )
+    )
+
+
+def _forbidden_write_refs(
+    *,
+    payload: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    recovery: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+) -> list[str]:
+    refs: list[str] = []
+    for source in (next_action, recovery, current_work_unit, payload):
+        for key in ("forbidden_write_ref", "forbidden_write_violation_ref"):
+            text = _text(source.get(key))
+            if text is not None and text not in refs:
+                refs.append(text)
+        for key in ("forbidden_write_refs", "forbidden_write_evidence_refs", "forbidden_write_violation_refs"):
+            for text in _text_items(source.get(key)):
+                if text not in refs:
+                    refs.append(text)
+        write = _mapping(source.get("forbidden_write")) or _mapping(source.get("forbidden_write_violation"))
+        for key in ("ref", "source_ref", "proof_ref", "write_ref", "forbidden_write_ref"):
+            text = _text(write.get(key))
+            if text is not None and text not in refs:
+                refs.append(text)
+        if source.get("forbidden_write_detected") is True and not refs:
+            refs.append("forbidden_write:detected")
     return refs
 
 
