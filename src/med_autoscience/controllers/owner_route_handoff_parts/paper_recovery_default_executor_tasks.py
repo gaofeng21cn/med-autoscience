@@ -14,7 +14,9 @@ from med_autoscience.controllers.domain_dispatch_evidence_payload import (
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )
-from med_autoscience.controllers.owner_callable_adapter_projection import owner_callable_adapters
+from med_autoscience.controllers.owner_callable_adapter_projection import (
+    domain_progress_transition_requests,
+)
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -38,12 +40,12 @@ def paper_recovery_default_executor_dispatch_tasks(
         dispatch_ready_for_execution=True,
     )
     tasks: list[dict[str, Any]] = []
-    for dispatch in owner_callable_adapters(preview):
+    for dispatch in domain_progress_transition_requests(preview):
         if not isinstance(dispatch, Mapping):
             continue
         if _text(dispatch.get("study_id")) != study_id:
             continue
-        if _text(dispatch.get("dispatch_status")) != "ready":
+        if _text(dispatch.get("dispatch_status")) not in {"ready", "transition_request_pending"}:
             continue
         task = _materialized_default_executor_dispatch_task(
             dispatch=dispatch,

@@ -763,6 +763,82 @@ def test_dhd_same_tick_admission_consumes_only_canonical_transition_requests(tmp
     assert result is None or result["provider_admission_pending_count"] == 0
 
 
+def test_paper_recovery_export_consumes_only_canonical_transition_request_preview(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.paper_recovery_default_executor_tasks"
+    )
+    materializer = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    dispatch = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "dispatch_status": "transition_request_pending",
+        "next_executable_owner": "write",
+        "opl_domain_progress_transition_request": {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "target_runtime_owner": "one-person-lab",
+        },
+    }
+    current_progress = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "paper_recovery_state": {
+            "phase": "owner_action_ready",
+            "next_safe_action": {
+                "kind": "run_mas_owner_callable",
+            },
+            "supervisor_decision": {
+                "decision": "materialize_recovery_action",
+            },
+        },
+    }
+
+    monkeypatch.setattr(
+        materializer,
+        "current_owner_callable_adapters",
+        lambda **_: {"owner_callable_adapters": [dict(dispatch)]},
+    )
+
+    owner_callable_only_tasks = module.paper_recovery_default_executor_dispatch_tasks(
+        current_progress=current_progress,
+        profile=profile,
+        profile_ref=tmp_path / "profile.local.toml",
+        study_id=study_id,
+    )
+
+    monkeypatch.setattr(
+        materializer,
+        "current_owner_callable_adapters",
+        lambda **_: {"domain_progress_transition_requests": [dict(dispatch)]},
+    )
+
+    canonical_request_tasks = module.paper_recovery_default_executor_dispatch_tasks(
+        current_progress=current_progress,
+        profile=profile,
+        profile_ref=tmp_path / "profile.local.toml",
+        study_id=study_id,
+    )
+
+    assert owner_callable_only_tasks == []
+    assert len(canonical_request_tasks) == 1
+    task = canonical_request_tasks[0]
+    assert task["task_kind"] == "domain_owner/default-executor-dispatch"
+    assert task["provider_admission_pending"] is False
+    assert task["provider_admission_requires_opl_runtime_result"] is True
+    assert task["opl_domain_progress_transition_request"]["target_runtime_owner"] == "one-person-lab"
+    assert task["payload"]["default_executor_dispatch_request"]["dispatch_status"] == (
+        "transition_request_pending"
+    )
+
+
 def test_current_default_executor_dispatch_preview_api_is_physically_retired() -> None:
     materializer = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
 
