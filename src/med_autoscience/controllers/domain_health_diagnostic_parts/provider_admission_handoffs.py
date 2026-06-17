@@ -84,7 +84,9 @@ def handoff_dispatch_path(handoff: Mapping[str, Any]) -> str | None:
     refs = _mapping(handoff.get("refs"))
     return (
         _non_empty_text(handoff.get("dispatch_path"))
+        or _non_empty_text(handoff.get("transition_request_ref"))
         or _non_empty_text(handoff.get("stage_packet_ref"))
+        or _non_empty_text(refs.get("transition_request_ref"))
         or _non_empty_text(refs.get("stage_packet_path"))
         or _non_empty_text(refs.get("immutable_dispatch_path"))
         or _non_empty_text(refs.get("dispatch_path"))

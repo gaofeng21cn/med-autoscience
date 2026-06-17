@@ -214,9 +214,9 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
     dispatch_path = (
         study_root
         / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
+        / "runtime"
+        / "paper_progress_transition_refs"
+        / "transition_requests"
         / "return_to_ai_reviewer_workflow.json"
     )
     dispatch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -231,7 +231,10 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
                 "dispatch_authority": "ai_reviewer_record_production_handoff",
                 "next_executable_owner": "ai_reviewer",
                 "required_output_surface": "artifacts/publication_eval/latest.json",
-                "refs": {"dispatch_path": str(dispatch_path)},
+                "refs": {
+                    "dispatch_path": str(dispatch_path),
+                    "transition_request_ref": str(dispatch_path),
+                },
             },
             indent=2,
         )

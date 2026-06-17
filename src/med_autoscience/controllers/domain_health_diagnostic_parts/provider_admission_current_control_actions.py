@@ -33,6 +33,9 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
 )
 
 DEFAULT_EXECUTOR_DISPATCHES = Path("artifacts/supervision/consumer/default_executor_dispatches")
+PAPER_PROGRESS_TRANSITION_REQUESTS = Path(
+    "artifacts/runtime/paper_progress_transition_refs/transition_requests"
+)
 CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS = {
     "complete_medical_paper_readiness_surface": {"MedAutoScience"},
     "return_to_ai_reviewer_workflow": {"ai_reviewer"},
@@ -882,7 +885,11 @@ def _current_control_action_dispatch_path(
     explicit = handoff_dispatch_path(action)
     if explicit is not None:
         return Path(explicit).expanduser().resolve()
-    return (Path(study_root).expanduser().resolve() / DEFAULT_EXECUTOR_DISPATCHES / f"{action_type}.json")
+    root = Path(study_root).expanduser().resolve()
+    transition_request = root / PAPER_PROGRESS_TRANSITION_REQUESTS / f"{action_type}.json"
+    if transition_request.exists():
+        return transition_request
+    return root / DEFAULT_EXECUTOR_DISPATCHES / f"{action_type}.json"
 
 
 def _merge_owner_route_currentness(
