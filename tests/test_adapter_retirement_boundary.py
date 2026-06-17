@@ -108,6 +108,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "owner_callable_adapter_legacy_dispatch_projection_alias",
         "domain_action_request_materializer_current_default_executor_dispatches_api",
         "default_executor_execution_latest_wire_projection",
+        "domain_owner_action_dispatch",
     }
     for surface in surfaces.values():
         assert surface["generic_runtime_owner"] == "one-person-lab"
@@ -207,6 +208,27 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "owner_route_reconcile_parts.recovery_actions._latest_clean_migration_rehydrate_execution",
     }
     assert "mas_local_execution_ledger_authority" in execution_latest["forbidden_claims"]
+
+    owner_dispatch = surfaces["domain_owner_action_dispatch"]
+    assert owner_dispatch["active_caller_migrated"] is True
+    assert owner_dispatch["current_disposition"] == "opl_authorized_owner_callable_adapter"
+    assert (
+        owner_dispatch["retained_mas_role"]
+        == "owner_callable_adapter_policy_boundary_and_typed_blocker_projection"
+    )
+    assert owner_dispatch["execution_authorization_boundary"] == {
+        "execution_authorization_sources": [
+            "trusted_opl_execution_authorization",
+            "exact_provider_hosted_stage_attempt",
+            "active_opl_provider_attempt_or_lease",
+            "bound_opl_domain_progress_transition_runtime_readback",
+        ],
+        "closeout_binding_authorizes_execution": False,
+        "missing_authorization_outcome": "opl_execution_authorization_required_typed_blocker",
+        "provider_attempt_or_lease_required_when_blocked": False,
+    }
+    assert "mas_local_dispatch_authority" in owner_dispatch["forbidden_claims"]
+    assert "closeout_binding_as_execution_authorization" in owner_dispatch["forbidden_claims"]
 
 
 def test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy(tmp_path) -> None:

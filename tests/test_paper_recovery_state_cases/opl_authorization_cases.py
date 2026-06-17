@@ -79,7 +79,7 @@ def test_opl_execution_authorization_blocker_routes_to_opl_runtime_owner() -> No
         "kind": "provide_opl_execution_authorization_or_human_gate",
         "owner": "one-person-lab",
         "provider_admission_allowed": False,
-        "required_input": "OPL provider attempt, lease, or closeout receipt binding",
+        "required_input": "OPL provider attempt, active lease, and execution authorization decision",
     }
 
 
@@ -197,6 +197,8 @@ def test_opl_authorization_blocker_yields_recovery_successor_when_current_action
                 "action_type": "run_quality_repair_batch",
                 "allowed_actions": ["run_quality_repair_batch"],
                 "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                "owner_receipt_required": True,
+                "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
                 "paper_recovery_successor": {
                     "phase": "owner_action_ready",
                     "source_next_safe_action_kind": "materialize_successor_owner_action",

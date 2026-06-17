@@ -241,6 +241,36 @@
     },
     {
       "active_caller_migrated": true,
+      "compatibility_alias_allowed": false,
+      "current_disposition": "opl_authorized_owner_callable_adapter",
+      "execution_authorization_boundary": {
+        "closeout_binding_authorizes_execution": false,
+        "execution_authorization_sources": [
+          "trusted_opl_execution_authorization",
+          "exact_provider_hosted_stage_attempt",
+          "active_opl_provider_attempt_or_lease",
+          "bound_opl_domain_progress_transition_runtime_readback"
+        ],
+        "missing_authorization_outcome": "opl_execution_authorization_required_typed_blocker",
+        "provider_attempt_or_lease_required_when_blocked": false
+      },
+      "forbidden_claims": [
+        "mas_owned_generic_runtime",
+        "mas_owned_queue",
+        "mas_owned_attempt_ledger",
+        "mas_owned_retry_dead_letter",
+        "mas_local_dispatch_authority",
+        "closeout_binding_as_execution_authorization",
+        "provider_completion_as_domain_ready"
+      ],
+      "generic_runtime_owner": "one-person-lab",
+      "mas_owner_claim_allowed": false,
+      "replacement_surface": "OPL DomainProgressTransitionRuntime execution authorization plus MAS owner callable adapter",
+      "retained_mas_role": "owner_callable_adapter_policy_boundary_and_typed_blocker_projection",
+      "surface_id": "domain_owner_action_dispatch"
+    },
+    {
+      "active_caller_migrated": true,
       "canonical_projection_metadata_fields": [
         "authority",
         "derived_from_event_id",

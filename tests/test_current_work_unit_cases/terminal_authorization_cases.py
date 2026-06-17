@@ -135,7 +135,7 @@ def test_current_work_unit_normalizes_structured_terminal_authorization_blocker(
         "blocker_id": "opl_execution_authorization_required",
         "owner": "one-person-lab",
         "write_permitted": False,
-        "required_input": "OPL provider attempt, lease, or closeout receipt binding",
+        "required_input": "OPL provider attempt, active lease, and execution authorization decision",
     }
 
     work_unit = module.build_current_work_unit(

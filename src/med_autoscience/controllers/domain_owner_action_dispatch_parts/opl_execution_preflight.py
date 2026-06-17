@@ -37,6 +37,7 @@ def block_if_missing_authorization(
         "mas_creates_opl_stage_run": False,
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
+        "provider_completion_is_domain_completion": False,
         "provider_attempt_or_lease_required": False,
         "opl_transition_runtime_required": True,
     }
@@ -64,25 +65,7 @@ def _authorized(
         _mapping(dispatch.get("owner_route")).get("opl_provider_attempt"),
     ) is not None:
         return True
-    return _closeout_or_readback_binding_present(dispatch)
-
-
-def _closeout_or_readback_binding_present(dispatch: Mapping[str, Any]) -> bool:
-    prompt_contract = _mapping(dispatch.get("prompt_contract"))
-    binding = _mapping(dispatch.get("closeout_binding")) or _mapping(prompt_contract.get("closeout_binding"))
-    if not binding:
-        return False
-    if _text(binding.get("stage_run_id")) is None and _text(binding.get("stage_run_ref")) is None:
-        return False
-    if _text(binding.get("stage_manifest_ref")) is None:
-        return False
-    if _text(binding.get("current_pointer_ref")) is None:
-        return False
-    if not _text_items(binding.get("closeout_refs")):
-        return False
-    if _text(binding.get("source_fingerprint")) is None:
-        return False
-    return _text(binding.get("work_unit_fingerprint")) is not None
+    return False
 
 
 def with_provider_hosted_opl_authorization(dispatch: Mapping[str, Any]) -> dict[str, Any]:

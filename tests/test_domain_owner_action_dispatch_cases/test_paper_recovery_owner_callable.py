@@ -301,7 +301,7 @@ def test_execute_dispatch_blocks_persisted_paper_recovery_owner_callable_without
         "blocker_id": "opl_execution_authorization_required",
         "owner": "one-person-lab",
         "write_permitted": False,
-        "required_input": "OPL provider attempt, lease, or closeout receipt binding",
+        "required_input": "OPL provider attempt, active lease, and execution authorization decision",
     }
     assert execution["mas_private_attempt_loop_forbidden"] is True
     assert execution["provider_attempt_or_lease_required"] is False

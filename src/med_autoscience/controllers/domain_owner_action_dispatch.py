@@ -681,6 +681,7 @@ def _opl_execution_authorization_block_fields() -> dict[str, Any]:
         "mas_creates_opl_stage_run": False,
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
+        "provider_completion_is_domain_completion": False,
         "provider_attempt_or_lease_required": False,
         "opl_transition_runtime_required": True,
     }

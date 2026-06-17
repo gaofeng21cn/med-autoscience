@@ -53,7 +53,7 @@ def test_execute_dispatch_blocks_readiness_surface_completion_without_provider_p
     assert decision["quality_claim_authorized"] is False
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
-def test_apply_without_opl_authorization_hands_readiness_action_to_provider(
+def test_apply_without_opl_authorization_blocks_readiness_provider_handoff(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -75,15 +75,20 @@ def test_apply_without_opl_authorization_hands_readiness_action_to_provider(
     )
 
     execution = result["executions"][0]
-    assert result["executed_count"] == 1
-    assert result["blocked_count"] == 0
-    assert result["codex_dispatch_count"] == 1
-    assert execution["execution_status"] == "handoff_ready"
-    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
-    assert execution["blocked_reason"] is None
-    assert execution["will_start_llm"] is True
-    assert execution["provider_attempt_or_lease_required"] is True
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
+    assert result["codex_dispatch_count"] == 0
+    assert execution["execution_status"] == "blocked"
+    assert execution["owner_callable_surface"] is None
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert execution["will_start_llm"] is False
+    assert execution["provider_attempt_or_lease_required"] is False
     assert execution["provider_completion_is_domain_completion"] is False
+    assert execution["mas_dispatch_authority"] is False
+    assert execution["mas_creates_opl_outbox"] is False
+    assert execution["mas_creates_opl_event"] is False
+    assert execution["mas_creates_opl_stage_run"] is False
     assert execution["dispatch_path"].endswith(
         "artifacts/supervision/consumer/default_executor_dispatches/complete_medical_paper_readiness_surface.json"
     )

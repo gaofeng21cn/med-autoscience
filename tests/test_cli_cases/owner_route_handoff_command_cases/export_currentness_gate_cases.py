@@ -170,7 +170,7 @@ def test_domain_handler_export_materializes_opl_typed_blocker_owner_resolution_t
                         "blocker_id": "opl_execution_authorization_required",
                         "owner": "one-person-lab",
                         "required_input": (
-                            "OPL provider attempt, lease, or closeout receipt binding"
+                            "OPL provider attempt, active lease, and execution authorization decision"
                         ),
                     },
                 },
@@ -182,7 +182,7 @@ def test_domain_handler_export_materializes_opl_typed_blocker_owner_resolution_t
                 "typed_blocker": {
                     "blocker_id": "opl_execution_authorization_required",
                     "owner": "one-person-lab",
-                    "required_input": "OPL provider attempt, lease, or closeout receipt binding",
+                    "required_input": "OPL provider attempt, active lease, and execution authorization decision",
                 },
             },
             "current_executable_owner_action": None,

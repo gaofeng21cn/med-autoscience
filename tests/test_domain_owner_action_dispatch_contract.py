@@ -3,6 +3,9 @@ from __future__ import annotations
 from med_autoscience.controllers.domain_owner_action_dispatch_parts.dispatch_contract import (
     dispatch_contract_error,
 )
+from med_autoscience.controllers.domain_owner_action_dispatch_parts import (
+    opl_execution_preflight,
+)
 from med_autoscience.controllers import domain_owner_action_dispatch
 from tests.provider_admission_current_control_helpers import opl_transition_readback
 
@@ -112,6 +115,36 @@ def test_transition_request_projection_requires_opl_execution_authorization() ->
         _projection(),
         apply=False,
     ) == (False, "opl_execution_authorization_required")
+
+
+def test_closeout_binding_does_not_authorize_owner_callable_execution() -> None:
+    binding = {
+        "surface_kind": "medical_paper_readiness_closeout_binding",
+        "stage_run_id": "stage-run::study-a::write_delta",
+        "stage_manifest_ref": "stages/write_delta/stage_manifest.json",
+        "current_pointer_ref": "stages/write_delta/current.json",
+        "closeout_refs": ["stages/write_delta/owner_receipt.json"],
+        "source_fingerprint": "truth-source::study-a::write_delta",
+        "work_unit_fingerprint": "fingerprint-a",
+    }
+    blocked = opl_execution_preflight.block_if_missing_authorization(
+        dispatch=_dispatch(
+            study_id="study-a",
+            next_work_unit={"unit_id": "write_delta"},
+            work_unit_fingerprint="fingerprint-a",
+            closeout_binding=binding,
+            prompt_contract={"closeout_binding": binding},
+        ),
+        owner_route_basis=None,
+        current_study={},
+    )
+
+    assert blocked is not None
+    assert blocked["blocked_reason"] == "opl_execution_authorization_required"
+    assert blocked["mas_dispatch_authority"] is False
+    assert blocked["mas_creates_opl_outbox"] is False
+    assert blocked["mas_creates_opl_event"] is False
+    assert blocked["mas_creates_opl_stage_run"] is False
 
 
 def test_transition_request_projection_with_opl_authorization_is_owner_callable_adapter() -> None:

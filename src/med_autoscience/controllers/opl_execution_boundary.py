@@ -6,7 +6,9 @@ from typing import Any
 
 OPL_EXECUTION_AUTHORIZATION_BLOCKER = "opl_execution_authorization_required"
 OPL_EXECUTION_AUTHORIZATION_OWNER = "one-person-lab"
-OPL_EXECUTION_AUTHORIZATION_REQUIRED_INPUT = "OPL provider attempt, lease, or closeout receipt binding"
+OPL_EXECUTION_AUTHORIZATION_REQUIRED_INPUT = (
+    "OPL provider attempt, active lease, and execution authorization decision"
+)
 
 _OPL_OWNER_VALUES = frozenset({"one-person-lab", "opl", "OPL"})
 _OPL_DEFAULT_EXECUTORS = frozenset({"codex_cli", "codex_cli_default"})
