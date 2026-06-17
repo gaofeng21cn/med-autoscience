@@ -424,19 +424,23 @@ def _current_control_transition_request_tasks(
         action = {**action, **identity_refs}
     candidate_owner_route = mapping(candidate.get("owner_route"))
     owner_route = mapping(action.get("owner_route")) or candidate_owner_route
-    owner_route_currentness_basis = currentness_identity.normalize_currentness_sources(
-        currentness_identity.owner_route_basis(candidate_owner_route),
-        mapping(transition_request.get("currentness_basis")),
-        currentness_identity.owner_route_basis(owner_route),
-        mapping(candidate.get("owner_route_currentness_basis")),
-        action,
-        candidate,
+    owner_route_currentness_basis = _current_control_transition_currentness_basis(
+        transition_request=transition_request,
+        owner_route=owner_route,
+        candidate_owner_route=candidate_owner_route,
+        action=action,
+        candidate=candidate,
+        study=study,
     )
     transition_request = currentness_identity.normalize_transition_request_currentness(
         transition_request,
         owner_route_currentness_basis,
     )
     action = currentness_identity.normalize_action_handoff_currentness(
+        action,
+        owner_route_currentness_basis,
+    )
+    action = _with_current_control_transition_owner_route_basis(
         action,
         owner_route_currentness_basis,
     )
@@ -499,6 +503,54 @@ def _current_control_transition_request_tasks(
             "domain_dispatch_evidence_record_payload": evidence_record_payload,
         }
     ]
+
+
+def _current_control_transition_currentness_basis(
+    *,
+    transition_request: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+    candidate_owner_route: Mapping[str, Any],
+    action: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+    study: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_work_unit = mapping(study.get("current_work_unit"))
+    basis = currentness_identity.normalize_currentness_sources(
+        mapping(transition_request.get("currentness_basis")),
+        currentness_identity.owner_route_basis(owner_route),
+        currentness_identity.owner_route_basis(candidate_owner_route),
+        mapping(candidate.get("owner_route_currentness_basis")),
+        mapping(current_work_unit.get("currentness_basis")),
+        mapping(action.get("currentness_basis")),
+        mapping(candidate.get("currentness_basis")),
+    )
+    strong_action_identity = currentness_identity.normalize_currentness_sources(action, candidate)
+    for key in ("source_fingerprint", "work_unit_id", "work_unit_fingerprint"):
+        if text(strong_action_identity.get(key)) is not None:
+            basis[key] = strong_action_identity[key]
+    if text(basis.get("work_unit_fingerprint")) is not None:
+        basis["route_epoch"] = basis["work_unit_fingerprint"]
+    basis.pop("source", None)
+    return basis
+
+
+def _with_current_control_transition_owner_route_basis(
+    action: Mapping[str, Any],
+    currentness_basis: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(action)
+    basis = {key: value for key, value in currentness_basis.items() if value not in (None, "", [], {})}
+    payload["owner_route_currentness_basis"] = basis
+    owner_route = mapping(payload.get("owner_route"))
+    if owner_route:
+        source_refs = dict(mapping(owner_route.get("source_refs")))
+        source_refs["owner_route_currentness_basis"] = basis
+        owner_route["source_refs"] = source_refs
+        currentness_contract = dict(mapping(owner_route.get("currentness_contract")))
+        currentness_contract["basis"] = basis
+        owner_route["currentness_contract"] = currentness_contract
+        payload["owner_route"] = owner_route
+    return payload
 
 
 def _current_control_transition_identity_refs(
