@@ -559,6 +559,87 @@ def test_provider_admission_report_sync_clears_stale_managed_action_pending_stat
     assert "provider_admission_state" not in evidence_action
 
 
+def test_provider_admission_report_sync_keeps_transition_request_out_of_managed_admission_surface(
+    tmp_path: Path,
+) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    transition_request = {
+        **_provider_candidate(
+            profile,
+            study_id,
+            action_fingerprint=fingerprint,
+        ),
+        "status": "transition_request_pending",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "next_executable_owner": "write",
+        "provider_attempt_or_lease_required": False,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_domain_progress_transition_request": {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "target_runtime_owner": "one-person-lab",
+            "recommended_transition_kind": "StartProviderAttempt",
+            "idempotency_key": "paper-policy-request:1a379264039c75d0e9cfd8f5",
+        },
+    }
+    stale_action = {
+        "study_id": study_id,
+        "provider_admission_candidates": [dict(transition_request)],
+        "provider_admission_state": {
+            "status": "pending",
+            "candidate_count": 1,
+            "running_provider_attempt": False,
+        },
+        "current_work_unit": {
+            "status": "owner_receipt_recorded",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+        },
+    }
+    report = {
+        "managed_study_opl_provider_admission_candidates": [dict(transition_request)],
+        "provider_admission_pending_count": 1,
+        "current_execution_evidence": {
+            "provider_admission_candidates": [dict(transition_request)],
+            "managed_study_actions": [dict(stale_action)],
+        },
+        "managed_study_actions": [dict(stale_action)],
+    }
+
+    report_module.sync_report_provider_admission_current_control_state(
+        report,
+        current_control_state={
+            "provider_admission_candidates": [dict(transition_request)],
+        },
+    )
+
+    assert report["managed_study_opl_provider_admission_candidates"] == []
+    assert report["provider_admission_pending_count"] == 0
+    assert report["transition_request_pending_count"] == 1
+    assert report["managed_study_opl_transition_request_candidates"] == [transition_request]
+    action = report["managed_study_actions"][0]
+    assert action["provider_admission_candidates"] == []
+    assert action["provider_admission_state"] == {
+        "status": "none",
+        "candidate_count": 0,
+        "running_provider_attempt": False,
+    }
+    evidence_action = report["current_execution_evidence"]["managed_study_actions"][0]
+    assert evidence_action["provider_admission_candidates"] == []
+    assert evidence_action["provider_admission_state"]["candidate_count"] == 0
+
+
 def test_provider_admission_report_sync_clears_pending_when_managed_action_is_running(
     tmp_path: Path,
 ) -> None:

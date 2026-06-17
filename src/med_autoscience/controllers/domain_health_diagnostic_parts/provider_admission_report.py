@@ -152,11 +152,19 @@ def sync_report_provider_admission_current_control_state(
         if isinstance(item, Mapping)
         and not candidate_opl_transition_readback(item)
     ]
+    current_control_provider_candidates = [
+        dict(item)
+        for item in current_control_state.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    transition_request_candidates.extend(
+        _transition_request_only_candidates(current_control_provider_candidates)
+    )
     candidates = _filter_candidates_blocked_by_paper_recovery_state(
         [
             dict(item)
-            for item in current_control_state.get("provider_admission_candidates") or []
-            if isinstance(item, Mapping)
+            for item in current_control_provider_candidates
+            if item not in transition_request_candidates
         ],
         actions=report.get("managed_study_actions"),
     )
@@ -171,12 +179,14 @@ def sync_report_provider_admission_current_control_state(
     synced_actions = _sync_managed_action_provider_admission_candidates(
         report.get("managed_study_actions"),
         candidates=candidates,
+        transition_request_candidates=transition_request_candidates,
     )
     report["managed_study_actions"] = synced_actions
     if "managed_study_actions" in current_execution_evidence:
         current_execution_evidence["managed_study_actions"] = _sync_managed_action_provider_admission_candidates(
             current_execution_evidence.get("managed_study_actions"),
             candidates=candidates,
+            transition_request_candidates=transition_request_candidates,
         )
     report["current_execution_evidence"] = current_execution_evidence
     fingerprints: list[str] = []
@@ -187,6 +197,21 @@ def sync_report_provider_admission_current_control_state(
         if fingerprint is not None and fingerprint not in fingerprints:
             fingerprints.append(fingerprint)
     report["action_fingerprints"] = fingerprints
+
+
+def _transition_request_only_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        dict(candidate)
+        for candidate in candidates
+        if not candidate_opl_transition_readback(candidate)
+        and (
+            _mapping(candidate.get("opl_domain_progress_transition_request"))
+            or _mapping(_mapping(candidate.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            ))
+        )
+        and candidate.get("provider_admission_requires_opl_runtime_result") is True
+    ]
 
 
 def _filter_candidates_blocked_by_paper_recovery_state(
@@ -325,6 +350,7 @@ def _sync_managed_action_provider_admission_candidates(
     actions: Any,
     *,
     candidates: list[dict[str, Any]],
+    transition_request_candidates: list[dict[str, Any]] | None = None,
 ) -> list[Any]:
     candidates_by_study: dict[str, list[dict[str, Any]]] = {}
     for candidate in candidates:
@@ -332,6 +358,12 @@ def _sync_managed_action_provider_admission_candidates(
         if study_id is None:
             continue
         candidates_by_study.setdefault(study_id, []).append(dict(candidate))
+    transition_requests_by_study: dict[str, list[dict[str, Any]]] = {}
+    for candidate in transition_request_candidates or []:
+        study_id = _non_empty_text(candidate.get("study_id"))
+        if study_id is None:
+            continue
+        transition_requests_by_study.setdefault(study_id, []).append(dict(candidate))
     synced_actions: list[Any] = []
     for action in actions or []:
         if not isinstance(action, Mapping):
@@ -341,6 +373,16 @@ def _sync_managed_action_provider_admission_candidates(
         study_id = _non_empty_text(synced_action.get("study_id"))
         action_candidates = candidates_by_study.get(study_id or "", [])
         if not action_candidates:
+            transition_requests = transition_requests_by_study.get(study_id or "", [])
+            if transition_requests:
+                synced_action["provider_admission_candidates"] = []
+                synced_action["provider_admission_state"] = {
+                    "status": "none",
+                    "candidate_count": 0,
+                    "running_provider_attempt": False,
+                }
+                synced_actions.append(synced_action)
+                continue
             if (
                 "provider_admission_candidates" in synced_action
                 or "provider_admission_state" in synced_action
