@@ -82,6 +82,63 @@ def test_study_progress_opl_current_control_state_handoff_projection_preserves_s
     assert projection["why_not_applied"] == ["repeat_suppressed"]
 
 
+def test_study_progress_opl_current_control_state_handoff_merges_top_level_provider_admission_candidate(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-17T02:51:08+00:00",
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "status": "provider_admission_pending",
+                    "study_id": "001-risk",
+                    "quest_id": "001-risk",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::abc",
+                    "provider_admission_identity": {
+                        "stage_packet_ref": "studies/001-risk/artifacts/packet.json",
+                        "route_identity_key": "paper-policy-request:abc",
+                    },
+                    "domain_progress_transition_runtime": {
+                        "transition_event": {"event_id": "evt-001"},
+                        "transactional_outbox_item": {"outbox_item_id": "outbox-001"},
+                        "identity": {"stage_run_identity": {"stage_run_id": "sr-001"}},
+                    },
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "blocked",
+                    "blocked_reason": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+                    "typed_blocker": {
+                        "blocker_type": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+                    },
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "publication-blockers::abc",
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    assert projection["provider_admission_pending_count"] == 1
+    assert projection["provider_admission_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
+    assert projection["provider_admission_candidates"][0]["domain_progress_transition_runtime"][
+        "transition_event"
+    ] == {"event_id": "evt-001"}
+    assert projection["action_type"] == "run_quality_repair_batch"
+    assert projection["work_unit_id"] == "medical_prose_write_repair"
+    assert projection["blocked_reason"] is None
+    assert "typed_blocker" not in projection
+
+
 def test_study_progress_opl_current_control_state_handoff_projects_latest_terminal_stage_log(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
