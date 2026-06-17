@@ -205,10 +205,8 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
-    persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
-    immutable_dispatch_path = Path(persisted["refs"]["immutable_dispatch_path"])
-    assert dispatch["dispatch_status"] == "ready"
+    dispatch = result["owner_callable_adapters"][0]
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
@@ -217,12 +215,13 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
     assert dispatch["prompt_contract"]["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
     assert "grep -R" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_command_patterns"]
     assert "runtime/**/codex_homes/**" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_path_globs"]
-    assert persisted["dispatch_authority"] == "quality_repair_batch_writer_handoff"
-    assert persisted["owner_route"]["source_refs"]["bridged_from_idempotency_key"] == current_route["idempotency_key"]
-    assert immutable_dispatch_path.is_file()
-    immutable_dispatch = json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))
-    assert immutable_dispatch["owner_route"] == persisted["owner_route"]
-    assert immutable_dispatch["prompt_contract"]["search_boundaries"] == dispatch["prompt_contract"]["search_boundaries"]
+    assert dispatch["refs"]["dispatch_path"] == str(dispatch_path)
+    assert dispatch["owner_route"]["source_refs"]["bridged_from_idempotency_key"] == current_route["idempotency_key"]
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["mas_dispatch_authority"] is False
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_owner"] == "one-person-lab"
+    assert result["written_files"] == []
 
 
 def test_materialize_domain_action_requests_restores_writer_handoff_when_current_route_is_story_surface(
@@ -393,20 +392,20 @@ def test_materialize_domain_action_requests_restores_writer_handoff_when_current
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
-    persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
-    immutable_dispatch_path = Path(persisted["refs"]["immutable_dispatch_path"])
-    assert dispatch["dispatch_status"] == "ready"
+    dispatch = result["owner_callable_adapters"][0]
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
     assert dispatch["owner_route"]["idempotency_key"] == writer_route["idempotency_key"]
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["medical_claim_authoring_allowed"] is True
     assert "paper/draft.md" in dispatch["prompt_contract"]["allowed_write_surfaces"]
-    assert persisted["dispatch_authority"] == "quality_repair_batch_writer_handoff"
-    assert persisted["prompt_contract"]["medical_claim_authoring_allowed"] is True
-    assert immutable_dispatch_path.is_file()
-    assert json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))["owner_route"] == persisted["owner_route"]
+    assert dispatch["prompt_contract"]["medical_claim_authoring_allowed"] is True
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["mas_dispatch_authority"] is False
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_owner"] == "one-person-lab"
+    assert result["written_files"] == []
 
 
 def test_materialize_domain_action_requests_builds_writer_handoff_from_current_story_surface_action(
@@ -507,10 +506,8 @@ def test_materialize_domain_action_requests_builds_writer_handoff_from_current_s
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
-    persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
-    immutable_dispatch_path = Path(persisted["refs"]["immutable_dispatch_path"])
-    assert dispatch["dispatch_status"] == "ready"
+    dispatch = result["owner_callable_adapters"][0]
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
@@ -525,7 +522,9 @@ def test_materialize_domain_action_requests_builds_writer_handoff_from_current_s
     ]
     assert dispatch["source_action"]["surface"] == "quality_repair_batch"
     assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
-    assert persisted["dispatch_authority"] == "quality_repair_batch_writer_handoff"
-    assert persisted["refs"]["repair_execution_evidence_path"] == str(repair_evidence_path)
-    assert immutable_dispatch_path.is_file()
-    assert json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))["owner_route"] == persisted["owner_route"]
+    assert dispatch["refs"]["repair_execution_evidence_path"] == str(repair_evidence_path)
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["mas_dispatch_authority"] is False
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_owner"] == "one-person-lab"
+    assert result["written_files"] == []
