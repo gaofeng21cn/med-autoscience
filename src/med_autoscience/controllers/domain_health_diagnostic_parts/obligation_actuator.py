@@ -477,6 +477,16 @@ def _provider_admission_or_transition_request_outcome(
                 "opl_runtime_result": runtime_result,
             },
         )
+    blocker = _typed_control_blocker_payload(
+        action=action,
+        blocker_type="opl_transition_readback_required",
+        reason=(
+            "MAS materialized a DomainProgressTransitionRuntime request, but OPL has "
+            "not returned a transition event, outbox, or StageRun readback for the "
+            "current paper recovery obligation."
+        ),
+        phase=phase,
+    )
     return _obligation_outcome(
         action=action,
         outcome_kind="transition_request_pending",
@@ -485,7 +495,10 @@ def _provider_admission_or_transition_request_outcome(
         details={
             "provider_admission_candidates": candidates,
             "required_opl_runtime_result": True,
+            "typed_control_blocker": blocker,
         },
+        typed_control_blocker=blocker,
+        postcondition_ok=False,
     )
 
 
@@ -688,7 +701,10 @@ def _typed_control_blocker_payload(
         "paper_package_mutation_allowed": False,
         "publication_ready_claim_allowed": False,
         "provider_completion_is_domain_completion": False,
-        "non_advancing_apply": blocker_type == "non_advancing_apply",
+        "non_advancing_apply": blocker_type in {
+            "non_advancing_apply",
+            "opl_transition_readback_required",
+        },
         "paper_progress_policy_result": policy_result,
         "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
     }

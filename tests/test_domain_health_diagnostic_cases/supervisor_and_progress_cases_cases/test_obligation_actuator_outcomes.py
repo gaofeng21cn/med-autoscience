@@ -354,11 +354,17 @@ def test_domain_health_diagnostic_apply_projects_transition_request_when_provide
         f"provider-admission::{study_id}::medical_prose_write_repair"
     )
     assert outcome["details"]["required_opl_runtime_result"] is True
+    blocker = outcome["typed_control_blocker"]
+    assert blocker["blocker_type"] == "opl_transition_readback_required"
+    assert blocker["non_advancing_apply"] is True
+    assert blocker["paper_progress_policy_result"]["recommended_opl_transition_kind"] == (
+        "NonAdvancingApply"
+    )
     assert outcome["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
     assert outcome["authority_boundary"]["can_execute_mas_owner_callable"] is False
     assert "managed_study_mas_owner_callable_actions" not in report
     postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
-    assert postcondition["ok"] is True
+    assert postcondition["ok"] is False
     assert postcondition["outcome_kind"] == "transition_request_pending"
 
 
