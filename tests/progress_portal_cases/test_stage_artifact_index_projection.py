@@ -202,6 +202,13 @@ def test_progress_portal_workbench_projects_stage_operating_layer_for_selected_s
         "next_owner_action": {
             "owner": "ai_reviewer",
             "action": "return_to_ai_reviewer_workflow",
+            "action_ref_role": "stage_artifact_index_next_owner_action_ref",
+            "authority": False,
+            "can_execute": False,
+            "can_generate_action": False,
+            "can_authorize_provider_admission": False,
+            "display_command_ref_only": True,
+            "requires_opl_current_control_readback": True,
         },
         "stale_platform_repairs": [
             {
