@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-17：MAS request-only transition 必须等待 OPL runtime readback
+
+- 决策：MAS `opl_domain_progress_transition_request` 只是 domain policy request。没有 OPL `DomainProgressTransitionRuntime` readback 时，DHD、`study_progress`、provider-admission projection 和 replay 只能显示 `transition_request_pending` 或 `NonAdvancingApply`；不得把 request-only carrier、自身 materialization、queue residue、dispatch carrier、projection refresh 或 `provider_admission_pending_count=0` 解释成 provider admission、running proof 或 paper progress。
+- 决策：`provider_admission_pending` 必须由 OPL event / outbox / StageRun identity readback 支撑；可信 readback 至少要携带 identity、causality、authority boundary、exactly-one outcome 和 projection metadata。MAS projection metadata 只能留在 policy result、candidate/read-model projection 和 study progress 派生面，不能夹入 MAS request 伪造 OPL runtime fields。
+- 决策：DM003 exact StageRun / owner receipt handoff 只能按同一 selected StageRun identity、owner receipt current work unit 和 OPL authorization readback 保留；旧 closeout、旧 readiness residue 或不同 StageRun packet 不能覆盖当前 owner handoff。
+- 理由：这一轮修复关闭同类 authority-path split 的直接复发口：MAS 能提出下一步 domain intent，但不能同时扮演 OPL command/event/outbox/StageRun runtime。request-only 若被读成 admission，会重新制造旧 MAS+OPL 双控制面，并让 DM002/DM003 继续在 queued、typed blocker、owner receipt、provider admission 之间空转。
+- 影响：这是 repo-level runtime boundary hardening，不执行 live DHD apply、hydrate、tick、redrive、provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker 或 human gate。focused tests、replay coverage 和 docs foldback 只证明边界已落地；真实论文推进仍必须由 fresh live readback、OPL StageRun/outbox proof、owner receipt、stable typed blocker、human gate、route-back evidence 或 canonical paper/gate/artifact delta 证明。
+
 ## 2026-06-17：RuntimeHealthKernel lifecycle-looking events 降级为 OPL proof-backed diagnostic observation
 
 - 决策：`RuntimeHealthKernel` 不再为 MAS 持有 attempt lifecycle、retry/dead-letter、worker residency 或 runtime currentness authority。`launch_attempt`、`recover_attempt`、`relaunch_attempt`、`attempt_released`、`escalation_opened` 和 `escalation_resolved` 这类 lifecycle-looking event 只有在 payload 带 OPL lifecycle proof 时才允许写入；可接受 proof 包括 OPL current-control ref、OPL command/event/outbox ref、StageRun / stage attempt id、active workflow id 或等价 OPL lifecycle readback ref。
