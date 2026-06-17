@@ -492,23 +492,6 @@ def _dispatch_pre_execution_block(
     apply: bool,
 ) -> dict[str, Any] | None:
     if not guard_ok:
-        if (
-            guard_reason == "unsupported_dispatch_surface"
-            and owner_route_block_reason is None
-            and _domain_progress_transition_request_present(dispatch)
-            and not _domain_progress_transition_opl_proof_present(
-                dispatch,
-                owner_route_basis=owner_route_basis,
-                current_study=current_study,
-            )
-        ):
-            opl_block = opl_execution_preflight.block_if_missing_authorization(
-                dispatch=dispatch,
-                owner_route_basis=owner_route_basis,
-                current_study=current_study,
-            )
-            if opl_block is not None:
-                return _blocked_dispatch_carrier(dispatch=dispatch, block=opl_block)
         return {
             "execution_status": "blocked",
             "blocked_reason": guard_reason,
