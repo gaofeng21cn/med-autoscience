@@ -175,6 +175,66 @@ def test_identity_bound_admission_pending_without_stage_run_readback_materialize
     assert decision["paper_autonomy_obligation"]["attempt_idempotency_key"] == identity
 
 
+def test_missing_opl_readback_returns_non_advancing_policy_requirement() -> None:
+    fingerprint = "publication-blockers::0915410f804b3697"
+    identity = f"provider-admission::003-dpcc::{fingerprint}"
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_work_unit": _executable_work_unit(),
+        "provider_admission_pending_count": 1,
+        "provider_admission_candidates": [
+            {
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "provider_admission_ref": "provider-admission:dm003:repair",
+                "stage_packet_ref": "stage-packet:dm003:repair",
+                "route_identity_key": identity,
+                "attempt_idempotency_key": identity,
+            }
+        ],
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "admission_pending",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_authority": {
+                "owner": "write",
+                "obligation": {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+            "next_safe_action": {"kind": "admit_provider_attempt"},
+        },
+    }
+
+    decision = build_supervisor_decision(payload)
+
+    assert decision["decision"] == "materialize_recovery_action"
+    assert decision["missing_evidence_refs"] == ["opl_stage_run_readback"]
+    policy = decision["paper_progress_policy_result"]
+    assert policy["authority"] == "med_autoscience.paper_progress_policy_adapter"
+    assert policy["recommended_opl_transition_kind"] == "NonAdvancingApply"
+    request = decision["opl_domain_progress_transition_request"]
+    assert request == policy["opl_domain_progress_transition_request"]
+    assert request["surface_kind"] == "mas_domain_progress_transition_request"
+    assert request["target_runtime_owner"] == "one-person-lab"
+    assert request["recommended_transition_kind"] == "NonAdvancingApply"
+    assert request["mas_can_create_opl_outbox_record"] is False
+    assert request["mas_can_create_opl_event"] is False
+    assert request["mas_can_create_opl_stage_run"] is False
+    assert decision["non_advancing_apply_requirement"]["runtime_owner"] == "one-person-lab"
+    assert decision["non_advancing_apply_requirement"]["mas_can_apply_non_advancing_transition"] is False
+    assert decision["authority_boundary"]["can_run_supervisor_decision_engine"] is False
+    assert decision["authority_boundary"]["can_apply_non_advancing_transition"] is False
+    assert decision["authority_boundary"]["can_replay_obligation"] is False
+
+
 def test_typed_blocker_identity_uses_currentness_basis_when_top_level_work_unit_is_sparse() -> None:
     fingerprint = "publication-blockers::0915410f804b3697"
     payload = {

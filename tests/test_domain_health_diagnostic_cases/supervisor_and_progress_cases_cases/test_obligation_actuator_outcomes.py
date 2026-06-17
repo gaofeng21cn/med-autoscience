@@ -363,6 +363,24 @@ def test_domain_health_diagnostic_apply_projects_transition_request_when_provide
     assert outcome["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
     assert outcome["authority_boundary"]["can_execute_mas_owner_callable"] is False
     assert "managed_study_mas_owner_callable_actions" not in report
+    assert outcome["details"]["opl_transition_request"] == (
+        outcome["typed_control_blocker"]["opl_domain_progress_transition_request"]
+    )
+    assert outcome["typed_control_blocker"]["paper_progress_policy_result"][
+        "authority"
+    ] == "med_autoscience.paper_progress_policy_adapter"
+    assert outcome["typed_control_blocker"]["paper_progress_policy_result"][
+        "recommended_opl_transition_kind"
+    ] == "NonAdvancingApply"
+    assert outcome["typed_control_blocker"]["non_advancing_apply_requirement"] == {
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "mas_can_apply_non_advancing_transition": False,
+        "mas_can_persist_opl_event_or_outbox": False,
+        "required_outcome": "typed_blocker_ref",
+    }
+    assert outcome["authority_boundary"]["can_apply_non_advancing_transition"] is False
+    assert outcome["authority_boundary"]["can_replay_obligation"] is False
     postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
     assert postcondition["ok"] is False
     assert postcondition["outcome_kind"] == "transition_request_pending"

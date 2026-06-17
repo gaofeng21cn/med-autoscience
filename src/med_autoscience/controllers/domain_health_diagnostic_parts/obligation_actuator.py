@@ -52,6 +52,9 @@ ACTUATOR_AUTHORITY_BOUNDARY = {
     "can_run_fixed_point_runtime": False,
     "can_run_supervisor_decision_engine": False,
     "can_write_opl_current_control_state": False,
+    "can_apply_non_advancing_transition": False,
+    "can_replay_obligation": False,
+    "can_persist_obligation_store": False,
     "provider_admission_requires_opl_runtime_result": True,
     "provider_admission_readback_requires_opl_event_or_outbox": True,
     "can_execute_mas_owner_callable": False,
@@ -495,6 +498,9 @@ def _provider_admission_or_transition_request_outcome(
         details={
             "provider_admission_candidates": candidates,
             "required_opl_runtime_result": True,
+            "opl_transition_request": _mapping(
+                blocker.get("opl_domain_progress_transition_request")
+            ),
             "typed_control_blocker": blocker,
         },
         typed_control_blocker=blocker,
@@ -706,6 +712,16 @@ def _typed_control_blocker_payload(
             "opl_transition_readback_required",
         },
         "paper_progress_policy_result": policy_result,
+        "opl_domain_progress_transition_request": _mapping(
+            policy_result.get("opl_domain_progress_transition_request")
+        ),
+        "non_advancing_apply_requirement": {
+            "runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
+            "runtime_kind": OPL_TRANSITION_RUNTIME_KIND,
+            "mas_can_apply_non_advancing_transition": False,
+            "mas_can_persist_opl_event_or_outbox": False,
+            "required_outcome": "typed_blocker_ref",
+        },
         "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
     }
     cleaned = {key: value for key, value in payload.items() if value not in (None, "", [], {})}

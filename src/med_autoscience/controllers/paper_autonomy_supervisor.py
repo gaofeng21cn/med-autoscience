@@ -4,6 +4,8 @@ import hashlib
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers import paper_progress_policy_adapter
+
 
 SURFACE_KIND = "paper_autonomy_supervisor_decision"
 OBLIGATION_SURFACE_KIND = "paper_autonomy_obligation"
@@ -62,6 +64,10 @@ AUTHORITY_BOUNDARY = {
     "can_own_stage_run": False,
     "can_generate_human_gate_resume_token": False,
     "can_run_fixed_point_runtime": False,
+    "can_run_supervisor_decision_engine": False,
+    "can_apply_non_advancing_transition": False,
+    "can_replay_obligation": False,
+    "can_persist_obligation_store": False,
 }
 
 
@@ -380,6 +386,7 @@ def _decision(
     if decision not in ALLOWED_DECISIONS:
         raise ValueError(f"unsupported supervisor decision: {decision}")
     evidence = _dedupe([ref for ref in evidence_refs if ref])
+    missing = _dedupe(missing_evidence_refs or [])
     payload = {
         "surface_kind": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
@@ -395,7 +402,7 @@ def _decision(
         "source_recovery_obligation_ref": _text(obligation.get("recovery_obligation_id")),
         "source_paper_recovery_phase": _text(recovery.get("phase")),
         "evidence_refs": evidence,
-        "missing_evidence_refs": _dedupe(missing_evidence_refs or []),
+        "missing_evidence_refs": missing,
         "forbidden_interpretations": _forbidden_interpretations(progress),
         "next_owner": next_owner,
         "next_safe_action": (
@@ -407,7 +414,65 @@ def _decision(
         "platform_repair_classification": platform_repair_classification,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
+    if missing:
+        payload.update(
+            _non_advancing_policy_projection(
+                progress,
+                recovery,
+                obligation,
+                decision=decision,
+                missing_evidence_refs=missing,
+            )
+        )
     return _clean_mapping(payload)
+
+
+def _non_advancing_policy_projection(
+    progress: Mapping[str, Any],
+    recovery: Mapping[str, Any],
+    obligation: Mapping[str, Any],
+    *,
+    decision: str,
+    missing_evidence_refs: list[str],
+) -> dict[str, Any]:
+    policy_result = paper_progress_policy_adapter.build_non_advancing_policy_blocker(
+        {
+            **dict(progress),
+            "paper_recovery_state": dict(recovery),
+        },
+        reason="missing_required_opl_transition_readback:" + ",".join(missing_evidence_refs),
+    )
+    request = _mapping(policy_result.get("opl_domain_progress_transition_request"))
+    return _clean_mapping(
+        {
+            "paper_progress_policy_result": policy_result,
+            "opl_domain_progress_transition_request": dict(request),
+            "non_advancing_apply_requirement": _non_advancing_apply_requirement(
+                obligation=obligation,
+                decision=decision,
+                missing_evidence_refs=missing_evidence_refs,
+            ),
+        }
+    )
+
+
+def _non_advancing_apply_requirement(
+    *,
+    obligation: Mapping[str, Any],
+    decision: str,
+    missing_evidence_refs: list[str],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_non_advancing_apply_requirement",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "decision": decision,
+        "obligation_ref": _obligation_ref(obligation),
+        "missing_evidence_refs": list(missing_evidence_refs),
+        "required_outcome": "typed_blocker_ref",
+        "mas_can_apply_non_advancing_transition": False,
+        "mas_can_persist_opl_event_or_outbox": False,
+    }
 
 
 def _execute_decision_ready(
