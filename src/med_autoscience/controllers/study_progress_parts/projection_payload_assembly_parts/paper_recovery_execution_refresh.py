@@ -70,6 +70,13 @@ def normalize_paper_recovery_execution_projection(
         handoff=handoff,
         runtime_health_snapshot=runtime_health_snapshot,
     )
+    final_provider_fields = provider_admission_projection_fields(
+        payload=refreshed,
+        handoff=handoff,
+        study_root=study_root,
+    )
+    refreshed.update(final_provider_fields)
+    refreshed = sync_progress_first_owner_action_admission(refreshed)
     refreshed["paper_recovery_execution_projection"] = {
         "surface_kind": "paper_recovery_execution_projection",
         "schema_version": 1,
