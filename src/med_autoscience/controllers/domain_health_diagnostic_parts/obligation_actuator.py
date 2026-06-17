@@ -28,6 +28,11 @@ SOURCE_OF_TRUTH_CHAIN = (
     "MAS OwnerAnswer",
     "Derived Projection",
 )
+SUCCESS_OUTCOME_SOURCE_FAMILIES = (
+    "opl_runtime_readback",
+    "mas_owner_answer_readback",
+    "mas_domain_authority_readback",
+)
 ACTUATOR_AUTHORITY_BOUNDARY = {
     "surface_kind": "mas_obligation_outcome_projection_authority_boundary",
     "authority": "med_autoscience.paper_progress_policy_adapter",
@@ -59,11 +64,7 @@ ACTUATOR_AUTHORITY_BOUNDARY = {
     "provider_admission_readback_requires_opl_event_or_outbox": True,
     "can_execute_mas_owner_callable": False,
     "can_write_fail_closed_typed_control_blocker": True,
-    "success_outcome_source_families": [
-        "opl_runtime_readback",
-        "mas_owner_answer_readback",
-        "mas_domain_authority_readback",
-    ],
+    "success_outcome_source_families": list(SUCCESS_OUTCOME_SOURCE_FAMILIES),
     "request_projection_outcome_source_family": "mas_policy_request_projection",
     "request_projection_is_success_outcome": False,
 }
@@ -861,12 +862,7 @@ def _obligation_outcome(
         "success_outcome_source_family": (
             source_family
             if effective_postcondition_ok
-            and source_family
-            in {
-                "opl_runtime_readback",
-                "mas_owner_answer_readback",
-                "mas_domain_authority_readback",
-            }
+            and source_family in SUCCESS_OUTCOME_SOURCE_FAMILIES
             else None
         ),
         "request_projection_only": source_family == "mas_policy_request_projection",
