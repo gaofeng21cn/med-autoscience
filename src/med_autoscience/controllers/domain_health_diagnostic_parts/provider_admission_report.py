@@ -266,6 +266,8 @@ def _currentness_consumes_transition_request(currentness: Mapping[str, Any]) -> 
         return False
     if currentness.get("provider_admission_candidates") or currentness.get("transition_request_candidates"):
         return False
+    if _terminal_closeout_consumed_by_currentness(currentness):
+        return True
     current_work_unit = _mapping(currentness.get("current_work_unit"))
     current_execution = _mapping(currentness.get("current_execution_envelope"))
     return _non_empty_text(current_work_unit.get("status")) in {
@@ -277,6 +279,26 @@ def _currentness_consumes_transition_request(currentness: Mapping[str, Any]) -> 
         "typed_blocker",
         "blocked_current_work_unit",
     }
+
+
+def _terminal_closeout_consumed_by_currentness(currentness: Mapping[str, Any]) -> bool:
+    consumed = _mapping(currentness.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        handoff = _mapping(currentness.get("opl_current_control_state_handoff"))
+        consumed = _mapping(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        return False
+    return any(
+        _non_empty_text(consumed.get(key)) is not None
+        for key in (
+            "stage_attempt_id",
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "work_unit_id",
+            "work_unit_fingerprint",
+            "action_fingerprint",
+        )
+    )
 
 
 def _transition_request_consumed_by_currentness(
