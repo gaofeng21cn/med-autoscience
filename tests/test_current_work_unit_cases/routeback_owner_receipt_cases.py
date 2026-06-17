@@ -151,3 +151,100 @@ def test_current_work_unit_projects_recovery_successor_without_current_action() 
         "work_unit_id": "medical_prose_write_repair",
         "work_unit_fingerprint": fingerprint,
     }
+
+
+def test_current_work_unit_projects_owner_action_ready_successor_over_repair_receipt() -> None:
+    module = _module()
+
+    fingerprint = "publication-blockers::0915410f804b3697"
+    receipt_ref = "artifacts/controller/repair_execution_receipts/latest.json"
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "next_owner": "write",
+        "owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "owner_receipt_required": True,
+        "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+        "paper_recovery_successor": {
+            "phase": "owner_action_ready",
+            "source_next_safe_action_kind": "materialize_successor_owner_action",
+            "provider_admission_allowed": False,
+            "provider_admission_requires_opl_runtime_result": True,
+            "opl_transition_runtime_required": True,
+            "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        },
+        "owner_route_currentness_basis": {
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+        },
+    }
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "owner_receipt_ref": receipt_ref,
+                "gate_replay_done": True,
+            },
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "schema_version": 1,
+                "phase": "owner_action_ready",
+                "current_authority": {
+                    "owner": "write",
+                    "obligation": {
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                },
+                "conditions": [
+                    {
+                        "condition": "consumed_owner_receipt_routeback_successor",
+                        "source_condition": "current_work_unit_owner_receipt_recorded",
+                    }
+                ],
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "provider_admission_allowed": True,
+                    "successor_owner_action": {
+                        "action_type": "run_quality_repair_batch",
+                        "owner": "write",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": fingerprint,
+                        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                        "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                    },
+                },
+            },
+        },
+        current_executable_owner_action=action,
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"

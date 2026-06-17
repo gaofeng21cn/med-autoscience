@@ -761,6 +761,8 @@ def _owner_receipt_consumed_by_actionable_successor(
     payload = _mapping(action)
     if not payload:
         return False
+    if _paper_recovery_owner_action_ready_successor_consumes_receipt(payload, progress=progress):
+        return True
     recovery = _mapping(progress.get("paper_recovery_state"))
     obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
     if _same_action_identity(obligation, payload):
@@ -793,6 +795,25 @@ def _owner_receipt_consumed_by_actionable_successor(
         blocker={"blocker_type": "publication_gate_replay_blocked"},
         progress=progress,
     )
+
+
+def _paper_recovery_owner_action_ready_successor_consumes_receipt(
+    action: Mapping[str, Any],
+    *,
+    progress: Mapping[str, Any],
+) -> bool:
+    if not _paper_recovery_successor_action_ready(action):
+        return False
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    if _text(recovery.get("phase")) != "owner_action_ready":
+        return False
+    next_action = _mapping(recovery.get("next_safe_action"))
+    if _text(next_action.get("kind")) != "materialize_successor_owner_action":
+        return False
+    successor = _mapping(next_action.get("successor_owner_action"))
+    if not successor or not _same_action_identity(successor, action):
+        return False
+    return _text(successor.get("source_surface")) == "gate_clearing_batch_followthrough.actionable_current_work_unit"
 
 
 def _domain_transition_successor_consumes_owner_receipt(
