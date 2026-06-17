@@ -16,6 +16,7 @@ PAPER_RECOVERY_SUCCESSOR_DELTA_KIND = "paper_recovery_successor_owner_delta_or_t
 
 SUPERSEDED_RECOVERY_SUCCESSOR_BLOCKERS = frozenset(
     {
+        "blocked:unsupported_dispatch_surface",
         "medical_paper_readiness_missing",
         "medical_paper_readiness_not_ready",
         "opl_execution_authorization_required",
