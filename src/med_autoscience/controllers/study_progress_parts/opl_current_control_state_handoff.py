@@ -55,6 +55,7 @@ ATTEMPT_IDENTITY_KEYS = (
 )
 LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
     {
+        "blocked:unsupported_dispatch_surface",
         "live_worker_requires_worker_running",
         "managed_runtime_audit_unhealthy",
         "medical_paper_readiness_missing",
@@ -534,6 +535,7 @@ def merge_live_attempt_observability_into_handoff(
     if live_attempt_running and _live_attempt_supersedes_handoff_blocker(merged):
         merged["external_supervisor_required"] = False
         merged["blocked_reason"] = None
+        merged.pop("typed_blocker", None)
         merged["why_not_applied"] = [
             reason
             for reason in _string_list(merged.get("why_not_applied"))
@@ -555,6 +557,10 @@ def merge_live_attempt_observability_into_handoff(
         if key not in merged or merged.get(key) in {None, "", False}:
             if key in live_attempt_handoff:
                 merged[key] = live_attempt_handoff[key]
+    if live_attempt_running:
+        for key in ("runtime_owner", "provider_attempt_owner", "queue_owner"):
+            value = _non_empty_text(live_attempt_handoff.get(key)) or "one-person-lab"
+            merged[key] = value
     if not _stage_progress_log_mapping(merged.get("stage_progress_log")):
         stage_progress_log = _stage_progress_log_mapping(live_attempt_handoff.get("stage_progress_log"))
         if stage_progress_log:
@@ -833,6 +839,11 @@ def _typed_closeout_matches_handoff_action(
     )
     if closeout_attempt_id and action_attempt_id:
         return closeout_attempt_id == action_attempt_id
+    projection_attempt_id = _non_empty_text(action.get("active_stage_attempt_id")) or _stage_attempt_id_from_active_run_id(
+        action.get("active_run_id")
+    )
+    if closeout_attempt_id and projection_attempt_id:
+        return closeout_attempt_id == projection_attempt_id
     closeout_action_type = _non_empty_text(typed_closeout.get("action_type"))
     action_type = _non_empty_text(action.get("action_type"))
     if (

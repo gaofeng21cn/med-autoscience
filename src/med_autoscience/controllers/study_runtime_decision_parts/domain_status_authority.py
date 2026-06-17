@@ -664,8 +664,10 @@ def _opl_current_control_state_runtime_liveness_projection(
             study_entry=study_entry,
             quest_status=quest_status,
         )
-        if handoff_projection is not None:
+        if _runtime_liveness_projection_is_live_provider_attempt(handoff_projection):
             return handoff_projection
+    else:
+        handoff_projection = None
     live_attempt = opl_provider_attempts.live_provider_attempt_for_study(
         profile=profile,
         study_id=study_id,
@@ -677,7 +679,20 @@ def _opl_current_control_state_runtime_liveness_projection(
             live_attempt=live_attempt,
             quest_status=quest_status,
         )
-    return None
+    return handoff_projection
+
+
+def _runtime_liveness_projection_is_live_provider_attempt(
+    projection: dict[str, object] | None,
+) -> bool:
+    if projection is None:
+        return False
+    return (
+        projection.get("status") == "live"
+        and projection.get("source") == "opl_current_control_state_provider_attempt"
+        and projection.get("running_provider_attempt") is True
+        and _non_empty_text(projection.get("active_run_id")) is not None
+    )
 
 
 def _opl_current_control_state_handoff_liveness_projection(

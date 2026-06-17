@@ -285,6 +285,109 @@ def test_progress_projection_uses_live_opl_queue_attempt_when_handoff_is_stale(
     assert result["active_run_id"] == "opl-stage-attempt://sat-live-queue"
 
 
+def test_progress_projection_uses_live_opl_attempt_when_fresh_handoff_is_non_running_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
+    decision_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.domain_status_authority"
+    )
+    publication_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+    )
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        quest_id="quest-001",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="A reproducible diabetes mortality prediction manuscript.",
+        paper_urls=["https://example.org/diabetes-mortality"],
+        journal_shortlist=["Journal of Clinical Epidemiology"],
+        minimum_sci_ready_evidence_package=["main_result_table", "claim_evidence_map"],
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    _write_json(
+        _runtime_state_path(quest_root),
+        {
+            "status": "active",
+            "active_run_id": None,
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "turn_closeout",
+            "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+            "pending_user_message_count": 0,
+        },
+    )
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("quest_id: quest-001\nstudy_id: 001-risk\n", encoding="utf-8")
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-06T10:00:00+00:00",
+            "authority": "observability_only",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "active",
+                    "active_run_id": None,
+                    "running_provider_attempt": False,
+                    "runtime_health": {
+                        "health_status": "blocked",
+                        "runtime_liveness_status": "none",
+                        "blocked_reason": "provider_admission_current_control_state_required",
+                    },
+                    "blocked_reason": "provider_admission_current_control_state_required",
+                    "next_owner": "one-person-lab",
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        decision_module.opl_provider_attempts,
+        "live_provider_attempt_for_study",
+        lambda **_: {
+            "surface_kind": "opl_current_control_state_provider_attempt",
+            "source": "opl_family_runtime_attempt_inspect",
+            "active_run_id": "opl-stage-attempt://sat-live-supersedes-blocker",
+            "active_stage_attempt_id": "sat-live-supersedes-blocker",
+            "active_workflow_id": "wf-live-supersedes-blocker",
+            "running_provider_attempt": True,
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+                "provider_status": "running",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        publication_module,
+        "_supervisor_tick_now",
+        lambda: datetime.fromisoformat("2026-06-06T10:01:00+00:00"),
+    )
+
+    result = module.progress_projection(profile=profile, study_id="001-risk")
+
+    runtime_liveness = result["runtime_liveness_audit"]
+    assert runtime_liveness["status"] == "live"
+    assert runtime_liveness["source"] == "opl_current_control_state_provider_attempt"
+    assert runtime_liveness["provider_attempt_source"] == "opl_family_runtime_attempt_inspect"
+    assert runtime_liveness["active_run_id"] == "opl-stage-attempt://sat-live-supersedes-blocker"
+    assert runtime_liveness["active_stage_attempt_id"] == "sat-live-supersedes-blocker"
+    assert runtime_liveness["action_type"] == "run_quality_repair_batch"
+    assert runtime_liveness["work_unit_id"] == "medical_prose_write_repair"
+    assert result["execution_owner_guard"]["guard_reason"] == "live_managed_runtime"
+    assert result["execution_owner_guard"]["active_run_id"] == "opl-stage-attempt://sat-live-supersedes-blocker"
+    assert result["active_run_id"] == "opl-stage-attempt://sat-live-supersedes-blocker"
+
+
 def test_progress_projection_uses_live_opl_attempt_when_quest_state_is_paused(
     monkeypatch,
     tmp_path: Path,
