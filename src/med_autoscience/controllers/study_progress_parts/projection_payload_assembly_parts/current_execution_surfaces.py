@@ -75,6 +75,15 @@ def refresh_current_execution_surfaces(
             },
         )
         return updated
+    paper_recovery_successor_action = _paper_recovery_successor_action(payload)
+    if paper_recovery_successor_action:
+        return _with_paper_recovery_successor_execution_surfaces(
+            payload=updated,
+            status=status,
+            handoff=handoff,
+            runtime_health_snapshot=runtime_health_snapshot,
+            current_action=paper_recovery_successor_action,
+        )
     handoff_executable_action = current_control_executable_owner_action(handoff)
     if handoff_executable_action:
         updated["current_executable_owner_action"] = handoff_executable_action
@@ -265,6 +274,68 @@ def refresh_current_execution_surfaces(
         )
     updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
         action_queue=evidence_actions,
+        runtime_health=runtime_health_snapshot,
+        extra={
+            "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+        },
+    )
+    return updated
+
+
+def _paper_recovery_successor_action(payload: Mapping[str, Any]) -> dict[str, Any]:
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if paper_recovery_successor_action_ready(current_action):
+        return current_action
+    successor_action = build_current_executable_owner_action(payload)
+    if paper_recovery_successor_action_ready(successor_action):
+        return dict(successor_action)
+    return {}
+
+
+def _with_paper_recovery_successor_execution_surfaces(
+    *,
+    payload: dict[str, Any],
+    status: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+    runtime_health_snapshot: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_work = current_work_unit.build_current_work_unit(
+        status=status,
+        progress={**payload, "current_executable_owner_action": current_action},
+        actions=[dict(current_action)],
+        current_executable_owner_action=current_action,
+        provider_admission=handoff,
+        live_provider_attempt=handoff,
+        typed_blocker={},
+        blocked_reason=None,
+        next_owner=_non_empty_text(current_action.get("next_owner")),
+        runtime_health=runtime_health_snapshot,
+    )
+    if _non_empty_text(current_work.get("status")) != "executable_owner_action":
+        return payload
+    if _non_empty_text(current_work.get("work_unit_id")) != _non_empty_text(current_action.get("work_unit_id")):
+        return payload
+    if _non_empty_text(current_work.get("work_unit_fingerprint")) != _non_empty_text(
+        current_action.get("work_unit_fingerprint")
+    ):
+        return payload
+    updated = dict(payload)
+    updated["current_executable_owner_action"] = dict(current_action)
+    updated["current_work_unit"] = current_work
+    updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+        status=status,
+        progress=updated,
+        actions=[dict(current_action)],
+        blocked_reason=None,
+        next_owner=_non_empty_text(current_action.get("next_owner")),
+        typed_blocker={},
+        runtime_health=runtime_health_snapshot,
+        live_provider_attempt=handoff,
+        current_work_unit_payload=current_work,
+    )
+    updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+        action_queue=_execution_evidence_actions_for_payload(payload=updated, handoff=handoff),
         runtime_health=runtime_health_snapshot,
         extra={
             "opl_current_control_state_handoff": dict(handoff) if handoff else None,

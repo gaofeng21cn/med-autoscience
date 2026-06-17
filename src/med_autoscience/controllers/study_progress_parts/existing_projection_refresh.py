@@ -174,7 +174,7 @@ def refresh_existing_projection_current_owner_surfaces(
         updated = sync_progress_first_owner_action_admission(updated)
         updated = apply_running_provider_attempt_top_level_status(updated)
         updated = sync_current_execution_evidence(updated, handoff=handoff, action_queue=[])
-        updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+        updated["paper_recovery_state"] = _paper_recovery_state_unless_successor_current(updated)
         updated = apply_paper_recovery_state_user_visible_status(updated)
         updated["user_visible_projection"] = build_user_visible_projection(updated)
         return attach_delivery_inspection_projection_fn(
@@ -276,6 +276,9 @@ def refresh_existing_projection_current_owner_surfaces(
         current_control_blocked_reason = None
         current_control_next_owner = None
     progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
+    recovered_current_action = build_current_executable_owner_action(updated)
+    if recovered_current_action is not None:
+        updated["current_executable_owner_action"] = recovered_current_action
     envelope_actions = current_execution_envelope_actions(
         handoff=currentness_handoff,
         current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
@@ -332,7 +335,7 @@ def refresh_existing_projection_current_owner_surfaces(
         status=status,
         handoff=currentness_handoff,
     )
-    updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+    updated["paper_recovery_state"] = _paper_recovery_state_unless_successor_current(updated)
     updated = apply_paper_recovery_state_user_visible_status(updated)
     updated["user_visible_projection"] = build_user_visible_projection(updated)
     return attach_delivery_inspection_projection_fn(
@@ -383,6 +386,17 @@ def _apply_current_control_currentness_to_existing_projection(
             if isinstance(item, Mapping)
         ]
     return updated
+
+
+def _paper_recovery_state_unless_successor_current(payload: Mapping[str, Any]) -> dict[str, Any]:
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    if _non_empty_text(recovery.get("phase")) == "owner_action_ready":
+        current_action = build_current_executable_owner_action(payload)
+        if _non_empty_text(_mapping_copy(current_action).get("source")) == (
+            "paper_recovery_state.next_safe_action.successor_owner_action"
+        ):
+            return recovery
+    return build_paper_recovery_state(payload)
 
 
 def _handoff_is_active_provider_control(handoff: Mapping[str, Any]) -> bool:
@@ -546,8 +560,12 @@ def refresh_paper_recovery_successor_surfaces(
     if _repair_progress_gate_followup_current(payload):
         return payload
     recovery_payload = dict(payload)
-    recovery_payload["paper_recovery_state"] = build_paper_recovery_state(recovery_payload)
     current_action = build_current_executable_owner_action(recovery_payload)
+    if _non_empty_text(_mapping_copy(current_action).get("source")) != (
+        "paper_recovery_state.next_safe_action.successor_owner_action"
+    ):
+        recovery_payload["paper_recovery_state"] = build_paper_recovery_state(recovery_payload)
+        current_action = build_current_executable_owner_action(recovery_payload)
     if _non_empty_text(_mapping_copy(current_action).get("source")) != (
         "paper_recovery_state.next_safe_action.successor_owner_action"
     ):
@@ -571,7 +589,9 @@ def refresh_paper_recovery_successor_surfaces(
     updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
     updated = sync_progress_first_owner_action_admission(updated)
     updated = sync_current_execution_evidence(updated, handoff=handoff)
-    updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+    updated["paper_recovery_state"] = _mapping_copy(
+        recovery_payload.get("paper_recovery_state")
+    ) or build_paper_recovery_state(updated)
     updated = apply_paper_recovery_state_user_visible_status(updated)
     return updated
 
