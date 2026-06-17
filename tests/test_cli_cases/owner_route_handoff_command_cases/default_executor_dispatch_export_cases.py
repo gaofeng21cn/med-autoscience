@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from .shared import *  # noqa: F403,F401
+from .default_executor_dispatch_export_helpers import (
+    assert_dispatch_requests_opl_transition_runtime_intake,
+    assert_transition_request_carrier,
+)
 from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff
 from med_autoscience.profiles import load_profile
 
@@ -128,6 +132,7 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
     assert task["queue_owner"] == "one-person-lab"
     assert task["profile_name"] == "nfpitnet"
     assert task["requires_approval"] is False
+    assert_transition_request_carrier(task)
     assert task["dedupe_key"].startswith(
         "mas:nfpitnet:002-dm-china-us-mortality-attribution:"
         "default-executor:run_quality_repair_batch:quality_repair_batch_writer_handoff:"
@@ -178,18 +183,7 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
     assert task["payload"]["authority_boundary"]["authority"] == (
         "med_autoscience.paper_progress_policy_adapter"
     )
-    assert task["payload"]["authority_boundary"]["target_runtime_kind"] == (
-        "DomainProgressTransitionRuntime"
-    )
-    assert task["payload"]["authority_boundary"]["mas_can_authorize_provider_admission"] is False
-    assert task["payload"]["provider_admission_pending"] is False
-    assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
-    transition_request = task["payload"]["opl_domain_progress_transition_request"]
-    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
-    assert transition_request["target_runtime_owner"] == "one-person-lab"
-    assert transition_request["mas_can_create_opl_outbox_record"] is False
-    assert transition_request["mas_can_create_opl_stage_run"] is False
-    assert "provider_admission_identity" not in task["payload"]
+    assert_dispatch_requests_opl_transition_runtime_intake(cli, tmp_path, capsys, task, _write_json)
     assert task["payload"]["decision_trace"] is None
     assert task["payload"]["decision_trace_refs"] is None
     assert task["payload"]["failed_path_ledger"] is None
@@ -957,6 +951,7 @@ def test_domain_handler_export_projects_ai_reviewer_default_executor_dispatch_re
         "truth_epoch": "truth-event-000017-bac190eb1c889a78",
         "runtime_health_epoch": "runtime-health-event-006195-9cdb58e3383bd0a9",
     }
+    assert_transition_request_carrier(task)
     assert "owner_reason" not in task["payload"]["owner_route_currentness_basis"]
     assert task["owner_route_attempt_envelope"]["domain_owner"] == "ai_reviewer"
     assert task["owner_route_attempt_envelope"]["dispatchable"] is True

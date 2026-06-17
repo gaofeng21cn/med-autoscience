@@ -243,6 +243,9 @@ def default_executor_dispatch_tasks(
                 },
             )
             transition_authority_fields = domain_progress_transition_request_transport_fields()
+        transition_request_carrier_fields = _transition_request_carrier_fields(
+            transition_request_payload
+        )
         evidence_record_payload = build_domain_dispatch_evidence_record_payload(
             task_kind=TASK_KIND,
             study_id=study_id,
@@ -269,6 +272,7 @@ def default_executor_dispatch_tasks(
                     f"{action_type}:{dispatch_authority}:{source_fingerprint}"
                 ),
                 "source_fingerprint": source_fingerprint,
+                **transition_request_carrier_fields,
                 "payload": {
                     "profile": str(profile_ref),
                     "study_id": study_id,
@@ -284,7 +288,6 @@ def default_executor_dispatch_tasks(
                     "dispatch_authority": dispatch_authority,
                     "executor_kind": executor_kind,
                     "dispatch_ref": dispatch_ref,
-                    "authority_boundary": "mas_default_executor_dispatch_request_only",
                     "next_executable_owner": next_owner,
                     **provider_authority_fields,
                     **transition_authority_fields,
@@ -301,12 +304,11 @@ def default_executor_dispatch_tasks(
                     **(
                         {
                             "opl_domain_progress_transition_request": transition_request_payload,
-                            "provider_admission_pending": False,
-                            "provider_admission_requires_opl_runtime_result": True,
                         }
                         if transition_request_payload
                         else {}
                     ),
+                    **transition_request_carrier_fields,
                     **({"redrive_context": redrive_context} if redrive_context else {}),
                 },
                 "source_refs": source_refs,
@@ -331,10 +333,38 @@ def default_executor_dispatch_tasks(
                     if transition_request_payload
                     else {}
                 ),
+                **transition_request_carrier_fields,
                 "domain_dispatch_evidence_record_payload": evidence_record_payload,
             }
         )
     return tasks
+
+
+def _transition_request_carrier_fields(
+    transition_request_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if transition_request_payload is None:
+        return {}
+    return {
+        "transition_request_status": "transition_request_pending",
+        "carrier_status": "transition_request_pending",
+        "carrier_kind": "opl_domain_progress_transition_request_carrier",
+        "legacy_surface": REQUIRED_SURFACE,
+        "legacy_carrier_projection": True,
+        "owner_callable_adapter_projection_only": True,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "provider_attempt_or_lease_required": False,
+        "mas_private_attempt_loop_forbidden": True,
+        "mas_dispatch_authority": False,
+        "mas_creates_owner_callable_carrier": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+        "opl_transition_runtime_required": True,
+        "target_runtime_owner": "one-person-lab",
+        "target_runtime_kind": "DomainProgressTransitionRuntime",
+    }
 
 
 def _provider_admission_authority_fields(

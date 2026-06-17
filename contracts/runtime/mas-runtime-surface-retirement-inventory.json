@@ -100,6 +100,21 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "legacy_carrier_fallback_only": true,
+      "legacy_export_task_boundary": {
+        "carrier_kind": "opl_domain_progress_transition_request_carrier",
+        "dispatch_intake_policy": "domain_handler_dispatch_requests_opl_domain_progress_transition_runtime_intake_only",
+        "forbidden_top_level_lifecycle_status_override": true,
+        "legacy_surface": "default_executor_dispatch_request",
+        "mas_creates_opl_event": false,
+        "mas_creates_opl_outbox": false,
+        "mas_creates_opl_stage_run": false,
+        "mas_dispatch_authority": false,
+        "mas_private_attempt_loop_forbidden": true,
+        "provider_admission_pending": false,
+        "provider_attempt_or_lease_required": false,
+        "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
+        "transition_request_status": "transition_request_pending"
+      },
       "mas_owner_claim_allowed": false,
       "priority_boundary": "current_control_transition_request_precedes_legacy_dispatch_carrier",
       "projection_counting_boundary": {
