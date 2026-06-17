@@ -63,6 +63,13 @@ def normalize_paper_recovery_execution_projection(
     refreshed = _with_recovery_supervisor_decision(refreshed)
     if "provider_admission_blocked_by_supervisor_decision" not in provider_fields:
         refreshed = _without_stale_provider_supervisor_block(refreshed)
+    final_current_action = build_current_executable_owner_action(refreshed)
+    refreshed = refresh_current_execution_surfaces(
+        payload={**refreshed, "current_executable_owner_action": final_current_action},
+        status=status,
+        handoff=handoff,
+        runtime_health_snapshot=runtime_health_snapshot,
+    )
     refreshed["paper_recovery_execution_projection"] = {
         "surface_kind": "paper_recovery_execution_projection",
         "schema_version": 1,
