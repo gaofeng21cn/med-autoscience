@@ -17,6 +17,7 @@ from med_autoscience.external_learning_adoption_closure import (
 from med_autoscience.display_pack_agent import display_pack_capability_discover
 from med_autoscience.profiles import WorkspaceProfile
 
+from .. import default_executor_dispatch_packets
 from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
 from ..domain_health_diagnostic_parts.provider_admission_current_control_actions import (
@@ -37,6 +38,7 @@ from .domain_handler_functional_closure import build_domain_handler_functional_c
 from .export_study_projection import (
     build_study_projection,
     mapping,
+    read_json_object,
     study_roots,
     text,
     workspace_relative,
@@ -411,6 +413,14 @@ def _current_control_transition_request_tasks(
             "exists": True,
         },
     ]
+    identity_refs = _current_control_transition_identity_refs(
+        action,
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+    )
+    if identity_refs:
+        action = {**action, **identity_refs}
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
         task_kind="domain_owner/default-executor-dispatch",
         study_id=study_id,
@@ -427,7 +437,7 @@ def _current_control_transition_request_tasks(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,
         "source_fingerprint": source_fingerprint,
-        "dispatch_ref": text(action.get("dispatch_ref")),
+        **identity_refs,
         "authority_boundary": "mas_domain_progress_transition_request_only",
         "next_executable_owner": text(candidate.get("next_executable_owner")),
         "owner_route_currentness_basis": mapping(
@@ -460,6 +470,7 @@ def _current_control_transition_request_tasks(
             "reason": "current_control_transition_request_pending",
             "payload": {key: value for key, value in payload.items() if value not in (None, "", [], {})},
             "source_refs": [ref for ref in source_refs if ref.get("ref") not in (None, "")],
+            **identity_refs,
             "dispatch_owner": "one-person-lab",
             "domain_truth_owner": "med-autoscience",
             "queue_owner": "one-person-lab",
@@ -470,6 +481,114 @@ def _current_control_transition_request_tasks(
             "domain_dispatch_evidence_record_payload": evidence_record_payload,
         }
     ]
+
+
+def _current_control_transition_identity_refs(
+    action: Mapping[str, Any],
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str | None,
+) -> dict[str, Any]:
+    stage_packet_ref = text(action.get("stage_packet_ref"))
+    stage_packet_refs = [
+        ref
+        for ref in (text(item) for item in action.get("stage_packet_refs") or [])
+        if ref is not None
+    ]
+    dispatch_ref = text(action.get("dispatch_ref"))
+    dispatch_refs = _current_control_transition_dispatch_refs(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        explicit_dispatch_ref=dispatch_ref,
+    )
+    if dispatch_ref is None:
+        dispatch_ref = text(dispatch_refs.get("dispatch_ref"))
+    if stage_packet_ref is None:
+        stage_packet_ref = text(dispatch_refs.get("stage_packet_ref"))
+    for ref in dispatch_refs.get("stage_packet_refs") or []:
+        text_ref = text(ref)
+        if text_ref is not None and text_ref not in stage_packet_refs:
+            stage_packet_refs.append(text_ref)
+    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
+        stage_packet_refs.insert(0, stage_packet_ref)
+    checkpoint_refs = [
+        ref
+        for ref in (text(item) for item in action.get("checkpoint_refs") or [])
+        if ref is not None
+    ]
+    if not checkpoint_refs:
+        checkpoint_refs = list(stage_packet_refs)
+    return {
+        key: value
+        for key, value in {
+            "dispatch_ref": dispatch_ref,
+            "stage_packet_ref": stage_packet_ref,
+            "stage_packet_refs": list(dict.fromkeys(stage_packet_refs)),
+            "checkpoint_refs": list(dict.fromkeys(checkpoint_refs)),
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _current_control_transition_dispatch_refs(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str | None,
+    explicit_dispatch_ref: str | None,
+) -> dict[str, Any]:
+    if action_type is None:
+        return {}
+    dispatch_path = _current_control_transition_dispatch_path(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        explicit_dispatch_ref=explicit_dispatch_ref,
+    )
+    dispatch = read_json_object(dispatch_path)
+    if not dispatch or text(dispatch.get("action_type")) != action_type:
+        return {}
+    stage_packet_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
+        dispatch,
+        fallback_dispatch_path=dispatch_path,
+    )
+    if not stage_packet_path.is_file():
+        return {}
+    dispatch_ref = workspace_relative(dispatch_path, workspace_root=profile.workspace_root)
+    stage_packet_ref = workspace_relative(stage_packet_path, workspace_root=profile.workspace_root)
+    return {
+        "dispatch_ref": dispatch_ref,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+    }
+
+
+def _current_control_transition_dispatch_path(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str,
+    explicit_dispatch_ref: str | None,
+) -> Path:
+    ref = text(explicit_dispatch_ref)
+    if ref is not None:
+        path = Path(ref).expanduser()
+        if path.is_absolute():
+            return path
+        workspace_path = profile.workspace_root / path
+        if workspace_path.is_file():
+            return workspace_path
+    return (
+        profile.studies_root
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{action_type}.json"
+    )
 
 
 def _current_control_transition_request_source_supported(source: str | None) -> bool:

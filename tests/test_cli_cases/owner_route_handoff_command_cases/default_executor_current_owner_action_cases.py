@@ -734,6 +734,165 @@ def test_domain_handler_export_projects_current_control_transition_request_to_op
     )
 
 
+def test_domain_handler_export_carries_stage_packet_for_recovery_successor_transition_request(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    _write_json(study_root / "study.yaml", {"study_id": study_id})
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{action_type}.json"
+    )
+    stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
+    )
+    stage_packet_path = workspace_root / stage_packet_ref
+    route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason=work_unit_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=fingerprint,
+        runtime_health_epoch=fingerprint,
+        blocked_actions=[],
+    )
+    route["source_refs"] = {
+        **route["source_refs"],
+        "owner_route_currentness_basis": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+            "runtime_health_epoch": "runtime-health-event-006980-current",
+        },
+    }
+    _write_json(stage_packet_path, {"surface": "default_executor_dispatch_request", "immutable": True})
+    _write_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "dispatch_status": "ready",
+            "dispatch_authority": None,
+            "next_executable_owner": "write",
+            "owner_route": route,
+            "refs": {
+                "dispatch_path": str(dispatch_path),
+                "immutable_dispatch_path": str(stage_packet_path),
+                "stage_packet_path": str(stage_packet_path),
+            },
+            "generated_at": "2026-06-16T04:54:52+00:00",
+        },
+    )
+
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(
+        study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "owner_receipt_recorded",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "write",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "currentness_basis": {
+                    "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+                    "runtime_health_epoch": "runtime-health-event-006980-current",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "owner_receipt_recorded",
+                "owner": "write",
+                "next_work_unit": None,
+            },
+            "current_executable_owner_action": None,
+            "paper_recovery_state": {
+                "phase": "owner_action_ready",
+                "current_authority": {
+                    "obligation": {
+                        "currentness_basis": {
+                            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+                            "runtime_health_epoch": "runtime-health-event-006980-current",
+                        }
+                    }
+                },
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "provider_admission_allowed": True,
+                    "successor_owner_action": {
+                        "action_type": action_type,
+                        "owner": "write",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                        "source_ref": str(
+                            study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+                        ),
+                    },
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    [task] = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert task["reason"] == "current_control_transition_request_pending"
+    assert task["stage_packet_ref"] == stage_packet_ref
+    assert task["stage_packet_refs"] == [stage_packet_ref]
+    assert task["payload"]["stage_packet_ref"] == stage_packet_ref
+    assert task["payload"]["stage_packet_refs"] == [stage_packet_ref]
+    assert task["payload"]["current_control_action"]["stage_packet_ref"] == stage_packet_ref
+    assert task["payload"]["current_control_action"]["stage_packet_refs"] == [stage_packet_ref]
+    assert task["payload"]["dispatch_ref"] == (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "run_quality_repair_batch.json"
+    )
+    assert task["payload"]["current_control_action"]["dispatch_ref"] == task["payload"]["dispatch_ref"]
+    assert task["payload"]["provider_admission_pending"] is False
+    assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
+    assert "current_control_command_outbox_record" not in task["payload"]
+    assert "stage_run_identity" not in task["payload"]
+
+
 def test_domain_handler_export_does_not_treat_nonconsumable_redrive_budget_as_domain_closeout(
     tmp_path: Path,
     capsys,
