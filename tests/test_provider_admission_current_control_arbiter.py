@@ -584,11 +584,27 @@ def test_provider_admission_report_sync_keeps_transition_request_out_of_managed_
         "provider_attempt_or_lease_required": False,
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
+        "same_tick_materialized_provider_admission": True,
+        "same_tick_materialization_source": "dry_run_preview",
+        "dispatch_status": "transition_request_pending",
+        "currentness_basis": {
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+        },
         "opl_domain_progress_transition_request": {
             "surface_kind": "mas_domain_progress_transition_request",
             "target_runtime_owner": "one-person-lab",
             "recommended_transition_kind": "StartProviderAttempt",
             "idempotency_key": "paper-policy-request:1a379264039c75d0e9cfd8f5",
+            "aggregate_identity": {
+                "aggregate_kind": "study_work_unit",
+                "aggregate_id": f"{study_id}::medical_prose_write_repair",
+                "study_id": study_id,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+            },
         },
     }
     stale_action = {
@@ -611,6 +627,21 @@ def test_provider_admission_report_sync_keeps_transition_request_out_of_managed_
         "managed_study_opl_provider_admission_candidates": [dict(transition_request)],
         "provider_admission_pending_count": 1,
         "current_execution_evidence": {
+            "progress_currentness": {
+                study_id: {
+                    "provider_admission_pending_count": 0,
+                    "transition_request_pending_count": 0,
+                    "provider_admission_candidates": [],
+                    "transition_request_candidates": [],
+                    "current_work_unit": {
+                        "status": "owner_receipt_recorded",
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                },
+            },
             "provider_admission_candidates": [dict(transition_request)],
             "managed_study_actions": [dict(stale_action)],
         },
@@ -626,18 +657,14 @@ def test_provider_admission_report_sync_keeps_transition_request_out_of_managed_
 
     assert report["managed_study_opl_provider_admission_candidates"] == []
     assert report["provider_admission_pending_count"] == 0
-    assert report["transition_request_pending_count"] == 1
-    assert report["managed_study_opl_transition_request_candidates"] == [transition_request]
+    assert report["transition_request_pending_count"] == 0
+    assert report["managed_study_opl_transition_request_candidates"] == []
     action = report["managed_study_actions"][0]
     assert action["provider_admission_candidates"] == []
-    assert action["provider_admission_state"] == {
-        "status": "none",
-        "candidate_count": 0,
-        "running_provider_attempt": False,
-    }
+    assert "provider_admission_state" not in action
     evidence_action = report["current_execution_evidence"]["managed_study_actions"][0]
     assert evidence_action["provider_admission_candidates"] == []
-    assert evidence_action["provider_admission_state"]["candidate_count"] == 0
+    assert "provider_admission_state" not in evidence_action
 
 
 def test_provider_admission_report_sync_clears_pending_when_managed_action_is_running(

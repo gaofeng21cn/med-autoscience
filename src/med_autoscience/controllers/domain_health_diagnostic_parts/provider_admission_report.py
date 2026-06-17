@@ -157,14 +157,19 @@ def sync_report_provider_admission_current_control_state(
         for item in current_control_state.get("provider_admission_candidates") or []
         if isinstance(item, Mapping)
     ]
-    transition_request_candidates.extend(
-        _transition_request_only_candidates(current_control_provider_candidates)
+    provider_candidate_transition_requests = _transition_request_only_candidates(
+        current_control_provider_candidates
+    )
+    transition_request_candidates.extend(provider_candidate_transition_requests)
+    transition_request_candidates = _filter_transition_requests_consumed_by_currentness(
+        transition_request_candidates,
+        report=report,
     )
     candidates = _filter_candidates_blocked_by_paper_recovery_state(
         [
             dict(item)
             for item in current_control_provider_candidates
-            if item not in transition_request_candidates
+            if item not in provider_candidate_transition_requests
         ],
         actions=report.get("managed_study_actions"),
     )
@@ -212,6 +217,109 @@ def _transition_request_only_candidates(candidates: list[dict[str, Any]]) -> lis
         )
         and candidate.get("provider_admission_requires_opl_runtime_result") is True
     ]
+
+
+def _filter_transition_requests_consumed_by_currentness(
+    candidates: list[dict[str, Any]],
+    *,
+    report: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    if not candidates:
+        return []
+    currentness_by_study = _transition_consuming_currentness_by_study(report)
+    if not currentness_by_study:
+        return [dict(candidate) for candidate in candidates]
+    filtered: list[dict[str, Any]] = []
+    for candidate in candidates:
+        study_id = _non_empty_text(candidate.get("study_id"))
+        currentness = currentness_by_study.get(study_id or "")
+        if currentness and _transition_request_consumed_by_currentness(candidate, currentness):
+            continue
+        filtered.append(dict(candidate))
+    return filtered
+
+
+def _transition_consuming_currentness_by_study(
+    report: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    contexts: dict[str, dict[str, Any]] = {}
+    progress_currentness = _mapping(
+        _mapping(report.get("current_execution_evidence")).get("progress_currentness")
+    )
+    for study_id, payload in progress_currentness.items():
+        normalized_study_id = _non_empty_text(study_id)
+        currentness = _mapping(payload)
+        if normalized_study_id is not None and _currentness_consumes_transition_request(currentness):
+            contexts[normalized_study_id] = dict(currentness)
+    for action in report.get("managed_study_actions") or []:
+        currentness = _mapping(action)
+        study_id = _non_empty_text(currentness.get("study_id"))
+        if study_id is not None and _currentness_consumes_transition_request(currentness):
+            contexts.setdefault(study_id, dict(currentness))
+    return contexts
+
+
+def _currentness_consumes_transition_request(currentness: Mapping[str, Any]) -> bool:
+    if currentness.get("provider_admission_pending_count") not in (None, 0):
+        return False
+    if currentness.get("transition_request_pending_count") not in (None, 0):
+        return False
+    if currentness.get("provider_admission_candidates") or currentness.get("transition_request_candidates"):
+        return False
+    current_work_unit = _mapping(currentness.get("current_work_unit"))
+    current_execution = _mapping(currentness.get("current_execution_envelope"))
+    return _non_empty_text(current_work_unit.get("status")) in {
+        "owner_receipt_recorded",
+        "typed_blocker",
+        "blocked_current_work_unit",
+    } or _non_empty_text(current_execution.get("state_kind")) in {
+        "owner_receipt_recorded",
+        "typed_blocker",
+        "blocked_current_work_unit",
+    }
+
+
+def _transition_request_consumed_by_currentness(
+    candidate: Mapping[str, Any],
+    currentness: Mapping[str, Any],
+) -> bool:
+    if candidate.get("same_tick_materialized_provider_admission") is not True:
+        return False
+    if _non_empty_text(candidate.get("same_tick_materialization_source")) != "dry_run_preview":
+        return False
+    return _candidate_matches_currentness(candidate, currentness=currentness)
+
+
+def _candidate_matches_currentness(
+    candidate: Mapping[str, Any],
+    *,
+    currentness: Mapping[str, Any],
+) -> bool:
+    current_work_unit = _mapping(currentness.get("current_work_unit"))
+    current_action = _mapping(currentness.get("current_executable_owner_action"))
+    identities = [current_work_unit, current_action]
+    candidate_action = _non_empty_text(candidate.get("action_type"))
+    candidate_work_unit = _non_empty_text(candidate.get("work_unit_id"))
+    candidate_fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
+        candidate.get("action_fingerprint")
+    )
+    for identity in identities:
+        if not identity:
+            continue
+        action_type = _non_empty_text(identity.get("action_type"))
+        work_unit_id = _non_empty_text(identity.get("work_unit_id"))
+        fingerprint = _non_empty_text(identity.get("work_unit_fingerprint")) or _non_empty_text(
+            identity.get("action_fingerprint")
+        )
+        if candidate_action is not None and action_type is not None and candidate_action != action_type:
+            continue
+        if candidate_work_unit is not None and work_unit_id is not None and candidate_work_unit != work_unit_id:
+            continue
+        if candidate_fingerprint is not None and fingerprint is not None and candidate_fingerprint != fingerprint:
+            continue
+        if action_type is not None or work_unit_id is not None or fingerprint is not None:
+            return True
+    return False
 
 
 def _filter_candidates_blocked_by_paper_recovery_state(
