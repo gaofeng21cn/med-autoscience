@@ -41,6 +41,13 @@
       "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_owner_receipt_recorded_replay_requires_non_advancing_apply_when_readback_does_not_move"
     },
     {
+      "trace_id": "stale_dispatch_revival_after_owner_receipt",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "ConsumeOwnerReceipt",
+      "required_postcondition": "owner_receipt_consumed",
+      "test_ref": "tests/test_current_work_unit.py::test_current_work_unit_owner_receipt_blocks_stale_dispatch_revival"
+    },
+    {
       "trace_id": "same_tick_stale_blocker_admission_conflict",
       "status": "covered_by_focused_test",
       "accepted_transition": "RecordTypedBlocker",
@@ -97,6 +104,47 @@
       "scripts/run-python-clean.sh -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
       "scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnostic --profile <profile> --studies <study_id>... --request-opl-stage-attempts --dry-run"
     ]
+  },
+  "projection_metadata_completion_gate": {
+    "required_fields": [
+      "authority",
+      "derived_from_event_id",
+      "observed_generation",
+      "lag_status"
+    ],
+    "covered_by_allowed_write_set": [
+      {
+        "field": "authority",
+        "status": "covered_by_focused_tests",
+        "test_refs": [
+          "tests/test_paper_progress_transition_replay_fixtures.py::_assert_mas_adapter_only",
+          "tests/test_current_work_unit.py::test_current_work_unit_projection_metadata_demotes_transition_authority",
+          "tests/test_paper_progress_policy_adapter.py::_assert_mas_adapter_authority_only"
+        ]
+      },
+      {
+        "field": "derived_from_event_id",
+        "status": "covered_by_focused_tests",
+        "test_refs": [
+          "tests/test_current_work_unit.py::test_current_work_unit_projection_metadata_demotes_transition_authority",
+          "tests/test_paper_progress_policy_adapter.py::test_policy_adapter_projection_metadata_keeps_event_and_generation_diagnostic_only"
+        ]
+      },
+      {
+        "field": "observed_generation",
+        "status": "covered_by_focused_tests",
+        "test_refs": [
+          "tests/test_current_work_unit.py::test_current_work_unit_projection_metadata_demotes_transition_authority",
+          "tests/test_paper_progress_policy_adapter.py::test_policy_adapter_projection_metadata_keeps_event_and_generation_diagnostic_only"
+        ]
+      }
+    ],
+    "lag_status_status": "blocked_by_current_write_set",
+    "blocking_write_set": [
+      "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
+      "src/med_autoscience/controllers/current_work_unit_parts/projection.py"
+    ],
+    "blocker_reason": "Target designs require projection_metadata.lag_status, but the current allowed write set excludes the source producers that would have to emit it. This contract records the exact blocker instead of treating docs, tests, or contract updates as projection completion."
   },
   "forbidden_completion_interpretations": [
     "queue_empty",

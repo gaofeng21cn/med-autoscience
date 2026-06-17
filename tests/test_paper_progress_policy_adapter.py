@@ -117,6 +117,8 @@ def test_policy_adapter_emits_opl_transition_request_without_claiming_runtime_au
     assert result["provider_completion_is_domain_completion"] is False
     assert result["projection_metadata"]["authority"] is False
     assert result["projection_metadata"]["fixed_point_runtime_owner"] == "one-person-lab"
+    assert result["projection_metadata"]["derived_from_event_id"] is None
+    assert result["projection_metadata"]["observed_generation"] == "truth-event-1"
     assert result["paper_policy_verdict"]["provider_admission_allowed"] is False
     assert "opl_domain_progress_command" not in result
     assert "opl_domain_progress_command_outbox_record" not in result
@@ -253,6 +255,50 @@ def test_policy_adapter_non_advancing_apply_requires_typed_blocker_projection() 
     )
     assert result["projection_metadata"]["authority"] is False
     assert "opl_domain_progress_transition_event" not in result
+    _assert_mas_adapter_authority_only(result)
+
+
+def test_policy_adapter_projection_metadata_keeps_event_and_generation_diagnostic_only() -> None:
+    adapter = importlib.import_module("med_autoscience.controllers.paper_progress_policy_adapter")
+    result = adapter.build_policy_result(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "status": "owner_receipt_recorded",
+                "owner": "publication_gate",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "owner-receipt::dm003",
+                "currentness_basis": {
+                    "truth_epoch": "truth::dm003::owner-receipt",
+                    "derived_from_event_id": "opl-event:dm003:owner-receipt",
+                    "observed_generation": "runtime-generation:dm003:17",
+                },
+            },
+            "paper_recovery_state": {
+                "phase": "owner_receipt_recorded",
+                "owner_receipt_ref": "owner_receipt:dm003:publication_gate_replay",
+                "next_safe_action": {
+                    "kind": "consume_owner_receipt",
+                    "owner_receipt_ref": "owner_receipt:dm003:publication_gate_replay",
+                },
+            },
+        },
+        source="test",
+    )
+
+    assert result["recommended_opl_transition_kind"] == "ConsumeOwnerReceipt"
+    assert result["projection_metadata"] == {
+        "authority": False,
+        "projection_owner": "med-autoscience",
+        "fixed_point_runtime_owner": "one-person-lab",
+        "derived_from_event_id": "opl-event:dm003:owner-receipt",
+        "observed_generation": "runtime-generation:dm003:17",
+    }
+    request = result["opl_domain_progress_transition_request"]
+    assert "projection_metadata" not in request
+    assert "derived_from_event_id" not in request
+    assert "observed_generation" not in request
     _assert_mas_adapter_authority_only(result)
 
 

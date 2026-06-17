@@ -56,6 +56,64 @@ def test_current_work_unit_projection_metadata_demotes_transition_authority() ->
     assert work_unit["projection_metadata"]["observed_generation"] == "generation-7"
 
 
+def test_current_work_unit_owner_receipt_blocks_stale_dispatch_revival() -> None:
+    module = _module()
+
+    owner_receipt_ref = "owner_receipt:dm003:publication_gate_replay"
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_receipt_recorded",
+                "owner_receipt_ref": owner_receipt_ref,
+                "current_authority": {
+                    "obligation": {
+                        "owner": "publication_gate",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": "owner-receipt::dm003",
+                    }
+                },
+                "next_safe_action": {
+                    "kind": "consume_owner_receipt",
+                    "owner_receipt_ref": owner_receipt_ref,
+                },
+            },
+        },
+        actions=[
+            {
+                "source": "legacy.default_executor_dispatches.ready",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "stale-dispatch::old-write",
+                "action_fingerprint": "stale-dispatch::old-write",
+                "owner_route_currentness_basis": {
+                    "source": "legacy.default_executor_dispatches.ready",
+                    "truth_epoch": "truth::old-dispatch",
+                    "runtime_health_epoch": "runtime::old-dispatch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "stale-dispatch::old-write",
+                    "derived_from_event_id": "old-dispatch-event",
+                    "observed_generation": "old-dispatch-generation",
+                },
+            }
+        ],
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "owner_receipt_recorded"
+    assert work_unit["owner"] == "publication_gate"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "publication_gate_replay"
+    assert work_unit["state"]["owner_receipt_ref"] == owner_receipt_ref
+    assert work_unit["state"]["stale_queue_or_handoff_can_override"] is False
+
+
 def test_current_work_unit_preserves_readiness_blocker_over_next_forced_delta_without_paper_delta() -> None:
     module = _module()
 

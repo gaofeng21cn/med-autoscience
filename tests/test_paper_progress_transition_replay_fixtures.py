@@ -523,3 +523,16 @@ def test_paper_progress_replay_live_evidence_status_contract_keeps_live_acceptan
     assert "provider_admission_pending_count=0" in forbidden
     assert "focused_tests_passed" in forbidden
     assert contract["current_status"]["live_paper_progress_claim_allowed"] is False
+    assert contract["projection_metadata_completion_gate"]["required_fields"] == [
+        "authority",
+        "derived_from_event_id",
+        "observed_generation",
+        "lag_status",
+    ]
+    assert contract["projection_metadata_completion_gate"]["lag_status_status"] == (
+        "blocked_by_current_write_set"
+    )
+    assert contract["projection_metadata_completion_gate"]["blocking_write_set"] == [
+        "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
+        "src/med_autoscience/controllers/current_work_unit_parts/projection.py",
+    ]
