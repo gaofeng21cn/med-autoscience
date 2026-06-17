@@ -142,6 +142,9 @@ def explicit_action_dispatches(
                 study_id=study_id,
                 dispatch=payload,
             )
+            and not opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(
+                payload
+            )
             and not stage_native_next_action_current
             and not current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
                 profile=profile,
@@ -332,6 +335,9 @@ def selected_dispatches(
                     current_study=current_study,
                     progress=fresh_progress,
                     dispatch=payload,
+                )
+                and not opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(
+                    payload
                 )
                 and not current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
                     profile=profile,
