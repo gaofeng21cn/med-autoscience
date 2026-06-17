@@ -18,6 +18,31 @@ def _opl_lifecycle_payload(sequence: int, payload: dict[str, object]) -> dict[st
     }
 
 
+def _assert_observability_readback_boundary(boundary: dict[str, object]) -> None:
+    assert boundary["surface_kind"] == "opl_observability_readback_boundary"
+    assert boundary["runtime_owner"] == "one-person-lab"
+    assert boundary["mas_role"] == "read_only_diagnostic_publisher"
+    assert boundary["opl_owned_surfaces"] == [
+        "Observability",
+        "StageRun",
+        "RouteReconciler",
+        "attempt_liveness",
+        "retry_dead_letter",
+    ]
+    assert boundary["mas_can_authorize_runtime_currentness"] is False
+    assert boundary["mas_can_authorize_supervisor_action"] is False
+    assert boundary["mas_can_own_attempt_lifecycle"] is False
+    assert boundary["mas_can_authorize_worker_residency"] is False
+    assert boundary["mas_can_retry_or_dead_letter"] is False
+    assert boundary["mas_can_authorize_provider_admission"] is False
+    assert boundary["mas_can_claim_running_progress"] is False
+    assert boundary["mas_can_generate_next_action"] is False
+    assert boundary["canonical_runtime_action_is_diagnostic_hint"] is True
+    assert boundary["allowed_controller_actions_are_diagnostic_hints"] is True
+    assert boundary["retry_budget_is_diagnostic_hint"] is True
+    assert boundary["attempt_state_is_diagnostic_hint"] is True
+
+
 def test_runtime_health_rejects_lifecycle_event_without_opl_proof(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
@@ -57,6 +82,7 @@ def test_runtime_health_lifecycle_event_is_diagnostic_when_opl_proof_backed(tmp_
     assert event["payload"]["attempt_lifecycle_authority"] is False
     assert event["payload"]["retry_or_dead_letter_authority"] is False
     assert event["payload"]["worker_residency_authority"] is False
+    _assert_observability_readback_boundary(event["payload"]["opl_observability_readback_boundary"])
 
 
 def test_runtime_health_strict_live_requires_worker_and_active_run_id(tmp_path: Path) -> None:
@@ -133,14 +159,17 @@ def test_runtime_health_treats_opl_provider_attempt_as_live_worker_signal(tmp_pa
     assert projection_metadata["lag_status"] == "current"
     assert projection_metadata["runtime_health_epoch_is_currentness_authority"] is False
     assert projection_metadata["diagnostic_publisher_only"] is True
+    _assert_observability_readback_boundary(projection_metadata["opl_observability_readback_boundary"])
     assert snapshot["source_of_truth_chain"] == [
         "DomainIntent",
         "OPL Command/Event/Outbox/StageRun",
         "MAS OwnerAnswer",
         "Derived Projection",
     ]
+    _assert_observability_readback_boundary(snapshot["opl_observability_readback_boundary"])
     boundary = snapshot["authority_boundary"]
     assert boundary["surface_role"] == "mas_diagnostic_publisher_read_only_projection"
+    _assert_observability_readback_boundary(boundary["opl_observability_readback_boundary"])
     assert boundary["can_authorize_runtime_currentness"] is False
     assert boundary["can_authorize_supervisor_action"] is False
     assert boundary["can_own_attempt_lifecycle"] is False
@@ -167,12 +196,15 @@ def test_runtime_health_treats_opl_provider_attempt_as_live_worker_signal(tmp_pa
     assert snapshot["allowed_controller_action_hints"] != snapshot["allowed_controller_actions"]
     assert snapshot["allowed_controller_action_hints_are_authority"] is False
     assert snapshot["opl_observability_readback_required"] is True
+    assert snapshot["opl_observability_readback_owner"] == "one-person-lab"
+    assert snapshot["opl_liveness_attempt_and_retry_authority_owner"] == "one-person-lab"
     assert snapshot["opl_current_control_or_stage_run_readback_required"] is True
     assert snapshot["mas_private_attempt_loop_forbidden"] is True
     hint_contract = snapshot["diagnostic_hint_contract"]
     assert hint_contract["hint_only"] is True
     assert hint_contract["canonical_runtime_action_hint"] == snapshot["canonical_runtime_action"]
     assert hint_contract["canonical_runtime_action_is_authority"] is False
+    _assert_observability_readback_boundary(hint_contract["opl_observability_readback_boundary"])
     assert hint_contract["opl_observability_readback_required"] is True
     assert hint_contract["opl_current_control_or_stage_run_readback_required"] is True
     assert hint_contract["mas_private_attempt_loop_forbidden"] is True
@@ -828,6 +860,11 @@ def test_runtime_health_reconcile_materializes_snapshot_from_status_payload(tmp_
     assert persisted["projection_metadata"]["authority"] is False
     assert persisted["projection_metadata"]["lag_status"] == "current"
     assert persisted["projection_metadata"]["derived_from_event_id"] == persisted["runtime_health_epoch"]
+    _assert_observability_readback_boundary(result["opl_observability_readback_boundary"])
+    _assert_observability_readback_boundary(persisted["opl_observability_readback_boundary"])
+    _assert_observability_readback_boundary(
+        persisted["projection_metadata"]["opl_observability_readback_boundary"]
+    )
 
 
 def test_runtime_health_treats_strict_live_activity_timeout_as_recovery(tmp_path: Path) -> None:
@@ -1140,6 +1177,8 @@ def test_runtime_health_reconcile_suppresses_opl_proof_backed_lifecycle_event_pe
     assert first["suppressed_local_runtime_event_persistence"] is True
     assert first["suppressed_transient_event_count"] == 3
     assert "recover_attempt" in first["suppressed_transient_event_types"]
+    _assert_observability_readback_boundary(first["opl_observability_readback_boundary"])
+    _assert_observability_readback_boundary(first["snapshot"]["opl_observability_readback_boundary"])
     assert module.read_runtime_health_events(study_root=study_root) == []
     assert second["appended_event_count"] == 0
     assert second["suppressed_local_runtime_event_persistence"] is True

@@ -26,6 +26,30 @@ SOURCE_OF_TRUTH_CHAIN = (
     "MAS OwnerAnswer",
     "Derived Projection",
 )
+OPL_OBSERVABILITY_READBACK_BOUNDARY = {
+    "surface_kind": "opl_observability_readback_boundary",
+    "runtime_owner": "one-person-lab",
+    "opl_owned_surfaces": [
+        "Observability",
+        "StageRun",
+        "RouteReconciler",
+        "attempt_liveness",
+        "retry_dead_letter",
+    ],
+    "mas_role": "read_only_diagnostic_publisher",
+    "mas_can_authorize_runtime_currentness": False,
+    "mas_can_authorize_supervisor_action": False,
+    "mas_can_own_attempt_lifecycle": False,
+    "mas_can_authorize_worker_residency": False,
+    "mas_can_retry_or_dead_letter": False,
+    "mas_can_authorize_provider_admission": False,
+    "mas_can_claim_running_progress": False,
+    "mas_can_generate_next_action": False,
+    "canonical_runtime_action_is_diagnostic_hint": True,
+    "allowed_controller_actions_are_diagnostic_hints": True,
+    "retry_budget_is_diagnostic_hint": True,
+    "attempt_state_is_diagnostic_hint": True,
+}
 
 RUNTIME_HEALTH_EVENT_TYPES = frozenset(
     {
@@ -109,6 +133,7 @@ RUNTIME_HEALTH_AUTHORITY_BOUNDARY = {
     "surface_kind": "mas_runtime_health_diagnostic_authority_boundary",
     "surface_role": "mas_diagnostic_publisher_read_only_projection",
     "source_of_truth_chain": list(SOURCE_OF_TRUTH_CHAIN),
+    "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
     "diagnostic_publisher_only": True,
     "read_only_projection": True,
     "can_authorize_runtime_currentness": False,
@@ -251,6 +276,7 @@ def _runtime_health_event_payload_with_authority_boundary(
         raise ValueError("opl_lifecycle_proof_required_for_runtime_lifecycle_event")
     normalized["opl_lifecycle_proof_ref"] = proof_ref
     normalized["lifecycle_authority_owner"] = "one-person-lab"
+    normalized["opl_observability_readback_boundary"] = dict(OPL_OBSERVABILITY_READBACK_BOUNDARY)
     normalized["mas_runtime_health_event_role"] = "diagnostic_observation"
     normalized["attempt_lifecycle_authority"] = False
     normalized["retry_or_dead_letter_authority"] = False
@@ -627,6 +653,7 @@ def _diagnostic_hint_contract(
 ) -> dict[str, Any]:
     return {
         "surface_kind": "mas_runtime_health_diagnostic_hint_contract",
+        "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
         "hint_only": True,
         "canonical_runtime_action_hint": canonical_runtime_action,
         "attempt_state_hint": attempt_state,
@@ -655,6 +682,7 @@ def _projection_metadata(
     derived_from_event_id = _text(dominant_event.get("event_id")) if dominant_event is not None else None
     return {
         "surface_kind": "runtime_health_diagnostic_projection_metadata",
+        "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
         "authority": False,
         "fixed_point_runtime_owner": "one-person-lab",
         "derived_from_event_id": derived_from_event_id,
@@ -764,6 +792,7 @@ def _snapshot_from_events(
         "projection_role": "mas_runtime_health_diagnostic_publisher",
         "authority": False,
         "projection_metadata": projection_metadata,
+        "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
         "source_of_truth_chain": list(SOURCE_OF_TRUTH_CHAIN),
         "authority_boundary": dict(RUNTIME_HEALTH_AUTHORITY_BOUNDARY),
         "surface_role": "mas_runtime_health_read_only_diagnostic_projection",
@@ -825,6 +854,8 @@ def _snapshot_from_events(
         "allowed_controller_action_hints": list(allowed_controller_action_hints),
         "allowed_controller_action_hints_are_authority": False,
         "opl_observability_readback_required": True,
+        "opl_observability_readback_owner": "one-person-lab",
+        "opl_liveness_attempt_and_retry_authority_owner": "one-person-lab",
         "opl_current_control_or_stage_run_readback_required": True,
         "mas_private_attempt_loop_forbidden": True,
         "canonical_runtime_action": canonical_runtime_action,
@@ -954,6 +985,7 @@ def reconcile_runtime_health_snapshot_from_status_payload(
         recorded_at=recorded_at,
     )
     snapshot["publisher_mode"] = "read_only_diagnostic_projection"
+    snapshot["opl_observability_readback_boundary"] = dict(OPL_OBSERVABILITY_READBACK_BOUNDARY)
     snapshot["local_runtime_reconcile_authority"] = False
     snapshot["local_runtime_liveness_authority"] = False
     snapshot["suppressed_local_runtime_event_persistence"] = True
@@ -972,6 +1004,7 @@ def reconcile_runtime_health_snapshot_from_status_payload(
     return {
         "surface": "runtime_health_reconcile_result",
         "surface_role": "mas_runtime_health_read_only_diagnostic_publish_result",
+        "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
         "projection_only": True,
         "read_only_diagnostic_projection": True,
         "body_free_diagnostic_projection": True,
