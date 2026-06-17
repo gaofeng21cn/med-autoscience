@@ -172,6 +172,127 @@ def test_reconciler_routes_dm003_missing_callable_to_controller_registry_repair(
     assert decision["action_receipt"]["receipt_status"] == "dry_run_not_recorded"
 
 
+def test_reconciler_consumer_projection_counts_canonical_transition_requests(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
+    profile = make_profile(tmp_path)
+    study_id = "consumer-canonical"
+    write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    scan = {
+        "studies": [
+            {
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "study_macro_state": {
+                    "writer_state": "parked",
+                    "user_next": "inspect",
+                    "reason": "blocked_turn_closeout_waiting_for_owner",
+                    "details": {"package_delivered": False},
+                },
+                "interaction_arbitration": {
+                    "classification": "blocked_closeout_owner_redrive",
+                    "action": "resume",
+                    "requires_user_input": False,
+                    "valid_blocking": False,
+                    "next_owner": "unknown_external_owner",
+                    "blocked_reason": "owner_callable_surface_missing",
+                },
+                "progress_freshness": {
+                    "meaningful_artifact_delta_freshness": {"status": "missing"},
+                },
+            }
+        ]
+    }
+    consumed = {
+        "owner_callable_adapters": [
+            {"study_id": study_id, "dispatch_status": "ready"},
+        ],
+        "domain_progress_transition_requests": [
+            {"study_id": study_id, "dispatch_status": "blocked"},
+            {"study_id": study_id, "dispatch_status": "transition_request_pending"},
+        ],
+    }
+
+    receipt = module.build_paper_progress_reconcile_receipt(
+        profile=profile,
+        requested_study_ids=(study_id,),
+        resolved_study_ids=(study_id,),
+        before_scan=scan,
+        consumed=consumed,
+        executed={},
+        after_scan=scan,
+        apply=False,
+        generated_at="2026-06-18T00:00:00+00:00",
+    )
+
+    projection = receipt["decisions"][0]["consumer_projection"]
+    assert projection["canonical_transition_request_surface"] == "domain_progress_transition_requests"
+    assert projection["dispatch_count"] == 2
+    assert projection["ready_count"] == 0
+    assert projection["blocked_count"] == 1
+    assert projection["transition_request_pending_count"] == 1
+    assert projection["legacy_dispatch_count"] == 1
+    assert projection["legacy_ready_count"] == 1
+    assert projection["legacy_owner_callable_adapters_diagnostic_only"] is True
+
+
+def test_reconciler_consumer_projection_treats_legacy_adapters_as_diagnostic_only(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
+    profile = make_profile(tmp_path)
+    study_id = "consumer-legacy-only"
+    write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    scan = {
+        "studies": [
+            {
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "study_macro_state": {
+                    "writer_state": "parked",
+                    "user_next": "inspect",
+                    "reason": "blocked_turn_closeout_waiting_for_owner",
+                    "details": {"package_delivered": False},
+                },
+                "interaction_arbitration": {
+                    "classification": "blocked_closeout_owner_redrive",
+                    "action": "resume",
+                    "requires_user_input": False,
+                    "valid_blocking": False,
+                    "next_owner": "unknown_external_owner",
+                    "blocked_reason": "owner_callable_surface_missing",
+                },
+                "progress_freshness": {
+                    "meaningful_artifact_delta_freshness": {"status": "missing"},
+                },
+            }
+        ]
+    }
+    consumed = {
+        "owner_callable_adapters": [
+            {"study_id": study_id, "dispatch_status": "ready"},
+        ],
+    }
+
+    receipt = module.build_paper_progress_reconcile_receipt(
+        profile=profile,
+        requested_study_ids=(study_id,),
+        resolved_study_ids=(study_id,),
+        before_scan=scan,
+        consumed=consumed,
+        executed={},
+        after_scan=scan,
+        apply=False,
+        generated_at="2026-06-18T00:00:00+00:00",
+    )
+
+    projection = receipt["decisions"][0]["consumer_projection"]
+    assert projection["dispatch_count"] == 0
+    assert projection["ready_count"] == 0
+    assert projection["blocked_count"] == 0
+    assert projection["transition_request_pending_count"] == 0
+    assert projection["legacy_dispatch_count"] == 1
+    assert projection["legacy_ready_count"] == 1
+    assert projection["legacy_owner_callable_adapters_diagnostic_only"] is True
+
+
 def test_reconciler_repo_route_gap_uses_typed_blocker_not_controller_inspector(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
     profile = make_profile(tmp_path)

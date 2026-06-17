@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.controllers.owner_callable_adapter_projection import (
+    domain_progress_transition_requests,
+    owner_callable_adapters,
+)
 from med_autoscience.runtime_control.owner_callable_registry import owner_callable_registry
 
 from .paper_progress_state import build_paper_progress_state
@@ -402,15 +406,33 @@ def _quest_id(study: Mapping[str, Any], study_id: str) -> str:
 
 
 def _consumer_projection(consumed: Mapping[str, Any], study_id: str) -> dict[str, Any]:
-    dispatches = [
+    transition_requests = [
         _mapping(item)
-        for item in consumed.get("owner_callable_adapters") or []
+        for item in domain_progress_transition_requests(consumed)
+        if _text(_mapping(item).get("study_id")) == study_id
+    ]
+    legacy_dispatches = [
+        _mapping(item)
+        for item in owner_callable_adapters(consumed)
         if _text(_mapping(item).get("study_id")) == study_id
     ]
     return {
-        "dispatch_count": len(dispatches),
-        "ready_count": sum(_text(item.get("dispatch_status")) == "ready" for item in dispatches),
-        "blocked_count": sum(_text(item.get("dispatch_status")) == "blocked" for item in dispatches),
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "dispatch_count": len(transition_requests),
+        "ready_count": sum(_text(item.get("dispatch_status")) == "ready" for item in transition_requests),
+        "blocked_count": sum(_text(item.get("dispatch_status")) == "blocked" for item in transition_requests),
+        "transition_request_pending_count": sum(
+            _text(item.get("dispatch_status")) == "transition_request_pending"
+            for item in transition_requests
+        ),
+        "legacy_dispatch_count": len(legacy_dispatches),
+        "legacy_ready_count": sum(_text(item.get("dispatch_status")) == "ready" for item in legacy_dispatches),
+        "legacy_blocked_count": sum(_text(item.get("dispatch_status")) == "blocked" for item in legacy_dispatches),
+        "legacy_transition_request_pending_count": sum(
+            _text(item.get("dispatch_status")) == "transition_request_pending"
+            for item in legacy_dispatches
+        ),
+        "legacy_owner_callable_adapters_diagnostic_only": True,
     }
 
 
