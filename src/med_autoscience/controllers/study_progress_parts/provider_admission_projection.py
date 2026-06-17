@@ -10,6 +10,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_r
 )
 from med_autoscience.controllers.current_work_unit import action_supersedes_typed_blocker
 
+from .owner_action_admission import provider_attempt_proof_for_current_action
 from .paper_autonomy_supervisor_decision import (
     provider_admission_supervisor_gate,
     supervisor_block_projection,
@@ -29,6 +30,18 @@ def provider_admission_projection_fields(
     handoff: Mapping[str, Any],
     study_root: Path,
 ) -> dict[str, Any]:
+    running_proof = _handoff_running_proof_consumes_provider_admission(
+        payload=payload,
+        handoff=handoff,
+    )
+    if running_proof is not None:
+        return running_proof
+    terminal_closeout = _handoff_terminal_closeout_consumes_provider_admission(
+        payload=payload,
+        handoff=handoff,
+    )
+    if terminal_closeout is not None:
+        return terminal_closeout
     handoff_fields = _identity_bound_handoff_provider_admission_fields(
         handoff=handoff,
         payload=payload,
@@ -151,6 +164,123 @@ def _transition_request_only_candidate(candidate: Mapping[str, Any]) -> dict[str
     payload["provider_admission_requires_opl_runtime_result"] = True
     payload["opl_transition_runtime_required"] = True
     return payload
+
+
+def _handoff_running_proof_consumes_provider_admission(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not current_action:
+        return None
+    proof = provider_attempt_proof_for_current_action(
+        handoff=handoff,
+        current_action=current_action,
+    )
+    if proof is None:
+        return None
+    return {
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
+        "provider_admission_running_proof_consumed": {
+            "surface_kind": "provider_admission_running_proof_consumed",
+            "source": "opl_current_control_state_handoff.running_provider_attempt",
+            "status": "running_provider_attempt",
+            "running_provider_attempt": True,
+            "provider_attempt_proof": proof,
+            "action_type": _non_empty_text(current_action.get("action_type")),
+            "work_unit_id": _non_empty_text(current_action.get("work_unit_id"))
+            or _non_empty_text(current_action.get("next_work_unit")),
+            "work_unit_fingerprint": _non_empty_text(current_action.get("work_unit_fingerprint"))
+            or _non_empty_text(current_action.get("action_fingerprint")),
+            "authority_boundary": {
+                "projection_only": True,
+                "runtime_owner": "one-person-lab",
+                "domain_truth_owner": "med-autoscience",
+                "can_authorize_provider_admission": False,
+                "can_start_provider_attempt": False,
+                "provider_running_is_paper_progress": False,
+                "provider_completion_is_domain_completion": False,
+            },
+        },
+    }
+
+
+def _handoff_terminal_closeout_consumes_provider_admission(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    typed_blocker = _handoff_terminal_typed_blocker(handoff)
+    if not typed_blocker:
+        return None
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if not (
+        _same_action_identity(current_work_unit, typed_blocker)
+        or (current_action and _same_action_identity(current_action, typed_blocker))
+    ):
+        return None
+    if current_action and action_supersedes_typed_blocker(
+        action=current_action,
+        blocker=typed_blocker,
+        progress=payload,
+    ):
+        return None
+    latest_terminal_stage_log = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    return {
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
+        "provider_admission_terminal_closeout_consumed": {
+            "surface_kind": "provider_admission_terminal_closeout_consumed",
+            "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
+            "stage_attempt_id": _non_empty_text(typed_blocker.get("stage_attempt_id"))
+            or _non_empty_text(latest_terminal_stage_log.get("stage_attempt_id")),
+            "blocker_type": _non_empty_text(typed_blocker.get("blocker_type"))
+            or _non_empty_text(typed_blocker.get("blocked_reason"))
+            or _non_empty_text(typed_blocker.get("blocker_id")),
+            "typed_blocker": dict(typed_blocker),
+            "latest_terminal_stage_log": latest_terminal_stage_log or None,
+            "authority_boundary": {
+                "projection_only": True,
+                "runtime_owner": "one-person-lab",
+                "domain_truth_owner": "med-autoscience",
+                "can_authorize_provider_admission": False,
+                "can_start_provider_attempt": False,
+                "provider_completion_is_domain_completion": False,
+            },
+        },
+    }
+
+
+def _handoff_terminal_typed_blocker(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    typed_blocker = _mapping_copy(handoff.get("typed_blocker"))
+    if not typed_blocker:
+        handoff_work_unit = _mapping_copy(handoff.get("current_work_unit"))
+        handoff_state = _mapping_copy(handoff_work_unit.get("state"))
+        typed_blocker = (
+            _mapping_copy(handoff_state.get("typed_blocker"))
+            or _mapping_copy(handoff_work_unit.get("typed_blocker"))
+        )
+    if not typed_blocker:
+        handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+        typed_blocker = _mapping_copy(handoff_envelope.get("typed_blocker"))
+    if not typed_blocker:
+        return {}
+    latest_terminal_stage_log = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    if _non_empty_text(typed_blocker.get("stage_attempt_id")) is not None:
+        return typed_blocker
+    if _non_empty_text(latest_terminal_stage_log.get("stage_attempt_id")) is None:
+        return {}
+    return {
+        **typed_blocker,
+        "stage_attempt_id": _non_empty_text(latest_terminal_stage_log.get("stage_attempt_id")),
+    }
 
 
 def _identity_bound_handoff_provider_admission_fields(

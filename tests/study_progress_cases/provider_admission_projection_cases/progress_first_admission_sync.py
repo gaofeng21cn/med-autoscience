@@ -143,4 +143,104 @@ def test_sync_progress_first_owner_action_admission_rebuilds_after_provider_cand
     assert boundary["replacement_owner_surface"] == (
         "OPL DomainProgressTransitionRuntime / StageRun provider admission"
     )
+
+
+def test_sync_progress_first_owner_action_admission_suppresses_terminal_closeout_candidate() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.payload_sync"
+    )
+    stage_attempt_id = "sat_f73bda556baf30ed6a9d5bdf"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    typed_blocker = {
+        "surface_kind": "domain_stage_typed_blocker",
+        "blocker_type": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "stage_attempt_id": stage_attempt_id,
+    }
+
+    result = module.sync_progress_first_owner_action_admission(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "owner_receipt_recorded",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "owner_receipt_recorded",
+                    "provider_admission_pending": False,
+                },
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "active_stage_attempt_id": stage_attempt_id,
+                "provider_admission_pending_count": 1,
+                "provider_admission_candidates": [
+                    {
+                        "status": "provider_admission_pending",
+                        "next_executable_owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "opl_domain_progress_transition_runtime_live_readback": {
+                            "surface_kind": "opl_domain_progress_transition_runtime_live_readback",
+                            "runtime_readback_status": "complete_transaction",
+                        },
+                    }
+                ],
+                "current_work_unit": {
+                    "status": "owner_receipt_recorded",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "state": {"typed_blocker": typed_blocker},
+                },
+                "latest_terminal_stage_log": {
+                    "stage_attempt_id": stage_attempt_id,
+                    "status": "blocked",
+                    "outcome": "typed_blocker",
+                },
+                "action_queue": [],
+            },
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "provider_admission_terminal_closeout_consumed": {
+                "stage_attempt_id": stage_attempt_id,
+                "typed_blocker": typed_blocker,
+            },
+            "progress_first_monitoring_summary": {
+                "owner_action_admission": {
+                    "candidate_present": True,
+                    "provider_attempt_running_proven": False,
+                }
+            },
+        }
+    )
+
+    admission = result["owner_action_admission"]
+    assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["provider_attempt_running_proven"] is False
+    assert admission["candidate_present"] is False
+    assert admission["blocked_by"] == "provider_admission_candidate_absent"
     assert result["progress_first_monitoring_summary"]["owner_action_admission"] == admission

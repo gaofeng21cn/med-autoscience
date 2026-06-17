@@ -102,6 +102,8 @@ def _provider_admission_candidate_present(
     handoff: Mapping[str, Any],
     current_action: Mapping[str, Any],
 ) -> bool:
+    if _terminal_closeout_consumes_current_action(handoff=handoff, current_action=current_action):
+        return False
     if provider_attempt_proof_for_current_action(
         handoff=handoff,
         current_action=current_action,
@@ -277,6 +279,43 @@ def _provider_attempt_matches_current_action(
     ):
         return False
     return True
+
+
+def _terminal_closeout_consumes_current_action(
+    *,
+    handoff: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    if not _handoff_has_matching_terminal_closeout(handoff):
+        return False
+    typed_blocker = _handoff_terminal_typed_blocker(handoff)
+    if not typed_blocker:
+        return False
+    return _candidate_matches_current_action(typed_blocker, current_action=current_action)
+
+
+def _handoff_terminal_typed_blocker(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    typed_blocker = _mapping(handoff.get("typed_blocker"))
+    if not typed_blocker:
+        current_work_unit = _mapping(handoff.get("current_work_unit"))
+        state = _mapping(current_work_unit.get("state"))
+        typed_blocker = _mapping(state.get("typed_blocker")) or _mapping(
+            current_work_unit.get("typed_blocker")
+        )
+    if not typed_blocker:
+        envelope = _mapping(handoff.get("current_execution_envelope"))
+        typed_blocker = _mapping(envelope.get("typed_blocker"))
+    if not typed_blocker:
+        return {}
+    latest_terminal_stage_log = _mapping(handoff.get("latest_terminal_stage_log"))
+    if _text(typed_blocker.get("stage_attempt_id")) is not None:
+        return dict(typed_blocker)
+    if _text(latest_terminal_stage_log.get("stage_attempt_id")) is None:
+        return {}
+    return {
+        **dict(typed_blocker),
+        "stage_attempt_id": _text(latest_terminal_stage_log.get("stage_attempt_id")),
+    }
 
 
 def _provider_attempt_currentness_matches_current_action(
