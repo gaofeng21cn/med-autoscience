@@ -645,6 +645,32 @@ def test_current_control_provider_admission_reads_transition_request_path_withou
     assert candidate["next_executable_owner"] == "ai_reviewer"
 
 
+def test_current_control_provider_admission_defaults_missing_carrier_to_transition_request_path(
+    tmp_path: Path,
+) -> None:
+    actions = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_actions"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = tmp_path / "studies" / study_id
+    action_type = "return_to_ai_reviewer_workflow"
+
+    result = actions._current_control_action_dispatch_path(  # noqa: SLF001
+        {},
+        study_root=study_root,
+        action_type=action_type,
+    )
+
+    assert result == (
+        study_root
+        / "artifacts"
+        / "runtime"
+        / "paper_progress_transition_refs"
+        / "transition_requests"
+        / f"{action_type}.json"
+    ).resolve()
+
+
 def test_current_control_provider_admission_allows_write_owner_gate_clearing_target(
     tmp_path: Path,
 ) -> None:

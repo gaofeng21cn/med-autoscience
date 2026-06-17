@@ -886,10 +886,14 @@ def _current_control_action_dispatch_path(
     if explicit is not None:
         return Path(explicit).expanduser().resolve()
     root = Path(study_root).expanduser().resolve()
-    transition_request = root / PAPER_PROGRESS_TRANSITION_REQUESTS / f"{action_type}.json"
-    if transition_request.exists():
-        return transition_request
-    return root / DEFAULT_EXECUTOR_DISPATCHES / f"{action_type}.json"
+    for relative_root in (
+        PAPER_PROGRESS_TRANSITION_REQUESTS,
+        DEFAULT_EXECUTOR_DISPATCHES,
+    ):
+        candidate = root / relative_root / f"{action_type}.json"
+        if candidate.exists():
+            return candidate
+    return root / PAPER_PROGRESS_TRANSITION_REQUESTS / f"{action_type}.json"
 
 
 def _merge_owner_route_currentness(
