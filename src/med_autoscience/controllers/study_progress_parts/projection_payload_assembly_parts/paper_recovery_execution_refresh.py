@@ -3,8 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from med_autoscience.controllers import current_execution_envelope, current_work_unit
-
 from ..shared import _mapping_copy
 
 
@@ -42,13 +40,6 @@ def normalize_paper_recovery_execution_projection(
         status=status,
         handoff=handoff,
         runtime_health_snapshot=runtime_health_snapshot,
-    )
-    refreshed = _with_paper_recovery_successor_execution_surfaces(
-        payload=refreshed,
-        status=status,
-        handoff=handoff,
-        runtime_health_snapshot=runtime_health_snapshot,
-        current_action=normalized_current_action,
     )
     refreshed["paper_recovery_state"] = _build_recovery_state_unless_successor_current(
         refreshed,
@@ -113,52 +104,6 @@ def _with_recovery_supervisor_decision(payload: dict[str, Any]) -> dict[str, Any
 def _without_stale_provider_supervisor_block(payload: dict[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
     updated.pop("provider_admission_blocked_by_supervisor_decision", None)
-    return updated
-
-
-def _with_paper_recovery_successor_execution_surfaces(
-    *,
-    payload: dict[str, Any],
-    status: Mapping[str, Any],
-    handoff: Mapping[str, Any],
-    runtime_health_snapshot: Mapping[str, Any],
-    current_action: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    action = _mapping_copy(current_action)
-    if _action_source(action) != "paper_recovery_state.next_safe_action.successor_owner_action":
-        return payload
-    current_work = current_work_unit.build_current_work_unit(
-        status=status,
-        progress={**payload, "current_executable_owner_action": action},
-        actions=[action],
-        current_executable_owner_action=action,
-        provider_admission=handoff,
-        live_provider_attempt=handoff,
-        typed_blocker={},
-        blocked_reason=None,
-        next_owner=_text(action.get("next_owner")),
-        runtime_health=runtime_health_snapshot,
-    )
-    if _text(current_work.get("status")) != "executable_owner_action":
-        return payload
-    if _text(current_work.get("work_unit_id")) != _text(action.get("work_unit_id")):
-        return payload
-    if _text(current_work.get("work_unit_fingerprint")) != _text(action.get("work_unit_fingerprint")):
-        return payload
-    updated = dict(payload)
-    updated["current_executable_owner_action"] = dict(action)
-    updated["current_work_unit"] = current_work
-    updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-        status=status,
-        progress=updated,
-        actions=[action],
-        blocked_reason=None,
-        next_owner=_text(action.get("next_owner")),
-        typed_blocker={},
-        runtime_health=runtime_health_snapshot,
-        live_provider_attempt=handoff,
-        current_work_unit_payload=current_work,
-    )
     return updated
 
 
