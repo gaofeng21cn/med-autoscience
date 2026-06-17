@@ -79,6 +79,33 @@ def refresh_current_execution_surfaces(
             handoff,
             current_control_executable_action=handoff_executable_action,
         )
+    handoff_owner_receipt_work_unit = _canonical_current_control_owner_receipt_work_unit(handoff)
+    if handoff_owner_receipt_work_unit:
+        updated["current_executable_owner_action"] = None
+        updated["current_work_unit"] = handoff_owner_receipt_work_unit
+        handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+        if _non_empty_text(handoff_envelope.get("state_kind")) == "owner_receipt_recorded":
+            updated["current_execution_envelope"] = handoff_envelope
+        else:
+            updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+                status=status,
+                progress=updated,
+                actions=[],
+                blocked_reason=None,
+                next_owner=_non_empty_text(handoff_owner_receipt_work_unit.get("owner")),
+                typed_blocker={},
+                runtime_health=runtime_health_snapshot,
+                live_provider_attempt=handoff,
+                current_work_unit_payload=handoff_owner_receipt_work_unit,
+            )
+        updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+            action_queue=[],
+            runtime_health=runtime_health_snapshot,
+            extra={
+                "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+            },
+        )
+        return updated
     handoff_work_unit = _canonical_current_control_typed_blocker_work_unit(handoff)
     if handoff_work_unit:
         updated["current_work_unit"] = handoff_work_unit
@@ -208,10 +235,20 @@ def refresh_current_execution_surfaces(
 def _canonical_current_control_typed_blocker_work_unit(handoff: Mapping[str, Any]) -> dict[str, Any]:
     if handoff.get("running_provider_attempt") is True:
         return {}
+    if _handoff_current_work_unit_is_owner_receipt(handoff):
+        return {}
     current = _mapping_copy(handoff.get("current_work_unit"))
     if _non_empty_text(current.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
         return current
     return {}
+
+
+def _canonical_current_control_owner_receipt_work_unit(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    if handoff.get("running_provider_attempt") is True:
+        return {}
+    if not _handoff_current_work_unit_is_owner_receipt(handoff):
+        return {}
+    return _mapping_copy(handoff.get("current_work_unit"))
 
 
 def _current_action_from_current_work_unit(
@@ -332,6 +369,8 @@ def _canonical_actions_for_execution_refresh(
 
 
 def _canonical_typed_blocker_for_execution_refresh(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    if _handoff_current_work_unit_is_owner_receipt(handoff):
+        return {}
     typed_blocker = _mapping_copy(handoff.get("typed_blocker"))
     if typed_blocker:
         return typed_blocker
@@ -430,6 +469,25 @@ def _typed_blocker_from_current_control_blocked_reason(handoff: Mapping[str, Any
         }.items()
         if value not in (None, "", [], {})
     }
+
+
+def _handoff_current_work_unit_is_owner_receipt(handoff: Mapping[str, Any]) -> bool:
+    current = _mapping_copy(handoff.get("current_work_unit"))
+    if _non_empty_text(current.get("status")) != "owner_receipt_recorded":
+        return False
+    state = _mapping_copy(current.get("state"))
+    if _non_empty_text(state.get("state_kind")) != "owner_receipt_recorded":
+        return False
+    receipt_ref = _non_empty_text(state.get("owner_receipt_ref")) or _non_empty_text(
+        _mapping_copy(current.get("required_output_contract")).get("owner_receipt_ref")
+    )
+    if receipt_ref is None:
+        return False
+    envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+    envelope_kind = _non_empty_text(envelope.get("state_kind"))
+    if envelope_kind not in {None, "owner_receipt_recorded"}:
+        return False
+    return True
 
 
 def current_action_aligned_with_execution_envelope(
@@ -545,6 +603,8 @@ def _current_action_for_execution_refresh(
         payload=payload,
         handoff=handoff,
     ):
+        return {}
+    if _handoff_current_work_unit_is_owner_receipt(handoff):
         return {}
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if not current_execution_handoff_consumes_current_action(handoff):
@@ -666,6 +726,8 @@ def _handoff_consumes_current_action_for_refresh(
     payload: Mapping[str, Any],
     handoff: Mapping[str, Any],
 ) -> bool:
+    if _handoff_current_work_unit_is_owner_receipt(handoff):
+        return True
     if not current_execution_handoff_consumes_current_action(handoff):
         return False
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))

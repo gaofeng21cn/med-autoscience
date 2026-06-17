@@ -173,12 +173,44 @@ def test_provider_hosted_exact_stage_packet_selects_dispatch_despite_blocking_pr
             "action_queue": [],
         },
     )
+    _write_json(
+        profile.studies_root / study_id / "control" / "next_action.json",
+        {
+            "status": "ready_for_owner_action",
+            "action_type": action_type,
+            "action_id": f"stage-native-next-action::{action_type}",
+            "owner": "write",
+            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "stage_transition_authority_boundary": {
+                "stage_transition_authority": "one-person-lab",
+                "intent_can_write_stage_current_pointer": False,
+                "intent_can_write_stage_run_terminal_state": False,
+                "intent_can_publish_current_owner_delta": False,
+            },
+            "current_work_unit_binding": {
+                "source": "canonical_current_work_unit",
+                "work_unit_id": action_type,
+                "work_unit_fingerprint": "stage-native-next-action::08-publication_package_handoff::run_quality_repair_batch::artifacts/reports/medical_publication_surface/latest.json",
+            },
+        },
+    )
     monkeypatch.setattr(
         persisted_dispatches.stage_native_dispatch_selection,
         "read_fresh_study_progress",
         lambda **_: {
             "study_id": study_id,
             "active_run_id": None,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_type": "blocked:domain_owner_action_dispatch_execution_count_zero",
+                    "owner": "write",
+                    "action_type": action_type,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
             "current_work_unit": {
                 "status": "typed_blocker",
                 "owner": "write",

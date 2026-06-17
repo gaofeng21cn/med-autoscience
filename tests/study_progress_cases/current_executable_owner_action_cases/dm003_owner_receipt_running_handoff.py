@@ -359,14 +359,160 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
     assert result["current_work_unit"]["owner"] == "ai_reviewer"
     assert result["current_work_unit"]["action_type"] == "return_to_ai_reviewer_workflow"
     assert result["current_work_unit"]["work_unit_id"] == AI_REVIEWER_WORK_UNIT
-    assert result["provider_admission_pending_count"] == 1
-    assert "provider_admission_blocked_by_supervisor_decision" not in result
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    candidate = result["transition_request_candidates"][0]
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["action_type"] == "return_to_ai_reviewer_workflow"
+    assert candidate["work_unit_id"] == AI_REVIEWER_WORK_UNIT
+    assert candidate["provider_admission_pending"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+    assert candidate["opl_transition_runtime_required"] is True
+    request = candidate["opl_domain_progress_transition_request"]
+    assert request["target_runtime_owner"] == "one-person-lab"
+    assert request["recommended_transition_kind"] == "StartProviderAttempt"
+    assert result["provider_admission_blocked_by_supervisor_decision"]["reason"] == (
+        "paper_autonomy_supervisor_decision_blocks_provider_admission"
+    )
     projection = result["paper_recovery_execution_projection"]
     assert projection["authority"] is False
     assert projection["transition_runtime_owner"] == "one-person-lab"
     assert projection["fixed_point_runtime_owner"] == "one-person-lab"
     assert projection["mas_can_run_fixed_point_runtime"] is False
     assert projection["refresh_mode"] == "single_pass_projection_normalization"
+
+
+def test_current_execution_refresh_keeps_handoff_owner_receipt_over_stale_closeout() -> None:
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."
+        "current_execution_surfaces"
+    )
+    receipt_ref = "artifacts/controller/repair_execution_receipts/latest.json"
+    stale_closeout_ref = (
+        "artifacts/supervision/consumer/default_executor_execution/"
+        "sat_2d9f8f3b252de25a6103779f.closeout.json"
+    )
+    handoff_work_unit = {
+        "surface_kind": "current_work_unit",
+        "schema_version": 1,
+        "status": "owner_receipt_recorded",
+        "study_id": STUDY_ID,
+        "quest_id": STUDY_ID,
+        "stage_id": "publication_supervision",
+        "owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": WRITE_WORK_UNIT,
+        "work_unit_fingerprint": WRITE_FINGERPRINT,
+        "action_fingerprint": WRITE_FINGERPRINT,
+        "input_refs": ["artifacts/controller/repair_execution_evidence/latest.json"],
+        "required_output_contract": {
+            "owner_receipt_consumed": True,
+            "owner_receipt_ref": receipt_ref,
+            "provider_completion_is_domain_completion": False,
+            "domain_ready_authorized": False,
+        },
+        "acceptance_refs": [receipt_ref],
+        "state": {
+            "state_kind": "owner_receipt_recorded",
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "owner_receipt_ref": receipt_ref,
+            "next_safe_action_kind": "consume_owner_receipt",
+            "provider_admission_pending": False,
+        },
+        "currentness_basis": {
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "work_unit_id": WRITE_WORK_UNIT,
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+            "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+            "runtime_health_epoch": "runtime-health-event-006980-c004aeb3b04b4dc7",
+        },
+        "projection_metadata": {
+            "authority": False,
+            "projection_owner": "med-autoscience",
+            "fixed_point_runtime_owner": "one-person-lab",
+        },
+        "authority_boundary": {
+            "top_level_truth": "status",
+            "mas_owner_authority_preserved": True,
+            "stage_transition_authority": "OPL Stage Transition Authority",
+            "stage_authority_role": "non_authoritative_observation_and_intent_producer",
+            "can_write_stage_current_pointer": False,
+            "can_write_current_owner_delta": False,
+            "can_write_stage_terminal_state": False,
+        },
+    }
+
+    result = surfaces.refresh_current_execution_surfaces(
+        payload={
+            "study_id": STUDY_ID,
+            "quest_id": STUDY_ID,
+            "current_stage": "publication_supervision",
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "status": "progress_delta_observed",
+                "work_unit_id": WRITE_WORK_UNIT,
+                "work_unit_fingerprint": WRITE_FINGERPRINT,
+                "action_fingerprint": WRITE_FINGERPRINT,
+                "source_eval_id": "publication-eval::003::post-write-repair",
+                "repair_execution_evidence_ref": (
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "owner_receipt_ref": receipt_ref,
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_done": True,
+                "changed_artifact_refs": [
+                    {"path": "paper/draft.md"},
+                    {"path": "paper/evidence_ledger.json"},
+                ],
+            },
+            "current_executable_owner_action": None,
+            "current_work_unit": handoff_work_unit,
+        },
+        status={"study_id": STUDY_ID},
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "running_provider_attempt": False,
+            "blocked_reason": "blocked:domain_owner_action_dispatch_execution_count_zero",
+            "next_owner": "write",
+            "current_work_unit": handoff_work_unit,
+            "current_execution_envelope": {
+                "state_kind": "owner_receipt_recorded",
+                "owner": "write",
+                "typed_blocker": None,
+            },
+            "typed_blocker": {
+                "blocker_type": "blocked:domain_owner_action_dispatch_execution_count_zero",
+                "blocked_reason": "blocked:domain_owner_action_dispatch_execution_count_zero",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": WRITE_WORK_UNIT,
+                "work_unit_fingerprint": WRITE_FINGERPRINT,
+                "typed_blocker_ref": stale_closeout_ref,
+            },
+            "latest_typed_default_executor_closeout": {
+                "status": "typed_blocker",
+                "blocked_reason": "blocked:domain_owner_action_dispatch_execution_count_zero",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": WRITE_WORK_UNIT,
+                "work_unit_fingerprint": WRITE_FINGERPRINT,
+                "action_fingerprint": WRITE_FINGERPRINT,
+                "receipt_ref": stale_closeout_ref,
+                "stage_attempt_id": "sat_2d9f8f3b252de25a6103779f",
+            },
+        },
+        runtime_health_snapshot={
+            "runtime_health_epoch": "runtime-health-event-006980-c004aeb3b04b4dc7"
+        },
+    )
+
+    assert result["current_work_unit"]["status"] == "owner_receipt_recorded"
+    assert result["current_work_unit"]["state"]["owner_receipt_ref"] == receipt_ref
+    assert result["current_execution_envelope"]["state_kind"] == "owner_receipt_recorded"
+    assert result["current_execution_envelope"].get("typed_blocker") is None
 
 
 def test_progress_first_projects_running_ai_reviewer_handoff_over_consumed_write_receipt() -> None:

@@ -103,6 +103,12 @@ def provider_hosted_stage_attempt_authorizes_dispatch(dispatch: Mapping[str, Any
     return _provider_hosted_stage_attempt_authorization(dispatch=dispatch) is not None
 
 
+def provider_hosted_exact_stage_run_current_execution_authority(
+    dispatch: Mapping[str, Any],
+) -> bool:
+    return provider_hosted_stage_attempt_authorizes_dispatch(dispatch)
+
+
 def _provider_hosted_stage_attempt_authorization(*, dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
     stage_attempt_id = _env_text("OPL_STAGE_ATTEMPT_ID")
     stage_packet_ref = _env_text("OPL_STAGE_PACKET_REF")

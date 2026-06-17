@@ -89,12 +89,19 @@ def explicit_action_dispatches(
             continue
         refs = _mapping(payload.get("refs"))
         payload["refs"] = {**refs, "dispatch_path": str(path)}
-        if stage_native_dispatch_selection.dispatch_uses_stage_native_next_action(
-            payload
-        ) and not stage_native_dispatch_selection.next_action_matches_dispatch(
-            profile=profile,
-            study_id=study_id,
-            dispatch=payload,
+        provider_hosted_stage_run_current = (
+            opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
+                payload
+            )
+        )
+        if (
+            not provider_hosted_stage_run_current
+            and stage_native_dispatch_selection.dispatch_uses_stage_native_next_action(payload)
+            and not stage_native_dispatch_selection.next_action_matches_dispatch(
+                profile=profile,
+                study_id=study_id,
+                dispatch=payload,
+            )
         ):
             continue
         scan_payload = scan_latest_payload(profile)
@@ -113,7 +120,14 @@ def explicit_action_dispatches(
             study_id=study_id,
             dispatch=payload,
         )
-        if stage_native_dispatch_selection.next_action(profile=profile, study_id=study_id) is not None and not stage_native_next_action_current:
+        if (
+            not provider_hosted_stage_run_current
+            and stage_native_dispatch_selection.next_action(
+                profile=profile, study_id=study_id
+            )
+            is not None
+            and not stage_native_next_action_current
+        ):
             continue
         if current_writer_handoff.fresh_progress_ticket_supersedes_action(
             profile=profile,
@@ -142,9 +156,7 @@ def explicit_action_dispatches(
                 study_id=study_id,
                 dispatch=payload,
             )
-            and not opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(
-                payload
-            )
+            and not provider_hosted_stage_run_current
             and not stage_native_next_action_current
             and not current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
                 profile=profile,
@@ -336,7 +348,7 @@ def selected_dispatches(
                     progress=fresh_progress,
                     dispatch=payload,
                 )
-                and not opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(
+                and not opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
                     payload
                 )
                 and not current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
@@ -613,7 +625,9 @@ def _selected_dispatches_only(
         ):
             selected.append(dispatch)
             continue
-        if opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(dispatch):
+        if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
+            dispatch
+        ):
             selected.append(dispatch)
             continue
         if stage_native_dispatch_selection.next_action_matches_dispatch(
@@ -650,6 +664,11 @@ def _consumed_transition_current_dispatches_only(
     current: list[dict[str, Any]] = []
     for dispatch in dispatches:
         action_type = _text(dispatch.get("action_type")) or ""
+        if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
+            dispatch
+        ):
+            current.append(dispatch)
+            continue
         if current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
             profile=profile,
             study_id=study_id,
@@ -660,9 +679,9 @@ def _consumed_transition_current_dispatches_only(
             continue
         if (
             scan_route_currentness.matching_consumed_transition_route(
-            current_study=current_study,
-            dispatch=dispatch,
-        )
+                current_study=current_study,
+                dispatch=dispatch,
+            )
             is not None
         ):
             current.append(dispatch)
@@ -698,6 +717,10 @@ def _dispatch_selectable_despite_blocking_progress(
     current_study: Mapping[str, Any],
     fresh_progress: Mapping[str, Any],
 ) -> bool:
+    if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
+        dispatch
+    ):
+        return True
     if not progress_blocking_selection.blocking_progress_allows_current_dispatch_selection(
         fresh_progress
     ):
@@ -735,8 +758,6 @@ def _dispatch_selectable_despite_blocking_progress(
         progress=fresh_progress,
         dispatch=dispatch,
     ):
-        return True
-    if opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(dispatch):
         return True
     if stage_native_dispatch_selection.next_action_matches_dispatch(
         profile=profile,
