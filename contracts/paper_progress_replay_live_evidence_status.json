@@ -41,6 +41,13 @@
       "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_owner_receipt_recorded_replay_requires_non_advancing_apply_when_readback_does_not_move"
     },
     {
+      "trace_id": "closeout_stagerun_identity_split",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "RecordTypedBlocker",
+      "required_postcondition": "typed_blocker_ref",
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_closeout_stagerun_identity_split_replay_converges_to_one_stable_typed_blocker"
+    },
+    {
       "trace_id": "stale_dispatch_revival_after_owner_receipt",
       "status": "covered_by_focused_test",
       "accepted_transition": "ConsumeOwnerReceipt",

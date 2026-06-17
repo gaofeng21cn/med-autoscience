@@ -47,6 +47,24 @@ def _non_advancing_step(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _current_work_unit_from_progress(
+    *,
+    progress: Mapping[str, Any],
+    actions: list[Mapping[str, Any]] | None = None,
+    current_executable_owner_action: Mapping[str, Any] | None = None,
+    typed_blocker: Mapping[str, Any] | None = None,
+    next_owner: str | None = None,
+) -> dict[str, Any]:
+    module = importlib.import_module("med_autoscience.controllers.current_work_unit")
+    return module.build_current_work_unit(
+        progress=progress,
+        actions=actions,
+        current_executable_owner_action=current_executable_owner_action,
+        typed_blocker=typed_blocker,
+        next_owner=next_owner,
+    )
+
+
 def _assert_mas_adapter_only(step: Mapping[str, Any]) -> None:
     boundary = step["authority_boundary"]
     assert boundary["mas_can_authorize_provider_admission"] is False
@@ -255,6 +273,112 @@ def test_owner_receipt_recorded_replay_requires_non_advancing_apply_when_readbac
         postcondition_kind="non_advancing_apply_typed_blocker_ref",
         outcome_kind="non_advancing_apply_typed_blocker",
     )
+
+
+def test_closeout_stagerun_identity_split_replay_converges_to_one_stable_typed_blocker() -> None:
+    study_id = "002-dm-china-us-mortality-attribution"
+    current_work_unit_id = "analysis_claim_evidence_repair"
+    current_fingerprint = "publication-blockers::497d1260db522f01"
+    stale_stage_packet_fingerprint = (
+        "owner-route::write::manuscript_story_surface_delta_missing::"
+        "run_quality_repair_batch"
+    )
+    closeout_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+        "consumer/default_executor_execution/sat_cfb833131bfa30d6661c26c2.closeout.json"
+    )
+
+    current_work_unit = _current_work_unit_from_progress(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_attempt_id": "sat_cfb833131bfa30d6661c26c2",
+                    "action_type": "run_quality_repair_batch",
+                    "status": "blocked",
+                    "blocked_reason": "stage_packet_not_current_selected_dispatch",
+                    "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                    "work_unit_fingerprint": stale_stage_packet_fingerprint,
+                    "stage_name": current_work_unit_id,
+                    "source_path": closeout_ref,
+                    "closeout_refs": [closeout_ref],
+                    "typed_blocker": {
+                        "blocker_type": "stage_packet_not_current_selected_dispatch",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "required_owner_action": (
+                            "provide or admit a current stage packet for "
+                            f"{current_work_unit_id}/{current_fingerprint}"
+                        ),
+                    },
+                    "domain_execution": {
+                        "blocked_reason": "stage_packet_not_current_selected_dispatch",
+                        "requested_stage_packet_work_unit_id": (
+                            "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+                        ),
+                        "requested_stage_packet_work_unit_fingerprint": stale_stage_packet_fingerprint,
+                        "fresh_current_control_work_unit_id": current_work_unit_id,
+                        "fresh_current_control_work_unit_fingerprint": current_fingerprint,
+                    },
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "next_owner": "write",
+            "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+            "work_unit_fingerprint": stale_stage_packet_fingerprint,
+            "action_fingerprint": stale_stage_packet_fingerprint,
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+        },
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "blocker_type": "stage_packet_not_current_selected_dispatch",
+            "blocked_reason": "stage_packet_not_current_selected_dispatch",
+            "owner": "one-person-lab",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": current_work_unit_id,
+            "work_unit_fingerprint": stale_stage_packet_fingerprint,
+            "source_ref": closeout_ref,
+            "typed_blocker_ref": closeout_ref,
+            "currentness_basis": {
+                "work_unit_id": current_work_unit_id,
+                "work_unit_fingerprint": stale_stage_packet_fingerprint,
+            },
+        },
+        next_owner="write",
+    )
+    step = _stable_transition_step(
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": current_work_unit,
+        }
+    )
+
+    assert current_work_unit["status"] == "typed_blocker"
+    assert current_work_unit["work_unit_id"] == current_work_unit_id
+    assert current_work_unit["work_unit_fingerprint"] == current_fingerprint
+    assert current_work_unit["state"]["typed_blocker"]["blocker_type"] == (
+        "stage_packet_not_current_selected_dispatch"
+    )
+    assert current_work_unit["state"]["typed_blocker"]["typed_blocker_ref"] == closeout_ref
+    _assert_exactly_one_transition(
+        step,
+        transition_kind="RecordTypedBlocker",
+        postcondition_kind="typed_blocker_ref",
+        outcome_kind="typed_blocker",
+    )
+    assert step["paper_progress_policy_result"]["paper_policy_verdict"] == {
+        "verdict": "stable_typed_blocker_required",
+        "typed_blocker_ref": closeout_ref,
+        "paper_progress_credit_allowed": True,
+    }
 
 
 def test_same_tick_stale_blocker_and_admission_conflict_converges_to_stable_typed_blocker() -> None:
@@ -523,6 +647,8 @@ def test_paper_progress_replay_live_evidence_status_contract_keeps_live_acceptan
     assert "provider_admission_pending_count=0" in forbidden
     assert "focused_tests_passed" in forbidden
     assert contract["current_status"]["live_paper_progress_claim_allowed"] is False
+    replay_trace_ids = {item["trace_id"] for item in contract["replay_coverage"]}
+    assert "closeout_stagerun_identity_split" in replay_trace_ids
     assert contract["projection_metadata_completion_gate"]["required_fields"] == [
         "authority",
         "derived_from_event_id",
