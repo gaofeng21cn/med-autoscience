@@ -146,9 +146,25 @@ def test_mas_refs_only_state_index_pilot_is_body_free_and_opt_in() -> None:
         "cursor",
         "index",
         "lifecycle",
-        "outbox",
+        "legacy_lifecycle",
+        "paper_progress_transition_ref",
         "receipt_ref",
     ]
+    assert pilot["private_control_plane_boundary"] == {
+        "surface_role": "temporary_refs_projection",
+        "opt_in_only": True,
+        "default_runtime_path": False,
+        "legacy_backend_result_authority": False,
+        "can_change_storage_maintenance_outcome": False,
+        "can_start_worker": False,
+        "can_create_attempt": False,
+        "can_create_outbox_record": False,
+        "can_generate_provider_admission": False,
+        "can_generate_next_action": False,
+        "can_claim_runtime_currentness": False,
+        "can_claim_stage_progress": False,
+        "replacement_owner_surface": "one-person-lab StateIndexKernel",
+    }
     assert pilot["body_included"] is False
     assert pilot["derived_index_rebuildable"] is True
     assert pilot["sqlite_record_counts_as_stage_complete"] is False

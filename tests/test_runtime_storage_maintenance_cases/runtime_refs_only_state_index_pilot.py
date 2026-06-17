@@ -91,6 +91,21 @@ def test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies(t
     assert result["projection_policy"]["can_authorize_provider_admission"] is False
     assert result["projection_policy"]["can_authorize_quality_verdict"] is False
     assert result["projection_policy"]["can_authorize_publication_ready"] is False
+    assert result["private_control_plane_boundary"] == {
+        "surface_role": "temporary_refs_projection",
+        "opt_in_only": True,
+        "default_runtime_path": False,
+        "legacy_backend_result_authority": False,
+        "can_change_storage_maintenance_outcome": False,
+        "can_start_worker": False,
+        "can_create_attempt": False,
+        "can_create_outbox_record": False,
+        "can_generate_provider_admission": False,
+        "can_generate_next_action": False,
+        "can_claim_runtime_currentness": False,
+        "can_claim_stage_progress": False,
+        "replacement_owner_surface": "one-person-lab StateIndexKernel",
+    }
     assert result["legacy_surface_policy"] == {
         "runtime_events": "tombstone_provenance_only",
         "runtime_snapshots": "tombstone_provenance_only",
