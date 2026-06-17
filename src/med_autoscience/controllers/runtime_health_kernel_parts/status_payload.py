@@ -68,6 +68,7 @@ def status_payload_runtime_health_events(
     events: list[dict[str, Any]] = []
     sequence = first_sequence
     facts = resolve_opl_runtime_refs(status_payload)
+    lifecycle_proof_ref = _opl_lifecycle_proof_ref(status_payload, mapping=mapping, text=text)
     runtime_liveness_audit = mapping(status_payload.get("runtime_liveness_audit"))
     runtime_audit = mapping(runtime_liveness_audit.get("runtime_audit"))
     runtime_payload = {
@@ -130,7 +131,7 @@ def status_payload_runtime_health_events(
                 event_source_signature=event_source_signature,
             )
         )
-        if provider_readiness.recovered_supervisor_tick(
+        if lifecycle_proof_ref is not None and provider_readiness.recovered_supervisor_tick(
             supervisor_payload,
             mapping=mapping,
             text=text,
@@ -151,6 +152,11 @@ def status_payload_runtime_health_events(
                         "provider_ready": True,
                         "worker_ready": True,
                         "managed_worker_source_current": True,
+                        "opl_lifecycle_proof_ref": lifecycle_proof_ref,
+                        "lifecycle_authority_owner": "one-person-lab",
+                        "mas_runtime_health_event_role": "diagnostic_observation",
+                        "attempt_lifecycle_authority": False,
+                        "retry_or_dead_letter_authority": False,
                     },
                     recorded_at=recorded_at,
                     sequence=sequence,
@@ -159,7 +165,8 @@ def status_payload_runtime_health_events(
             )
 
     launch_payload = launch_report_event_payload(status_payload, read_json=read_json, mapping=mapping, text=text)
-    if launch_payload:
+    if launch_payload and lifecycle_proof_ref is not None:
+        launch_payload = _with_lifecycle_boundary(launch_payload, lifecycle_proof_ref=lifecycle_proof_ref)
         sequence += 1
         events.append(
             transient_event(
@@ -175,7 +182,7 @@ def status_payload_runtime_health_events(
         )
 
     decision = text(status_payload.get("decision"))
-    if decision in recovery_decisions:
+    if decision in recovery_decisions and lifecycle_proof_ref is not None:
         event_type = "relaunch_attempt" if decision == "relaunch_stopped" else "recover_attempt"
         if event_type == "relaunch_attempt":
             sequence += 1
@@ -190,6 +197,11 @@ def status_payload_runtime_health_events(
                         "decision": decision,
                         "reason": text(status_payload.get("reason")),
                         "previous_budget_scope": "terminal_runtime_recovery",
+                        "opl_lifecycle_proof_ref": lifecycle_proof_ref,
+                        "lifecycle_authority_owner": "one-person-lab",
+                        "mas_runtime_health_event_role": "diagnostic_observation",
+                        "attempt_lifecycle_authority": False,
+                        "retry_or_dead_letter_authority": False,
                     },
                     recorded_at=recorded_at,
                     sequence=sequence,
@@ -208,6 +220,11 @@ def status_payload_runtime_health_events(
                     "decision": decision,
                     "reason": text(status_payload.get("reason")),
                     "active_run_id": facts.active_run_id if facts.strict_live else None,
+                    "opl_lifecycle_proof_ref": lifecycle_proof_ref,
+                    "lifecycle_authority_owner": "one-person-lab",
+                    "mas_runtime_health_event_role": "diagnostic_observation",
+                    "attempt_lifecycle_authority": False,
+                    "retry_or_dead_letter_authority": False,
                 },
                 recorded_at=recorded_at,
                 sequence=sequence,
@@ -215,6 +232,53 @@ def status_payload_runtime_health_events(
             )
         )
     return events
+
+
+def _with_lifecycle_boundary(
+    payload: Mapping[str, Any],
+    *,
+    lifecycle_proof_ref: str,
+) -> dict[str, Any]:
+    return {
+        **dict(payload),
+        "opl_lifecycle_proof_ref": lifecycle_proof_ref,
+        "lifecycle_authority_owner": "one-person-lab",
+        "mas_runtime_health_event_role": "diagnostic_observation",
+        "attempt_lifecycle_authority": False,
+        "retry_or_dead_letter_authority": False,
+    }
+
+
+def _opl_lifecycle_proof_ref(
+    status_payload: Mapping[str, Any],
+    *,
+    mapping: MappingReader,
+    text: TextReader,
+) -> str | None:
+    for source in (
+        status_payload,
+        mapping(status_payload.get("opl_current_control_state_handoff")),
+        mapping(status_payload.get("runtime_liveness_audit")),
+        mapping(status_payload.get("runtime_audit")),
+    ):
+        for key in (
+            "opl_lifecycle_proof_ref",
+            "opl_lifecycle_ref",
+            "opl_command_ref",
+            "opl_event_ref",
+            "opl_outbox_ref",
+            "opl_stage_run_ref",
+            "opl_stage_attempt_id",
+            "stage_attempt_id",
+            "active_stage_attempt_id",
+            "active_workflow_id",
+        ):
+            if value := text(source.get(key)):
+                return value
+    facts = resolve_opl_runtime_refs(status_payload)
+    if facts.strict_live and facts.active_run_id:
+        return facts.active_run_id
+    return None
 
 
 def launch_report_event_payload(

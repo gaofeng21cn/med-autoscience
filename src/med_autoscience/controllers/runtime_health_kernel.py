@@ -48,6 +48,9 @@ RUNTIME_HEALTH_EVENT_TYPES = frozenset(
 _ACTIVE_QUEST_STATUSES = frozenset({"active", "running"})
 _RECOVERY_DECISIONS = frozenset({"create_and_start", "resume", "relaunch_stopped"})
 _ATTEMPT_EVENT_TYPES = frozenset({"launch_attempt", "recover_attempt", "relaunch_attempt"})
+_OPL_LIFECYCLE_EVENT_TYPES = _ATTEMPT_EVENT_TYPES | frozenset(
+    {"attempt_released", "escalation_opened", "escalation_resolved"}
+)
 _FAILED_ATTEMPT_STATES = frozenset({"failed", "timeout", "lost", "missing_live_session"})
 _TERMINAL_ESCALATION_REASONS = frozenset({"manual_runtime_review_required", "recovery_retry_budget_exhausted"})
 _ACTIVITY_TIMEOUT_BREACHES = frozenset(
@@ -209,6 +212,10 @@ def append_runtime_health_event(
     recorded_at: str,
     source_signature: str | None = None,
 ) -> dict[str, Any]:
+    payload = _runtime_health_event_payload_with_authority_boundary(
+        event_type=event_type,
+        payload=payload or {},
+    )
     return event_log.append_runtime_health_event(
         study_root=study_root,
         event_log_relative_path=EVENT_LOG_RELATIVE_PATH,
@@ -223,6 +230,49 @@ def append_runtime_health_event(
         text=_text,
         source_signature_for_event=_source_signature_for_event,
     )
+
+
+def _runtime_health_event_payload_with_authority_boundary(
+    *,
+    event_type: str,
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    normalized = dict(payload)
+    event_type_text = str(event_type or "").strip()
+    if event_type_text not in _OPL_LIFECYCLE_EVENT_TYPES:
+        return normalized
+    proof_ref = _opl_lifecycle_proof_ref(normalized)
+    if proof_ref is None:
+        raise ValueError("opl_lifecycle_proof_required_for_runtime_lifecycle_event")
+    normalized["opl_lifecycle_proof_ref"] = proof_ref
+    normalized["lifecycle_authority_owner"] = "one-person-lab"
+    normalized["mas_runtime_health_event_role"] = "diagnostic_observation"
+    normalized["attempt_lifecycle_authority"] = False
+    normalized["retry_or_dead_letter_authority"] = False
+    normalized["worker_residency_authority"] = False
+    return normalized
+
+
+def _opl_lifecycle_proof_ref(payload: Mapping[str, Any]) -> str | None:
+    for key in (
+        "opl_lifecycle_proof_ref",
+        "opl_lifecycle_ref",
+        "opl_command_ref",
+        "opl_event_ref",
+        "opl_outbox_ref",
+        "opl_stage_run_ref",
+        "opl_stage_attempt_id",
+        "stage_attempt_id",
+        "active_stage_attempt_id",
+        "active_workflow_id",
+    ):
+        if text := _text(payload.get(key)):
+            return text
+    readback = _mapping(payload.get("opl_lifecycle_readback"))
+    for key in ("ref", "id", "stage_attempt_id", "stage_run_ref", "event_ref", "outbox_ref"):
+        if text := _text(readback.get(key)):
+            return text
+    return None
 
 
 def _authority_ref(event: Mapping[str, Any]) -> dict[str, Any]:
@@ -343,9 +393,6 @@ def _attempt_count(
     active_run_id: str | None = None,
 ) -> int:
     attempts = len(_attempt_events_for_budget(events, active_run_id=active_run_id))
-    decision = _text(runtime_payload.get("decision"))
-    if decision in _RECOVERY_DECISIONS and attempts == 0:
-        attempts = 1
     return attempts
 
 

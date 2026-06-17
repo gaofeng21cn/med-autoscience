@@ -4,9 +4,59 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 
 def _kernel():
     return importlib.import_module("med_autoscience.controllers.runtime_health_kernel")
+
+
+def _opl_lifecycle_payload(sequence: int, payload: dict[str, object]) -> dict[str, object]:
+    return {
+        **payload,
+        "opl_lifecycle_proof_ref": f"opl-stage-attempt://runtime-health-test-{sequence}",
+    }
+
+
+def test_runtime_health_rejects_lifecycle_event_without_opl_proof(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "002-dm-cvd"
+
+    with pytest.raises(ValueError, match="opl_lifecycle_proof_required_for_runtime_lifecycle_event"):
+        module.append_runtime_health_event(
+            study_root=study_root,
+            study_id="002-dm-cvd",
+            quest_id="002-dm-cvd",
+            event_type="recover_attempt",
+            payload={"attempt_state": "failed", "failure_reason": "no_live_session"},
+            recorded_at="2026-05-01T00:00:00+00:00",
+        )
+
+    assert module.read_runtime_health_events(study_root=study_root) == []
+
+
+def test_runtime_health_lifecycle_event_is_diagnostic_when_opl_proof_backed(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "002-dm-cvd"
+
+    event = module.append_runtime_health_event(
+        study_root=study_root,
+        study_id="002-dm-cvd",
+        quest_id="002-dm-cvd",
+        event_type="recover_attempt",
+        payload=_opl_lifecycle_payload(
+            1,
+            {"attempt_state": "failed", "failure_reason": "no_live_session"},
+        ),
+        recorded_at="2026-05-01T00:00:00+00:00",
+    )
+
+    assert event["payload"]["opl_lifecycle_proof_ref"] == "opl-stage-attempt://runtime-health-test-1"
+    assert event["payload"]["lifecycle_authority_owner"] == "one-person-lab"
+    assert event["payload"]["mas_runtime_health_event_role"] == "diagnostic_observation"
+    assert event["payload"]["attempt_lifecycle_authority"] is False
+    assert event["payload"]["retry_or_dead_letter_authority"] is False
+    assert event["payload"]["worker_residency_authority"] is False
 
 
 def test_runtime_health_strict_live_requires_worker_and_active_run_id(tmp_path: Path) -> None:
@@ -154,7 +204,7 @@ def test_runtime_health_missing_live_session_recovers_with_stale_run_as_last_kno
         study_id="003-dm-cvd",
         quest_id="003-dm-cvd",
         event_type="launch_attempt",
-        payload={"attempt_state": "succeeded", "active_run_id": "run-599e53e9"},
+        payload=_opl_lifecycle_payload(1, {"attempt_state": "succeeded", "active_run_id": "run-599e53e9"}),
         recorded_at="2026-05-01T00:00:00+00:00",
     )
     module.append_runtime_health_event(
@@ -217,7 +267,10 @@ def test_runtime_health_recovery_budget_exhaustion_escalates(tmp_path: Path) -> 
             study_id="002-dm-cvd",
             quest_id="002-dm-cvd",
             event_type="recover_attempt",
-            payload={"attempt_state": "failed", "failure_reason": "no_live_session"},
+            payload=_opl_lifecycle_payload(
+                sequence,
+                {"attempt_state": "failed", "failure_reason": "no_live_session"},
+            ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
 
@@ -242,10 +295,13 @@ def test_runtime_health_explicit_relaunch_starts_new_recovery_budget_epoch(tmp_p
             study_id="002-dm-cvd",
             quest_id="002-dm-cvd",
             event_type="recover_attempt",
-            payload={
-                "attempt_state": "failed",
-                "failure_reason": "quest_marked_running_but_no_live_session",
-            },
+            payload=_opl_lifecycle_payload(
+                sequence,
+                {
+                    "attempt_state": "failed",
+                    "failure_reason": "quest_marked_running_but_no_live_session",
+                },
+            ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
     status_payload = {
@@ -255,6 +311,7 @@ def test_runtime_health_explicit_relaunch_starts_new_recovery_budget_epoch(tmp_p
         "quest_status": "failed",
         "decision": "relaunch_stopped",
         "reason": "quest_stopped_explicit_relaunch_requested",
+        "opl_lifecycle_proof_ref": "opl-stage-attempt://runtime-health-test-relaunch",
         "runtime_liveness_audit": {
             "status": "none",
             "runtime_audit": {
@@ -290,10 +347,13 @@ def test_runtime_health_submission_metadata_parking_dominates_stale_recovery_bud
             study_id="001-dm-cvd",
             quest_id="001-dm-cvd-reentry",
             event_type="recover_attempt",
-            payload={
-                "attempt_state": "failed",
-                "failure_reason": "quest_marked_running_but_no_live_session",
-            },
+            payload=_opl_lifecycle_payload(
+                sequence,
+                {
+                    "attempt_state": "failed",
+                    "failure_reason": "quest_marked_running_but_no_live_session",
+                },
+            ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
     module.append_runtime_health_event(
@@ -332,7 +392,14 @@ def test_runtime_health_zero_retry_budget_blocks_recover_runtime_even_without_fa
             study_id="003-dpcc",
             quest_id="003-dpcc",
             event_type="recover_attempt",
-            payload={"attempt_state": "requested", "decision": "resume", "reason": "quest_marked_running_but_no_live_session"},
+            payload=_opl_lifecycle_payload(
+                sequence,
+                {
+                    "attempt_state": "requested",
+                    "decision": "resume",
+                    "reason": "quest_marked_running_but_no_live_session",
+                },
+            ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
     module.append_runtime_health_event(
@@ -371,11 +438,14 @@ def test_runtime_health_provider_ready_supervisor_tick_starts_new_recovery_budge
             study_id="002-dm-cvd",
             quest_id="002-dm-cvd",
             event_type="recover_attempt",
-            payload={
-                "attempt_state": "failed",
-                "decision": "resume",
-                "reason": "quest_marked_running_but_no_live_session",
-            },
+            payload=_opl_lifecycle_payload(
+                sequence,
+                {
+                    "attempt_state": "failed",
+                    "decision": "resume",
+                    "reason": "quest_marked_running_but_no_live_session",
+                },
+            ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
     status_payload = {
@@ -385,6 +455,7 @@ def test_runtime_health_provider_ready_supervisor_tick_starts_new_recovery_budge
         "quest_status": "active",
         "decision": "resume",
         "reason": "quest_marked_running_but_no_live_session",
+        "opl_lifecycle_proof_ref": "opl-stage-attempt://runtime-health-test-provider-ready",
         "runtime_liveness_audit": {
             "status": "none",
             "runtime_audit": {
@@ -426,11 +497,14 @@ def test_runtime_health_provider_ready_handoff_starts_new_recovery_budget_epoch(
             study_id="002-dm-cvd",
             quest_id="002-dm-cvd",
             event_type="recover_attempt",
-            payload={
-                "attempt_state": "failed",
-                "decision": "resume",
-                "reason": "quest_marked_running_but_no_live_session",
-            },
+            payload=_opl_lifecycle_payload(
+                sequence,
+                {
+                    "attempt_state": "failed",
+                    "decision": "resume",
+                    "reason": "quest_marked_running_but_no_live_session",
+                },
+            ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
     status_payload = {
@@ -440,6 +514,7 @@ def test_runtime_health_provider_ready_handoff_starts_new_recovery_budget_epoch(
         "quest_status": "active",
         "decision": "resume",
         "reason": "quest_marked_running_but_no_live_session",
+        "opl_lifecycle_proof_ref": "opl-stage-attempt://runtime-health-test-provider-handoff",
         "runtime_liveness_audit": {
             "status": "none",
             "runtime_audit": {
@@ -488,7 +563,14 @@ def test_runtime_health_zero_retry_budget_escalates_stopped_controller_guard_rec
             study_id="001-dm-cvd",
             quest_id="001-dm-cvd",
             event_type="recover_attempt",
-            payload={"attempt_state": "requested", "decision": "resume", "reason": "quest_stopped_by_controller_guard"},
+            payload=_opl_lifecycle_payload(
+                sequence,
+                {
+                    "attempt_state": "requested",
+                    "decision": "resume",
+                    "reason": "quest_stopped_by_controller_guard",
+                },
+            ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
     module.append_runtime_health_event(
@@ -528,7 +610,7 @@ def test_runtime_health_append_deduplicates_same_source_signature(tmp_path: Path
         study_id="002-dm-cvd",
         quest_id="002-dm-cvd",
         event_type="recover_attempt",
-        payload={"attempt_state": "failed", "failure_reason": "same_recovery_attempt"},
+        payload=_opl_lifecycle_payload(1, {"attempt_state": "failed", "failure_reason": "same_recovery_attempt"}),
         recorded_at="2026-05-01T00:00:00+00:00",
         source_signature="recover-attempt::same",
     )
@@ -537,7 +619,7 @@ def test_runtime_health_append_deduplicates_same_source_signature(tmp_path: Path
         study_id="002-dm-cvd",
         quest_id="002-dm-cvd",
         event_type="recover_attempt",
-        payload={"attempt_state": "failed", "failure_reason": "same_recovery_attempt"},
+        payload=_opl_lifecycle_payload(1, {"attempt_state": "failed", "failure_reason": "same_recovery_attempt"}),
         recorded_at="2026-05-01T00:05:00+00:00",
         source_signature="recover-attempt::same",
     )
@@ -777,11 +859,14 @@ def test_runtime_health_live_new_run_does_not_inherit_stale_recovery_budget(tmp_
             study_id="001-dm-cvd",
             quest_id="001-dm-cvd",
             event_type="recover_attempt",
-            payload={
-                "attempt_state": "failed",
-                "failure_reason": "quest_marked_running_but_no_live_session",
-                "active_run_id": "run-old",
-            },
+            payload=_opl_lifecycle_payload(
+                sequence,
+                {
+                    "attempt_state": "failed",
+                    "failure_reason": "quest_marked_running_but_no_live_session",
+                    "active_run_id": "run-old",
+                },
+            ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
     module.append_runtime_health_event(
@@ -926,6 +1011,58 @@ def test_runtime_health_reconcile_ignores_volatile_watchdog_seconds_for_deduplic
         "quest_status": "active",
         "decision": "resume",
         "reason": "quest_marked_running_but_no_live_session",
+        "runtime_liveness_audit": {
+            "status": "none",
+            "runtime_audit": {
+                "status": "none",
+                "worker_running": False,
+                "interaction_watchdog": {
+                    "seconds_since_last_artifact_interact": 10,
+                    "seconds_since_active_execution_start": 20,
+                },
+            },
+        },
+        "supervisor_tick_audit": {
+            "status": "fresh",
+            "seconds_since_latest_recorded_at": 1,
+        },
+    }
+
+    first = module.reconcile_runtime_health_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="003-dm-cvd",
+        quest_id="003-dm-cvd",
+        status_payload=status_payload,
+        recorded_at="2026-05-01T00:00:00+00:00",
+    )
+    status_payload["runtime_liveness_audit"]["runtime_audit"]["interaction_watchdog"][
+        "seconds_since_last_artifact_interact"
+    ] = 100
+    status_payload["supervisor_tick_audit"]["seconds_since_latest_recorded_at"] = 90
+    second = module.reconcile_runtime_health_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="003-dm-cvd",
+        quest_id="003-dm-cvd",
+        status_payload=status_payload,
+        recorded_at="2026-05-01T00:05:00+00:00",
+    )
+
+    assert first["appended_event_count"] == 2
+    assert second["appended_event_count"] == 0
+    assert second["snapshot"]["attempt_count"] == 0
+
+
+def test_runtime_health_reconcile_deduplicates_opl_proof_backed_lifecycle_events(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "003-dm-cvd"
+    status_payload = {
+        "study_id": "003-dm-cvd",
+        "study_root": str(study_root),
+        "quest_id": "003-dm-cvd",
+        "quest_status": "active",
+        "decision": "resume",
+        "reason": "quest_marked_running_but_no_live_session",
+        "opl_lifecycle_proof_ref": "opl-stage-attempt://runtime-health-dedupe",
         "runtime_liveness_audit": {
             "status": "none",
             "runtime_audit": {

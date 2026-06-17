@@ -50,6 +50,8 @@ def refresh_status_runtime_health_from_provider_readiness(
     supervisor_tick["summary"] = "OPL current_control_state handoff 新鲜，当前 stage/runtime owner 仍由 OPL 接管。"
     supervisor_tick["next_action_summary"] = "继续按 OPL current_control_state 监管当前 stage/runtime lifecycle。"
     status["supervisor_tick_audit"] = supervisor_tick
+    if proof_ref := _opl_lifecycle_proof_ref(readiness):
+        status["opl_lifecycle_proof_ref"] = proof_ref
     runtime_health = runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
         study_root=study_root,
         study_id=study_id,
@@ -65,3 +67,17 @@ def refresh_status_runtime_health_from_provider_readiness(
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _opl_lifecycle_proof_ref(readiness: Mapping[str, Any]) -> str | None:
+    for key in (
+        "opl_lifecycle_proof_ref",
+        "opl_current_control_state_ref",
+        "opl_stage_attempt_id",
+        "active_stage_attempt_id",
+        "active_workflow_id",
+    ):
+        text = str(readiness.get(key) or "").strip()
+        if text:
+            return text
+    return None

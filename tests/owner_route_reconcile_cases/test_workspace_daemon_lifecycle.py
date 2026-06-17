@@ -89,6 +89,7 @@ def test_scan_domain_routes_projects_opl_provider_readiness_from_owner_surface(
             "provider_ready": True,
             "worker_ready": True,
             "managed_worker_source_current": True,
+            "opl_current_control_state_ref": "opl://current-control/provider-readiness-test",
             "provider_completion_is_domain_ready": False,
             "can_write_domain_truth": False,
             "can_authorize_publication_ready": False,
@@ -385,6 +386,7 @@ def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtim
                 "decision": "resume",
                 "failure_reason": "quest_marked_running_but_no_live_session",
                 "active_run_id": None,
+                "opl_lifecycle_proof_ref": f"opl-stage-attempt://runtime-health-test-{sequence}",
             },
             recorded_at=f"2026-05-28T10:4{sequence}:00+00:00",
         )
@@ -504,6 +506,7 @@ def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtim
             "provider_ready": True,
             "worker_ready": True,
             "managed_worker_source_current": True,
+            "opl_current_control_state_ref": "opl://current-control/provider-readiness-same-tick",
             "provider_completion_is_domain_ready": False,
             "can_write_domain_truth": False,
             "can_authorize_publication_ready": False,

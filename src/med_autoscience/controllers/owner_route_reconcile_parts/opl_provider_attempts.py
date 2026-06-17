@@ -50,6 +50,11 @@ OPL_PROVIDER_READINESS_KEYS = (
     "managed_worker_source_current",
     "managed_worker_pid",
     "task_queue",
+    "opl_lifecycle_proof_ref",
+    "opl_current_control_state_ref",
+    "opl_stage_attempt_id",
+    "active_stage_attempt_id",
+    "active_workflow_id",
     "selected_provider_can_replace_domain_daemons",
     "provider_completion_is_domain_ready",
     "can_write_domain_truth",
@@ -966,6 +971,11 @@ def _provider_readiness_from_status(status_payload: Mapping[str, Any] | None) ->
         "managed_worker_source_current": worker_readiness.get("managed_worker_source_current") is True,
         "managed_worker_pid": worker_readiness.get("managed_worker_pid"),
         "task_queue": _text(provider.get("task_queue")) or _text(provider_details.get("task_queue")),
+        "opl_lifecycle_proof_ref": _text(readiness.get("opl_lifecycle_proof_ref")),
+        "opl_current_control_state_ref": _text(readiness.get("opl_current_control_state_ref")),
+        "opl_stage_attempt_id": _text(readiness.get("opl_stage_attempt_id")),
+        "active_stage_attempt_id": _text(readiness.get("active_stage_attempt_id")),
+        "active_workflow_id": _text(readiness.get("active_workflow_id")),
         "selected_provider_can_replace_domain_daemons": (
             readiness.get("selected_provider_can_replace_domain_daemons") is True
         ),
