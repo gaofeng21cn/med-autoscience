@@ -30,6 +30,18 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     assert arsenal["audience"] == "autonomous_agent_executor"
     assert arsenal["human_operator_role"] == "governance_and_authorization_not_manual_tool_composition"
     assert arsenal["ordinary_planning_root"] == "current_owner_delta"
+    assert arsenal["authority_boundary"]["selection_runtime_owner"] == "one-person-lab"
+    assert arsenal["authority_boundary"]["capability_runtime_owner"] == "one-person-lab"
+    assert arsenal["authority_boundary"]["capability_runtime_kind"] == "OPL Capability Runtime"
+    assert arsenal["authority_boundary"]["opl_owns_capability_selection_runtime"] is True
+    assert arsenal["authority_boundary"]["opl_owns_capability_invocation_runtime"] is True
+    assert arsenal["authority_boundary"]["mas_selector_authority"] is False
+    assert arsenal["authority_boundary"]["mas_tool_invocation_runtime_authority"] is False
+    assert arsenal["authority_boundary"]["missing_refs_trigger_mutating_invocation"] is False
+    assert arsenal["authority_boundary"]["capability_plan_can_write_domain_truth"] is False
+    assert arsenal["authority_boundary"]["capability_plan_can_authorize_publication_quality"] is False
+    assert arsenal["agent_execution_index"]["authority_boundary"]["selection_runtime_owner"] == "one-person-lab"
+    assert arsenal["agent_execution_index"]["authority_boundary"]["mas_selector_authority"] is False
     assert set(cards) == catalog_action_ids
     assert {item["action_id"] for item in arsenal["tool_index_entries"]} == catalog_action_ids
 
@@ -67,6 +79,11 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     assert progress["invocation_gate"]["fail_closed"] is True
     assert progress["invocation_gate"]["required_refs"] == ["profile_ref", "study_id"]
     assert progress["adaptation_policy"]["policy"] == "exact_contract_match"
+    assert progress["authority_boundary"]["selection_runtime_owner"] == "one-person-lab"
+    assert progress["authority_boundary"]["capability_runtime_owner"] == "one-person-lab"
+    assert progress["authority_boundary"]["mas_selector_authority"] is False
+    assert progress["authority_boundary"]["mas_tool_invocation_runtime_authority"] is False
+    assert progress["authority_boundary"]["missing_refs_trigger_mutating_invocation"] is False
     assert progress["optional_refs"] == []
     assert progress["preflight_checks"] == [
         "confirm_current_owner_delta_matches_card_applicability",
@@ -171,6 +188,10 @@ def test_agent_tool_arsenal_resolver_keeps_candidates_when_refs_are_missing() ->
     assert resolution["hard_gate_fail_closed"] is True
     assert resolution["selection_policy"]["discovery"] == "soft_match_high_recall"
     assert resolution["selection_policy"]["invocation"] == "hard_contract_fail_closed"
+    assert resolution["authority_boundary"]["selection_runtime_owner"] == "one-person-lab"
+    assert resolution["authority_boundary"]["capability_runtime_owner"] == "one-person-lab"
+    assert resolution["authority_boundary"]["mas_selector_authority"] is False
+    assert resolution["authority_boundary"]["missing_refs_trigger_mutating_invocation"] is False
 
     candidates = {item["action_id"]: item for item in resolution["candidate_tools"]}
     display = candidates["display_pack_orchestrate"]
@@ -185,6 +206,10 @@ def test_agent_tool_arsenal_resolver_keeps_candidates_when_refs_are_missing() ->
     assert display["next_safe_actions"][0]["action"] == "collect_missing_refs"
     assert display["invocation_gate"]["fail_closed"] is True
     assert display["authority_boundary"]["can_authorize_publication_readiness"] is False
+    assert display["authority_boundary"]["selection_runtime_owner"] == "one-person-lab"
+    assert display["authority_boundary"]["capability_runtime_owner"] == "one-person-lab"
+    assert display["authority_boundary"]["mas_selector_authority"] is False
+    assert display["authority_boundary"]["missing_refs_trigger_mutating_invocation"] is False
 
 
 def test_agent_tool_arsenal_resolver_scores_exact_owner_callable_but_keeps_hard_gate() -> None:
@@ -301,6 +326,14 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert plan["authority_boundary"]["can_write_publication_quality"] is False
     assert plan["authority_boundary"]["owner_receipt_or_typed_blocker_proof_replaces_publication_quality"] is False
     assert plan["authority_boundary"]["capability_invocation_plan_replaces_owner_receipt"] is False
+    assert plan["authority_boundary"]["selection_runtime_owner"] == "one-person-lab"
+    assert plan["authority_boundary"]["capability_runtime_owner"] == "one-person-lab"
+    assert plan["authority_boundary"]["capability_runtime_kind"] == "OPL Capability Runtime"
+    assert plan["authority_boundary"]["mas_selector_authority"] is False
+    assert plan["authority_boundary"]["mas_tool_invocation_runtime_authority"] is False
+    assert plan["authority_boundary"]["missing_refs_trigger_mutating_invocation"] is False
+    assert plan["authority_boundary"]["capability_plan_can_write_domain_truth"] is False
+    assert plan["authority_boundary"]["capability_plan_can_authorize_publication_quality"] is False
     assert "verify_required_input_refs" in plan["invocation_steps"]
     assert "verify_current_owner_delta_or_human_gate" in plan["invocation_steps"]
     assert "emit_tool_result_envelope" in plan["invocation_steps"]
@@ -332,6 +365,8 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert display_plan["requires"]["human_gate_or_owner_delta"] is False
     assert display_plan["requires"]["owner_receipt_or_typed_blocker_proof"] is False
     assert display_plan["requires"]["executor_receipt_ref_required"] is False
+    assert display_plan["authority_boundary"]["selection_runtime_owner"] == "one-person-lab"
+    assert display_plan["authority_boundary"]["mas_selector_authority"] is False
     assert display_plan["primary_operational_card"]["tool_id"] == "display_pack_agent"
     assert display_plan["primary_operational_card"]["default_invocation"]["arguments"] == {
         "mode": "orchestrate"

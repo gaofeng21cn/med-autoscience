@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
+from med_autoscience.agent_tool_arsenal_parts.runtime_boundary import (
+    merge_opl_capability_runtime_boundary,
+    opl_capability_runtime_boundary,
+)
+
 
 EXACT_CONTRACT_MATCH = "exact_contract_match"
 SOFT_DISCOVERY_MATCH = "soft_discovery_match"
@@ -56,6 +61,7 @@ def capability_resolution_view(
             "missing_refs_filter_candidates": False,
             "candidate_count_cap": 8,
         },
+        "authority_boundary": opl_capability_runtime_boundary(),
         "current_owner_delta_summary": _current_owner_delta_summary(current_owner_delta),
         "candidate_tools": retained[:8],
         "typed_blocker_policy": {
@@ -129,6 +135,7 @@ def capability_resolver_contract() -> dict[str, Any]:
             "src/med_autoscience/display_pack_agent_parts/template_fit.py::"
             "ADAPTABLE_TEMPLATE_FIT_POLICY"
         ),
+        "authority_boundary": opl_capability_runtime_boundary(),
         "non_authority_rule": (
             "Capability resolution can rank and explain candidates, but it cannot write "
             "domain truth, owner receipts, typed blockers, publication quality, or "
@@ -278,7 +285,9 @@ def _candidate_from_card(
         "hard_gate_status": "ready" if ready else "blocked_until_refs",
         "hard_gate_reasons": [] if ready else ["missing_required_refs"],
         "invocation_gate": dict(_mapping(card.get("invocation_gate"))),
-        "authority_boundary": dict(_mapping(card.get("authority_boundary"))),
+        "authority_boundary": merge_opl_capability_runtime_boundary(
+            _mapping(card.get("authority_boundary"))
+        ),
         "adaptation_policy": dict(_mapping(card.get("adaptation_policy"))),
         "requires": _requires_for_card(card),
         "next_safe_actions": _candidate_next_safe_actions(card, missing_refs=missing_refs),

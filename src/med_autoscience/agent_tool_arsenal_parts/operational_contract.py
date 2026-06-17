@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.agent_tool_arsenal_parts.runtime_boundary import (
+    opl_capability_runtime_boundary,
+)
+
 
 def agent_execution_index(
     *,
@@ -32,6 +36,7 @@ def agent_execution_index(
                     )
                 ),
             },
+            "authority_boundary": opl_capability_runtime_boundary(),
             "next_step_hint": next_step_hint_for_card(card),
         }
         for card in tool_cards
@@ -41,6 +46,7 @@ def agent_execution_index(
         "planning_root": ordinary_planning_root,
         "audience": "autonomous_agent_executor",
         "raw_contract_direct_read_required": False,
+        "authority_boundary": opl_capability_runtime_boundary(),
         "entries": entries,
     }
 

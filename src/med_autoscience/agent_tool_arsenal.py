@@ -21,6 +21,7 @@ from med_autoscience.agent_tool_arsenal_parts.operational_contract import (
     preflight_checks_for_card,
     success_signals_for_action,
 )
+from med_autoscience.agent_tool_arsenal_parts import runtime_boundary
 from med_autoscience.agent_tool_arsenal_parts import schemas as arsenal_schemas
 from med_autoscience.runtime_control.owner_callable_registry import (
     owner_callable_registry,
@@ -292,6 +293,7 @@ def build_agent_tool_arsenal_index(
         "authority_boundary": {
             "mas_owns_domain_truth_and_authority_functions": True,
             "opl_owns_generated_descriptor_projection": True,
+            **runtime_boundary.opl_capability_runtime_boundary(),
             "tool_arsenal_can_write_domain_truth": False,
             "tool_arsenal_can_authorize_quality_or_export": False,
             "human_operator_manual_composition_required": False,
@@ -404,6 +406,7 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
     )
     if non_read_only_gate is not None:
         authority_boundary.update(_non_read_only_authority_boundary_fields(non_read_only_gate))
+    authority_boundary = runtime_boundary.merge_opl_capability_runtime_boundary(authority_boundary)
     required_refs = [str(item) for item in list(action.get("workspace_locator_fields") or [])]
     card = {
         "surface_kind": "mas_tool_use_card",
@@ -595,6 +598,7 @@ def _build_owner_callable_cards() -> list[dict[str, Any]]:
             "executor_receipt_ref_policy": _executor_receipt_ref_policy(),
             "non_read_only_gate": non_read_only_gate,
             "authority_boundary": {
+                **runtime_boundary.opl_capability_runtime_boundary(),
                 "can_write_domain_truth": False,
                 "can_write_publication_quality": False,
                 "can_authorize_publication_quality": False,
@@ -675,6 +679,7 @@ def _owner_callable_invocation_plan(
             "attach_optional_lightweight_executor_receipt_ref",
         ],
         "authority_boundary": {
+            **runtime_boundary.opl_capability_runtime_boundary(),
             "can_write_domain_truth": False,
             "can_write_publication_quality": False,
             "can_authorize_publication_quality": False,
@@ -750,6 +755,7 @@ def _action_invocation_plan(
             "attach_optional_lightweight_executor_receipt_ref",
         ],
         "authority_boundary": {
+            **runtime_boundary.opl_capability_runtime_boundary(),
             "can_write_domain_truth": False,
             "can_write_publication_quality": False,
             "can_authorize_publication_quality": False,
@@ -789,6 +795,7 @@ def _capability_invocation_plan_contract() -> dict[str, Any]:
             "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
             "can_block_current_owner_action": False,
         },
+        "authority_boundary": runtime_boundary.opl_capability_runtime_boundary(),
         "agent_hot_path_rule": (
             "Autonomous agents consume AgentExecutionIndex, OperationalToolCard, "
             "CapabilityInvocationPlan, and ToolResultEnvelope; raw contracts remain "

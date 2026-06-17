@@ -8,6 +8,9 @@ from pathlib import Path
 import pytest
 
 from med_autoscience.action_catalog import build_mas_action_catalog
+from med_autoscience.agent_tool_arsenal_parts.runtime_boundary import (
+    opl_capability_runtime_boundary,
+)
 from med_autoscience.opl_domain_pack.agent_pack_refs import (
     AGENT_PROMPT_REFS,
 )
@@ -73,6 +76,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["agent_tool_arsenal"]["authority_boundary"] == {
         "mas_owns_domain_truth_and_authority_functions": True,
         "opl_owns_generated_descriptor_projection": True,
+        **opl_capability_runtime_boundary(),
         "tool_arsenal_can_write_domain_truth": False,
         "tool_arsenal_can_authorize_quality_or_export": False,
         "human_operator_manual_composition_required": False,
