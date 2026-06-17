@@ -237,7 +237,9 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     assert "publication_eval" in ai_packet["consumer_does_not_mutate"]
     assert gate_packet["paper_package_mutation_allowed"] is False
     assert ai_packet["quality_gate_relaxation_allowed"] is False
-    assert (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
+    assert not (
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json"
+    ).exists()
 
 
 def test_materialize_domain_action_requests_request_handoff_requires_owner_route_allowed_action(
@@ -430,7 +432,9 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
     assert blocked_tasks["publication_gate_specificity_required"]["blocked_reason"] == "owner_route_next_owner_mismatch"
     assert blocked_tasks["return_to_ai_reviewer_workflow"]["dispatch_status"] == "blocked"
     assert blocked_tasks["return_to_ai_reviewer_workflow"]["blocked_reason"] == "owner_route_next_owner_mismatch"
-    assert (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
+    assert not (
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json"
+    ).exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()

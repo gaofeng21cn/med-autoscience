@@ -866,14 +866,11 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
         apply=True,
     )
 
-    consumer = json.loads(consumer_path.read_text(encoding="utf-8"))
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
     assert result["default_executor_dispatch_count"] == 0
-    assert result["written_files"] == [str(consumer_path)]
-    assert consumer["generated_at"] == result["generated_at"]
-    assert consumer["default_executor_dispatches"] == []
-    assert consumer["written_files"] == [str(consumer_path)]
+    assert result["written_files"] == []
+    assert json.loads(consumer_path.read_text(encoding="utf-8"))["default_executor_dispatch_count"] == 1
 
 
 def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_for_route_epoch(
@@ -949,6 +946,10 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert result["mas_creates_opl_outbox"] is False
     assert result["mas_creates_opl_event"] is False
     assert result["mas_creates_opl_stage_run"] is False
+    assert result["apply_writes_domain_intent_projection_only"] is False
+    assert result["apply_writes_disabled_reason"] == (
+        "opl_domain_progress_transition_runtime_owns_durable_carrier"
+    )
     assert result["default_executor_dispatches"] == dispatches
     assert [item["action_type"] for item in dispatches] == [
         "current_package_freshness_required",

@@ -14,9 +14,9 @@ from tests.domain_owner_action_dispatch_helpers import (
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 from tests.test_domain_owner_action_dispatch_cases.consumer_dispatch_progress_and_writer_handoff import (
-    test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_stale_consumer_inline,
+    test_execute_dispatch_blocks_owner_request_persisted_writer_handoff_without_opl_proof,
+    test_execute_dispatch_reports_per_study_no_private_owner_callable_accounting,
     test_execute_dispatch_preserves_prior_execution_in_study_ledger,
-    test_execute_dispatch_reports_per_study_progress_first_dispatch_accounting,
 )
 
 

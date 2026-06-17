@@ -14,6 +14,14 @@ from tests.domain_owner_action_dispatch_helpers import (
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
+def _without_opl_execution_authorization(dispatch: dict[str, object]) -> dict[str, object]:
+    dispatch.pop("opl_execution_authorization", None)
+    prompt_contract = dispatch.get("prompt_contract")
+    if isinstance(prompt_contract, dict):
+        prompt_contract.pop("opl_execution_authorization", None)
+    return dispatch
+
+
 def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
     monkeypatch,
     tmp_path: Path,
@@ -136,7 +144,7 @@ def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
     assert latest["ledger_execution_count"] == 2
 
 
-def test_execute_dispatch_reports_per_study_progress_first_dispatch_accounting(
+def test_execute_dispatch_reports_per_study_no_private_owner_callable_accounting(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -185,6 +193,7 @@ def test_execute_dispatch_reports_per_study_progress_first_dispatch_accounting(
             ),
             owner_route=route,
         )
+        _without_opl_execution_authorization(dispatch_payload)
         dispatch_path = (
             study_root
             / "artifacts"
@@ -281,8 +290,10 @@ def test_execute_dispatch_reports_per_study_progress_first_dispatch_accounting(
     )
 
     assert result["execution_count"] == 2
-    assert result["executed_count"] == 2
-    assert result["codex_dispatch_count"] == 2
+    assert result["executed_count"] == 0
+    assert result["handoff_ready_count"] == 0
+    assert result["codex_dispatch_count"] == 0
+    assert result["suppressed_dispatch_count"] == 2
     assert result["dispatch_budget_window"] == {
         "scope": "per_study_owner_route_action_fingerprint",
         "max_codex_dispatches_per_scope": 1,
@@ -291,17 +302,23 @@ def test_execute_dispatch_reports_per_study_progress_first_dispatch_accounting(
         "dry_run_starts_llm": False,
         "observe_only_starts_llm": False,
     }
-    assert called == list(study_ids)
+    assert called == []
     summaries = {item["study_id"]: item for item in result["per_study_execution_summary"]}
     assert set(summaries) == set(study_ids)
     for study_id in study_ids:
         assert summaries[study_id]["selected_dispatch_count"] == 1
-        assert summaries[study_id]["executed_count"] == 1
-        assert summaries[study_id]["codex_dispatch_count"] == 1
+        assert summaries[study_id]["executed_count"] == 0
+        assert summaries[study_id]["handoff_ready_count"] == 0
+        assert summaries[study_id]["codex_dispatch_count"] == 0
+        assert summaries[study_id]["suppressed_dispatch_count"] == 1
         assert summaries[study_id]["zero_dispatch_reason"] is None
+    for execution in result["executions"]:
+        assert execution["execution_status"] in {"blocked", "repeat_suppressed"}
+        assert execution["owner_callable_surface"] is None
+        assert execution["will_start_llm"] is False
 
 
-def test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_stale_consumer_inline(
+def test_execute_dispatch_blocks_owner_request_persisted_writer_handoff_without_opl_proof(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -355,6 +372,7 @@ def test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_st
         ),
         owner_route=route,
     )
+    _without_opl_execution_authorization(stale_consumer_dispatch)
     stale_consumer_dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
     stale_consumer_dispatch["paper_progress_stall"] = stale_stall
     stale_consumer_dispatch["prompt_contract"]["paper_progress_stall"] = stale_stall
@@ -370,6 +388,7 @@ def test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_st
         ),
         owner_route=route,
     )
+    _without_opl_execution_authorization(persisted_handoff)
     persisted_handoff["refs"] = {"dispatch_path": str(dispatch_path)}
     persisted_handoff["dispatch_authority"] = "quality_repair_batch_writer_handoff"
     persisted_handoff["source_action"] = {
@@ -450,11 +469,15 @@ def test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_st
         apply=True,
     )
 
-    assert result["executed_count"] == 1
-    assert result["blocked_count"] == 0
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "handoff_ready"
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
     assert execution["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert execution["prompt_contract"]["medical_claim_authoring_allowed"] is True
-    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
-    assert execution["writer_worker_handoff"]["source_action"]["next_work_unit"]["unit_id"] == "medical_prose_write_repair"
+    assert execution["owner_callable_surface"] is None
+    assert execution["provider_attempt_or_lease_required"] is False
+    assert execution["provider_admission_requires_opl_runtime_result"] is True
+    assert "writer_worker_handoff" not in execution

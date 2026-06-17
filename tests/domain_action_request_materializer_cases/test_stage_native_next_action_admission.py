@@ -477,9 +477,11 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
 
     assert result["ready_default_executor_dispatch_count"] == 0
     assert result["transition_request_pending_default_executor_dispatch_count"] == 1
-    assert result["written_files"] == [
-        str(profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json")
-    ]
+    assert result["written_files"] == []
+    assert result["apply_writes_domain_intent_projection_only"] is False
+    assert result["apply_writes_disabled_reason"] == (
+        "opl_domain_progress_transition_runtime_owns_durable_carrier"
+    )
     dispatch = result["default_executor_dispatches"][0]
     persisted_dispatch_path = (
         profile.workspace_root
@@ -493,34 +495,32 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
     )
     assert not persisted_dispatch_path.exists()
     consumer_latest = Path(result["refs"]["latest_path"])
-    consumer_payload = json.loads(consumer_latest.read_text(encoding="utf-8"))
-    persisted = consumer_payload["default_executor_dispatches"][0]
-    assert dispatch == persisted
-    assert persisted["dispatch_status"] == "transition_request_pending"
-    assert persisted["blocked_reason"] == "opl_execution_authorization_required"
-    assert persisted["action_type"] == "return_to_ai_reviewer_workflow"
-    assert persisted["mas_local_dispatch_carrier_persistence"] == "forbidden"
-    assert persisted["opl_transition_runtime_required_for_durable_carrier"] is True
-    assert persisted["dispatch_ready_for_execution_authority"] is False
-    assert persisted["mas_dispatch_authority"] is False
-    assert persisted["provider_completion_is_domain_completion"] is False
-    assert persisted["provider_admission_pending"] is False
-    assert persisted["provider_admission_requires_opl_runtime_result"] is True
-    assert persisted["authority_boundary"]["authority"] == "med_autoscience.paper_progress_policy_adapter"
-    assert persisted["authority_boundary"]["mas_can_authorize_provider_admission"] is False
-    assert persisted["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
+    assert not consumer_latest.exists()
+    assert dispatch["dispatch_status"] == "transition_request_pending"
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
+    assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
+    assert dispatch["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert dispatch["opl_transition_runtime_required_for_durable_carrier"] is True
+    assert dispatch["dispatch_ready_for_execution_authority"] is False
+    assert dispatch["mas_dispatch_authority"] is False
+    assert dispatch["provider_completion_is_domain_completion"] is False
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["authority_boundary"]["authority"] == "med_autoscience.paper_progress_policy_adapter"
+    assert dispatch["authority_boundary"]["mas_can_authorize_provider_admission"] is False
+    assert dispatch["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
     assert (
-        persisted["stage_transition_authority_boundary"]["stage_transition_authority"]
+        dispatch["stage_transition_authority_boundary"]["stage_transition_authority"]
         == "one-person-lab"
     )
     assert (
-        persisted["stage_transition_authority_boundary"][
+        dispatch["stage_transition_authority_boundary"][
             "provider_completion_counts_as_stage_transition"
         ]
         is False
     )
-    assert "provider_admission_identity" not in persisted
-    transition_request = persisted["opl_domain_progress_transition_request"]
+    assert "provider_admission_identity" not in dispatch
+    transition_request = dispatch["opl_domain_progress_transition_request"]
     assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
     assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
     assert transition_request["target_runtime_owner"] == "one-person-lab"

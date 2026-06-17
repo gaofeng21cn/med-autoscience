@@ -188,13 +188,10 @@ def test_materialize_domain_action_requests_apply_does_not_write_unsupported_act
     assert result["default_executor_dispatch_count"] == 0
     assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
-    assert consumer_path.is_file()
+    assert not consumer_path.exists()
     assert not unsupported_packet_path.exists()
     assert not dispatch_path.exists()
-    consumer = json.loads(consumer_path.read_text(encoding="utf-8"))
-    assert consumer["written_files"] == [str(consumer_path)]
-    assert consumer["runtime_control_owner"] == "one-person-lab"
-    assert consumer["ignored_actions"] == result["ignored_actions"]
+    assert result["written_files"] == []
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
 
@@ -277,11 +274,8 @@ def test_materialize_domain_action_requests_does_not_resurrect_existing_unsuppor
     assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["repeat_suppressed_count"] == 0
-    consumer = json.loads(
-        (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    assert consumer["default_executor_dispatches"] == []
-    assert consumer["ignored_actions"] == result["ignored_actions"]
+    assert result["written_files"] == []
+    assert not (
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json"
+    ).exists()
     assert dispatch_path.read_text(encoding="utf-8").find('"dispatch_status": "ready"') != -1

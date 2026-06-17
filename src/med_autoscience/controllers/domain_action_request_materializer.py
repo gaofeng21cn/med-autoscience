@@ -1191,7 +1191,8 @@ def materialize_domain_action_requests(
         "github_gate": dict(developer_mode.github_user_gate),
         "developer_supervisor_mode": developer_mode_payload,
         "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
-        "apply_writes_domain_intent_projection_only": bool(apply and developer_mode.safe_actions_enabled),
+        "apply_writes_domain_intent_projection_only": False,
+        "apply_writes_disabled_reason": "opl_domain_progress_transition_runtime_owns_durable_carrier",
         "mas_local_dispatch_carrier_persistence": "forbidden",
         "mas_local_request_packet_persistence": "forbidden",
         "opl_transition_runtime_required_for_durable_carrier": True,
@@ -1234,19 +1235,6 @@ def materialize_domain_action_requests(
             "history_path": str(_consumer_history_path(profile)),
         },
     }
-    if apply and developer_mode.safe_actions_enabled:
-        payload["written_files"] = written_files
-        persistence.persist_consumer_payload(
-            latest_path=_consumer_latest_path(profile),
-            history_path=_consumer_history_path(profile),
-            payload=payload,
-            generated_at=generated_at,
-            study_ids=resolved_study_ids,
-            request_task_count=len(request_tasks),
-            ai_reviewer_request_refresh_count=len(ai_reviewer_request_refreshes),
-            written_files=written_files,
-            effective_mode=developer_mode.mode,
-        )
     return payload
 
 

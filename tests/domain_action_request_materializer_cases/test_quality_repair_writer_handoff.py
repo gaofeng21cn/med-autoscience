@@ -172,7 +172,10 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
     assert written_dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert written_dispatch["medical_claim_authoring_allowed"] is True
     assert "immutable_dispatch_path" not in written_dispatch.get("refs", {})
-    assert result["apply_writes_domain_intent_projection_only"] is True
+    assert result["apply_writes_domain_intent_projection_only"] is False
+    assert result["apply_writes_disabled_reason"] == (
+        "opl_domain_progress_transition_runtime_owns_durable_carrier"
+    )
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert result["mas_local_request_packet_persistence"] == "forbidden"
     assert result["ready_default_executor_dispatch_count"] == 0
@@ -312,7 +315,10 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
     ) is None
     assert not dispatch_path.exists()
     assert "dispatch_ref" not in transition_request
-    assert result["apply_writes_domain_intent_projection_only"] is True
+    assert result["apply_writes_domain_intent_projection_only"] is False
+    assert result["apply_writes_disabled_reason"] == (
+        "opl_domain_progress_transition_runtime_owns_durable_carrier"
+    )
     assert result["ready_default_executor_dispatch_count"] == 0
     assert result["transition_request_pending_default_executor_dispatch_count"] == 1
 

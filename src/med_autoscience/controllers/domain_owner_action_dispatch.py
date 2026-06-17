@@ -540,14 +540,13 @@ def _dispatch_pre_execution_block(
             "blocked_reason": developer_apply_gate.block_reason(developer_mode_payload) or "developer_apply_safe_required",
             "owner_callable_surface": None,
         }
-    if apply:
-        opl_block = opl_execution_preflight.block_if_missing_authorization(
-            dispatch=dispatch,
-            owner_route_basis=owner_route_basis,
-            current_study=current_study,
-        )
-        if opl_block is not None:
-            return _blocked_dispatch_carrier(dispatch=dispatch, block=opl_block)
+    opl_block = opl_execution_preflight.block_if_missing_authorization(
+        dispatch=dispatch,
+        owner_route_basis=owner_route_basis,
+        current_study=current_study,
+    )
+    if opl_block is not None:
+        return _blocked_dispatch_carrier(dispatch=dispatch, block=opl_block)
     return None
 
 

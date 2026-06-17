@@ -263,13 +263,17 @@ def test_accepted_owner_gate_quality_repair_dispatch_supersedes_stale_gate_repla
     assert default_result["executions"][0]["action_type"] == "run_quality_repair_batch"
     assert default_result["executions"][0]["dispatch_path"] == str(quality_dispatch_path)
     assert default_result["executions"][0]["owner_route_basis"] == "accepted_owner_gate_decision"
-    assert default_result["executions"][0]["execution_status"] == "dry_run"
-    assert default_result["executions"][0]["blocked_reason"] is None
+    assert default_result["executions"][0]["execution_status"] == "blocked"
+    assert default_result["executions"][0]["blocked_reason"] == "opl_execution_authorization_required"
+    assert default_result["executions"][0]["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert default_result["executions"][0]["owner_callable_surface"] is None
     assert explicit_result["execution_count"] == 1
     assert explicit_result["executions"][0]["action_type"] == "run_quality_repair_batch"
     assert explicit_result["executions"][0]["dispatch_path"] == str(quality_dispatch_path)
-    assert explicit_result["executions"][0]["execution_status"] == "dry_run"
-    assert explicit_result["executions"][0]["blocked_reason"] is None
+    assert explicit_result["executions"][0]["execution_status"] == "blocked"
+    assert explicit_result["executions"][0]["blocked_reason"] == "opl_execution_authorization_required"
+    assert explicit_result["executions"][0]["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert explicit_result["executions"][0]["owner_callable_surface"] is None
 
 
 def test_dispatch_dry_run_materializes_current_owner_action_when_no_dispatch_is_persisted(
@@ -303,8 +307,10 @@ def test_dispatch_dry_run_materializes_current_owner_action_when_no_dispatch_is_
     assert result["execution_count"] == 1
     execution = result["executions"][0]
     assert execution["action_type"] == "run_quality_repair_batch"
-    assert execution["execution_status"] == "dry_run"
-    assert execution["blocked_reason"] is None
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert execution["owner_callable_surface"] is None
     assert execution["owner_route_basis"] == "accepted_owner_gate_decision"
     assert execution["dispatch_path"] == str(
         profile.studies_root
@@ -317,7 +323,7 @@ def test_dispatch_dry_run_materializes_current_owner_action_when_no_dispatch_is_
     )
 
 
-def test_accepted_owner_gate_quality_repair_apply_invokes_mas_materialization(
+def test_accepted_owner_gate_quality_repair_apply_requires_opl_authorization(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -371,20 +377,15 @@ def test_accepted_owner_gate_quality_repair_apply_invokes_mas_materialization(
         apply=True,
     )
 
-    assert len(calls) == 1
+    assert calls == []
     execution = result["executions"][0]
     assert execution["owner_route_basis"] == "accepted_owner_gate_decision"
-    assert execution["execution_status"] == "executed"
-    assert execution["blocked_reason"] is None
-    assert calls[0]["source"] == "domain_owner_action_dispatch"
-    assert calls[0]["authority_route_context"]["controller_route_context"] == {
-        "control_surface": "quality_repair_batch",
-        "controller_action_type": "run_quality_repair_batch",
-        "work_unit_id": "analysis_claim_evidence_repair",
-        "requires_human_confirmation": False,
-        "source_eval_id": None,
-        "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
-    }
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert execution["owner_callable_surface"] is None
+    assert execution["provider_attempt_or_lease_required"] is False
+    assert execution["provider_admission_requires_opl_runtime_result"] is True
 
 
 def test_execute_dispatch_rejects_consumer_dispatch_disallowed_by_current_route(
