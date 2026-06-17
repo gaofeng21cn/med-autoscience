@@ -25,6 +25,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
+    required_opl_transition_readback_shape,
 )
 from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
     provider_admission_supervisor_gate,
@@ -161,6 +162,17 @@ def _stage_route_arbiter_decisions(
                     decision="current_typed_blocker_precedes_provider_admission",
                     effect="suppress_provider_admission_pending",
                     evidence=typed_blocker_precedence,
+                )
+            )
+            continue
+        readback_required = _opl_transition_readback_required_evidence(candidate)
+        if readback_required:
+            decisions.append(
+                _arbiter_decision(
+                    candidate,
+                    decision="opl_transition_readback_required",
+                    effect="suppress_provider_admission_pending",
+                    evidence=readback_required,
                 )
             )
             continue
@@ -525,6 +537,39 @@ def _candidate_requires_strong_current_control_identity(candidate: Mapping[str, 
         "same_tick_materialized_dispatch",
         "opl_current_control_state.action_queue",
         "opl_current_control_state.study_current_executable_owner_action",
+    }
+
+
+def _opl_transition_readback_required_evidence(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    if candidate_opl_transition_readback(candidate):
+        return {}
+    transition_request = _mapping(candidate.get("opl_domain_progress_transition_request"))
+    if not transition_request:
+        transition_request = _mapping(
+            _mapping(candidate.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    if not transition_request:
+        return {}
+    required_shape = required_opl_transition_readback_shape()
+    return {
+        "status": "NonAdvancingApply",
+        "blocked_reason": "opl_transition_readback_required",
+        "required_runtime": _non_empty_text(required_shape.get("runtime_kind"))
+        or "DomainProgressTransitionRuntime",
+        "required_runtime_owner": _non_empty_text(required_shape.get("runtime_owner"))
+        or "one-person-lab",
+        "missing_readback_sections": list(required_shape.get("required_sections") or []),
+        "missing_runtime_refs": list(required_shape.get("required_runtime_refs") or []),
+        "mas_transition_request_idempotency_key": _non_empty_text(
+            transition_request.get("idempotency_key")
+        ),
+        "mas_can_authorize_provider_admission": False,
+        "mas_can_create_opl_outbox_record": False,
+        "mas_can_create_opl_event": False,
+        "mas_can_create_opl_stage_run": False,
+        "no_progress_signal": "transition_request_waits_for_opl_runtime",
     }
 
 

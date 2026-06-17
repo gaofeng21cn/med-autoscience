@@ -19,6 +19,7 @@ def candidate_with_opl_transition_request(
     current_action_source: str | None = None,
 ) -> dict[str, Any]:
     payload = dict(candidate)
+    has_readback = bool(candidate_opl_transition_readback(payload))
     policy_result = _mapping(payload.get("paper_progress_policy_result"))
     transition_request = _mapping(payload.get("opl_domain_progress_transition_request")) or _mapping(
         policy_result.get("opl_domain_progress_transition_request")
@@ -47,6 +48,10 @@ def candidate_with_opl_transition_request(
         policy_result=policy_result,
         candidate=payload,
     )
+    payload["provider_admission_pending"] = has_readback
+    payload["provider_admission_requires_opl_runtime_result"] = not has_readback
+    if not has_readback:
+        payload["provider_attempt_or_lease_required"] = False
     return payload
 
 

@@ -152,9 +152,20 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
     )
 
     assert result["provider_admission_pending_count"] == 0
-    assert result["transition_request_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
     assert result["managed_study_opl_provider_admission_candidates"] == []
-    assert result["managed_study_opl_transition_request_candidates"] == []
+    [transition_request_candidate] = result["managed_study_opl_transition_request_candidates"]
+    assert transition_request_candidate["provider_admission_pending"] is False
+    assert (
+        transition_request_candidate["provider_admission_requires_opl_runtime_result"]
+        is True
+    )
+    assert (
+        transition_request_candidate["opl_domain_progress_transition_request"][
+            "target_runtime_kind"
+        ]
+        == "DomainProgressTransitionRuntime"
+    )
     action = result["managed_study_actions"][0]
     assert action["decision"] == "human_gate"
     assert action["paper_recovery_state"]["phase"] == "human_gate"
@@ -162,6 +173,6 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
     assert action["current_executable_owner_action"]["action_type"] == "return_to_ai_reviewer_workflow"
     assert action["current_executable_owner_action"]["work_unit_id"] == work_unit_id
     assert action["current_executable_owner_action"]["action_fingerprint"] == action_fingerprint
-    assert result["action_fingerprints"] == []
+    assert result["action_fingerprints"] == [action_fingerprint]
     assert progress_projection_calls
     assert all(call.get("sync_runtime_summary") is False for call in progress_projection_calls)
