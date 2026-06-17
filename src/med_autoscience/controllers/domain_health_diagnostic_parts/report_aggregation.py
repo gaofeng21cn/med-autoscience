@@ -70,7 +70,12 @@ def build_runtime_report(
         managed_study_actions=managed_study_actions,
         progress_currentness=managed_study_progress_currentness,
     )
-    transition_request_candidates = list(managed_study_opl_provider_admission_candidates)
+    transition_request_candidates = _merge_provider_admission_candidates(
+        list(managed_study_opl_provider_admission_candidates),
+        _progress_currentness_provider_admission_candidates(
+            managed_study_progress_currentness
+        ),
+    )
     provider_admission_candidates = _provider_admission_candidates_with_opl_readback(
         transition_request_candidates
     )
@@ -228,6 +233,41 @@ def _provider_admission_candidates_with_opl_readback(
         for candidate in candidates
         if candidate_opl_transition_readback(candidate)
     ]
+
+
+def _progress_currentness_provider_admission_candidates(
+    progress_currentness: Mapping[str, Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    for payload in _mapping(progress_currentness).values():
+        progress = _mapping(payload)
+        for key in ("transition_request_candidates", "provider_admission_candidates"):
+            candidates.extend(
+                dict(item)
+                for item in progress.get(key) or []
+                if isinstance(item, Mapping)
+            )
+    return candidates
+
+
+def _merge_provider_admission_candidates(
+    *candidate_groups: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    seen: set[tuple[str | None, str | None, str | None, str | None]] = set()
+    for group in candidate_groups:
+        for candidate in group:
+            key = (
+                _text(candidate.get("study_id")),
+                _text(candidate.get("action_type")),
+                _text(candidate.get("work_unit_id")),
+                _text(candidate.get("dispatch_path")),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(dict(candidate))
+    return merged
 
 
 def _managed_study_action_context_by_study(

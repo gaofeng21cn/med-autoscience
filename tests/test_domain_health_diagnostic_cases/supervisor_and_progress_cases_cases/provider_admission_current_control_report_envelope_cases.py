@@ -327,6 +327,99 @@ def test_runtime_report_preserves_user_gate_when_provider_admission_is_pending()
     }
 
 
+def test_runtime_report_consumes_progress_currentness_opl_log_readback_candidate() -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "source": "opl_current_control_state.study_current_executable_owner_action",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "dispatch_path": (
+            "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+            "supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json"
+        ),
+        "next_executable_owner": "write",
+        "provider_attempt_or_lease_required": True,
+        "provider_admission_requires_opl_runtime_result": False,
+        "opl_transition_readback_source": "opl_domain_progress_transition_runtime_log",
+        "opl_domain_progress_transition_result": _opl_transition_result(
+            study_id=study_id,
+            fingerprint=fingerprint,
+            work_unit_id=work_unit_id,
+        ),
+    }
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "decision": "blocked",
+                "reason": "quest_waiting_opl_runtime_owner_route",
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[],
+        managed_study_progress_currentness={
+            study_id: {
+                "study_id": study_id,
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+                "current_executable_owner_action": {
+                    "surface_kind": "current_executable_owner_action",
+                    "status": "ready",
+                    "next_owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+                "provider_admission_candidates": [candidate],
+                "transition_request_candidates": [candidate],
+            }
+        },
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    assert result["transition_request_pending_count"] == 1
+    assert result["provider_admission_pending_count"] == 1
+    [admission] = result["managed_study_opl_provider_admission_candidates"]
+    assert admission["study_id"] == study_id
+    assert admission["opl_transition_readback_source"] == "opl_domain_progress_transition_runtime_log"
+    assert admission["opl_domain_progress_transition_result"]["identity"]["work_unit_id"] == work_unit_id
+    action = result["managed_study_actions"][0]
+    assert action["provider_admission_state"] == {
+        "status": "pending",
+        "candidate_count": 1,
+        "running_provider_attempt": False,
+    }
+    assert action["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
+
+
 def test_runtime_report_uses_managed_action_runtime_health_for_recovery_state() -> None:
     report_aggregation = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"

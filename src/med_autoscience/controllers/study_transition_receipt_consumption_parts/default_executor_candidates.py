@@ -50,6 +50,51 @@ def default_executor_execution_candidates(*, study_root: Path) -> list[tuple[Map
     return candidates
 
 
+def latest_owner_callable_adapter_receipt_payload(*, study_root: Path) -> tuple[dict[str, Any] | None, str]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    receipt, receipt_ref = _latest_execution_receipt(resolved_study_root)
+    if not _accepted_execution_receipt(receipt):
+        return None, str(receipt_ref)
+    payload = dict(receipt)
+    payload["executions"] = [
+        _execution_from_receipt(execution)
+        for execution in _mapping_list(receipt.get("executions"))
+    ]
+    payload["execution_ledger"] = [
+        _execution_from_receipt(execution)
+        for execution in _mapping_list(receipt.get("execution_ledger"))
+    ]
+    payload.setdefault("canonical_surface", OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE)
+    payload.setdefault("owner_callable_receipt_projection", True)
+    payload.setdefault("projection_authority", False)
+    payload.setdefault("execution_ledger_authority", False)
+    payload.setdefault("attempt_lifecycle_authority", False)
+    payload.setdefault("queue_authority", False)
+    if receipt_ref == LEGACY_EXECUTION_REF:
+        payload.setdefault("legacy_surface_alias", "default_executor_dispatch_execution_study_latest")
+        payload.setdefault("legacy_wire_surface", "default_executor_dispatch_execution_study_latest")
+    return payload, str(receipt_ref)
+
+
+def latest_owner_callable_adapter_receipt_candidates(
+    *,
+    study_root: Path,
+) -> list[tuple[Mapping[str, Any], str]]:
+    receipt, receipt_ref = latest_owner_callable_adapter_receipt_payload(study_root=study_root)
+    if receipt is None:
+        return []
+    candidates: list[tuple[Mapping[str, Any], str]] = []
+    candidates.extend(
+        (execution, receipt_ref)
+        for execution in _mapping_list(receipt.get("executions"))
+    )
+    candidates.extend(
+        (execution, f"{receipt_ref}#execution_ledger")
+        for execution in _mapping_list(receipt.get("execution_ledger"))
+    )
+    return candidates
+
+
 def _execution_from_receipt(execution: Mapping[str, Any]) -> dict[str, Any]:
     normalized = _canonical_owner_callable_receipt(execution)
     route = _receipt_execution_owner_route(execution)
@@ -813,4 +858,10 @@ def _text(value: object) -> str:
     return str(value or "").strip()
 
 
-__all__ = ["default_executor_execution_candidates"]
+__all__ = [
+    "EXECUTION_REF",
+    "LEGACY_EXECUTION_REF",
+    "default_executor_execution_candidates",
+    "latest_owner_callable_adapter_receipt_candidates",
+    "latest_owner_callable_adapter_receipt_payload",
+]

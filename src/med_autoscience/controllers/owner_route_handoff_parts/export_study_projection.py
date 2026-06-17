@@ -5,6 +5,9 @@ from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+    latest_owner_callable_adapter_receipt_payload,
+)
 
 from ..domain_action_request_materializer_parts import current_writer_handoff
 from ..default_executor_action_policy import (
@@ -39,9 +42,6 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
 )
 _OPL_CURRENT_CONTROL_REF = Path("runtime/artifacts/supervision/opl_current_control_state/latest.json")
 _LEGACY_OPL_CURRENT_CONTROL_REF = Path("artifacts/supervision/opl_current_control_state/latest.json")
-_DEFAULT_EXECUTOR_EXECUTION_LATEST = Path(
-    "artifacts/supervision/consumer/default_executor_execution/latest.json"
-)
 _CURRENTNESS_BASIS_KEYS = (
     "owner_reason",
     "runtime_health_epoch",
@@ -558,11 +558,9 @@ def current_readiness_owner_action_record(
         **({"work_unit_fingerprint": provider_fingerprint} if provider_fingerprint is not None else {}),
         **(
             {
-                "provider_admission_identity_source": "default_executor_execution",
-                "provider_admission_execution_ref": workspace_relative(
-                    study_root / _DEFAULT_EXECUTOR_EXECUTION_LATEST,
-                    workspace_root=profile.workspace_root,
-                ),
+                "provider_admission_identity_source": text(provider_handoff.get("source"))
+                or "owner_callable_adapter_receipt",
+                "provider_admission_execution_ref": text(provider_handoff.get("receipt_ref")),
             }
             if provider_handoff
             else {}
@@ -586,7 +584,7 @@ def _current_provider_handoff_execution(
     action_type: str,
     work_unit_id: str,
 ) -> dict[str, Any]:
-    payload = read_json_object(study_root / _DEFAULT_EXECUTOR_EXECUTION_LATEST)
+    payload, receipt_ref = latest_owner_callable_adapter_receipt_payload(study_root=study_root)
     if payload is None:
         return {}
     for item in payload.get("executions") or []:
@@ -610,8 +608,20 @@ def _current_provider_handoff_execution(
         )
         if candidate_work_unit != work_unit_id:
             continue
-        return dict(item)
+        return {
+            **dict(item),
+            "source": _provider_handoff_source(item, receipt_ref=receipt_ref),
+            "receipt_ref": receipt_ref,
+        }
     return {}
+
+
+def _provider_handoff_source(item: Mapping[str, Any], *, receipt_ref: str) -> str:
+    if text(item.get("surface")) == "owner_callable_adapter_receipt":
+        return "owner_callable_adapter_receipt"
+    if receipt_ref.endswith("owner_callable_adapter_receipts/latest.json"):
+        return "owner_callable_adapter_receipt"
+    return "default_executor_execution"
 
 
 def _matching_current_control_study(

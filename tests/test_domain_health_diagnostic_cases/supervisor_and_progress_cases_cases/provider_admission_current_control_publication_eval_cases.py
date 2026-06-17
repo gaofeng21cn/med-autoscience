@@ -178,11 +178,11 @@ def test_materialized_current_control_keeps_publication_eval_write_repair_after_
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
     assert result["action_queue"][0]["status"] == "transition_request_pending"
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "pending_provider_admission"
-    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["decision"] == "opl_transition_readback_required"
+    assert decision["effect"] == "suppress_provider_admission_pending"
     assert result["current_execution_envelopes"][study_id]["state_kind"] == "executable_owner_action"
     assert result["current_execution_envelopes"][study_id]["next_work_unit"] == work_unit_id
 
@@ -332,11 +332,11 @@ def test_materialized_current_control_retains_publication_eval_write_repair_afte
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
     assert result["action_queue"][0]["status"] == "transition_request_pending"
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "pending_provider_admission"
-    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["decision"] == "opl_transition_readback_required"
+    assert decision["effect"] == "suppress_provider_admission_pending"
     assert result["current_execution_envelopes"][study_id]["state_kind"] == "executable_owner_action"
     assert result["current_execution_envelopes"][study_id]["next_work_unit"] == work_unit_id
 
@@ -485,11 +485,11 @@ def test_materialized_current_control_retains_publication_eval_write_repair_afte
     assert result["transition_request_pending_count"] == 1
     assert result["transition_request_candidates"][0]["work_unit_id"] == work_unit_id
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "pending_provider_admission"
-    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["decision"] == "opl_transition_readback_required"
+    assert decision["effect"] == "suppress_provider_admission_pending"
     study = next(item for item in result["studies"] if item["study_id"] == study_id)
     assert "typed_blocker" not in study
     assert result["current_execution_envelopes"][study_id]["state_kind"] == "executable_owner_action"

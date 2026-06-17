@@ -69,10 +69,16 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
     source_eval_id_from_mapping,
 )
+from med_autoscience.controllers.domain_owner_action_dispatch_parts.execution_surfaces import (
+    OWNER_CALLABLE_RECEIPT_SURFACE,
+)
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+    latest_owner_callable_adapter_receipt_payload,
+)
 
 
-DEFAULT_EXECUTOR_EXECUTION_LATEST = Path(
-    "artifacts/supervision/consumer/default_executor_execution/latest.json"
+OWNER_CALLABLE_ADAPTER_RECEIPT_LATEST = Path(
+    "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
 )
 PROVIDER_ADMISSION_FAIL_CLOSED_TYPED_BLOCKERS = frozenset(
     {
@@ -93,13 +99,12 @@ def persisted_provider_admission_candidates(
     study_root: Path,
     status_payload: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    execution_ref = Path(study_root).expanduser().resolve() / DEFAULT_EXECUTOR_EXECUTION_LATEST
-    payload = _read_json_object(execution_ref)
+    payload, execution_ref = latest_owner_callable_adapter_receipt_payload(study_root=study_root)
     if payload is None:
         return []
     return provider_admission_candidates_from_execution_payload(
         payload,
-        execution_ref=str(execution_ref),
+        execution_ref=execution_ref,
         status_payload=status_payload,
     )
 
@@ -436,7 +441,7 @@ def provider_admission_candidate_from_execution(
         "surface": "opl_provider_admission_candidate",
         "schema_version": 1,
         "status": "transition_request_pending",
-        "source": "default_executor_execution",
+        "source": _execution_payload_source(execution, execution_ref=execution_ref),
         "execution_ref": execution_ref,
         "study_id": study_id,
         "quest_id": _non_empty_text(execution.get("quest_id")),
@@ -486,6 +491,18 @@ def provider_admission_candidate_from_execution(
             allow_dispatch_ref_stage_packet_authority=True,
         )
     )
+
+
+def _execution_payload_source(
+    execution: Mapping[str, Any],
+    *,
+    execution_ref: str | None,
+) -> str:
+    if _non_empty_text(execution.get("surface")) == OWNER_CALLABLE_RECEIPT_SURFACE:
+        return "owner_callable_adapter_receipt"
+    if execution_ref and execution_ref.endswith(str(OWNER_CALLABLE_ADAPTER_RECEIPT_LATEST)):
+        return "owner_callable_adapter_receipt"
+    return "default_executor_execution"
 
 
 def _candidate_with_paper_progress_policy_result(

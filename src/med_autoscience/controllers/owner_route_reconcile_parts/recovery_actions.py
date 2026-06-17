@@ -10,6 +10,9 @@ from med_autoscience.controllers import provenance_limited_harmonization_owner_r
 from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.owner_route_reconcile_parts import hard_methodology_currentness
 from med_autoscience.controllers.owner_route_reconcile_parts import methodology_reframe_actions
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+    latest_owner_callable_adapter_receipt_payload,
+)
 
 
 def clean_paper_authority_cutover_ai_reviewer_required(
@@ -227,12 +230,19 @@ def _clean_migration_receipt_publication_eval(publication_eval_payload: Mapping[
 
 
 def _latest_clean_migration_rehydrate_execution(study_root: Path) -> dict[str, Any] | None:
-    payload = _read_json_object(study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json")
-    executions = payload.get("executions") if isinstance(payload, Mapping) else None
+    payload, receipt_ref = latest_owner_callable_adapter_receipt_payload(study_root=study_root)
+    executions = (
+        [
+            *list(payload.get("executions") or []),
+            *list(payload.get("execution_ledger") or []),
+        ]
+        if isinstance(payload, Mapping)
+        else None
+    )
     if not isinstance(executions, list):
         return None
     for item in reversed(executions):
-        execution = _mapping(item)
+        execution = {**_mapping(item), "source_ref": receipt_ref}
         if _text(execution.get("execution_status")) != "blocked":
             continue
         if _clean_migration_ai_reviewer_rehydrate_blocker(execution):
