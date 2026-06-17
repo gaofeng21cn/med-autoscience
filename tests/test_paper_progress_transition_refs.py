@@ -70,9 +70,14 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
     assert replay["semantic_receipt"] == first["semantic_receipt"]
     assert len(refs.read_transition_refs(study_root=study_root)) == 1
     with sqlite3.connect(db_path) as conn:
+        columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(paper_progress_transition_refs)").fetchall()
+        }
+        assert "payload_json" not in columns
         rows = conn.execute(
             """
-            SELECT idempotency_key, intent_fingerprint, source_fingerprint, started_worker, worker_start_ref, payload_json
+            SELECT idempotency_key, intent_fingerprint, source_fingerprint, started_worker, worker_start_ref, payload_sha256, source_path
             FROM paper_progress_transition_refs
             WHERE study_root = ?
             """,
@@ -84,8 +89,10 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
         first["intent_fingerprint"],
         "publication-blockers::same-source",
         0,
-        "",
+        None,
     )
+    assert rows[0][5] != ""
+    assert rows[0][6].endswith("paper_progress_transition_refs/receipts.jsonl")
 
 
 def test_transition_ref_fails_closed_for_same_idempotency_key_with_different_intent(tmp_path: Path) -> None:
