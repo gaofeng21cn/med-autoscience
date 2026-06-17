@@ -220,8 +220,8 @@ def test_explicit_harmonization_dispatch_survives_empty_consumer_latest_with_own
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": 0,
-            "default_executor_dispatches": [],
+            "owner_callable_adapter_count": 0,
+            "owner_callable_adapters": [],
         },
     )
 
@@ -409,8 +409,8 @@ def test_explicit_harmonization_dispatch_ignores_stale_consumer_tail_actions(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": 3,
-            "default_executor_dispatches": [
+            "owner_callable_adapter_count": 3,
+            "owner_callable_adapters": [
                 current_dispatch,
                 stale_decision_dispatch,
                 stale_ai_dispatch,

@@ -112,7 +112,7 @@ def test_execute_dispatch_selects_same_tick_gate_clearing_owner_request_when_sca
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [],
+            "owner_callable_adapters": [],
         },
     )
     monkeypatch.setattr(

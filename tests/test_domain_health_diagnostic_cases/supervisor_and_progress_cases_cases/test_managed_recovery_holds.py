@@ -678,7 +678,7 @@ def test_domain_health_diagnostic_same_tick_pumps_receipt_followthrough_before_n
         return {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
+            "owner_callable_adapter_count": 1,
         }
 
     def fake_dispatch(**kwargs) -> dict[str, object]:
@@ -732,7 +732,7 @@ def test_domain_health_diagnostic_same_tick_pumps_receipt_followthrough_before_n
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["dispatch_executed_count"] == 1
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 0
     assert supervisor_tick["iterations"][1]["progress_first_delta"]["codex_dispatch_count"] == 1
-    assert supervisor_tick["iterations"][1]["post_admission_materialize"]["default_executor_dispatch_count"] == 1
+    assert supervisor_tick["iterations"][1]["post_admission_materialize"]["owner_callable_adapter_count"] == 1
     assert supervisor_tick["owner_route_reconcile"]["action_queue"][0]["action_type"] == "run_quality_repair_batch"
 
 
@@ -763,7 +763,7 @@ def test_domain_health_diagnostic_same_tick_stops_on_repeat_suppression(
         lambda **kwargs: {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
+            "owner_callable_adapter_count": 1,
         },
     )
     monkeypatch.setattr(
@@ -830,7 +830,7 @@ def test_domain_health_diagnostic_same_tick_reports_max_pass_exhaustion_as_owner
         lambda **kwargs: {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
+            "owner_callable_adapter_count": 1,
         },
     )
     monkeypatch.setattr(

@@ -77,7 +77,7 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
             "developer_supervisor_same_tick": {
                 "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
-                    "default_executor_dispatches": [
+                    "owner_callable_adapters": [
                         {
                             "study_id": study_id,
                             "quest_id": study_id,
@@ -184,7 +184,7 @@ def test_same_tick_materialized_report_candidate_carries_opl_transition_request(
                 "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
                     "generated_at": "2026-06-16T02:58:00+00:00",
-                    "default_executor_dispatches": [
+                    "owner_callable_adapters": [
                         {
                             "dispatch_status": "ready",
                             "study_id": study_id,
@@ -320,7 +320,7 @@ def test_same_tick_materialized_dispatch_without_stage_packet_fails_closed(
             "developer_supervisor_same_tick": {
                 "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
-                    "default_executor_dispatches": [
+                    "owner_callable_adapters": [
                         {
                             "study_id": study_id,
                             "quest_id": study_id,
@@ -425,9 +425,9 @@ def test_same_tick_owner_route_apply_refreshes_report_currentness_before_provide
             "iterations": [],
             "materialize": {
                 "surface": "domain_action_request_materializer",
-                "default_executor_dispatch_count": 1,
-                "ready_default_executor_dispatch_count": 1,
-                "default_executor_dispatches": [
+                "owner_callable_adapter_count": 1,
+                "ready_owner_callable_adapter_count": 1,
+                "owner_callable_adapters": [
                     {
                         "study_id": study_id,
                         "quest_id": study_id,
@@ -629,9 +629,9 @@ def test_same_tick_recovery_successor_dispatch_survives_stale_opl_authorization_
             "iterations": [],
             "materialize": {
                 "surface": "domain_action_request_materializer",
-                "default_executor_dispatch_count": 1,
-                "ready_default_executor_dispatch_count": 1,
-                "default_executor_dispatches": [
+                "owner_callable_adapter_count": 1,
+                "ready_owner_callable_adapter_count": 1,
+                "owner_callable_adapters": [
                     {
                         "study_id": study_id,
                         "quest_id": study_id,

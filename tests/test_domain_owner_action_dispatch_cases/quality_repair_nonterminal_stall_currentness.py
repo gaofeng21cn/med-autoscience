@@ -132,7 +132,7 @@ def test_execute_quality_repair_batch_allows_current_nonterminal_stall_after_saf
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
@@ -261,7 +261,7 @@ def test_execute_quality_repair_batch_escalates_after_two_same_auto_failures(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     latest_execution_path = (

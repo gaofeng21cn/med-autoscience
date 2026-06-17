@@ -547,7 +547,7 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     packet = result["request_tasks"][0]["handoff_packet"]
     assert dispatch["owner_route"]["schema_version"] == 2
     assert dispatch["owner_route"]["truth_epoch"] == owner_route["route_epoch"]
@@ -581,17 +581,18 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
     assert packet["owner_route"]["schema_version"] == 2
     assert packet["owner_route"]["truth_epoch"] == owner_route["route_epoch"]
     assert packet["idempotency_key"] == owner_route["idempotency_key"]
-    persisted = json.loads(
-        (
-            study_root
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "default_executor_dispatches"
-            / "return_to_ai_reviewer_workflow.json"
-        ).read_text(encoding="utf-8")
+    legacy_dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
     )
-    assert persisted["owner_route"] == dispatch["owner_route"]
+    assert result["written_files"] == []
+    assert result["apply_writes_disabled_reason"] == "opl_domain_progress_transition_runtime_owns_durable_carrier"
+    assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert not legacy_dispatch_path.exists()
 
 
 def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) -> None:
@@ -667,8 +668,8 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [dispatch],
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [dispatch],
         },
     )
     _write_json(

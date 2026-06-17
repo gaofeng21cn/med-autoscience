@@ -62,10 +62,10 @@ def test_domain_health_diagnostic_same_tick_refreshes_materialize_after_pending_
         return {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-            "ready_default_executor_dispatch_count": 1,
-            "blocked_default_executor_dispatch_count": 0,
-            "default_executor_dispatches": [
+            "owner_callable_adapter_count": 1,
+            "ready_owner_callable_adapter_count": 1,
+            "blocked_owner_callable_adapter_count": 0,
+            "owner_callable_adapters": [
                 {
                     "study_id": study_id,
                     "quest_id": study_id,
@@ -105,7 +105,7 @@ def test_domain_health_diagnostic_same_tick_refreshes_materialize_after_pending_
     assert scan_calls[1]["persist_surfaces"] is True
     assert len(materialize_calls) == 2
     iteration = supervisor_tick["iterations"][0]
-    assert iteration["post_admission_materialize"]["default_executor_dispatches"][0]["refs"]["dispatch_path"].endswith(
+    assert iteration["post_admission_materialize"]["owner_callable_adapters"][0]["refs"]["dispatch_path"].endswith(
         "/post-probe.json"
     )
     assert supervisor_tick["materialize"] == iteration["post_admission_materialize"]
@@ -156,7 +156,7 @@ def test_domain_health_diagnostic_same_tick_reports_provider_attempt_started_aft
         lambda **kwargs: {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
+            "owner_callable_adapter_count": 1,
         },
     )
     monkeypatch.setattr(
@@ -278,7 +278,7 @@ def test_domain_health_diagnostic_same_tick_rejects_stale_provider_attempt_for_n
         lambda **kwargs: {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
+            "owner_callable_adapter_count": 1,
         },
     )
     monkeypatch.setattr(
@@ -363,8 +363,8 @@ def test_domain_health_diagnostic_same_tick_continues_after_partial_provider_adm
         return {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [
                 {
                     "study_id": "002-risk",
                     "action_type": "return_to_ai_reviewer_workflow",

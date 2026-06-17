@@ -111,7 +111,7 @@ def test_default_dispatch_selects_stage_artifact_publication_handoff_over_stale_
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {**stale_dispatch, "refs": {"dispatch_path": str(stale_path)}},
                 {**current_dispatch, "refs": {"dispatch_path": str(current_path)}},
             ],

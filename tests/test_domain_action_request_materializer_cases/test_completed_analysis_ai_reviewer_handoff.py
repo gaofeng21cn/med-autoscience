@@ -127,15 +127,15 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
     )
 
     assert result["request_task_count"] == 1
-    assert result["default_executor_dispatch_count"] == 1
+    assert result["owner_callable_adapter_count"] == 1
     task = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
-    assert task["dispatch_status"] == "applied"
+    dispatch = result["owner_callable_adapters"][0]
+    assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "ai_reviewer"
     assert task["owner_route_current"] is True
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "ai_reviewer"
-    assert dispatch["blocked_reason"] is None
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
     assert dispatch["repeat_suppressed"] is False
     packet_path = (
         study_root
@@ -153,17 +153,24 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
         / "default_executor_dispatches"
         / "return_to_ai_reviewer_workflow.json"
     )
-    assert packet_path.is_file()
-    assert dispatch_path.is_file()
-    packet = json.loads(packet_path.read_text(encoding="utf-8"))
-    written_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
-    assert packet["request_owner"] == "ai_reviewer"
-    assert packet["required_output_surface"] == "artifacts/publication_eval/latest.json"
-    assert written_dispatch["dispatch_status"] == "ready"
-    assert written_dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
-    assert written_dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
-    assert written_dispatch["prompt_contract"]["request_packet_ref"] == (
+    assert result["written_files"] == []
+    assert result["apply_writes_disabled_reason"] == "opl_domain_progress_transition_runtime_owns_durable_carrier"
+    assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert not packet_path.exists()
+    assert not dispatch_path.exists()
+    assert task["handoff_packet"]["request_owner"] == "ai_reviewer"
+    assert task["handoff_packet"]["required_output_surface"] == "artifacts/publication_eval/latest.json"
+    assert task["handoff_packet"]["dispatch_status"] == "transition_request_pending"
+    assert task["handoff_packet"]["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
+    assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
+    assert dispatch["prompt_contract"]["request_packet_ref"] == (
         "artifacts/supervision/requests/ai_reviewer/latest.json"
+    )
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
     )
 
 
@@ -231,32 +238,39 @@ def test_materialize_domain_transition_ai_reviewer_re_eval_handoff(
     )
 
     assert result["request_task_count"] == 1
-    assert result["default_executor_dispatch_count"] == 1
+    assert result["owner_callable_adapter_count"] == 1
     task = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
-    assert task["dispatch_status"] == "applied"
+    dispatch = result["owner_callable_adapters"][0]
+    assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "ai_reviewer"
     assert task["owner_route_current"] is True
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "ai_reviewer"
-    assert dispatch["blocked_reason"] is None
-    written_dispatch = json.loads(
-        (
-            study_root
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "default_executor_dispatches"
-            / "return_to_ai_reviewer_workflow.json"
-        ).read_text(encoding="utf-8")
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
     )
-    assert written_dispatch["owner_route"]["owner_reason_contract"]["registered"] is True
-    assert written_dispatch["owner_route"]["owner_reason_contract"]["reason"] == (
+    assert result["written_files"] == []
+    assert result["apply_writes_disabled_reason"] == "opl_domain_progress_transition_runtime_owns_durable_carrier"
+    assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert not dispatch_path.exists()
+    assert dispatch["owner_route"]["owner_reason_contract"]["registered"] is True
+    assert dispatch["owner_route"]["owner_reason_contract"]["reason"] == (
         "domain_transition_ai_reviewer_re_eval"
     )
-    assert "return_to_ai_reviewer_workflow" in written_dispatch["owner_route"]["allowed_actions"]
-    assert written_dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
-    assert written_dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
+    assert "return_to_ai_reviewer_workflow" in dispatch["owner_route"]["allowed_actions"]
+    assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
+    assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )
 
 
 def test_current_write_domain_transition_supersedes_stale_ai_reviewer_queue(
@@ -341,14 +355,14 @@ def test_current_write_domain_transition_supersedes_stale_ai_reviewer_queue(
     )
 
     assert result["request_task_count"] == 1
-    assert result["default_executor_dispatch_count"] == 1
+    assert result["owner_callable_adapter_count"] == 1
     task = result["request_tasks"][0]
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert task["action_type"] == "run_quality_repair_batch"
     assert task["request_owner"] == "write"
     assert dispatch["action_type"] == "run_quality_repair_batch"
     assert dispatch["next_executable_owner"] == "write"
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["owner_route"]["next_owner"] == "write"
     assert dispatch["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
     assert any(
@@ -364,14 +378,20 @@ def test_current_write_domain_transition_supersedes_stale_ai_reviewer_queue(
         / "default_executor_dispatches"
         / "return_to_ai_reviewer_workflow.json"
     ).exists()
-    assert (
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )
+    assert not (
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
         / "run_quality_repair_batch.json"
-    ).is_file()
+    ).exists()
 
 
 def test_empty_per_study_queue_prevents_stale_top_level_redrive_without_current_transition(
@@ -451,15 +471,12 @@ def test_empty_per_study_queue_prevents_stale_top_level_redrive_without_current_
     )
 
     assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
-    assert result["ignored_actions"] == [
-        {
-            "study_id": study_id,
-            "action_type": "return_to_ai_reviewer_workflow",
-            "action_id": None,
-            "reason": "superseded_by_current_study_empty_action_queue",
-        }
-    ]
+    assert result["owner_callable_adapter_count"] == 0
+    assert any(
+        ignored["action_type"] == "return_to_ai_reviewer_workflow"
+        and ignored["reason"] == "superseded_by_current_work_unit_typed_blocker"
+        for ignored in result["ignored_actions"]
+    )
 
 
 def test_consumed_ai_reviewer_transition_uses_current_owner_route_basis_for_dispatchable_route(
@@ -537,21 +554,24 @@ def test_consumed_ai_reviewer_transition_uses_current_owner_route_basis_for_disp
         apply=True,
     )
 
-    assert result["default_executor_dispatch_count"] == 1
-    dispatch = result["default_executor_dispatches"][0]
-    assert dispatch["dispatch_status"] == "ready"
+    assert result["owner_callable_adapter_count"] == 1
+    dispatch = result["owner_callable_adapters"][0]
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
     assert dispatch["owner_route"]["source_refs"]["runtime_health_epoch"] == "runtime-health-current"
     assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
-    assert (
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert not (
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
         / "return_to_ai_reviewer_workflow.json"
-    ).is_file()
+    ).exists()
 
 
 def test_action_queue_dispatch_inherits_complete_owner_route_currentness_basis(
@@ -641,11 +661,14 @@ def test_action_queue_dispatch_inherits_complete_owner_route_currentness_basis(
         apply=True,
     )
 
-    assert result["default_executor_dispatch_count"] == 1
-    dispatch = result["default_executor_dispatches"][0]
-    assert dispatch["dispatch_status"] == "ready"
-    assert dispatch["blocked_reason"] is None
+    assert result["owner_callable_adapter_count"] == 1
+    dispatch = result["owner_callable_adapters"][0]
+    assert dispatch["dispatch_status"] == "transition_request_pending"
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
     assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"] == expected_basis
     assert dispatch["prompt_contract"]["owner_route_currentness_basis"] == expected_basis
     assert dispatch["owner_route_attempt_envelope"]["owner_route_currentness_basis"] == expected_basis
     assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
+    assert dispatch["provider_admission_pending"] is False
+    assert dispatch["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == "DomainProgressTransitionRuntime"

@@ -85,7 +85,7 @@ def test_domain_health_diagnostic_focused_same_tick_does_not_retain_unscanned_ow
         lambda **kwargs: {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
+            "owner_callable_adapter_count": 1,
         },
     )
     monkeypatch.setattr(

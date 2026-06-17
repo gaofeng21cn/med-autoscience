@@ -182,7 +182,7 @@ def test_execute_dispatch_does_not_execute_consumed_quality_repair_handoff_when_
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 writer_dispatch,
             ],
         },

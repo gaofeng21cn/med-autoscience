@@ -8,9 +8,6 @@ def owner_callable_adapters(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     adapters = payload.get("owner_callable_adapters")
     if isinstance(adapters, list):
         return [dict(item) for item in adapters if isinstance(item, Mapping)]
-    legacy = payload.get("default_executor_dispatches")
-    if isinstance(legacy, list):
-        return [dict(item) for item in legacy if isinstance(item, Mapping)]
     return []
 
 

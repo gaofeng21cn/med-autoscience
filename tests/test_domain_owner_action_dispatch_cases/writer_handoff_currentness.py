@@ -274,7 +274,7 @@ def test_execute_dispatch_accepts_request_bound_writer_handoff_bridged_from_runt
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(
@@ -541,7 +541,7 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(

@@ -351,8 +351,8 @@ def _write_consumer_latest(profile, dispatch_payload: dict[str, object]) -> None
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [dispatch_payload],
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [dispatch_payload],
         },
     )
 
@@ -363,8 +363,8 @@ def _write_consumer_latest_dispatches(profile, dispatch_payloads: list[dict[str,
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": len(dispatch_payloads),
-            "default_executor_dispatches": dispatch_payloads,
+            "owner_callable_adapter_count": len(dispatch_payloads),
+            "owner_callable_adapters": dispatch_payloads,
         },
     )
 

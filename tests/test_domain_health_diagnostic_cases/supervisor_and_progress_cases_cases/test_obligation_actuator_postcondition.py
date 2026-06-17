@@ -980,9 +980,9 @@ def test_domain_health_diagnostic_apply_fails_closed_when_ready_action_has_no_cl
                         "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
                     },
                     "domain_action_request_materialization_preview": {
-                        "default_executor_dispatch_count": 1,
-                        "ready_default_executor_dispatch_count": 1,
-                        "default_executor_dispatches": [
+                        "owner_callable_adapter_count": 1,
+                        "ready_owner_callable_adapter_count": 1,
+                        "owner_callable_adapters": [
                             {
                                 "study_id": study_id,
                                 "action_type": "run_quality_repair_batch",

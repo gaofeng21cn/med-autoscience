@@ -84,8 +84,8 @@ def test_execute_dispatch_ignores_stale_consumer_dispatch_after_consumed_transit
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [stale_ai_dispatch],
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [stale_ai_dispatch],
         },
     )
 

@@ -109,7 +109,7 @@ def test_execute_dispatch_uses_pending_ai_reviewer_request_when_scan_route_loses
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     called: dict[str, object] = {}

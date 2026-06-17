@@ -222,8 +222,8 @@ def test_materializer_does_not_repeat_suppress_current_manuscript_pending_eval(
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert result["repeat_suppressed_count"] == 0
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["repeat_suppressed"] is False
-    assert dispatch["blocked_reason"] is None
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"

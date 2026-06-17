@@ -161,7 +161,7 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(

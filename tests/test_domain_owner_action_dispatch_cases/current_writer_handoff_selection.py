@@ -195,8 +195,8 @@ def test_execute_dispatch_defaults_to_current_writer_handoff_after_consumed_revi
         consumer_payload={
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [dispatch_payload],
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [dispatch_payload],
         },
     )
 

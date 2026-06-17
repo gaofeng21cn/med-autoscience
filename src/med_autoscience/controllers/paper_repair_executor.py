@@ -398,7 +398,7 @@ def _ai_reviewer_owner_consumer_payload(
         "surface": "paper_repair_inline_consumer_payload",
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
-        "default_executor_dispatches": [dispatch],
+        "owner_callable_adapters": [dispatch],
     }
 
 

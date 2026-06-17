@@ -356,7 +356,7 @@ def test_default_dispatch_current_stage_handoff_supersedes_consumed_transition_g
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {**gate_dispatch, "refs": {"dispatch_path": str(gate_path)}},
                 {**handoff_dispatch, "refs": {"dispatch_path": str(handoff_path)}},
             ],

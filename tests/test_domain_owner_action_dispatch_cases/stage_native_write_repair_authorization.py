@@ -305,7 +305,7 @@ def test_stage_native_write_repair_owner_request_survives_stale_readiness_scan(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [],
+            "owner_callable_adapters": [],
         },
     )
     def fail_if_called(**_: object) -> dict[str, object]:
@@ -473,7 +473,7 @@ def test_stage_native_write_repair_next_action_filters_stale_readiness_and_revie
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 readiness_dispatch,
                 reviewer_dispatch,
                 stage_native_dispatch,
@@ -666,7 +666,7 @@ def test_stage_native_next_action_preempts_older_current_writer_handoff(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [old_writer_handoff, stage_native_dispatch],
+            "owner_callable_adapters": [old_writer_handoff, stage_native_dispatch],
         },
     )
     _write_json(
@@ -801,7 +801,7 @@ def test_stage_native_next_action_without_authority_binding_does_not_preempt_cur
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [old_writer_handoff, stage_native_dispatch],
+            "owner_callable_adapters": [old_writer_handoff, stage_native_dispatch],
         },
     )
     _write_json(
@@ -850,7 +850,7 @@ def test_stage_native_next_action_without_authority_binding_does_not_preempt_cur
         mode="developer_apply_safe",
         apply=False,
     )
-    assert materialized["default_executor_dispatches"] == []
+    assert materialized["owner_callable_adapters"] == []
     assert any(
         item["action_type"] == "run_quality_repair_batch"
         and item["reason"] == "stage_native_workspace_next_action_requires_authority_binding"

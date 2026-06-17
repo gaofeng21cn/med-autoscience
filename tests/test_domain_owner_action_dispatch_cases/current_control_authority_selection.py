@@ -240,7 +240,7 @@ def test_accepted_owner_gate_quality_repair_dispatch_supersedes_stale_gate_repla
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [gate_dispatch, quality_dispatch],
+            "owner_callable_adapters": [gate_dispatch, quality_dispatch],
         },
     )
 
@@ -354,7 +354,7 @@ def test_accepted_owner_gate_quality_repair_apply_requires_opl_authorization(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [quality_dispatch],
+            "owner_callable_adapters": [quality_dispatch],
         },
     )
     calls: list[dict[str, object]] = []
@@ -444,8 +444,8 @@ def test_execute_dispatch_rejects_consumer_dispatch_disallowed_by_current_route(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [stale_dispatch],
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [stale_dispatch],
         },
     )
 
@@ -527,8 +527,8 @@ def test_execute_dispatch_rejects_unrouted_consumer_dispatch_when_current_contro
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [stale_dispatch],
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [stale_dispatch],
         },
     )
 
@@ -614,8 +614,8 @@ def test_execute_dispatch_rejects_unrouted_consumer_dispatch_when_current_work_u
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [stale_dispatch],
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [stale_dispatch],
         },
     )
 

@@ -72,7 +72,7 @@ def test_domain_action_request_materializer_command_apply_dispatches_controller(
         called["apply"] = apply
         return {
             "surface": "domain_action_request_materializer",
-            "default_executor_dispatch_count": len(study_ids),
+            "owner_callable_adapter_count": len(study_ids),
         }
 
     monkeypatch.setattr(cli.domain_action_request_materializer, "materialize_domain_action_requests", fake_materialize_domain_action_requests)
@@ -97,7 +97,7 @@ def test_domain_action_request_materializer_command_apply_dispatches_controller(
     assert called["study_ids"] == ("NF003", "DM002")
     assert called["mode"] == "developer_apply_safe"
     assert called["apply"] is True
-    assert json.loads(captured.out)["default_executor_dispatch_count"] == 2
+    assert json.loads(captured.out)["owner_callable_adapter_count"] == 2
 
 
 def test_study_owner_gate_decision_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -272,8 +272,8 @@ def test_domain_owner_action_dispatch_command_accepts_payload_file(monkeypatch, 
     consumer_payload = {
         "surface": "domain_action_request_materializer",
         "schema_version": 1,
-        "default_executor_dispatch_count": 1,
-        "default_executor_dispatches": [
+        "owner_callable_adapter_count": 1,
+        "owner_callable_adapters": [
             {
                 "surface": "default_executor_dispatch_request",
                 "study_id": "DM003",

@@ -27,8 +27,8 @@ def test_execute_dispatch_consumes_inline_readiness_dispatch_closeout_binding(
     consumer_payload = {
         "surface": "domain_action_request_materializer",
         "schema_version": 1,
-        "default_executor_dispatch_count": 1,
-        "default_executor_dispatches": [dispatch],
+        "owner_callable_adapter_count": 1,
+        "owner_callable_adapters": [dispatch],
     }
 
     result = module.dispatch_domain_owner_actions(

@@ -86,7 +86,7 @@ def test_execute_dispatch_accepts_paper_recovery_owner_callable_route_without_sc
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(
@@ -505,8 +505,8 @@ def test_execute_dispatch_selects_same_tick_paper_recovery_successor_dispatch(
     consumer_payload = {
         "surface": "domain_action_request_materializer",
         "schema_version": 1,
-        "default_executor_dispatch_count": 1,
-        "default_executor_dispatches": [stale_dispatch_payload, dispatch_payload],
+        "owner_callable_adapter_count": 1,
+        "owner_callable_adapters": [stale_dispatch_payload, dispatch_payload],
     }
 
     def fake_read_study_progress(**_: object) -> dict[str, object]:
@@ -719,7 +719,7 @@ def test_execute_dispatch_blocks_paper_recovery_provider_successor_without_opl_a
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}
             ],
         },

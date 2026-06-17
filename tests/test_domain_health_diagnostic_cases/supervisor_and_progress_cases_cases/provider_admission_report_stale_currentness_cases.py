@@ -404,7 +404,7 @@ def test_same_tick_materialized_candidate_requires_explicit_current_identity(
             "developer_supervisor_same_tick": {
                 "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
-                    "default_executor_dispatches": [
+                    "owner_callable_adapters": [
                         {
                             "study_id": study_id,
                             "quest_id": study_id,

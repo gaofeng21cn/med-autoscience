@@ -69,6 +69,25 @@ def _write_stage_native_next_action(
     )
 
 
+def _stage_native_current_owner_identity(
+    *,
+    action_type: str,
+    source_surface: str,
+    current_stage_id: str = "08-publication_package_handoff",
+) -> dict[str, str]:
+    fields = _stage_native_admission_fields(
+        action_type=action_type,
+        current_stage_id=current_stage_id,
+        source_surface=source_surface,
+    )
+    binding = fields["current_work_unit_binding"]
+    return {
+        "action_type": action_type,
+        "work_unit_id": str(binding["work_unit_id"]),
+        "work_unit_fingerprint": str(binding["work_unit_fingerprint"]),
+    }
+
+
 def _write_profile(path: Path, profile) -> None:
     path.write_text(
         "\n".join(
@@ -527,6 +546,10 @@ def test_domain_action_request_materializer_prefers_stage_native_clean_room_next
                     "study_id": study_id,
                     "quest_id": study_id,
                     "owner_route": stale_route,
+                    "current_executable_owner_action": _stage_native_current_owner_identity(
+                        action_type="run_medical_publication_surface_from_clean_room",
+                        source_surface="artifacts/supervision/paper_clean_room_rebuild/latest.json",
+                    ),
                     "action_queue": [
                         {
                             "study_id": study_id,
@@ -552,20 +575,29 @@ def test_domain_action_request_materializer_prefers_stage_native_clean_room_next
         apply=True,
     )
 
-    dispatches = result["default_executor_dispatches"]
+    dispatches = result["owner_callable_adapters"]
     assert [dispatch["action_type"] for dispatch in dispatches] == [
         "run_medical_publication_surface_from_clean_room"
     ]
     dispatch = dispatches[0]
-    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
+    transition_request = dispatch["opl_domain_progress_transition_request"]
+    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert transition_request["request_owner"] == "med-autoscience"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert transition_request["recommended_transition_kind"] == "MaterializeOwnerAction"
+    assert transition_request["mas_can_create_opl_outbox_record"] is False
+    assert dispatch["authority_boundary"]["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert dispatch["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
+    assert dispatch["mas_dispatch_authority"] is False
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["required_output_surface"] == "artifacts/reports/medical_publication_surface/latest.json"
     assert dispatch["source_action"]["source_surface"] == "artifacts/supervision/paper_clean_room_rebuild/latest.json"
-    assert (study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches" / "run_medical_publication_surface_from_clean_room.json").is_file()
+    assert result["written_files"] == []
     assert result["ignored_actions"][0]["reason"] == "superseded_by_stage_native_next_action"
 
 
-def test_domain_owner_dispatch_accepts_stage_native_clean_room_owner_route(
+def test_domain_owner_dispatch_ignores_stage_native_clean_room_transition_request_without_opl_authorization(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -587,15 +619,43 @@ def test_domain_owner_dispatch_accepts_stage_native_clean_room_owner_route(
     )
     clean_paper_root = Path(clean_result["clean_workspace_root"]) / "verified_inputs" / "paper"
     write_text(clean_paper_root / "draft.md", "clean-room verified draft\n")
+    stale_route = _owner_route(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+    )
     _write_json(
         profile.workspace_root / request_module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "quest_id": study_id}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner_route": stale_route,
+                    "current_executable_owner_action": _stage_native_current_owner_identity(
+                        action_type="run_medical_publication_surface_from_clean_room",
+                        source_surface="artifacts/supervision/paper_clean_room_rebuild/latest.json",
+                    ),
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "run_gate_clearing_batch",
+                            "owner": "gate_clearing_batch",
+                            "request_owner": "gate_clearing_batch",
+                            "recommended_owner": "gate_clearing_batch",
+                            "reason": "stale_gate_replay",
+                            "owner_route": stale_route,
+                            "handoff_packet": {"owner_route": stale_route},
+                        }
+                    ],
+                }
+            ],
         },
     )
-    request_module.materialize_domain_action_requests(
+    consumer_payload = request_module.materialize_domain_action_requests(
         profile=profile,
         study_ids=(study_id,),
         mode="developer_apply_safe",
@@ -619,13 +679,25 @@ def test_domain_owner_dispatch_accepts_stage_native_clean_room_owner_route(
         action_types=("run_medical_publication_surface_from_clean_room",),
         mode="developer_apply_safe",
         apply=True,
+        consumer_payload=consumer_payload,
     )
 
-    execution = result["executions"][0]
-    assert execution["execution_status"] == "executed"
-    assert execution["owner_route_basis"] == "stage_native_workspace_next_action"
-    assert execution["blocked_reason"] is None
-    assert captured["paper_root"] == clean_paper_root
+    assert result["execution_count"] == 0
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 0
+    assert captured == {}
+    adapter = consumer_payload["owner_callable_adapters"][0]
+    assert adapter["dispatch_status"] == "transition_request_pending"
+    transition_request = adapter["opl_domain_progress_transition_request"]
+    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert transition_request["request_owner"] == "med-autoscience"
+    assert transition_request["target_runtime_owner"] == "one-person-lab"
+    assert adapter["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
+    assert result["mas_dispatch_authority"] is False
+    assert result["mas_creates_opl_outbox"] is False
+    assert result["mas_creates_opl_event"] is False
+    assert result["mas_creates_opl_stage_run"] is False
+    assert clean_paper_root.is_dir()
 
 
 def test_domain_owner_dispatch_accepts_stage_native_publication_surface_report_owner_route(

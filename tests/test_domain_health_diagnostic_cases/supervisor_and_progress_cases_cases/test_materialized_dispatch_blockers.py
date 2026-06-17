@@ -36,10 +36,10 @@ def test_domain_health_diagnostic_same_tick_treats_blocked_materialized_dispatch
         lambda **kwargs: {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-            "ready_default_executor_dispatch_count": 0,
-            "blocked_default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapter_count": 1,
+            "ready_owner_callable_adapter_count": 0,
+            "blocked_owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [
                 {
                     "study_id": study_id,
                     "action_type": "return_to_ai_reviewer_workflow",
@@ -140,10 +140,10 @@ def test_domain_health_diagnostic_dry_run_includes_recovery_materialization_prev
             "surface": "domain_action_request_materializer",
             "dry_run": True,
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-            "ready_default_executor_dispatch_count": 1,
-            "blocked_default_executor_dispatch_count": 0,
-            "default_executor_dispatches": [
+            "owner_callable_adapter_count": 1,
+            "ready_owner_callable_adapter_count": 1,
+            "blocked_owner_callable_adapter_count": 0,
+            "owner_callable_adapters": [
                 {
                     "study_id": study_id,
                     "action_type": "run_quality_repair_batch",
@@ -303,10 +303,10 @@ def test_domain_health_diagnostic_dry_run_includes_owner_resolution_preview(
             "surface": "domain_action_request_materializer",
             "dry_run": True,
             "request_task_count": 0,
-            "default_executor_dispatch_count": 0,
-            "ready_default_executor_dispatch_count": 0,
-            "blocked_default_executor_dispatch_count": 0,
-            "default_executor_dispatches": [],
+            "owner_callable_adapter_count": 0,
+            "ready_owner_callable_adapter_count": 0,
+            "blocked_owner_callable_adapter_count": 0,
+            "owner_callable_adapters": [],
         },
     )
     monkeypatch.setattr(
@@ -515,10 +515,10 @@ def test_domain_health_diagnostic_same_tick_treats_opl_authorization_blocker_as_
         lambda **kwargs: {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-            "ready_default_executor_dispatch_count": 1,
-            "blocked_default_executor_dispatch_count": 0,
-            "default_executor_dispatches": [
+            "owner_callable_adapter_count": 1,
+            "ready_owner_callable_adapter_count": 1,
+            "blocked_owner_callable_adapter_count": 0,
+            "owner_callable_adapters": [
                 {
                     "study_id": study_id,
                     "action_type": "run_gate_clearing_batch",
@@ -613,10 +613,10 @@ def test_domain_health_diagnostic_same_tick_rejects_authorization_blocker_withou
         lambda **kwargs: {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-            "ready_default_executor_dispatch_count": 1,
-            "blocked_default_executor_dispatch_count": 0,
-            "default_executor_dispatches": [
+            "owner_callable_adapter_count": 1,
+            "ready_owner_callable_adapter_count": 1,
+            "blocked_owner_callable_adapter_count": 0,
+            "owner_callable_adapters": [
                 {
                     "study_id": study_id,
                     "action_type": "run_gate_clearing_batch",
@@ -731,10 +731,10 @@ def test_domain_health_diagnostic_opl_authorization_blocker_matches_current_iden
         lambda **kwargs: {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-            "ready_default_executor_dispatch_count": 1,
-            "blocked_default_executor_dispatch_count": 0,
-            "default_executor_dispatches": [
+            "owner_callable_adapter_count": 1,
+            "ready_owner_callable_adapter_count": 1,
+            "blocked_owner_callable_adapter_count": 0,
+            "owner_callable_adapters": [
                 {
                     "study_id": blocked_study_id,
                     "action_type": "run_gate_clearing_batch",
@@ -806,10 +806,10 @@ def test_domain_health_diagnostic_same_tick_dispatch_consumes_materialize_payloa
     materialize_payload = {
         "surface": "domain_action_request_materializer",
         "request_task_count": 1,
-        "default_executor_dispatch_count": 1,
-        "ready_default_executor_dispatch_count": 1,
-        "blocked_default_executor_dispatch_count": 0,
-        "default_executor_dispatches": [
+        "owner_callable_adapter_count": 1,
+        "ready_owner_callable_adapter_count": 1,
+        "blocked_owner_callable_adapter_count": 0,
+        "owner_callable_adapters": [
             {
                 "study_id": study_id,
                 "action_type": "run_quality_repair_batch",
@@ -862,7 +862,7 @@ def test_domain_health_diagnostic_same_tick_dispatch_consumes_materialize_payloa
     assert captured_consumer_payloads[0]["owner_callable_adapter_count"] == 1
     assert captured_consumer_payloads[0]["ready_owner_callable_adapter_count"] == 1
     assert captured_consumer_payloads[0]["owner_callable_adapters"] == (
-        materialize_payload["default_executor_dispatches"]
+        materialize_payload["owner_callable_adapters"]
     )
     assert supervisor_tick["pass_count"] == 1
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["dispatch_execution_count"] == 1

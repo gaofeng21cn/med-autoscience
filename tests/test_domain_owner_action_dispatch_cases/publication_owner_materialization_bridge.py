@@ -137,7 +137,7 @@ def test_execute_dispatch_accepts_story_surface_materialization_bridge_owner_rou
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {
                     **dispatch_payload,
                     "refs": {"dispatch_path": str(dispatch_path)},

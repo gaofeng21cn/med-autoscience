@@ -185,9 +185,9 @@ def test_domain_health_diagnostic_keeps_same_tick_provider_admission_closed_with
                 "iterations": [],
                 "materialize": {
                     "surface": "domain_action_request_materializer",
-                    "default_executor_dispatch_count": 1,
-                    "ready_default_executor_dispatch_count": 1,
-                    "default_executor_dispatches": [
+                    "owner_callable_adapter_count": 1,
+                    "ready_owner_callable_adapter_count": 1,
+                    "owner_callable_adapters": [
                         {
                             "study_id": study_id,
                             "quest_id": study_id,

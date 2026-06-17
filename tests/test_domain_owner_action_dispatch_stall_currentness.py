@@ -109,7 +109,7 @@ def test_quality_repair_batch_ignores_nonterminal_stall_fingerprint_drift(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)

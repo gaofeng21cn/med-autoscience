@@ -113,7 +113,7 @@ def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [dispatch_payload],
+            "owner_callable_adapters": [dispatch_payload],
         },
     )
 
@@ -243,7 +243,7 @@ def test_execute_dispatch_reports_per_study_no_private_owner_callable_accounting
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": len(dispatches),
+            "owner_callable_adapter_count": len(dispatches),
             "default_executor_dispatches": dispatches,
         },
     )
@@ -447,7 +447,7 @@ def test_execute_dispatch_blocks_owner_request_persisted_writer_handoff_without_
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [stale_consumer_dispatch],
+            "owner_callable_adapters": [stale_consumer_dispatch],
         },
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)

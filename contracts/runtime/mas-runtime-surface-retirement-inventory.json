@@ -131,6 +131,28 @@
         "source_workflow_ref_for_ai_reviewer_request"
       ],
       "surface_id": "domain_action_request_materializer_local_carrier_persistence_api"
+    },
+    {
+      "active_caller_migrated": true,
+      "compatibility_alias_allowed": false,
+      "current_disposition": "physically_retired",
+      "forbidden_claims": [
+        "mas_owned_generic_runtime",
+        "mas_owned_queue",
+        "mas_owned_attempt_ledger",
+        "mas_owned_retry_dead_letter",
+        "legacy_default_executor_dispatches_as_owner_callable_adapters",
+        "provider_completion_as_domain_ready"
+      ],
+      "generic_runtime_owner": "one-person-lab",
+      "mas_owner_claim_allowed": false,
+      "replacement_surface": "explicit owner_callable_adapters projection plus OPL DomainProgressTransitionRuntime readback",
+      "retained_mas_role": "none_physically_retired_no_alias",
+      "retired_code_path": "src/med_autoscience/controllers/owner_callable_adapter_projection.py",
+      "retired_symbols": [
+        "default_executor_dispatches owner_callable_adapters fallback alias"
+      ],
+      "surface_id": "owner_callable_adapter_legacy_dispatch_projection_alias"
     }
   ],
   "version": "mas-runtime-surface-retirement-inventory.v1"

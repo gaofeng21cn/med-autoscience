@@ -350,7 +350,7 @@ def _step_receipts(
             "step": "materialize_domain_requests",
             "surface": consumed.get("surface"),
             "request_task_count": consumed.get("request_task_count"),
-            "default_executor_dispatch_count": consumed.get("default_executor_dispatch_count"),
+            "owner_callable_adapter_count": consumed.get("owner_callable_adapter_count"),
         },
         {
             "step": "observe_owner_dispatch",

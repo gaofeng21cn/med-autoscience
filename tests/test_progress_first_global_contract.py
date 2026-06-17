@@ -206,14 +206,14 @@ def test_domain_action_materializer_blocks_new_default_executor_task_until_runni
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
+    dispatch = result["owner_callable_adapters"][0]
     assert dispatch["dispatch_status"] == "blocked"
     assert dispatch["blocked_reason"] == "closeout_required_before_new_default_executor_task"
     assert dispatch["progress_first_closeout_admission"]["export_new_default_executor_task"] is False
     assert dispatch["progress_first_closeout_admission"]["typed_blocker"]["work_unit_id"] == "publishability_repair_sprint"
-    assert result["written_files"] == [
-        str(profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json"),
-    ]
+    assert result["written_files"] == []
+    assert result["apply_writes_disabled_reason"] == "opl_domain_progress_transition_runtime_owns_durable_carrier"
+    assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert not (
         profile.studies_root
         / study_id
@@ -461,7 +461,7 @@ def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     _write_json(

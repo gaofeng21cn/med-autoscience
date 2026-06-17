@@ -55,7 +55,7 @@ def test_domain_health_diagnostic_same_tick_reports_handoff_pending_without_prov
     monkeypatch.setattr(
         module.domain_action_request_materializer,
         "materialize_domain_action_requests",
-        lambda **kwargs: {"default_executor_dispatch_count": 1},
+        lambda **kwargs: {"owner_callable_adapter_count": 1},
     )
     monkeypatch.setattr(
         module.domain_owner_action_dispatch,

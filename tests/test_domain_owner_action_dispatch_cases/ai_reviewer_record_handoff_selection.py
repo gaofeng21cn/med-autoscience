@@ -121,7 +121,7 @@ def test_execute_dispatch_prefers_persisted_record_only_handoff_over_stale_consu
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [stale_inline_dispatch],
+            "owner_callable_adapters": [stale_inline_dispatch],
         },
     )
 

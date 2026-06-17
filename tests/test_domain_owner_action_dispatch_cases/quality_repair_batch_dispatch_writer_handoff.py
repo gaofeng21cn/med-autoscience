@@ -206,7 +206,7 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(
@@ -348,7 +348,7 @@ def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_pa
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     request_path = (
@@ -536,7 +536,7 @@ def test_default_dispatch_picks_quality_repair_writer_handoff_from_owner_request
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
@@ -661,7 +661,7 @@ def test_execute_dispatch_consumes_quality_repair_writer_handoff_as_stage_attemp
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)

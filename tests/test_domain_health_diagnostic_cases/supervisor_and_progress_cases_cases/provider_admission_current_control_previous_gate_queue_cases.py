@@ -98,7 +98,7 @@ def test_materialized_current_control_clears_previous_gate_queue_when_ai_reviewe
             "developer_supervisor_same_tick": {
                 "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
-                    "default_executor_dispatches": [
+                    "owner_callable_adapters": [
                         {
                             "study_id": study_id,
                             "quest_id": study_id,

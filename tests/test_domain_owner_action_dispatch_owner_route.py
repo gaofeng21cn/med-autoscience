@@ -251,7 +251,7 @@ def test_execute_dispatch_rejects_dispatch_owner_route_when_scan_lacks_study_rou
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(
@@ -355,7 +355,7 @@ def test_execute_dispatch_authorization_ignores_diagnostic_owner_reason_drift(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     monkeypatch.setattr(
@@ -450,7 +450,7 @@ def test_execute_dispatch_filters_when_current_macro_state_drifted(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
 
@@ -519,7 +519,7 @@ def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {**ready_dispatch, "refs": {"dispatch_path": str(ready_path)}},
                 {**blocked_dispatch, "refs": {"dispatch_path": str(blocked_path)}},
             ],
@@ -865,7 +865,7 @@ def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exh
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
     called: dict[str, object] = {}

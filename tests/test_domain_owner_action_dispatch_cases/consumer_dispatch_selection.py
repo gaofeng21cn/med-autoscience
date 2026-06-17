@@ -65,8 +65,8 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [current_dispatch],
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [current_dispatch],
         },
     )
     executed_action_types: list[str] = []
@@ -173,8 +173,8 @@ def test_execute_dispatch_defaults_to_same_tick_consumer_payload_dispatch(
     _write_scan_latest(profile, study_id, route)
     consumer_payload = {
         "surface": "domain_action_request_materializer",
-        "default_executor_dispatch_count": 1,
-        "default_executor_dispatches": [dispatch_payload],
+        "owner_callable_adapter_count": 1,
+        "owner_callable_adapters": [dispatch_payload],
     }
 
     result = module.dispatch_domain_owner_actions(
@@ -284,8 +284,8 @@ def test_execute_dispatch_selects_fresh_progress_current_owner_action_when_curre
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [dispatch_payload],
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [dispatch_payload],
         },
     )
 
@@ -498,8 +498,8 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
-            "default_executor_dispatch_count": 1,
-            "default_executor_dispatches": [current_dispatch],
+            "owner_callable_adapter_count": 1,
+            "owner_callable_adapters": [current_dispatch],
         },
     )
     called: list[str] = []

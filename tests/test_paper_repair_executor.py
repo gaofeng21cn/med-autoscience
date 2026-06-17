@@ -370,7 +370,7 @@ def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
     assert call["mode"] == "developer_apply_safe"
     assert call["apply"] is True
     consumer_payload = call["consumer_payload"]
-    dispatch = consumer_payload["default_executor_dispatches"][0]
+    dispatch = consumer_payload["owner_callable_adapters"][0]
     assert dispatch["dispatch_status"] == "ready"
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["next_executable_owner"] == "ai_reviewer"
@@ -448,7 +448,7 @@ def test_paper_repair_executor_ai_reviewer_handoff_preserves_runtime_health_epoc
     )
 
     assert result["accepted"] is False
-    dispatch = calls[0]["consumer_payload"]["default_executor_dispatches"][0]
+    dispatch = calls[0]["consumer_payload"]["owner_callable_adapters"][0]
     assert dispatch["owner_route"]["runtime_health_epoch"] == "runtime-health-event-current"
     assert dispatch["prompt_contract"]["owner_route"]["runtime_health_epoch"] == "runtime-health-event-current"
     envelope = attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
@@ -658,7 +658,7 @@ def test_paper_repair_executor_ai_reviewer_handoff_uses_work_unit_owner_route_ru
     )
 
     assert result["accepted"] is False
-    dispatch = calls[0]["consumer_payload"]["default_executor_dispatches"][0]
+    dispatch = calls[0]["consumer_payload"]["owner_callable_adapters"][0]
     assert dispatch["owner_route"]["runtime_health_epoch"] == "runtime-health-event-from-work-unit-route"
     assert (
         dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"]["runtime_health_epoch"]

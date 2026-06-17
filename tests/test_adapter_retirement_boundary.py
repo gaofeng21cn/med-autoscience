@@ -105,6 +105,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "domain_authority_refs_index",
         "default_executor_dispatch_request",
         "domain_action_request_materializer_local_carrier_persistence_api",
+        "owner_callable_adapter_legacy_dispatch_projection_alias",
     }
     for surface in surfaces.values():
         assert surface["generic_runtime_owner"] == "one-person-lab"
@@ -115,6 +116,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "runtime_turn_runner_closeout_adapter",
             "worker_lease_residency_projection",
             "domain_action_request_materializer_local_carrier_persistence_api",
+            "owner_callable_adapter_legacy_dispatch_projection_alias",
         }:
             assert surface["active_caller_migrated"] is True
             assert surface["current_disposition"] == "physically_retired"
@@ -136,6 +138,16 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "mas_local_dispatch_carrier_persistence" in carrier_persistence["forbidden_claims"]
     assert "mas_local_request_packet_persistence" in carrier_persistence["forbidden_claims"]
 
+    legacy_alias = surfaces["owner_callable_adapter_legacy_dispatch_projection_alias"]
+    assert legacy_alias["retained_mas_role"] == "none_physically_retired_no_alias"
+    assert legacy_alias["replacement_surface"] == (
+        "explicit owner_callable_adapters projection plus OPL DomainProgressTransitionRuntime readback"
+    )
+    assert legacy_alias["retired_symbols"] == [
+        "default_executor_dispatches owner_callable_adapters fallback alias"
+    ]
+    assert "legacy_default_executor_dispatches_as_owner_callable_adapters" in legacy_alias["forbidden_claims"]
+
 
 def test_materializer_local_carrier_persistence_api_is_physically_retired() -> None:
     persistence = importlib.import_module(
@@ -154,3 +166,30 @@ def test_materializer_local_carrier_persistence_api_is_physically_retired() -> N
 
     assert hasattr(persistence, "read_json_object")
     assert hasattr(persistence, "write_json")
+
+
+def test_owner_callable_projection_does_not_accept_legacy_dispatch_alias() -> None:
+    projection = importlib.import_module("med_autoscience.controllers.owner_callable_adapter_projection")
+
+    assert projection.owner_callable_adapters(
+        {
+            "default_executor_dispatches": [
+                {"dispatch_status": "ready", "action_type": "legacy_dispatch"},
+            ],
+        }
+    ) == []
+    assert projection.adapter_count(
+        {
+            "default_executor_dispatches": [
+                {"dispatch_status": "ready", "action_type": "legacy_dispatch"},
+            ],
+        }
+    ) == 0
+    assert projection.adapter_status_count(
+        {
+            "default_executor_dispatches": [
+                {"dispatch_status": "ready", "action_type": "legacy_dispatch"},
+            ],
+        },
+        "ready",
+    ) == 0

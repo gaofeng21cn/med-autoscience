@@ -45,7 +45,7 @@ def test_execute_dispatch_rejects_dispatch_without_owner_route_when_current_cont
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch, "refs": {"dispatch_path": str(dispatch_path)}}],
+            "owner_callable_adapters": [{**dispatch, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
 
@@ -113,7 +113,7 @@ def test_execute_dispatch_accepts_current_action_queue_owner_route(monkeypatch, 
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [dispatch],
+            "owner_callable_adapters": [dispatch],
         },
     )
     called: list[str] = []
@@ -235,7 +235,7 @@ def test_execute_dispatch_uses_action_queue_route_when_scan_owner_route_is_not_d
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [dispatch],
+            "owner_callable_adapters": [dispatch],
         },
     )
     called: list[str] = []

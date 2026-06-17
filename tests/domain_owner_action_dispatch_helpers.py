@@ -157,7 +157,7 @@ def write_current_dispatch(path: Path, profile, dispatch: dict[str, object]) -> 
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {
                     **dispatch,
                     "refs": {"dispatch_path": str(path)},
