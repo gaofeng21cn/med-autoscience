@@ -1173,6 +1173,13 @@ def test_obligation_actuator_transition_request_is_projection_not_success(
     assert postcondition["ok"] is False
     assert postcondition["outcome_source_family"] == "mas_policy_request_projection"
     assert postcondition["request_projection_only"] is True
+    consume_only = postcondition["consume_only_readback_boundary"]
+    assert consume_only["surface_kind"] == "domain_health_diagnostic_apply_consume_only_readback"
+    assert consume_only["opl_recovery_obligation_store_owner"] == "one-person-lab"
+    assert consume_only["opl_supervisor_decision_engine_owner"] == "one-person-lab"
+    assert consume_only["mas_can_store_recovery_obligation"] is False
+    assert consume_only["mas_can_run_fixed_point_runtime"] is False
+    assert consume_only["request_projection_is_success_outcome"] is False
 
 
 def test_obligation_actuator_disallowed_supervisor_outcome_fails_postcondition(
@@ -1235,6 +1242,8 @@ def test_obligation_actuator_disallowed_supervisor_outcome_fails_postcondition(
     assert outcome["paper_autonomy_supervisor_outcome_allowed"] is False
     assert outcome["postcondition_ok"] is False
     assert "success_outcome_source_family" not in outcome
+    assert outcome["consume_only_readback_boundary"]["supervisor_disallowed_outcome_is_success"] is False
     postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
     assert postcondition["ok"] is False
     assert postcondition["paper_autonomy_supervisor_outcome_allowed"] is False
+    assert postcondition["consume_only_readback_boundary"] == outcome["consume_only_readback_boundary"]

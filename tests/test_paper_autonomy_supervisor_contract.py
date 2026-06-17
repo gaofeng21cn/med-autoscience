@@ -286,6 +286,36 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         "request_projection_is_success_outcome": False,
         "supervisor_disallowed_outcome_is_success": False,
     }
+    assert readback["consume_only_readback_boundary"] == {
+        "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
+        "consumer": "med-autoscience.domain-health-diagnostic.apply",
+        "opl_runtime_owner": "one-person-lab",
+        "opl_recovery_obligation_store_owner": "one-person-lab",
+        "opl_supervisor_decision_engine_owner": "one-person-lab",
+        "opl_human_gate_transport_owner": "one-person-lab",
+        "opl_stage_run_owner": "one-person-lab",
+        "consumed_opl_foundation_surfaces": [
+            "RecoveryObligationStore",
+            "SupervisorDecisionEngine",
+            "HumanGateTransport",
+            "StageRunIdentityPacket",
+        ],
+        "mas_role": "policy_and_authority_readback_consumer",
+        "mas_can_store_recovery_obligation": False,
+        "mas_can_run_supervisor_decision_engine": False,
+        "mas_can_run_fixed_point_runtime": False,
+        "mas_can_replay_obligation": False,
+        "mas_can_persist_obligation_store": False,
+        "mas_can_generate_human_gate_resume_token": False,
+        "mas_can_authorize_provider_admission": False,
+        "success_requires_source_family": [
+            "opl_runtime_readback",
+            "mas_owner_answer_readback",
+            "mas_domain_authority_readback",
+        ],
+        "request_projection_is_success_outcome": False,
+        "supervisor_disallowed_outcome_is_success": False,
+    }
     opl_readback = readback["opl_transition_readback_contract"]
     assert opl_readback["surface_kind"] == "opl_domain_progress_transition_result"
     assert opl_readback["runtime_owner"] == "one-person-lab"

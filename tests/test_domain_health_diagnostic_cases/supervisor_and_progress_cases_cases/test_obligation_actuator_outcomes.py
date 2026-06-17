@@ -286,10 +286,23 @@ def test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as
     assert outcome["authority_boundary"]["accepts_opl_stage_run_readback"] is True
     assert outcome["authority_boundary"]["accepts_mas_owner_answer_result"] is True
     assert outcome["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
+    consume_only = outcome["consume_only_readback_boundary"]
+    assert consume_only["opl_runtime_owner"] == "one-person-lab"
+    assert consume_only["opl_supervisor_decision_engine_owner"] == "one-person-lab"
+    assert consume_only["mas_role"] == "policy_and_authority_readback_consumer"
+    assert consume_only["mas_can_run_supervisor_decision_engine"] is False
+    assert consume_only["mas_can_store_recovery_obligation"] is False
+    assert consume_only["mas_can_generate_human_gate_resume_token"] is False
+    assert consume_only["request_projection_is_success_outcome"] is False
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
+    assert report["managed_study_actions"][0]["dhd_apply_postcondition"][
+        "consume_only_readback_boundary"
+    ] == consume_only
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["authority_boundary"][
         "provider_admission_requires_opl_runtime_result"
     ] is True
+    summary = report["managed_study_obligation_actuator_summary"]
+    assert summary["consume_only_readback_boundary"] == consume_only
 
 
 def test_domain_health_diagnostic_apply_projects_transition_request_when_provider_request_has_no_opl_outcome(
@@ -379,6 +392,12 @@ def test_domain_health_diagnostic_apply_projects_transition_request_when_provide
         "mas_can_persist_opl_event_or_outbox": False,
         "required_outcome": "typed_blocker_ref",
     }
+    assert outcome["typed_control_blocker"]["consume_only_readback_boundary"] == (
+        outcome["consume_only_readback_boundary"]
+    )
+    assert outcome["typed_control_blocker"]["consume_only_readback_boundary"][
+        "mas_can_run_supervisor_decision_engine"
+    ] is False
     assert outcome["authority_boundary"]["can_apply_non_advancing_transition"] is False
     assert outcome["authority_boundary"]["can_replay_obligation"] is False
     postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]

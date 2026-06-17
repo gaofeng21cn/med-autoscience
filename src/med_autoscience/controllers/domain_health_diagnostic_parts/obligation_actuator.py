@@ -33,6 +33,33 @@ SUCCESS_OUTCOME_SOURCE_FAMILIES = (
     "mas_owner_answer_readback",
     "mas_domain_authority_readback",
 )
+OPL_FOUNDATION_CONSUMED_SURFACES = (
+    "RecoveryObligationStore",
+    "SupervisorDecisionEngine",
+    "HumanGateTransport",
+    "StageRunIdentityPacket",
+)
+CONSUME_ONLY_READBACK_BOUNDARY = {
+    "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
+    "consumer": "med-autoscience.domain-health-diagnostic.apply",
+    "opl_runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    "opl_recovery_obligation_store_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    "opl_supervisor_decision_engine_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    "opl_human_gate_transport_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    "opl_stage_run_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    "consumed_opl_foundation_surfaces": list(OPL_FOUNDATION_CONSUMED_SURFACES),
+    "mas_role": "policy_and_authority_readback_consumer",
+    "mas_can_store_recovery_obligation": False,
+    "mas_can_run_supervisor_decision_engine": False,
+    "mas_can_run_fixed_point_runtime": False,
+    "mas_can_replay_obligation": False,
+    "mas_can_persist_obligation_store": False,
+    "mas_can_generate_human_gate_resume_token": False,
+    "mas_can_authorize_provider_admission": False,
+    "success_requires_source_family": list(SUCCESS_OUTCOME_SOURCE_FAMILIES),
+    "request_projection_is_success_outcome": False,
+    "supervisor_disallowed_outcome_is_success": False,
+}
 ACTUATOR_AUTHORITY_BOUNDARY = {
     "surface_kind": "mas_obligation_outcome_projection_authority_boundary",
     "authority": "med_autoscience.paper_progress_policy_adapter",
@@ -67,6 +94,7 @@ ACTUATOR_AUTHORITY_BOUNDARY = {
     "success_outcome_source_families": list(SUCCESS_OUTCOME_SOURCE_FAMILIES),
     "request_projection_outcome_source_family": "mas_policy_request_projection",
     "request_projection_is_success_outcome": False,
+    "consume_only_readback_boundary": dict(CONSUME_ONLY_READBACK_BOUNDARY),
 }
 
 
@@ -175,6 +203,7 @@ def apply_managed_study_obligation_actuator(
             "allowed_outcome_kinds": _OBLIGATION_ACTUATOR_ALLOWED_OUTCOMES,
             "authority": "med_autoscience.paper_progress_policy_adapter",
             "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
+            "consume_only_readback_boundary": _consume_only_readback_boundary(),
         }
     return owner_callable_actions
 
@@ -731,6 +760,7 @@ def _typed_control_blocker_payload(
             "required_outcome": "typed_blocker_ref",
         },
         "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
+        "consume_only_readback_boundary": _consume_only_readback_boundary(),
     }
     cleaned = {key: value for key, value in payload.items() if value not in (None, "", [], {})}
     cleaned["typed_blocker_id"] = "dhd-obligation-blocker:" + hashlib.sha256(
@@ -873,6 +903,7 @@ def _obligation_outcome(
         "paper_autonomy_obligation_ref": obligation_ref,
         "paper_autonomy_obligation_identity": obligation_identity,
         "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
+        "consume_only_readback_boundary": _consume_only_readback_boundary(),
         "paper_recovery_next_safe_action_kind": _non_empty_text(
             _mapping(_mapping(action.get("paper_recovery_state")).get("next_safe_action")).get("kind")
         ),
@@ -899,6 +930,10 @@ def _outcome_source_family(outcome_kind: str) -> str:
     if outcome_kind == "transition_request_pending":
         return "mas_policy_request_projection"
     return "unknown"
+
+
+def _consume_only_readback_boundary() -> dict[str, Any]:
+    return dict(CONSUME_ONLY_READBACK_BOUNDARY)
 
 
 def _action_supervisor_decision(action: Mapping[str, Any]) -> dict[str, Any]:
@@ -1058,6 +1093,7 @@ def _postcondition_from_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
             _mapping(outcome.get("paper_autonomy_obligation_identity"))
         ),
         "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
+        "consume_only_readback_boundary": _consume_only_readback_boundary(),
     }
 
 
