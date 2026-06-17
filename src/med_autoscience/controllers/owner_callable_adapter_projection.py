@@ -15,7 +15,7 @@ def domain_progress_transition_requests(payload: Mapping[str, Any]) -> list[dict
     requests = payload.get("domain_progress_transition_requests")
     if isinstance(requests, list):
         return [_normalized_transition_request_record(item) for item in requests if isinstance(item, Mapping)]
-    return _transition_request_records_from_owner_callable_adapters(owner_callable_adapters(payload))
+    return []
 
 
 def adapter_count(payload: Mapping[str, Any]) -> int:
@@ -46,95 +46,6 @@ def with_owner_callable_adapter_projection(payload: Mapping[str, Any]) -> dict[s
     projected.setdefault("domain_progress_transition_request_count", len(transition_requests))
     projected.setdefault("domain_progress_transition_requests", transition_requests)
     return projected
-
-
-def _transition_request_records_from_owner_callable_adapters(
-    adapters: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    records: list[dict[str, Any]] = []
-    for adapter in adapters:
-        request = _mapping(adapter.get("opl_domain_progress_transition_request")) or _mapping(
-            _mapping(adapter.get("prompt_contract")).get("opl_domain_progress_transition_request")
-        )
-        record = {
-            **_transition_request_identity_fields(adapter),
-            "surface": "mas_domain_progress_transition_request_projection",
-            "projection_source": "legacy_owner_callable_adapter_readback",
-            "legacy_owner_callable_adapter_readback": True,
-            "legacy_owner_callable_adapter_missing_opl_request": not bool(request),
-            "opl_domain_progress_transition_request": request or None,
-            "domain_intent": _mapping(adapter.get("domain_intent")) or None,
-            "authority_boundary": _mapping(adapter.get("authority_boundary")) or None,
-            "stage_transition_authority_boundary": _mapping(adapter.get("stage_transition_authority_boundary"))
-            or None,
-            "refs": _mapping(adapter.get("refs")) or None,
-            "source_action": _mapping(adapter.get("source_action")) or None,
-            "owner_route": _mapping(adapter.get("owner_route")) or None,
-            "prompt_contract_ref": _mapping(adapter.get("prompt_contract")) or None,
-            "progress_first_closeout_admission": _mapping(adapter.get("progress_first_closeout_admission"))
-            or None,
-            "provider_admission_pending": False,
-            "provider_admission_requires_opl_runtime_result": True,
-            "provider_completion_is_domain_completion": False,
-            "mas_dispatch_authority": False,
-            "mas_creates_owner_callable_carrier": False,
-            "mas_creates_opl_outbox": False,
-            "mas_creates_opl_event": False,
-            "mas_creates_opl_stage_run": False,
-            "target_runtime_owner": _text(adapter.get("target_runtime_owner")) or "one-person-lab",
-            "dispatch_status": _text(adapter.get("dispatch_status")) or "transition_request_pending",
-            "blocked_reason": _text(adapter.get("blocked_reason")),
-        }
-        if any(
-            record.get(key)
-            for key in (
-                "study_id",
-                "action_type",
-                "work_unit_id",
-                "work_unit_fingerprint",
-                "dispatch_path",
-            )
-        ):
-            records.append(_normalized_transition_request_record(record))
-    return records
-
-
-def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
-    refs = _mapping(payload.get("refs"))
-    source_action = _mapping(payload.get("source_action"))
-    request = _mapping(payload.get("opl_domain_progress_transition_request"))
-    return {
-        key: value
-        for key, value in {
-            "study_id": _text(payload.get("study_id")) or _text(request.get("study_id")),
-            "quest_id": _text(payload.get("quest_id")) or _text(request.get("quest_id")),
-            "action_type": _text(payload.get("action_type")) or _text(request.get("action_type")),
-            "work_unit_id": (
-                _text(payload.get("work_unit_id"))
-                or _text(payload.get("next_work_unit"))
-                or _text(source_action.get("work_unit_id"))
-                or _text(request.get("work_unit_id"))
-            ),
-            "work_unit_fingerprint": (
-                _text(payload.get("work_unit_fingerprint"))
-                or _text(payload.get("action_fingerprint"))
-                or _text(source_action.get("work_unit_fingerprint"))
-                or _text(request.get("work_unit_fingerprint"))
-            ),
-            "action_fingerprint": _text(payload.get("action_fingerprint"))
-            or _text(payload.get("work_unit_fingerprint")),
-            "next_executable_owner": _text(payload.get("next_executable_owner"))
-            or _text(request.get("next_owner")),
-            "required_output_surface": _text(payload.get("required_output_surface"))
-            or _text(request.get("required_output_surface")),
-            "dispatch_authority": _text(payload.get("dispatch_authority"))
-            or _text(request.get("dispatch_authority")),
-            "dispatch_path": _text(payload.get("dispatch_path")) or _text(refs.get("dispatch_path")),
-            "stage_packet_ref": _text(payload.get("stage_packet_ref")) or _text(refs.get("stage_packet_ref")),
-            "stage_packet_refs": payload.get("stage_packet_refs") or refs.get("stage_packet_refs"),
-        }.items()
-        if value is not None
-    }
 
 
 def _normalized_transition_request_record(value: Mapping[str, Any]) -> dict[str, Any]:

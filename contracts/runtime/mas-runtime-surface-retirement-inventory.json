@@ -152,7 +152,7 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
-      "replacement_surface": "owner_callable_adapters plus OPL DomainProgressTransitionRuntime durable carrier",
+      "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime durable carrier",
       "retained_mas_role": "none_physically_retired_no_alias",
       "retired_code_path": "src/med_autoscience/controllers/domain_action_request_materializer_parts/persistence.py",
       "retired_symbols": [
@@ -179,7 +179,7 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
-      "replacement_surface": "explicit owner_callable_adapters projection plus OPL DomainProgressTransitionRuntime readback",
+      "replacement_surface": "explicit domain_progress_transition_requests projection plus OPL DomainProgressTransitionRuntime readback",
       "retained_mas_role": "none_physically_retired_no_alias",
       "retired_code_path": "src/med_autoscience/controllers/owner_callable_adapter_projection.py",
       "retired_symbols": [

@@ -128,7 +128,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     carrier_persistence = surfaces["domain_action_request_materializer_local_carrier_persistence_api"]
     assert carrier_persistence["retained_mas_role"] == "none_physically_retired_no_alias"
     assert carrier_persistence["replacement_surface"] == (
-        "owner_callable_adapters plus OPL DomainProgressTransitionRuntime durable carrier"
+        "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime durable carrier"
     )
     assert set(carrier_persistence["retired_symbols"]) == {
         "persist_default_executor_dispatches",
@@ -169,7 +169,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     legacy_alias = surfaces["owner_callable_adapter_legacy_dispatch_projection_alias"]
     assert legacy_alias["retained_mas_role"] == "none_physically_retired_no_alias"
     assert legacy_alias["replacement_surface"] == (
-        "explicit owner_callable_adapters projection plus OPL DomainProgressTransitionRuntime readback"
+        "explicit domain_progress_transition_requests projection plus OPL DomainProgressTransitionRuntime readback"
     )
     assert legacy_alias["retired_symbols"] == [
         "default_executor_dispatches owner_callable_adapters fallback alias"
@@ -455,10 +455,10 @@ def test_owner_callable_projection_does_not_accept_legacy_dispatch_alias() -> No
     ) == []
 
 
-def test_owner_callable_projection_derives_canonical_transition_requests_from_explicit_readback() -> None:
+def test_owner_callable_projection_requires_canonical_transition_request_surface() -> None:
     projection = importlib.import_module("med_autoscience.controllers.owner_callable_adapter_projection")
 
-    payload = {
+    legacy_payload = {
         "owner_callable_adapters": [
             {
                 "study_id": "study-1",
@@ -486,12 +486,37 @@ def test_owner_callable_projection_derives_canonical_transition_requests_from_ex
         ]
     }
 
-    requests = projection.domain_progress_transition_requests(payload)
+    assert projection.domain_progress_transition_requests(legacy_payload) == []
+    assert projection.with_owner_callable_adapter_projection(legacy_payload)[
+        "domain_progress_transition_request_count"
+    ] == 0
+
+    canonical_payload = {
+        "domain_progress_transition_requests": [
+            {
+                "study_id": "study-1",
+                "quest_id": "quest-1",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "repair-work",
+                "work_unit_fingerprint": "fingerprint-1",
+                "dispatch_status": "transition_request_pending",
+                "target_runtime_owner": "one-person-lab",
+                "opl_domain_progress_transition_request": {
+                    "surface_kind": "mas_domain_progress_transition_request",
+                    "study_id": "study-1",
+                    "quest_id": "quest-1",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "repair-work",
+                    "work_unit_fingerprint": "fingerprint-1",
+                },
+            }
+        ]
+    }
+
+    requests = projection.domain_progress_transition_requests(canonical_payload)
 
     assert len(requests) == 1
     assert requests[0]["surface"] == "mas_domain_progress_transition_request_projection"
-    assert requests[0]["projection_source"] == "legacy_owner_callable_adapter_readback"
-    assert requests[0]["legacy_owner_callable_adapter_readback"] is True
     assert requests[0]["study_id"] == "study-1"
     assert requests[0]["action_type"] == "run_quality_repair_batch"
     assert requests[0]["work_unit_fingerprint"] == "fingerprint-1"
@@ -500,7 +525,7 @@ def test_owner_callable_projection_derives_canonical_transition_requests_from_ex
     assert requests[0]["mas_creates_opl_outbox"] is False
     assert requests[0]["provider_admission_pending"] is False
     assert requests[0]["provider_admission_requires_opl_runtime_result"] is True
-    projected = projection.with_owner_callable_adapter_projection(payload)
+    projected = projection.with_owner_callable_adapter_projection(canonical_payload)
     assert projected["domain_progress_transition_request_count"] == 1
 
 
