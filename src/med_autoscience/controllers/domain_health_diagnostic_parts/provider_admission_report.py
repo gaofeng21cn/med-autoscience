@@ -43,6 +43,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.accepted_owner_gate_r
     accepted_owner_gate_route_back_action as _accepted_owner_gate_route_back_action,
 )
 from med_autoscience.controllers.owner_callable_adapter_projection import domain_progress_transition_requests
+from med_autoscience.controllers.owner_callable_adapter_projection import owner_callable_adapters
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -1072,7 +1073,7 @@ def _provider_admission_candidates_from_same_tick_materialize(
     }
     current_action_by_study = _same_tick_progress_current_actions(progress_currentness)
     candidates: list[dict[str, Any]] = []
-    for dispatch in domain_progress_transition_requests(materialize_result):
+    for dispatch in _same_tick_transition_request_dispatches(materialize_result):
         if not isinstance(dispatch, Mapping):
             continue
         if _non_empty_text(dispatch.get("dispatch_status")) not in {"ready", "transition_request_pending"}:
@@ -1166,6 +1167,19 @@ def _provider_admission_candidates_from_same_tick_materialize(
                 )
             )
     return candidates
+
+
+def _same_tick_transition_request_dispatches(
+    materialize_result: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    dispatches = domain_progress_transition_requests(materialize_result)
+    if dispatches:
+        return dispatches
+    return [
+        dict(item)
+        for item in owner_callable_adapters(materialize_result)
+        if isinstance(item, Mapping)
+    ]
 
 
 def _candidate_with_current_action_identity(
