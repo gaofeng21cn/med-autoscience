@@ -8,10 +8,17 @@ from typing import Any
 from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
+from med_autoscience.controllers.domain_owner_action_dispatch_parts.execution_surfaces import (
+    ACCEPTED_EXECUTION_LATEST_SURFACES,
+    LEGACY_EXECUTION_SURFACE,
+    OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
+    OWNER_CALLABLE_RECEIPT_SURFACE,
+)
 
 
 EXECUTED_STATUSES = frozenset({"executed"})
-EXECUTION_REF = Path("artifacts/supervision/consumer/default_executor_execution/latest.json")
+EXECUTION_REF = Path("artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json")
+LEGACY_EXECUTION_REF = Path("artifacts/supervision/consumer/default_executor_execution/latest.json")
 CLOSEOUT_ROOT_REFS = (
     Path("artifacts/supervision/consumer/default_executor_execution"),
     Path("artifacts/supervision/consumer/stage_attempt_closeouts"),
@@ -28,15 +35,15 @@ CLOSEOUT_SURFACES = frozenset(
 
 def default_executor_execution_candidates(*, study_root: Path) -> list[tuple[Mapping[str, Any], str]]:
     resolved_study_root = Path(study_root).expanduser().resolve()
-    receipt = _read_json_object(resolved_study_root / EXECUTION_REF)
+    receipt, receipt_ref = _latest_execution_receipt(resolved_study_root)
     candidates: list[tuple[Mapping[str, Any], str]] = []
-    if receipt is not None:
+    if _accepted_execution_receipt(receipt):
         candidates.extend(
-            (_execution_from_receipt(execution), str(EXECUTION_REF))
+            (_execution_from_receipt(execution), str(receipt_ref))
             for execution in reversed(_mapping_list(receipt.get("executions")))
         )
         candidates.extend(
-            (_execution_from_receipt(execution), f"{EXECUTION_REF}#execution_ledger")
+            (_execution_from_receipt(execution), f"{receipt_ref}#execution_ledger")
             for execution in reversed(_mapping_list(receipt.get("execution_ledger")))
         )
     candidates.extend(_stage_closeout_candidates(study_root=resolved_study_root))
@@ -44,7 +51,7 @@ def default_executor_execution_candidates(*, study_root: Path) -> list[tuple[Map
 
 
 def _execution_from_receipt(execution: Mapping[str, Any]) -> dict[str, Any]:
-    normalized = dict(execution)
+    normalized = _canonical_owner_callable_receipt(execution)
     route = _receipt_execution_owner_route(execution)
     route_source_refs = _mapping(route.get("source_refs"))
     route_currentness_basis = _mapping(route_source_refs.get("owner_route_currentness_basis"))
@@ -89,6 +96,37 @@ def _execution_from_receipt(execution: Mapping[str, Any]) -> dict[str, Any]:
         normalized["owner_route_currentness_basis"] = route_currentness_basis
     if canonical_work_unit_identity:
         normalized["canonical_work_unit_identity"] = canonical_work_unit_identity
+    return normalized
+
+
+def _latest_execution_receipt(study_root: Path) -> tuple[dict[str, Any] | None, Path]:
+    canonical = _read_json_object(study_root / EXECUTION_REF)
+    if canonical is not None:
+        return canonical, EXECUTION_REF
+    return _read_json_object(study_root / LEGACY_EXECUTION_REF), LEGACY_EXECUTION_REF
+
+
+def _accepted_execution_receipt(receipt: Mapping[str, Any] | None) -> bool:
+    if receipt is None:
+        return False
+    return (
+        _text(receipt.get("surface")) in ACCEPTED_EXECUTION_LATEST_SURFACES
+        or _text(receipt.get("canonical_surface")) == OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE
+    )
+
+
+def _canonical_owner_callable_receipt(execution: Mapping[str, Any]) -> dict[str, Any]:
+    normalized = dict(execution)
+    surface = _text(normalized.get("surface"))
+    canonical_surface = _text(normalized.get("canonical_surface"))
+    if surface == OWNER_CALLABLE_RECEIPT_SURFACE:
+        normalized["canonical_surface"] = OWNER_CALLABLE_RECEIPT_SURFACE
+        return normalized
+    if surface == LEGACY_EXECUTION_SURFACE or canonical_surface == OWNER_CALLABLE_RECEIPT_SURFACE:
+        normalized["surface"] = OWNER_CALLABLE_RECEIPT_SURFACE
+        normalized["canonical_surface"] = OWNER_CALLABLE_RECEIPT_SURFACE
+        normalized.setdefault("legacy_surface_alias", LEGACY_EXECUTION_SURFACE)
+        normalized.setdefault("legacy_wire_surface", LEGACY_EXECUTION_SURFACE)
     return normalized
 
 
@@ -189,7 +227,10 @@ def _execution_from_stage_closeout(
     stage_packet_refs = _stage_closeout_stage_packet_refs(closeout)
     dispatch_ref = _text(closeout.get("dispatch_ref")) or stage_packet_ref
     return {
-        "surface": "default_executor_dispatch_execution",
+        "surface": OWNER_CALLABLE_RECEIPT_SURFACE,
+        "canonical_surface": OWNER_CALLABLE_RECEIPT_SURFACE,
+        "legacy_surface_alias": LEGACY_EXECUTION_SURFACE,
+        "legacy_wire_surface": LEGACY_EXECUTION_SURFACE,
         "schema_version": 1,
         "study_id": _text(closeout.get("study_id")),
         "quest_id": _text(closeout.get("quest_id")),

@@ -163,11 +163,23 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "legacy_current_default_executor_dispatches_preview_api" in current_default_preview["forbidden_claims"]
 
     execution_latest = surfaces["default_executor_execution_latest_wire_projection"]
-    assert execution_latest["current_disposition"] == "opl_migration_input"
+    assert execution_latest["active_caller_migrated"] is False
+    assert (
+        execution_latest["current_disposition"]
+        == "canonical_writer_and_receipt_consumption_migrated_legacy_readers_tail_open"
+    )
     assert execution_latest["retained_mas_role"] == "owner_callable_receipt_projection_and_domain_authority_ref"
     assert execution_latest["canonical_surface"] == "owner_callable_adapter_receipt_study_latest"
+    assert execution_latest["canonical_wire_path"] == (
+        "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
+    )
     assert execution_latest["legacy_wire_surface"] == "default_executor_dispatch_execution_study_latest"
     assert execution_latest["legacy_wire_path"] == "artifacts/supervision/consumer/default_executor_execution/latest.json"
+    assert set(execution_latest["legacy_wire_readers_tail_open"]) == {
+        "domain_health_diagnostic_parts.provider_admission.persisted_provider_admission_candidates",
+        "owner_route_handoff_parts.export_study_projection._current_provider_handoff_execution",
+        "owner_route_reconcile_parts.recovery_actions._latest_clean_migration_rehydrate_execution",
+    }
     assert "mas_local_execution_ledger_authority" in execution_latest["forbidden_claims"]
 
 

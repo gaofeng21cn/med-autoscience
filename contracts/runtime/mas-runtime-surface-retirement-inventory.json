@@ -181,8 +181,9 @@
     {
       "active_caller_migrated": false,
       "canonical_surface": "owner_callable_adapter_receipt_study_latest",
+      "canonical_wire_path": "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json",
       "compatibility_alias_allowed": false,
-      "current_disposition": "opl_migration_input",
+      "current_disposition": "canonical_writer_and_receipt_consumption_migrated_legacy_readers_tail_open",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -193,6 +194,11 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "legacy_wire_path": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+      "legacy_wire_readers_tail_open": [
+        "domain_health_diagnostic_parts.provider_admission.persisted_provider_admission_candidates",
+        "owner_route_handoff_parts.export_study_projection._current_provider_handoff_execution",
+        "owner_route_reconcile_parts.recovery_actions._latest_clean_migration_rehydrate_execution"
+      ],
       "legacy_wire_surface": "default_executor_dispatch_execution_study_latest",
       "mas_owner_claim_allowed": false,
       "replacement_surface": "owner_callable_adapter_receipt_study_latest plus OPL StageRun closeout binding",

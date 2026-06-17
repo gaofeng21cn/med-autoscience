@@ -57,6 +57,7 @@ _append_json_line = execution_io.append_json_line
 _consumer_latest_path = execution_io.consumer_latest_path
 _execution_history_path = execution_io.execution_history_path
 _execution_latest_path = execution_io.execution_latest_path
+_execution_latest_payload = execution_io.execution_latest_payload
 _merged_execution_ledger = execution_io.merged_execution_ledger
 _read_json_object = execution_io.read_json_object
 _study_root = execution_io.study_root
@@ -459,7 +460,7 @@ def _execute_dispatch(
             "prompt_contract": prompt_contract,
         },
         current_study=current_study,
-        previous_execution_latest=_read_json_object(_execution_latest_path(profile, study_id)),
+        previous_execution_latest=_execution_latest_payload(profile, study_id),
         required_output_pending=required_output_pending,
     )
     closeout_block_reason = _progress_first_closeout_block_reason(dispatch)
@@ -842,8 +843,10 @@ def _dispatch_execution_payload(
     ) -> dict[str, Any]:
     paper_work_unit_lifecycle = paper_work_unit_lifecycle_for_action(action_type)
     execution_payload = {
-        "surface": LEGACY_EXECUTION_SURFACE,
+        "surface": OWNER_CALLABLE_RECEIPT_SURFACE,
         "canonical_surface": OWNER_CALLABLE_RECEIPT_SURFACE,
+        "legacy_surface_alias": LEGACY_EXECUTION_SURFACE,
+        "legacy_wire_surface": LEGACY_EXECUTION_SURFACE,
         "schema_version": SCHEMA_VERSION,
         "adapter_kind": _text(dispatch.get("adapter_kind")) or "opl_authorized_owner_callable_adapter",
         "target_runtime_owner": _text(dispatch.get("target_runtime_owner")) or "one-person-lab",
@@ -923,6 +926,8 @@ def _dispatch_execution_payload(
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         **execution,
     }
+    if execution_status := _text(execution_payload.get("execution_status")):
+        execution_payload["status"] = execution_status
     progress_first_typed_blocker = _progress_first_typed_blocker(
         dispatch=dispatch,
         execution=execution_payload,
@@ -969,14 +974,17 @@ def _persist_study_executions(
 ) -> list[str]:
     latest_path = _execution_latest_path(profile, study_id)
     history_path = _execution_history_path(profile, study_id)
-    previous_payload = _read_json_object(latest_path)
+    previous_payload = _execution_latest_payload(profile, study_id)
     execution_ledger = _merged_execution_ledger(
         previous_payload=previous_payload,
         study_executions=study_executions,
     )
     study_payload = {
-        "surface": LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
+        "surface": OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
         "canonical_surface": OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
+        "legacy_surface_alias": LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
+        "legacy_wire_surface": LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
+        "legacy_wire_path": str(execution_io.LEGACY_EXECUTION_LATEST_RELATIVE_PATH),
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
         "study_id": study_id,

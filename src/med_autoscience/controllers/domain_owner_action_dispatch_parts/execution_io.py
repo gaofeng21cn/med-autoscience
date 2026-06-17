@@ -18,10 +18,16 @@ from .execution_surfaces import (
 )
 
 
-EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_execution")
+OWNER_CALLABLE_RECEIPT_RELATIVE_ROOT = Path("artifacts/supervision/consumer/owner_callable_adapter_receipts")
+LEGACY_EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_execution")
+EXECUTION_RELATIVE_ROOT = OWNER_CALLABLE_RECEIPT_RELATIVE_ROOT
 EXECUTION_LATEST_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "latest.json"
 EXECUTION_HISTORY_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "history.jsonl"
+LEGACY_EXECUTION_LATEST_RELATIVE_PATH = LEGACY_EXECUTION_RELATIVE_ROOT / "latest.json"
+LEGACY_EXECUTION_HISTORY_RELATIVE_PATH = LEGACY_EXECUTION_RELATIVE_ROOT / "history.jsonl"
 EXECUTION_LEDGER_LIMIT = 80
+
+
 def write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -57,6 +63,21 @@ def execution_history_path(profile: WorkspaceProfile, study_id: str) -> Path:
     return study_root(profile, study_id) / EXECUTION_HISTORY_RELATIVE_PATH
 
 
+def legacy_execution_latest_path(profile: WorkspaceProfile, study_id: str) -> Path:
+    return study_root(profile, study_id) / LEGACY_EXECUTION_LATEST_RELATIVE_PATH
+
+
+def legacy_execution_history_path(profile: WorkspaceProfile, study_id: str) -> Path:
+    return study_root(profile, study_id) / LEGACY_EXECUTION_HISTORY_RELATIVE_PATH
+
+
+def execution_latest_payload(profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
+    canonical = read_json_object(execution_latest_path(profile, study_id))
+    if canonical is not None:
+        return canonical
+    return read_json_object(legacy_execution_latest_path(profile, study_id))
+
+
 def merged_execution_ledger(
     *,
     previous_payload: Mapping[str, Any] | None,
@@ -68,8 +89,24 @@ def merged_execution_ledger(
         *_mapping_list(_mapping(previous_payload).get("executions")),
         *study_executions,
     ]:
-        merged[_execution_identity(execution)] = dict(execution)
+        normalized = canonical_owner_callable_receipt(execution)
+        merged[_execution_identity(normalized)] = normalized
     return list(merged.values())[-EXECUTION_LEDGER_LIMIT:]
+
+
+def canonical_owner_callable_receipt(execution: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(execution)
+    surface = _text(payload.get("surface"))
+    canonical_surface = _text(payload.get("canonical_surface"))
+    if surface == OWNER_CALLABLE_RECEIPT_SURFACE:
+        payload["canonical_surface"] = OWNER_CALLABLE_RECEIPT_SURFACE
+        return payload
+    if surface == LEGACY_EXECUTION_SURFACE or canonical_surface == OWNER_CALLABLE_RECEIPT_SURFACE:
+        payload["surface"] = OWNER_CALLABLE_RECEIPT_SURFACE
+        payload["canonical_surface"] = OWNER_CALLABLE_RECEIPT_SURFACE
+        payload.setdefault("legacy_surface_alias", LEGACY_EXECUTION_SURFACE)
+        payload.setdefault("legacy_wire_surface", LEGACY_EXECUTION_SURFACE)
+    return payload
 
 
 def _execution_identity(execution: Mapping[str, Any]) -> str:
@@ -110,14 +147,22 @@ __all__ = [
     "EXECUTION_LATEST_RELATIVE_PATH",
     "EXECUTION_LEDGER_LIMIT",
     "EXECUTION_RELATIVE_ROOT",
+    "LEGACY_EXECUTION_HISTORY_RELATIVE_PATH",
+    "LEGACY_EXECUTION_LATEST_RELATIVE_PATH",
+    "LEGACY_EXECUTION_RELATIVE_ROOT",
     "LEGACY_EXECUTION_STUDY_LATEST_SURFACE",
     "LEGACY_EXECUTION_SURFACE",
+    "OWNER_CALLABLE_RECEIPT_RELATIVE_ROOT",
     "OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE",
     "OWNER_CALLABLE_RECEIPT_SURFACE",
     "append_json_line",
+    "canonical_owner_callable_receipt",
     "consumer_latest_path",
     "execution_history_path",
     "execution_latest_path",
+    "execution_latest_payload",
+    "legacy_execution_history_path",
+    "legacy_execution_latest_path",
     "merged_execution_ledger",
     "read_json_object",
     "study_root",

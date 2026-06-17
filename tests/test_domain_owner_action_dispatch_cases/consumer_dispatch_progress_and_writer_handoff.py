@@ -34,7 +34,8 @@ def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     quest_root = profile.runtime_root / study_id
     quest_root.mkdir(parents=True, exist_ok=True)
-    execution_root = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution"
+    legacy_execution_root = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution"
+    receipt_root = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts"
     previous_route = _owner_route(
         study_id=study_id,
         action_type="run_quality_repair_batch",
@@ -52,7 +53,7 @@ def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
         }
     )
     _write_json(
-        execution_root / "latest.json",
+        legacy_execution_root / "latest.json",
         {
             "surface": "default_executor_dispatch_execution_study_latest",
             "schema_version": 1,
@@ -135,24 +136,37 @@ def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
     )
 
     assert result["executed_count"] == 1
-    latest = json.loads((execution_root / "latest.json").read_text(encoding="utf-8"))
-    assert latest["surface"] == "default_executor_dispatch_execution_study_latest"
+    latest = json.loads((receipt_root / "latest.json").read_text(encoding="utf-8"))
+    assert latest["surface"] == "owner_callable_adapter_receipt_study_latest"
     assert latest["canonical_surface"] == "owner_callable_adapter_receipt_study_latest"
+    assert latest["legacy_surface_alias"] == "default_executor_dispatch_execution_study_latest"
+    assert latest["legacy_wire_surface"] == "default_executor_dispatch_execution_study_latest"
+    assert latest["legacy_wire_path"] == "artifacts/supervision/consumer/default_executor_execution/latest.json"
     assert latest["owner_callable_receipt_projection"] is True
     assert latest["projection_authority"] is False
     assert latest["execution_ledger_authority"] is False
     assert latest["attempt_lifecycle_authority"] is False
     assert latest["legacy_default_executor_execution_path_role"] == "wire_compatibility_and_provenance_ref_only"
     assert [item["action_type"] for item in latest["executions"]] == ["publication_gate_specificity_required"]
-    assert latest["executions"][0]["surface"] == "default_executor_dispatch_execution"
+    assert latest["executions"][0]["surface"] == "owner_callable_adapter_receipt"
     assert latest["executions"][0]["canonical_surface"] == "owner_callable_adapter_receipt"
+    assert latest["executions"][0]["legacy_surface_alias"] == "default_executor_dispatch_execution"
+    assert latest["executions"][0]["legacy_wire_surface"] == "default_executor_dispatch_execution"
     assert latest["executions"][0]["owner_callable_receipt_projection"] is True
     assert latest["executions"][0]["execution_ledger_authority"] is False
     assert [item["execution_id"] for item in latest["execution_ledger"]] == [
         "execution::dm002::run_quality_repair_batch::previous",
         result["executions"][0]["execution_id"],
     ]
+    assert [item["surface"] for item in latest["execution_ledger"]] == [
+        "owner_callable_adapter_receipt",
+        "owner_callable_adapter_receipt",
+    ]
     assert latest["ledger_execution_count"] == 2
+    legacy_latest = json.loads((legacy_execution_root / "latest.json").read_text(encoding="utf-8"))
+    assert [item["execution_id"] for item in legacy_latest["executions"]] == [
+        "execution::dm002::run_quality_repair_batch::previous",
+    ]
 
 
 def test_execute_dispatch_reports_per_study_no_private_owner_callable_accounting(

@@ -76,7 +76,7 @@ def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budge
             ],
         },
     )
-    execution_latest_path = (
+    legacy_execution_latest_path = (
         study_root
         / "artifacts"
         / "supervision"
@@ -84,6 +84,7 @@ def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budge
         / "default_executor_execution"
         / "latest.json"
     )
+    execution_latest_path = study_root / module.EXECUTION_LATEST_RELATIVE_PATH
     prior_failure = {
         "surface": "default_executor_dispatch_execution",
         "study_id": study_id,
@@ -96,13 +97,13 @@ def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budge
         "repeat_suppression_key": "publication-blockers::repeat-executor",
     }
     _write_json(
-        execution_latest_path,
+        legacy_execution_latest_path,
         {
             "surface": "default_executor_dispatch_execution_study_latest",
             "executions": [{**prior_failure, "execution_id": "execution::first"}],
         },
     )
-    assert execution_latest_path.is_file()
+    assert legacy_execution_latest_path.is_file()
     called = {"count": 0}
 
     def fake_ai_reviewer_workflow(**_) -> dict[str, object]:
@@ -134,6 +135,7 @@ def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budge
     assert execution["owner_callable_surface"] == "ai_reviewer_workflow"
     assert called["count"] == 1
     assert execution["prompt_contract"]["repeat_suppression_key"] == "publication-blockers::repeat-executor"
+    assert execution_latest_path.is_file()
 
     _write_json(
         execution_latest_path,
