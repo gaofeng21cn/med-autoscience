@@ -209,3 +209,36 @@ def test_unknown_dispatch_surface_remains_unsupported() -> None:
         _dispatch(surface="legacy_unknown_dispatch"),
         apply=False,
     ) == (False, "unsupported_dispatch_surface")
+
+
+def test_dispatch_study_discovery_ignores_owner_callable_adapter_list(tmp_path) -> None:
+    profile = type(
+        "Profile",
+        (),
+        {
+            "studies_root": tmp_path / "studies",
+        },
+    )()
+    (tmp_path / "studies").mkdir()
+    consumer_payload = {
+        "owner_callable_adapters": [
+            {
+                "study_id": "legacy-adapter-study",
+                "dispatch_status": "ready",
+            }
+        ],
+        "domain_progress_transition_requests": [
+            {
+                "study_id": "canonical-transition-study",
+                "dispatch_status": "transition_request_pending",
+            }
+        ],
+    }
+
+    resolved = domain_owner_action_dispatch._resolve_study_ids(
+        profile,
+        (),
+        consumer_payload=consumer_payload,
+    )
+
+    assert resolved == ("canonical-transition-study",)
