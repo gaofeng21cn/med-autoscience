@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from tests.test_domain_health_diagnostic_cases import shared as _shared
+from tests.provider_admission_current_control_helpers import (
+    provider_candidate_with_opl_readback,
+)
 
 globals().update({
     name: value
@@ -405,7 +408,8 @@ def test_runtime_report_consumes_progress_currentness_opl_log_readback_candidate
         managed_study_autonomy_repair_actions=[],
     )
 
-    assert result["transition_request_pending_count"] == 1
+    assert result["transition_request_pending_count"] == 0
+    assert result["managed_study_opl_transition_request_candidates"] == []
     assert result["provider_admission_pending_count"] == 1
     [admission] = result["managed_study_opl_provider_admission_candidates"]
     assert admission["study_id"] == study_id
@@ -512,6 +516,81 @@ def test_runtime_report_uses_managed_action_runtime_health_for_recovery_state() 
     action = result["managed_study_actions"][0]
     assert action["paper_recovery_state"]["phase"] == "admission_blocked"
     assert action["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is False
+
+
+def test_runtime_report_consumes_transition_request_when_opl_readback_present(tmp_path) -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    candidate = provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_fingerprint=fingerprint,
+    )
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[candidate],
+        managed_study_progress_currentness={},
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    assert result["provider_admission_pending_count"] == 1
+    assert result["transition_request_pending_count"] == 0
+    assert result["managed_study_opl_provider_admission_candidates"] == [candidate]
+    assert result["managed_study_opl_transition_request_candidates"] == []
+
+
+def test_current_control_sync_consumes_transition_request_when_opl_readback_present(tmp_path) -> None:
+    provider_admission_report = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    candidate = provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_fingerprint=fingerprint,
+    )
+    report = {
+        "managed_study_opl_transition_request_candidates": [candidate],
+        "transition_request_pending_count": 1,
+        "current_execution_evidence": {
+            "transition_request_candidates": [candidate],
+        },
+        "managed_study_actions": [],
+    }
+
+    provider_admission_report.sync_report_provider_admission_current_control_state(
+        report,
+        current_control_state={
+            "provider_admission_candidates": [candidate],
+            "transition_request_candidates": [candidate],
+        },
+    )
+
+    assert report["provider_admission_pending_count"] == 1
+    assert report["transition_request_pending_count"] == 0
+    assert report["managed_study_opl_provider_admission_candidates"] == [candidate]
+    assert report["managed_study_opl_transition_request_candidates"] == []
+    assert report["current_execution_evidence"]["provider_admission_candidates"] == [candidate]
+    assert report["current_execution_evidence"]["transition_request_candidates"] == []
 
 
 def test_runtime_report_prefers_owner_receipt_currentness_over_stale_user_waiting_action() -> None:

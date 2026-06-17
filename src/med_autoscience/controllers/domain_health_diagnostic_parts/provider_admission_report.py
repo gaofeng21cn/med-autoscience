@@ -150,6 +150,7 @@ def sync_report_provider_admission_current_control_state(
         dict(item)
         for item in current_control_state.get("transition_request_candidates") or []
         if isinstance(item, Mapping)
+        and not candidate_opl_transition_readback(item)
     ]
     candidates = _filter_candidates_blocked_by_paper_recovery_state(
         [
