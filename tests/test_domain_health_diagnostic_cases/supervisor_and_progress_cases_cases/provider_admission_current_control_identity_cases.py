@@ -46,14 +46,17 @@ def test_materialized_current_control_suppresses_weak_provider_admission_identit
     assert result is not None
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 0
+    assert result["transition_request_candidates"] == []
     assert result["action_queue"] == []
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "weak_provider_admission_identity": 1,
+        "opl_transition_readback_required": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "weak_provider_admission_identity"
+    assert decision["decision"] == "opl_transition_readback_required"
     assert decision["effect"] == "suppress_provider_admission_pending"
-    assert decision["evidence_status"] == "weak_provider_admission_identity"
+    assert decision["evidence_status"] == "NonAdvancingApply"
+    assert decision["evidence"]["blocked_reason"] == "opl_transition_readback_required"
 
 
 def test_materialized_current_control_requires_explicit_stage_packet_identity(
@@ -113,14 +116,14 @@ def test_materialized_current_control_requires_explicit_stage_packet_identity(
     assert result is not None
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 0
+    assert result["transition_request_candidates"] == []
     assert result["action_queue"] == []
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "weak_provider_admission_identity"
-    assert set(decision["missing_identity_fields"]) == {
-        "route_identity_key",
-        "attempt_idempotency_key",
-        "stage_packet_ref_or_refs",
-    }
+    assert decision["decision"] == "opl_transition_readback_required"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["evidence_status"] == "NonAdvancingApply"
+    assert decision["evidence"]["blocked_reason"] == "opl_transition_readback_required"
 
 
 def test_unconsumed_closeout_does_not_authorize_weak_provider_admission_identity(
@@ -196,18 +199,17 @@ def test_unconsumed_closeout_does_not_authorize_weak_provider_admission_identity
     assert result is not None
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 0
+    assert result["transition_request_candidates"] == []
     assert result["action_queue"] == []
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "weak_provider_admission_identity": 1,
+        "opl_transition_readback_required": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "weak_provider_admission_identity"
+    assert decision["decision"] == "opl_transition_readback_required"
     assert decision["effect"] == "suppress_provider_admission_pending"
-    assert set(decision["missing_identity_fields"]) == {
-        "route_identity_key",
-        "attempt_idempotency_key",
-        "stage_packet_ref_or_refs",
-    }
+    assert decision["evidence_status"] == "NonAdvancingApply"
+    assert decision["evidence"]["blocked_reason"] == "opl_transition_readback_required"
 
 
 def test_materialized_current_control_ignores_stale_not_running_projection(
@@ -292,11 +294,13 @@ def test_materialized_current_control_ignores_stale_not_running_projection(
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
-    assert result["stage_route_arbiter_decisions"][0]["decision"] == "pending_provider_admission"
+    assert result["stage_route_arbiter_decisions"][0]["decision"] == "opl_transition_readback_required"
 
 
 def test_fingerprintless_stop_loss_closeout_does_not_consume_new_currentness_identity(
@@ -395,8 +399,10 @@ def test_fingerprintless_stop_loss_closeout_does_not_consume_new_currentness_ide
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
-    assert result["stage_route_arbiter_decisions"][0]["decision"] == "pending_provider_admission"
+    assert result["stage_route_arbiter_decisions"][0]["decision"] == "opl_transition_readback_required"

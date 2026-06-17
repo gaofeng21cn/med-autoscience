@@ -122,7 +122,7 @@ def test_current_control_action_supplies_work_unit_identity_when_dispatch_is_leg
 
     assert len(candidates) == 1
     candidate = candidates[0]
-    assert candidate["status"] == "provider_admission_pending"
+    assert candidate["status"] == "transition_request_pending"
     assert candidate["action_type"] == "run_quality_repair_batch"
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["work_unit_fingerprint"] == work_unit_fingerprint
@@ -295,14 +295,25 @@ def test_domain_health_diagnostic_projects_progress_owner_action_without_current
         request_opl_stage_attempts=True,
     )
 
-    assert result["provider_admission_pending_count"] == 1
-    candidate = result["managed_study_opl_provider_admission_candidates"][0]
-    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
-    assert candidate["action_type"] == "run_quality_repair_batch"
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["work_unit_fingerprint"] == fingerprint
-    assert candidate["dispatch_path"] == str(dispatch_path)
-    assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 0
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    assert result["managed_study_opl_transition_request_candidates"] == []
+    current_control_state = result["provider_admission_current_control_state"]
+    assert current_control_state["provider_admission_pending_count"] == 0
+    assert current_control_state["transition_request_pending_count"] == 0
+    assert current_control_state["transition_request_candidates"] == []
+    assert current_control_state["stage_route_arbiter"]["decision_counts"] == {
+        "paper_recovery_state_blocks_provider_admission": 1,
+    }
+    decision = current_control_state["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "paper_recovery_state_blocks_provider_admission"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["action_type"] == "run_quality_repair_batch"
+    assert decision["work_unit_id"] == work_unit_id
+    assert decision["work_unit_fingerprint"] == fingerprint
+    assert decision["dispatch_path"] == str(dispatch_path)
+    assert decision["evidence"]["provider_admission_allowed"] is False
 
 
 def test_domain_health_diagnostic_suppresses_pending_admission_when_fresh_progress_is_running(
@@ -665,8 +676,10 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
         request_opl_stage_attempts=True,
     )
 
-    assert result["provider_admission_pending_count"] == 1
-    candidate = result["managed_study_opl_provider_admission_candidates"][0]
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    candidate = result["managed_study_opl_transition_request_candidates"][0]
     assert candidate["source"] == "opl_current_control_state.action_queue"
     assert candidate["action_type"] == "return_to_ai_reviewer_workflow"
     assert candidate["work_unit_id"] == work_unit_id

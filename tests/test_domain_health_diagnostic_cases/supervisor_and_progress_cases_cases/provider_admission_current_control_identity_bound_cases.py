@@ -198,10 +198,15 @@ def test_domain_health_diagnostic_prefers_progress_currentness_stage_packet_over
         request_opl_stage_attempts=True,
     )
 
-    assert result["provider_admission_pending_count"] == 1
-    candidate = result["managed_study_opl_provider_admission_candidates"][0]
-    assert candidate["stage_packet_ref"] == immutable_ref
-    assert candidate["stage_packet_refs"] == [immutable_ref]
-    assert candidate["route_identity_key"] == route_key
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 0
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    assert result["managed_study_opl_transition_request_candidates"] == []
     arbiter = result["provider_admission_current_control_state"]["stage_route_arbiter"]
-    assert arbiter["decision_counts"] == {"pending_provider_admission": 1}
+    assert arbiter["decision_counts"] == {"paper_recovery_state_blocks_provider_admission": 1}
+    decision = result["provider_admission_current_control_state"]["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "paper_recovery_state_blocks_provider_admission"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["dispatch_path"] == str(dispatch_path)
+    assert decision["route_identity_key"] == route_key
+    assert decision["evidence"]["provider_admission_allowed"] is False
