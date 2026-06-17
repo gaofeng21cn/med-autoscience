@@ -76,6 +76,67 @@ def _projection(**overrides: object) -> dict[str, object]:
     return payload
 
 
+def _opl_transition_readback(
+    *,
+    study_id: str,
+    work_unit_id: str,
+    work_unit_fingerprint: str,
+    request_key: str,
+) -> dict[str, object]:
+    return {
+        "surface_kind": "opl_domain_progress_transition_result",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "transition_kind": "StartProviderAttempt",
+        "outcome_kind": "provider_admission_pending",
+        "event_id": f"event::{study_id}::{work_unit_id}",
+        "outbox_item_id": f"outbox::{study_id}::{work_unit_id}",
+        "stage_run_identity": {
+            "stage_run_id": f"stage-run::{study_id}::{work_unit_id}",
+            "observed_generation": work_unit_fingerprint,
+        },
+        "identity": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "route_identity_key": request_key,
+            "attempt_idempotency_key": request_key,
+        },
+        "causality": {
+            "mas_transition_request_idempotency_key": request_key,
+            "source_generation": work_unit_fingerprint,
+            "expected_version": work_unit_fingerprint,
+            "derived_from_request": True,
+        },
+        "authority_boundary": {
+            "runtime_owner": "one-person-lab",
+            "domain_state_owner": "med-autoscience",
+            "mas_can_authorize_provider_admission": False,
+            "mas_can_create_opl_outbox_record": False,
+            "mas_can_create_opl_event": False,
+            "mas_can_create_opl_stage_run": False,
+            "provider_completion_is_domain_completion": False,
+        },
+        "exactly_one_outcome": {
+            "selected": "provider_admission_pending",
+            "allowed": [
+                "provider_admission_pending",
+                "running_provider_attempt",
+                "owner_receipt_ref",
+                "typed_blocker_ref",
+            ],
+            "rejected": [],
+        },
+        "projection_metadata": {
+            "authority": False,
+            "projection_owner": "one-person-lab",
+            "consumer": "med-autoscience",
+            "observed_generation": work_unit_fingerprint,
+        },
+    }
+
+
 def _opl_authorization() -> dict[str, object]:
     return {
         "owner": "one-person-lab",
@@ -103,6 +164,53 @@ def test_transition_request_projection_with_opl_authorization_is_owner_callable_
     contract_payload = domain_owner_action_dispatch._dispatch_contract_payload(payload)
     assert contract_payload["surface"] == "default_executor_dispatch_request"
     assert contract_payload["legacy_surface"] == "default_executor_dispatch_request"
+
+
+def test_transition_request_projection_accepts_matching_opl_transition_readback() -> None:
+    payload = _projection(
+        study_id="study-a",
+        next_work_unit={"unit_id": "write_delta"},
+        work_unit_fingerprint="fingerprint-a",
+        opl_domain_progress_transition_request={
+            "target_runtime_kind": "DomainProgressTransitionRuntime",
+            "idempotency_key": "request-a",
+            "work_unit_id": "write_delta",
+            "work_unit_fingerprint": "fingerprint-a",
+        },
+        opl_domain_progress_transition_result=_opl_transition_readback(
+            study_id="study-a",
+            work_unit_id="write_delta",
+            work_unit_fingerprint="fingerprint-a",
+            request_key="request-a",
+        ),
+    )
+
+    assert domain_owner_action_dispatch._contract_guard(payload, apply=False) == (True, None)
+
+
+def test_transition_request_projection_rejects_unbound_opl_transition_readback() -> None:
+    payload = _projection(
+        study_id="study-a",
+        next_work_unit={"unit_id": "write_delta"},
+        work_unit_fingerprint="fingerprint-a",
+        opl_domain_progress_transition_request={
+            "target_runtime_kind": "DomainProgressTransitionRuntime",
+            "idempotency_key": "request-a",
+            "work_unit_id": "write_delta",
+            "work_unit_fingerprint": "fingerprint-a",
+        },
+        opl_domain_progress_transition_result=_opl_transition_readback(
+            study_id="study-a",
+            work_unit_id="stale_delta",
+            work_unit_fingerprint="stale-fingerprint",
+            request_key="stale-request",
+        ),
+    )
+
+    assert domain_owner_action_dispatch._contract_guard(
+        payload,
+        apply=False,
+    ) == (False, "opl_execution_authorization_required")
 
 
 def test_unknown_dispatch_surface_remains_unsupported() -> None:
