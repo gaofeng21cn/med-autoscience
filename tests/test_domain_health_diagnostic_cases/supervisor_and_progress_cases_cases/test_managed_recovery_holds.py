@@ -433,10 +433,10 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
         "domain-owner-action-dispatch",
     ]
     assert supervisor_tick["owner_route_reconcile"] == result["opl_owner_route_reconcile_request"]
-    assert supervisor_tick["materialize"] == {
-        "surface": "domain_action_request_materializer",
-        "materialized_count": 1,
-    }
+    assert supervisor_tick["materialize"]["surface"] == "domain_action_request_materializer"
+    assert supervisor_tick["materialize"]["materialized_count"] == 1
+    assert supervisor_tick["materialize"]["owner_callable_adapter_count"] == 0
+    assert supervisor_tick["materialize"]["owner_callable_adapters"] == []
     assert supervisor_tick["dispatch"] == {
         "surface": "domain_owner_action_dispatch",
         "executed_count": 1,

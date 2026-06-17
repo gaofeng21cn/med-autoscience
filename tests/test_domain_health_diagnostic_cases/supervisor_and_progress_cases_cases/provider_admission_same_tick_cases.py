@@ -113,8 +113,8 @@ def test_domain_health_diagnostic_same_tick_refreshes_materialize_after_pending_
     assert diagnostic["requires_opl_transition_readback"] is True
     assert diagnostic["post_admission_materialize"] == {
         "observed": True,
-        "default_executor_dispatch_count": 1,
-        "ready_default_executor_dispatch_count": 1,
+        "owner_callable_adapter_count": 1,
+        "ready_owner_callable_adapter_count": 1,
     }
 
 
@@ -364,6 +364,13 @@ def test_domain_health_diagnostic_same_tick_continues_after_partial_provider_adm
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
             "default_executor_dispatch_count": 1,
+            "default_executor_dispatches": [
+                {
+                    "study_id": "002-risk",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "dispatch_status": "ready",
+                }
+            ],
         }
 
     def fake_dispatch(**kwargs) -> dict[str, object]:
@@ -403,7 +410,7 @@ def test_domain_health_diagnostic_same_tick_continues_after_partial_provider_adm
     ]
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 1
     assert supervisor_tick["iterations"][1]["provider_admission_probe"]["action_queue"] == []
-    assert supervisor_tick["iterations"][1]["post_admission_materialize"]["default_executor_dispatch_count"] == 1
+    assert supervisor_tick["iterations"][1]["post_admission_materialize"]["owner_callable_adapter_count"] == 1
     assert len(materialize_calls) == 3
 
 

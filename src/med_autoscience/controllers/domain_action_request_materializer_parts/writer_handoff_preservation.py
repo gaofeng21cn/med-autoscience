@@ -104,8 +104,8 @@ def preserved_quality_repair_writer_handoff_dispatch(
     return {
         **_upgrade_writer_handoff_dispatch(payload),
         "refs": {
-            **_mapping(payload.get("refs")),
             "dispatch_path": str(dispatch_path),
+            **_mapping(payload.get("refs")),
         },
     }
 
@@ -129,9 +129,17 @@ def _writer_handoff_dispatch_payload(
     dispatch_path: Path,
     owner_route: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    payload = _read_json_object(dispatch_path)
-    if _text(_mapping(payload).get("dispatch_authority")) == "quality_repair_batch_writer_handoff":
-        return payload
+    for candidate_path in _writer_handoff_dispatch_candidate_paths(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        dispatch_path=dispatch_path,
+    ):
+        payload = _read_json_object(candidate_path)
+        if _text(_mapping(payload).get("dispatch_authority")) == "quality_repair_batch_writer_handoff":
+            refs = {"dispatch_path": str(candidate_path), **_mapping(payload.get("refs"))}
+            payload["refs"] = refs
+            return payload
     payload = _writer_handoff_dispatch_from_current_batch_action(
         study_id=study_id,
         action_type=action_type,
@@ -154,6 +162,27 @@ def _writer_handoff_dispatch_payload(
         action=action,
         owner_route=owner_route,
     )
+
+
+def _writer_handoff_dispatch_candidate_paths(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str,
+    dispatch_path: Path,
+) -> tuple[Path, ...]:
+    legacy_owner_callable_path = (
+        profile.studies_root
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "owner_callable_adapters"
+        / f"{action_type}.json"
+    )
+    if legacy_owner_callable_path == dispatch_path:
+        return (dispatch_path,)
+    return (dispatch_path, legacy_owner_callable_path)
 
 
 def _writer_handoff_dispatch_from_current_batch_action(

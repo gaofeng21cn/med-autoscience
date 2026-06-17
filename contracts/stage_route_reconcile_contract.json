@@ -764,7 +764,9 @@
       "owner_receipt_ref",
       "provider_admission_pending",
       "running_provider_attempt",
-      "typed_blocker_ref"
+      "typed_blocker_ref",
+      "human_gate_ref",
+      "route_back_evidence_ref"
     ],
     "closed_outcome_required_fields": [
       "study_id",
@@ -774,9 +776,10 @@
       "paper_autonomy_obligation_ref",
       "postcondition_ok=true"
     ],
-    "diagnostic_only_outcome_kinds": [
-      "rejected_stale_diagnostic"
+    "request_projection_outcome_kinds": [
+      "transition_request_pending"
     ],
+    "diagnostic_only_outcome_kinds": [],
     "successor_next_safe_actions_keep_same_tick": [
       "materialize_successor_owner_action",
       "materialize_successor_owner_gate"

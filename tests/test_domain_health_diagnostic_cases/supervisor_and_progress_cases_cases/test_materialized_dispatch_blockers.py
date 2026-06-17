@@ -69,9 +69,9 @@ def test_domain_health_diagnostic_same_tick_treats_blocked_materialized_dispatch
     assert supervisor_tick["pass_count"] == 1
     assert supervisor_tick["stop_reason"] == "typed_blocker_or_dispatch_blocker_observed"
     delta = supervisor_tick["iterations"][0]["progress_first_delta"]
-    assert delta["default_executor_dispatch_count"] == 0
-    assert delta["default_executor_dispatch_total_count"] == 1
-    assert delta["blocked_default_executor_dispatch_count"] == 1
+    assert delta["owner_callable_adapter_count"] == 0
+    assert delta["owner_callable_adapter_total_count"] == 1
+    assert delta["blocked_owner_callable_adapter_count"] == 1
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
     assert diagnostic["same_tick_terminal_projection"] == {
         "terminal_state": "stable_typed_blocker_observed",
@@ -82,7 +82,7 @@ def test_domain_health_diagnostic_same_tick_treats_blocked_materialized_dispatch
     }
     assert diagnostic["requires_dispatch_blocker_resolution"] is True
     assert diagnostic["dispatch_blocker_summary"] == {
-        "blocked_default_executor_dispatch_count": 1,
+        "blocked_owner_callable_adapter_count": 1,
         "dispatch_blocked_count": 0,
         "blocked_reasons": ["owner_route_currentness_basis_missing"],
         "blocked_actions": ["return_to_ai_reviewer_workflow"],
@@ -177,16 +177,16 @@ def test_domain_health_diagnostic_dry_run_includes_recovery_materialization_prev
     assert materialize_calls[0]["study_ids"] == (study_id,)
     assert materialize_calls[0]["dispatch_ready_for_execution"] is True
     assert report["domain_action_request_materialization_preview"]["request_task_count"] == 1
-    assert report["domain_action_request_materialization_preview"]["default_executor_dispatch_count"] == 1
+    assert report["domain_action_request_materialization_preview"]["owner_callable_adapter_count"] == 1
     assert report["materialization_preview_request_task_count"] == 1
-    assert report["materialization_preview_default_executor_dispatch_count"] == 1
-    assert report["materialization_preview_ready_default_executor_dispatch_count"] == 1
+    assert report["materialization_preview_owner_callable_adapter_count"] == 1
+    assert report["materialization_preview_ready_owner_callable_adapter_count"] == 1
     action_preview = report["managed_study_actions"][0]["domain_action_request_materialization_preview"]
     assert action_preview["study_id"] == study_id
     assert action_preview["request_task_count"] == 0
-    assert action_preview["default_executor_dispatch_count"] == 1
-    assert action_preview["ready_default_executor_dispatch_count"] == 1
-    assert action_preview["default_executor_dispatches"][0]["action_type"] == (
+    assert action_preview["owner_callable_adapter_count"] == 1
+    assert action_preview["ready_owner_callable_adapter_count"] == 1
+    assert action_preview["owner_callable_adapters"][0]["action_type"] == (
         "run_quality_repair_batch"
     )
     assert report["action_class"] == "observe_only"
@@ -856,6 +856,13 @@ def test_domain_health_diagnostic_same_tick_dispatch_consumes_materialize_payloa
 
     supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=1)
 
-    assert captured_consumer_payloads == [materialize_payload]
+    assert len(captured_consumer_payloads) == 1
+    assert captured_consumer_payloads[0]["surface"] == materialize_payload["surface"]
+    assert captured_consumer_payloads[0]["request_task_count"] == 1
+    assert captured_consumer_payloads[0]["owner_callable_adapter_count"] == 1
+    assert captured_consumer_payloads[0]["ready_owner_callable_adapter_count"] == 1
+    assert captured_consumer_payloads[0]["owner_callable_adapters"] == (
+        materialize_payload["default_executor_dispatches"]
+    )
     assert supervisor_tick["pass_count"] == 1
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["dispatch_execution_count"] == 1

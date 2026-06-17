@@ -1064,11 +1064,13 @@ def _assert_exactly_one_dhd_apply_outcome(
     expected_kind: str,
 ) -> None:
     allowed = [
+        "transition_request_pending",
         "provider_admission_pending",
         "running_provider_attempt",
         "owner_receipt_ref",
         "typed_blocker_ref",
-        "rejected_stale_diagnostic",
+        "human_gate_ref",
+        "route_back_evidence_ref",
     ]
     present = [key for key in allowed if outcome.get(key)]
     assert outcome["exactly_one_outcome"] is True

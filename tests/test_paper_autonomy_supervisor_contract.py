@@ -254,17 +254,18 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         "typed_blocker_ref",
         "provider_admission_pending",
         "running_provider_attempt",
+        "human_gate_ref",
+        "route_back_evidence_ref",
     ]
-    assert readback["request_projection_outcome_kinds"] == ["mas_transition_request_only"]
-    assert readback["diagnostic_only_outcome_kinds"] == ["rejected_stale_diagnostic"]
+    assert readback["request_projection_outcome_kinds"] == ["transition_request_pending"]
+    assert readback["diagnostic_only_outcome_kinds"] == []
     assert readback["non_advancing_apply_effect"] == "typed_blocker_ref"
     assert readback["forbidden_success_roots"] == [
         "queue_empty",
         "dry_run_status",
         "old_attempt",
         "transport_status",
-        "human_gate_ref",
-        "route_back_evidence_ref",
+        "stale_or_unmatched_runtime_residue",
     ]
     assert readback["queue_and_transport_policy"] == {
         "action_queue_can_create_success_outcome": False,

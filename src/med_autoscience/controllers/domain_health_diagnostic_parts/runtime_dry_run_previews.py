@@ -7,6 +7,7 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
     adapter_count,
     adapter_status_count,
     owner_callable_adapters,
+    with_owner_callable_adapter_projection,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -24,12 +25,14 @@ def attach_domain_action_request_materialization_preview(
 ) -> None:
     if not _report_requests_recovery_materialization(report):
         return
-    preview = materialize_domain_action_requests(
-        profile=profile,
-        study_ids=study_ids,
-        mode="developer_apply_safe",
-        apply=False,
-        dispatch_ready_for_execution=True,
+    preview = with_owner_callable_adapter_projection(
+        materialize_domain_action_requests(
+            profile=profile,
+            study_ids=study_ids,
+            mode="developer_apply_safe",
+            apply=False,
+            dispatch_ready_for_execution=True,
+        )
     )
     report["domain_action_request_materialization_preview"] = preview
     report["materialization_preview_request_task_count"] = _int_value(

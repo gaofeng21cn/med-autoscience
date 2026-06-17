@@ -299,52 +299,57 @@
       "owner_receipt_ref",
       "typed_blocker_ref",
       "provider_admission_pending",
-      "running_provider_attempt"
+      "running_provider_attempt",
+      "human_gate_ref",
+      "route_back_evidence_ref"
     ],
     "request_projection_outcome_kinds": [
-      "mas_transition_request_only"
+      "transition_request_pending"
     ],
-    "diagnostic_only_outcome_kinds": [
-      "rejected_stale_diagnostic"
-    ],
+    "diagnostic_only_outcome_kinds": [],
     "non_advancing_apply_effect": "typed_blocker_ref",
     "forbidden_success_roots": [
       "queue_empty",
       "dry_run_status",
       "old_attempt",
       "transport_status",
-      "human_gate_ref",
-      "route_back_evidence_ref"
+      "stale_or_unmatched_runtime_residue"
     ],
     "decision_allowed_outcomes": {
       "execute_current_owner_delta": [
+        "transition_request_pending",
         "provider_admission_pending",
         "running_provider_attempt",
         "typed_blocker_ref",
-        "rejected_stale_diagnostic"
+        "human_gate_ref",
+        "route_back_evidence_ref"
       ],
       "consume_terminal_closeout": [
         "owner_receipt_ref",
-        "typed_blocker_ref",
-        "rejected_stale_diagnostic"
+        "typed_blocker_ref"
       ],
       "materialize_recovery_action": [
+        "transition_request_pending",
         "provider_admission_pending",
         "running_provider_attempt",
         "owner_receipt_ref",
         "typed_blocker_ref",
-        "rejected_stale_diagnostic"
+        "human_gate_ref",
+        "route_back_evidence_ref"
       ],
       "wait_for_owner_with_resume_token": [
-        "rejected_stale_diagnostic"
+        "human_gate_ref",
+        "typed_blocker_ref",
+        "route_back_evidence_ref"
       ],
       "stop_with_stable_typed_blocker": [
         "typed_blocker_ref",
-        "rejected_stale_diagnostic"
+        "human_gate_ref",
+        "route_back_evidence_ref"
       ],
       "stop_with_owner_receipt": [
         "owner_receipt_ref",
-        "rejected_stale_diagnostic"
+        "typed_blocker_ref"
       ]
     },
     "queue_and_transport_policy": {

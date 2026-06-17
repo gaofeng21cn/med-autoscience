@@ -692,6 +692,7 @@ def _default_executor_dispatch_payload(
         "generated_at": generated_at,
         "action_type": action_type,
         "action_id": _text(action.get("action_id")),
+        "dispatch_authority": _dispatch_authority_for_action(action, prompt_contract=prompt_contract),
         "next_executable_owner": next_executable_owner,
         "required_output_surface": required_output_surface,
         "work_unit_id": _text(action.get("work_unit_id")) or _text(action.get("next_work_unit")),
@@ -759,7 +760,20 @@ def _default_executor_dispatch_payload(
             "scan_latest": str(_scan_latest_path(profile)),
             "dispatch_path": str(dispatch_path),
         },
-    }
+}
+
+
+def _dispatch_authority_for_action(
+    action: Mapping[str, Any],
+    *,
+    prompt_contract: Mapping[str, Any],
+) -> str | None:
+    handoff = _mapping(action.get("handoff_packet"))
+    return (
+        _text(action.get("dispatch_authority"))
+        or _text(handoff.get("dispatch_authority"))
+        or _text(prompt_contract.get("dispatch_authority"))
+    )
 
 
 def _owner_callable_adapter_contract(

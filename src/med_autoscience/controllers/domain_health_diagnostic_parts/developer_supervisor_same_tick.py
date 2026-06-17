@@ -24,6 +24,7 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
     adapter_count,
     adapter_status_count,
     owner_callable_adapters,
+    with_owner_callable_adapter_projection,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -68,14 +69,16 @@ def _run_developer_supervisor_same_tick(
             scan_result = carried_scan_result
             carried_scan_result = None
         if carried_materialize_result is None:
-            materialize_result = domain_action_request_materializer_module.materialize_domain_action_requests(
-                profile=profile,
-                study_ids=resolved_study_ids,
-                mode="developer_apply_safe",
-                apply=True,
+            materialize_result = with_owner_callable_adapter_projection(
+                domain_action_request_materializer_module.materialize_domain_action_requests(
+                    profile=profile,
+                    study_ids=resolved_study_ids,
+                    mode="developer_apply_safe",
+                    apply=True,
+                )
             )
         else:
-            materialize_result = carried_materialize_result
+            materialize_result = with_owner_callable_adapter_projection(carried_materialize_result)
             carried_materialize_result = None
         if materialized_record_only_provider_handoff(materialize_result):
             dispatch_result = transition_request_pending_dispatch_result(
@@ -118,11 +121,13 @@ def _run_developer_supervisor_same_tick(
                 provider_attempt_started
                 or materialized_record_only_provider_handoff(_mapping(iteration.get("materialize")))
             ):
-                iteration["post_admission_materialize"] = domain_action_request_materializer_module.materialize_domain_action_requests(
-                    profile=profile,
-                    study_ids=resolved_study_ids,
-                    mode="developer_apply_safe",
-                    apply=True,
+                iteration["post_admission_materialize"] = with_owner_callable_adapter_projection(
+                    domain_action_request_materializer_module.materialize_domain_action_requests(
+                        profile=profile,
+                        study_ids=resolved_study_ids,
+                        mode="developer_apply_safe",
+                        apply=True,
+                    )
                 )
                 if provider_attempt_started and provider_probe_has_non_running_actions(
                     _mapping(iteration["provider_admission_probe"])

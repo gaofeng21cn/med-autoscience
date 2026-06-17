@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import paper_progress_policy_adapter
+from med_autoscience.controllers.current_work_unit_parts.running_provider_attempt import (
+    has_running_health,
+    running_attempt_matches_current_action,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import (
     _non_empty_text,
 )
@@ -165,42 +169,50 @@ def apply_managed_study_obligation_actuator(
 
 
 _OBLIGATION_ACTUATOR_ALLOWED_OUTCOMES = [
+    "transition_request_pending",
     "provider_admission_pending",
     "running_provider_attempt",
     "owner_receipt_ref",
     "typed_blocker_ref",
-    "rejected_stale_diagnostic",
+    "human_gate_ref",
+    "route_back_evidence_ref",
 ]
 
 _SUPERVISOR_DECISION_ALLOWED_OUTCOMES = {
     "execute_current_owner_delta": {
+        "transition_request_pending",
         "provider_admission_pending",
         "running_provider_attempt",
         "typed_blocker_ref",
-        "rejected_stale_diagnostic",
+        "human_gate_ref",
+        "route_back_evidence_ref",
     },
     "consume_terminal_closeout": {
         "owner_receipt_ref",
         "typed_blocker_ref",
-        "rejected_stale_diagnostic",
     },
     "materialize_recovery_action": {
+        "transition_request_pending",
         "provider_admission_pending",
         "running_provider_attempt",
         "owner_receipt_ref",
         "typed_blocker_ref",
-        "rejected_stale_diagnostic",
+        "human_gate_ref",
+        "route_back_evidence_ref",
     },
     "wait_for_owner_with_resume_token": {
-        "rejected_stale_diagnostic",
+        "human_gate_ref",
+        "typed_blocker_ref",
+        "route_back_evidence_ref",
     },
     "stop_with_stable_typed_blocker": {
         "typed_blocker_ref",
-        "rejected_stale_diagnostic",
+        "human_gate_ref",
+        "route_back_evidence_ref",
     },
     "stop_with_owner_receipt": {
         "owner_receipt_ref",
-        "rejected_stale_diagnostic",
+        "typed_blocker_ref",
     },
 }
 
@@ -290,7 +302,7 @@ def _closed_obligation_outcome(
     )
     if running is not None:
         return running
-    pending = _provider_admission_pending_outcome(
+    pending = _provider_admission_or_transition_request_outcome(
         action=action,
         current_control_state=current_control_state,
         phase=phase,
@@ -413,25 +425,32 @@ def _running_provider_attempt_outcome(
 ) -> dict[str, Any] | None:
     study_id = _non_empty_text(action.get("study_id"))
     study = _current_control_study(current_control_state, study_id=study_id)
-    if _action_has_running_provider_attempt_evidence(action) or _action_has_running_provider_attempt_evidence(study):
+    for proof in _strict_opl_running_provider_attempts(action, study):
+        if not running_attempt_matches_current_action(
+            running_attempt=proof,
+            action=_running_attempt_expected_action(action),
+        ):
+            continue
         return _obligation_outcome(
             action=action,
             outcome_kind="running_provider_attempt",
             outcome_ref=_first_text(
-                action.get("active_stage_attempt_id"),
-                action.get("active_run_id"),
-                study.get("active_stage_attempt_id"),
-                study.get("active_run_id"),
-                _mapping(study.get("running_attempt")).get("stage_attempt_id"),
+                proof.get("active_stage_attempt_id"),
+                proof.get("active_run_id"),
+                proof.get("active_workflow_id"),
+                _mapping(proof.get("running_attempt")).get("stage_attempt_id"),
             )
             or f"running_provider_attempt:{study_id or 'unknown-study'}",
             phase=phase,
-            details={"current_control_study": study},
+            details={
+                "opl_running_provider_attempt": proof,
+                "current_control_study": study,
+            },
         )
     return None
 
 
-def _provider_admission_pending_outcome(
+def _provider_admission_or_transition_request_outcome(
     *,
     action: Mapping[str, Any],
     current_control_state: Mapping[str, Any],
@@ -444,18 +463,28 @@ def _provider_admission_pending_outcome(
     if not candidates:
         return None
     runtime_result = candidate_opl_transition_readback(candidates[0])
-    if not runtime_result:
-        return None
+    if runtime_result:
+        return _obligation_outcome(
+            action=action,
+            outcome_kind="provider_admission_pending",
+            outcome_ref=_provider_admission_outcome_ref(
+                candidate=candidates[0],
+                action=action,
+            ),
+            phase=phase,
+            details={
+                "provider_admission_candidates": candidates,
+                "opl_runtime_result": runtime_result,
+            },
+        )
     return _obligation_outcome(
         action=action,
-        outcome_kind="provider_admission_pending",
-        outcome_ref=_non_empty_text(candidates[0].get("action_id"))
-        or _non_empty_text(candidates[0].get("dispatch_path"))
-        or f"provider_admission_pending:{_non_empty_text(action.get('study_id')) or 'unknown-study'}",
+        outcome_kind="transition_request_pending",
+        outcome_ref=_transition_request_outcome_ref(candidate=candidates[0], action=action),
         phase=phase,
         details={
             "provider_admission_candidates": candidates,
-            "opl_runtime_result": runtime_result,
+            "required_opl_runtime_result": True,
         },
     )
 
@@ -499,12 +528,11 @@ def _route_back_evidence_outcome(
     )
     if route_back_ref is None:
         return None
-    return _rejected_stale_diagnostic_outcome(
+    return _obligation_outcome(
         action=action,
+        outcome_kind="route_back_evidence_ref",
+        outcome_ref=route_back_ref,
         phase=phase,
-        rejected_kind="route_back_evidence_ref",
-        rejected_ref=route_back_ref,
-        reason="dhd_apply_outcome_kind_not_supervisor_terminal_readback",
         details={"next_safe_action_kind": _non_empty_text(next_action.get("kind"))},
     )
 
@@ -525,12 +553,11 @@ def _human_gate_outcome(
     )
     if human_gate_ref is None:
         return None
-    return _rejected_stale_diagnostic_outcome(
+    return _obligation_outcome(
         action=action,
+        outcome_kind="human_gate_ref",
+        outcome_ref=human_gate_ref,
         phase=phase,
-        rejected_kind="human_gate_ref",
-        rejected_ref=human_gate_ref,
-        reason="dhd_apply_outcome_kind_not_supervisor_terminal_readback",
         details={"next_safe_action_kind": _non_empty_text(next_action.get("kind"))},
     )
 
@@ -807,32 +834,6 @@ def _obligation_outcome(
     return _clean_payload(payload)
 
 
-def _rejected_stale_diagnostic_outcome(
-    *,
-    action: Mapping[str, Any],
-    phase: str,
-    rejected_kind: str,
-    rejected_ref: str,
-    reason: str,
-    details: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    diagnostic = {
-        "surface_kind": "dhd_apply_rejected_stale_diagnostic",
-        "schema_version": 1,
-        "reason": reason,
-        "rejected_outcome_kind": rejected_kind,
-        "rejected_ref": rejected_ref,
-        "paper_progress_credit_allowed": False,
-    }
-    return _obligation_outcome(
-        action=action,
-        outcome_kind="rejected_stale_diagnostic",
-        outcome_ref=diagnostic,
-        phase=phase,
-        details=details,
-    )
-
-
 def _action_supervisor_decision(action: Mapping[str, Any]) -> dict[str, Any]:
     recovery = _mapping(action.get("paper_recovery_state"))
     for candidate in (
@@ -1034,19 +1035,144 @@ def _current_control_study(
 
 
 def _action_has_running_provider_attempt_evidence(value: Mapping[str, Any]) -> bool:
+    return bool(_strict_opl_running_provider_attempts(value, {}))
+
+
+def _strict_opl_running_provider_attempts(*values: Mapping[str, Any]) -> list[dict[str, Any]]:
+    proofs: list[dict[str, Any]] = []
+    for value in values:
+        for proof in _running_provider_attempt_candidates(value):
+            if _strict_opl_running_provider_attempt(proof):
+                proofs.append(proof)
+    return proofs
+
+
+def _running_provider_attempt_candidates(value: Mapping[str, Any]) -> list[dict[str, Any]]:
     if not value:
+        return []
+    candidates: list[dict[str, Any]] = []
+    payload = _mapping(value)
+    if payload.get("running_provider_attempt") is True:
+        candidates.append(payload)
+    for key in (
+        "opl_provider_attempt",
+        "provider_attempt_proof",
+        "running_attempt",
+        "runtime_liveness",
+        "runtime_liveness_audit",
+    ):
+        nested = _mapping(payload.get(key))
+        if nested:
+            if "runtime_health" not in nested and key in {"runtime_liveness", "runtime_liveness_audit"}:
+                nested = {**nested, "runtime_health": dict(nested)}
+            candidates.append(nested)
+    for key in ("current_execution_envelope", "current_work_unit"):
+        nested = _mapping(payload.get(key))
+        if nested:
+            candidates.extend(_running_provider_attempt_candidates(nested))
+            state = _mapping(nested.get("state"))
+            if state:
+                candidates.extend(_running_provider_attempt_candidates(state))
+    return candidates
+
+
+def _strict_opl_running_provider_attempt(proof: Mapping[str, Any]) -> bool:
+    if proof.get("running_provider_attempt") is not True:
         return False
-    if value.get("running_provider_attempt") is not True:
+    if _running_provider_attempt_owner(proof) != OPL_TRANSITION_RUNTIME_OWNER:
         return False
-    return any(
-        _non_empty_text(ref) is not None
-        for ref in (
-            value.get("active_stage_attempt_id"),
-            value.get("active_run_id"),
-            value.get("active_workflow_id"),
-            _mapping(value.get("running_attempt")).get("stage_attempt_id"),
-            _mapping(value.get("opl_provider_attempt")).get("stage_attempt_id"),
+    if _running_provider_attempt_ref(proof) is None:
+        return False
+    health = _mapping(proof.get("runtime_health")) or proof
+    if health.get("strict_live") is False:
+        return False
+    if not has_running_health(health):
+        return False
+    boundary = _mapping(proof.get("authority_boundary"))
+    if boundary and boundary.get("mas_can_authorize_provider_admission") is not False:
+        return False
+    return True
+
+
+def _running_provider_attempt_owner(proof: Mapping[str, Any]) -> str | None:
+    health = _mapping(proof.get("runtime_health"))
+    return _first_text(
+        proof.get("runtime_owner"),
+        proof.get("provider_attempt_owner"),
+        proof.get("queue_owner"),
+        proof.get("owner"),
+        health.get("runtime_owner"),
+        health.get("provider_attempt_owner"),
+    )
+
+
+def _running_provider_attempt_ref(proof: Mapping[str, Any]) -> str | None:
+    return _first_text(
+        proof.get("active_stage_attempt_id"),
+        proof.get("active_run_id"),
+        proof.get("active_workflow_id"),
+        _mapping(proof.get("running_attempt")).get("stage_attempt_id"),
+        _mapping(proof.get("stage_run_identity")).get("stage_run_id"),
+        _mapping(proof.get("stage_run_identity")).get("stage_run_identity_ref"),
+    )
+
+
+def _running_attempt_expected_action(action: Mapping[str, Any]) -> dict[str, Any]:
+    obligation = _action_recovery_obligation(action)
+    current_action = _mapping(action.get("current_executable_owner_action"))
+    current_work_unit = _mapping(action.get("current_work_unit"))
+    payload = {
+        "action_type": _first_text(
+            obligation.get("action_type"),
+            current_action.get("action_type"),
+            current_work_unit.get("action_type"),
+        ),
+        "work_unit_id": _first_text(
+            obligation.get("work_unit_id"),
+            current_action.get("work_unit_id"),
+            current_work_unit.get("work_unit_id"),
+        ),
+        "work_unit_fingerprint": _first_text(
+            obligation.get("work_unit_fingerprint"),
+            obligation.get("action_fingerprint"),
+            current_action.get("work_unit_fingerprint"),
+            current_action.get("action_fingerprint"),
+            current_work_unit.get("work_unit_fingerprint"),
+            current_work_unit.get("action_fingerprint"),
+        ),
+    }
+    return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
+
+
+def _provider_admission_outcome_ref(
+    *,
+    candidate: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> str:
+    return (
+        _non_empty_text(candidate.get("action_id"))
+        or _non_empty_text(candidate.get("dispatch_path"))
+        or _transition_request_outcome_ref(candidate=candidate, action=action)
+    )
+
+
+def _transition_request_outcome_ref(
+    *,
+    candidate: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> str:
+    request = _mapping(candidate.get("opl_domain_progress_transition_request"))
+    if not request:
+        request = _mapping(
+            _mapping(candidate.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
         )
+    return (
+        _non_empty_text(request.get("idempotency_key"))
+        or _non_empty_text(candidate.get("action_id"))
+        or _non_empty_text(candidate.get("dispatch_path"))
+        or f"transition_request_pending:{_non_empty_text(action.get('study_id')) or 'unknown-study'}"
     )
 
 
