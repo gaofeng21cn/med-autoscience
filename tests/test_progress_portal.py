@@ -625,8 +625,9 @@ def test_progress_portal_runtime_workbench_boundary_is_read_only_projection() ->
     assert study["actions_deprecated"] is True
     assert study["actions_authority"] is False
     assert study["actions_are_operator_intent_refs"] is True
-    assert all(action["allowed"] is False for action in study["actions"].values())
-    assert all(action["execute_authority"] is False for action in study["actions"].values())
+    assert "actions" not in study
+    assert all(action["allowed"] is False for action in study["operator_intent_projection"].values())
+    assert all(action["execute_authority"] is False for action in study["operator_intent_projection"].values())
     assert all(action["command"] is None for action in study["operator_intent_projection"].values())
     assert all(action["confirmation_required"] is False for action in study["operator_intent_projection"].values())
     assert all(

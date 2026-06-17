@@ -172,4 +172,6 @@ def test_progress_portal_projects_progress_first_next_delta_to_operator_surfaces
         "display_and_drilldown_only": True,
         "can_authorize_publication_readiness": False,
         "can_authorize_quality_verdict": False,
+        "can_execute": False,
+        "can_generate_action": False,
     }

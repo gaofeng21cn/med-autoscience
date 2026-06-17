@@ -166,7 +166,6 @@ def _workbench_study_row(
         "actions_authority": False,
         "actions_are_operator_intent_refs": True,
         "operator_intent_projection": _workbench_actions(),
-        "actions": _workbench_actions(),
     }
     paper_route_lens = paper_route_lens_summary(row.get("paper_route_lens"))
     if paper_route_lens:
@@ -234,7 +233,6 @@ def _selected_workbench_study(
         "actions_authority": False,
         "actions_are_operator_intent_refs": True,
         "operator_intent_projection": _workbench_actions(),
-        "actions": _workbench_actions(),
         "information_hierarchy": _workbench_information_hierarchy(),
         "stage_operating_layer": stage_operating_layer,
         "workbench": dict(study_workbench),
