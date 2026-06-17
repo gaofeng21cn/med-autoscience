@@ -1,0 +1,130 @@
+{
+  "surface_kind": "paper_progress_replay_live_evidence_status",
+  "version": "paper-progress-replay-live-evidence-status.v1",
+  "owner": "MedAutoScience / One Person Lab",
+  "state": "active_evidence_status",
+  "purpose": "Machine-readable status for DM002/DM003 paper progress transition replay coverage and read-only live-evidence acceptance boundaries.",
+  "machine_boundary": "This surface records replay and live-evidence acceptance status only. It does not create OPL events, OPL outbox items, StageRun identity, provider attempts, MAS owner receipts, typed blockers, human gates, route-back evidence, paper deltas, publication verdicts, artifact mutations, current package freshness, or production readiness.",
+  "source_of_truth": {
+    "target_design": "docs/runtime/designs/paper_progress_transition_kernel_target.md",
+    "active_plan": "docs/active/mas-ideal-state-gap-plan.md",
+    "runtime_truth_skill": "mas-runtime-truth-audit",
+    "focused_replay_tests": "tests/test_paper_progress_transition_replay_fixtures.py"
+  },
+  "current_status": {
+    "replay_suite_status": "expanded_beyond_first_slice",
+    "live_evidence_surface_status": "read_only_acceptance_boundary_recorded",
+    "live_paper_progress_claim_allowed": false,
+    "dhd_dirty_lane_written": false,
+    "yang_workspace_runtime_artifacts_written": false
+  },
+  "replay_coverage": [
+    {
+      "trace_id": "dm002_stable_typed_blocker",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "RecordTypedBlocker",
+      "required_postcondition": "typed_blocker_ref",
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_dm002_replay_fixture_converges_to_exactly_one_stable_typed_blocker_transition"
+    },
+    {
+      "trace_id": "dm003_owner_action_request_without_opl_readback",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "MaterializeOwnerAction_then_NonAdvancingApply",
+      "required_postcondition": "owner_action_ref_then_non_advancing_apply_typed_blocker_ref",
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_dm003_replay_fixture_records_non_advancing_apply_when_owner_action_request_lacks_opl_readback"
+    },
+    {
+      "trace_id": "owner_receipt_recorded_after_apply_does_not_advance",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "ConsumeOwnerReceipt_then_NonAdvancingApply",
+      "required_postcondition": "owner_receipt_consumed_then_non_advancing_apply_typed_blocker_ref",
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_owner_receipt_recorded_replay_requires_non_advancing_apply_when_readback_does_not_move"
+    },
+    {
+      "trace_id": "same_tick_stale_blocker_admission_conflict",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "RecordTypedBlocker",
+      "required_postcondition": "typed_blocker_ref",
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_same_tick_stale_blocker_and_admission_conflict_converges_to_stable_typed_blocker"
+    },
+    {
+      "trace_id": "provider_admission_pending_count_zero_forbidden_interpretation",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "RecordTypedBlocker",
+      "required_postcondition": "typed_blocker_ref",
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_provider_admission_pending_count_zero_is_forbidden_as_completion_interpretation"
+    },
+    {
+      "trace_id": "current_work_unit_paper_recovery_state_disagreement",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "AdoptRouteBackEvidence",
+      "required_postcondition": "route_back_evidence_ref",
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_current_work_unit_and_paper_recovery_state_disagreement_resolves_to_one_route_back_transition"
+    },
+    {
+      "trace_id": "dhd_request_without_opl_readback",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "StartProviderAttempt_then_NonAdvancingApply",
+      "required_postcondition": "provider_admission_enqueued_or_blocked_then_non_advancing_apply_typed_blocker_ref",
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_dhd_provider_transition_request_without_opl_readback_becomes_non_advancing_apply"
+    },
+    {
+      "trace_id": "human_gate_and_route_back_accepted_shapes",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "OpenHumanGate_or_AdoptRouteBackEvidence",
+      "required_postcondition": "human_gate_ref_or_route_back_evidence_ref",
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_human_gate_and_route_back_are_accepted_live_evidence_shapes_not_queue_claims"
+    }
+  ],
+  "live_evidence_acceptance": {
+    "fresh_live_command_required": true,
+    "exactly_one_required": true,
+    "allowed_exactly_one_families": [
+      "strict_current_identity_running_proof",
+      "owner_receipt_ref",
+      "stable_typed_blocker_ref",
+      "human_gate_ref",
+      "route_back_evidence_ref",
+      "paper_gate_artifact_semantic_delta_ref"
+    ],
+    "source_read_order": [
+      "fresh study_progress JSON per study",
+      "fresh domain-health-diagnostic dry-run or delegated apply/readback JSON",
+      "OPL current-control or StageRun readback when an active run, admission, or provider claim exists",
+      "MAS owner receipt, typed blocker, human gate, route-back evidence, publication gate, or paper/artifact delta refs"
+    ],
+    "accepted_live_commands": [
+      "scripts/run-python-clean.sh -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
+      "scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnostic --profile <profile> --studies <study_id>... --request-opl-stage-attempts --dry-run"
+    ]
+  },
+  "forbidden_completion_interpretations": [
+    "queue_empty",
+    "action_queue=[]",
+    "DHD_dry_run",
+    "DHD_observe_only",
+    "provider_admission_pending_count=0",
+    "managed_study_opl_provider_admission_candidates=0",
+    "transition_request_pending_count=0",
+    "projection_clean",
+    "read_model_refreshed",
+    "focused_tests_passed",
+    "docs_updated",
+    "contract_landed",
+    "refs_only_ledger",
+    "active_run_id_present_without_same_identity_running_proof",
+    "provider_completion_without_mas_owner_acceptance",
+    "recorded_only_owner_receipt_without_consumption_or_next_delta"
+  ],
+  "remaining_evidence_tails": [
+    "OPL outbox and StageRun identity live readback for the same transition request",
+    "DHD apply exactly-one live outcome when explicitly delegated",
+    "provider admission arbiter fully consuming OPL transition events",
+    "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family"
+  ],
+  "verification_refs": [
+    "tests/test_paper_progress_transition_replay_fixtures.py",
+    "docs/runtime/designs/paper_progress_transition_kernel_target.md",
+    "docs/active/mas-ideal-state-gap-plan.md"
+  ]
+}

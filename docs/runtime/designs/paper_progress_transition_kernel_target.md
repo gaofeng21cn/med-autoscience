@@ -16,7 +16,7 @@ DHD `obligation_actuator` 现在只作为 MAS policy / owner-answer readback 和
 
 2026-06-16 tail slice 进一步把 owner callable / worker handoff 执行面收回同一边界：`domain-handler export`、paper recovery successor dispatch、AI reviewer record handoff、quality writer handoff、`paper_repair_executor` 和 default executor dispatch 可以生成 `opl_domain_progress_transition_request` 及 refs-only handoff evidence，但只要缺 OPL `DomainProgressTransitionRuntime` readback，或缺 OPL provider attempt / lease / closeout receipt binding，就不能被 MAS 计为 provider admission、provider attempt lease 或 `handoff_ready` execution。`domain-owner-action-dispatch` 现在在 action executor 返回后统一检查 transition request；缺 OPL event / outbox / StageRun readback 时保留 handoff refs 供 OPL 接管，同时把 execution fail-closed 为 `opl_execution_authorization_required` typed blocker，`executed_count=0`、`codex_dispatch_count=0`、`mas_creates_opl_outbox=false`。`paper_repair_executor` 同样只把 ready worker handoff 读作 OPL-authorized owner callable handoff；无 proof 的 `dispatch_status=ready` carrier 必须降级为 `opl_execution_authorization_required`，不得靠 MAS-local `ok=true` 或 handoff payload 自行升级。它不是兼容 alias，也不是 MAS 私有 attempt lifecycle；它只是 MAS policy adapter 到 OPL runtime 的 admission boundary。
 
-当前 MAS replay fixture first slice 已把 DM002 stable typed blocker 与 DM003 owner-action-request-no-OPL-readback 两条历史坏轨迹落成 `tests/test_paper_progress_transition_replay_fixtures.py`：前者收敛为 exactly-one `RecordTypedBlocker`，后者先收敛为 `MaterializeOwnerAction` MAS transition request，再在缺 OPL readback 时收敛为 `NonAdvancingApply` typed blocker，并共同证明 MAS 只产出 policy result / transition request，不携带 OPL event/outbox/StageRun authority。它仍不是 live paper progress claim。完成门继续要求更广历史 trace、OPL outbox / StageRun identity live readback，以及 DM002 / DM003 fresh live outcome。docs、contract、focused tests、projection clean、queue empty 或 DHD dry-run 仍不能替代 running proof、owner receipt、stable typed blocker、human gate、route-back evidence 或 paper-gate-artifact semantic delta。
+当前 MAS replay fixture 已从 first slice 扩到 DM002 / DM003 代表性历史坏轨迹：`tests/test_paper_progress_transition_replay_fixtures.py` 现在覆盖 DM002 stable typed blocker、DM003 owner-action request 缺 OPL readback、owner receipt recorded 后同 identity 不推进、same-tick stale blocker / admission 冲突、`provider_admission_pending_count=0` 禁止解释、`current_work_unit` 与 `paper_recovery_state` 分歧、DHD/request 无 OPL readback 进入 `NonAdvancingApply`，以及 human gate / route-back accepted shape。`contracts/paper_progress_replay_live_evidence_status.json` 同步记录 replay coverage 与只读 live-evidence acceptance boundary：fresh live acceptance 只能是 strict current-identity running proof、owner receipt、stable typed blocker、human gate、route-back evidence 或 paper/gate/artifact semantic delta 中 exactly-one。它仍不是 live paper progress claim。完成门继续要求 OPL outbox / StageRun identity live readback、DHD apply exactly-one live outcome、provider admission arbiter 完全消费 OPL transition event，以及 DM002 / DM003 fresh live paper-line outcome。docs、contract、focused tests、projection clean、queue empty、`provider_admission_pending_count=0` 或 DHD dry-run 仍不能替代 running proof、owner receipt、stable typed blocker、human gate、route-back evidence 或 paper-gate-artifact semantic delta。
 
 2026-06-17 MAS adapter 消费面补齐：`PaperProgressPolicyAdapter` 现在显式覆盖 owner receipt、typed blocker、publication gate / paper delta、forbidden write、human gate / route-back 和 `NonAdvancingApply` 结果形状，并把 clean `opl_domain_progress_transition_request` 保持为 MAS domain policy request；request 不携带 OPL runtime artifact 字段，authority boundary 继续声明 MAS 不能 authorize provider admission、event log、outbox、StageRun 或 fixed-point runtime。该状态由 `tests/test_paper_progress_policy_adapter.py` 与 replay fixture focused tests 证明；它仍不是 live DHD apply 前进、provider running proof 或 paper-line completion claim。
 
@@ -169,10 +169,12 @@ OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；
 
 ### Lane 1：Replay fixtures
 
-- 把最近 DM002 / DM003 坏轨迹转成 event trace replay：owner receipt recorded 后不推进、same-tick admission 被 stale blocker 压掉、provider admission pending 为 0、current_work_unit 与 paper_recovery_state 分歧、DHD apply 后无 outcome。
+- 把最近 DM002 / DM003 坏轨迹转成 event trace replay：owner receipt recorded 后不推进、same-tick admission 被 stale blocker 压掉、provider admission pending 为 0、current_work_unit 与 paper_recovery_state 分歧、DHD/request 无 OPL readback 后无 outcome、人类 gate / route-back accepted shape。
 - 旧局部 reducer fixtures 继续保留，但不能替代 replay acceptance。
 
-完成门：每条历史 trace 都收敛到 exactly-one transition 或 `NonAdvancingApply` typed blocker。
+当前状态：`tests/test_paper_progress_transition_replay_fixtures.py` 已覆盖上述代表性 replay trace，`contracts/paper_progress_replay_live_evidence_status.json` 记录 replay coverage 和 forbidden completion interpretations。
+
+完成门：每条历史 trace 都收敛到 exactly-one transition 或 `NonAdvancingApply` typed blocker；该门只证明 replay/contract acceptance，不声明 live paper progress。
 
 ### Lane 2：OPL runtime first slice
 
@@ -202,7 +204,9 @@ OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；
 - 对 DM002 / DM003 执行 fresh kernel-driven apply。
 - 成功不以测试绿或 projection clean 为准，只以 stable outcome 为准。
 
-完成门：每篇 paper 出现 strict running proof、owner receipt、stable typed blocker、human gate、route-back evidence、paper/gate/artifact semantic delta 或 terminal stop-loss 中的 exactly-one outcome。
+只读验收口径：fresh live acceptance 只能来自 fresh `study_progress`、DHD dry-run 或受委托 apply/readback、OPL current-control / StageRun readback 与 MAS owner evidence 的同 identity 交叉验证；`contracts/paper_progress_replay_live_evidence_status.json#/live_evidence_acceptance` 记录 allowed exactly-one family。
+
+完成门：每篇 paper 出现 strict current-identity running proof、owner receipt、stable typed blocker、human gate、route-back evidence 或 paper/gate/artifact semantic delta 中 exactly-one outcome。
 
 ## 验证策略
 
