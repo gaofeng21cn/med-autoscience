@@ -156,6 +156,15 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "same_identity_transition_request_pending_and_provider_admission_pending"
         ),
     }
+    assert default_dispatch["arbiter_authority_boundary"] == {
+        "provider_admission_readback_requires_opl_live_readback": True,
+        "event_or_outbox_fragment_is_provider_admission_authority": False,
+        "request_without_live_readback_effect": "transition_request_pending_non_advancing_apply_required",
+        "missing_live_readback_no_progress_signal": "transition_request_waits_for_opl_runtime",
+        "anti_loop_classification": "non_advancing_apply_required",
+        "mas_can_authorize_provider_admission": False,
+        "mas_can_create_opl_outbox_event_or_stage_run": False,
+    }
 
     legacy_alias = surfaces["owner_callable_adapter_legacy_dispatch_projection_alias"]
     assert legacy_alias["retained_mas_role"] == "none_physically_retired_no_alias"

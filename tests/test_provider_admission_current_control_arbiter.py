@@ -67,7 +67,8 @@ def test_provider_admission_current_control_records_retained_pending_arbiter_dec
     assert boundary["runtime_kind"] == "DomainProgressTransitionRuntime"
     assert boundary["can_authorize_provider_admission"] is False
     assert boundary["provider_admission_requires_mas_transition_request"] is True
-    assert boundary["provider_admission_readback_requires_opl_outbox_or_event"] is True
+    assert boundary["provider_admission_readback_requires_opl_live_readback"] is True
+    assert boundary["event_or_outbox_fragment_is_provider_admission_authority"] is False
     assert boundary["can_run_fixed_point_runtime"] is False
     retained = result["provider_admission_candidates"][0]
     transition_request = retained["opl_domain_progress_transition_request"]

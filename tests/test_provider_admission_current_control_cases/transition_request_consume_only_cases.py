@@ -75,7 +75,13 @@ def test_provider_admission_current_control_treats_mas_request_without_opl_readb
     assert decision["decision"] == "opl_transition_readback_required"
     assert decision["effect"] == "suppress_provider_admission_pending"
     assert decision["evidence_status"] == "NonAdvancingApply"
+    assert decision["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
+    assert decision["anti_loop_classification"] == "non_advancing_apply_required"
     assert decision["evidence"]["required_runtime"] == "DomainProgressTransitionRuntime"
+    assert (
+        decision["evidence"]["required_readback_surface_kind"]
+        == "opl_domain_progress_transition_runtime_live_readback"
+    )
     assert decision["evidence"]["missing_readback_sections"] == [
         "identity",
         "causality",
@@ -87,6 +93,10 @@ def test_provider_admission_current_control_treats_mas_request_without_opl_readb
     assert decision["evidence"]["mas_can_create_opl_outbox_record"] is False
     assert decision["evidence"]["mas_can_create_opl_event"] is False
     assert decision["evidence"]["mas_can_create_opl_stage_run"] is False
+    assert (
+        decision["evidence"]["event_or_outbox_fragment_is_provider_admission_authority"]
+        is False
+    )
     assert decision["evidence"]["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
 
 
@@ -195,6 +205,8 @@ def test_provider_admission_current_control_keeps_same_tick_materialized_recover
     assert decision["decision"] == "opl_transition_readback_required"
     assert decision["effect"] == "suppress_provider_admission_pending"
     assert decision["evidence_status"] == "NonAdvancingApply"
+    assert decision["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
+    assert decision["anti_loop_classification"] == "non_advancing_apply_required"
     assert result["action_queue"][0]["action_type"] == "run_quality_repair_batch"
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
     assert result["action_queue"][0]["provider_admission_pending"] is False

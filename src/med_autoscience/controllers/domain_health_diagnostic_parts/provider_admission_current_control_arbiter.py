@@ -44,7 +44,8 @@ ARBITER_AUTHORITY_BOUNDARY = {
     "can_write_domain_truth": False,
     "can_authorize_provider_admission": False,
     "provider_admission_requires_mas_transition_request": True,
-    "provider_admission_readback_requires_opl_outbox_or_event": True,
+    "provider_admission_readback_requires_opl_live_readback": True,
+    "event_or_outbox_fragment_is_provider_admission_authority": False,
     "can_own_generic_event_log_or_outbox": False,
     "can_run_fixed_point_runtime": False,
     "can_authorize_publication_ready": False,
@@ -235,6 +236,8 @@ def _arbiter_no_progress_signal(
     decision: str,
     evidence_status: str | None,
 ) -> str | None:
+    if decision == "opl_transition_readback_required" and evidence_status == "NonAdvancingApply":
+        return "transition_request_waits_for_opl_runtime"
     if decision not in {
         "accepted_closeout_consumed_pending",
         "terminal_closeout_precedes_live_projection",
@@ -255,6 +258,8 @@ def _arbiter_anti_loop_classification(no_progress_signal: str | None) -> str | N
         return "provider_admission_echo"
     if no_progress_signal == "idempotent_noop_without_new_owner_delta":
         return "same_work_unit_no_delta"
+    if no_progress_signal == "transition_request_waits_for_opl_runtime":
+        return "non_advancing_apply_required"
     return None
 
 
@@ -717,6 +722,7 @@ def _opl_transition_readback_required_evidence(candidate: Mapping[str, Any]) -> 
         or "one-person-lab",
         "missing_readback_sections": list(required_shape.get("required_sections") or []),
         "missing_runtime_refs": list(required_shape.get("required_runtime_refs") or []),
+        "required_readback_surface_kind": _non_empty_text(required_shape.get("surface_kind")),
         "mas_transition_request_idempotency_key": _non_empty_text(
             transition_request.get("idempotency_key")
         ),
@@ -724,6 +730,7 @@ def _opl_transition_readback_required_evidence(candidate: Mapping[str, Any]) -> 
         "mas_can_create_opl_outbox_record": False,
         "mas_can_create_opl_event": False,
         "mas_can_create_opl_stage_run": False,
+        "event_or_outbox_fragment_is_provider_admission_authority": False,
         "no_progress_signal": "transition_request_waits_for_opl_runtime",
     }
 
