@@ -31,6 +31,15 @@ AUTHORITY_REF_TABLES = (
     "stage_artifact_delta_refs",
 )
 OPL_FAMILY_ADAPTER_SOURCE_TABLES = AUTHORITY_REF_TABLES
+LEGACY_TABLE_POLICY = {
+    "runtime_events": "tombstone_provenance_only",
+    "runtime_snapshots": "tombstone_provenance_only",
+    "lineage_nodes": "tombstone_provenance_only",
+    "workspace_allocations": "tombstone_provenance_only",
+    "turn_receipts": "tombstone_provenance_only",
+    "surface_refs": "tombstone_provenance_only",
+    "report_index": "tombstone_provenance_only",
+}
 
 
 def domain_authority_refs_index_contract() -> dict[str, Any]:
@@ -49,6 +58,13 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
         "authority_policy": {
             "stores_body": False,
             "stores_domain_truth": False,
+            "rebuildable": True,
+            "started_worker": False,
+            "outbox_record": False,
+            "can_generate_next_action_authority": False,
+            "can_authorize_provider_admission": False,
+            "can_authorize_quality_verdict": False,
+            "can_authorize_publication_ready": False,
             "provider_completion_is_domain_completion": False,
             "queue_succeeded_is_domain_completion": False,
             "domain_completion_owner": "med-autoscience",
@@ -83,6 +99,7 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
             "surface_refs",
             "report_index",
         ],
+        "legacy_table_policy": dict(LEGACY_TABLE_POLICY),
     }
 
 
@@ -107,7 +124,8 @@ def record_archive_ref(
     source_manifest_path = _text(archive_ref.get("source_manifest_path"))
     restore_proof_path = _text(archive_ref.get("restore_proof_path"))
     archived_at = _text(archive_ref.get("archived_at")) or _utc_now()
-    payload_json = _stable_json(archive_ref)
+    payload_json = _stable_json(_archive_ref_projection_payload(archive_ref))
+    payload_sha256 = _sha256(_stable_json(archive_ref))
     with _connect(resolved_db_path) as conn:
         _ensure_schema(conn)
         conn.execute(
@@ -141,7 +159,7 @@ def record_archive_ref(
                 str(Path(source_manifest_path).expanduser().resolve()) if source_manifest_path else None,
                 str(Path(restore_proof_path).expanduser().resolve()) if restore_proof_path else None,
                 _stable_json(archive_ref.get("source_buckets") if isinstance(archive_ref.get("source_buckets"), list) else []),
-                _sha256(payload_json),
+                payload_sha256,
                 payload_json,
                 _utc_now(),
             ),
@@ -159,7 +177,8 @@ def record_owner_route_receipt(
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_db_path = _resolve_db_path(db_path, default=workspace_authority_refs_index_path(resolved_study_root.parent.parent))
     resolved_receipt_path = Path(receipt_path).expanduser().resolve()
-    payload_json = _stable_json(receipt)
+    payload_json = _stable_json(_owner_route_projection_payload(receipt))
+    payload_sha256 = _sha256(_stable_json(receipt))
     row = {
         "study_root": str(resolved_study_root),
         "study_id": _require_text("receipt.study_id", receipt.get("study_id")),
@@ -172,7 +191,7 @@ def record_owner_route_receipt(
         "allowed_actions_json": _stable_json(receipt.get("allowed_actions") if isinstance(receipt.get("allowed_actions"), list) else []),
         "source_refs_json": _stable_json(_mapping(receipt.get("source_refs"))),
         "source_path": str(resolved_receipt_path),
-        "payload_sha256": _sha256(payload_json),
+        "payload_sha256": payload_sha256,
         "payload_json": payload_json,
         "recorded_at": _utc_now(),
     }
@@ -192,10 +211,11 @@ def record_dispatch_receipt(
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     resolved_db_path = _resolve_db_path(db_path, default=quest_authority_refs_index_path(resolved_quest_root))
     resolved_receipt_path = Path(receipt_path).expanduser().resolve()
-    payload_json = _stable_json(receipt)
+    payload_json = _stable_json(_dispatch_projection_payload(receipt))
+    payload_sha256 = _sha256(_stable_json(receipt))
     row = {
         "quest_root": str(resolved_quest_root),
-        "dispatch_id": _dispatch_id(receipt=receipt, source_path=resolved_receipt_path, payload_json=payload_json),
+        "dispatch_id": _dispatch_id(receipt=receipt, source_path=resolved_receipt_path, payload_sha256=payload_sha256),
         "study_id": _require_text("receipt.study_id", receipt.get("study_id")),
         "quest_id": _text(receipt.get("quest_id")),
         "action_type": _text(receipt.get("action_type")),
@@ -204,7 +224,7 @@ def record_dispatch_receipt(
         "idempotency_key": _text(receipt.get("idempotency_key")),
         "owner_route_json": _stable_json(_mapping(receipt.get("owner_route"))),
         "source_path": str(resolved_receipt_path),
-        "payload_sha256": _sha256(payload_json),
+        "payload_sha256": payload_sha256,
         "payload_json": payload_json,
         "recorded_at": _utc_now(),
     }
@@ -263,7 +283,7 @@ def _record_study_receipt_ref(
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     resolved_db_path = _resolve_db_path(db_path, default=workspace_authority_refs_index_path(resolved_study_root.parent.parent))
     resolved_receipt_path = Path(receipt_path).expanduser().resolve()
-    payload_json = _stable_json(receipt)
+    payload_sha256 = _sha256(_stable_json(receipt))
     row = {
         "study_root": str(resolved_study_root),
         "quest_root": str(resolved_quest_root),
@@ -274,19 +294,29 @@ def _record_study_receipt_ref(
         "intent_fingerprint": _require_text("receipt.intent_fingerprint", receipt.get("intent_fingerprint")),
         "source_fingerprint": _require_text("receipt.source_fingerprint", receipt.get("source_fingerprint")),
         "receipt_status": _require_text("receipt.receipt_status", receipt.get("receipt_status")),
-        "started_worker": 1 if receipt.get("started_worker") is True else 0,
-        "worker_start_ref": _text(receipt.get("worker_start_ref")),
+        "started_worker": 0,
+        "worker_start_ref": None,
         "duplicate_of_receipt_id": _text(receipt.get("duplicate_of_receipt_id")),
         "fail_closed_reason": _text(receipt.get("fail_closed_reason")),
         "source_path": str(resolved_receipt_path),
-        "payload_sha256": _sha256(payload_json),
-        "payload_json": payload_json,
+        "payload_sha256": payload_sha256,
         "recorded_at": _require_text("receipt.recorded_at", receipt.get("recorded_at")),
     }
     with _connect(resolved_db_path) as conn:
         _ensure_schema(conn)
         _upsert_row(conn, table=table, conflict_columns=("study_root", "receipt_id"), row=row)
-    return _index_result(db_path=resolved_db_path, indexed_table=table, indexed_count=1, scope="study")
+    result = _index_result(db_path=resolved_db_path, indexed_table=table, indexed_count=1, scope="study")
+    result.update(
+        {
+            "payload_sha256": payload_sha256,
+            "started_worker": False,
+            "worker_start_ref": None,
+            "outbox_record": False,
+            "body_included": False,
+            "authority_boundary": _refs_only_authority_boundary(),
+        }
+    )
+    return result
 
 
 def inspect_authority_refs_index(db_path: Path) -> dict[str, Any]:
@@ -409,7 +439,6 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             fail_closed_reason TEXT,
             source_path TEXT NOT NULL,
             payload_sha256 TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
             recorded_at TEXT NOT NULL,
             PRIMARY KEY (study_root, receipt_id)
         )
@@ -433,7 +462,6 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             fail_closed_reason TEXT,
             source_path TEXT NOT NULL,
             payload_sha256 TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
             recorded_at TEXT NOT NULL,
             PRIMARY KEY (study_root, receipt_id)
         )
@@ -485,11 +513,75 @@ def _index_result(*, db_path: Path, indexed_table: str, indexed_count: int, scop
     }
 
 
-def _dispatch_id(*, receipt: Mapping[str, Any], source_path: Path, payload_json: str) -> str:
+def _refs_only_authority_boundary() -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_domain_authority_refs_index_boundary",
+        "refs_only": True,
+        "body_included": False,
+        "rebuildable": True,
+        "started_worker": False,
+        "outbox_record": False,
+        "can_start_worker": False,
+        "can_create_outbox_record": False,
+        "can_generate_next_action_authority": False,
+        "can_authorize_provider_admission": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_ready": False,
+    }
+
+
+def _archive_ref_projection_payload(archive_ref: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "archive_id": _text(archive_ref.get("archive_id")),
+        "archive_path": _text(archive_ref.get("archive_path")),
+        "archive_format": _text(archive_ref.get("archive_format")),
+        "sha256": _text(archive_ref.get("sha256")),
+        "bytes": _as_int(archive_ref.get("bytes")),
+        "source_manifest_path": _text(archive_ref.get("source_manifest_path")),
+        "restore_proof_path": _text(archive_ref.get("restore_proof_path")),
+        "body_included": False,
+    }
+
+
+def _owner_route_projection_payload(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "surface": _text(receipt.get("surface")),
+        "study_id": _text(receipt.get("study_id")),
+        "quest_id": _text(receipt.get("quest_id")),
+        "idempotency_key": _text(receipt.get("idempotency_key")),
+        "route_epoch": _text(receipt.get("route_epoch")),
+        "current_owner": _text(receipt.get("current_owner")),
+        "next_owner": _text(receipt.get("next_owner")),
+        "owner_reason": _text(receipt.get("owner_reason")),
+        "allowed_actions": list(receipt.get("allowed_actions") or [])
+        if isinstance(receipt.get("allowed_actions"), list)
+        else [],
+        "source_refs": dict(_mapping(receipt.get("source_refs"))),
+        "body_included": False,
+    }
+
+
+def _dispatch_projection_payload(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "surface": _text(receipt.get("surface")),
+        "dispatch_id": _text(receipt.get("dispatch_id")),
+        "study_id": _text(receipt.get("study_id")),
+        "quest_id": _text(receipt.get("quest_id")),
+        "action_type": _text(receipt.get("action_type")),
+        "created_at": _dispatch_created_at(receipt),
+        "status": _dispatch_status(receipt),
+        "idempotency_key": _text(receipt.get("idempotency_key")),
+        "owner_route": _owner_route_projection_payload(_mapping(receipt.get("owner_route"))),
+        "why_not_applied": _text(receipt.get("why_not_applied")),
+        "body_included": False,
+    }
+
+
+def _dispatch_id(*, receipt: Mapping[str, Any], source_path: Path, payload_sha256: str) -> str:
     for key in ("dispatch_id", "request_id", "execution_id", "action_id"):
         if value := _text(receipt.get(key)):
             return value
-    return f"{source_path}::{_sha256(payload_json)}"
+    return f"{source_path}::{payload_sha256}"
 
 
 def _dispatch_created_at(receipt: Mapping[str, Any]) -> str:

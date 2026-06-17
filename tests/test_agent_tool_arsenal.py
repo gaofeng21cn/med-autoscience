@@ -131,6 +131,23 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     assert dispatch["callability"] == "descriptor_only"
     assert dispatch["risk_annotations"]["readOnlyHint"] is False
     assert dispatch["risk_annotations"]["requires_opl_stage_attempt_or_lease"] is True
+    assert dispatch["non_read_only_gate"] == {
+        "surface_kind": "mas_agent_tool_non_read_only_gate",
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "requires_current_owner_delta": True,
+        "requires_current_owner_delta_match": True,
+        "requires_human_gate": False,
+        "requires_human_gate_or_owner_delta": True,
+        "requires_owner_receipt_or_typed_blocker_proof": True,
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": False,
+        "can_substitute_owner_receipt": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
+        "can_authorize_provider_admission": False,
+        "can_start_worker_attempt": False,
+    }
+    assert dispatch["invocation_gate"]["non_read_only_gate_policy"] == dispatch["non_read_only_gate"]["gate_policy"]
+    assert dispatch["invocation_gate"]["owner_receipt_or_typed_blocker_required"] is True
     assert dispatch["authority_effects"]["can_return_owner_receipt"] is True
     assert "publication_quality" in dispatch["forbidden_authority"]
     assert "current_package" in dispatch["forbidden_authority"]
@@ -215,6 +232,12 @@ def test_agent_tool_arsenal_indexes_owner_callable_cards_with_lifecycle_contract
     assert "paper/draft.md" in repair["allowed_writes"]
     assert "artifacts/publication_eval/latest.json" in repair["forbidden_writes"]
     assert repair["closeout_contract"]["requires_owner_receipt_or_typed_blocker"] is True
+    assert repair["non_read_only_gate"]["requires_current_owner_delta"] is True
+    assert repair["non_read_only_gate"]["requires_owner_receipt_or_typed_blocker_proof"] is True
+    assert repair["non_read_only_gate"]["can_substitute_owner_receipt"] is False
+    assert repair["authority_boundary"]["owner_receipt_or_typed_blocker_required"] is True
+    assert repair["authority_boundary"]["owner_receipt_or_typed_blocker_proof_replaces_publication_quality"] is False
+    assert repair["authority_boundary"]["can_substitute_owner_receipt"] is False
     assert repair["result_envelope_schema_ref"] == (
         "contracts/agent_tool_arsenal.json#/result_envelope_schema"
     )
@@ -272,8 +295,14 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert plan["selected_action_type"] == "run_quality_repair_batch"
     assert plan["selected_tool_id"] == "owner_callable:run_quality_repair_batch"
     assert plan["requires"]["owner_receipt_or_typed_blocker"] is True
+    assert plan["requires"]["current_owner_delta_match"] is True
+    assert plan["requires"]["human_gate_or_owner_delta"] is True
+    assert plan["requires"]["owner_receipt_or_typed_blocker_proof"] is True
     assert plan["authority_boundary"]["can_write_publication_quality"] is False
+    assert plan["authority_boundary"]["owner_receipt_or_typed_blocker_proof_replaces_publication_quality"] is False
+    assert plan["authority_boundary"]["capability_invocation_plan_replaces_owner_receipt"] is False
     assert "verify_required_input_refs" in plan["invocation_steps"]
+    assert "verify_current_owner_delta_or_human_gate" in plan["invocation_steps"]
     assert "emit_tool_result_envelope" in plan["invocation_steps"]
     assert "attach_optional_lightweight_executor_receipt_ref" in plan["invocation_steps"]
     assert plan["requires"]["executor_receipt_ref_required"] is False
@@ -299,6 +328,9 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert display_plan["selected_tool_id"] == "display_pack_agent"
     assert display_plan["selected_tool_mode"] == "orchestrate"
     assert display_plan["requires"]["owner_receipt_or_typed_blocker"] is False
+    assert display_plan["requires"]["current_owner_delta_match"] is True
+    assert display_plan["requires"]["human_gate_or_owner_delta"] is False
+    assert display_plan["requires"]["owner_receipt_or_typed_blocker_proof"] is False
     assert display_plan["requires"]["executor_receipt_ref_required"] is False
     assert display_plan["primary_operational_card"]["tool_id"] == "display_pack_agent"
     assert display_plan["primary_operational_card"]["default_invocation"]["arguments"] == {
@@ -361,6 +393,9 @@ def test_agent_tool_arsenal_completeness_diagnostic_maps_runtime_and_support_too
     assert "agent_tool_arsenal" in diagnostic["support_or_diagnostic_mcp_tools"]
     assert "doctor_audit" in diagnostic["support_or_diagnostic_mcp_tools"]
     assert diagnostic["authority_boundary"]["diagnostic_only"] is True
+    assert diagnostic["authority_boundary"]["support_or_diagnostic_tools_are_projection_only"] is True
+    assert diagnostic["authority_boundary"]["non_read_only_tools_require_current_owner_delta_or_human_gate"] is True
+    assert diagnostic["authority_boundary"]["non_read_only_tools_require_owner_receipt_or_typed_blocker_proof"] is True
     assert diagnostic["doctor_surface_kind"] == "mas_agent_tool_arsenal_drift_parity_doctor"
     assert diagnostic["parity_summary"]["status"] == "complete"
     assert diagnostic["parity_summary"]["public_runtime_manifest_missing"] == []

@@ -25,10 +25,15 @@ def test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies(t
     assert result["authority_boundary"] == {
         "sqlite_role": "rebuildable_refs_only_sidecar_index",
         "body_included": False,
+        "rebuildable": True,
         "stores_study_truth": False,
         "stores_manuscript_body": False,
         "stores_artifact_body": False,
         "stores_owner_receipt_body": False,
+        "can_generate_next_action_authority": False,
+        "can_authorize_provider_admission": False,
+        "can_create_worker_attempt": False,
+        "can_create_outbox_record": False,
         "sqlite_record_counts_as_stage_complete": False,
         "generic_state_index_owner": "one-person-lab",
     }
@@ -79,6 +84,22 @@ def test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies(t
     assert "OWNER_RECEIPT_BODY_MUST_NOT_ENTER_SQLITE" not in sqlite_text
     assert "PUBLICATION_TRUTH_MUST_NOT_ENTER_SQLITE" not in sqlite_text
     assert "MANUSCRIPT_BODY_MUST_NOT_ENTER_SQLITE" not in sqlite_text
+    assert result["projection_policy"]["rebuildable"] is True
+    assert result["projection_policy"]["started_worker"] is False
+    assert result["projection_policy"]["outbox_record"] is False
+    assert result["projection_policy"]["can_generate_next_action_authority"] is False
+    assert result["projection_policy"]["can_authorize_provider_admission"] is False
+    assert result["projection_policy"]["can_authorize_quality_verdict"] is False
+    assert result["projection_policy"]["can_authorize_publication_ready"] is False
+    assert result["legacy_surface_policy"] == {
+        "runtime_events": "tombstone_provenance_only",
+        "runtime_snapshots": "tombstone_provenance_only",
+        "lineage_nodes": "tombstone_provenance_only",
+        "workspace_allocations": "tombstone_provenance_only",
+        "turn_receipts": "tombstone_provenance_only",
+        "surface_refs": "tombstone_provenance_only",
+        "report_index": "tombstone_provenance_only",
+    }
 
 
 def test_refs_only_state_index_pilot_prefers_canonical_runtime_state_surface(tmp_path: Path) -> None:
@@ -115,6 +136,79 @@ def test_refs_only_state_index_pilot_prefers_canonical_runtime_state_surface(tmp
         ("legacy_lifecycle", "runtime/quests/quest-001/.ds/runtime_state.json", 0),
         ("lifecycle", "runtime/quests/quest-001/artifacts/runtime/state/runtime_state.json", 0),
     ]
+
+
+def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(tmp_path: Path) -> None:
+    refs = importlib.import_module("med_autoscience.runtime_protocol.domain_authority_refs_index")
+    profile = make_profile(tmp_path)
+    study_root = profile.studies_root / "001-risk"
+    quest_root = profile.runtime_root / "quest-001"
+    _write_study(study_root, study_id="001-risk", quest_id="quest-001")
+    _write_quest(quest_root, quest_id="quest-001", status="paused")
+    receipt_path = study_root / "artifacts" / "runtime" / "paper_progress_transition_refs" / "receipt-001.json"
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt = {
+        "receipt_id": "receipt-001",
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "idempotency_key": "idem-001",
+        "intent_fingerprint": "intent-fp-001",
+        "source_fingerprint": "source-fp-001",
+        "receipt_status": "typed_blocker",
+        "started_worker": True,
+        "worker_start_ref": "worker://must-not-be-authorized",
+        "recorded_at": "2026-06-01T00:00:00+00:00",
+        "owner_receipt_body": "OWNER_RECEIPT_BODY_MUST_NOT_ENTER_SQLITE",
+    }
+    receipt_path.write_text(json.dumps(receipt, ensure_ascii=False), encoding="utf-8")
+
+    contract = refs.domain_authority_refs_index_contract()
+    assert contract["authority_policy"]["stores_body"] is False
+    assert contract["authority_policy"]["rebuildable"] is True
+    assert contract["authority_policy"]["started_worker"] is False
+    assert contract["authority_policy"]["outbox_record"] is False
+    assert contract["authority_policy"]["can_generate_next_action_authority"] is False
+    assert contract["legacy_table_policy"] == {
+        "runtime_events": "tombstone_provenance_only",
+        "runtime_snapshots": "tombstone_provenance_only",
+        "lineage_nodes": "tombstone_provenance_only",
+        "workspace_allocations": "tombstone_provenance_only",
+        "turn_receipts": "tombstone_provenance_only",
+        "surface_refs": "tombstone_provenance_only",
+        "report_index": "tombstone_provenance_only",
+    }
+
+    result = refs.record_paper_progress_transition_ref(
+        study_root=study_root,
+        quest_root=quest_root,
+        receipt=receipt,
+        receipt_path=receipt_path,
+    )
+
+    assert result["started_worker"] is False
+    assert result["outbox_record"] is False
+    assert result["body_included"] is False
+    assert result["authority_boundary"]["can_start_worker"] is False
+    assert result["authority_boundary"]["can_create_outbox_record"] is False
+    assert result["authority_boundary"]["can_authorize_provider_admission"] is False
+    db_path = Path(result["db_path"])
+    with sqlite3.connect(db_path) as conn:
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(paper_progress_transition_refs)").fetchall()]
+        row = conn.execute(
+            """
+            SELECT started_worker, worker_start_ref, source_path, payload_sha256
+            FROM paper_progress_transition_refs
+            """
+        ).fetchone()
+        table_text = "\n".join(
+            "|".join(str(cell) for cell in item)
+            for item in conn.execute("SELECT * FROM paper_progress_transition_refs").fetchall()
+        )
+
+    assert "payload_json" not in columns
+    assert "body" not in columns
+    assert row == (0, None, str(receipt_path.resolve()), result["payload_sha256"])
+    assert "OWNER_RECEIPT_BODY_MUST_NOT_ENTER_SQLITE" not in table_text
 
 
 def test_refs_only_state_index_pilot_replaces_only_current_quest_slice(tmp_path: Path) -> None:

@@ -32,23 +32,44 @@ FORBIDDEN_BODY_MARKER_ROLES = (
 _AUTHORITY_BOUNDARY = {
     "sqlite_role": "rebuildable_refs_only_sidecar_index",
     "body_included": False,
+    "rebuildable": True,
     "stores_study_truth": False,
     "stores_manuscript_body": False,
     "stores_artifact_body": False,
     "stores_owner_receipt_body": False,
+    "can_generate_next_action_authority": False,
+    "can_authorize_provider_admission": False,
+    "can_create_worker_attempt": False,
+    "can_create_outbox_record": False,
     "sqlite_record_counts_as_stage_complete": False,
     "generic_state_index_owner": "one-person-lab",
+}
+_LEGACY_SURFACE_POLICY = {
+    "runtime_events": "tombstone_provenance_only",
+    "runtime_snapshots": "tombstone_provenance_only",
+    "lineage_nodes": "tombstone_provenance_only",
+    "workspace_allocations": "tombstone_provenance_only",
+    "turn_receipts": "tombstone_provenance_only",
+    "surface_refs": "tombstone_provenance_only",
+    "report_index": "tombstone_provenance_only",
 }
 _PROJECTION_POLICY = {
     "surface_kind": "mas_refs_only_state_index_projection_policy",
     "projection_status": "temporary_refs_projection",
     "projection_role": "diagnostic_refs_index_only",
+    "rebuildable": True,
+    "started_worker": False,
+    "outbox_record": False,
     "state_body_store": False,
     "lifecycle_authority": False,
     "attempt_lifecycle_authority": False,
     "retry_or_dead_letter_authority": False,
     "worker_residency_authority": False,
     "can_authorize_currentness": False,
+    "can_generate_next_action_authority": False,
+    "can_authorize_provider_admission": False,
+    "can_authorize_quality_verdict": False,
+    "can_authorize_publication_ready": False,
     "can_authorize_stage_completion": False,
 }
 
@@ -174,6 +195,7 @@ def rebuild_refs_only_state_index(
             family_counts=family_counts,
         ),
         "sqlite_no_body_proof": sqlite_no_body_proof,
+        "legacy_surface_policy": dict(_LEGACY_SURFACE_POLICY),
         "authority_boundary": dict(_AUTHORITY_BOUNDARY),
     }
 

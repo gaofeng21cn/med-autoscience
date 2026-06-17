@@ -111,6 +111,41 @@ def test_runtime_health_treats_opl_provider_attempt_as_live_worker_signal(tmp_pa
     assert hint_contract["mas_private_attempt_loop_forbidden"] is True
 
 
+def test_runtime_health_attempt_retry_and_action_fields_are_diagnostic_hints(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "001-risk"
+
+    snapshot = module.derive_runtime_health_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="001-risk",
+        quest_id="quest-001",
+        recorded_at="2026-06-01T08:30:00+00:00",
+        status_payload={
+            "quest_status": "active",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "active_run_id": "run-live-001",
+        },
+    )
+
+    hint_contract = snapshot["diagnostic_hint_contract"]
+    assert hint_contract["hint_only"] is True
+    assert hint_contract["attempt_state_hint"] == snapshot["attempt_state"]
+    assert hint_contract["retry_budget_remaining_hint"] == snapshot["retry_budget_remaining"]
+    assert hint_contract["canonical_runtime_action_hint"] == snapshot["canonical_runtime_action"]
+    assert hint_contract["attempt_state_hint_is_lifecycle_authority"] is False
+    assert hint_contract["retry_budget_hint_is_lifecycle_authority"] is False
+    assert hint_contract["canonical_runtime_action_is_authority"] is False
+    assert snapshot["attempt_state_hint"] == snapshot["attempt_state"]
+    assert snapshot["retry_budget_remaining_hint"] == snapshot["retry_budget_remaining"]
+    assert snapshot["attempt_state_hint_is_lifecycle_authority"] is False
+    assert snapshot["retry_budget_remaining_hint_is_lifecycle_authority"] is False
+    assert snapshot["canonical_runtime_action_is_authority"] is False
+    assert snapshot["provider_admission_authority"] is False
+    assert snapshot["can_create_worker_attempt"] is False
+    assert snapshot["can_retry_or_dead_letter"] is False
+
+
 def test_runtime_health_missing_live_session_recovers_with_stale_run_as_last_known(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dm-cvd"

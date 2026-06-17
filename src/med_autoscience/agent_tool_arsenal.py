@@ -225,6 +225,9 @@ def build_agent_tool_arsenal_completeness_diagnostic(
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
             "support_or_diagnostic_tools_are_not_current_owner_delta_action_cards": True,
+            "support_or_diagnostic_tools_are_projection_only": True,
+            "non_read_only_tools_require_current_owner_delta_or_human_gate": True,
+            "non_read_only_tools_require_owner_receipt_or_typed_blocker_proof": True,
         },
     }
 
@@ -394,6 +397,13 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         else {}
     )
     requires_stage_attempt = (not read_only) and not human_gate_ids and not refs_only_runtime_write
+    non_read_only_gate = (
+        _non_read_only_gate(requires_human_gate=bool(human_gate_ids))
+        if not read_only or refs_only_runtime_write
+        else None
+    )
+    if non_read_only_gate is not None:
+        authority_boundary.update(_non_read_only_authority_boundary_fields(non_read_only_gate))
     required_refs = [str(item) for item in list(action.get("workspace_locator_fields") or [])]
     card = {
         "surface_kind": "mas_tool_use_card",
@@ -465,6 +475,7 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "forbidden_authority": list(FORBIDDEN_DOMAIN_AUTHORITY),
         "human_gate_ids": human_gate_ids,
+        **({"non_read_only_gate": non_read_only_gate} if non_read_only_gate is not None else {}),
         "idempotency_policy": (
             "read_only_no_side_effects"
             if read_only and not refs_only_runtime_write
@@ -489,6 +500,7 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         card,
         planning_root=ORDINARY_PLANNING_ROOT,
     )
+    _attach_non_read_only_invocation_gate_fields(card)
     card["operational"] = operational_fields(card)
     return card
 
@@ -503,6 +515,7 @@ def _build_owner_callable_cards() -> list[dict[str, Any]]:
             if isinstance(lifecycle.get("completion_proof"), Mapping)
             else {"requires_owner_receipt_or_typed_blocker": True}
         )
+        non_read_only_gate = _non_read_only_gate(requires_human_gate=False)
         callable_surface = _required_text(
             callable_payload.get("callable_surface"),
             "callable_surface",
@@ -580,6 +593,7 @@ def _build_owner_callable_cards() -> list[dict[str, Any]]:
                 LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF
             ),
             "executor_receipt_ref_policy": _executor_receipt_ref_policy(),
+            "non_read_only_gate": non_read_only_gate,
             "authority_boundary": {
                 "can_write_domain_truth": False,
                 "can_write_publication_quality": False,
@@ -588,12 +602,14 @@ def _build_owner_callable_cards() -> list[dict[str, Any]]:
                 "owner_receipt_or_typed_blocker_required": bool(
                     completion_proof.get("requires_owner_receipt_or_typed_blocker")
                 ),
+                **_non_read_only_authority_boundary_fields(non_read_only_gate),
             },
         }
         attach_capability_invocation_os_fields(
             card,
             planning_root=ORDINARY_PLANNING_ROOT,
         )
+        _attach_non_read_only_invocation_gate_fields(card)
         card["operational"] = operational_fields(card)
         cards.append(card)
     return sorted(cards, key=lambda item: str(item["action_type"]))
@@ -621,6 +637,13 @@ def _owner_callable_invocation_plan(
                     "requires_owner_receipt_or_typed_blocker"
                 )
             ),
+            "current_owner_delta_match": True,
+            "human_gate_or_owner_delta": True,
+            "owner_receipt_or_typed_blocker_proof": bool(
+                _mapping(owner_card.get("non_read_only_gate")).get(
+                    "requires_owner_receipt_or_typed_blocker_proof"
+                )
+            ),
             "executor_receipt_ref_required": False,
             "lightweight_executor_receipt_contract_ref": (
                 LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF
@@ -645,6 +668,7 @@ def _owner_callable_invocation_plan(
         "invocation_steps": [
             "verify_required_input_refs",
             "verify_current_owner_delta_fingerprint",
+            "verify_current_owner_delta_or_human_gate",
             "check_allowed_writes_and_forbidden_authority",
             "invoke_owner_callable_surface",
             "emit_tool_result_envelope",
@@ -658,6 +682,8 @@ def _owner_callable_invocation_plan(
             "tool_result_envelope_is_authority_outcome": False,
             "executor_receipt_can_block_current_owner_action": False,
             "executor_receipt_counts_as_owner_receipt": False,
+            "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": False,
+            "capability_invocation_plan_replaces_owner_receipt": False,
         },
         "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
         "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
@@ -685,6 +711,13 @@ def _action_invocation_plan(
             "owner_receipt_or_typed_blocker": bool(
                 _mapping(action_card.get("authority_effects")).get("can_return_owner_receipt")
             ),
+            "current_owner_delta_match": True,
+            "human_gate_or_owner_delta": bool(action_card.get("non_read_only_gate")),
+            "owner_receipt_or_typed_blocker_proof": bool(
+                _mapping(action_card.get("non_read_only_gate")).get(
+                    "requires_owner_receipt_or_typed_blocker_proof"
+                )
+            ),
             "executor_receipt_ref_required": False,
             "lightweight_executor_receipt_contract_ref": (
                 LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF
@@ -710,6 +743,7 @@ def _action_invocation_plan(
         "next_safe_actions": list(action_card.get("next_safe_actions") or []),
         "invocation_steps": [
             "verify_required_input_refs",
+            "verify_current_owner_delta_or_human_gate",
             "check_allowed_writes_and_forbidden_authority",
             "invoke_mcp_or_descriptor_target",
             "emit_tool_result_envelope",
@@ -723,6 +757,8 @@ def _action_invocation_plan(
             "tool_result_envelope_is_authority_outcome": False,
             "executor_receipt_can_block_current_owner_action": False,
             "executor_receipt_counts_as_owner_receipt": False,
+            "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": False,
+            "capability_invocation_plan_replaces_owner_receipt": False,
         },
         "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
         "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
@@ -806,6 +842,46 @@ def _allowed_writes_for_action(action_id: str) -> list[str]:
             "explicit OPL opt-in executor/proof refs",
         ]
     return ["MAS domain handler target refs only"]
+
+
+def _non_read_only_gate(*, requires_human_gate: bool) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_agent_tool_non_read_only_gate",
+        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
+        "requires_current_owner_delta": True,
+        "requires_current_owner_delta_match": True,
+        "requires_human_gate_or_owner_delta": True,
+        "requires_human_gate": requires_human_gate,
+        "requires_owner_receipt_or_typed_blocker_proof": True,
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": False,
+        "can_substitute_owner_receipt": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
+        "can_authorize_provider_admission": False,
+        "can_start_worker_attempt": False,
+    }
+
+
+def _non_read_only_authority_boundary_fields(gate: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": False,
+        "can_substitute_owner_receipt": False,
+        "can_authorize_provider_admission": False,
+        "can_start_worker_attempt": False,
+        "non_read_only_gate_policy": _text(gate.get("gate_policy")),
+    }
+
+
+def _attach_non_read_only_invocation_gate_fields(card: dict[str, Any]) -> None:
+    gate = _mapping(card.get("non_read_only_gate"))
+    if not gate:
+        return
+    invocation_gate = dict(_mapping(card.get("invocation_gate")))
+    invocation_gate["non_read_only_gate_policy"] = _text(gate.get("gate_policy"))
+    invocation_gate["owner_receipt_or_typed_blocker_required"] = bool(
+        gate.get("requires_owner_receipt_or_typed_blocker_proof")
+    )
+    card["invocation_gate"] = invocation_gate
 
 
 def _executor_receipt_ref_policy() -> dict[str, Any]:

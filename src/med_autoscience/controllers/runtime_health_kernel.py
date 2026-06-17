@@ -114,6 +114,10 @@ RUNTIME_HEALTH_AUTHORITY_BOUNDARY = {
     "runtime_health_epoch_is_currentness_authority": False,
     "canonical_runtime_action_is_authority": False,
     "allowed_controller_actions_are_authority": False,
+    "can_generate_next_action_authority": False,
+    "can_authorize_provider_admission": False,
+    "can_create_worker_attempt": False,
+    "can_retry_or_dead_letter": False,
     "attempt_state_is_lifecycle_authority": False,
     "retry_budget_is_lifecycle_authority": False,
     "worker_liveness_is_residency_authority": False,
@@ -563,16 +567,27 @@ def _allowed_controller_actions(*, canonical_runtime_action: str) -> list[str]:
     return list(_BASE_ALLOWED_ACTIONS)
 
 
-def _diagnostic_hint_contract(*, canonical_runtime_action: str) -> dict[str, Any]:
+def _diagnostic_hint_contract(
+    *,
+    canonical_runtime_action: str,
+    attempt_state: str,
+    retry_budget_remaining: int,
+) -> dict[str, Any]:
     return {
         "surface_kind": "mas_runtime_health_diagnostic_hint_contract",
         "hint_only": True,
         "canonical_runtime_action_hint": canonical_runtime_action,
+        "attempt_state_hint": attempt_state,
+        "retry_budget_remaining_hint": retry_budget_remaining,
         "canonical_runtime_action_is_authority": False,
         "allowed_controller_action_hints_are_authority": False,
         "runtime_liveness_hint_is_authority": False,
         "attempt_state_hint_is_lifecycle_authority": False,
         "retry_budget_hint_is_lifecycle_authority": False,
+        "provider_admission_authority": False,
+        "can_generate_next_action_authority": False,
+        "can_create_worker_attempt": False,
+        "can_retry_or_dead_letter": False,
         "opl_observability_readback_required": True,
         "opl_current_control_or_stage_run_readback_required": True,
         "mas_private_attempt_loop_forbidden": True,
@@ -700,10 +715,19 @@ def _snapshot_from_events(
         "backoff_until": _text(runtime_payload.get("backoff_until")),
         "retry_budget_remaining": retry_budget_remaining,
         "diagnostic_hint_contract": _diagnostic_hint_contract(
-            canonical_runtime_action=canonical_runtime_action
+            canonical_runtime_action=canonical_runtime_action,
+            attempt_state=attempt_state,
+            retry_budget_remaining=retry_budget_remaining,
         ),
         "runtime_action_hint": canonical_runtime_action,
         "runtime_action_hint_is_authority": False,
+        "attempt_state_hint": attempt_state,
+        "attempt_state_hint_is_lifecycle_authority": False,
+        "retry_budget_remaining_hint": retry_budget_remaining,
+        "retry_budget_remaining_hint_is_lifecycle_authority": False,
+        "provider_admission_authority": False,
+        "can_create_worker_attempt": False,
+        "can_retry_or_dead_letter": False,
         "allowed_controller_action_hints": list(allowed_controller_action_hints),
         "allowed_controller_action_hints_are_authority": False,
         "opl_observability_readback_required": True,

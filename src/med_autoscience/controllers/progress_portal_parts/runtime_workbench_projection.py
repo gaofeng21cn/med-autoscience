@@ -86,6 +86,7 @@ def build_runtime_workbench_projection(
             study_id=study_id,
             active_run_id=_opl_active_run_id(study_workbench=study_workbench, progress=progress, runtime=runtime),
         ),
+        "projection_boundary": _runtime_workbench_projection_boundary(),
         "authority": {
             "opl_role": "projection_consumer_and_action_transport_only",
             "mas_truth_owner": True,
@@ -151,8 +152,14 @@ def _workbench_study_row(
         "freshness": freshness,
         "blocker_summary": _first_non_empty_text(row.get("blocker_summary"), row.get("progress_freshness_summary")),
         "next_action_summary": _first_non_empty_text(row.get("next_action_summary"), row.get("next_system_action"), row.get("operator_focus")),
+        "next_action_summary_role": "read_only_drilldown_summary",
+        "next_action_summary_is_controller_action": False,
         "source_refs": fallback_source_refs[:12],
+        "links_role": "read_only_drilldown_refs",
+        "links_can_execute": False,
         "links": _workbench_links(study_id, selected=study_id == selected_study_id),
+        "actions_role": "disabled_projection_controls",
+        "actions_can_execute": False,
         "actions": _workbench_actions(),
     }
     paper_route_lens = paper_route_lens_summary(row.get("paper_route_lens"))
@@ -207,8 +214,14 @@ def _selected_workbench_study(
         "freshness": dict(freshness),
         "blocker_summary": "; ".join(_string_list(user_visible.get("current_blockers"))) or None,
         "next_action_summary": _non_empty_text(user_visible.get("next_system_action")),
+        "next_action_summary_role": "read_only_drilldown_summary",
+        "next_action_summary_is_controller_action": False,
         "source_refs": source_refs[:12],
+        "links_role": "read_only_drilldown_refs",
+        "links_can_execute": False,
         "links": _workbench_links(study_id, selected=True, artifact_refs=_stage_review_artifact_refs(stage_review)),
+        "actions_role": "disabled_projection_controls",
+        "actions_can_execute": False,
         "actions": _workbench_actions(),
         "information_hierarchy": _workbench_information_hierarchy(),
         "stage_operating_layer": stage_operating_layer,
@@ -778,6 +791,24 @@ def _workbench_projection_authority() -> dict[str, Any]:
     }
 
 
+def _runtime_workbench_projection_boundary() -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_opl_runtime_workbench_projection_boundary",
+        "projection_only": True,
+        "actions_role": "disabled_read_only_projection_controls",
+        "links_role": "read_only_drilldown_refs",
+        "next_summary_role": "read_only_drilldown_summary",
+        "can_execute_controller_action": False,
+        "can_generate_next_action_authority": False,
+        "can_authorize_provider_admission": False,
+        "can_authorize_worker_attempt": False,
+        "can_retry_or_dead_letter": False,
+        "can_authorize_publication_ready": False,
+        "can_authorize_quality_verdict": False,
+        "can_write_domain_truth": False,
+    }
+
+
 def _stage_operating_layer_authority() -> dict[str, Any]:
     return {
         "opl_role": "stage_operating_layer_projection_consumer_only",
@@ -864,6 +895,9 @@ def _workbench_actions() -> dict[str, dict[str, Any]]:
             "allowed": False,
             "owner": "one-person-lab",
             "endpoint_ref": None,
+            "execute_authority": False,
+            "controller_action": False,
+            "projection_only": True,
             "idempotency_required": True,
             "confirmation_required": action in {"stop", "reconcile_apply"},
         }
