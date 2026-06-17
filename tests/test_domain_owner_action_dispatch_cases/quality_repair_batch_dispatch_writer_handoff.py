@@ -11,9 +11,15 @@ from tests.domain_owner_action_dispatch_helpers import (
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def _opl_transition_readback(study_id: str, action_type: str = "run_quality_repair_batch") -> dict[str, object]:
-    fingerprint = f"domain-transition::{study_id}::{action_type}"
-    work_unit_id = action_type
+def _opl_transition_readback(
+    study_id: str,
+    action_type: str = "run_quality_repair_batch",
+    *,
+    work_unit_id: str | None = None,
+    work_unit_fingerprint: str | None = None,
+) -> dict[str, object]:
+    fingerprint = work_unit_fingerprint or f"domain-transition::{study_id}::{action_type}"
+    work_unit_id = work_unit_id or action_type
     route_key = f"provider-admission::{study_id}::{fingerprint}"
     return {
         "surface_kind": "opl_domain_progress_transition_result",
@@ -602,7 +608,11 @@ def test_execute_dispatch_consumes_quality_repair_writer_handoff_as_stage_attemp
         ),
         owner_route=route,
     )
-    dispatch_payload["opl_domain_progress_transition_result"] = _opl_transition_readback(study_id)
+    dispatch_payload["opl_domain_progress_transition_result"] = _opl_transition_readback(
+        study_id,
+        work_unit_id="medical_prose_write_repair",
+        work_unit_fingerprint="medical-prose-routeback::write::sha256-dm003",
+    )
     dispatch_payload["dispatch_authority"] = "quality_repair_batch_writer_handoff"
     dispatch_payload["source_action"] = {
         "surface": "quality_repair_batch",

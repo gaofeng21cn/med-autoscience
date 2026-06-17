@@ -8,8 +8,8 @@ from med_autoscience.controllers import quality_repair_batch
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
-    has_opl_transition_readback,
+from med_autoscience.controllers.domain_owner_action_dispatch_parts.opl_owner_callable_proof import (
+    has_bound_opl_transition_readback,
 )
 from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
     EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
@@ -349,7 +349,7 @@ def _writer_stage_attempt_handoff_execution(*, dispatch: Mapping[str, Any], ques
     required_output_surface = _text(dispatch.get("required_output_surface")) or _text(
         _mapping(dispatch.get("prompt_contract")).get("required_output_surface")
     )
-    if not has_opl_transition_readback(dispatch):
+    if not has_bound_opl_transition_readback(dispatch):
         return {
             "execution_status": "blocked",
             "blocked_reason": "opl_execution_authorization_required",

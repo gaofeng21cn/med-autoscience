@@ -18,9 +18,15 @@ from tests.test_domain_owner_action_dispatch_cases.ai_reviewer_workflow_helpers 
 )
 
 
-def _opl_transition_readback(*, study_id: str, action_type: str) -> dict[str, object]:
-    fingerprint = f"domain-transition::{study_id}::{action_type}"
-    work_unit_id = action_type
+def _opl_transition_readback(
+    *,
+    study_id: str,
+    action_type: str,
+    work_unit_id: str | None = None,
+    work_unit_fingerprint: str | None = None,
+) -> dict[str, object]:
+    fingerprint = work_unit_fingerprint or f"domain-transition::{study_id}::{action_type}"
+    work_unit_id = work_unit_id or action_type
     route_key = f"provider-admission::{study_id}::{fingerprint}"
     return {
         "surface_kind": "opl_domain_progress_transition_result",
@@ -270,9 +276,12 @@ def test_execute_dispatch_materializes_medical_prose_review_handoff_after_opl_tr
         owner="ai_reviewer",
         required_output_surface="artifacts/publication_eval/latest.json",
     )
+    owner_route = dispatch_payload["owner_route"]
+    assert isinstance(owner_route, dict)
     dispatch_payload["opl_domain_progress_transition_result"] = _opl_transition_readback(
         study_id=study_id,
         action_type=action_type,
+        work_unit_fingerprint=str(owner_route["work_unit_fingerprint"]),
     )
     _write_current_dispatch(handoff_path, profile, dispatch_payload)
 
@@ -317,3 +326,80 @@ def test_execute_dispatch_materializes_medical_prose_review_handoff_after_opl_tr
     assert persisted["opl_domain_progress_transition_request"]["target_runtime_owner"] == "one-person-lab"
     assert "artifacts/publication_eval/latest.json" in persisted["forbidden_surfaces"]
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_execute_dispatch_rejects_medical_prose_review_handoff_with_mismatched_opl_readback(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    action_type = "return_to_ai_reviewer_workflow"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_medical_prose_review_request_inputs(study_root, study_id=study_id)
+    input_refs = _complete_ai_reviewer_input_refs(study_root)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "supervisor_action_request",
+            "request_kind": action_type,
+            "request_owner": "ai_reviewer",
+            "input_contract": {
+                "required_refs": input_refs,
+                "all_required_refs_present": True,
+                "missing_or_invalid_refs": [],
+            },
+            "ai_reviewer_record": _minimal_ai_reviewer_record(
+                study_id,
+                f"quest-{study_id}",
+                "publication-eval::002::quest::2026-05-17T00:00:00+00:00",
+            ),
+        },
+    )
+    handoff_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{action_type}.json"
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type=action_type,
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    dispatch_payload["opl_domain_progress_transition_result"] = _opl_transition_readback(
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_fingerprint="different-work-unit-generation",
+    )
+    _write_current_dispatch(handoff_path, profile, dispatch_payload)
+
+    def stale_medical_prose_review(**_kwargs) -> dict[str, object]:
+        raise ValueError("medical_prose_review_request_digest_mismatch")
+
+    monkeypatch.setattr(
+        module.action_execution.ai_reviewer_publication_eval_workflow,
+        "run_ai_reviewer_publication_eval_workflow",
+        stale_medical_prose_review,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(action_type,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["handoff_ready_count"] == 0
+    assert result["blocked_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert execution["owner_callable_surface"] is None

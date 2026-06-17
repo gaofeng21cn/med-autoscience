@@ -25,6 +25,7 @@ from .domain_owner_action_dispatch_parts import execution_io
 from .domain_owner_action_dispatch_parts import execution_summary
 from .domain_owner_action_dispatch_parts import output_readiness
 from .domain_owner_action_dispatch_parts import opl_execution_preflight
+from .domain_owner_action_dispatch_parts import opl_owner_callable_proof
 from .domain_owner_action_dispatch_parts import owner_route_selection
 from .domain_owner_action_dispatch_parts import paper_progress_stall_diagnostic
 from .domain_owner_action_dispatch_parts import persisted_dispatches
@@ -36,9 +37,7 @@ from .domain_action_request_materializer import (
     current_owner_callable_adapters,
 )
 from .default_executor_action_policy import SUPPORTED_ACTION_TYPES
-from .domain_health_diagnostic_parts.opl_transition_readback import has_opl_transition_readback
 from .opl_execution_boundary import (
-    first_trusted_opl_execution_authorization,
     typed_blocker as opl_execution_authorization_typed_blocker,
 )
 
@@ -223,19 +222,7 @@ def _is_domain_progress_transition_request_projection(dispatch: Mapping[str, Any
 
 
 def _has_trusted_opl_execution_authorization(dispatch: Mapping[str, Any]) -> bool:
-    prompt_contract = _mapping(dispatch.get("prompt_contract"))
-    owner_route = _mapping(dispatch.get("owner_route"))
-    if first_trusted_opl_execution_authorization(
-        dispatch.get("opl_execution_authorization"),
-        dispatch.get("opl_provider_attempt"),
-        dispatch.get("stage_attempt"),
-        prompt_contract.get("opl_execution_authorization"),
-        prompt_contract.get("opl_provider_attempt"),
-        owner_route.get("opl_execution_authorization"),
-        owner_route.get("opl_provider_attempt"),
-    ) is not None:
-        return True
-    return has_opl_transition_readback(dispatch)
+    return opl_owner_callable_proof.trusted_owner_callable_opl_proof(dispatch) is not None
 
 
 def _executor_boundary(dispatch: Mapping[str, Any]) -> dict[str, Any]:
@@ -742,21 +729,12 @@ def _domain_progress_transition_opl_proof_present(
     current_study: Mapping[str, Any] | None,
 ) -> bool:
     for payload in _iter_transition_payloads(*values):
-        if not _payload_has_domain_progress_transition_request(payload) and not has_opl_transition_readback(payload):
+        if (
+            not _payload_has_domain_progress_transition_request(payload)
+            and not opl_owner_callable_proof.has_bound_opl_transition_readback(payload)
+        ):
             continue
-        if has_opl_transition_readback(payload):
-            return True
-        prompt_contract = _mapping(payload.get("prompt_contract"))
-        owner_route = _mapping(payload.get("owner_route"))
-        if first_trusted_opl_execution_authorization(
-            payload.get("opl_execution_authorization"),
-            payload.get("opl_provider_attempt"),
-            payload.get("stage_attempt"),
-            prompt_contract.get("opl_execution_authorization"),
-            prompt_contract.get("opl_provider_attempt"),
-            owner_route.get("opl_execution_authorization"),
-            owner_route.get("opl_provider_attempt"),
-        ) is not None:
+        if opl_owner_callable_proof.trusted_owner_callable_opl_proof(payload) is not None:
             return True
     return False
 

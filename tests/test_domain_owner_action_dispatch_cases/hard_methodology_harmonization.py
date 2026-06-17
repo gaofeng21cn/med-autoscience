@@ -484,11 +484,7 @@ def test_explicit_harmonization_dispatch_ignores_stale_consumer_tail_actions(
     latest = json.loads(
         (
             study_root
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "default_executor_execution"
-            / "latest.json"
+            / module.EXECUTION_LATEST_RELATIVE_PATH
         ).read_text(encoding="utf-8")
     )
     assert [item["action_type"] for item in latest["executions"]] == [

@@ -105,11 +105,7 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
     latest = json.loads(
         (
             study_root
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "default_executor_execution"
-            / "latest.json"
+            / module.EXECUTION_LATEST_RELATIVE_PATH
         ).read_text(encoding="utf-8")
     )
     assert [item["action_type"] for item in latest["executions"]] == ["publication_gate_specificity_required"]
@@ -619,11 +615,7 @@ def test_execute_dispatch_defaults_to_current_persisted_dispatch_when_consumer_l
     latest = json.loads(
         (
             study_root
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "default_executor_execution"
-            / "latest.json"
+            / module.EXECUTION_LATEST_RELATIVE_PATH
         ).read_text(encoding="utf-8")
     )
     assert [item["action_type"] for item in latest["executions"]] == ["publication_gate_specificity_required"]
