@@ -308,6 +308,8 @@ def _overview_action_boundary() -> dict[str, Any]:
         "requires_opl_current_control_readback": True,
         "must_not_be_used_as_provider_admission": True,
         "must_not_be_used_as_next_action_authority": True,
+        "must_not_be_used_as_publication_ready": True,
+        "must_not_be_used_as_paper_progress": True,
     }
 
 

@@ -35,6 +35,12 @@ def action_owner_routing_policy(
         "status": status,
         "next_owner": next_owner,
         "routing_role": "display_and_owner_route_projection",
+        "can_generate_action": False,
+        "can_execute": False,
+        "can_authorize_provider_admission": False,
+        "can_authorize_worker_attempt": False,
+        "must_not_be_used_as_next_action_authority": True,
+        "must_not_be_used_as_provider_admission": True,
         "owner_route_handoff_policy": handoff_policy,
         "conditions": {
             "available": available,
@@ -45,6 +51,8 @@ def action_owner_routing_policy(
         "authority": {
             "writes_authority_surface": False,
             "can_execute_controller_actions": False,
+            "can_authorize_provider_admission": False,
+            "can_authorize_worker_attempt": False,
             "can_authorize_quality_verdict": False,
             "can_authorize_publication_readiness": False,
             "can_authorize_artifact_mutation": False,

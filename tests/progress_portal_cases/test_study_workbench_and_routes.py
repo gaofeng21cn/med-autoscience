@@ -97,6 +97,8 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
         "requires_opl_current_control_readback": True,
         "must_not_be_used_as_provider_admission": True,
         "must_not_be_used_as_next_action_authority": True,
+        "must_not_be_used_as_publication_ready": True,
+        "must_not_be_used_as_paper_progress": True,
     }
     assert payload["overview"]["next_system_action_boundary"] == overview_action_boundary
     tabs_by_id = {item["id"]: item for item in payload["tabs"]}

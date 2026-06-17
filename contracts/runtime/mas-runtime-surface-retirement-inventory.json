@@ -394,6 +394,9 @@
         "workbench_next_system_action_as_controller_action",
         "workbench_operator_intent_as_provider_admission",
         "workbench_summary_as_next_action_authority",
+        "workbench_projection_clean_as_runtime_ready",
+        "workbench_action_summary_as_paper_progress",
+        "workbench_action_summary_as_publication_ready",
         "provider_completion_as_domain_ready"
       ],
       "generic_runtime_owner": "one-person-lab",
@@ -404,7 +407,9 @@
         "can_execute": false,
         "can_generate_action": false,
         "must_not_be_used_as_next_action_authority": true,
+        "must_not_be_used_as_paper_progress": true,
         "must_not_be_used_as_provider_admission": true,
+        "must_not_be_used_as_publication_ready": true,
         "next_system_action_role": "read_only_owner_delta_summary",
         "projection_only": true,
         "requires_opl_current_control_readback": true
