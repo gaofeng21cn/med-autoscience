@@ -24,7 +24,6 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
     adapter_count,
     adapter_status_count,
     domain_progress_transition_requests,
-    owner_callable_adapters,
     transition_request_count,
     transition_request_status_count,
     with_owner_callable_adapter_projection,
@@ -695,7 +694,7 @@ def _dispatch_blocker_summary(iteration: Mapping[str, Any]) -> dict[str, Any]:
     dispatch = _mapping(iteration.get("dispatch"))
     blocked_reasons: list[str] = []
     blocked_actions: list[str] = []
-    for item in owner_callable_adapters(materialize):
+    for item in domain_progress_transition_requests(materialize):
         if not isinstance(item, Mapping):
             continue
         if _non_empty_text(item.get("dispatch_status")) != "blocked":
@@ -715,7 +714,9 @@ def _dispatch_blocker_summary(iteration: Mapping[str, Any]) -> dict[str, Any]:
             blocked_actions.append(action_type)
     return {
         "blocked_owner_callable_adapter_count": _int_value(delta.get("blocked_owner_callable_adapter_count")),
-        "blocked_owner_callable_adapter_count": _int_value(delta.get("blocked_owner_callable_adapter_count")),
+        "legacy_blocked_owner_callable_adapter_count": _int_value(
+            delta.get("legacy_blocked_owner_callable_adapter_count")
+        ),
         "dispatch_blocked_count": _int_value(delta.get("dispatch_blocked_count")),
         "blocked_reasons": blocked_reasons,
         "blocked_actions": blocked_actions,

@@ -763,6 +763,49 @@ def test_dhd_same_tick_admission_consumes_only_canonical_transition_requests(tmp
     assert result is None or result["provider_admission_pending_count"] == 0
 
 
+def test_dhd_same_tick_blocker_summary_ignores_legacy_adapter_list() -> None:
+    same_tick = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.developer_supervisor_same_tick"
+    )
+    legacy_blocked = {
+        "study_id": "study-1",
+        "action_type": "run_gate_clearing_batch",
+        "dispatch_status": "blocked",
+        "blocked_reason": "legacy_adapter_blocker_should_not_drive_summary",
+    }
+    canonical_blocked = {
+        "study_id": "study-1",
+        "action_type": "run_quality_repair_batch",
+        "dispatch_status": "blocked",
+        "blocked_reason": "canonical_transition_request_blocked",
+    }
+
+    diagnostic = same_tick._same_tick_terminal_diagnostic(
+        stop_reason="typed_blocker_or_dispatch_blocker_observed",
+        iterations=[
+            {
+                "materialize": {
+                    "owner_callable_adapters": [legacy_blocked],
+                    "domain_progress_transition_requests": [canonical_blocked],
+                },
+                "dispatch": {"executions": []},
+                "progress_first_delta": {
+                    "blocked_owner_callable_adapter_count": 1,
+                    "legacy_blocked_owner_callable_adapter_count": 1,
+                    "dispatch_blocked_count": 0,
+                },
+            }
+        ],
+    )
+
+    summary = diagnostic["dispatch_blocker_summary"]
+    assert summary["blocked_owner_callable_adapter_count"] == 1
+    assert summary["legacy_blocked_owner_callable_adapter_count"] == 1
+    assert summary["blocked_reasons"] == ["canonical_transition_request_blocked"]
+    assert summary["blocked_actions"] == ["run_quality_repair_batch"]
+    assert "legacy_adapter_blocker_should_not_drive_summary" not in summary["blocked_reasons"]
+
+
 def test_paper_recovery_export_consumes_only_canonical_transition_request_preview(
     tmp_path: Path,
     monkeypatch,
