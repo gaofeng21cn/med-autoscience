@@ -268,23 +268,14 @@ def _record_production_record_basis(record: Mapping[str, Any]) -> dict[str, Any]
     provenance_basis = _mapping(provenance.get("owner_route_currentness_basis"))
     input_basis = _mapping(input_bundle.get("owner_route_currentness_basis"))
     record_basis = _mapping(record.get("owner_route_currentness_basis"))
-    return {
-        field: (
-            _text(provenance_basis.get(field))
-            or _text(provenance.get(field))
-            or _text(input_basis.get(field))
-            or _text(input_bundle.get(field))
-            or _text(record_basis.get(field))
-            or _text(record.get(field))
-        )
-        for field in (
-            "source_eval_id",
-            "work_unit_id",
-            "work_unit_fingerprint",
-            "truth_epoch",
-            "runtime_health_epoch",
-        )
-    }
+    return currentness_identity.normalize_currentness_sources(
+        record,
+        record_basis,
+        input_bundle,
+        input_basis,
+        provenance,
+        provenance_basis,
+    )
 
 
 def _record_production_route_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
@@ -298,14 +289,14 @@ def _with_route_currentness_basis(
     action: Mapping[str, Any],
 ) -> dict[str, Any]:
     route = dict(owner_route)
-    basis = currentness_identity.currentness_basis(
+    basis = currentness_identity.normalize_currentness_sources(
         _record_production_route_basis(route),
         _record_production_route_basis(source_route),
         currentness_identity.action_basis(action),
     )
     if not basis:
         return route
-    return currentness_identity.with_owner_route_basis(route, basis=basis)
+    return currentness_identity.normalize_owner_route_currentness(route, basis)
 
 
 def _record_production_route_fingerprint(owner_route: Mapping[str, Any]) -> str | None:

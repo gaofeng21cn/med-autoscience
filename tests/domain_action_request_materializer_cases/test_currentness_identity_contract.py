@@ -72,6 +72,67 @@ def test_currentness_identity_preserves_non_empty_source_eval_id_across_route_an
     ] == "publication-eval::current"
 
 
+def test_normalize_currentness_sources_is_the_shared_non_empty_merge_contract() -> None:
+    normalized = currentness_identity.normalize_currentness_sources(
+        {
+            "source_eval_id": "publication-eval::old",
+            "source_fingerprint": "source-fingerprint::old",
+            "work_unit_id": "work-unit-old",
+            "work_unit_fingerprint": "fingerprint-old",
+            "truth_epoch": "truth-old",
+            "runtime_health_epoch": "runtime-old",
+            "route_epoch": "route-old",
+        },
+        {
+            "source_eval_id": None,
+            "source_fingerprint": "",
+            "work_unit_id": "work-unit-current",
+            "work_unit_fingerprint": None,
+            "truth_epoch": "truth-current",
+            "runtime_health_epoch": None,
+            "route_epoch": "route-current",
+            "private_queue_ref": "must-not-leak",
+        },
+    )
+
+    assert normalized == {
+        "source_eval_id": "publication-eval::old",
+        "source_fingerprint": "source-fingerprint::old",
+        "work_unit_id": "work-unit-current",
+        "work_unit_fingerprint": "fingerprint-old",
+        "truth_epoch": "truth-current",
+        "runtime_health_epoch": "runtime-old",
+        "route_epoch": "route-current",
+    }
+
+
+def test_normalize_transition_request_currentness_preserves_existing_non_empty_fields() -> None:
+    normalized = currentness_identity.normalize_transition_request_currentness(
+        {
+            "currentness_basis": {
+                "source_eval_id": "publication-eval::request",
+                "source_fingerprint": "request-source",
+                "work_unit_id": "request-work-unit",
+            }
+        },
+        {
+            "source_eval_id": None,
+            "source_fingerprint": "source-current",
+            "work_unit_id": None,
+            "work_unit_fingerprint": "fingerprint-current",
+            "route_epoch": "route-current",
+        },
+    )
+
+    assert normalized["currentness_basis"] == {
+        "source_eval_id": "publication-eval::request",
+        "source_fingerprint": "source-current",
+        "work_unit_id": "request-work-unit",
+        "work_unit_fingerprint": "fingerprint-current",
+        "route_epoch": "route-current",
+    }
+
+
 def test_currentness_identity_uses_existing_owner_route_protocol_fallbacks() -> None:
     route = {
         "publication_eval_id": "publication-eval::route",

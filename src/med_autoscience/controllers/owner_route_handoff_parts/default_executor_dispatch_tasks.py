@@ -19,6 +19,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     has_opl_transition_readback,
 )
+from med_autoscience.controllers.domain_action_request_materializer_parts import (
+    currentness_identity,
+)
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import default_executor_dispatch_packets
@@ -369,16 +372,11 @@ def _merged_currentness_basis(
     canonical_identity: Mapping[str, Any],
     protocol_payload_fields: Mapping[str, Any],
 ) -> dict[str, Any]:
-    basis = dict(_mapping(protocol_payload_fields.get("owner_route_currentness_basis")))
-    canonical_basis = _mapping(canonical_identity.get("owner_route_currentness_basis"))
-    for key, value in canonical_basis.items():
-        if value is not None:
-            basis[key] = value
-    for key in ("work_unit_id", "work_unit_fingerprint"):
-        value = _text(canonical_identity.get(key))
-        if value is not None:
-            basis[key] = value
-    return basis
+    return currentness_identity.normalize_currentness_sources(
+        protocol_payload_fields.get("owner_route_currentness_basis"),
+        canonical_identity.get("owner_route_currentness_basis"),
+        canonical_identity,
+    )
 
 
 def _progress_currentness_provider_admission_candidates(

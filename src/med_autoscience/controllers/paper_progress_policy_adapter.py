@@ -8,6 +8,9 @@ from typing import Any
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     required_opl_transition_readback_shape,
 )
+from med_autoscience.controllers.domain_action_request_materializer_parts.currentness_identity import (
+    normalize_currentness_sources,
+)
 
 SURFACE_KIND = "paper_progress_policy_adapter_result"
 SCHEMA_VERSION = 1
@@ -215,6 +218,7 @@ def build_transition_request(
     idempotency_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the MAS policy-adapter request consumed by OPL transition runtime."""
+    normalized_currentness_basis = normalize_currentness_sources(currentness_basis)
     identity = _clean(
         {
             "study_id": study_id,
@@ -244,7 +248,7 @@ def build_transition_request(
                 "dispatch_ref": dispatch_ref,
                 "dispatch_authority": dispatch_authority,
                 "required_output_surface": required_output_surface,
-                "currentness_basis": dict(currentness_basis or {}),
+                "currentness_basis": normalized_currentness_basis,
                 "action_fingerprint": work_unit_fingerprint,
             }
         )

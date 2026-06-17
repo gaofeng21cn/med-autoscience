@@ -9,10 +9,12 @@ from med_autoscience.runtime_control import owner_route_attempt_protocol
 CURRENTNESS_BASIS_FIELDS = frozenset(
     {
         "source_eval_id",
+        "source_fingerprint",
         "work_unit_id",
         "work_unit_fingerprint",
         "truth_epoch",
         "runtime_health_epoch",
+        "route_epoch",
     }
 )
 
@@ -26,11 +28,50 @@ def currentness_basis(*candidates: object) -> dict[str, Any]:
     return payload
 
 
+def normalize_currentness_sources(*candidates: object) -> dict[str, Any]:
+    return currentness_basis(*candidates)
+
+
+def normalize_owner_route_currentness(
+    owner_route: Mapping[str, Any],
+    *candidates: object,
+) -> dict[str, Any]:
+    return with_owner_route_basis(
+        owner_route,
+        basis=normalize_currentness_sources(owner_route_basis(owner_route), *candidates),
+    )
+
+
+def normalize_transition_request_currentness(
+    transition_request: Mapping[str, Any],
+    *candidates: object,
+) -> dict[str, Any]:
+    return with_transition_request_basis(
+        transition_request,
+        basis=normalize_currentness_sources(
+            _mapping(transition_request).get("currentness_basis"),
+            *candidates,
+        ),
+    )
+
+
+def normalize_action_handoff_currentness(
+    action: Mapping[str, Any],
+    *candidates: object,
+) -> dict[str, Any]:
+    return with_action_handoff_basis(
+        action,
+        basis=normalize_currentness_sources(*candidates),
+    )
+
+
 def owner_route_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     route = _mapping(owner_route)
     source_refs = _mapping(route.get("source_refs"))
     return currentness_basis(
         owner_route_attempt_protocol.currentness_basis(route),
+        source_refs,
+        route,
         _mapping(route.get("currentness_contract")).get("basis"),
         source_refs.get("owner_route_currentness_basis"),
     )
@@ -41,6 +82,7 @@ def action_basis(action: Mapping[str, Any]) -> dict[str, Any]:
     return currentness_basis(
         {
             "source_eval_id": payload.get("source_eval_id"),
+            "source_fingerprint": payload.get("source_fingerprint"),
             "work_unit_id": payload.get("controller_work_unit_id")
             or payload.get("executable_work_unit")
             or payload.get("work_unit_id"),
@@ -120,14 +162,16 @@ def with_action_handoff_basis(
     )
     if not merged_basis:
         return payload
-    if _text(merged_basis.get("source_eval_id")) is not None:
-        payload["source_eval_id"] = merged_basis["source_eval_id"]
+    for key in ("source_eval_id", "source_fingerprint", "work_unit_id", "work_unit_fingerprint"):
+        if _text(merged_basis.get(key)) is not None:
+            payload[key] = merged_basis[key]
     normalized_route = with_owner_route_basis(owner_route, basis=merged_basis)
     if normalized_route:
         payload["owner_route"] = normalized_route
     if handoff_packet:
-        if _text(merged_basis.get("source_eval_id")) is not None:
-            handoff_packet["source_eval_id"] = merged_basis["source_eval_id"]
+        for key in ("source_eval_id", "source_fingerprint", "work_unit_id", "work_unit_fingerprint"):
+            if _text(merged_basis.get(key)) is not None:
+                handoff_packet[key] = merged_basis[key]
         if normalized_route:
             handoff_packet["owner_route"] = normalized_route
         payload["handoff_packet"] = handoff_packet
@@ -153,6 +197,10 @@ def _text(value: object) -> str | None:
 __all__ = [
     "action_basis",
     "currentness_basis",
+    "normalize_action_handoff_currentness",
+    "normalize_currentness_sources",
+    "normalize_owner_route_currentness",
+    "normalize_transition_request_currentness",
     "owner_route_basis",
     "source_eval_id_from_domain_transition",
     "source_eval_id_from_study",

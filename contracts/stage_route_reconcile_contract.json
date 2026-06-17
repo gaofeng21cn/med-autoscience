@@ -149,6 +149,23 @@
     "shared_identity_helper": {
       "surface": "stage_route_currentness_identity",
       "module": "src/med_autoscience/controllers/stage_route_currentness_identity.py",
+      "normalization_helper": {
+        "surface": "stage_route_currentness_normalization",
+        "module": "src/med_autoscience/controllers/domain_action_request_materializer_parts/currentness_identity.py",
+        "merge_rule": "later_non_empty_fields_override_earlier_values_none_never_clears_existing_values",
+        "applies_to": [
+          "prebuilt_opl_domain_progress_transition_request",
+          "ai_reviewer_record_handoff",
+          "paper_recovery_successor_bridge",
+          "domain_handler_owner_route_wrapper"
+        ],
+        "authority_boundary": {
+          "can_generate_action": false,
+          "can_authorize_provider_admission": false,
+          "can_create_opl_command_event_outbox_or_stage_run": false,
+          "projection_only": true
+        }
+      },
       "applies_to": [
         "current_work_unit action selection",
         "domain_action_request_materializer currentness preemption",

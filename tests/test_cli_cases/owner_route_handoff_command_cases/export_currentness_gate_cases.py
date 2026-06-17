@@ -684,10 +684,10 @@ def test_export_current_owner_action_merges_projection_route_currentness_identit
     )
 
     assert action["source"] == "current_work_unit"
-    assert action["owner_route"] == {
-        **route,
-        "source_refs": {"owner_route_currentness_basis": currentness_basis},
-    }
+    assert action["owner_route"]["source_refs"]["owner_route_currentness_basis"] == (
+        currentness_basis
+    )
+    assert action["owner_route"]["currentness_contract"]["basis"] == currentness_basis
     assert action["owner_route_currentness_basis"] == currentness_basis
     assert action["source_fingerprint"] == "sha256:current-route"
     assert action["work_unit_fingerprint"] == "sha256:current-route"

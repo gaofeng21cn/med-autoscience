@@ -124,8 +124,11 @@ def _materialized_default_executor_dispatch_task(
     )
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     owner_route_source_refs = _mapping(owner_route.get("source_refs"))
-    owner_route_currentness_basis = _mapping(
-        owner_route_source_refs.get("owner_route_currentness_basis")
+    owner_route_currentness_basis = currentness_identity.normalize_currentness_sources(
+        currentness_identity.owner_route_basis(owner_route),
+        prompt_contract.get("owner_route_currentness_basis"),
+        owner_route_source_refs.get("owner_route_currentness_basis"),
+        currentness_identity.action_basis(dispatch),
     )
     work_unit_id = (
         _text(dispatch.get("work_unit_id"))
@@ -272,11 +275,12 @@ def _successor_owner_action_dispatch(
             }
         )
     )
-    basis = currentness_identity.currentness_basis(
+    basis = currentness_identity.normalize_currentness_sources(
         {
             "source_eval_id": successor.get("source_eval_id")
             or next_safe_action.get("source_eval_id")
             or recovery.get("source_eval_id"),
+            "source_fingerprint": source_fingerprint,
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "truth_epoch": successor.get("truth_epoch") or next_safe_action.get("truth_epoch"),
@@ -293,12 +297,15 @@ def _successor_owner_action_dispatch(
         "work_unit_fingerprint": work_unit_fingerprint,
         "owner_route_currentness_basis": basis or None,
     }
-    owner_route = {
+    owner_route = currentness_identity.normalize_owner_route_currentness(
+        {
         "next_owner": next_owner,
         "work_unit_fingerprint": work_unit_fingerprint,
         "source_refs": {key: value for key, value in source_refs.items() if value not in (None, "", [], {})},
         "currentness_contract": {"basis": basis} if basis else None,
-    }
+        },
+        basis,
+    )
     source_action = {
         "authority": "paper_recovery_state",
         "reason": _text(obligation.get("blocker_type")) or _text(current_work_unit.get("status")),

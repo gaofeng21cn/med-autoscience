@@ -587,10 +587,12 @@ def _transition_request_for_owner_callable_adapter(payload: Mapping[str, Any]) -
     source_refs = _mapping(owner_route.get("source_refs"))
     prompt_contract = _mapping(payload.get("prompt_contract"))
     source_action = _mapping(payload.get("source_action"))
-    currentness_basis = currentness_identity.currentness_basis(
+    currentness_basis = currentness_identity.normalize_currentness_sources(
         currentness_identity.owner_route_basis(owner_route),
         prompt_contract.get("owner_route_currentness_basis"),
         source_action.get("owner_route_currentness_basis"),
+        currentness_identity.action_basis(payload),
+        currentness_identity.action_basis(source_action),
     )
     work_unit_id = (
         _text(payload.get("work_unit_id"))
@@ -635,12 +637,14 @@ def _with_owner_route_currentness_basis(
     owner_route = _mapping(payload.get("owner_route"))
     prompt_contract = _mapping(payload.get("prompt_contract"))
     source_action = _mapping(payload.get("source_action"))
-    basis = currentness_identity.currentness_basis(
+    basis = currentness_identity.normalize_currentness_sources(
         currentness_identity.owner_route_basis(owner_route),
         prompt_contract.get("owner_route_currentness_basis"),
         source_action.get("owner_route_currentness_basis"),
+        currentness_identity.action_basis(payload),
+        currentness_identity.action_basis(source_action),
     )
-    return currentness_identity.with_transition_request_basis(request, basis=basis)
+    return currentness_identity.normalize_transition_request_currentness(request, basis)
 
 
 def _has_opl_execution_proof(payload: Mapping[str, Any]) -> bool:

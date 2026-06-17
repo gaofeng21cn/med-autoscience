@@ -26,6 +26,7 @@ from ..domain_health_diagnostic_parts.provider_admission_current_control_actions
 from ..domain_health_diagnostic_parts.provider_admission_current_control_identity import (
     provider_admission_current_control_action,
 )
+from ..domain_action_request_materializer_parts import currentness_identity
 from ..study_domain_transition_table_parts import family_transition_spec
 from .accepted_owner_gate_route_back import accepted_owner_gate_route_back_action
 from .authority_boundary import authority_boundary_payload
@@ -421,6 +422,25 @@ def _current_control_transition_request_tasks(
     )
     if identity_refs:
         action = {**action, **identity_refs}
+    candidate_owner_route = mapping(candidate.get("owner_route"))
+    owner_route = mapping(action.get("owner_route")) or candidate_owner_route
+    owner_route_currentness_basis = currentness_identity.normalize_currentness_sources(
+        currentness_identity.owner_route_basis(candidate_owner_route),
+        mapping(transition_request.get("currentness_basis")),
+        currentness_identity.owner_route_basis(owner_route),
+        mapping(candidate.get("owner_route_currentness_basis")),
+        action,
+        candidate,
+    )
+    transition_request = currentness_identity.normalize_transition_request_currentness(
+        transition_request,
+        owner_route_currentness_basis,
+    )
+    action = currentness_identity.normalize_action_handoff_currentness(
+        action,
+        owner_route_currentness_basis,
+    )
+    action["opl_domain_progress_transition_request"] = transition_request
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
         task_kind="domain_owner/default-executor-dispatch",
         study_id=study_id,
@@ -440,9 +460,7 @@ def _current_control_transition_request_tasks(
         **identity_refs,
         "authority_boundary": "mas_domain_progress_transition_request_only",
         "next_executable_owner": text(candidate.get("next_executable_owner")),
-        "owner_route_currentness_basis": mapping(
-            mapping(candidate.get("owner_route")).get("source_refs")
-        ).get("owner_route_currentness_basis"),
+        "owner_route_currentness_basis": owner_route_currentness_basis,
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
         "opl_domain_progress_transition_request": transition_request,
@@ -1038,11 +1056,10 @@ def _merge_projection_owner_action_identity(
     owner_route = mapping(merged.get("owner_route"))
     currentness_basis = mapping(merged.get("owner_route_currentness_basis"))
     if owner_route and currentness_basis:
-        route = dict(owner_route)
-        source_refs = dict(mapping(route.get("source_refs")))
-        source_refs["owner_route_currentness_basis"] = dict(currentness_basis)
-        route["source_refs"] = source_refs
-        merged["owner_route"] = route
+        merged["owner_route"] = currentness_identity.normalize_owner_route_currentness(
+            owner_route,
+            currentness_basis,
+        )
     if text(projection_action.get("source")) != "opl_current_control_state_action_queue":
         merged["source"] = text(projection_action.get("source")) or text(merged.get("source"))
     return merged

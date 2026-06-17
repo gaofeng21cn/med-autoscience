@@ -141,6 +141,10 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         )
     if action_fingerprint is None:
         return None
+    prebuilt_policy_result = _mapping(current.get("paper_progress_policy_result"))
+    prebuilt_transition_request = _mapping(
+        current.get("opl_domain_progress_transition_request")
+    ) or _mapping(prebuilt_policy_result.get("opl_domain_progress_transition_request"))
     paper_policy_result = paper_progress_policy_adapter.build_policy_result(
         {
             **dict(study),
@@ -148,6 +152,21 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
             "paper_recovery_state": _provider_admission_recovery(owner=executable_owner),
         },
         source="dhd.provider_admission_candidate",
+    )
+    if prebuilt_transition_request:
+        paper_policy_result = {
+            **dict(paper_policy_result),
+            **{
+                key: value
+                for key, value in prebuilt_policy_result.items()
+                if key != "opl_domain_progress_transition_request"
+            },
+            "opl_domain_progress_transition_request": prebuilt_transition_request,
+        }
+    transition_request_basis = _mapping(
+        _mapping(
+            paper_policy_result.get("opl_domain_progress_transition_request")
+        ).get("currentness_basis")
     )
     owner_route_currentness_basis = study_currentness_basis(
         study=study,
@@ -159,9 +178,17 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
     owner_route_currentness_basis = {
         **dict(current_action_basis),
         **dict(owner_route_currentness_basis),
+        **dict(transition_request_basis),
+        "source_fingerprint": _non_empty_text(current.get("source_fingerprint"))
+        or _non_empty_text(current_action_basis.get("source_fingerprint"))
+        or _non_empty_text(owner_route_currentness_basis.get("source_fingerprint"))
+        or _non_empty_text(transition_request_basis.get("source_fingerprint")),
         "mas_owner_action_source": _non_empty_text(current.get("source")),
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": action_fingerprint,
+    }
+    owner_route_currentness_basis = {
+        key: value for key, value in owner_route_currentness_basis.items() if value is not None
     }
     source_refs = {
         key: value
@@ -186,6 +213,8 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "work_unit_id": work_unit_id,
         "action_fingerprint": action_fingerprint,
         "work_unit_fingerprint": action_fingerprint,
+        "source_fingerprint": _non_empty_text(current.get("source_fingerprint")) or action_fingerprint,
+        "owner_route_currentness_basis": owner_route_currentness_basis,
         "required_output_surface": _required_output_surface(current),
         "provider_attempt_or_lease_required": False,
         "provider_admission_pending": False,
@@ -194,6 +223,11 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "provider_completion_is_domain_completion": False,
         "mas_owner_action_source": _non_empty_text(current.get("source")),
         "source_surface": _study_current_action_source_surface(current),
+        "source_eval_id": _non_empty_text(owner_route_currentness_basis.get("source_eval_id")),
+        "source_fingerprint": _non_empty_text(
+            owner_route_currentness_basis.get("source_fingerprint")
+        ),
+        "currentness_basis": owner_route_currentness_basis,
         "paper_progress_policy_result": paper_policy_result,
         "opl_domain_progress_transition_request": paper_policy_result.get(
             "opl_domain_progress_transition_request"

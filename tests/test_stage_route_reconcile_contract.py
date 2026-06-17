@@ -203,6 +203,30 @@ def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_se
         "developer_supervisor_same_tick.materialize.default_executor_dispatches",
         "same_tick_materialized_dispatch",
     ]
+    shared_identity = identity["shared_identity_helper"]
+    assert shared_identity["surface"] == "stage_route_currentness_identity"
+    assert shared_identity["module"] == "src/med_autoscience/controllers/stage_route_currentness_identity.py"
+    normalization = shared_identity["normalization_helper"]
+    assert normalization["surface"] == "stage_route_currentness_normalization"
+    assert normalization["module"] == (
+        "src/med_autoscience/controllers/domain_action_request_materializer_parts/"
+        "currentness_identity.py"
+    )
+    assert normalization["merge_rule"] == (
+        "later_non_empty_fields_override_earlier_values_none_never_clears_existing_values"
+    )
+    assert normalization["applies_to"] == [
+        "prebuilt_opl_domain_progress_transition_request",
+        "ai_reviewer_record_handoff",
+        "paper_recovery_successor_bridge",
+        "domain_handler_owner_route_wrapper",
+    ]
+    assert normalization["authority_boundary"] == {
+        "can_generate_action": False,
+        "can_authorize_provider_admission": False,
+        "can_create_opl_command_event_outbox_or_stage_run": False,
+        "projection_only": True,
+    }
     progress_ticket = identity["progress_current_owner_ticket_contract"]
     assert progress_ticket["synthetic_fingerprint_prefix_forbidden"] == (
         "study-progress-current-owner-ticket::"
