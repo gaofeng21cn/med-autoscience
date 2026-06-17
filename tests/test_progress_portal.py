@@ -551,8 +551,14 @@ def test_progress_portal_payload_exposes_opl_runtime_workbench_projection_withou
     assert projection["studies"][0]["macro_state"] == "质量修复/复审中"
     assert projection["studies"][0]["links"]["progress_payload_ref"] == "runtime/artifacts/progress_portal/latest.json"
     assert "conversation_read_model_ref" not in projection["studies"][0]["links"]
-    assert projection["studies"][0]["actions"]["pause"]["owner"] == "one-person-lab"
-    assert projection["studies"][0]["actions"]["stop"]["confirmation_required"] is True
+    intents = projection["studies"][0]["operator_intent_projection"]
+    assert intents["pause"]["owner"] == "one-person-lab"
+    assert intents["pause"]["surface_kind"] == "workbench_operator_intent_projection_ref"
+    assert intents["pause"]["command"] is None
+    assert intents["pause"]["execute_authority"] is False
+    assert intents["pause"]["must_route_to_opl_runtime"] is True
+    assert intents["stop"]["confirmation_required"] is False
+    assert intents["stop"]["external_authority_confirmation_required"] is True
     assert projection["terminal"]["mode"] == "external_control_plane_required"
     assert projection["terminal"]["active_run_id"] == "run-opl-001"
     assert projection["terminal"]["token_required"] is True
@@ -597,7 +603,7 @@ def test_progress_portal_runtime_workbench_boundary_is_read_only_projection() ->
     assert projection["projection_boundary"] == {
         "surface_kind": "mas_opl_runtime_workbench_projection_boundary",
         "projection_only": True,
-        "actions_role": "disabled_read_only_projection_controls",
+        "actions_role": "operator_intent_projection_refs",
         "links_role": "read_only_drilldown_refs",
         "next_summary_role": "read_only_drilldown_summary",
         "can_execute_controller_action": False,
@@ -614,10 +620,19 @@ def test_progress_portal_runtime_workbench_boundary_is_read_only_projection() ->
     assert study["next_action_summary_is_controller_action"] is False
     assert study["links_role"] == "read_only_drilldown_refs"
     assert study["links_can_execute"] is False
-    assert study["actions_role"] == "disabled_projection_controls"
+    assert study["actions_role"] == "operator_intent_projection_refs"
     assert study["actions_can_execute"] is False
+    assert study["actions_deprecated"] is True
+    assert study["actions_authority"] is False
+    assert study["actions_are_operator_intent_refs"] is True
     assert all(action["allowed"] is False for action in study["actions"].values())
     assert all(action["execute_authority"] is False for action in study["actions"].values())
+    assert all(action["command"] is None for action in study["operator_intent_projection"].values())
+    assert all(action["confirmation_required"] is False for action in study["operator_intent_projection"].values())
+    assert all(
+        action["must_read_back_mas_owner_receipt"] is True
+        for action in study["operator_intent_projection"].values()
+    )
 
 
 def test_progress_portal_projects_runtime_continuity_without_new_authority() -> None:

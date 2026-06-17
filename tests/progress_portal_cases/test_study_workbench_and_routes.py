@@ -220,7 +220,15 @@ def test_study_workbench_projects_progress_first_next_delta_for_operator_visibil
         "ai_reviewer_gate_replay_request",
     ]
     assert projection["next_forced_delta"]["owner_action"]["next_owner"] == "runtime_mechanism_repair"
+    assert projection["next_forced_delta"]["owner_action_role"] == "read_only_owner_delta_ref"
+    assert projection["next_forced_delta"]["can_generate_action"] is False
+    assert projection["next_forced_delta"]["can_execute"] is False
+    assert projection["next_forced_delta"]["owner_action"]["authority"] is False
+    assert projection["next_forced_delta"]["owner_action"]["can_generate_action"] is False
+    assert projection["next_forced_delta"]["owner_action"]["can_execute"] is False
     assert projection["authority"]["writes_authority_surface"] is False
+    assert projection["authority"]["can_generate_action"] is False
+    assert projection["authority"]["can_execute"] is False
     assert projection["authority"]["can_authorize_quality_verdict"] is False
     assert "Progress-First" in html
     assert "paper_progress_delta_or_typed_blocker" in html
@@ -448,6 +456,35 @@ def test_route_decision_trail_helper_projects_branch_block_pivot_and_winning_pat
     assert "阻塞=stop if external validation fails" in html
     assert "路线来源" in html
     assert "studies/001-risk/artifacts/controller_decisions/latest.json" in html
+
+
+def test_route_decision_trail_intervention_lane_action_metadata_is_read_only() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+
+    payload = parts.build_route_decision_trail_payload(
+        progress={
+            "study_id": "001-risk",
+            "intervention_lane": {
+                "lane_id": "projection_repair",
+                "title": "Repair projection",
+                "recommended_action_id": "inspect_study_progress_projection",
+                "repair_mode": "inspect",
+                "summary": "Projection is stale.",
+            },
+        },
+        runtime={},
+        package={},
+        study_id="001-risk",
+    )
+
+    node = payload["nodes"][0]
+    assert node["source"] == "intervention_lane"
+    assert node["decision"] == "inspect"
+    assert node["decision_role"] == "display_label_from_intervention_lane"
+    assert node["source_recommended_action_id"] == "inspect_study_progress_projection"
+    assert node["authority"] is False
+    assert node["can_generate_action"] is False
+    assert node["can_execute"] is False
 
 
 def test_route_decision_trail_helper_fail_closes_without_explicit_route_inputs() -> None:

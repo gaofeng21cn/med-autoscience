@@ -149,6 +149,10 @@ def test_mcp_tools_call_jsonrpc_returns_single_result_envelope() -> None:
     assert "structured_payload" not in envelope["structured_payload"]
     assert envelope["retryability"] == "retry_safe"
     assert envelope["next_safe_actions"][0]["action"] == "consume_structured_payload"
+    assert envelope["next_safe_actions"][0]["authority"] is False
+    assert envelope["next_safe_actions"][0]["can_execute"] is False
+    assert envelope["next_safe_actions"][0]["can_generate_action"] is False
+    assert envelope["next_safe_actions"][0]["action_role"] == "tool_result_consumption_metadata"
     assert envelope["recovery"]["retryability"] == "retry_safe"
     assert "structured_payload" not in envelope["recovery"]
 
@@ -815,6 +819,11 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
     assert payload["current_stage"] == "live"
     assert payload["state_label"] == "自动运行中"
     assert payload["mcp_projection"]["compacted"] is True
+    assert payload["mcp_projection"]["projection_only"] is True
+    assert payload["mcp_projection"]["authority"] is False
+    assert payload["mcp_projection"]["can_generate_action"] is False
+    assert payload["mcp_projection"]["can_execute"] is False
+    assert payload["mcp_projection"]["source_truth_required"] == "current_owner_delta_or_opl_readback"
     assert payload["current_blockers"][-1] == "blocker-11"
     assert len(payload["task_intake"]["constraints"]) == 8
     assert "submission_revision_operating_contract" not in payload["task_intake"]

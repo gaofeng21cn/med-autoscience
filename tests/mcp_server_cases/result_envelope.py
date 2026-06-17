@@ -27,6 +27,12 @@ def _assert_recovery_envelope(envelope: dict[str, object]) -> dict[str, object]:
     assert isinstance(recovery["staleness"], dict)
     assert isinstance(recovery["missing_refs"], list)
     assert isinstance(recovery["next_safe_actions"], list)
+    for action in recovery["next_safe_actions"]:
+        assert isinstance(action, dict)
+        assert action["authority"] is False
+        assert action["can_execute"] is False
+        assert action["can_generate_action"] is False
+        assert action["action_role"] == "tool_result_consumption_metadata"
     assert isinstance(recovery["owner_needed"], bool)
     assert isinstance(recovery["receipt_refs"], list)
     assert isinstance(recovery["typed_blocker_refs"], list)
@@ -79,6 +85,12 @@ def _assert_tool_result_envelope(
     assert isinstance(structured["staleness"], dict)
     assert isinstance(structured["missing_refs"], list)
     assert isinstance(structured["next_safe_actions"], list)
+    for action in structured["next_safe_actions"]:
+        assert isinstance(action, dict)
+        assert action["authority"] is False
+        assert action["can_execute"] is False
+        assert action["can_generate_action"] is False
+        assert action["action_role"] == "tool_result_consumption_metadata"
     assert isinstance(structured["owner_needed"], bool)
     assert isinstance(structured["receipt_refs"], list)
     assert isinstance(structured["typed_blocker_refs"], list)

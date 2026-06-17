@@ -174,10 +174,27 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["phase2_user_product_loop"]["recommended_command"] == (
         "uv run python -m med_autoscience.cli product entry_status --profile <profile>"
     )
+    assert payload["phase2_user_product_loop"]["recommended_command_ref"] == {
+        "command": payload["phase2_user_product_loop"]["recommended_command"],
+        "command_role": "entry_point_metadata",
+        "authority": False,
+        "can_generate_action": False,
+        "can_execute": False,
+    }
+    assert payload["phase2_user_product_loop"]["command_role"] == "entry_point_metadata"
+    assert payload["phase2_user_product_loop"]["authority"] is False
+    assert payload["phase2_user_product_loop"]["can_generate_action"] is False
+    assert payload["phase2_user_product_loop"]["can_execute"] is False
     assert payload["phase2_user_product_loop"]["single_path"][0]["step_id"] == "open_product_entry"
     assert payload["phase2_user_product_loop"]["single_path"][3]["step_id"] == "continue_study"
     assert payload["phase2_user_product_loop"]["single_path"][5]["step_id"] == "handle_human_gate"
-    assert payload["phase2_user_product_loop"]["proof_surfaces"] == [
+    proof_surfaces = payload["phase2_user_product_loop"]["proof_surfaces"]
+    assert [
+        {key: item[key] for key in ("surface_kind", "command") if key in item}
+        if "command" in item
+        else item
+        for item in proof_surfaces
+    ] == [
         {
             "surface_kind": "product_entry_status",
             "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
@@ -205,6 +222,24 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
             "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
         },
     ]
+    assert all(
+        item["command_ref"] == {
+            "command": item["command"],
+            "command_role": "entry_point_metadata",
+            "authority": False,
+            "can_generate_action": False,
+            "can_execute": False,
+        }
+        for item in proof_surfaces
+        if "command" in item
+    )
+    command_ref_sources = [
+        *payload["phase2_user_product_loop"]["single_path"],
+        *payload["phase2_user_product_loop"]["operator_questions"],
+    ]
+    assert all(item["command_ref"]["authority"] is False for item in command_ref_sources)
+    assert all(item["command_ref"]["can_generate_action"] is False for item in command_ref_sources)
+    assert all(item["command_ref"]["can_execute"] is False for item in command_ref_sources)
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
     assert payload["phase3_clearance_lane"]["recommended_step_id"] == "mas_domain_refs_boundary"
     assert payload["phase3_clearance_lane"]["recommended_command"] == (

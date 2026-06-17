@@ -71,7 +71,7 @@ def build_progress_first_operator_projection(progress: Mapping[str, Any] | None)
                 "authority_boundary",
             ),
         ),
-        "next_forced_delta": _compact_mapping(
+        "next_forced_delta": _read_only_next_forced_delta(
             next_forced_delta,
             (
                 "required_delta_kind",
@@ -99,6 +99,8 @@ def build_progress_first_operator_projection(progress: Mapping[str, Any] | None)
         "authority": {
             "writes_authority_surface": False,
             "display_and_drilldown_only": True,
+            "can_generate_action": False,
+            "can_execute": False,
             "can_authorize_publication_readiness": False,
             "can_authorize_quality_verdict": False,
         },
@@ -137,6 +139,25 @@ def render_progress_first_operator_section(projection: Mapping[str, Any]) -> str
 
 def _compact_mapping(value: Mapping[str, Any], keys: Iterable[str]) -> dict[str, Any]:
     return {key: value[key] for key in keys if key in value and value[key] not in (None, "", [], {})}
+
+
+def _read_only_next_forced_delta(value: Mapping[str, Any], keys: Iterable[str]) -> dict[str, Any]:
+    result = _compact_mapping(value, keys)
+    owner_action = _mapping(result.get("owner_action"))
+    if owner_action:
+        result["owner_action"] = {
+            **owner_action,
+            "owner_action_role": "read_only_owner_delta_ref",
+            "authority": False,
+            "can_generate_action": False,
+            "can_execute": False,
+            "can_authorize_provider_admission": False,
+            "requires_opl_current_control_readback": True,
+        }
+    result["owner_action_role"] = "read_only_owner_delta_ref"
+    result["can_generate_action"] = False
+    result["can_execute"] = False
+    return result
 
 
 def _mapping(value: object) -> dict[str, Any]:

@@ -245,6 +245,28 @@ def _source_payload_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         summary["projection_error"] = True
         summary["projection_error_type"] = _non_empty_text(projection_error.get("error_type"))
         summary["projection_error_handled_as"] = _non_empty_text(projection_error.get("handled_as"))
+        summary["projection_error_metadata"] = {
+            "diagnostic_only": bool(projection_error.get("diagnostic_only")) is True,
+            "authority": bool(projection_error.get("authority")) is True,
+            "can_generate_action": bool(projection_error.get("can_generate_action")) is True,
+            "can_execute": bool(projection_error.get("can_execute")) is True,
+        }
+    intervention_lane = _mapping(payload.get("intervention_lane"))
+    if intervention_lane:
+        summary["intervention_lane_metadata"] = {
+            "diagnostic_only": bool(intervention_lane.get("diagnostic_only")) is True,
+            "authority": bool(intervention_lane.get("authority")) is True,
+            "can_generate_action": bool(intervention_lane.get("can_generate_action")) is True,
+            "can_execute": bool(intervention_lane.get("can_execute")) is True,
+        }
+    user_visible = _mapping(payload.get("user_visible_projection"))
+    if user_visible:
+        summary["user_visible_action_metadata"] = {
+            "next_system_action_role": _non_empty_text(user_visible.get("next_system_action_role")),
+            "authority": bool(user_visible.get("authority")) is True,
+            "can_generate_action": bool(user_visible.get("can_generate_action")) is True,
+            "can_execute": bool(user_visible.get("can_execute")) is True,
+        }
     return summary
 
 def _opl_handoff_projection(

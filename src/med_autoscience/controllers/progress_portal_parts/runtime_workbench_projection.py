@@ -154,12 +154,18 @@ def _workbench_study_row(
         "next_action_summary": _first_non_empty_text(row.get("next_action_summary"), row.get("next_system_action"), row.get("operator_focus")),
         "next_action_summary_role": "read_only_drilldown_summary",
         "next_action_summary_is_controller_action": False,
+        "next_action_summary_can_generate_action": False,
+        "next_action_summary_requires_opl_current_control_readback": True,
         "source_refs": fallback_source_refs[:12],
         "links_role": "read_only_drilldown_refs",
         "links_can_execute": False,
         "links": _workbench_links(study_id, selected=study_id == selected_study_id),
-        "actions_role": "disabled_projection_controls",
+        "actions_role": "operator_intent_projection_refs",
         "actions_can_execute": False,
+        "actions_deprecated": True,
+        "actions_authority": False,
+        "actions_are_operator_intent_refs": True,
+        "operator_intent_projection": _workbench_actions(),
         "actions": _workbench_actions(),
     }
     paper_route_lens = paper_route_lens_summary(row.get("paper_route_lens"))
@@ -216,12 +222,18 @@ def _selected_workbench_study(
         "next_action_summary": _non_empty_text(user_visible.get("next_system_action")),
         "next_action_summary_role": "read_only_drilldown_summary",
         "next_action_summary_is_controller_action": False,
+        "next_action_summary_can_generate_action": False,
+        "next_action_summary_requires_opl_current_control_readback": True,
         "source_refs": source_refs[:12],
         "links_role": "read_only_drilldown_refs",
         "links_can_execute": False,
         "links": _workbench_links(study_id, selected=True, artifact_refs=_stage_review_artifact_refs(stage_review)),
-        "actions_role": "disabled_projection_controls",
+        "actions_role": "operator_intent_projection_refs",
         "actions_can_execute": False,
+        "actions_deprecated": True,
+        "actions_authority": False,
+        "actions_are_operator_intent_refs": True,
+        "operator_intent_projection": _workbench_actions(),
         "actions": _workbench_actions(),
         "information_hierarchy": _workbench_information_hierarchy(),
         "stage_operating_layer": stage_operating_layer,
@@ -313,6 +325,10 @@ def _provider_attempt_lane(progress: Mapping[str, Any]) -> dict[str, Any]:
         "attempt_owner": _first_non_empty_text(attempt.get("attempt_owner"), attempt.get("owner")),
         "provider_attempt_is_truth": bool(attempt.get("provider_attempt_is_truth")) is True,
         "provider_attempt_wrote_workspace": bool(attempt.get("provider_attempt_wrote_workspace")) is True,
+        "provider_attempt_claim_role": "opl_readback_observation_only",
+        "can_mark_running": False,
+        "can_mark_paper_progress": False,
+        "can_authorize_provider_admission": False,
         "source_refs": source_refs,
         "authority": _lane_authority(),
     }
@@ -505,7 +521,10 @@ def _stage_artifact_index_lane(progress: Mapping[str, Any]) -> dict[str, Any]:
         "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
         "surface_kind": "stage_artifact_index",
         "current_stage": _non_empty_text(payload.get("current_stage")),
-        "next_owner_action": dict(_mapping(payload.get("next_owner_action"))),
+        "next_owner_action": _read_only_action_ref(
+            _mapping(payload.get("next_owner_action")),
+            role="stage_artifact_index_next_owner_action_ref",
+        ),
         "stale_platform_repairs": [dict(item) for item in payload.get("stale_platform_repairs") or [] if isinstance(item, Mapping)],
         "stage_count": len([item for item in payload.get("stages") or [] if isinstance(item, Mapping)]),
         "stages": [dict(item) for item in payload.get("stages") or [] if isinstance(item, Mapping)],
@@ -795,7 +814,7 @@ def _runtime_workbench_projection_boundary() -> dict[str, Any]:
     return {
         "surface_kind": "mas_opl_runtime_workbench_projection_boundary",
         "projection_only": True,
-        "actions_role": "disabled_read_only_projection_controls",
+        "actions_role": "operator_intent_projection_refs",
         "links_role": "read_only_drilldown_refs",
         "next_summary_role": "read_only_drilldown_summary",
         "can_execute_controller_action": False,
@@ -892,16 +911,44 @@ def _stage_review_artifact_refs(stage_review: Mapping[str, Any]) -> list[str]:
 def _workbench_actions() -> dict[str, dict[str, Any]]:
     return {
         action: {
+            "intent_id": action,
+            "surface_kind": "workbench_operator_intent_projection_ref",
+            "authority": False,
             "allowed": False,
             "owner": "one-person-lab",
             "endpoint_ref": None,
+            "command": None,
+            "can_execute": False,
+            "can_generate_action": False,
+            "can_authorize_provider_admission": False,
             "execute_authority": False,
             "controller_action": False,
             "projection_only": True,
+            "transport_only": True,
+            "display_command_ref_only": True,
+            "requires_opl_current_control_readback": True,
+            "must_route_to_opl_runtime": True,
+            "must_read_back_mas_owner_receipt": True,
             "idempotency_required": True,
-            "confirmation_required": action in {"stop", "reconcile_apply"},
+            "external_authority_confirmation_required": action in {"stop", "reconcile_apply"},
+            "confirmation_required": False,
         }
         for action in ("pause", "resume", "stop", "reconcile_dry_run", "reconcile_apply")
+    }
+
+
+def _read_only_action_ref(payload: Mapping[str, Any], *, role: str) -> dict[str, Any]:
+    if not payload:
+        return {}
+    return {
+        **dict(payload),
+        "action_ref_role": role,
+        "authority": False,
+        "can_execute": False,
+        "can_generate_action": False,
+        "can_authorize_provider_admission": False,
+        "display_command_ref_only": True,
+        "requires_opl_current_control_readback": True,
     }
 
 

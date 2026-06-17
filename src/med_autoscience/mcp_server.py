@@ -314,28 +314,38 @@ def _result_next_safe_actions(
 ) -> list[dict[str, Any]]:
     if missing_refs:
         return [
-            {
+            _tool_result_action_metadata({
                 "action": "collect_missing_refs",
                 "missing_refs": missing_refs,
-            }
+            })
         ]
     if retryability == "owner_needed":
-        return [{"action": "surface_owner_needed"}]
+        return [_tool_result_action_metadata({"action": "surface_owner_needed"})]
     if retryability == "retry_safe" and "Unsupported" in result_summary:
         return [
-            {
+            _tool_result_action_metadata({
                 "action": "inspect_diagnostic_refs",
                 "diagnostic_refs": diagnostic_refs,
-            }
+            })
         ]
     if card and card.get("callability") == "mcp_runtime":
         return [
-            {
+            _tool_result_action_metadata({
                 "action": "consume_structured_payload",
                 "tool_name": tool_name,
-            }
+            })
         ]
-    return [{"action": "consume_structured_payload", "tool_name": tool_name}]
+    return [_tool_result_action_metadata({"action": "consume_structured_payload", "tool_name": tool_name})]
+
+
+def _tool_result_action_metadata(action: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **action,
+        "authority": False,
+        "can_execute": False,
+        "can_generate_action": False,
+        "action_role": "tool_result_consumption_metadata",
+    }
 
 
 def _extract_ref_list(payload: dict[str, Any], *, keys: tuple[str, ...]) -> list[str]:

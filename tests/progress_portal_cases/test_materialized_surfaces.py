@@ -284,6 +284,25 @@ def test_materialize_progress_portal_isolates_unselected_study_projection_error(
     assert blocked_payload["study"]["supervision"]["health_status"] == "blocked"
     assert blocked_payload["study_workbench"]["overview"]["state_label"] == "进度投影异常"
     assert blocked_payload["source_payloads"]["progress"]["projection_error"] is True
+    progress = blocked_payload["source_payloads"]["progress"]
+    assert progress["projection_error_metadata"] == {
+        "diagnostic_only": True,
+        "authority": False,
+        "can_generate_action": False,
+        "can_execute": False,
+    }
+    assert progress["intervention_lane_metadata"] == {
+        "diagnostic_only": True,
+        "authority": False,
+        "can_generate_action": False,
+        "can_execute": False,
+    }
+    assert progress["user_visible_action_metadata"] == {
+        "next_system_action_role": "diagnostic_projection_error_label",
+        "authority": False,
+        "can_generate_action": False,
+        "can_execute": False,
+    }
     assert "manual_finish.compatibility_guard_only" in blocked_html
     assert Path(result["workspace_html_path"]).exists()
 

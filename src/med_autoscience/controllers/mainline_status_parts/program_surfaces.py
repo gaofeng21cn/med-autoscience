@@ -204,42 +204,53 @@ def build_phase2_user_product_loop_lane(
         "summary": "把启动 MAS、给 study 下任务、续跑、持续看进度、处理恢复建议和人工 gate 收成同一条用户回路。",
         "recommended_step_id": "open_product_entry",
         "recommended_command": entry_status_command,
+        "recommended_command_ref": _command_ref(entry_status_command),
+        "command_role": "entry_point_metadata",
+        "authority": False,
+        "can_generate_action": False,
+        "can_execute": False,
         "single_path": [
             {
                 "step_id": "open_product_entry",
                 "title": "先打开 MAS 产品入口",
                 "surface_kind": "product_entry_status",
                 "command": entry_status_command,
+                "command_ref": _command_ref(entry_status_command),
             },
             {
                 "step_id": "inspect_workspace_inbox",
                 "title": "确认当前 workspace inbox / attention queue",
                 "surface_kind": "workspace_cockpit",
                 "command": workspace_cockpit_command,
+                "command_ref": _command_ref(workspace_cockpit_command),
             },
             {
                 "step_id": "submit_task",
                 "title": "给目标 study 写 durable task intake",
                 "surface_kind": "study_task_intake",
                 "command": submit_task_command,
+                "command_ref": _command_ref(submit_task_command),
             },
             {
                 "step_id": "continue_study",
                 "title": "启动或续跑当前 study",
                 "surface_kind": "launch_study",
                 "command": launch_study_command,
+                "command_ref": _command_ref(launch_study_command),
             },
             {
                 "step_id": "inspect_progress",
                 "title": "持续看进度、阻塞和恢复建议",
                 "surface_kind": "study_progress",
                 "command": study_progress_command,
+                "command_ref": _command_ref(study_progress_command),
             },
             {
                 "step_id": "handle_human_gate",
                 "title": "遇到人工 gate 时回到 progress / cockpit 做决策",
                 "surface_kind": "study_progress",
                 "command": study_progress_command,
+                "command_ref": _command_ref(study_progress_command),
             },
         ],
         "operator_questions": [
@@ -247,40 +258,57 @@ def build_phase2_user_product_loop_lane(
                 "question": "用户现在怎么启动 MAS？",
                 "answer_surface_kind": "product_entry_status",
                 "command": entry_status_command,
+                "command_ref": _command_ref(entry_status_command),
             },
             {
                 "question": "用户怎么给 study 下任务？",
                 "answer_surface_kind": "study_task_intake",
                 "command": submit_task_command,
+                "command_ref": _command_ref(submit_task_command),
             },
             {
                 "question": "用户怎么持续看进度和恢复建议？",
                 "answer_surface_kind": "study_progress",
                 "command": study_progress_command,
+                "command_ref": _command_ref(study_progress_command),
             },
         ],
         "proof_surfaces": [
             {
                 "surface_kind": "product_entry_status",
                 "command": entry_status_command,
+                "command_ref": _command_ref(entry_status_command),
             },
             {
                 "surface_kind": "workspace_cockpit",
                 "command": workspace_cockpit_command,
+                "command_ref": _command_ref(workspace_cockpit_command),
             },
             {
                 "surface_kind": "study_progress.operator_verdict",
                 "command": study_progress_command,
+                "command_ref": _command_ref(study_progress_command),
             },
             {
                 "surface_kind": "study_progress.recovery_contract",
                 "command": study_progress_command,
+                "command_ref": _command_ref(study_progress_command),
             },
             {
                 "surface_kind": "controller_decisions",
                 "ref": controller_decisions_ref,
             },
         ],
+    }
+
+
+def _command_ref(command: str) -> dict[str, Any]:
+    return {
+        "command": command,
+        "command_role": "entry_point_metadata",
+        "authority": False,
+        "can_generate_action": False,
+        "can_execute": False,
     }
 
 

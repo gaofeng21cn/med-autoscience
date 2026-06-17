@@ -283,6 +283,11 @@ def _node_from_intervention_lane(intervention_lane: Mapping[str, Any]) -> dict[s
         )
         or route_id,
         "decision": _first_text(intervention_lane.get("repair_mode"), intervention_lane.get("recommended_action_id")),
+        "decision_role": "display_label_from_intervention_lane",
+        "authority": False,
+        "can_generate_action": False,
+        "can_execute": False,
+        "source_recommended_action_id": _non_empty_text(intervention_lane.get("recommended_action_id")),
         "evidence_point": _first_text(intervention_lane.get("route_key_question"), intervention_lane.get("summary")),
         "blocked_reason": _first_text(intervention_lane.get("blocked_reason"), intervention_lane.get("blocker")),
         "pivot_rationale": _first_text(intervention_lane.get("route_summary"), intervention_lane.get("summary")),

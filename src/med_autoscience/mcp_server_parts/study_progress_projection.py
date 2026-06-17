@@ -706,6 +706,11 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "source_surface_kind": "study_progress",
         "compacted": True,
         "full_detail_surface": "CLI study-progress --format json",
+        "projection_only": True,
+        "authority": False,
+        "can_generate_action": False,
+        "can_execute": False,
+        "source_truth_required": "current_owner_delta_or_opl_readback",
     }
     return compact
 
@@ -776,6 +781,11 @@ def compact_study_runtime_result_for_mcp(payload: dict[str, Any]) -> dict[str, A
         compact["mcp_projection"] = {
             "surface_kind": "mcp_compacted_progress_projection",
             "compacted_progress_projection": True,
+            "projection_only": True,
+            "authority": False,
+            "can_generate_action": False,
+            "can_execute": False,
+            "source_truth_required": "current_owner_delta_or_opl_readback",
         }
     return compact
 
