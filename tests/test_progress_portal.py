@@ -574,6 +574,52 @@ def test_progress_portal_payload_exposes_opl_runtime_workbench_projection_withou
     ]
 
 
+def test_progress_portal_runtime_workbench_boundary_is_read_only_projection() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        profile_ref="/workspace/ops/medautoscience/profiles/diabetes.toml",
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        runtime_payload={
+            "study_id": "001-risk",
+            "opl_current_control_state": {
+                "active_run_id": "run-opl-001",
+                "status": "attempt_running",
+            },
+        },
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    projection = payload["mas_opl_runtime_workbench_projection"]
+    assert projection["projection_boundary"] == {
+        "surface_kind": "mas_opl_runtime_workbench_projection_boundary",
+        "projection_only": True,
+        "actions_role": "disabled_read_only_projection_controls",
+        "links_role": "read_only_drilldown_refs",
+        "next_summary_role": "read_only_drilldown_summary",
+        "can_execute_controller_action": False,
+        "can_generate_next_action_authority": False,
+        "can_authorize_provider_admission": False,
+        "can_authorize_worker_attempt": False,
+        "can_retry_or_dead_letter": False,
+        "can_authorize_publication_ready": False,
+        "can_authorize_quality_verdict": False,
+        "can_write_domain_truth": False,
+    }
+    study = projection["studies"][0]
+    assert study["next_action_summary_role"] == "read_only_drilldown_summary"
+    assert study["next_action_summary_is_controller_action"] is False
+    assert study["links_role"] == "read_only_drilldown_refs"
+    assert study["links_can_execute"] is False
+    assert study["actions_role"] == "disabled_projection_controls"
+    assert study["actions_can_execute"] is False
+    assert all(action["allowed"] is False for action in study["actions"].values())
+    assert all(action["execute_authority"] is False for action in study["actions"].values())
+
+
 def test_progress_portal_projects_runtime_continuity_without_new_authority() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
     progress = {
