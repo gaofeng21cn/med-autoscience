@@ -72,7 +72,10 @@ def build_runtime_report(
         progress_currentness=managed_study_progress_currentness,
     )
     transition_request_candidates = _merge_provider_admission_candidates(
-        list(managed_study_opl_provider_admission_candidates),
+        _provider_admission_candidates_with_opl_runtime_readback(
+            managed_study_opl_provider_admission_candidates,
+            runtime_root=runtime_root,
+        ),
         _progress_currentness_provider_admission_candidates(
             managed_study_progress_currentness,
             runtime_root=runtime_root,
@@ -237,6 +240,20 @@ def _provider_admission_candidates_with_opl_readback(
         dict(candidate)
         for candidate in candidates
         if candidate_opl_transition_readback(candidate)
+    ]
+
+
+def _provider_admission_candidates_with_opl_runtime_readback(
+    candidates: list[dict[str, Any]],
+    *,
+    runtime_root: Path,
+) -> list[dict[str, Any]]:
+    return [
+        _candidate_with_opl_runtime_readback(
+            candidate,
+            runtime_root=runtime_root,
+        )
+        for candidate in candidates
     ]
 
 

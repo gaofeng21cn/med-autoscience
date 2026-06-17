@@ -107,6 +107,88 @@ def _mas_transition_request(
     }
 
 
+def _write_opl_transition_runtime_log(
+    runtime_root: Path,
+    *,
+    study_id: str,
+    work_unit_id: str,
+    fingerprint: str,
+    idempotency_key: str,
+) -> None:
+    workspace_root = runtime_root.parent.parent if runtime_root.name == "quests" else runtime_root.parent
+    log_path = (
+        workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "domain_progress_transition_runtime"
+        / "command_event_log.jsonl"
+    )
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    aggregate_identity = {
+        "aggregate_kind": "study_work_unit",
+        "aggregate_id": f"{study_id}::{work_unit_id}",
+        "study_id": study_id,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+    }
+    stage_run_identity = {
+        "stage_run_id": f"stage-run:{study_id}:{work_unit_id}",
+        "route_identity_key": idempotency_key,
+        "attempt_idempotency_key": idempotency_key,
+        "source_generation": "truth-event-current",
+    }
+    entries = [
+        {
+            "entry_kind": "command",
+            "transaction_id": "dptx_dhd_direct_candidate_readback",
+            "idempotency_key": idempotency_key,
+            "aggregate_identity": aggregate_identity,
+            "payload": {
+                "transition_kind": "StartProviderAttempt",
+                "command_id": "dptc_dhd_direct_candidate_readback",
+                "source_generation": "truth-event-current",
+                "expected_version": "truth-event-current",
+                "stage_run_identity": stage_run_identity,
+            },
+        },
+        {
+            "entry_kind": "event",
+            "transaction_id": "dptx_dhd_direct_candidate_readback",
+            "idempotency_key": idempotency_key,
+            "aggregate_identity": aggregate_identity,
+            "payload": {
+                "transition_kind": "StartProviderAttempt",
+                "command_id": "dptc_dhd_direct_candidate_readback",
+                "event_id": "dpte_dhd_direct_candidate_readback",
+                "source_generation": "truth-event-current",
+                "expected_version": "truth-event-current",
+                "stage_run_identity": stage_run_identity,
+                "outcome": {
+                    "kind": "provider_admission_enqueued_or_blocked",
+                    "stable_outcome": True,
+                },
+            },
+        },
+        {
+            "entry_kind": "outbox_item",
+            "transaction_id": "dptx_dhd_direct_candidate_readback",
+            "idempotency_key": idempotency_key,
+            "aggregate_identity": aggregate_identity,
+            "payload": {
+                "outbox_item_id": "dpto_dhd_direct_candidate_readback",
+                "transition_event_id": "dpte_dhd_direct_candidate_readback",
+                "outbox_kind": "start_provider_attempt",
+                "stage_run_identity": stage_run_identity,
+            },
+        },
+    ]
+    log_path.write_text(
+        "\n".join(json.dumps(entry, sort_keys=True) for entry in entries) + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_runtime_report_prefers_fresh_progress_envelope_over_stale_user_waiting_action() -> None:
     report_aggregation = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
@@ -553,6 +635,82 @@ def test_runtime_report_consumes_transition_request_when_opl_readback_present(tm
     assert result["transition_request_pending_count"] == 0
     assert result["managed_study_opl_provider_admission_candidates"] == [candidate]
     assert result["managed_study_opl_transition_request_candidates"] == []
+
+
+def test_runtime_report_consumes_direct_transition_request_from_opl_log(tmp_path) -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    runtime_root = tmp_path / "runtime" / "quests"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    idempotency_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    _write_opl_transition_runtime_log(
+        runtime_root,
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+        fingerprint=fingerprint,
+        idempotency_key=idempotency_key,
+    )
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "transition_request_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_domain_progress_transition_request": {
+            **_mas_transition_request(
+                study_id=study_id,
+                action_type="run_quality_repair_batch",
+                work_unit_id=work_unit_id,
+                fingerprint=fingerprint,
+            ),
+            "idempotency_key": idempotency_key,
+        },
+    }
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=runtime_root,
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "decision": "owner_receipt_recorded",
+                "reason": "current_owner_receipt_recorded",
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[candidate],
+        managed_study_progress_currentness={},
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    assert result["transition_request_pending_count"] == 0
+    assert result["managed_study_opl_transition_request_candidates"] == []
+    assert result["provider_admission_pending_count"] == 1
+    [admission] = result["managed_study_opl_provider_admission_candidates"]
+    assert admission["status"] == "provider_admission_pending"
+    assert admission["provider_admission_requires_opl_runtime_result"] is False
+    assert admission["opl_transition_readback_source"] == "opl_domain_progress_transition_runtime_log"
+    assert admission["opl_domain_progress_transition_result"]["event_id"] == (
+        "dpte_dhd_direct_candidate_readback"
+    )
+    assert admission["opl_domain_progress_transition_result"]["outbox_item_id"] == (
+        "dpto_dhd_direct_candidate_readback"
+    )
 
 
 def test_current_control_sync_consumes_transition_request_when_opl_readback_present(tmp_path) -> None:
