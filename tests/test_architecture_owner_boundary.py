@@ -27,9 +27,21 @@ def test_architecture_owner_boundary_report_confirms_and_guards_duplicate_author
     assert by_layer["quality_os"]["owner"] == "MedAutoScience"
     assert by_layer["quality_os"]["hub_role"] == "authority"
     assert "publication_readiness" in by_layer["quality_os"]["authority_surfaces"]
-    assert by_layer["runtime_os"]["owner"] == "MedAutoScience"
+    assert by_layer["runtime_os"]["owner"] == "one-person-lab"
+    assert by_layer["runtime_os"]["role"] == "runtime_lifecycle_owner"
     assert by_layer["runtime_os"]["hub_role"] == "authority"
     assert "runtime_health" in by_layer["runtime_os"]["authority_surfaces"]
+    assert "canonical_runtime_action" in by_layer["runtime_os"]["authority_surfaces"]
+    assert by_layer["mas_runtime_diagnostic_refs"]["owner"] == "MedAutoScience"
+    assert by_layer["mas_runtime_diagnostic_refs"]["role"] == "adapter"
+    assert by_layer["mas_runtime_diagnostic_refs"]["hub_role"] == "adapter"
+    assert by_layer["mas_runtime_diagnostic_refs"]["authority_surfaces"] == []
+    assert by_layer["mas_runtime_diagnostic_refs"]["diagnostic_ref_surfaces"] == [
+        "runtime_health_snapshot",
+        "canonical_runtime_action_hint",
+        "opl_current_control_readback_ref",
+        "opl_stage_run_readback_ref",
+    ]
     assert by_layer["entry_projection"]["role"] == "projection"
     assert by_layer["entry_projection"]["hub_role"] == "read_model"
     assert by_layer["entry_projection"]["authority_surfaces"] == []
@@ -42,7 +54,6 @@ def test_architecture_owner_boundary_report_confirms_and_guards_duplicate_author
     assert by_layer["mds_backend"]["hub_role"] == "adapter"
     assert by_layer["mds_backend"]["authority_surfaces"] == []
     assert "publication_readiness" in by_layer["mds_backend"]["forbidden_authority_surfaces"]
-    assert "canonical_runtime_action" in by_layer["mds_backend"]["forbidden_authority_surfaces"]
     assert by_layer["mds_backend"]["may_replace_authority"] is False
     assert {risk["risk_id"] for risk in report["duplication_risk_classes"]} == {
         "entry_projection_as_authority",
@@ -64,7 +75,8 @@ def test_architecture_owner_boundary_validation_fails_closed_on_owner_drift() ->
     by_layer["entry_projection"]["authority_surfaces"] = ["user_visible_next_action"]
     by_layer["entry_projection"]["may_replace_authority"] = True
     by_layer["observability_os"]["authority_surfaces"] = ["publication_readiness"]
-    by_layer["mds_backend"]["authority_surfaces"] = ["publication_readiness", "canonical_runtime_action"]
+    by_layer["mas_runtime_diagnostic_refs"]["authority_surfaces"] = ["runtime_health"]
+    by_layer["mds_backend"]["authority_surfaces"] = ["publication_readiness"]
     by_layer["mds_backend"]["may_replace_authority"] = True
     by_layer["mas_core"]["authority_surfaces"] = []
     report["assessment"]["big_bang_rewrite_allowed"] = True
@@ -80,6 +92,7 @@ def test_architecture_owner_boundary_validation_fails_closed_on_owner_drift() ->
         "non_authority_hub_can_replace_authority",
         "mds_claims_mas_authority",
         "mds_can_replace_authority",
+        "mas_claims_opl_runtime_lifecycle_authority",
         "authority_hub_missing_authority_surface",
         "mas_authority_layer_missing_authority",
     }

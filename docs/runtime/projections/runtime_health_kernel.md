@@ -27,7 +27,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 `runtime_session` 是 retired worker/session read model 名称；当前 live/no-live、last attempt、worker liveness、retry/dead-letter 和 provider terminal truth 来自 OPL `current_control_state`。MAS projection 只能显示 OPL refs、owner receipt、typed blocker、route-back reason 和 historical fixture / explicit archive import reference；它不判断 scientific quality，不授权 publication/submission readiness，也不替代 OPL attempt ledger。`canonical_runtime_action` 与 `allowed_controller_actions` 只保留为 legacy-compatible diagnostic hint；同一 snapshot 必须同时暴露 `runtime_action_hint_is_authority=false`、`allowed_controller_action_hints_are_authority=false`、`opl_observability_readback_required=true`、`opl_current_control_or_stage_run_readback_required=true` 与 `mas_private_attempt_loop_forbidden=true`，任何执行、恢复、attempt、worker 或 provider admission 都必须回到 OPL Observability / StageRun / current-control readback。
 
-显式 `source_signature` 是 runtime health 的幂等键。同一 `(study_id, quest_id, event_type, source_signature)` 重放只能返回 existing event，不得再次追加并消耗 retry budget。没有显式 source signature 的 recover/launch attempt 仍按真实新尝试追加，继续消耗 retry budget。
+显式 `source_signature` 是 runtime health diagnostic event 的幂等键。同一 `(study_id, quest_id, event_type, source_signature)` 重放只能返回 existing diagnostic event。没有 OPL lifecycle proof 的 recover / launch / relaunch / release / escalation 类事件不得写成 MAS lifecycle 事实，也不得在 MAS 内消耗 retry budget；retry/dead-letter、attempt ledger、worker liveness 与 runtime lifecycle 由 OPL current-control / StageRun / Observability readback 承担。
 
 显式 reconcile 入口：
 
@@ -47,8 +47,8 @@ uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile
 - 新式 resume result 一旦携带 `scheduled` / `started` / `queued` 字段，`status=active` 只表示 quest 仍为 active，不能证明 worker live。恢复后置条件必须要求 `active_run_id`、`started=true`、`queued=true` 或 `running` / `retrying` 快照；`scheduled=true` 但未 started、未 queued、无 `active_run_id` 必须 fail closed 为 `no_live_run_started`。
 - `quest_marked_running_but_no_live_session` 必须进入有限状态机：probe / recover / relaunch / escalated，不能无限 recovering。
 - strict live worker 观测到新的 `active_run_id` 时，retry budget 必须按当前 run epoch 计算；旧 run 或无 run 归属的失败历史不能让新 live run 继承 `runtime_recovery_retry_budget_exhausted`。
-- 同一 active run epoch 内的 launch / recover / relaunch attempt 仍然消耗 retry budget；当前 run 自身耗尽预算后必须升级，不能无限恢复。
-- retry budget 耗尽后必须输出 `canonical_runtime_action=external_supervisor_required`，并禁止继续伪装成自动恢复中。
+- 同一 active run epoch 内的 launch / recover / relaunch attempt retry budget 由 OPL attempt ledger / retry-dead-letter substrate 计算；MAS 只能投影对应 OPL readback 与 diagnostic blocker，不能在本地创建第二套 retry counter。
+- retry budget 耗尽后，OPL readback 或 MAS typed blocker 可以让 diagnostic snapshot 暴露 `canonical_runtime_action=external_supervisor_required` hint；该 hint 仍必须标记为 non-authority，并禁止继续伪装成自动恢复中。
 - 已交付人审/投稿包的 study 如果没有 OPL live-attempt ref，且历史 runtime state 只残留 legacy OPL-runtime redrive marker，必须投影为 `await_explicit_resume` / parked handoff，而不是重新解释成 writer。`delivery_manifest.json`、`manuscript/current_package/` 与 `manuscript/current_package.zip` 是 human-facing handoff 证据；它们不能成为 edit authority，但足以阻止 OPL repair redrive 自动重开 writer。
 - `pause-runtime` 成功后若 quest 已 paused、无 `active_run_id`、无 OPL live-attempt ref，必须把 stale OPL-runtime redrive continuation 三元组降为 retired provenance，避免下一次 status read 把人工/投稿停驻重新投影成自动恢复。
 - `pause-runtime` 后的 terminal control barrier 必须覆盖三个竞态源：due delayed turn 不得 drain 成新 run；旧 active worker 的 late completion 不得把 paused 改回 active；普通 `progress_projection` 读取必须投影为 `quest_user_paused_requires_explicit_wakeup`，直到显式 resume contract 释放。transport 层的释放点固定为 `resume_quest` 发出的 `explicit_resume`，它可以把同一 quest identity 从 paused 重入 running；其他 schedule 原因仍必须被 `terminal_runtime_state` 阻断。

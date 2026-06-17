@@ -35,10 +35,13 @@ def test_module_boundary_audit_report_declares_layers_dependencies_and_authority
     assert runtime_refs["may_control_runtime"] is False
     assert runtime_refs["hub_role"] == "adapter"
     assert runtime_refs["writable_authority_surfaces"] == []
+    assert runtime_refs["lifecycle_authority_owner"] == "one-person-lab"
     assert runtime_refs["opl_runtime_control_owner"] == "one-person-lab"
-    assert runtime_refs["domain_authority_ref_surfaces"] == [
-        "runtime_health",
-        "canonical_runtime_action",
+    assert runtime_refs["diagnostic_ref_surfaces"] == [
+        "runtime_health_snapshot",
+        "runtime_action_hint",
+        "opl_current_control_readback_ref",
+        "opl_stage_run_readback_ref",
     ]
     assert by_group["artifact_delivery"]["hub_role"] == "materializer"
     assert by_group["artifact_delivery"]["writable_authority_surfaces"] == ["artifact_authority"]
@@ -98,7 +101,7 @@ def test_module_boundary_audit_validation_fails_closed_on_authority_and_control_
     by_group["observability_os"]["may_authorize_publication"] = True
     by_group["mds_backend_oracle"]["writable_authority_surfaces"] = [
         "publication_readiness",
-        "runtime_health",
+        "artifact_authority",
     ]
     by_group["mds_backend_oracle"]["may_control_runtime"] = True
     by_group["artifact_delivery"]["writable_authority_surfaces"] = [
@@ -106,7 +109,7 @@ def test_module_boundary_audit_validation_fails_closed_on_authority_and_control_
         "study_truth",
     ]
     by_group["maintainability"]["writable_authority_surfaces"] = [
-        "runtime_health",
+        "canonical_runtime_action",
         "progress_projection",
     ]
     by_group["maintainability"]["modifies_runtime_or_study_truth"] = True
@@ -132,6 +135,7 @@ def test_module_boundary_audit_validation_fails_closed_on_authority_and_control_
         "mds_claims_runtime_or_publication_authority",
         "artifact_delivery_becomes_study_truth",
         "maintainability_modifies_runtime_or_study_truth",
+        "mas_claims_opl_runtime_lifecycle_authority",
         "unknown_authority_surface",
         "acceptance_flag_not_fail_closed",
     }

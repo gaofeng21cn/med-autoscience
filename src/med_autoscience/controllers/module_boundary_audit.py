@@ -23,14 +23,12 @@ AUTHORITY_SURFACES = frozenset(
     {
         "study_truth",
         "quality_truth",
-        "runtime_health",
         "scientific_quality",
         "medical_writing_quality",
         "publication_readiness",
         "submission_authority",
         "artifact_authority",
         "user_visible_next_action",
-        "canonical_runtime_action",
     }
 )
 
@@ -38,14 +36,24 @@ MAS_AUTHORITY_SURFACES = frozenset(
     {
         "study_truth",
         "quality_truth",
-        "runtime_health",
         "scientific_quality",
         "medical_writing_quality",
         "publication_readiness",
         "submission_authority",
         "artifact_authority",
         "user_visible_next_action",
+    }
+)
+
+OPL_RUNTIME_LIFECYCLE_SURFACES = frozenset(
+    {
+        "runtime_health",
         "canonical_runtime_action",
+        "runtime_lifecycle",
+        "stage_attempt",
+        "worker_liveness",
+        "retry_dead_letter",
+        "attempt_ledger",
     }
 )
 
@@ -55,20 +63,17 @@ ARTIFACT_FORBIDDEN_STUDY_TRUTH = frozenset(
     {
         "study_truth",
         "quality_truth",
-        "runtime_health",
         "scientific_quality",
         "medical_writing_quality",
         "publication_readiness",
         "submission_authority",
         "user_visible_next_action",
-        "canonical_runtime_action",
     }
 )
 MAINTAINABILITY_FORBIDDEN_TRUTH_WRITES = frozenset(
     {
         "study_truth",
         "quality_truth",
-        "runtime_health",
         "publication_readiness",
         "submission_authority",
         "artifact_authority",
@@ -142,14 +147,23 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         "forbidden_dependencies": ["product_entry_projection", "mds_backend_oracle"],
         "hub_role": "adapter",
         "writable_authority_surfaces": [],
-        "domain_authority_ref_surfaces": [
-            "runtime_health",
-            "canonical_runtime_action",
+        "diagnostic_ref_surfaces": [
+            "runtime_health_snapshot",
+            "runtime_action_hint",
+            "opl_current_control_readback_ref",
+            "opl_stage_run_readback_ref",
         ],
         "projection_only": False,
         "may_control_runtime": False,
+        "lifecycle_authority_owner": "one-person-lab",
         "opl_runtime_control_owner": "one-person-lab",
-        "may_emit_only": ["domain_authority_refs", "owner_receipt", "typed_blocker", "controller_authorization_refs"],
+        "may_emit_only": [
+            "body_free_diagnostic_projection",
+            "domain_authority_refs",
+            "owner_receipt",
+            "typed_blocker",
+            "controller_authorization_refs",
+        ],
         "must_not_own": ["generic_scheduler", "attempt_ledger", "retry_dead_letter", "worker_residency", "runtime_lifecycle"],
         "may_authorize_publication": False,
         "may_be_study_truth": False,
@@ -297,7 +311,10 @@ TRUTH_BOUNDARIES: tuple[dict[str, Any], ...] = (
     },
     {
         "boundary_id": "runtime_authority_refs",
-        "authority_owner": "MAS domain owner receipts and typed blockers; generic runtime control owner is one-person-lab",
+        "authority_owner": (
+            "MAS domain owner receipts and typed blockers; OPL/one-person-lab owns runtime lifecycle, "
+            "attempt ledger, worker liveness, retry/dead-letter, and canonical runtime action"
+        ),
         "projection_consumers": ["progress_projection", "domain_health_diagnostic", "mainline-status"],
     },
     {
@@ -496,6 +513,16 @@ def _validate_group(
     if unknown_authority:
         issues.append(
             {"code": "unknown_authority_surface", "group_id": group_id, "authority_surfaces": unknown_authority}
+        )
+
+    forbidden_runtime = sorted(writable & OPL_RUNTIME_LIFECYCLE_SURFACES)
+    if forbidden_runtime:
+        issues.append(
+            {
+                "code": "mas_claims_opl_runtime_lifecycle_authority",
+                "group_id": group_id,
+                "authority_surfaces": forbidden_runtime,
+            }
         )
 
 

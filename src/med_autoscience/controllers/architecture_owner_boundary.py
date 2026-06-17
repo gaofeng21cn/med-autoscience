@@ -9,7 +9,6 @@ SCHEMA_VERSION = 1
 MAS_AUTHORITY_SURFACES = frozenset(
     {
         "study_truth",
-        "runtime_health",
         "scientific_quality",
         "medical_writing_quality",
         "publication_readiness",
@@ -28,7 +27,18 @@ MDS_FORBIDDEN_AUTHORITY_SURFACES = MAS_AUTHORITY_SURFACES | frozenset(
         "publication_gate_state",
         "package_state",
         "delivery_state",
+    }
+)
+
+OPL_RUNTIME_LIFECYCLE_SURFACES = frozenset(
+    {
+        "runtime_health",
         "canonical_runtime_action",
+        "runtime_lifecycle",
+        "stage_attempt",
+        "worker_liveness",
+        "retry_dead_letter",
+        "attempt_ledger",
     }
 )
 
@@ -72,20 +82,43 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
     },
     {
         "layer_id": "runtime_os",
-        "owner": "MedAutoScience",
-        "role": "authority",
+        "owner": "one-person-lab",
+        "role": "runtime_lifecycle_owner",
         "hub_role": "authority",
-        "authority_surfaces": [
-            "runtime_health",
-            "canonical_runtime_action",
-        ],
+        "authority_surfaces": sorted(OPL_RUNTIME_LIFECYCLE_SURFACES),
         "canonical_surfaces": [
-            "RuntimeHealthKernel",
-            "domain_health_diagnostic",
-            "runtime_escalation_record.json",
-            "progress_projection",
+            "OPL current_control_state",
+            "OPL StageRun",
+            "OPL transactional outbox",
+            "OPL attempt ledger",
+            "OPL observability readback",
         ],
         "may_replace_authority": True,
+    },
+    {
+        "layer_id": "mas_runtime_diagnostic_refs",
+        "owner": "MedAutoScience",
+        "role": "adapter",
+        "hub_role": "adapter",
+        "authority_surfaces": [],
+        "canonical_surfaces": [
+            "RuntimeHealthKernel diagnostic snapshot",
+            "domain_health_diagnostic refs",
+            "runtime_escalation_record.json",
+            "progress_projection runtime_health_snapshot",
+        ],
+        "consumes_authority_from": [
+            "runtime_os",
+            "mas_core",
+            "quality_os",
+        ],
+        "diagnostic_ref_surfaces": [
+            "runtime_health_snapshot",
+            "canonical_runtime_action_hint",
+            "opl_current_control_readback_ref",
+            "opl_stage_run_readback_ref",
+        ],
+        "may_replace_authority": False,
     },
     {
         "layer_id": "entry_projection",
@@ -103,7 +136,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "consumes_authority_from": [
             "mas_core",
             "quality_os",
-            "runtime_os",
+            "mas_runtime_diagnostic_refs",
         ],
         "may_replace_authority": False,
     },
@@ -122,7 +155,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "consumes_authority_from": [
             "mas_core",
             "quality_os",
-            "runtime_os",
+            "mas_runtime_diagnostic_refs",
         ],
         "may_replace_authority": False,
     },
@@ -154,7 +187,7 @@ DUPLICATION_RISK_CLASSES: tuple[dict[str, Any], ...] = (
         "risk_id": "entry_projection_as_authority",
         "current_risk": "controlled_by_contract",
         "trigger": "study_progress, workspace-cockpit, product-entry-status, MCP, or product-entry starts deciding next action independently",
-        "required_guard": "projection surfaces must consume StudyTruthKernel, RuntimeHealthKernel, publication_eval, and controller_decisions",
+        "required_guard": "projection surfaces must consume StudyTruthKernel, MAS diagnostic runtime refs, publication_eval, and controller_decisions",
         "repair_lane": "keep entrypoints thin and add reducer-backed projection tests",
     },
     {
@@ -175,8 +208,8 @@ DUPLICATION_RISK_CLASSES: tuple[dict[str, Any], ...] = (
         "risk_id": "runtime_status_double_parse",
         "current_risk": "partially_mitigated",
         "trigger": "modules reparse active_run_id, live worker, or recovery action outside RuntimeHealthKernel/control-plane facts",
-        "required_guard": "runtime liveness and recovery decisions use canonical fact resolvers and RuntimeHealthKernel",
-        "repair_lane": "continue replacing local parsing with single-source reducers",
+        "required_guard": "runtime liveness and recovery decisions use OPL current-control / StageRun readback; MAS RuntimeHealthKernel remains diagnostic-only",
+        "repair_lane": "continue replacing local parsing with OPL-owned readback and MAS body-free diagnostic refs",
     },
 )
 
@@ -356,6 +389,17 @@ def _validate_owner_layer(layer: Mapping[str, Any], issues: list[dict[str, Any]]
             issues.append({"code": "mas_authority_layer_missing_authority", "layer_id": layer_id})
         if layer.get("may_replace_authority") is not True:
             issues.append({"code": "mas_authority_layer_not_marked_authoritative", "layer_id": layer_id})
+
+    if owner == "MedAutoScience":
+        forbidden_runtime = sorted(authority_surfaces & OPL_RUNTIME_LIFECYCLE_SURFACES)
+        if forbidden_runtime:
+            issues.append(
+                {
+                    "code": "mas_claims_opl_runtime_lifecycle_authority",
+                    "layer_id": layer_id,
+                    "authority_surfaces": forbidden_runtime,
+                }
+            )
 
 
 def _list(value: object) -> list[object]:

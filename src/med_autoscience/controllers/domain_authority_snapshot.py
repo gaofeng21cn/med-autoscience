@@ -50,6 +50,40 @@ OWNER_PROGRESS_ACTIONS = (
     "open_monitoring_entry",
     "request_owner_progress",
 )
+RUNTIME_RECOVERY_ACTION_HINTS = frozenset(
+    {
+        "probe_runtime_liveness",
+        "recover_runtime",
+        "relaunch_runtime",
+    }
+)
+RUNTIME_RECOVERY_TERMINAL_HINTS = frozenset(
+    {
+        "await_explicit_resume",
+        "escalate_runtime",
+        "external_supervisor_required",
+    }
+)
+OPL_LIFECYCLE_PROOF_KEYS = (
+    "opl_lifecycle_proof_ref",
+    "opl_current_control_state_ref",
+    "opl_stage_run_readback_ref",
+    "opl_stage_attempt_id",
+    "stage_attempt_id",
+    "active_stage_attempt_id",
+    "active_workflow_id",
+    "workflow_id",
+    "stage_run_id",
+)
+RUNTIME_RECOVERY_CONTROLLER_ACTIONS = frozenset(
+    {
+        "runtime_recovery",
+        "request_opl_stage_attempt",
+        "request_opl_stage_attempt_relaunch",
+        "recover_runtime",
+        "relaunch_runtime",
+    }
+)
 
 
 def _mapping(value: object) -> dict[str, Any]:
@@ -81,6 +115,93 @@ def _authority_ref(snapshot: Mapping[str, Any], *, epoch_key: str, path_key: str
         "epoch": _text(snapshot.get(epoch_key)),
         "path": _text(snapshot.get(path_key)) if path_key is not None else None,
         "source_signature": _text(snapshot.get("source_signature")),
+    }
+
+
+def _runtime_diagnostic_ref(
+    snapshot: Mapping[str, Any],
+    *,
+    opl_lifecycle_proof_ref: str | None,
+) -> dict[str, Any]:
+    return {
+        **_authority_ref(snapshot, epoch_key="runtime_health_epoch", path_key="event_log_path"),
+        "role": "diagnostic_ref",
+        "authority": False,
+        "lifecycle_authority_owner": "one-person-lab",
+        "canonical_runtime_action_is_authority": False,
+        "opl_lifecycle_proof_ref": opl_lifecycle_proof_ref,
+    }
+
+
+def _opl_lifecycle_proof_ref(*sources: Mapping[str, Any]) -> str | None:
+    nested_keys = (
+        "opl_current_control_state",
+        "opl_current_control_state_handoff",
+        "runtime_health_snapshot",
+        "provider_readiness",
+        "stage_run_identity",
+    )
+    for source in sources:
+        for key in OPL_LIFECYCLE_PROOF_KEYS:
+            if text := _text(source.get(key)):
+                return text
+        for nested_key in nested_keys:
+            nested = _mapping(source.get(nested_key))
+            for key in OPL_LIFECYCLE_PROOF_KEYS:
+                if text := _text(nested.get(key)):
+                    return text
+    return None
+
+
+def _controller_repair_authorization(payload: Mapping[str, Any]) -> dict[str, Any]:
+    for key in ("controller_repair_authorization", "controller_repair_authorization_ref"):
+        authorization = _mapping(payload.get(key))
+        if authorization:
+            return authorization
+    return {}
+
+
+def _controller_authorizes_opl_runtime_recovery(authorization: Mapping[str, Any]) -> bool:
+    if authorization.get("authorized") is not True:
+        return False
+    action = _text(authorization.get("action"))
+    controller_action_type = _text(authorization.get("controller_action_type"))
+    work_unit_id = _text(authorization.get("work_unit_id"))
+    control_surface = _text(authorization.get("control_surface"))
+    if work_unit_id and work_unit_id != "runtime_recovery":
+        return False
+    if control_surface and control_surface != "domain_health_diagnostic":
+        return False
+    return action in RUNTIME_RECOVERY_CONTROLLER_ACTIONS or controller_action_type in RUNTIME_RECOVERY_CONTROLLER_ACTIONS
+
+
+def _runtime_recovery_authorization(
+    *,
+    runtime_action: str,
+    activity_timeout_owner_action: str | None,
+    opl_lifecycle_proof_ref: str | None,
+    controller_repair_authorization: Mapping[str, Any],
+) -> dict[str, Any]:
+    controller_authorized = _controller_authorizes_opl_runtime_recovery(controller_repair_authorization)
+    blocking_reasons: list[str] = []
+    if activity_timeout_owner_action is not None:
+        blocking_reasons.append("runtime_activity_timeout_owner_progress_required")
+    if runtime_action in RUNTIME_RECOVERY_TERMINAL_HINTS:
+        blocking_reasons.append(f"canonical_runtime_action_terminal:{runtime_action}")
+    if runtime_action not in RUNTIME_RECOVERY_ACTION_HINTS and not controller_authorized:
+        blocking_reasons.append("canonical_runtime_action_not_runtime_recovery_request")
+    if opl_lifecycle_proof_ref is None and not controller_authorized:
+        blocking_reasons.append("opl_runtime_lifecycle_readback_required")
+    authorized = not blocking_reasons and (
+        controller_authorized or (runtime_action in RUNTIME_RECOVERY_ACTION_HINTS and opl_lifecycle_proof_ref is not None)
+    )
+    return {
+        "authorized": authorized,
+        "authority_owner": "one-person-lab",
+        "canonical_runtime_action_is_authority": False,
+        "opl_lifecycle_proof_ref": opl_lifecycle_proof_ref,
+        "controller_repair_authorization_ref": dict(controller_repair_authorization) or None,
+        "blocking_reasons": blocking_reasons,
     }
 
 
@@ -168,6 +289,8 @@ def build_authority_snapshot(status_payload: Mapping[str, Any]) -> dict[str, Any
 
     retry_budget = _int(health.get("retry_budget_remaining"))
     attempt_state = _text(health.get("attempt_state"))
+    opl_lifecycle_proof_ref = _opl_lifecycle_proof_ref(payload, health, worker_liveness)
+    controller_repair_authorization = _controller_repair_authorization(payload)
     activity_timeout_owner_action = None
     if (
         runtime_action == "recover_runtime"
@@ -184,6 +307,12 @@ def build_authority_snapshot(status_payload: Mapping[str, Any]) -> dict[str, Any
     ):
         blocking_reasons.append("runtime_recovery_retry_budget_exhausted")
         runtime_action = "external_supervisor_required"
+    runtime_recovery_authorization = _runtime_recovery_authorization(
+        runtime_action=runtime_action,
+        activity_timeout_owner_action=activity_timeout_owner_action,
+        opl_lifecycle_proof_ref=opl_lifecycle_proof_ref,
+        controller_repair_authorization=controller_repair_authorization,
+    )
 
     if "execution_owner_guard.supervisor_only" in blocking_reasons:
         allowed_actions = [action for action in allowed_actions if action not in PAPER_WRITE_ACTIONS | BUNDLE_ACTIONS]
@@ -213,6 +342,7 @@ def build_authority_snapshot(status_payload: Mapping[str, Any]) -> dict[str, Any
         "control_state": _control_state(blocking_reasons, runtime_action),
         "canonical_next_action": truth_action,
         "canonical_runtime_action": runtime_action,
+        "canonical_runtime_action_is_authority": False,
         "activity_timeout_owner_action": activity_timeout_owner_action,
         "dispatch_gate": {
             "state": "blocked" if dispatch_blocked else "open",
@@ -226,21 +356,18 @@ def build_authority_snapshot(status_payload: Mapping[str, Any]) -> dict[str, Any
             "foreground_paper_write_allowed": foreground_paper_write_allowed,
             "bundle_build_allowed": bundle_build_allowed,
             "foreground_bundle_build_allowed": bundle_build_allowed,
-            "runtime_recovery_allowed": (
-                activity_timeout_owner_action is None
-                and runtime_action
-                not in {
-                    "await_explicit_resume",
-                    "escalate_runtime",
-                    "external_supervisor_required",
-                }
-            ),
+            "runtime_recovery_allowed": runtime_recovery_authorization["authorized"],
+            "runtime_recovery_authority": runtime_recovery_authorization,
+            "runtime_recovery_blocking_reasons": list(runtime_recovery_authorization["blocking_reasons"]),
         },
         "blocking_reasons": blocking_reasons,
         "allowed_controller_actions": allowed_actions,
         "authority_refs": {
             "study_truth": _authority_ref(truth, epoch_key="truth_epoch", path_key="event_log_path"),
-            "runtime_health": _authority_ref(health, epoch_key="runtime_health_epoch", path_key="event_log_path"),
+            "runtime_health": _runtime_diagnostic_ref(
+                health,
+                opl_lifecycle_proof_ref=opl_lifecycle_proof_ref,
+            ),
             "publication_eval": {
                 "owner": _text(provenance.get("owner")),
                 "current_required_action": publication_action,
@@ -249,5 +376,7 @@ def build_authority_snapshot(status_payload: Mapping[str, Any]) -> dict[str, Any
             or _mapping(payload.get("controller_decision")),
         },
         "quality_gate_relaxation_allowed": False,
+        "runtime_health_snapshot_is_authority": False,
         "generated_from_authority_surfaces": True,
+        "generated_from_authority_and_diagnostic_surfaces": True,
     }

@@ -117,6 +117,70 @@ def test_authority_snapshot_blocks_recovery_when_retry_budget_exhausted() -> Non
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
 
 
+def test_authority_snapshot_does_not_authorize_runtime_recovery_from_diagnostic_hint_alone() -> None:
+    snapshot = _snapshot(
+        {
+            "study_id": "004-invasive",
+            "quest_id": "004-invasive",
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-3b",
+                "canonical_next_action": "resume_same_study_line",
+            },
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-event-3b",
+                "canonical_runtime_action": "recover_runtime",
+                "attempt_state": "recovering",
+                "retry_budget_remaining": 1,
+            },
+        }
+    )
+
+    assert snapshot["canonical_runtime_action"] == "recover_runtime"
+    assert snapshot["canonical_runtime_action_is_authority"] is False
+    assert snapshot["route_authorization"]["runtime_recovery_allowed"] is False
+    assert snapshot["route_authorization"]["runtime_recovery_authority"] == {
+        "authorized": False,
+        "authority_owner": "one-person-lab",
+        "canonical_runtime_action_is_authority": False,
+        "opl_lifecycle_proof_ref": None,
+        "controller_repair_authorization_ref": None,
+        "blocking_reasons": ["opl_runtime_lifecycle_readback_required"],
+    }
+    assert snapshot["authority_refs"]["runtime_health"]["role"] == "diagnostic_ref"
+    assert snapshot["authority_refs"]["runtime_health"]["authority"] is False
+    assert snapshot["authority_refs"]["runtime_health"]["lifecycle_authority_owner"] == "one-person-lab"
+
+
+def test_authority_snapshot_allows_runtime_recovery_only_with_opl_lifecycle_proof() -> None:
+    snapshot = _snapshot(
+        {
+            "study_id": "004-invasive",
+            "quest_id": "004-invasive",
+            "opl_lifecycle_proof_ref": "opl-stage-attempt://sat-runtime-recovery",
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-3c",
+                "canonical_next_action": "resume_same_study_line",
+            },
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-event-3c",
+                "canonical_runtime_action": "recover_runtime",
+                "attempt_state": "recovering",
+                "retry_budget_remaining": 1,
+            },
+        }
+    )
+
+    assert snapshot["route_authorization"]["runtime_recovery_allowed"] is True
+    assert snapshot["route_authorization"]["runtime_recovery_authority"]["authority_owner"] == "one-person-lab"
+    assert (
+        snapshot["route_authorization"]["runtime_recovery_authority"]["opl_lifecycle_proof_ref"]
+        == "opl-stage-attempt://sat-runtime-recovery"
+    )
+    assert snapshot["authority_refs"]["runtime_health"]["opl_lifecycle_proof_ref"] == (
+        "opl-stage-attempt://sat-runtime-recovery"
+    )
+
+
 def test_authority_snapshot_escalates_when_non_recovery_retry_budget_exhausted() -> None:
     snapshot = _snapshot(
         {
