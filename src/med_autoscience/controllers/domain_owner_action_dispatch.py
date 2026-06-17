@@ -362,6 +362,11 @@ def _execute_dispatch(
         study_id=study_id,
         dispatch=dispatch,
     )
+    dispatch = _canonical_provider_hosted_dispatch(
+        profile=profile,
+        study_id=study_id,
+        dispatch=dispatch,
+    )
     action_type = _text(dispatch.get("action_type")) or "unknown_action"
     action_fingerprint = runtime_dispatch_cost.dispatch_action_fingerprint(
         dispatch=dispatch,
@@ -892,6 +897,20 @@ def _dispatch_execution_payload(
         execution_payload.setdefault("user_stage_log", execution_payload["paper_stage_log"])
         execution_payload.setdefault("stage_log_summary", execution_payload["paper_stage_log"])
     return execution_payload
+
+
+def _canonical_provider_hosted_dispatch(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
+    canonical = opl_execution_preflight.provider_hosted_canonical_stage_packet_dispatch(
+        dispatch=dispatch,
+        workspace_root=profile.workspace_root,
+        study_root=_study_root(profile, study_id),
+    )
+    return canonical if canonical is not None else dict(dispatch)
 
 
 def _persist_study_executions(

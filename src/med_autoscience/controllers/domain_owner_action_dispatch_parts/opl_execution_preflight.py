@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Mapping
 from pathlib import Path
@@ -109,6 +110,44 @@ def provider_hosted_exact_stage_run_current_execution_authority(
     return provider_hosted_stage_attempt_authorizes_dispatch(dispatch)
 
 
+def provider_hosted_canonical_stage_packet_dispatch(
+    *,
+    dispatch: Mapping[str, Any],
+    workspace_root: Path,
+    study_root: Path,
+) -> dict[str, Any] | None:
+    stage_packet_ref = _env_text("OPL_STAGE_PACKET_REF")
+    if stage_packet_ref is None:
+        return None
+    if not provider_hosted_stage_attempt_authorizes_dispatch(dispatch):
+        return None
+    for path in _candidate_stage_packet_paths(
+        stage_packet_ref=stage_packet_ref,
+        dispatch=dispatch,
+        workspace_root=workspace_root,
+        study_root=study_root,
+    ):
+        packet = _read_json_object(path)
+        if packet is None:
+            continue
+        if not _canonical_stage_packet_matches(
+            carrier=dispatch,
+            packet=packet,
+            stage_packet_ref=stage_packet_ref,
+        ):
+            continue
+        packet_refs = _mapping(packet.get("refs"))
+        refs = {
+            **packet_refs,
+            "stage_packet_path": str(path),
+        }
+        refs.setdefault("immutable_dispatch_path", str(path))
+        if _text(refs.get("dispatch_path")) is None:
+            refs["dispatch_path"] = str(path)
+        return with_provider_hosted_opl_authorization({**dict(packet), "refs": refs})
+    return None
+
+
 def _provider_hosted_stage_attempt_authorization(*, dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
     stage_attempt_id = _env_text("OPL_STAGE_ATTEMPT_ID")
     stage_packet_ref = _env_text("OPL_STAGE_PACKET_REF")
@@ -189,6 +228,129 @@ def _work_unit_id(value: object) -> str | None:
     if isinstance(value, Mapping):
         return _text(value.get("unit_id")) or _text(value.get("work_unit_id"))
     return _text(value)
+
+
+def _dispatch_work_unit_fingerprint(dispatch: Mapping[str, Any]) -> str | None:
+    owner_route = _mapping(dispatch.get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
+        _mapping(owner_route.get("currentness_contract")).get("basis")
+    )
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    source_action = _mapping(dispatch.get("source_action"))
+    return (
+        _text(dispatch.get("work_unit_fingerprint"))
+        or _text(source_action.get("work_unit_fingerprint"))
+        or _text(owner_route.get("work_unit_fingerprint"))
+        or _text(source_refs.get("work_unit_fingerprint"))
+        or _text(currentness_basis.get("work_unit_fingerprint"))
+        or _text(prompt_contract.get("work_unit_fingerprint"))
+    )
+
+
+def _candidate_stage_packet_paths(
+    *,
+    stage_packet_ref: str,
+    dispatch: Mapping[str, Any],
+    workspace_root: Path,
+    study_root: Path,
+) -> list[Path]:
+    refs = _mapping(dispatch.get("refs"))
+    candidates: list[Path] = []
+    seen: set[str] = set()
+    for item in (
+        stage_packet_ref,
+        refs.get("stage_packet_path"),
+        refs.get("immutable_dispatch_path"),
+        refs.get("dispatch_path"),
+        dispatch.get("stage_packet_ref"),
+    ):
+        for path in _resolved_ref_paths(
+            item,
+            workspace_root=workspace_root,
+            study_root=study_root,
+        ):
+            key = path.as_posix()
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append(path)
+    return candidates
+
+
+def _resolved_ref_paths(value: object, *, workspace_root: Path, study_root: Path) -> list[Path]:
+    text = _normalize_ref(value)
+    if text is None or "://" in text:
+        return []
+    raw = Path(text).expanduser()
+    if raw.is_absolute():
+        return [raw.resolve()]
+    candidates: list[Path] = []
+    if text.startswith(("studies/", "runtime/", "ops/")):
+        candidates.append((workspace_root / raw).resolve())
+    candidates.append((study_root / raw).resolve())
+    candidates.append((workspace_root / raw).resolve())
+    return candidates
+
+
+def _read_json_object(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _canonical_stage_packet_matches(
+    *,
+    carrier: Mapping[str, Any],
+    packet: Mapping[str, Any],
+    stage_packet_ref: str,
+) -> bool:
+    if _text(packet.get("surface")) != "default_executor_dispatch_request":
+        return False
+    if _text(packet.get("dispatch_status")) != "ready":
+        return False
+    if _text(packet.get("executor_kind")) != "codex_cli_default":
+        return False
+    if not _stage_packet_ref_matches_dispatch(stage_packet_ref=stage_packet_ref, dispatch=packet):
+        return False
+    if _provider_hosted_stage_attempt_authorization(dispatch=packet) is None:
+        return False
+    for env_key, packet_value in (
+        ("OPL_STUDY_ID", packet.get("study_id")),
+        ("OPL_ACTION_TYPE", packet.get("action_type")),
+    ):
+        expected = _env_text(env_key)
+        actual = _text(packet_value)
+        if expected is not None and actual != expected:
+            return False
+    packet_work_unit_id = _dispatch_work_unit_id(packet)
+    expected_work_unit_id = _env_text("OPL_WORK_UNIT_ID")
+    if expected_work_unit_id is not None and packet_work_unit_id != expected_work_unit_id:
+        return False
+    carrier_work_unit_id = _dispatch_work_unit_id(carrier)
+    if (
+        carrier_work_unit_id is not None
+        and packet_work_unit_id is not None
+        and carrier_work_unit_id != packet_work_unit_id
+    ):
+        return False
+    carrier_fingerprint = _dispatch_work_unit_fingerprint(carrier)
+    packet_fingerprint = _dispatch_work_unit_fingerprint(packet)
+    if (
+        carrier_fingerprint is not None
+        and packet_fingerprint is not None
+        and carrier_fingerprint != packet_fingerprint
+    ):
+        return False
+    carrier_study_id = _text(carrier.get("study_id"))
+    if carrier_study_id is not None and _text(packet.get("study_id")) != carrier_study_id:
+        return False
+    carrier_action_type = _text(carrier.get("action_type"))
+    if carrier_action_type is not None and _text(packet.get("action_type")) != carrier_action_type:
+        return False
+    return True
 
 
 def _normalize_ref(value: object) -> str | None:
