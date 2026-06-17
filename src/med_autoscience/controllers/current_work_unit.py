@@ -816,6 +816,25 @@ def _paper_recovery_owner_action_ready_successor_consumes_receipt(
     return _text(successor.get("source_surface")) == "gate_clearing_batch_followthrough.actionable_current_work_unit"
 
 
+def _paper_recovery_successor_supersedes_terminal_closeout_blocker(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    if not _paper_recovery_owner_action_ready_successor_consumes_receipt(action, progress=progress):
+        return False
+    if not _same_action_identity(blocker, action):
+        return False
+    if _text(blocker.get("terminal_closeout_outcome")) != "blocked:unsupported_dispatch_surface":
+        return False
+    return (
+        _text(blocker.get("blocker_type"))
+        or _text(blocker.get("blocked_reason"))
+        or _text(blocker.get("blocker_id"))
+    ) is not None
+
+
 def _domain_transition_successor_consumes_owner_receipt(
     *,
     action: Mapping[str, Any],
@@ -943,6 +962,12 @@ def _action_supersedes_typed_blocker(
     if _paper_recovery_successor_supersedes_publication_gate_replay_blocker(
         action=action,
         blocker=payload,
+    ):
+        return True
+    if _paper_recovery_successor_supersedes_terminal_closeout_blocker(
+        action=action,
+        blocker=payload,
+        progress=_mapping(progress),
     ):
         return True
     if _domain_transition_supersedes_provider_completion_blocker(
