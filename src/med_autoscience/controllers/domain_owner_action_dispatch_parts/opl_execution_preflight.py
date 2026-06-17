@@ -168,7 +168,12 @@ def _provider_hosted_stage_attempt_authorization(*, dispatch: Mapping[str, Any])
         return None
     env_work_unit_id = _env_text("OPL_WORK_UNIT_ID")
     dispatch_work_unit_id = _dispatch_work_unit_id(dispatch)
-    if env_work_unit_id is not None and dispatch_work_unit_id is not None and env_work_unit_id != dispatch_work_unit_id:
+    if not _env_work_unit_authorizes_dispatch(
+        env_work_unit_id=env_work_unit_id,
+        dispatch_work_unit_id=dispatch_work_unit_id,
+        stage_packet_ref=stage_packet_ref,
+        dispatch=dispatch,
+    ):
         return None
     return first_trusted_opl_execution_authorization(
         {
@@ -199,11 +204,47 @@ def _stage_packet_ref_matches_dispatch(*, stage_packet_ref: str, dispatch: Mappi
         _text(_mapping(dispatch.get("refs")).get("immutable_dispatch_path")),
         _text(_mapping(dispatch.get("refs")).get("dispatch_path")),
     ]
-    normalized_ref = _normalize_ref(stage_packet_ref)
-    return any(
-        normalized_candidate == normalized_ref or normalized_candidate.endswith(f"/{normalized_ref}")
-        for candidate in candidates
-        if (normalized_candidate := _normalize_ref(candidate)) is not None
+    return any(_refs_match(stage_packet_ref, candidate) for candidate in candidates)
+
+
+def _env_work_unit_authorizes_dispatch(
+    *,
+    env_work_unit_id: str | None,
+    dispatch_work_unit_id: str | None,
+    stage_packet_ref: str,
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if env_work_unit_id is None or dispatch_work_unit_id is None:
+        return True
+    if env_work_unit_id == dispatch_work_unit_id:
+        return True
+    stage_packet_scope_ref = _stage_packet_scope_ref(env_work_unit_id)
+    if stage_packet_scope_ref is None:
+        return False
+    if not _refs_match(stage_packet_ref, stage_packet_scope_ref):
+        return False
+    return _stage_packet_ref_matches_dispatch(
+        stage_packet_ref=stage_packet_scope_ref,
+        dispatch=dispatch,
+    )
+
+
+def _stage_packet_scope_ref(value: str) -> str | None:
+    prefix = "stage-packet:"
+    if not value.startswith(prefix):
+        return None
+    return _text(value.removeprefix(prefix))
+
+
+def _refs_match(reference: object, candidate: object) -> bool:
+    normalized_reference = _normalize_ref(reference)
+    normalized_candidate = _normalize_ref(candidate)
+    if normalized_reference is None or normalized_candidate is None:
+        return False
+    return (
+        normalized_candidate == normalized_reference
+        or normalized_candidate.endswith(f"/{normalized_reference}")
+        or normalized_reference.endswith(f"/{normalized_candidate}")
     )
 
 
@@ -327,7 +368,12 @@ def _canonical_stage_packet_matches(
             return False
     packet_work_unit_id = _dispatch_work_unit_id(packet)
     expected_work_unit_id = _env_text("OPL_WORK_UNIT_ID")
-    if expected_work_unit_id is not None and packet_work_unit_id != expected_work_unit_id:
+    if not _env_work_unit_authorizes_dispatch(
+        env_work_unit_id=expected_work_unit_id,
+        dispatch_work_unit_id=packet_work_unit_id,
+        stage_packet_ref=stage_packet_ref,
+        dispatch=packet,
+    ):
         return False
     carrier_work_unit_id = _dispatch_work_unit_id(carrier)
     if (

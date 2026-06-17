@@ -432,7 +432,7 @@ def test_provider_hosted_projection_executes_canonical_stage_packet_contract(
         monkeypatch,
         study_id=study_id,
         action_type=action_type,
-        work_unit_id=work_unit_id,
+        work_unit_id=f"stage-packet:{immutable_path.as_posix()}",
         dispatch_path=immutable_path,
     )
     monkeypatch.setattr(
