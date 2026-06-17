@@ -186,8 +186,6 @@ def test_study_progress_opl_current_control_state_handoff_consumes_provider_admi
             "stage_id": "domain_owner/default-executor-dispatch",
             "stage_attempt_id": "sat-terminal",
             "action_type": "run_quality_repair_batch",
-            "work_unit_id": "medical_prose_write_repair",
-            "work_unit_fingerprint": "publication-blockers::abc",
             "status": "closed_with_domain_owner_refs",
             "owner_receipt_ref": "studies/001-risk/artifacts/controller/repair_execution_receipts/latest.json",
             "paper_stage_log": {
@@ -217,6 +215,10 @@ def test_study_progress_opl_current_control_state_handoff_consumes_provider_admi
     assert projection["provider_admission_pending_count"] == 0
     assert projection["provider_admission_candidates"] == []
     assert projection["provider_admission_terminal_closeout_consumed"]["stage_attempt_id"] == "sat-terminal"
+    assert projection["provider_admission_terminal_closeout_consumed"]["work_unit_id"] == "medical_prose_write_repair"
+    assert projection["provider_admission_terminal_closeout_consumed"]["work_unit_fingerprint"] == (
+        "publication-blockers::abc"
+    )
     assert projection["latest_terminal_stage_log"]["owner_receipt_ref"] == (
         "studies/001-risk/artifacts/controller/repair_execution_receipts/latest.json"
     )
