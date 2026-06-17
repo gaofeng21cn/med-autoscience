@@ -85,15 +85,20 @@ def materialize_provider_admission_current_control_state(
         live_studies_by_id=live_studies_by_id,
         scanned_studies_by_id=scanned_studies_by_id,
     )
-    transition_request_candidates = _candidates_not_covered_by_live_attempt(
+    unresolved_candidates = _candidates_not_covered_by_live_attempt(
         candidates,
         live_studies_by_id=live_studies_by_id,
         scanned_studies_by_id=scanned_studies_by_id,
     )
     pending_candidates = [
         candidate
-        for candidate in transition_request_candidates
+        for candidate in unresolved_candidates
         if candidate_opl_transition_readback(candidate)
+    ]
+    transition_request_candidates = [
+        candidate
+        for candidate in unresolved_candidates
+        if not candidate_opl_transition_readback(candidate)
     ]
     terminal_precedence_by_study = _terminal_precedence_by_study(scanned_studies)
     studies = [
@@ -101,7 +106,7 @@ def materialize_provider_admission_current_control_state(
             provider_admission_current_control_study(candidate),
             terminal_precedence_by_study=terminal_precedence_by_study,
         )
-        for candidate in transition_request_candidates
+        for candidate in unresolved_candidates
     ]
     candidate_study_ids = {
         study_id

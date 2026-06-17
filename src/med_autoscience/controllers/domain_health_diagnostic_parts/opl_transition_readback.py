@@ -161,6 +161,16 @@ def candidate_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str,
         candidate.get("opl_domain_progress_transition_result"),
         candidate.get("opl_domain_progress_runtime_result"),
         candidate.get("opl_runtime_result"),
+        _mapping(candidate.get("provider_admission_identity")).get(
+            "opl_domain_progress_transition_live_readback"
+        ),
+        _mapping(candidate.get("provider_admission_identity")).get(
+            "opl_domain_progress_transition_runtime_live_readback"
+        ),
+        _mapping(candidate.get("provider_admission_identity")).get(
+            "opl_domain_progress_transition_result"
+        ),
+        _mapping(candidate.get("provider_admission_identity")).get("opl_runtime_result"),
         _mapping(candidate.get("paper_progress_policy_result")).get("opl_runtime_result"),
         _mapping(candidate.get("state")).get("opl_domain_progress_transition_result"),
         _mapping(candidate.get("state")).get("opl_domain_progress_transition_live_readback"),

@@ -4,6 +4,7 @@ import importlib
 from pathlib import Path
 
 from tests.provider_admission_current_control_helpers import (
+    opl_transition_readback as _opl_transition_readback,
     provider_candidate as _provider_candidate,
 )
 
@@ -98,6 +99,77 @@ def test_provider_admission_current_control_treats_mas_request_without_opl_readb
         is False
     )
     assert decision["evidence"]["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
+
+
+def test_provider_admission_current_control_consumes_opl_readback_inside_provider_identity(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    action_fingerprint = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    candidate = _provider_candidate(
+        profile,
+        study_id,
+        action_fingerprint=action_fingerprint,
+    )
+    candidate["provider_admission_identity"] = {
+        "surface_kind": "opl_provider_admission_identity",
+        "study_id": study_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "opl_domain_progress_transition_runtime_live_readback": _opl_transition_readback(
+            study_id,
+            action_fingerprint=action_fingerprint,
+            work_unit_id=work_unit_id,
+        ),
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-17T20:45:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "active",
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": action_fingerprint,
+                    "action_fingerprint": action_fingerprint,
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert result["transition_request_pending_count"] == 0
+    assert len(result["provider_admission_candidates"]) == 1
+    assert result["transition_request_candidates"] == []
+    assert result["stage_route_arbiter"]["pending_count"] == 1
+    action = result["action_queue"][0]
+    assert action["status"] == "queued"
+    assert action["provider_admission_pending"] is True
+    assert action["provider_attempt_or_lease_required"] is True
+    assert action["provider_admission_requires_opl_runtime_result"] is False
+    assert action["opl_domain_progress_transition_live_readback"]["surface_kind"] == (
+        "opl_domain_progress_transition_runtime_live_readback"
+    )
 
 
 def test_provider_admission_current_control_keeps_same_tick_materialized_recovery_request_consume_only(
