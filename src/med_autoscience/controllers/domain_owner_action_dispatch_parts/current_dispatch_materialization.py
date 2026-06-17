@@ -9,7 +9,7 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
 )
 
 
-CurrentOwnerCallableAdapters = Callable[..., dict[str, Any]]
+TransitionRequestProjectionProducer = Callable[..., dict[str, Any]]
 
 
 def current_materialized_dispatches(
@@ -19,10 +19,10 @@ def current_materialized_dispatches(
     action_types: tuple[str, ...],
     mode: str,
     apply: bool,
-    current_owner_callable_adapters: CurrentOwnerCallableAdapters,
+    transition_request_projection_producer: TransitionRequestProjectionProducer,
     text: Callable[[object], str | None],
 ) -> list[dict[str, Any]]:
-    payload = current_owner_callable_adapters(
+    payload = transition_request_projection_producer(
         profile=profile,
         study_ids=(study_id,),
         mode=mode,

@@ -37,7 +37,7 @@ from .domain_action_request_materializer import (
     CONSUMER_LATEST_RELATIVE_PATH,
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
     FORBIDDEN_SURFACES,
-    current_owner_callable_adapters,
+    current_owner_callable_adapters as transition_request_projection_producer,
 )
 from .default_executor_action_policy import SUPPORTED_ACTION_TYPES
 from .opl_execution_boundary import (
@@ -134,7 +134,7 @@ def _current_materialized_dispatches(
         action_types=action_types,
         mode=mode,
         apply=apply,
-        current_owner_callable_adapters=current_owner_callable_adapters,
+        transition_request_projection_producer=transition_request_projection_producer,
         text=_text,
     )
 

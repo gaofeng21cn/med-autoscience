@@ -282,7 +282,7 @@ def test_current_materialized_dispatches_ignore_owner_callable_adapter_list(tmp_
     legacy_dispatch = _dispatch(study_id=study_id)
     canonical_dispatch = _projection(study_id=study_id)
 
-    def current_owner_callable_adapters(**_: object) -> dict[str, object]:
+    def transition_request_projection_producer(**_: object) -> dict[str, object]:
         return {
             "owner_callable_adapters": [legacy_dispatch],
             "domain_progress_transition_requests": [canonical_dispatch],
@@ -294,9 +294,22 @@ def test_current_materialized_dispatches_ignore_owner_callable_adapter_list(tmp_
         action_types=("run_quality_repair_batch",),
         mode="preview",
         apply=False,
-        current_owner_callable_adapters=current_owner_callable_adapters,
+        transition_request_projection_producer=transition_request_projection_producer,
         text=lambda value: str(value).strip() if value else None,
     )
 
     assert len(dispatches) == 1
     assert dispatches[0]["surface"] == "mas_domain_progress_transition_request_projection"
+
+
+def test_current_materialized_dispatches_interface_names_transition_request_producer() -> None:
+    from inspect import signature
+
+    from med_autoscience.controllers.domain_owner_action_dispatch_parts import (
+        current_dispatch_materialization,
+    )
+
+    parameters = signature(current_dispatch_materialization.current_materialized_dispatches).parameters
+
+    assert "transition_request_projection_producer" in parameters
+    assert "current_owner_callable_adapters" not in parameters
