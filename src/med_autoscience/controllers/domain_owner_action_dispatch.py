@@ -241,6 +241,31 @@ def _executor_boundary(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _owner_callable_adapter_boundary() -> dict[str, Any]:
+    return {
+        "surface_role": "mas_owner_callable_adapter_receipt_projection",
+        "mas_role": "owner_callable_adapter_and_authority_result_validator",
+        "runtime_owner": "one-person-lab",
+        "execution_authority_owner": "one-person-lab",
+        "opl_proof_required": True,
+        "missing_opl_proof_outcome": "opl_execution_authorization_required",
+        "projection_authority": False,
+        "execution_ledger_authority": False,
+        "attempt_lifecycle_authority": False,
+        "queue_authority": False,
+        "retry_or_dead_letter_authority": False,
+        "mas_dispatch_authority": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+        "can_authorize_provider_admission": False,
+        "can_create_provider_attempt": False,
+        "can_generate_next_action": False,
+        "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
+        "replacement_owner_surface": "OPL DomainProgressTransitionRuntime / StageRun",
+    }
+
+
 def _prompt_contract_error(prompt_contract: Mapping[str, Any], *, dispatch_authority: str | None) -> str | None:
     return dispatch_contract.prompt_contract_error(
         prompt_contract,
@@ -684,6 +709,7 @@ def _opl_execution_authorization_block_fields() -> dict[str, Any]:
         "provider_completion_is_domain_completion": False,
         "provider_attempt_or_lease_required": False,
         "opl_transition_runtime_required": True,
+        "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
     }
 
 
@@ -856,6 +882,7 @@ def _dispatch_execution_payload(
         "queue_authority": False,
         "retry_or_dead_letter_authority": False,
         "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
+        "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
         "generated_at": generated_at,
         "study_id": study_id,
         "quest_id": _text(dispatch.get("quest_id")),
@@ -975,6 +1002,7 @@ def _persist_study_executions(
         "retry_or_dead_letter_authority": False,
         "target_runtime_owner": "one-person-lab",
         "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
+        "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
         "executions": study_executions,
         "execution_ledger": execution_ledger,
         "ledger_execution_count": len(execution_ledger),
@@ -1096,6 +1124,7 @@ def dispatch_domain_owner_actions(
         "mas_creates_opl_outbox": False,
         "mas_creates_opl_event": False,
         "mas_creates_opl_stage_run": False,
+        "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
         "requested_studies": list(resolved_study_ids),
         "requested_action_types": list(resolved_action_types),
         "execution_count": len(executions),

@@ -303,6 +303,28 @@ def test_execute_dispatch_blocks_persisted_paper_recovery_owner_callable_without
         "write_permitted": False,
         "required_input": "OPL provider attempt, active lease, and execution authorization decision",
     }
+    assert execution["owner_callable_adapter_boundary"] == {
+        "surface_role": "mas_owner_callable_adapter_receipt_projection",
+        "mas_role": "owner_callable_adapter_and_authority_result_validator",
+        "runtime_owner": "one-person-lab",
+        "execution_authority_owner": "one-person-lab",
+        "opl_proof_required": True,
+        "missing_opl_proof_outcome": "opl_execution_authorization_required",
+        "projection_authority": False,
+        "execution_ledger_authority": False,
+        "attempt_lifecycle_authority": False,
+        "queue_authority": False,
+        "retry_or_dead_letter_authority": False,
+        "mas_dispatch_authority": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+        "can_authorize_provider_admission": False,
+        "can_create_provider_attempt": False,
+        "can_generate_next_action": False,
+        "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
+        "replacement_owner_surface": "OPL DomainProgressTransitionRuntime / StageRun",
+    }
     assert execution["mas_private_attempt_loop_forbidden"] is True
     assert execution["provider_attempt_or_lease_required"] is False
     assert called == {}

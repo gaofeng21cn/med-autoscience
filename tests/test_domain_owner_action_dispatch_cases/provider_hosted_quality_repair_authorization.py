@@ -142,4 +142,21 @@ def test_provider_hosted_quality_repair_dispatch_survives_own_running_provider_e
     assert execution["blocked_reason"] is None
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
     assert execution["owner_route_current"] is True
+    boundary = execution["owner_callable_adapter_boundary"]
+    assert boundary["surface_role"] == "mas_owner_callable_adapter_receipt_projection"
+    assert boundary["runtime_owner"] == "one-person-lab"
+    assert boundary["execution_authority_owner"] == "one-person-lab"
+    assert boundary["opl_proof_required"] is True
+    assert boundary["projection_authority"] is False
+    assert boundary["execution_ledger_authority"] is False
+    assert boundary["attempt_lifecycle_authority"] is False
+    assert boundary["queue_authority"] is False
+    assert boundary["mas_dispatch_authority"] is False
+    assert boundary["mas_creates_opl_outbox"] is False
+    assert boundary["mas_creates_opl_event"] is False
+    assert boundary["mas_creates_opl_stage_run"] is False
+    assert boundary["can_authorize_provider_admission"] is False
+    assert boundary["can_create_provider_attempt"] is False
+    assert boundary["can_generate_next_action"] is False
+    assert boundary["replacement_owner_surface"] == "OPL DomainProgressTransitionRuntime / StageRun"
     assert called["authority_route_context"]["work_unit_id"] == work_unit_id
