@@ -276,6 +276,16 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         "mas_transition_request_can_create_success_outcome": False,
         "provider_admission_pending_requires_opl_runtime_result": True,
     }
+    assert readback["outcome_source_policy"] == {
+        "success_outcome_source_families": [
+            "opl_runtime_readback",
+            "mas_owner_answer_readback",
+            "mas_domain_authority_readback",
+        ],
+        "request_projection_outcome_source_family": "mas_policy_request_projection",
+        "request_projection_is_success_outcome": False,
+        "supervisor_disallowed_outcome_is_success": False,
+    }
     opl_readback = readback["opl_transition_readback_contract"]
     assert opl_readback["surface_kind"] == "opl_domain_progress_transition_result"
     assert opl_readback["runtime_owner"] == "one-person-lab"

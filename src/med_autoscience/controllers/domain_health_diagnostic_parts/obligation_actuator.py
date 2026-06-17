@@ -59,6 +59,13 @@ ACTUATOR_AUTHORITY_BOUNDARY = {
     "provider_admission_readback_requires_opl_event_or_outbox": True,
     "can_execute_mas_owner_callable": False,
     "can_write_fail_closed_typed_control_blocker": True,
+    "success_outcome_source_families": [
+        "opl_runtime_readback",
+        "mas_owner_answer_readback",
+        "mas_domain_authority_readback",
+    ],
+    "request_projection_outcome_source_family": "mas_policy_request_projection",
+    "request_projection_is_success_outcome": False,
 }
 
 
@@ -828,6 +835,13 @@ def _obligation_outcome(
     )
     obligation_identity = _paper_autonomy_obligation_identity(action=action, obligation=obligation)
     allowed_decision_outcomes = _allowed_decision_outcomes(decision_kind)
+    outcome_allowed = outcome_kind in allowed_decision_outcomes
+    source_family = _outcome_source_family(outcome_kind)
+    effective_postcondition_ok = (
+        postcondition_ok
+        and outcome_allowed
+        and source_family != "mas_policy_request_projection"
+    )
     decision_id = _paper_autonomy_supervisor_decision_id(
         action=action,
         decision_kind=decision_kind,
@@ -842,11 +856,24 @@ def _obligation_outcome(
         "outcome_kind": outcome_kind,
         outcome_kind: outcome_ref,
         "exactly_one_outcome": True,
-        "postcondition_ok": postcondition_ok,
+        "postcondition_ok": effective_postcondition_ok,
+        "outcome_source_family": source_family,
+        "success_outcome_source_family": (
+            source_family
+            if effective_postcondition_ok
+            and source_family
+            in {
+                "opl_runtime_readback",
+                "mas_owner_answer_readback",
+                "mas_domain_authority_readback",
+            }
+            else None
+        ),
+        "request_projection_only": source_family == "mas_policy_request_projection",
         "paper_autonomy_supervisor_decision_id": decision_id,
         "paper_autonomy_supervisor_decision_kind": decision_kind,
         "paper_autonomy_supervisor_allowed_outcome_kinds": sorted(allowed_decision_outcomes),
-        "paper_autonomy_supervisor_outcome_allowed": outcome_kind in allowed_decision_outcomes,
+        "paper_autonomy_supervisor_outcome_allowed": outcome_allowed,
         "paper_autonomy_obligation_ref": obligation_ref,
         "paper_autonomy_obligation_identity": obligation_identity,
         "authority_boundary": dict(ACTUATOR_AUTHORITY_BOUNDARY),
@@ -864,6 +891,18 @@ def _obligation_outcome(
         "typed_control_blocker": _clean_payload(_mapping(typed_control_blocker)),
     }
     return _clean_payload(payload)
+
+
+def _outcome_source_family(outcome_kind: str) -> str:
+    if outcome_kind in {"provider_admission_pending", "running_provider_attempt"}:
+        return "opl_runtime_readback"
+    if outcome_kind == "owner_receipt_ref":
+        return "mas_owner_answer_readback"
+    if outcome_kind in {"typed_blocker_ref", "human_gate_ref", "route_back_evidence_ref"}:
+        return "mas_domain_authority_readback"
+    if outcome_kind == "transition_request_pending":
+        return "mas_policy_request_projection"
+    return "unknown"
 
 
 def _action_supervisor_decision(action: Mapping[str, Any]) -> dict[str, Any]:
@@ -1011,6 +1050,11 @@ def _postcondition_from_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
             "paper_autonomy_supervisor_outcome_allowed"
         )
         is True,
+        "outcome_source_family": _non_empty_text(outcome.get("outcome_source_family")),
+        "success_outcome_source_family": _non_empty_text(
+            outcome.get("success_outcome_source_family")
+        ),
+        "request_projection_only": outcome.get("request_projection_only") is True,
         "paper_autonomy_obligation_ref": _non_empty_text(
             outcome.get("paper_autonomy_obligation_ref")
         ),

@@ -1076,3 +1076,165 @@ def _assert_exactly_one_dhd_apply_outcome(
     assert outcome["exactly_one_outcome"] is True
     assert outcome["outcome_kind"] == expected_kind
     assert present == [expected_kind]
+    source_family = outcome["outcome_source_family"]
+    if expected_kind == "transition_request_pending":
+        assert source_family == "mas_policy_request_projection"
+        assert outcome["request_projection_only"] is True
+        assert outcome["postcondition_ok"] is False
+        assert "success_outcome_source_family" not in outcome
+    else:
+        assert source_family in {
+            "opl_runtime_readback",
+            "mas_owner_answer_readback",
+            "mas_domain_authority_readback",
+        }
+        assert outcome["success_outcome_source_family"] == source_family
+        assert outcome.get("request_projection_only") is not True
+
+
+def test_obligation_actuator_transition_request_is_projection_not_success(
+    tmp_path: Path,
+) -> None:
+    actuator = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "study_root": str(profile.studies_root / study_id),
+        "current_executable_owner_action": {
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "fingerprint-current",
+        },
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "owner_action_ready",
+            "next_safe_action": {
+                "kind": "materialize_mas_transition_request_or_owner_callable",
+                "provider_admission_allowed": True,
+            },
+            "current_authority": {
+                "obligation": {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "fingerprint-current",
+                }
+            },
+            "supervisor_decision": {"decision": "execute_current_owner_delta"},
+        },
+        "provider_admission_candidates": [
+            {
+                "study_id": study_id,
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "fingerprint-current",
+                "opl_domain_progress_transition_request": {
+                    "surface_kind": "mas_domain_progress_transition_request",
+                    "target_runtime_owner": "one-person-lab",
+                    "target_runtime_kind": "DomainProgressTransitionRuntime",
+                    "idempotency_key": "transition-request-current",
+                    "mas_can_create_opl_outbox_record": False,
+                    "aggregate_identity": {
+                        "aggregate_kind": "paper_recovery_obligation",
+                        "aggregate_id": f"{study_id}:medical_prose_write_repair:fingerprint-current",
+                        "study_id": study_id,
+                        "work_unit_id": "medical_prose_write_repair",
+                    },
+                    "source_generation": "source-generation-current",
+                    "expected_version": 1,
+                    "required_postcondition": {
+                        "kind": "owner_receipt_or_typed_blocker",
+                        "work_unit_fingerprint": "fingerprint-current",
+                    },
+                },
+            }
+        ],
+    }
+    report = {"managed_study_actions": [action]}
+
+    actuator.apply_managed_study_obligation_actuator(
+        report=report,
+        profile=profile,
+        study_ids=(study_id,),
+        current_control_state={},
+        fail_closed=True,
+        phase="apply",
+    )
+
+    outcome = report["managed_study_obligation_actuator_outcomes"][0]
+    _assert_exactly_one_dhd_apply_outcome(outcome, "transition_request_pending")
+    postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
+    assert postcondition["ok"] is False
+    assert postcondition["outcome_source_family"] == "mas_policy_request_projection"
+    assert postcondition["request_projection_only"] is True
+
+
+def test_obligation_actuator_disallowed_supervisor_outcome_fails_postcondition(
+    tmp_path: Path,
+) -> None:
+    actuator = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "study_root": str(profile.studies_root / study_id),
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "owner_action_ready",
+            "next_safe_action": {
+                "kind": "run_mas_owner_callable",
+                "provider_admission_allowed": False,
+            },
+            "current_authority": {
+                "obligation": {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "fingerprint-current",
+                }
+            },
+            "supervisor_decision": {"decision": "execute_current_owner_delta"},
+        },
+    }
+    report = {
+        "managed_study_actions": [action],
+        "managed_study_mas_owner_callable_actions": [
+            {
+                "study_id": study_id,
+                "action_type": "run_quality_repair_batch",
+                "work_unit_fingerprint": "fingerprint-current",
+                "ok": True,
+                "status": "executed",
+                "record_path": "artifacts/controller/quality_repair_batch/latest.json",
+            }
+        ],
+    }
+
+    actuator.apply_managed_study_obligation_actuator(
+        report=report,
+        profile=profile,
+        study_ids=(study_id,),
+        current_control_state={},
+        fail_closed=True,
+        phase="apply",
+    )
+
+    outcome = report["managed_study_obligation_actuator_outcomes"][0]
+    assert outcome["outcome_kind"] == "owner_receipt_ref"
+    assert outcome["paper_autonomy_supervisor_outcome_allowed"] is False
+    assert outcome["postcondition_ok"] is False
+    assert "success_outcome_source_family" not in outcome
+    postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
+    assert postcondition["ok"] is False
+    assert postcondition["paper_autonomy_supervisor_outcome_allowed"] is False

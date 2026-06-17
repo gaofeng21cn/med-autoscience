@@ -109,6 +109,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "domain_action_request_materializer_current_default_executor_dispatches_api",
         "default_executor_execution_latest_wire_projection",
         "domain_owner_action_dispatch",
+        "domain_health_diagnostic_obligation_actuator",
     }
     for surface in surfaces.values():
         assert surface["generic_runtime_owner"] == "one-person-lab"
@@ -229,6 +230,24 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     }
     assert "mas_local_dispatch_authority" in owner_dispatch["forbidden_claims"]
     assert "closeout_binding_as_execution_authorization" in owner_dispatch["forbidden_claims"]
+
+    obligation_actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
+    assert obligation_actuator["current_disposition"] == "opl_recovery_obligation_readback_consumer"
+    assert obligation_actuator["retained_mas_role"] == (
+        "consume_only_obligation_outcome_projection_and_fail_closed_typed_blocker"
+    )
+    assert obligation_actuator["obligation_readback_boundary"] == {
+        "success_outcome_source_families": [
+            "opl_runtime_readback",
+            "mas_owner_answer_readback",
+            "mas_domain_authority_readback",
+        ],
+        "request_projection_is_success_outcome": False,
+        "supervisor_disallowed_outcome_is_success": False,
+    }
+    assert "mas_owned_recovery_obligation_store" in obligation_actuator["forbidden_claims"]
+    assert "mas_owned_supervisor_decision_engine" in obligation_actuator["forbidden_claims"]
+    assert "mas_policy_request_projection_as_success_outcome" in obligation_actuator["forbidden_claims"]
 
 
 def test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy(tmp_path) -> None:

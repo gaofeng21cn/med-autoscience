@@ -63,6 +63,7 @@ flowchart TD
 - `current_owner_delta` 是唯一 desired root。OPL queue、attempt ledger、DHD、Portal、stage index 和 read-model 都只能解释它，不能反向发明下一步。
 - `Autonomy Supervisor Obligation` 是 MAS / OPL 之间的新一等合同。它不是 read-model 文案；持久化、replay、fixed-point reconcile 和 read-model rebuild 归 OPL，MAS 只提供 paper policy input / accepted authority result。
 - `operator_decision_required` 必须降级为 obligation 的一种 pending state，并带 `owner`、`allowed_decisions`、OPL-provided `resume_token`、`timeout_policy`、`default_safe_branch`、`current_identity` 和 `evidence_required`。
+- DHD apply 的 obligation actuator 只能消费三类闭合 readback：OPL runtime readback、MAS owner-answer readback、MAS domain authority readback。MAS `opl_domain_progress_transition_request` 只是 request projection，不能算 success outcome；若 outcome 不在当前 `SupervisorDecision` 允许集合内，postcondition 必须 fail closed。
 - old Yang artifacts 可以被修，但只能进入 `materialize_recovery_action`，并产出 `migration_receipt` / `compatibility_repair_receipt`。这类 receipt 只说明平台恢复，不计为论文语义进展。
 - paper progress 单独记账。只有 MAS owner receipt、quality gate receipt、AI reviewer / gate delta、canonical paper / evidence / review / package semantic delta、human gate resume、route-back evidence 或 stable typed blocker 才算论文推进。
 

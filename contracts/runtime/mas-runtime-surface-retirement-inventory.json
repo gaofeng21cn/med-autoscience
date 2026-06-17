@@ -270,6 +270,36 @@
       "surface_id": "domain_owner_action_dispatch"
     },
     {
+      "active_caller_migrated": false,
+      "compatibility_alias_allowed": false,
+      "current_disposition": "opl_recovery_obligation_readback_consumer",
+      "forbidden_claims": [
+        "mas_owned_generic_runtime",
+        "mas_owned_generic_event_log",
+        "mas_owned_generic_outbox",
+        "mas_owned_fixed_point_reconciler",
+        "mas_owned_recovery_obligation_store",
+        "mas_owned_supervisor_decision_engine",
+        "mas_owned_human_gate_resume_token",
+        "mas_policy_request_projection_as_success_outcome",
+        "provider_completion_as_domain_ready"
+      ],
+      "generic_runtime_owner": "one-person-lab",
+      "mas_owner_claim_allowed": false,
+      "obligation_readback_boundary": {
+        "request_projection_is_success_outcome": false,
+        "success_outcome_source_families": [
+          "opl_runtime_readback",
+          "mas_owner_answer_readback",
+          "mas_domain_authority_readback"
+        ],
+        "supervisor_disallowed_outcome_is_success": false
+      },
+      "replacement_surface": "OPL RecoveryObligationStore / SupervisorDecisionEngine readback plus MAS PaperProgressPolicyAdapter result",
+      "retained_mas_role": "consume_only_obligation_outcome_projection_and_fail_closed_typed_blocker",
+      "surface_id": "domain_health_diagnostic_obligation_actuator"
+    },
+    {
       "active_caller_migrated": true,
       "canonical_projection_metadata_fields": [
         "authority",
