@@ -13,7 +13,6 @@ from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
-    opl_transition_readback_from_log_file,
 )
 from med_autoscience.runtime_protocol import quest_state
 
@@ -300,67 +299,11 @@ def _candidate_with_opl_runtime_readback(
         payload["provider_admission_pending"] = True
         payload["provider_attempt_or_lease_required"] = True
         payload["provider_admission_requires_opl_runtime_result"] = False
-        return payload
-    request = _transition_request(payload)
-    idempotency_key = _text(request.get("idempotency_key"))
-    study_id = _text(payload.get("study_id")) or _text(request.get("study_id"))
-    work_unit_id = _text(payload.get("work_unit_id")) or _text(request.get("work_unit_id"))
-    work_unit_fingerprint = (
-        _text(payload.get("work_unit_fingerprint"))
-        or _text(payload.get("action_fingerprint"))
-        or _text(request.get("work_unit_fingerprint"))
-    )
-    if (
-        idempotency_key is None
-        or study_id is None
-        or work_unit_id is None
-        or work_unit_fingerprint is None
-    ):
-        return payload
-    readback = opl_transition_readback_from_log_file(
-        _opl_transition_log_path(runtime_root),
-        idempotency_key=idempotency_key,
-        study_id=study_id,
-        work_unit_id=work_unit_id,
-        work_unit_fingerprint=work_unit_fingerprint,
-    )
-    if not readback:
-        return payload
-    payload["opl_domain_progress_transition_result"] = readback
-    payload["opl_transition_readback_source"] = _opl_transition_readback_source(readback)
-    payload["status"] = "provider_admission_pending"
-    payload["provider_admission_pending"] = True
-    payload["provider_attempt_or_lease_required"] = True
-    payload["provider_admission_requires_opl_runtime_result"] = False
     return payload
 
 
 def _opl_transition_readback_source(readback: Mapping[str, Any]) -> str:
-    if _text(readback.get("surface_kind")) == "opl_domain_progress_transition_result":
-        return "opl_domain_progress_transition_runtime_log"
     return "opl_domain_progress_transition_runtime_live_readback"
-
-
-def _transition_request(candidate: Mapping[str, Any]) -> Mapping[str, Any]:
-    request = _mapping(candidate.get("opl_domain_progress_transition_request"))
-    if request:
-        return request
-    return _mapping(_mapping(candidate.get("paper_progress_policy_result")).get(
-        "opl_domain_progress_transition_request"
-    ))
-
-
-def _opl_transition_log_path(runtime_root: Path) -> Path:
-    resolved = Path(runtime_root).expanduser().resolve()
-    workspace_root = resolved.parent.parent if resolved.name == "quests" else resolved.parent
-    return (
-        workspace_root
-        / "runtime"
-        / "artifacts"
-        / "supervision"
-        / "domain_progress_transition_runtime"
-        / "command_event_log.jsonl"
-    )
 
 
 def _merge_provider_admission_candidates(

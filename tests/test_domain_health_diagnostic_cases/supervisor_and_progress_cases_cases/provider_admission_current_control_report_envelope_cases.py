@@ -604,7 +604,7 @@ def test_runtime_report_consumes_transition_request_when_opl_readback_present(tm
     assert result["managed_study_opl_transition_request_candidates"] == []
 
 
-def test_runtime_report_consumes_direct_transition_request_when_opl_log_readback_present(tmp_path) -> None:
+def test_runtime_report_keeps_direct_transition_request_pending_with_only_opl_log(tmp_path) -> None:
     report_aggregation = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
     )
@@ -665,14 +665,14 @@ def test_runtime_report_consumes_direct_transition_request_when_opl_log_readback
         managed_study_autonomy_repair_actions=[],
     )
 
-    assert result["provider_admission_pending_count"] == 1
-    assert result["transition_request_pending_count"] == 0
-    assert result["managed_study_opl_transition_request_candidates"] == []
-    [admission] = result["managed_study_opl_provider_admission_candidates"]
-    assert admission["status"] == "provider_admission_pending"
-    assert admission["provider_admission_requires_opl_runtime_result"] is False
-    assert admission["opl_transition_readback_source"] == "opl_domain_progress_transition_runtime_log"
-    assert admission["opl_domain_progress_transition_result"]["event_id"] == "dpte_dhd_direct_candidate_readback"
+    assert result["provider_admission_pending_count"] == 0
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    [request] = result["managed_study_opl_transition_request_candidates"]
+    assert request["status"] == "transition_request_pending"
+    assert request["provider_admission_requires_opl_runtime_result"] is True
+    assert "opl_transition_readback_source" not in request
+    assert "opl_domain_progress_transition_result" not in request
 
 
 def test_current_control_sync_consumes_transition_request_when_opl_readback_present(tmp_path) -> None:

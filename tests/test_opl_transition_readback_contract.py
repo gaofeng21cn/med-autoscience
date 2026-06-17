@@ -119,7 +119,7 @@ def test_legacy_transition_result_and_bare_projection_are_not_trusted() -> None:
     ) == {}
 
 
-def test_complete_command_event_outbox_log_is_rebuilt_as_log_derived_readback() -> None:
+def test_complete_command_event_outbox_log_is_not_rebuilt_by_mas_consumer() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
     )
@@ -188,12 +188,8 @@ def test_complete_command_event_outbox_log_is_rebuilt_as_log_derived_readback() 
         work_unit_fingerprint=FINGERPRINT,
     )
 
-    assert readback["surface_kind"] == "opl_domain_progress_transition_result"
-    assert readback["outcome_kind"] == "provider_admission_pending"
-    assert readback["event_id"] == "dpte_log_derived"
-    assert readback["outbox_item_id"] == "dpto_log_derived"
-    assert readback["causality"]["same_transaction_event_and_outbox"] is True
-    assert module.valid_opl_transition_readback(readback) is True
+    assert readback == {}
+    assert module.valid_opl_transition_readback(readback) is False
 
 
 def test_provider_admission_requires_trusted_opl_readback_not_weak_projection() -> None:

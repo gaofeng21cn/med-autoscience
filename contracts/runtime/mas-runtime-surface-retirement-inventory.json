@@ -120,7 +120,8 @@
       "projection_counting_boundary": {
         "forbidden_double_count": "same_identity_transition_request_pending_and_provider_admission_pending",
         "mutually_exclusive_pending_counts": true,
-        "opl_log_derived_readback_candidates_count_as": "provider_admission_pending",
+        "opl_live_readback_candidates_count_as": "provider_admission_pending",
+        "opl_log_derived_readback_candidates_count_as": "deprecated_diagnostic_only",
         "request_only_candidates_count_as": "transition_request_pending"
       },
       "retained_mas_role": "domain_intent_owner_route_typed_blocker_and_owner_receipt_refs",

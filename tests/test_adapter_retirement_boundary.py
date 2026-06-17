@@ -148,8 +148,9 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         == "current_control_transition_request_precedes_legacy_dispatch_carrier"
     )
     assert default_dispatch["projection_counting_boundary"] == {
+        "opl_live_readback_candidates_count_as": "provider_admission_pending",
         "request_only_candidates_count_as": "transition_request_pending",
-        "opl_log_derived_readback_candidates_count_as": "provider_admission_pending",
+        "opl_log_derived_readback_candidates_count_as": "deprecated_diagnostic_only",
         "mutually_exclusive_pending_counts": True,
         "forbidden_double_count": (
             "same_identity_transition_request_pending_and_provider_admission_pending"

@@ -442,7 +442,7 @@ def test_provider_admission_projection_execute_decision_allows_current_candidate
     assert fields["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
 
 
-def test_provider_admission_projection_materialize_recovery_action_accepts_opl_log_readback(
+def test_provider_admission_projection_materialize_recovery_action_requires_live_readback(
     tmp_path,
 ) -> None:
     module = importlib.import_module(
@@ -549,12 +549,17 @@ def test_provider_admission_projection_materialize_recovery_action_accepts_opl_l
 
     assert fields["provider_admission_pending_count"] == 0
     assert fields["provider_admission_candidates"] == []
-    assert fields["transition_request_pending_count"] == 0
-    assert fields["transition_request_candidates"] == []
+    assert fields["transition_request_pending_count"] == 1
     assert fields["provider_admission_blocked_by_supervisor_decision"] == {
         "decision": "materialize_recovery_action",
         "reason": "paper_autonomy_supervisor_decision_blocks_provider_admission",
     }
+    candidate = fields["transition_request_candidates"][0]
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["provider_admission_pending"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+    assert "opl_transition_readback_source" not in candidate
+    assert "opl_domain_progress_transition_result" not in candidate
 
 
 def test_provider_admission_projection_materializes_gate_followthrough_owner_action_without_pending_flag(
