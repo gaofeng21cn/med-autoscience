@@ -29,8 +29,8 @@ from med_autoscience.controllers.opl_execution_boundary import (
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     ai_reviewer_record_handoff,
-    current_default_executor_dispatches as current_default_executor_dispatches_part,
     current_action_selection,
+    current_owner_callable_adapters as current_owner_callable_adapters_part,
     current_writer_handoff,
     default_executor_prompt,
     execution_gate,
@@ -1085,7 +1085,7 @@ def _dispatch_status_count(dispatches: list[dict[str, Any]], status: str) -> int
     return sum(_text(dispatch.get("dispatch_status")) == status for dispatch in dispatches)
 
 
-def current_default_executor_dispatches(
+def current_owner_callable_adapters(
     *,
     profile: WorkspaceProfile,
     study_ids: Iterable[str],
@@ -1093,7 +1093,7 @@ def current_default_executor_dispatches(
     apply: bool,
     dispatch_ready_for_execution: bool = False,
 ) -> dict[str, Any]:
-    return current_default_executor_dispatches_part.current_default_executor_dispatches(
+    return current_owner_callable_adapters_part.current_owner_callable_adapters(
         profile=profile,
         study_ids=study_ids,
         mode=mode,
@@ -1109,23 +1109,6 @@ def current_default_executor_dispatches(
         owner_from_action=_owner_from_action,
         required_output_surface=_required_output_surface,
         text=_text,
-    )
-
-
-def current_owner_callable_adapters(
-    *,
-    profile: WorkspaceProfile,
-    study_ids: Iterable[str],
-    mode: str,
-    apply: bool,
-    dispatch_ready_for_execution: bool = False,
-) -> dict[str, Any]:
-    return current_default_executor_dispatches(
-        profile=profile,
-        study_ids=study_ids,
-        mode=mode,
-        apply=apply,
-        dispatch_ready_for_execution=dispatch_ready_for_execution,
     )
 
 
@@ -1271,7 +1254,6 @@ __all__ = [
     "RETIRED_ABSENT_SURFACES",
     "SCHEMA_VERSION",
     "SUPPORTED_REQUEST_ACTION_TYPES",
-    "current_default_executor_dispatches",
     "current_owner_callable_adapters",
     "materialize_domain_action_requests",
 ]

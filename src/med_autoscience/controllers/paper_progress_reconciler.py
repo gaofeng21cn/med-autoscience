@@ -404,7 +404,7 @@ def _quest_id(study: Mapping[str, Any], study_id: str) -> str:
 def _consumer_projection(consumed: Mapping[str, Any], study_id: str) -> dict[str, Any]:
     dispatches = [
         _mapping(item)
-        for item in consumed.get("default_executor_dispatches") or []
+        for item in consumed.get("owner_callable_adapters") or []
         if _text(_mapping(item).get("study_id")) == study_id
     ]
     return {

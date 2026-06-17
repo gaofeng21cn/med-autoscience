@@ -106,6 +106,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "default_executor_dispatch_request",
         "domain_action_request_materializer_local_carrier_persistence_api",
         "owner_callable_adapter_legacy_dispatch_projection_alias",
+        "domain_action_request_materializer_current_default_executor_dispatches_api",
     }
     for surface in surfaces.values():
         assert surface["generic_runtime_owner"] == "one-person-lab"
@@ -117,6 +118,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "worker_lease_residency_projection",
             "domain_action_request_materializer_local_carrier_persistence_api",
             "owner_callable_adapter_legacy_dispatch_projection_alias",
+            "domain_action_request_materializer_current_default_executor_dispatches_api",
         }:
             assert surface["active_caller_migrated"] is True
             assert surface["current_disposition"] == "physically_retired"
@@ -147,6 +149,17 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "default_executor_dispatches owner_callable_adapters fallback alias"
     ]
     assert "legacy_default_executor_dispatches_as_owner_callable_adapters" in legacy_alias["forbidden_claims"]
+
+    current_default_preview = surfaces["domain_action_request_materializer_current_default_executor_dispatches_api"]
+    assert current_default_preview["retained_mas_role"] == "none_physically_retired_no_alias"
+    assert current_default_preview["replacement_surface"] == (
+        "current_owner_callable_adapters projection plus OPL DomainProgressTransitionRuntime readback"
+    )
+    assert set(current_default_preview["retired_symbols"]) == {
+        "current_default_executor_dispatches",
+        "domain_action_request_materializer_parts.current_default_executor_dispatches",
+    }
+    assert "legacy_current_default_executor_dispatches_preview_api" in current_default_preview["forbidden_claims"]
 
 
 def test_materializer_local_carrier_persistence_api_is_physically_retired() -> None:
@@ -193,3 +206,18 @@ def test_owner_callable_projection_does_not_accept_legacy_dispatch_alias() -> No
         },
         "ready",
     ) == 0
+
+
+def test_current_default_executor_dispatch_preview_api_is_physically_retired() -> None:
+    materializer = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+
+    assert not hasattr(materializer, "current_default_executor_dispatches")
+    assert hasattr(materializer, "current_owner_callable_adapters")
+
+    try:
+        importlib.import_module(
+            "med_autoscience.controllers.domain_action_request_materializer_parts.current_default_executor_dispatches"
+        )
+    except ModuleNotFoundError:
+        return
+    raise AssertionError("legacy current_default_executor_dispatches part module must stay retired")

@@ -17,7 +17,7 @@ ResolveStudyIds = Callable[[Mapping[str, Any], Iterable[str]], tuple[str, ...]]
 ScanPath = Callable[[WorkspaceProfile], object]
 
 
-def current_default_executor_dispatches(
+def current_owner_callable_adapters(
     *,
     profile: WorkspaceProfile,
     study_ids: Iterable[str],
@@ -125,4 +125,4 @@ def _dispatch_status_count(
     return sum(text(dispatch.get("dispatch_status")) == status for dispatch in dispatches)
 
 
-__all__ = ["current_default_executor_dispatches"]
+__all__ = ["current_owner_callable_adapters"]

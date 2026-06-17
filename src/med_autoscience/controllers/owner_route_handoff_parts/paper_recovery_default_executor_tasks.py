@@ -29,7 +29,7 @@ def paper_recovery_default_executor_dispatch_tasks(
 ) -> list[dict[str, Any]]:
     if not _paper_recovery_requests_default_executor_dispatch(current_progress):
         return []
-    preview = domain_action_request_materializer.current_default_executor_dispatches(
+    preview = domain_action_request_materializer.current_owner_callable_adapters(
         profile=profile,
         study_ids=(study_id,),
         mode="developer_apply_safe",

@@ -946,14 +946,14 @@ def test_current_default_dispatch_for_execution_marks_paper_recovery_callable_re
 
     monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
 
-    observe_payload = module.current_default_executor_dispatches(
+    observe_payload = module.current_owner_callable_adapters(
         profile=profile,
         study_ids=(study_id,),
         mode="developer_apply_safe",
         apply=False,
         dispatch_ready_for_execution=False,
     )
-    execution_payload = module.current_default_executor_dispatches(
+    execution_payload = module.current_owner_callable_adapters(
         profile=profile,
         study_ids=(study_id,),
         mode="developer_apply_safe",

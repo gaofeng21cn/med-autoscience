@@ -7,7 +7,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.owner_callable_adapter_projection import owner_callable_adapters
 
 
-CurrentDefaultDispatches = Callable[..., dict[str, Any]]
+CurrentOwnerCallableAdapters = Callable[..., dict[str, Any]]
 
 
 def current_materialized_dispatches(
@@ -17,10 +17,10 @@ def current_materialized_dispatches(
     action_types: tuple[str, ...],
     mode: str,
     apply: bool,
-    current_default_executor_dispatches: CurrentDefaultDispatches,
+    current_owner_callable_adapters: CurrentOwnerCallableAdapters,
     text: Callable[[object], str | None],
 ) -> list[dict[str, Any]]:
-    payload = current_default_executor_dispatches(
+    payload = current_owner_callable_adapters(
         profile=profile,
         study_ids=(study_id,),
         mode=mode,

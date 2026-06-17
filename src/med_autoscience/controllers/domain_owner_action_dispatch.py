@@ -33,7 +33,7 @@ from .domain_action_request_materializer import (
     CONSUMER_LATEST_RELATIVE_PATH,
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
     FORBIDDEN_SURFACES,
-    current_default_executor_dispatches,
+    current_owner_callable_adapters,
 )
 from .default_executor_action_policy import SUPPORTED_ACTION_TYPES
 from .domain_health_diagnostic_parts.opl_transition_readback import has_opl_transition_readback
@@ -127,7 +127,7 @@ def _current_materialized_dispatches(
         action_types=action_types,
         mode=mode,
         apply=apply,
-        current_default_executor_dispatches=current_default_executor_dispatches,
+        current_owner_callable_adapters=current_owner_callable_adapters,
         text=_text,
     )
 
