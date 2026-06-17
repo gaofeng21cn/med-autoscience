@@ -107,6 +107,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "domain_action_request_materializer_local_carrier_persistence_api",
         "owner_callable_adapter_legacy_dispatch_projection_alias",
         "domain_action_request_materializer_current_default_executor_dispatches_api",
+        "default_executor_execution_latest_wire_projection",
     }
     for surface in surfaces.values():
         assert surface["generic_runtime_owner"] == "one-person-lab"
@@ -160,6 +161,14 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "domain_action_request_materializer_parts.current_default_executor_dispatches",
     }
     assert "legacy_current_default_executor_dispatches_preview_api" in current_default_preview["forbidden_claims"]
+
+    execution_latest = surfaces["default_executor_execution_latest_wire_projection"]
+    assert execution_latest["current_disposition"] == "opl_migration_input"
+    assert execution_latest["retained_mas_role"] == "owner_callable_receipt_projection_and_domain_authority_ref"
+    assert execution_latest["canonical_surface"] == "owner_callable_adapter_receipt_study_latest"
+    assert execution_latest["legacy_wire_surface"] == "default_executor_dispatch_execution_study_latest"
+    assert execution_latest["legacy_wire_path"] == "artifacts/supervision/consumer/default_executor_execution/latest.json"
+    assert "mas_local_execution_ledger_authority" in execution_latest["forbidden_claims"]
 
 
 def test_materializer_local_carrier_persistence_api_is_physically_retired() -> None:

@@ -7,6 +7,7 @@ from typing import Any
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
     default_executor_execution_candidates,
 )
+from med_autoscience.controllers.domain_owner_action_dispatch_parts import execution_surfaces
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.missing_refs_typed_closeout import (
     is_blocked_typed_closeout,
 )
@@ -154,7 +155,7 @@ def _terminal_stage_logs_from_execution_latest(
 ) -> list[dict[str, Any]]:
     if not isinstance(payload, Mapping):
         return []
-    if _non_empty_text(payload.get("surface")) != "default_executor_dispatch_execution_study_latest":
+    if _non_empty_text(payload.get("surface")) not in execution_surfaces.ACCEPTED_EXECUTION_LATEST_SURFACES:
         return []
     if _non_empty_text(payload.get("study_id")) not in {None, study_id}:
         return []

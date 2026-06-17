@@ -48,6 +48,10 @@ EXECUTION_RELATIVE_ROOT = execution_io.EXECUTION_RELATIVE_ROOT
 EXECUTION_LATEST_RELATIVE_PATH = execution_io.EXECUTION_LATEST_RELATIVE_PATH
 EXECUTION_HISTORY_RELATIVE_PATH = execution_io.EXECUTION_HISTORY_RELATIVE_PATH
 EXECUTION_LEDGER_LIMIT = execution_io.EXECUTION_LEDGER_LIMIT
+OWNER_CALLABLE_RECEIPT_SURFACE = execution_io.OWNER_CALLABLE_RECEIPT_SURFACE
+OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE = execution_io.OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE
+LEGACY_EXECUTION_SURFACE = execution_io.LEGACY_EXECUTION_SURFACE
+LEGACY_EXECUTION_STUDY_LATEST_SURFACE = execution_io.LEGACY_EXECUTION_STUDY_LATEST_SURFACE
 SUPERVISION_LATEST_RELATIVE_PATH = persisted_dispatches.SUPERVISION_LATEST_RELATIVE_PATH
 _append_json_line = execution_io.append_json_line
 _consumer_latest_path = execution_io.consumer_latest_path
@@ -592,6 +596,17 @@ def _blocked_dispatch_carrier(
     ):
         if key in dispatch:
             carrier[key] = dispatch[key]
+    for payload in _iter_transition_payloads(dispatch):
+        for key in (
+            "ai_reviewer_record_production_request",
+            "ai_reviewer_record_worker_handoff",
+            "ai_reviewer_medical_prose_review_production_request",
+            "ai_reviewer_medical_prose_review_worker_handoff",
+            "writer_worker_handoff",
+            "source_record_blocker_reason",
+        ):
+            if key not in carrier and key in payload:
+                carrier[key] = payload[key]
     if "next_required_actions" not in carrier:
         source_action = _mapping(dispatch.get("source_action"))
         if actions := _text_items(source_action.get("next_required_actions")):
@@ -775,7 +790,8 @@ def _dispatch_execution_payload(
     ) -> dict[str, Any]:
     paper_work_unit_lifecycle = paper_work_unit_lifecycle_for_action(action_type)
     execution_payload = {
-        "surface": "default_executor_dispatch_execution",
+        "surface": LEGACY_EXECUTION_SURFACE,
+        "canonical_surface": OWNER_CALLABLE_RECEIPT_SURFACE,
         "schema_version": SCHEMA_VERSION,
         "adapter_kind": _text(dispatch.get("adapter_kind")) or "opl_authorized_owner_callable_adapter",
         "target_runtime_owner": _text(dispatch.get("target_runtime_owner")) or "one-person-lab",
@@ -799,6 +815,13 @@ def _dispatch_execution_payload(
         or prompt_contract.get("provider_admission_pending") is True,
         "mas_private_attempt_loop_forbidden": dispatch.get("mas_private_attempt_loop_forbidden") is True
         or prompt_contract.get("mas_private_attempt_loop_forbidden") is True,
+        "projection_authority": False,
+        "owner_callable_receipt_projection": True,
+        "execution_ledger_authority": False,
+        "attempt_lifecycle_authority": False,
+        "queue_authority": False,
+        "retry_or_dead_letter_authority": False,
+        "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
         "generated_at": generated_at,
         "study_id": study_id,
         "quest_id": _text(dispatch.get("quest_id")),
@@ -886,10 +909,19 @@ def _persist_study_executions(
         study_executions=study_executions,
     )
     study_payload = {
-        "surface": "default_executor_dispatch_execution_study_latest",
+        "surface": LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
+        "canonical_surface": OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
         "study_id": study_id,
+        "projection_authority": False,
+        "owner_callable_receipt_projection": True,
+        "execution_ledger_authority": False,
+        "attempt_lifecycle_authority": False,
+        "queue_authority": False,
+        "retry_or_dead_letter_authority": False,
+        "target_runtime_owner": "one-person-lab",
+        "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
         "executions": study_executions,
         "execution_ledger": execution_ledger,
         "ledger_execution_count": len(execution_ledger),

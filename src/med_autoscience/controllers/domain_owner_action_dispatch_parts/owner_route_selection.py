@@ -160,13 +160,20 @@ def execution_owner_route(
         and owner_route_block_reason(dispatch=dispatch, current_route=dispatch_route) is None
     ):
         return dispatch_route, "paper_recovery_owner_callable"
-    if (
-        dispatch_uses_bridge_authority(dispatch)
-        and dispatch_route
-        and owner_route_block_reason(dispatch=dispatch, current_route=dispatch_route) is None
-    ):
-        return dispatch_route, "dispatch_owner_route_bridge"
     if dispatch_uses_bridge_authority(dispatch):
+        scan_route, _scan_route_basis = _current_owner_route(
+            profile,
+            study_id,
+            dispatch=dispatch,
+            scan_payload=scan_payload,
+        )
+        if (
+            scan_route is not None
+            and dispatch_route
+            and owner_route_block_reason(dispatch=dispatch, current_route=dispatch_route) is None
+            and owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None
+        ):
+            return dispatch_route, "dispatch_owner_route_bridge"
         return None, "bridge_currentness_failed"
     scan_route, scan_route_basis = _current_owner_route(
         profile,

@@ -357,6 +357,8 @@ def selected_dispatches(
         selected = _consumed_transition_current_dispatches_only(
             current_study=current_study,
             dispatches=selected,
+            profile=profile,
+            study_id=study_id,
         )
         if scan_route_currentness.consumed_transition_owner_route(current_study) and not selected:
             return []
@@ -475,6 +477,8 @@ def selected_dispatches(
     selected = _consumed_transition_current_dispatches_only(
         current_study=current_study,
         dispatches=selected,
+        profile=profile,
+        study_id=study_id,
     )
     if scan_route_currentness.consumed_transition_owner_route(current_study) and not selected:
         return []
@@ -630,20 +634,33 @@ def _consumed_transition_current_dispatches_only(
     *,
     current_study: Mapping[str, Any],
     dispatches: list[dict[str, Any]],
+    profile: WorkspaceProfile,
+    study_id: str,
 ) -> list[dict[str, Any]]:
     if not scan_route_currentness.consumed_transition_owner_route(current_study):
         return dispatches
     if stage_artifact_publication_handoff_currentness.is_current(current_study):
         return dispatches
-    return [
-        dispatch
-        for dispatch in dispatches
-        if scan_route_currentness.matching_consumed_transition_route(
+    current: list[dict[str, Any]] = []
+    for dispatch in dispatches:
+        action_type = _text(dispatch.get("action_type")) or ""
+        if current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
+            profile=profile,
+            study_id=study_id,
+            action_type=action_type,
+            dispatch=dispatch,
+        ):
+            current.append(dispatch)
+            continue
+        if (
+            scan_route_currentness.matching_consumed_transition_route(
             current_study=current_study,
             dispatch=dispatch,
         )
-        is not None
-    ]
+            is not None
+        ):
+            current.append(dispatch)
+    return current
 
 
 def _dispatches_selectable_despite_blocking_progress(

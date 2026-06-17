@@ -222,9 +222,11 @@
         "default_policy": "dispatch_ref_cannot_replace_stage_packet_ref",
         "scope": "stage_run_identity_enrichment_only",
         "allowed_execution_sources": [
+          "owner_callable_adapter_receipt",
           "default_executor_execution"
         ],
         "allowed_execution_surfaces": [
+          "owner_callable_adapter_receipt",
           "default_executor_dispatch_execution"
         ],
         "allowed_dispatch_authorities": [

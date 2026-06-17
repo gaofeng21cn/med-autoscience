@@ -8,14 +8,20 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 
 from ..domain_action_request_materializer import CONSUMER_LATEST_RELATIVE_PATH
+from .execution_surfaces import (
+    ACCEPTED_EXECUTION_LATEST_SURFACES,
+    ACCEPTED_EXECUTION_SURFACES,
+    LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
+    LEGACY_EXECUTION_SURFACE,
+    OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
+    OWNER_CALLABLE_RECEIPT_SURFACE,
+)
 
 
 EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_execution")
 EXECUTION_LATEST_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "latest.json"
 EXECUTION_HISTORY_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "history.jsonl"
 EXECUTION_LEDGER_LIMIT = 80
-
-
 def write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -98,10 +104,16 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "ACCEPTED_EXECUTION_LATEST_SURFACES",
+    "ACCEPTED_EXECUTION_SURFACES",
     "EXECUTION_HISTORY_RELATIVE_PATH",
     "EXECUTION_LATEST_RELATIVE_PATH",
     "EXECUTION_LEDGER_LIMIT",
     "EXECUTION_RELATIVE_ROOT",
+    "LEGACY_EXECUTION_STUDY_LATEST_SURFACE",
+    "LEGACY_EXECUTION_SURFACE",
+    "OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE",
+    "OWNER_CALLABLE_RECEIPT_SURFACE",
     "append_json_line",
     "consumer_latest_path",
     "execution_history_path",

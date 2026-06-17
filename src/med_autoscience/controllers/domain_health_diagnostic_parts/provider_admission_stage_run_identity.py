@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers.domain_owner_action_dispatch_parts import execution_surfaces
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
     mapping as _mapping,
     non_empty_text as _non_empty_text,
@@ -179,7 +180,7 @@ def _workspace_relative_ref(value: str | None, *, study_root: Path | None) -> st
 
 
 def _preserve_existing_source_refs(payload: Mapping[str, Any]) -> bool:
-    return _non_empty_text(payload.get("source")) == "default_executor_execution"
+    return _non_empty_text(payload.get("source")) in {"owner_callable_adapter_receipt", "default_executor_execution"}
 
 
 def _dispatch_ref_is_stage_packet_authority(
@@ -189,8 +190,8 @@ def _dispatch_ref_is_stage_packet_authority(
     dispatch_payload: Mapping[str, Any],
 ) -> bool:
     if (
-        _non_empty_text(execution.get("surface")) != "default_executor_dispatch_execution"
-        and _non_empty_text(execution.get("source")) != "default_executor_execution"
+        _non_empty_text(execution.get("surface")) not in execution_surfaces.ACCEPTED_EXECUTION_SURFACES
+        and _non_empty_text(execution.get("source")) not in {"owner_callable_adapter_receipt", "default_executor_execution"}
     ):
         return False
     if _non_empty_text(payload.get("dispatch_path")) is None and _non_empty_text(
@@ -199,7 +200,7 @@ def _dispatch_ref_is_stage_packet_authority(
         return False
     if _non_empty_text(execution.get("owner_route_current")) == "False" or execution.get("owner_route_current") is False:
         return False
-    if _non_empty_text(payload.get("source")) == "default_executor_execution":
+    if _non_empty_text(payload.get("source")) in {"owner_callable_adapter_receipt", "default_executor_execution"}:
         return True
     dispatch_authority = (
         _non_empty_text(payload.get("dispatch_authority"))

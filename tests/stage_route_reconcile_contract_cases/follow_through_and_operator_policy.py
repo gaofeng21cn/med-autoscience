@@ -70,9 +70,11 @@ def assert_opl_follow_through_and_external_practice_mapping(
     )
     assert dispatch_ref_exception["scope"] == "stage_run_identity_enrichment_only"
     assert dispatch_ref_exception["allowed_execution_sources"] == [
+        "owner_callable_adapter_receipt",
         "default_executor_execution"
     ]
     assert dispatch_ref_exception["allowed_execution_surfaces"] == [
+        "owner_callable_adapter_receipt",
         "default_executor_dispatch_execution"
     ]
     assert dispatch_ref_exception["allowed_dispatch_authorities"] == [

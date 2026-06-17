@@ -253,11 +253,16 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
     _write_json(
         latest_execution_path,
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
+            "legacy_surface_alias": "default_executor_dispatch_execution_study_latest",
             "generated_at": "2026-05-27T21:12:39+00:00",
             "study_id": "001-risk",
+            "owner_callable_receipt_projection": True,
+            "projection_authority": False,
             "executions": [
                 {
+                    "surface": "owner_callable_adapter_receipt",
+                    "legacy_surface_alias": "default_executor_dispatch_execution",
                     "generated_at": "2026-05-27T21:12:39+00:00",
                     "study_id": "001-risk",
                     "action_type": "run_quality_repair_batch",

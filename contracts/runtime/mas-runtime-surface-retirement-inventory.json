@@ -177,6 +177,27 @@
         "domain_action_request_materializer_parts.current_default_executor_dispatches"
       ],
       "surface_id": "domain_action_request_materializer_current_default_executor_dispatches_api"
+    },
+    {
+      "active_caller_migrated": false,
+      "canonical_surface": "owner_callable_adapter_receipt_study_latest",
+      "compatibility_alias_allowed": false,
+      "current_disposition": "opl_migration_input",
+      "forbidden_claims": [
+        "mas_owned_generic_runtime",
+        "mas_owned_queue",
+        "mas_owned_attempt_ledger",
+        "mas_owned_retry_dead_letter",
+        "mas_local_execution_ledger_authority",
+        "provider_completion_as_domain_ready"
+      ],
+      "generic_runtime_owner": "one-person-lab",
+      "legacy_wire_path": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+      "legacy_wire_surface": "default_executor_dispatch_execution_study_latest",
+      "mas_owner_claim_allowed": false,
+      "replacement_surface": "owner_callable_adapter_receipt_study_latest plus OPL StageRun closeout binding",
+      "retained_mas_role": "owner_callable_receipt_projection_and_domain_authority_ref",
+      "surface_id": "default_executor_execution_latest_wire_projection"
     }
   ],
   "version": "mas-runtime-surface-retirement-inventory.v1"
