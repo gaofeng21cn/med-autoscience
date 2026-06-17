@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-17：RuntimeHealthKernel lifecycle-looking events 降级为 OPL proof-backed diagnostic observation
+
+- 决策：`RuntimeHealthKernel` 不再为 MAS 持有 attempt lifecycle、retry/dead-letter、worker residency 或 runtime currentness authority。`launch_attempt`、`recover_attempt`、`relaunch_attempt`、`attempt_released`、`escalation_opened` 和 `escalation_resolved` 这类 lifecycle-looking event 只有在 payload 带 OPL lifecycle proof 时才允许写入；可接受 proof 包括 OPL current-control ref、OPL command/event/outbox ref、StageRun / stage attempt id、active workflow id 或等价 OPL lifecycle readback ref。
+- 决策：允许写入的 lifecycle-looking runtime health event 必须显式标记为 `mas_runtime_health_event_role=diagnostic_observation`，并固定 `lifecycle_authority_owner=one-person-lab`、`attempt_lifecycle_authority=false`、`retry_or_dead_letter_authority=false`、`worker_residency_authority=false`。`status_payload_runtime_health_events` 不再从 MAS status decision 本地合成 attempt/release event；owner-route same-tick provider readiness 只有当 OPL readiness/readback 自身携带 lifecycle proof 时，才可作为 recovery epoch diagnostic readback 被投影。
+- 理由：`runtime_health_kernel` 历史上虽然已声明 false authority，但仍能本地写 recovery attempt / attempt release，并通过 retry budget 和 epoch reducer影响 supervisor/operator 判断。这会让普通 provider-ready 或 status decision 被误读成 MAS-owned runtime lifecycle。硬门把它收回为 OPL Observability / StageRun / Route Reconciler 的 readback projection，避免 MAS 再造私有 attempt ledger 或 retry substrate。
+- 影响：这是 MAS runtime-health diagnostic boundary 修复，不执行 live DHD apply、hydrate、tick、redrive，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。focused tests 和 docs 只证明 repo-level structural/contract behavior；live paper progress、provider running proof、publication-ready、domain-ready 或 production-ready 仍需 fresh OPL StageRun/readback、owner receipt、stable typed blocker、human gate、route-back evidence 或 canonical paper/gate/artifact delta。
+
 ## 2026-06-16：MAS/OPL 理想运行模型收敛为 OPL command/event/outbox 链
 
 - 决策：MAS / OPL 顶层目标态进一步固定为 `DomainIntent -> OPL Command -> OPL Event -> OPL Transactional Outbox -> StageRun / ToolInvocation -> MAS OwnerAnswer -> Derived Projection`。MAS 只发布 domain intent、policy result、accepted owner answer shape 和 authority refs；OPL 把它们事务化为 command、event、outbox、StageRun、tool invocation、human gate transport 和 generated/hosted projection。
