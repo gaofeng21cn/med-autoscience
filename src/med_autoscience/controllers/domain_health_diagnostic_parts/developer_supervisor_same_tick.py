@@ -25,6 +25,8 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
     adapter_status_count,
     domain_progress_transition_requests,
     owner_callable_adapters,
+    transition_request_count,
+    transition_request_status_count,
     with_owner_callable_adapter_projection,
 )
 from med_autoscience.profiles import WorkspaceProfile
@@ -191,20 +193,25 @@ def _same_tick_delta(
     materialize_result: Mapping[str, Any],
     dispatch_result: Mapping[str, Any],
 ) -> dict[str, Any]:
-    total_owner_callable_adapter_count = adapter_count(materialize_result)
-    ready_owner_callable_adapter_count = adapter_status_count(materialize_result, "ready")
-    blocked_owner_callable_adapter_count = adapter_status_count(materialize_result, "blocked")
+    total_transition_request_count = transition_request_count(materialize_result)
+    ready_transition_request_count = transition_request_status_count(materialize_result, "ready")
+    blocked_transition_request_count = transition_request_status_count(materialize_result, "blocked")
+    legacy_owner_callable_adapter_count = adapter_count(materialize_result)
     return {
         "scan_action_count": _count(scan_result, "action_queue"),
         "materialized_request_count": _int_value(materialize_result.get("request_task_count")),
-        "owner_callable_adapter_count": ready_owner_callable_adapter_count,
-        "owner_callable_adapter_total_count": total_owner_callable_adapter_count,
-        "ready_owner_callable_adapter_count": ready_owner_callable_adapter_count,
-        "blocked_owner_callable_adapter_count": blocked_owner_callable_adapter_count,
-        "owner_callable_adapter_count": ready_owner_callable_adapter_count,
-        "owner_callable_adapter_total_count": total_owner_callable_adapter_count,
-        "ready_owner_callable_adapter_count": ready_owner_callable_adapter_count,
-        "blocked_owner_callable_adapter_count": blocked_owner_callable_adapter_count,
+        "domain_progress_transition_request_count": total_transition_request_count,
+        "transition_request_pending_count": transition_request_status_count(
+            materialize_result,
+            "transition_request_pending",
+        ),
+        "owner_callable_adapter_count": ready_transition_request_count,
+        "owner_callable_adapter_total_count": total_transition_request_count,
+        "ready_owner_callable_adapter_count": ready_transition_request_count,
+        "blocked_owner_callable_adapter_count": blocked_transition_request_count,
+        "legacy_owner_callable_adapter_count": legacy_owner_callable_adapter_count,
+        "legacy_ready_owner_callable_adapter_count": adapter_status_count(materialize_result, "ready"),
+        "legacy_blocked_owner_callable_adapter_count": adapter_status_count(materialize_result, "blocked"),
         "dispatch_execution_count": _int_value(dispatch_result.get("execution_count")),
         "dispatch_executed_count": _int_value(dispatch_result.get("executed_count")),
         "dispatch_blocked_count": _int_value(dispatch_result.get("blocked_count")),

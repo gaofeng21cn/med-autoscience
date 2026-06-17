@@ -179,13 +179,22 @@ def test_domain_health_diagnostic_dry_run_includes_recovery_materialization_prev
     assert report["domain_action_request_materialization_preview"]["request_task_count"] == 1
     assert report["domain_action_request_materialization_preview"]["owner_callable_adapter_count"] == 1
     assert report["materialization_preview_request_task_count"] == 1
+    assert report["materialization_preview_transition_request_count"] == 1
+    assert report["materialization_preview_transition_request_pending_count"] == 0
     assert report["materialization_preview_owner_callable_adapter_count"] == 1
     assert report["materialization_preview_ready_owner_callable_adapter_count"] == 1
+    assert report["materialization_preview_legacy_owner_callable_adapter_count"] == 1
     action_preview = report["managed_study_actions"][0]["domain_action_request_materialization_preview"]
     assert action_preview["study_id"] == study_id
     assert action_preview["request_task_count"] == 0
+    assert action_preview["transition_request_count"] == 1
+    assert action_preview["transition_request_pending_count"] == 0
     assert action_preview["owner_callable_adapter_count"] == 1
     assert action_preview["ready_owner_callable_adapter_count"] == 1
+    assert action_preview["legacy_owner_callable_adapter_count"] == 1
+    assert action_preview["domain_progress_transition_requests"][0]["action_type"] == (
+        "run_quality_repair_batch"
+    )
     assert action_preview["owner_callable_adapters"][0]["action_type"] == (
         "run_quality_repair_batch"
     )
@@ -284,7 +293,10 @@ def test_domain_health_diagnostic_dry_run_promotes_transition_request_preview_to
 
     assert report["provider_admission_pending_count"] == 0
     assert report["transition_request_pending_count"] == 1
+    assert report["materialization_preview_transition_request_count"] == 1
+    assert report["materialization_preview_transition_request_pending_count"] == 1
     assert report["materialization_preview_transition_request_pending_owner_callable_adapter_count"] == 1
+    assert report["materialization_preview_legacy_owner_callable_adapter_count"] == 1
     assert report["managed_study_opl_provider_admission_candidates"] == []
     [candidate] = report["managed_study_opl_transition_request_candidates"]
     assert candidate["study_id"] == study_id
@@ -295,7 +307,11 @@ def test_domain_health_diagnostic_dry_run_promotes_transition_request_preview_to
     assert candidate["provider_admission_requires_opl_runtime_result"] is True
     assert report["current_execution_evidence"]["transition_request_candidates"] == [candidate]
     action_preview = report["managed_study_actions"][0]["domain_action_request_materialization_preview"]
+    assert action_preview["transition_request_count"] == 1
+    assert action_preview["transition_request_pending_count"] == 1
     assert action_preview["transition_request_pending_owner_callable_adapter_count"] == 1
+    assert action_preview["legacy_owner_callable_adapter_count"] == 1
+    assert action_preview["domain_progress_transition_requests"][0]["work_unit_fingerprint"] == fingerprint
 
 
 def test_domain_health_diagnostic_current_control_preserves_request_only_preview(

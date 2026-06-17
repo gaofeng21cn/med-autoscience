@@ -18,6 +18,19 @@ def domain_progress_transition_requests(payload: Mapping[str, Any]) -> list[dict
     return []
 
 
+def transition_request_count(payload: Mapping[str, Any]) -> int:
+    if "domain_progress_transition_request_count" in payload:
+        return _int_value(payload.get("domain_progress_transition_request_count"))
+    return len(domain_progress_transition_requests(payload))
+
+
+def transition_request_status_count(payload: Mapping[str, Any], status: str) -> int:
+    return sum(
+        _text(item.get("dispatch_status")) == status
+        for item in domain_progress_transition_requests(payload)
+    )
+
+
 def adapter_count(payload: Mapping[str, Any]) -> int:
     if "owner_callable_adapter_count" in payload:
         return _int_value(payload.get("owner_callable_adapter_count"))
@@ -99,5 +112,7 @@ __all__ = [
     "adapter_status_count",
     "domain_progress_transition_requests",
     "owner_callable_adapters",
+    "transition_request_count",
+    "transition_request_status_count",
     "with_owner_callable_adapter_projection",
 ]

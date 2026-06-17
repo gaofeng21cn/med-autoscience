@@ -516,6 +516,53 @@ def test_owner_callable_projection_does_not_accept_legacy_dispatch_alias() -> No
             ],
         }
     ) == []
+    assert projection.transition_request_count(
+        {
+            "default_executor_dispatches": [
+                {
+                    "dispatch_status": "transition_request_pending",
+                    "action_type": "legacy_dispatch",
+                    "opl_domain_progress_transition_request": {
+                        "surface_kind": "mas_domain_progress_transition_request",
+                    },
+                },
+            ],
+        }
+    ) == 0
+
+
+def test_transition_request_counts_are_canonical_not_legacy_adapter_counts() -> None:
+    projection = importlib.import_module("med_autoscience.controllers.owner_callable_adapter_projection")
+
+    payload = {
+        "owner_callable_adapter_count": 99,
+        "ready_owner_callable_adapter_count": 88,
+        "owner_callable_adapters": [
+            {"dispatch_status": "ready", "action_type": "legacy_ready"},
+        ],
+        "domain_progress_transition_requests": [
+            {
+                "study_id": "study-1",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "repair-work",
+                "work_unit_fingerprint": "fingerprint-1",
+                "dispatch_status": "transition_request_pending",
+            },
+            {
+                "study_id": "study-1",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "gate-work",
+                "work_unit_fingerprint": "fingerprint-2",
+                "dispatch_status": "blocked",
+            },
+        ],
+    }
+
+    assert projection.adapter_count(payload) == 99
+    assert projection.adapter_status_count(payload, "ready") == 88
+    assert projection.transition_request_count(payload) == 2
+    assert projection.transition_request_status_count(payload, "transition_request_pending") == 1
+    assert projection.transition_request_status_count(payload, "blocked") == 1
 
 
 def test_owner_callable_projection_requires_canonical_transition_request_surface() -> None:

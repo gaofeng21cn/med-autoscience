@@ -8,6 +8,8 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
     adapter_status_count,
     domain_progress_transition_requests,
     owner_callable_adapters,
+    transition_request_count,
+    transition_request_status_count,
     with_owner_callable_adapter_projection,
 )
 from med_autoscience.profiles import WorkspaceProfile
@@ -39,11 +41,30 @@ def attach_domain_action_request_materialization_preview(
     report["materialization_preview_request_task_count"] = _int_value(
         preview.get("request_task_count")
     )
-    report["materialization_preview_owner_callable_adapter_count"] = adapter_count(preview)
-    report["materialization_preview_ready_owner_callable_adapter_count"] = adapter_status_count(preview, "ready")
-    report["materialization_preview_blocked_owner_callable_adapter_count"] = adapter_status_count(preview, "blocked")
+    report["materialization_preview_transition_request_count"] = transition_request_count(preview)
+    report["materialization_preview_transition_request_pending_count"] = (
+        transition_request_status_count(preview, "transition_request_pending")
+    )
+    report["materialization_preview_owner_callable_adapter_count"] = transition_request_count(preview)
+    report["materialization_preview_ready_owner_callable_adapter_count"] = transition_request_status_count(
+        preview,
+        "ready",
+    )
+    report["materialization_preview_blocked_owner_callable_adapter_count"] = transition_request_status_count(
+        preview,
+        "blocked",
+    )
     report["materialization_preview_transition_request_pending_owner_callable_adapter_count"] = (
-        adapter_status_count(preview, "transition_request_pending")
+        transition_request_status_count(preview, "transition_request_pending")
+    )
+    report["materialization_preview_legacy_owner_callable_adapter_count"] = adapter_count(preview)
+    report["materialization_preview_legacy_ready_owner_callable_adapter_count"] = adapter_status_count(
+        preview,
+        "ready",
+    )
+    report["materialization_preview_legacy_blocked_owner_callable_adapter_count"] = adapter_status_count(
+        preview,
+        "blocked",
     )
     _attach_materialization_preview_to_managed_actions(report=report, preview=preview)
     _sync_transition_request_preview_to_report(report=report, preview=preview)
@@ -96,6 +117,7 @@ def _attach_materialization_preview_to_managed_actions(
         return
     request_tasks_by_study = _items_by_study(preview.get("request_tasks"))
     adapters_by_study = _items_by_study(owner_callable_adapters(preview))
+    transition_requests_by_study = _items_by_study(domain_progress_transition_requests(preview))
     for index, action in enumerate(actions):
         if not isinstance(action, Mapping):
             continue
@@ -104,7 +126,8 @@ def _attach_materialization_preview_to_managed_actions(
             continue
         request_tasks = request_tasks_by_study.get(study_id, [])
         adapters = adapters_by_study.get(study_id, [])
-        if not request_tasks and not adapters:
+        transition_requests = transition_requests_by_study.get(study_id, [])
+        if not request_tasks and not adapters and not transition_requests:
             continue
         updated = dict(action)
         updated["domain_action_request_materialization_preview"] = {
@@ -113,21 +136,28 @@ def _attach_materialization_preview_to_managed_actions(
             "dry_run": bool(preview.get("dry_run", True)),
             "study_id": study_id,
             "request_task_count": len(request_tasks),
-            "owner_callable_adapter_count": len(adapters),
+            "transition_request_count": len(transition_requests),
+            "transition_request_pending_count": sum(
+                _non_empty_text(item.get("dispatch_status")) == "transition_request_pending"
+                for item in transition_requests
+            ),
+            "owner_callable_adapter_count": len(transition_requests),
             "ready_owner_callable_adapter_count": sum(
                 _non_empty_text(item.get("dispatch_status")) == "ready"
-                for item in adapters
+                for item in transition_requests
             ),
             "blocked_owner_callable_adapter_count": sum(
                 _non_empty_text(item.get("dispatch_status")) == "blocked"
-                for item in adapters
+                for item in transition_requests
             ),
             "transition_request_pending_owner_callable_adapter_count": sum(
                 _non_empty_text(item.get("dispatch_status")) == "transition_request_pending"
-                for item in adapters
+                for item in transition_requests
             ),
+            "legacy_owner_callable_adapter_count": len(adapters),
             "request_tasks": request_tasks,
             "owner_callable_adapters": adapters,
+            "domain_progress_transition_requests": transition_requests,
         }
         actions[index] = updated
 
