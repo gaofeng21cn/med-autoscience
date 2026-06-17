@@ -119,8 +119,6 @@ def provider_hosted_canonical_stage_packet_dispatch(
     stage_packet_ref = _env_text("OPL_STAGE_PACKET_REF")
     if stage_packet_ref is None:
         return None
-    if not provider_hosted_stage_attempt_authorizes_dispatch(dispatch):
-        return None
     for path in _candidate_stage_packet_paths(
         stage_packet_ref=stage_packet_ref,
         dispatch=dispatch,
