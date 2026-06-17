@@ -5,6 +5,9 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers import control_identity
 from med_autoscience.controllers import paper_progress_policy_adapter
+from med_autoscience.controllers.domain_action_request_materializer_parts import (
+    currentness_identity,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
     current_ai_reviewer_gate_replay_fingerprint,
     current_ai_reviewer_gate_replay_source_eval_id,
@@ -175,17 +178,23 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         work_unit_fingerprint=action_fingerprint,
         source_eval_id=source_eval_id,
     )
+    owner_route_currentness_basis = currentness_identity.normalize_currentness_sources(
+        owner_route_currentness_basis,
+        transition_request_basis,
+        current_action_basis,
+        {
+            "source_fingerprint": _non_empty_text(current.get("source_fingerprint"))
+            or _non_empty_text(current_action_basis.get("source_fingerprint"))
+            or _non_empty_text(owner_route_currentness_basis.get("source_fingerprint"))
+            or _non_empty_text(transition_request_basis.get("source_fingerprint")),
+            "route_epoch": action_fingerprint,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+        },
+    )
     owner_route_currentness_basis = {
-        **dict(current_action_basis),
-        **dict(owner_route_currentness_basis),
-        **dict(transition_request_basis),
-        "source_fingerprint": _non_empty_text(current.get("source_fingerprint"))
-        or _non_empty_text(current_action_basis.get("source_fingerprint"))
-        or _non_empty_text(owner_route_currentness_basis.get("source_fingerprint"))
-        or _non_empty_text(transition_request_basis.get("source_fingerprint")),
+        **owner_route_currentness_basis,
         "mas_owner_action_source": _non_empty_text(current.get("source")),
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": action_fingerprint,
     }
     owner_route_currentness_basis = {
         key: value for key, value in owner_route_currentness_basis.items() if value is not None
