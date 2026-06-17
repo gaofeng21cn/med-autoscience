@@ -241,6 +241,15 @@
       "mas_owner_claim_allowed": false,
       "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime readback",
       "retained_mas_role": "migration_diagnostic_projection_only",
+      "retention_reason": "temporary migration diagnostic projection until all active callers consume domain_progress_transition_requests and OPL readback directly",
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "no_forbidden_write_proof_required": true,
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
+      },
       "surface_id": "domain_action_request_materializer_owner_callable_adapter_projection"
     },
     {
@@ -299,6 +308,15 @@
       "mas_owner_claim_allowed": false,
       "replacement_surface": "OPL DomainProgressTransitionRuntime execution authorization plus MAS owner callable adapter",
       "retained_mas_role": "owner_callable_adapter_policy_boundary_and_typed_blocker_projection",
+      "retention_reason": "temporary owner callable adapter until OPL DomainProgressTransitionRuntime provides live authorization and callable execution readback for every active caller",
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "no_forbidden_write_proof_required": true,
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
+      },
       "surface_id": "domain_owner_action_dispatch"
     },
     {

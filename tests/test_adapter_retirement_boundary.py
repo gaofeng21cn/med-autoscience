@@ -194,6 +194,18 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert owner_callable_projection["current_disposition"] == "legacy_diagnostic_projection"
     assert owner_callable_projection["retained_mas_role"] == "migration_diagnostic_projection_only"
     assert owner_callable_projection["canonical_surface"] == "domain_progress_transition_requests"
+    assert owner_callable_projection["retention_reason"] == (
+        "temporary migration diagnostic projection until all active callers consume "
+        "domain_progress_transition_requests and OPL readback directly"
+    )
+    assert owner_callable_projection["retirement_gate"] == {
+        "active_caller_alone_retains_surface": False,
+        "completion_claim_requires_live_owner_or_opl_readback": True,
+        "no_active_caller_required_before_physical_delete": True,
+        "no_forbidden_write_proof_required": True,
+        "replacement_parity_required": True,
+        "tombstone_or_provenance_required": True,
+    }
     assert owner_callable_projection["legacy_projection_boundary"] == {
         "canonical_transition_request_surface": "domain_progress_transition_requests",
         "owner_callable_adapter_counts_authority": False,
@@ -210,6 +222,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "owner_callable_adapters_as_success_outcome" in owner_callable_projection[
         "forbidden_claims"
     ]
+    assert "legacy_caller_exists" not in owner_callable_projection["retention_reason"]
 
     execution_latest = surfaces["default_executor_execution_latest_wire_projection"]
     assert execution_latest["active_caller_migrated"] is True
@@ -239,6 +252,18 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         owner_dispatch["retained_mas_role"]
         == "owner_callable_adapter_policy_boundary_and_typed_blocker_projection"
     )
+    assert owner_dispatch["retention_reason"] == (
+        "temporary owner callable adapter until OPL DomainProgressTransitionRuntime "
+        "provides live authorization and callable execution readback for every active caller"
+    )
+    assert owner_dispatch["retirement_gate"] == {
+        "active_caller_alone_retains_surface": False,
+        "completion_claim_requires_live_owner_or_opl_readback": True,
+        "no_active_caller_required_before_physical_delete": True,
+        "no_forbidden_write_proof_required": True,
+        "replacement_parity_required": True,
+        "tombstone_or_provenance_required": True,
+    }
     assert owner_dispatch["execution_authorization_boundary"] == {
         "execution_authorization_sources": [
             "trusted_opl_execution_authorization",
@@ -252,6 +277,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     }
     assert "mas_local_dispatch_authority" in owner_dispatch["forbidden_claims"]
     assert "closeout_binding_as_execution_authorization" in owner_dispatch["forbidden_claims"]
+    assert "legacy_caller_exists" not in owner_dispatch["retention_reason"]
 
     obligation_actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
     assert obligation_actuator["current_disposition"] == "opl_recovery_obligation_readback_consumer"
@@ -270,6 +296,33 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "mas_owned_recovery_obligation_store" in obligation_actuator["forbidden_claims"]
     assert "mas_owned_supervisor_decision_engine" in obligation_actuator["forbidden_claims"]
     assert "mas_policy_request_projection_as_success_outcome" in obligation_actuator["forbidden_claims"]
+
+
+def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -> None:
+    inventory_path = REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json"
+    inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+    open_surfaces = [
+        surface
+        for surface in inventory["surfaces"]
+        if surface["current_disposition"] != "physically_retired"
+    ]
+
+    assert open_surfaces
+    for surface in open_surfaces:
+        assert surface["compatibility_alias_allowed"] is False
+        assert surface["mas_owner_claim_allowed"] is False
+        assert "legacy_caller_exists" not in str(surface.get("retention_reason", ""))
+        if surface["surface_id"] in {
+            "domain_action_request_materializer_owner_callable_adapter_projection",
+            "domain_owner_action_dispatch",
+        }:
+            gate = surface["retirement_gate"]
+            assert gate["active_caller_alone_retains_surface"] is False
+            assert gate["completion_claim_requires_live_owner_or_opl_readback"] is True
+            assert gate["no_active_caller_required_before_physical_delete"] is True
+            assert gate["no_forbidden_write_proof_required"] is True
+            assert gate["replacement_parity_required"] is True
+            assert gate["tombstone_or_provenance_required"] is True
 
 
 def test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy(tmp_path) -> None:
