@@ -704,6 +704,53 @@ def test_owner_callable_projection_requires_canonical_transition_request_surface
     assert projected["owner_callable_adapter_list_can_create_success_outcome"] is False
 
 
+def test_dhd_same_tick_admission_consumes_only_canonical_transition_requests(tmp_path: Path) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    dispatch = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "dispatch_status": "transition_request_pending",
+        "opl_domain_progress_transition_request": {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "target_runtime_owner": "one-person-lab",
+        },
+    }
+
+    result = report_module.materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        report={
+            "domain_action_request_materialization_preview": {
+                "owner_callable_adapters": [dispatch],
+            },
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "current_executable_owner_action": {
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": "medical_prose_write_repair",
+                            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                        },
+                    },
+                },
+            },
+            "managed_study_actions": [{"study_id": study_id}],
+        },
+        apply=False,
+        generated_at="2026-06-18T00:00:00+00:00",
+    )
+
+    assert result is None or result["transition_request_pending_count"] == 0
+    assert result is None or result["provider_admission_pending_count"] == 0
+
+
 def test_current_default_executor_dispatch_preview_api_is_physically_retired() -> None:
     materializer = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
 
