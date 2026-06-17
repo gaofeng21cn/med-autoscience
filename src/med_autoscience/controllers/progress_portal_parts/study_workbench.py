@@ -132,6 +132,8 @@ def build_study_workbench_payload(
         ),
         "current_blockers": _string_list(user_visible.get("current_blockers")),
     }
+    overview_action_boundary = _overview_action_boundary()
+    overview["next_system_action_boundary"] = overview_action_boundary
     runtime_projection = _runtime_projection(resolved_progress, resolved_runtime, cockpit_study)
     action_owner_routing_policy = _action_owner_routing_policy(
         route_decision_trail=route_decision_trail,
@@ -183,6 +185,7 @@ def build_study_workbench_payload(
             {"id": "source_refs", "label": "来源", "status": "available" if refs else "missing"},
         ],
         "overview": overview,
+        "overview_action_boundary": overview_action_boundary,
         "route_map": route_map,
         "route_decision_trail": route_decision_trail,
         "stage_knowledge": stage_knowledge,
@@ -290,6 +293,21 @@ def _runtime_projection(
             monitoring.get("supervisor_tick_status"),
             supervisor_state.get("status"),
         ),
+    }
+
+
+def _overview_action_boundary() -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_progress_portal_study_workbench_overview_action_boundary",
+        "next_system_action_role": "read_only_owner_delta_summary",
+        "projection_only": True,
+        "can_generate_action": False,
+        "can_execute": False,
+        "can_authorize_provider_admission": False,
+        "can_authorize_worker_attempt": False,
+        "requires_opl_current_control_readback": True,
+        "must_not_be_used_as_provider_admission": True,
+        "must_not_be_used_as_next_action_authority": True,
     }
 
 

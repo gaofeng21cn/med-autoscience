@@ -85,6 +85,20 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
     )
 
     assert payload["surface_kind"] == "mas_progress_portal_study_workbench"
+    overview_action_boundary = payload["overview_action_boundary"]
+    assert overview_action_boundary == {
+        "surface_kind": "mas_progress_portal_study_workbench_overview_action_boundary",
+        "next_system_action_role": "read_only_owner_delta_summary",
+        "projection_only": True,
+        "can_generate_action": False,
+        "can_execute": False,
+        "can_authorize_provider_admission": False,
+        "can_authorize_worker_attempt": False,
+        "requires_opl_current_control_readback": True,
+        "must_not_be_used_as_provider_admission": True,
+        "must_not_be_used_as_next_action_authority": True,
+    }
+    assert payload["overview"]["next_system_action_boundary"] == overview_action_boundary
     tabs_by_id = {item["id"]: item for item in payload["tabs"]}
     assert tabs_by_id["route_map"] == {"id": "route_map", "label": "研究路线地图", "status": "available"}
     assert tabs_by_id["route_decision_trail"] == {"id": "route_decision_trail", "label": "路线/决策", "status": "available"}
