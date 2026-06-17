@@ -78,16 +78,14 @@ def _stage_route_arbiter_decisions(
                 )
             )
             continue
-        if current_control_receipts.accepted_closeout_matches_identity(
-            scanned_study,
-            identity=candidate,
-        ):
+        accepted_closeout = _matching_accepted_closeout(scanned_study, identity=candidate)
+        if accepted_closeout:
             decisions.append(
                 _arbiter_decision(
                     candidate,
                     decision="accepted_closeout_consumed_pending",
                     effect="suppress_provider_admission_pending",
-                    evidence=_matching_accepted_closeout(scanned_study, identity=candidate),
+                    evidence=accepted_closeout,
                 )
             )
             continue
@@ -215,6 +213,9 @@ def _arbiter_decision(
         "attempt_idempotency_key": _attempt_idempotency_key(candidate),
         "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
         "dispatch_ref": _non_empty_text(candidate.get("dispatch_ref")),
+        "same_tick_materialization_source": _non_empty_text(
+            candidate.get("same_tick_materialization_source")
+        ),
         "active_stage_attempt_id": _non_empty_text(evidence.get("active_stage_attempt_id"))
         or _non_empty_text(evidence.get("stage_attempt_id")),
         "active_run_id": _non_empty_text(evidence.get("active_run_id")),
@@ -290,12 +291,96 @@ def _matching_accepted_closeout(
             continue
         if current_control_receipts.receipt_is_accepted_closeout(
             receipt
-        ) and current_control_receipts.accepted_closeout_matches_candidate_identity(
-            receipt,
-            identity=identity,
         ):
-            return receipt
+            if current_control_receipts.accepted_closeout_matches_candidate_identity(
+                receipt,
+                identity=identity,
+            ):
+                return receipt
+            if _explicit_accepted_closeout_core_identity_matches_without_currentness_conflict(
+                receipt,
+                identity=identity,
+            ):
+                return receipt
     return {}
+
+
+def _explicit_accepted_closeout_core_identity_matches_without_currentness_conflict(
+    receipt: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    if not current_control_receipts.receipt_is_explicit_accepted_typed_closeout(receipt):
+        return False
+    if current_control_receipts.receipt_has_opl_execution_authorization_blocker(receipt):
+        return False
+    if not _closeout_core_identity_matches_candidate(receipt, identity=identity):
+        return False
+    receipt_basis = _accepted_closeout_currentness_basis(receipt)
+    identity_basis = _mapping(identity.get("currentness_basis"))
+    if receipt_basis and identity_basis and _currentness_basis_conflicts(
+        receipt_basis,
+        identity_basis=identity_basis,
+    ):
+        return False
+    receipt_source_eval = _non_empty_text(receipt_basis.get("source_eval_id")) or _non_empty_text(
+        receipt.get("source_eval_id")
+    )
+    identity_source_eval = _non_empty_text(identity_basis.get("source_eval_id")) or _non_empty_text(
+        identity.get("source_eval_id")
+    )
+    return not (
+        receipt_source_eval is not None
+        and identity_source_eval is not None
+        and receipt_source_eval != identity_source_eval
+    )
+
+
+def _accepted_closeout_currentness_basis(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    nested_owner_route_basis = _mapping(
+        _mapping(_mapping(receipt.get("owner_route")).get("source_refs")).get(
+            "owner_route_currentness_basis"
+        )
+    )
+    basis = {
+        **nested_owner_route_basis,
+        **_mapping(receipt.get("owner_route_currentness_basis")),
+        **_mapping(receipt.get("owner_route_basis")),
+    }
+    for key, value in {
+        "source_eval_id": _non_empty_text(receipt.get("source_eval_id"))
+        or _non_empty_text(basis.get("source_eval_id")),
+        "truth_epoch": _non_empty_text(receipt.get("truth_epoch"))
+        or _non_empty_text(basis.get("truth_epoch")),
+        "runtime_health_epoch": _non_empty_text(receipt.get("runtime_health_epoch"))
+        or _non_empty_text(basis.get("runtime_health_epoch")),
+    }.items():
+        if value is not None:
+            basis[key] = value
+    return {key: value for key, value in basis.items() if value not in (None, "", [], {})}
+
+
+def _currentness_basis_conflicts(
+    receipt_basis: Mapping[str, Any],
+    *,
+    identity_basis: Mapping[str, Any],
+) -> bool:
+    receipt_source_eval = _non_empty_text(receipt_basis.get("source_eval_id"))
+    identity_source_eval = _non_empty_text(identity_basis.get("source_eval_id")) or _non_empty_text(
+        identity_basis.get("publication_eval_id")
+    )
+    if (
+        receipt_source_eval is not None
+        and identity_source_eval is not None
+        and receipt_source_eval != identity_source_eval
+    ):
+        return True
+    for key in ("truth_epoch", "runtime_health_epoch"):
+        receipt_value = _non_empty_text(receipt_basis.get(key))
+        identity_value = _non_empty_text(identity_basis.get(key))
+        if receipt_value is not None and identity_value is not None and receipt_value != identity_value:
+            return True
+    return False
 
 
 def _terminal_closeout_precedence_evidence(
@@ -486,6 +571,7 @@ def _candidates_not_covered_by_live_attempt(
 ) -> list[dict[str, Any]]:
     pending: list[dict[str, Any]] = []
     for candidate in candidates:
+        request_only_transition = _request_only_transition_request_candidate(candidate)
         study_id = _non_empty_text(candidate.get("study_id"))
         live_study = _mapping(live_studies_by_id.get(study_id)) if study_id is not None else {}
         live_attempt = _running_attempt_from_study(live_study)
@@ -506,32 +592,101 @@ def _candidates_not_covered_by_live_attempt(
             candidate=candidate,
         ):
             continue
-        if _paper_recovery_state_blocks_provider_admission(scanned_study, identity=candidate):
-            continue
-        weak_identity = _current_control_weak_provider_admission_identity(candidate)
-        if weak_identity and not candidate_opl_transition_readback(candidate):
-            continue
-        if (
-            weak_identity
-            and _candidate_requires_strong_current_control_identity(candidate)
-        ) and not _unconsumed_closeout_blocks_weak_identity_suppression(
+        paper_recovery_block = _paper_recovery_state_blocks_provider_admission(
             scanned_study,
             identity=candidate,
+        )
+        if paper_recovery_block:
+            if not request_only_transition or _paper_recovery_block_is_hard_blocker(
+                paper_recovery_block
+            ):
+                continue
+        weak_identity = _current_control_weak_provider_admission_identity(candidate)
+        if weak_identity and _candidate_requires_strong_current_control_identity(candidate):
+            if not _unconsumed_closeout_blocks_weak_identity_suppression(
+                scanned_study,
+                identity=candidate,
+            ):
+                continue
+        elif (
+            weak_identity
+            and not candidate_opl_transition_readback(candidate)
+            and not request_only_transition
         ):
             continue
         if _current_typed_blocker_precedence_evidence_for_candidate(
             scanned_study,
             candidate=candidate,
         ):
-            continue
+            if not request_only_transition or _paper_recovery_block_is_hard_blocker(
+                paper_recovery_block
+            ) or not _request_only_transition_can_bypass_current_typed_blocker(
+                scanned_study,
+                candidate=candidate,
+            ):
+                continue
         pending.append(dict(candidate))
     return pending
+
+
+def _paper_recovery_block_is_hard_blocker(block: Mapping[str, Any]) -> bool:
+    phase = _non_empty_text(block.get("status")) or _non_empty_text(block.get("phase"))
+    if phase in {"domain_blocked", "human_gate"}:
+        return True
+    next_safe_action = _mapping(block.get("next_safe_action"))
+    return _non_empty_text(next_safe_action.get("kind")) == "resolve_typed_blocker"
+
+
+def _request_only_transition_can_bypass_current_typed_blocker(
+    study: Mapping[str, Any],
+    *,
+    candidate: Mapping[str, Any],
+) -> bool:
+    for receipt in _accepted_closeout_receipts(study):
+        if not current_control_receipts.receipt_is_explicit_accepted_typed_closeout(receipt):
+            continue
+        if _closeout_core_identity_matches_candidate(receipt, identity=candidate):
+            return not current_control_receipts.accepted_closeout_matches_candidate_identity(
+                receipt,
+                identity=candidate,
+            )
+    return False
+
+
+def _request_only_transition_request_candidate(candidate: Mapping[str, Any]) -> bool:
+    if candidate_opl_transition_readback(candidate):
+        return False
+    transition_request = _mapping(candidate.get("opl_domain_progress_transition_request"))
+    if not transition_request:
+        transition_request = _mapping(
+            _mapping(candidate.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    if not transition_request:
+        return False
+    if candidate.get("provider_admission_pending") is not False:
+        return False
+    if candidate.get("provider_admission_requires_opl_runtime_result") is not True:
+        return False
+    if (
+        candidate.get("same_tick_materialized_provider_admission") is True
+        and _non_empty_text(candidate.get("dispatch_status")) != "transition_request_pending"
+    ):
+        return False
+    return _non_empty_text(candidate.get("status")) == "transition_request_pending" or _non_empty_text(
+        candidate.get("dispatch_status")
+    ) == "transition_request_pending"
 
 
 def _candidate_requires_strong_current_control_identity(candidate: Mapping[str, Any]) -> bool:
     if candidate_opl_transition_readback(candidate):
         return True
-    if candidate.get("same_tick_materialized_provider_admission") is True:
+    if (
+        candidate.get("same_tick_materialized_provider_admission") is True
+        and _non_empty_text(candidate.get("same_tick_materialization_source"))
+        != "dry_run_preview"
+    ):
         return True
     return _non_empty_text(candidate.get("source")) in {
         "same_tick_materialized_dispatch",
@@ -810,6 +965,7 @@ def _current_typed_blocker(study: Mapping[str, Any]) -> dict[str, Any]:
         typed_blocker = _mapping(state.get("typed_blocker")) or _mapping(
             current.get("typed_blocker")
         )
+        currentness_basis = _mapping(current.get("currentness_basis"))
         return {
             key: value
             for key, value in {
@@ -820,11 +976,14 @@ def _current_typed_blocker(study: Mapping[str, Any]) -> dict[str, Any]:
                 "action_type": _non_empty_text(current.get("action_type"))
                 or _non_empty_text(typed_blocker.get("action_type")),
                 "work_unit_id": _non_empty_text(current.get("work_unit_id"))
-                or _non_empty_text(typed_blocker.get("work_unit_id")),
+                or _non_empty_text(typed_blocker.get("work_unit_id"))
+                or _non_empty_text(currentness_basis.get("work_unit_id")),
                 "work_unit_fingerprint": _non_empty_text(current.get("work_unit_fingerprint"))
                 or _non_empty_text(current.get("action_fingerprint"))
                 or _non_empty_text(typed_blocker.get("work_unit_fingerprint"))
-                or _non_empty_text(typed_blocker.get("action_fingerprint")),
+                or _non_empty_text(typed_blocker.get("action_fingerprint"))
+                or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
+                or _non_empty_text(currentness_basis.get("action_fingerprint")),
                 "source": "current_work_unit.typed_blocker",
                 "blocker_type": _non_empty_text(typed_blocker.get("blocker_type"))
                 or _non_empty_text(typed_blocker.get("blocker_id"))

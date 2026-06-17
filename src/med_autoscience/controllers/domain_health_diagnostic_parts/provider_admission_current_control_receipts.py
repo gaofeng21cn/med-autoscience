@@ -70,6 +70,10 @@ def accepted_closeout_matches_candidate_identity(
         and receipt_fingerprint == expected_fingerprint
         and receipt_is_explicit_accepted_typed_closeout(receipt)
     ):
+        if _source_eval_conflicts(receipt, identity=identity):
+            return False
+        if _receipt_declares_currentness_basis(receipt):
+            return not _source_currentness_precludes_consumption(receipt, identity=identity)
         return True
     if _source_currentness_precludes_consumption(receipt, identity=identity):
         return False
@@ -340,13 +344,56 @@ def _source_currentness_precludes_consumption(
 ) -> bool:
     receipt_basis = _receipt_currentness_basis(receipt)
     identity_basis = _identity_currentness_basis(identity)
-    identity_source_eval = _non_empty_text(identity_basis.get("source_eval_id"))
-    if identity_source_eval is None:
+    if not receipt_basis or not identity_basis:
         return False
+    if _basis_conflicts_with_identity(receipt_basis, identity=identity):
+        return True
+    if _basis_conflicts_with_identity(identity_basis, identity=identity):
+        return True
+    identity_source_eval = _non_empty_text(identity_basis.get("source_eval_id"))
     receipt_source_eval = _non_empty_text(receipt_basis.get("source_eval_id"))
-    if receipt_source_eval is not None:
+    if identity_source_eval is not None:
+        if receipt_source_eval is None:
+            return not _legacy_currentness_basis_matches(receipt_basis, identity_basis)
         return receipt_source_eval != identity_source_eval
-    return not _legacy_currentness_basis_matches(receipt_basis, identity_basis)
+    if receipt_source_eval is not None:
+        return False
+    if _identity_currentness_requires_strict_receipt(identity_basis):
+        return not _legacy_currentness_basis_matches(receipt_basis, identity_basis)
+    return False
+
+
+def _source_eval_conflicts(receipt: Mapping[str, Any], *, identity: Mapping[str, Any]) -> bool:
+    receipt_source_eval = _non_empty_text(_receipt_currentness_basis(receipt).get("source_eval_id"))
+    identity_source_eval = _non_empty_text(_identity_currentness_basis(identity).get("source_eval_id"))
+    return (
+        receipt_source_eval is not None
+        and identity_source_eval is not None
+        and receipt_source_eval != identity_source_eval
+    )
+
+
+def _receipt_declares_currentness_basis(receipt: Mapping[str, Any]) -> bool:
+    owner_route = _mapping(receipt.get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    return any(
+        _mapping(value)
+        for value in (
+            receipt.get("owner_route_basis"),
+            receipt.get("owner_route_currentness"),
+            source_refs.get("owner_route_currentness_basis"),
+            source_refs,
+            receipt.get("canonical_work_unit_identity"),
+            receipt.get("owner_route_currentness_basis"),
+        )
+    )
+
+
+def _identity_currentness_requires_strict_receipt(identity_basis: Mapping[str, Any]) -> bool:
+    return any(
+        _non_empty_text(identity_basis.get(key)) is not None
+        for key in ("truth_epoch", "runtime_health_epoch", "source_eval_id")
+    )
 
 
 def _receipt_currentness_basis(receipt: Mapping[str, Any]) -> dict[str, Any]:

@@ -69,6 +69,7 @@ def materialize_report_provider_admission_current_control_state(
                 materialize_result=terminal_materialize,
                 fallback_candidates=candidates,
                 progress_currentness=progress_currentness,
+                source_kind="same_tick_terminal_handoff",
             )
     preview_materialize = _mapping(report.get("domain_action_request_materialization_preview"))
     if preview_materialize:
@@ -78,6 +79,7 @@ def materialize_report_provider_admission_current_control_state(
                 materialize_result=preview_materialize,
                 fallback_candidates=candidates,
                 progress_currentness=progress_currentness,
+                source_kind="dry_run_preview",
             ),
         )
     scanned_studies = _provider_admission_scanned_currentness_studies(
@@ -911,6 +913,7 @@ def _provider_admission_candidates_from_same_tick_materialize(
     materialize_result: Mapping[str, Any],
     fallback_candidates: list[dict[str, Any]],
     progress_currentness: Mapping[str, Any] | None = None,
+    source_kind: str = "same_tick_terminal_handoff",
 ) -> list[dict[str, Any]]:
     fallback_by_identity = {
         (_non_empty_text(candidate.get("study_id")), _non_empty_text(candidate.get("action_type"))): candidate
@@ -946,6 +949,8 @@ def _provider_admission_candidates_from_same_tick_materialize(
             "surface": "opl_provider_admission_candidate",
             "schema_version": 1,
             "status": "transition_request_pending",
+            "dispatch_status": _non_empty_text(dispatch.get("dispatch_status"))
+            or _non_empty_text(base.get("dispatch_status")),
             "source": _non_empty_text(base.get("source")) or "same_tick_materialized_dispatch",
             "study_id": study_id,
             "quest_id": _non_empty_text(dispatch.get("quest_id")) or _non_empty_text(base.get("quest_id")),
@@ -978,6 +983,7 @@ def _provider_admission_candidates_from_same_tick_materialize(
             "provider_completion_is_domain_completion": False,
             "owner_route_current": True,
             "same_tick_materialized_provider_admission": True,
+            "same_tick_materialization_source": source_kind,
         }
         currentness_basis = _same_tick_materialized_currentness_basis(
             candidate,
@@ -999,6 +1005,10 @@ def _provider_admission_candidates_from_same_tick_materialize(
                 current_action_identity=current_action_identity,
             ):
                 continue
+            candidate = _candidate_with_current_action_identity(
+                candidate,
+                current_action_identity=current_action_identity,
+            )
             candidates.append(
                 candidate_with_authority_boundaries(
                     {key: value for key, value in candidate.items() if value is not None}
@@ -1032,13 +1042,15 @@ def _candidate_with_current_action_identity(
     current_basis = _mapping(current_action_identity.get("currentness_basis"))
     if current_basis:
         payload["currentness_basis"] = {
-            **dict(current_basis),
             **dict(currentness_basis),
+            **dict(current_basis),
             "work_unit_id": _non_empty_text(currentness_basis.get("work_unit_id"))
             or _non_empty_text(current_action_identity.get("work_unit_id"))
             or _non_empty_text(payload.get("work_unit_id")),
             "work_unit_fingerprint": _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
             or fingerprint,
+            "source_eval_id": _non_empty_text(currentness_basis.get("source_eval_id"))
+            or _non_empty_text(current_basis.get("source_eval_id")),
         }
     return payload
 

@@ -683,7 +683,7 @@ def test_domain_health_diagnostic_dry_run_aggregates_gate_admission_candidates_f
     assert dm003_fingerprint not in result["action_fingerprints"]
     assert result["provider_admission_current_control_state"]["stage_route_arbiter"][
         "decision_counts"
-    ] == {"pending_provider_admission": 1}
+    ] == {"opl_transition_readback_required": 1}
 
 
 def test_provider_probe_requires_running_attempt_fingerprint_match() -> None:

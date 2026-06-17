@@ -172,6 +172,10 @@ def _sync_transition_request_preview_to_report(
 
 def _transition_request_projection(adapter: Mapping[str, Any]) -> dict[str, Any]:
     projection = dict(adapter)
+    transition_request = _mapping(projection.get("opl_domain_progress_transition_request"))
+    request_basis = _mapping(transition_request.get("currentness_basis"))
+    if request_basis and not _mapping(projection.get("currentness_basis")):
+        projection["currentness_basis"] = dict(request_basis)
     projection.setdefault("status", "transition_request_pending")
     projection.setdefault("provider_admission_pending", False)
     projection.setdefault("provider_attempt_or_lease_required", False)
@@ -181,6 +185,7 @@ def _transition_request_projection(adapter: Mapping[str, Any]) -> dict[str, Any]
         "source",
         _non_empty_text(adapter.get("source")) or "domain_action_request_materialization_preview",
     )
+    projection.setdefault("same_tick_materialization_source", "dry_run_preview")
     return projection
 
 

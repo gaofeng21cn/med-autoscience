@@ -331,6 +331,17 @@ def candidate_with_progress_currentness_identity(
     scanned_studies_by_id: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
     payload = dict(candidate)
+    transition_request = _mapping(payload.get("opl_domain_progress_transition_request"))
+    policy_transition_request = _mapping(
+        _mapping(payload.get("paper_progress_policy_result")).get(
+            "opl_domain_progress_transition_request"
+        )
+    )
+    request_basis = _mapping(transition_request.get("currentness_basis")) or _mapping(
+        policy_transition_request.get("currentness_basis")
+    )
+    if request_basis and not _mapping(payload.get("currentness_basis")):
+        payload["currentness_basis"] = dict(request_basis)
     study_id = _non_empty_text(payload.get("study_id"))
     study = _mapping(scanned_studies_by_id.get(study_id)) if study_id is not None else {}
     current_action = _mapping(study.get("current_executable_owner_action"))
@@ -340,7 +351,11 @@ def candidate_with_progress_currentness_identity(
         current_action=current_action,
         current_work_unit=current_work_unit,
     )
-    closeout_basis = _candidate_closeout_currentness_basis(payload, study=study)
+    closeout_basis = (
+        {}
+        if request_basis
+        else _candidate_closeout_currentness_basis(payload, study=study)
+    )
     if closeout_basis:
         basis = {
             **closeout_basis,
@@ -472,12 +487,34 @@ def _candidate_progress_currentness_basis(
             if work_unit_matches
             else None
         ),
-        "truth_epoch": _non_empty_text(basis.get("truth_epoch"))
-        or _non_empty_text(candidate.get("truth_epoch"))
-        or (_non_empty_text(current_action.get("truth_epoch")) if action_matches else None),
-        "runtime_health_epoch": _non_empty_text(basis.get("runtime_health_epoch"))
-        or _non_empty_text(candidate.get("runtime_health_epoch"))
-        or (_non_empty_text(current_action.get("runtime_health_epoch")) if action_matches else None),
+        "truth_epoch": (
+            (_non_empty_text(current_action.get("truth_epoch")) if action_matches else None)
+            or (_non_empty_text(current_work_unit.get("truth_epoch")) if work_unit_matches else None)
+            or (_non_empty_text(action_basis.get("truth_epoch")) if action_matches else None)
+            or (_non_empty_text(work_unit_basis.get("truth_epoch")) if work_unit_matches else None)
+            or _non_empty_text(basis.get("truth_epoch"))
+            or _non_empty_text(candidate.get("truth_epoch"))
+        ),
+        "runtime_health_epoch": (
+            (_non_empty_text(current_action.get("runtime_health_epoch")) if action_matches else None)
+            or (
+                _non_empty_text(current_work_unit.get("runtime_health_epoch"))
+                if work_unit_matches
+                else None
+            )
+            or (
+                _non_empty_text(action_basis.get("runtime_health_epoch"))
+                if action_matches
+                else None
+            )
+            or (
+                _non_empty_text(work_unit_basis.get("runtime_health_epoch"))
+                if work_unit_matches
+                else None
+            )
+            or _non_empty_text(basis.get("runtime_health_epoch"))
+            or _non_empty_text(candidate.get("runtime_health_epoch"))
+        ),
     }.items():
         if value is not None:
             basis[key] = value

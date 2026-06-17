@@ -690,6 +690,12 @@ def _closeout_identity(study: Mapping[str, Any]) -> dict[str, Any]:
         or _non_empty_text(current_work_unit.get("owner"))
         or _non_empty_text(envelope.get("owner"))
     )
+    basis = (
+        _mapping(receipt.get("currentness_basis"))
+        or _mapping(current_action.get("owner_route_currentness_basis"))
+        or _mapping(current_action.get("currentness_basis"))
+        or _mapping(current_work_unit.get("currentness_basis"))
+    )
     return {
         key: value
         for key, value in {
@@ -699,6 +705,7 @@ def _closeout_identity(study: Mapping[str, Any]) -> dict[str, Any]:
             "action_fingerprint": _non_empty_text(receipt.get("action_fingerprint")),
             "dispatch_path": _non_empty_text(receipt.get("dispatch_path")),
             "dispatch_ref": _non_empty_text(receipt.get("dispatch_ref")),
+            "currentness_basis": dict(basis) if basis else None,
             "owner": owner,
             "next_executable_owner": owner,
         }.items()

@@ -324,9 +324,9 @@ def test_materialized_currentness_ignores_study_root_closeout_without_native_cur
     assert result["transition_request_candidates"][0]["work_unit_fingerprint"] == action_fingerprint
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
-    assert result["stage_route_arbiter_decisions"][0]["decision"] == "pending_provider_admission"
+    assert result["stage_route_arbiter_decisions"][0]["decision"] == "opl_transition_readback_required"
     assert result["action_queue"][0]["status"] == "transition_request_pending"
 
 
@@ -718,7 +718,7 @@ def test_domain_health_diagnostic_retains_pending_over_stale_authorization_close
     assert control["provider_admission_pending_count"] == 0
     assert control["transition_request_pending_count"] == 1
     assert control["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
 
 from .provider_admission_report_stale_currentness_cases import *  # noqa: F403,F401,E402

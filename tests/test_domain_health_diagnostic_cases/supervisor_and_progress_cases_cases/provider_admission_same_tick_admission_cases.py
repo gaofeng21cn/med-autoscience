@@ -229,6 +229,7 @@ def test_domain_health_diagnostic_keeps_same_tick_provider_admission_closed_with
     decision = current_control_state["stage_route_arbiter_decisions"][0]
     assert decision["decision"] == "weak_provider_admission_identity"
     assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["same_tick_materialization_source"] == "same_tick_terminal_handoff"
     assert decision["missing_identity_fields"] == ["stage_packet_ref_or_refs"]
     latest_payload = json.loads(
         module.supervision_surfaces.latest_path(profile).read_text(encoding="utf-8")

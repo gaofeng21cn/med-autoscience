@@ -50,6 +50,10 @@ def candidate_with_opl_transition_request(
     )
     payload["provider_admission_pending"] = has_readback
     payload["provider_admission_requires_opl_runtime_result"] = not has_readback
+    payload.setdefault(
+        "status",
+        "provider_admission_pending" if has_readback else "transition_request_pending",
+    )
     if not has_readback:
         payload["provider_attempt_or_lease_required"] = False
     return payload

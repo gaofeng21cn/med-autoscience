@@ -242,7 +242,7 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
     assert result["managed_study_opl_provider_admission_candidates"] == []
     candidate = result["managed_study_opl_transition_request_candidates"][0]
     assert candidate["status"] == "transition_request_pending"
-    assert candidate["source"] == "default_executor_execution"
+    assert candidate["source"] == "owner_callable_adapter_receipt"
     assert candidate["study_id"] == study_id
     assert candidate["action_type"] == "complete_medical_paper_readiness_surface"
     assert candidate["work_unit_id"] == "complete_medical_paper_readiness_surface"

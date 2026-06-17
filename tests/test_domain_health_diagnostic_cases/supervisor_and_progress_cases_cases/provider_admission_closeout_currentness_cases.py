@@ -197,13 +197,119 @@ def test_materialized_current_control_retains_record_only_closeout_without_curre
     assert len(result["action_queue"]) == 1
     assert result["action_queue"][0]["status"] == "transition_request_pending"
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "pending_provider_admission"
-    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["decision"] == "opl_transition_readback_required"
+    assert decision["effect"] == "suppress_provider_admission_pending"
     assert decision["work_unit_id"] == work_unit_id
     assert decision["work_unit_fingerprint"] == fingerprint
+
+
+def test_materialized_current_control_retains_request_over_closeout_missing_current_source_eval(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    dispatch_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_dispatches/run_quality_repair_batch.json"
+    )
+    identity_key = f"paper-recovery::{study_id}::run_quality_repair_batch::{fingerprint}"
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "transition_request_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "dispatch_ref": dispatch_ref,
+        "stage_packet_ref": dispatch_ref,
+        "stage_packet_refs": [dispatch_ref],
+        "route_identity_key": identity_key,
+        "attempt_idempotency_key": identity_key,
+        "next_executable_owner": "write",
+        "required_output_surface": "canonical manuscript story-surface delta",
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "provider_completion_is_domain_completion": False,
+        "currentness_basis": {
+            "source_eval_id": (
+                "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                "ai-reviewer-record::20260616T042403Z::sat_07183cd27fc9f913b03dfcee"
+            ),
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+            "runtime_health_epoch": "runtime-health-event-006980-c004aeb3b04b4dc7",
+        },
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-17T17:30:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "active",
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "accepted_closeout_evidence": [
+                    {
+                        "surface_kind": "stage_attempt_closeout_packet",
+                        "status": "accepted_typed_closeout",
+                        "execution_status": "executed",
+                        "stage_attempt_id": "sat_old_missing_source_eval",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "idempotency_key": identity_key,
+                        "owner_route_currentness_basis": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "truth_epoch": fingerprint,
+                            "runtime_health_epoch": fingerprint,
+                        },
+                        "typed_blocker": {
+                            "surface_kind": "mas_domain_typed_blocker",
+                            "blocker_id": "unsupported_dispatch_surface",
+                            "owner": "one-person-lab",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                        },
+                    }
+                ],
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    [candidate_out] = result["transition_request_candidates"]
+    assert candidate_out["currentness_basis"]["source_eval_id"].startswith("publication-eval::003")
+    assert candidate_out["currentness_basis"]["truth_epoch"] == "truth-event-000035-39f0b8e96689a623"
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "opl_transition_readback_required": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "opl_transition_readback_required"
+    assert decision["effect"] == "suppress_provider_admission_pending"
 
 
 def test_materialized_current_control_prefers_terminal_closeout_over_stale_running_projection_from_evidence_list(
@@ -674,10 +780,10 @@ def test_report_current_control_retains_dm002_current_pending_over_stale_anti_lo
     assert len(result["action_queue"]) == 1
     assert result["action_queue"][0]["status"] == "transition_request_pending"
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "pending_provider_admission"
-    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["decision"] == "opl_transition_readback_required"
+    assert decision["effect"] == "suppress_provider_admission_pending"
     assert decision["work_unit_id"] == work_unit_id
     assert decision["work_unit_fingerprint"] == fingerprint

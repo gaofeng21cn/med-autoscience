@@ -9,6 +9,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
     _study_current_action_for_provider_admission,
 )
+from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
 def same_tick_candidate_with_stage_run_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
@@ -83,6 +84,20 @@ def same_tick_progress_current_actions(
         current_work_unit_basis = _mapping(current_work_unit.get("currentness_basis"))
         next_action = _mapping(current.get("next_action"))
         repair_precedence = _mapping(current.get("repair_progress_precedence"))
+        current_action_basis = owner_route_attempt_protocol.normalize_currentness_sources(
+            _mapping(current.get("currentness_basis")),
+            _mapping(current.get("owner_route_currentness_basis")),
+            {
+                "source_eval_id": current.get("source_eval_id"),
+                "source_fingerprint": current.get("source_fingerprint"),
+                "work_unit_id": current.get("work_unit_id") or next_action.get("action_id"),
+                "work_unit_fingerprint": current.get("work_unit_fingerprint")
+                or current.get("action_fingerprint"),
+                "action_fingerprint": current.get("action_fingerprint")
+                or current.get("work_unit_fingerprint"),
+            },
+            current_work_unit_basis,
+        )
         allowed_actions = same_tick_text_items(current.get("allowed_actions"))
         explicit_fingerprints = same_tick_text_items(
             [
@@ -148,6 +163,7 @@ def same_tick_progress_current_actions(
             ),
             "work_unit_id": _non_empty_text(current.get("work_unit_id"))
             or _non_empty_text(next_action.get("action_id")),
+            "currentness_basis": current_action_basis or None,
             "explicit_fingerprints": _same_tick_current_action_fingerprints(
                 current=current,
                 work_unit_id=(
