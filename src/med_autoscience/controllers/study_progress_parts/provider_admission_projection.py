@@ -7,6 +7,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts import provider_
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     has_opl_transition_readback as _has_opl_transition_readback,
 )
+from med_autoscience.controllers.current_work_unit import action_supersedes_typed_blocker
 
 from .paper_autonomy_supervisor_decision import (
     provider_admission_supervisor_gate,
@@ -172,6 +173,12 @@ def _handoff_typed_blocker_consumes_current_action(
         typed_blocker = _mapping_copy(handoff_envelope.get("typed_blocker"))
     if not typed_blocker:
         return False
+    if action_supersedes_typed_blocker(
+        action=current_action,
+        blocker=typed_blocker,
+        progress=payload,
+    ):
+        return False
     return _same_action_identity(current_work_unit, typed_blocker) or _same_action_identity(
         current_action,
         typed_blocker,
@@ -232,7 +239,11 @@ def _study_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[s
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if not current_action:
         return {}
-    currentness_basis = _mapping_copy(current_work_unit.get("currentness_basis"))
+    currentness_basis = _provider_admission_currentness_basis(
+        payload=payload,
+        current_action=current_action,
+        current_work_unit=current_work_unit,
+    )
     study_id = _non_empty_text(payload.get("study_id")) or _non_empty_text(current_work_unit.get("study_id"))
     work_unit_id = _non_empty_text(current_work_unit.get("work_unit_id")) or _non_empty_text(
         current_action.get("work_unit_id")
@@ -249,6 +260,7 @@ def _study_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[s
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": action_fingerprint,
+            "mas_owner_action_source": _non_empty_text(current_action.get("source")),
             "owner_route_currentness_basis": currentness_basis or None,
         }.items()
         if value not in (None, "", [], {})
@@ -259,6 +271,7 @@ def _study_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[s
         "current_work_unit": current_work_unit,
         "current_execution_envelope": _mapping_copy(payload.get("current_execution_envelope")),
         "current_executable_owner_action": current_action,
+        "mas_owner_action_source": _non_empty_text(current_action.get("source")),
         "owner_route": {
             "next_owner": _non_empty_text(current_action.get("next_owner"))
             or _non_empty_text(current_work_unit.get("owner")),
@@ -282,3 +295,44 @@ def _text_list(value: object) -> list[str]:
         if text is not None and text not in items:
             items.append(text)
     return items
+
+
+def _provider_admission_currentness_basis(
+    *,
+    payload: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+) -> dict[str, Any]:
+    generated_at = _non_empty_text(payload.get("study_progress_generated_at")) or _non_empty_text(
+        payload.get("generated_at")
+    )
+    basis = {
+        **_mapping_copy(current_work_unit.get("currentness_basis")),
+        **_mapping_copy(current_action.get("currentness_basis")),
+        **_mapping_copy(current_action.get("owner_route_currentness_basis")),
+    }
+    source = _non_empty_text(current_action.get("source"))
+    basis = {
+        **basis,
+        "source": _non_empty_text(basis.get("source")) or source,
+        "mas_owner_action_source": _non_empty_text(basis.get("mas_owner_action_source")) or source,
+        "source_eval_id": _non_empty_text(basis.get("source_eval_id"))
+        or _non_empty_text(current_action.get("source_eval_id")),
+        "source_ref": _non_empty_text(basis.get("source_ref")) or _non_empty_text(current_action.get("source_ref")),
+        "source_surface": _non_empty_text(basis.get("source_surface"))
+        or _non_empty_text(current_action.get("source_surface")),
+        "work_unit_id": _non_empty_text(basis.get("work_unit_id"))
+        or _non_empty_text(current_work_unit.get("work_unit_id"))
+        or _non_empty_text(current_action.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(basis.get("work_unit_fingerprint"))
+        or _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+        or _non_empty_text(current_action.get("work_unit_fingerprint"))
+        or _non_empty_text(current_action.get("action_fingerprint")),
+        "truth_epoch": _non_empty_text(basis.get("truth_epoch"))
+        or _non_empty_text(current_action.get("truth_epoch"))
+        or generated_at,
+        "runtime_health_epoch": _non_empty_text(basis.get("runtime_health_epoch"))
+        or _non_empty_text(current_action.get("runtime_health_epoch"))
+        or generated_at,
+    }
+    return {key: value for key, value in basis.items() if value not in (None, "", [], {})}

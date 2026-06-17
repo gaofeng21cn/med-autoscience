@@ -678,6 +678,11 @@ def test_existing_projection_refresh_materializes_recovery_successor_after_consu
         study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
     )
     gate_ref = str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json")
+    _write_ready_quality_repair_dispatch(
+        study_root,
+        study_id=study_id,
+        fingerprint=repair_fingerprint,
+    )
 
     result = module.refresh_existing_projection_current_owner_surfaces(
         payload={
