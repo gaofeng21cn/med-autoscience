@@ -124,6 +124,15 @@ def test_runtime_health_treats_opl_provider_attempt_as_live_worker_signal(tmp_pa
     assert snapshot["canonical_runtime_action"] == "continue_supervising_runtime"
     assert snapshot["projection_role"] == "mas_runtime_health_diagnostic_publisher"
     assert snapshot["authority"] is False
+    projection_metadata = snapshot["projection_metadata"]
+    assert projection_metadata["surface_kind"] == "runtime_health_diagnostic_projection_metadata"
+    assert projection_metadata["authority"] is False
+    assert projection_metadata["fixed_point_runtime_owner"] == "one-person-lab"
+    assert projection_metadata["derived_from_event_id"] == snapshot["runtime_health_epoch"]
+    assert projection_metadata["observed_generation"] == snapshot["source_signature"]
+    assert projection_metadata["lag_status"] == "current"
+    assert projection_metadata["runtime_health_epoch_is_currentness_authority"] is False
+    assert projection_metadata["diagnostic_publisher_only"] is True
     assert snapshot["source_of_truth_chain"] == [
         "DomainIntent",
         "OPL Command/Event/Outbox/StageRun",
@@ -143,11 +152,19 @@ def test_runtime_health_treats_opl_provider_attempt_as_live_worker_signal(tmp_pa
     assert boundary["canonical_runtime_action_is_authority"] is False
     assert boundary["attempt_state_is_lifecycle_authority"] is False
     assert boundary["worker_liveness_is_residency_authority"] is False
+    assert boundary["can_authorize_running_progress"] is False
+    assert snapshot["projection_only"] is True
+    assert snapshot["read_only_diagnostic_projection"] is True
+    assert snapshot["body_free_diagnostic_projection"] is True
+    assert snapshot["runtime_liveness_authority"] is False
+    assert snapshot["reconcile_authority"] is False
+    assert snapshot["supervisor_currentness_authority"] is False
     assert snapshot["canonical_runtime_action_is_authority"] is False
     assert snapshot["allowed_controller_actions_are_authority"] is False
     assert snapshot["runtime_action_hint"] == snapshot["canonical_runtime_action"]
     assert snapshot["runtime_action_hint_is_authority"] is False
-    assert snapshot["allowed_controller_action_hints"] == snapshot["allowed_controller_actions"]
+    assert snapshot["allowed_controller_actions"] == ["read_runtime_status", "open_monitoring_entry"]
+    assert snapshot["allowed_controller_action_hints"] != snapshot["allowed_controller_actions"]
     assert snapshot["allowed_controller_action_hints_are_authority"] is False
     assert snapshot["opl_observability_readback_required"] is True
     assert snapshot["opl_current_control_or_stage_run_readback_required"] is True
@@ -192,6 +209,13 @@ def test_runtime_health_attempt_retry_and_action_fields_are_diagnostic_hints(tmp
     assert snapshot["retry_budget_remaining_hint_is_lifecycle_authority"] is False
     assert snapshot["canonical_runtime_action_is_authority"] is False
     assert snapshot["provider_admission_authority"] is False
+    assert snapshot["provider_admission_pending_count"] == 0
+    assert snapshot["provider_admission_candidates"] == []
+    assert snapshot["current_executable_owner_action"] is None
+    assert snapshot["current_executable_owner_action_authority"] is False
+    assert snapshot["running_progress_claim_authority"] is False
+    assert snapshot["can_generate_next_action_authority"] is False
+    assert snapshot["can_authorize_running_progress"] is False
     assert snapshot["can_create_worker_attempt"] is False
     assert snapshot["can_retry_or_dead_letter"] is False
 
@@ -485,7 +509,8 @@ def test_runtime_health_provider_ready_supervisor_tick_starts_new_recovery_budge
     assert snapshot["canonical_runtime_action"] == "recover_runtime"
     assert snapshot["retry_budget_remaining"] == 2
     assert "runtime_recovery_retry_budget_exhausted" not in snapshot["blocking_reasons"]
-    assert "recover_runtime" in snapshot["allowed_controller_actions"]
+    assert "recover_runtime" in snapshot["allowed_controller_action_hints"]
+    assert "recover_runtime" not in snapshot["allowed_controller_actions"]
 
 
 def test_runtime_health_provider_ready_handoff_starts_new_recovery_budget_epoch(tmp_path: Path) -> None:
@@ -551,7 +576,8 @@ def test_runtime_health_provider_ready_handoff_starts_new_recovery_budget_epoch(
     assert snapshot["canonical_runtime_action"] == "recover_runtime"
     assert snapshot["retry_budget_remaining"] == 2
     assert "runtime_recovery_retry_budget_exhausted" not in snapshot["blocking_reasons"]
-    assert "recover_runtime" in snapshot["allowed_controller_actions"]
+    assert "recover_runtime" in snapshot["allowed_controller_action_hints"]
+    assert "recover_runtime" not in snapshot["allowed_controller_actions"]
 
 
 def test_runtime_health_zero_retry_budget_escalates_stopped_controller_guard_recovery_path(tmp_path: Path) -> None:
@@ -795,6 +821,13 @@ def test_runtime_health_reconcile_materializes_snapshot_from_status_payload(tmp_
     persisted = json.loads(snapshot_path.read_text(encoding="utf-8"))
     assert result["runtime_health_epoch"] == persisted["runtime_health_epoch"]
     assert persisted["canonical_runtime_action"] == "recover_runtime"
+    assert result["appended_event_count"] == 0
+    assert result["suppressed_local_runtime_event_persistence"] is True
+    assert persisted["suppressed_local_runtime_event_persistence"] is True
+    assert module.read_runtime_health_events(study_root=study_root) == []
+    assert persisted["projection_metadata"]["authority"] is False
+    assert persisted["projection_metadata"]["lag_status"] == "current"
+    assert persisted["projection_metadata"]["derived_from_event_id"] == persisted["runtime_health_epoch"]
 
 
 def test_runtime_health_treats_strict_live_activity_timeout_as_recovery(tmp_path: Path) -> None:
@@ -1001,7 +1034,7 @@ def test_runtime_health_uses_status_observation_time_for_new_run_grace(tmp_path:
     assert "same_fingerprint_loop" not in snapshot["blocking_reasons"]
 
 
-def test_runtime_health_reconcile_ignores_volatile_watchdog_seconds_for_deduplication(tmp_path: Path) -> None:
+def test_runtime_health_reconcile_publishes_projection_without_persisting_liveness_events(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dm-cvd"
     status_payload = {
@@ -1047,12 +1080,16 @@ def test_runtime_health_reconcile_ignores_volatile_watchdog_seconds_for_deduplic
         recorded_at="2026-05-01T00:05:00+00:00",
     )
 
-    assert first["appended_event_count"] == 2
+    assert first["appended_event_count"] == 0
+    assert first["suppressed_local_runtime_event_persistence"] is True
+    assert first["suppressed_transient_event_count"] == 2
+    assert module.read_runtime_health_events(study_root=study_root) == []
     assert second["appended_event_count"] == 0
+    assert second["suppressed_local_runtime_event_persistence"] is True
     assert second["snapshot"]["attempt_count"] == 0
 
 
-def test_runtime_health_reconcile_deduplicates_opl_proof_backed_lifecycle_events(tmp_path: Path) -> None:
+def test_runtime_health_reconcile_suppresses_opl_proof_backed_lifecycle_event_persistence(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dm-cvd"
     status_payload = {
@@ -1099,6 +1136,11 @@ def test_runtime_health_reconcile_deduplicates_opl_proof_backed_lifecycle_events
         recorded_at="2026-05-01T00:05:00+00:00",
     )
 
-    assert first["appended_event_count"] == 3
+    assert first["appended_event_count"] == 0
+    assert first["suppressed_local_runtime_event_persistence"] is True
+    assert first["suppressed_transient_event_count"] == 3
+    assert "recover_attempt" in first["suppressed_transient_event_types"]
+    assert module.read_runtime_health_events(study_root=study_root) == []
     assert second["appended_event_count"] == 0
+    assert second["suppressed_local_runtime_event_persistence"] is True
     assert second["snapshot"]["attempt_count"] == 1

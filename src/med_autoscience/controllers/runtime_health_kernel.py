@@ -69,6 +69,10 @@ _BASE_ALLOWED_ACTIONS = (
     "open_monitoring_entry",
     "manual_runtime_review",
 )
+_READ_ONLY_DIAGNOSTIC_ACTIONS = (
+    "read_runtime_status",
+    "open_monitoring_entry",
+)
 _VOLATILE_SUPERVISOR_KEYS = frozenset(
     {
         "age_seconds",
@@ -124,6 +128,7 @@ RUNTIME_HEALTH_AUTHORITY_BOUNDARY = {
     "attempt_state_is_lifecycle_authority": False,
     "retry_budget_is_lifecycle_authority": False,
     "worker_liveness_is_residency_authority": False,
+    "can_authorize_running_progress": False,
 }
 
 
@@ -635,9 +640,28 @@ def _diagnostic_hint_contract(
         "can_generate_next_action_authority": False,
         "can_create_worker_attempt": False,
         "can_retry_or_dead_letter": False,
+        "can_authorize_running_progress": False,
         "opl_observability_readback_required": True,
         "opl_current_control_or_stage_run_readback_required": True,
         "mas_private_attempt_loop_forbidden": True,
+    }
+
+
+def _projection_metadata(
+    *,
+    dominant_event: Mapping[str, Any] | None,
+    source_signature: str | None,
+) -> dict[str, Any]:
+    derived_from_event_id = _text(dominant_event.get("event_id")) if dominant_event is not None else None
+    return {
+        "surface_kind": "runtime_health_diagnostic_projection_metadata",
+        "authority": False,
+        "fixed_point_runtime_owner": "one-person-lab",
+        "derived_from_event_id": derived_from_event_id,
+        "observed_generation": source_signature,
+        "lag_status": "current" if derived_from_event_id is not None and source_signature is not None else "empty",
+        "runtime_health_epoch_is_currentness_authority": False,
+        "diagnostic_publisher_only": True,
     }
 
 
@@ -729,13 +753,29 @@ def _snapshot_from_events(
     allowed_controller_action_hints = _allowed_controller_actions(
         canonical_runtime_action=canonical_runtime_action
     )
+    source_signature = _snapshot_source_signature(events)
+    projection_metadata = _projection_metadata(
+        dominant_event=dominant,
+        source_signature=source_signature,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "surface": "runtime_health_snapshot",
         "projection_role": "mas_runtime_health_diagnostic_publisher",
         "authority": False,
+        "projection_metadata": projection_metadata,
         "source_of_truth_chain": list(SOURCE_OF_TRUTH_CHAIN),
         "authority_boundary": dict(RUNTIME_HEALTH_AUTHORITY_BOUNDARY),
+        "surface_role": "mas_runtime_health_read_only_diagnostic_projection",
+        "projection_only": True,
+        "read_only_diagnostic_projection": True,
+        "body_free_diagnostic_projection": True,
+        "runtime_liveness_authority": False,
+        "reconcile_authority": False,
+        "supervisor_currentness_authority": False,
+        "attempt_lifecycle_authority": False,
+        "retry_or_dead_letter_authority": False,
+        "worker_residency_authority": False,
         "study_id": study_id,
         "quest_id": quest_id,
         "study_root": str(Path(study_root).expanduser().resolve()),
@@ -773,6 +813,13 @@ def _snapshot_from_events(
         "retry_budget_remaining_hint": retry_budget_remaining,
         "retry_budget_remaining_hint_is_lifecycle_authority": False,
         "provider_admission_authority": False,
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "current_executable_owner_action": None,
+        "current_executable_owner_action_authority": False,
+        "running_progress_claim_authority": False,
+        "can_generate_next_action_authority": False,
+        "can_authorize_running_progress": False,
         "can_create_worker_attempt": False,
         "can_retry_or_dead_letter": False,
         "allowed_controller_action_hints": list(allowed_controller_action_hints),
@@ -783,7 +830,7 @@ def _snapshot_from_events(
         "canonical_runtime_action": canonical_runtime_action,
         "canonical_runtime_action_is_authority": False,
         "blocking_reasons": blocking_reasons,
-        "allowed_controller_actions": list(allowed_controller_action_hints),
+        "allowed_controller_actions": list(_READ_ONLY_DIAGNOSTIC_ACTIONS),
         "allowed_controller_actions_are_authority": False,
         "dominant_runtime_refs": [_authority_ref(dominant)] if dominant is not None else [],
         "projection_invalidations": _projection_invalidations(
@@ -792,7 +839,7 @@ def _snapshot_from_events(
             strict_live=strict_live,
             last_known_run_id=last_known_run_id,
         ),
-        "source_signature": _snapshot_source_signature(events),
+        "source_signature": source_signature,
         "writer_epoch": _text(runtime_payload.get("writer_epoch")) or (
             f"writer::{active_run_id}" if active_run_id is not None else None
         ),
@@ -882,17 +929,7 @@ def reconcile_runtime_health_snapshot_from_status_payload(
     status_payload: Mapping[str, Any],
     recorded_at: str,
 ) -> dict[str, Any]:
-    path = runtime_health_events_path(study_root=study_root)
-    persisted_events = event_log.read_jsonl(path)
-    persisted_for_quest = [
-        event
-        for event in persisted_events
-        if event.get("study_id") == study_id and event.get("quest_id") == quest_id
-    ]
-    seen = {
-        (str(event.get("event_type") or ""), _source_signature_for_event(event))
-        for event in persisted_for_quest
-    }
+    persisted_event_count = len(read_runtime_health_events(study_root=study_root))
     transient_events = status_payload_events.status_payload_runtime_health_events(
         schema_version=SCHEMA_VERSION,
         recovery_decisions=_RECOVERY_DECISIONS,
@@ -901,7 +938,7 @@ def reconcile_runtime_health_snapshot_from_status_payload(
         quest_id=quest_id,
         status_payload=status_payload,
         recorded_at=recorded_at,
-        first_sequence=len(persisted_events),
+        first_sequence=persisted_event_count,
         read_json=_read_json,
         mapping=_mapping,
         text=_text,
@@ -909,41 +946,54 @@ def reconcile_runtime_health_snapshot_from_status_payload(
         stable_runtime_audit=_stable_runtime_audit,
         stable_runtime_liveness_audit=_stable_runtime_liveness_audit,
     )
-    appended: list[dict[str, Any]] = []
-    for event in transient_events:
-        event_type = str(event.get("event_type") or "").strip()
-        payload = _mapping(event.get("payload"))
-        source_signature = _source_signature_for_event(event)
-        key = (event_type, source_signature)
-        if key in seen:
-            continue
-        appended.append(
-            append_runtime_health_event(
-                study_root=study_root,
-                study_id=study_id,
-                quest_id=quest_id,
-                event_type=event_type,
-                payload=payload,
-                recorded_at=_text(event.get("recorded_at")) or recorded_at,
-                source_signature=source_signature,
-            )
-        )
-        seen.add(key)
-    snapshot_path = materialize_runtime_health_snapshot(
+    snapshot = derive_runtime_health_snapshot_from_status_payload(
         study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
+        status_payload=status_payload,
+        recorded_at=recorded_at,
     )
-    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    snapshot["publisher_mode"] = "read_only_diagnostic_projection"
+    snapshot["local_runtime_reconcile_authority"] = False
+    snapshot["local_runtime_liveness_authority"] = False
+    snapshot["suppressed_local_runtime_event_persistence"] = True
+    snapshot["suppressed_transient_event_count"] = len(transient_events)
+    snapshot["suppressed_transient_event_types"] = [
+        str(event.get("event_type") or "").strip()
+        for event in transient_events
+        if str(event.get("event_type") or "").strip()
+    ]
+    snapshot_path = runtime_health_snapshot_path(study_root=study_root)
+    snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+    snapshot_path.write_text(
+        json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     return {
         "surface": "runtime_health_reconcile_result",
+        "surface_role": "mas_runtime_health_read_only_diagnostic_publish_result",
+        "projection_only": True,
+        "read_only_diagnostic_projection": True,
+        "body_free_diagnostic_projection": True,
+        "runtime_liveness_authority": False,
+        "reconcile_authority": False,
+        "attempt_lifecycle_authority": False,
+        "retry_or_dead_letter_authority": False,
+        "worker_residency_authority": False,
         "study_id": study_id,
         "quest_id": quest_id,
         "snapshot_path": str(snapshot_path),
         "runtime_health_epoch": _text(snapshot.get("runtime_health_epoch")),
         "source_signature": _text(snapshot.get("source_signature")),
         "writer_epoch": _text(snapshot.get("writer_epoch")),
-        "appended_event_count": len(appended),
-        "appended_event_ids": [event["event_id"] for event in appended],
+        "appended_event_count": 0,
+        "appended_event_ids": [],
+        "suppressed_local_runtime_event_persistence": True,
+        "suppressed_transient_event_count": len(transient_events),
+        "suppressed_transient_event_types": [
+            str(event.get("event_type") or "").strip()
+            for event in transient_events
+            if str(event.get("event_type") or "").strip()
+        ],
         "snapshot": snapshot,
     }
