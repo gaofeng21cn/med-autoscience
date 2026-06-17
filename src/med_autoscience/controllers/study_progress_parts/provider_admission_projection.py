@@ -5,6 +5,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback as _candidate_opl_transition_readback,
     has_opl_transition_readback as _has_opl_transition_readback,
     opl_transition_readback_from_log_file as _opl_transition_readback_from_log_file,
 )
@@ -20,7 +21,8 @@ _REQUEST_ONLY_OWNER_ACTION_SOURCES = {
     "gate_clearing_batch_followthrough.actionable_current_work_unit",
     "paper_recovery_state.next_safe_action.successor_owner_action",
 }
-_OPL_TRANSITION_READBACK_SOURCE = "opl_domain_progress_transition_runtime_log"
+_OPL_TRANSITION_LIVE_READBACK_SOURCE = "opl_domain_progress_transition_runtime_live_readback"
+_OPL_TRANSITION_LOG_READBACK_SOURCE = "opl_domain_progress_transition_runtime_log"
 
 
 def provider_admission_projection_fields(
@@ -98,7 +100,10 @@ def provider_admission_projection_fields(
 
 
 def _request_only_owner_action_candidate(candidate: Mapping[str, Any]) -> bool:
-    if _non_empty_text(candidate.get("opl_transition_readback_source")) == _OPL_TRANSITION_READBACK_SOURCE:
+    if _non_empty_text(candidate.get("opl_transition_readback_source")) in {
+        _OPL_TRANSITION_LIVE_READBACK_SOURCE,
+        _OPL_TRANSITION_LOG_READBACK_SOURCE,
+    }:
         return False
     basis = _mapping_copy(candidate.get("currentness_basis"))
     source_refs = _mapping_copy(candidate.get("source_refs"))
@@ -117,6 +122,14 @@ def _candidate_with_opl_runtime_readback(
     study_root: Path,
 ) -> dict[str, Any]:
     payload = dict(candidate)
+    inline_readback = _candidate_opl_transition_readback(payload)
+    if inline_readback:
+        payload["opl_transition_readback_source"] = _opl_transition_readback_source(inline_readback)
+        payload["status"] = "provider_admission_pending"
+        payload["provider_admission_pending"] = True
+        payload["provider_attempt_or_lease_required"] = True
+        payload["provider_admission_requires_opl_runtime_result"] = False
+        return payload
     request = _transition_request(payload)
     idempotency_key = _non_empty_text(request.get("idempotency_key"))
     study_id = _non_empty_text(payload.get("study_id")) or _non_empty_text(request.get("study_id"))
@@ -128,13 +141,6 @@ def _candidate_with_opl_runtime_readback(
         or _non_empty_text(payload.get("action_fingerprint"))
         or _non_empty_text(request.get("work_unit_fingerprint"))
     )
-    if _has_opl_transition_readback(payload) and (
-        idempotency_key is None
-        or study_id is None
-        or work_unit_id is None
-        or work_unit_fingerprint is None
-    ):
-        return payload
     if (
         idempotency_key is None
         or study_id is None
@@ -152,12 +158,18 @@ def _candidate_with_opl_runtime_readback(
     if not readback:
         return payload
     payload["opl_domain_progress_transition_result"] = readback
-    payload["opl_transition_readback_source"] = _OPL_TRANSITION_READBACK_SOURCE
+    payload["opl_transition_readback_source"] = _opl_transition_readback_source(readback)
     payload["status"] = "provider_admission_pending"
     payload["provider_admission_pending"] = True
     payload["provider_attempt_or_lease_required"] = True
     payload["provider_admission_requires_opl_runtime_result"] = False
     return payload
+
+
+def _opl_transition_readback_source(readback: Mapping[str, Any]) -> str:
+    if _non_empty_text(readback.get("surface_kind")) == "opl_domain_progress_transition_result":
+        return _OPL_TRANSITION_LOG_READBACK_SOURCE
+    return _OPL_TRANSITION_LIVE_READBACK_SOURCE
 
 
 def _transition_request(candidate: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -187,6 +199,8 @@ def _transition_request_only_candidate(candidate: Mapping[str, Any]) -> dict[str
     payload = dict(candidate)
     for key in (
         "opl_domain_progress_transition_result",
+        "opl_domain_progress_transition_live_readback",
+        "opl_domain_progress_transition_runtime_live_readback",
         "opl_domain_progress_runtime_result",
         "opl_runtime_result",
     ):

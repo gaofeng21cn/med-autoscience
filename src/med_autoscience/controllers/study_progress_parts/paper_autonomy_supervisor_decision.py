@@ -41,7 +41,7 @@ _STAGE_RUN_EVIDENCE_MARKERS = (
     "provider_attempt",
     "workflow",
 )
-_OPL_TRANSITION_READBACK_SOURCE = "opl_domain_progress_transition_runtime_log"
+_OPL_TRANSITION_READBACK_SOURCE = "opl_domain_progress_transition_runtime_live_readback"
 
 
 def supervisor_decision_for_projection(
@@ -146,7 +146,7 @@ def _supervisor_decision_allows_provider_admission_materialization(
     if _text(supervisor_decision.get("decision")) != "materialize_recovery_action":
         return False
     recovery = _mapping(paper_recovery_state) or _mapping(payload.get("paper_recovery_state"))
-    if _payload_has_opl_transition_runtime_log_readback(
+    if _payload_has_bound_opl_transition_readback(
         payload,
         supervisor_decision=supervisor_decision,
     ):
@@ -168,14 +168,14 @@ def _supervisor_decision_allows_provider_admission_materialization(
     }
 
 
-def _payload_has_opl_transition_runtime_log_readback(
+def _payload_has_bound_opl_transition_readback(
     payload: Mapping[str, Any],
     *,
     supervisor_decision: Mapping[str, Any],
 ) -> bool:
     obligation = _mapping(supervisor_decision.get("paper_autonomy_obligation"))
     return any(
-        _candidate_has_matching_runtime_log_readback(
+        _candidate_has_matching_opl_readback(
             item,
             obligation=obligation,
         )
@@ -185,7 +185,7 @@ def _payload_has_opl_transition_runtime_log_readback(
     )
 
 
-def _candidate_has_matching_runtime_log_readback(
+def _candidate_has_matching_opl_readback(
     candidate: Mapping[str, Any],
     *,
     obligation: Mapping[str, Any],

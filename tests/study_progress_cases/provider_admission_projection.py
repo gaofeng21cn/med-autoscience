@@ -3,6 +3,9 @@ from __future__ import annotations
 import importlib
 import json
 
+from tests.provider_admission_current_control_helpers import (
+    opl_transition_readback,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 from .shared import _write_json
@@ -16,60 +19,15 @@ def _opl_transition_result(
     stage_run_id: str = "stage-run-provider-admission",
 ) -> dict[str, object]:
     route_key = f"provider-admission::{study_id}::{fingerprint}"
-    return {
-        "surface_kind": "opl_domain_progress_transition_result",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "DomainProgressTransitionRuntime",
-        "transition_kind": "StartProviderAttempt",
-        "outcome_kind": "provider_admission_pending",
-        "event_id": f"opl-domain-progress-event::{study_id}::{fingerprint}",
-        "outbox_item_id": f"opl-domain-progress-outbox::{study_id}::{fingerprint}",
-        "stage_run_identity": {
-            "stage_run_id": stage_run_id,
-            "stage_run_identity_ref": f"stage-run-identity::{study_id}::{fingerprint}",
-            "observed_generation": fingerprint,
-        },
-        "identity": {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": fingerprint,
-            "route_identity_key": route_key,
-            "attempt_idempotency_key": route_key,
-        },
-        "causality": {
-            "mas_transition_request_idempotency_key": route_key,
-            "source_generation": fingerprint,
-            "expected_version": fingerprint,
-            "derived_from_request": True,
-        },
-        "authority_boundary": {
-            "runtime_owner": "one-person-lab",
-            "domain_state_owner": "med-autoscience",
-            "mas_can_authorize_provider_admission": False,
-            "mas_can_create_opl_outbox_record": False,
-            "mas_can_create_opl_event": False,
-            "mas_can_create_opl_stage_run": False,
-            "provider_completion_is_domain_completion": False,
-        },
-        "exactly_one_outcome": {
-            "selected": "provider_admission_pending",
-            "allowed": [
-                "provider_admission_pending",
-                "running_provider_attempt",
-                "owner_receipt_ref",
-                "typed_blocker_ref",
-                "human_gate_ref",
-                "route_back_evidence_ref",
-            ],
-        },
-        "projection_metadata": {
-            "authority": False,
-            "projection_owner": "one-person-lab",
-            "consumer": "med-autoscience",
-            "observed_generation": fingerprint,
-        },
-    }
+    return opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+        stage_run_id=stage_run_id,
+    )
 
 
 def _write_ready_quality_repair_dispatch(study_root, *, study_id: str, fingerprint: str) -> None:
@@ -484,7 +442,7 @@ def test_provider_admission_projection_execute_decision_allows_current_candidate
     assert fields["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
 
 
-def test_provider_admission_projection_materialize_recovery_action_allows_log_readback(
+def test_provider_admission_projection_materialize_recovery_action_accepts_opl_log_readback(
     tmp_path,
 ) -> None:
     module = importlib.import_module(
@@ -589,13 +547,14 @@ def test_provider_admission_projection_materialize_recovery_action_allows_log_re
         study_root=study_root,
     )
 
-    assert fields["provider_admission_pending_count"] == 1
+    assert fields["provider_admission_pending_count"] == 0
+    assert fields["provider_admission_candidates"] == []
     assert fields["transition_request_pending_count"] == 0
     assert fields["transition_request_candidates"] == []
-    assert fields.get("provider_admission_blocked_by_supervisor_decision") is None
-    candidate = fields["provider_admission_candidates"][0]
-    assert candidate["opl_transition_readback_source"] == "opl_domain_progress_transition_runtime_log"
-    assert candidate["opl_domain_progress_transition_result"]["event_id"] == "dpte_test_log_readback"
+    assert fields["provider_admission_blocked_by_supervisor_decision"] == {
+        "decision": "materialize_recovery_action",
+        "reason": "paper_autonomy_supervisor_decision_blocks_provider_admission",
+    }
 
 
 def test_provider_admission_projection_materializes_gate_followthrough_owner_action_without_pending_flag(

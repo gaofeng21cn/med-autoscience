@@ -2,39 +2,46 @@ from __future__ import annotations
 
 import importlib
 
+from tests.provider_admission_current_control_helpers import opl_transition_readback
 
-def _trusted_readback() -> dict[str, object]:
+
+STUDY_ID = "003-dpcc-primary-care-phenotype-treatment-gap"
+WORK_UNIT_ID = "medical_prose_write_repair"
+FINGERPRINT = "publication-blockers::0915410f804b3697"
+
+
+def _live_readback() -> dict[str, object]:
+    return opl_transition_readback(
+        STUDY_ID,
+        action_fingerprint=FINGERPRINT,
+        work_unit_id=WORK_UNIT_ID,
+        request_idempotency_key=f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+    )
+
+
+def _legacy_result() -> dict[str, object]:
     return {
         "surface_kind": "opl_domain_progress_transition_result",
         "runtime_owner": "one-person-lab",
         "runtime_kind": "DomainProgressTransitionRuntime",
-        "transition_kind": "StartProviderAttempt",
         "outcome_kind": "provider_admission_pending",
-        "event_id": "opl-domain-progress-event:003-write",
-        "outbox_item_id": "opl-domain-progress-outbox:003-write",
+        "event_id": "legacy-event",
+        "outbox_item_id": "legacy-outbox",
         "stage_run_identity": {
-            "stage_run_id": "sat_003_write",
-            "stage_run_identity_ref": "stage-run-identity:003-write",
-            "observed_generation": "publication-blockers::0915410f804b3697",
+            "stage_run_id": "legacy-stage-run",
+            "observed_generation": FINGERPRINT,
         },
         "identity": {
-            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-            "work_unit_id": "medical_prose_write_repair",
-            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
-            "route_identity_key": (
-                "provider-admission::003-dpcc-primary-care-phenotype-treatment-gap::"
-                "publication-blockers::0915410f804b3697"
-            ),
-            "attempt_idempotency_key": (
-                "provider-admission::003-dpcc-primary-care-phenotype-treatment-gap::"
-                "publication-blockers::0915410f804b3697"
-            ),
+            "study_id": STUDY_ID,
+            "work_unit_id": WORK_UNIT_ID,
+            "work_unit_fingerprint": FINGERPRINT,
+            "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+            "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
         },
         "causality": {
-            "mas_transition_request_idempotency_key": "paper-policy-request:003-write",
-            "source_generation": "publication-blockers::0915410f804b3697",
-            "expected_version": "publication-blockers::0915410f804b3697",
+            "mas_transition_request_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+            "source_generation": FINGERPRINT,
+            "expected_version": FINGERPRINT,
             "derived_from_request": True,
         },
         "authority_boundary": {
@@ -48,73 +55,174 @@ def _trusted_readback() -> dict[str, object]:
         },
         "exactly_one_outcome": {
             "selected": "provider_admission_pending",
-            "allowed": [
-                "provider_admission_pending",
-                "running_provider_attempt",
-                "owner_receipt_ref",
-                "typed_blocker_ref",
-                "human_gate_ref",
-                "route_back_evidence_ref",
-            ],
+            "allowed": ["provider_admission_pending"],
         },
         "projection_metadata": {
             "authority": False,
             "projection_owner": "one-person-lab",
             "consumer": "med-autoscience",
-            "observed_generation": "publication-blockers::0915410f804b3697",
+            "observed_generation": FINGERPRINT,
         },
     }
 
 
-def test_trusted_opl_transition_readback_requires_full_runtime_shape() -> None:
+def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
     )
+    trusted = _live_readback()
 
-    assert module.valid_opl_transition_readback(_trusted_readback()) is True
+    assert module.required_opl_transition_readback_shape()["surface_kind"] == (
+        "opl_domain_progress_transition_runtime_live_readback"
+    )
+    assert module.valid_opl_transition_readback(trusted) is True
+    assert module.candidate_opl_transition_readback(
+        {"opl_domain_progress_transition_live_readback": trusted}
+    ) == trusted
+    assert module.candidate_opl_transition_readback(
+        {"opl_domain_progress_transition_result": trusted}
+    ) == trusted
 
+    incomplete = dict(trusted)
+    incomplete["runtime_readback_status"] = "incomplete_transaction"
+    incomplete["transaction_complete"] = False
+    assert module.valid_opl_transition_readback(incomplete) is False
+
+    missing_outbox = dict(trusted)
+    missing_outbox["latest_transaction_readback"] = {
+        **dict(trusted["latest_transaction_readback"]),
+        "outbox_item_present": False,
+    }
+    assert module.valid_opl_transition_readback(missing_outbox) is False
+
+
+def test_legacy_transition_result_and_bare_projection_are_not_trusted() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+    )
     weak_readback = {
         "runtime_owner": "one-person-lab",
         "runtime_kind": "DomainProgressTransitionRuntime",
         "outcome_kind": "provider_admission_pending",
-        "event_id": "opl-domain-progress-event:003-write",
-        "stage_run_id": "sat_003_write",
+        "event_id": "legacy-event-only",
+        "stage_run_id": "legacy-stage-run-only",
     }
+    legacy_result = _legacy_result()
 
+    assert module.valid_opl_transition_readback(legacy_result) is False
     assert module.valid_opl_transition_readback(weak_readback) is False
     assert module.candidate_opl_transition_readback(
         {
-            "opl_domain_progress_transition_result": weak_readback,
+            "opl_domain_progress_transition_result": legacy_result,
             "deprecated_opl_transition_projection": weak_readback,
         }
     ) == {}
 
 
-def test_provider_admission_requires_structured_opl_readback_not_deprecated_projection() -> None:
+def test_complete_command_event_outbox_log_is_rebuilt_as_log_derived_readback() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+    )
+    idempotency_key = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
+    aggregate_identity = {
+        "aggregate_kind": "study_work_unit",
+        "aggregate_id": f"{STUDY_ID}::{WORK_UNIT_ID}",
+        "study_id": STUDY_ID,
+        "work_unit_id": WORK_UNIT_ID,
+        "work_unit_fingerprint": FINGERPRINT,
+    }
+    stage_run_identity = {
+        "stage_run_id": "stage-run-log-derived",
+        "route_identity_key": idempotency_key,
+        "attempt_idempotency_key": idempotency_key,
+        "source_generation": FINGERPRINT,
+    }
+    entries = [
+        {
+            "entry_kind": "command",
+            "transaction_id": "dptx_log_derived",
+            "idempotency_key": idempotency_key,
+            "aggregate_identity": aggregate_identity,
+            "payload": {
+                "transition_kind": "StartProviderAttempt",
+                "command_id": "dptc_log_derived",
+                "source_generation": FINGERPRINT,
+                "expected_version": FINGERPRINT,
+                "stage_run_identity": stage_run_identity,
+            },
+        },
+        {
+            "entry_kind": "event",
+            "transaction_id": "dptx_log_derived",
+            "idempotency_key": idempotency_key,
+            "aggregate_identity": aggregate_identity,
+            "payload": {
+                "transition_kind": "StartProviderAttempt",
+                "command_id": "dptc_log_derived",
+                "event_id": "dpte_log_derived",
+                "source_generation": FINGERPRINT,
+                "expected_version": FINGERPRINT,
+                "stage_run_identity": stage_run_identity,
+                "outcome": {"kind": "provider_admission_enqueued_or_blocked"},
+            },
+        },
+        {
+            "entry_kind": "outbox_item",
+            "transaction_id": "dptx_log_derived",
+            "idempotency_key": idempotency_key,
+            "aggregate_identity": aggregate_identity,
+            "payload": {
+                "outbox_item_id": "dpto_log_derived",
+                "transition_event_id": "dpte_log_derived",
+                "outbox_kind": "start_provider_attempt",
+                "stage_run_identity": stage_run_identity,
+            },
+        },
+    ]
+
+    readback = module.opl_transition_readback_from_log_entries(
+        entries,
+        idempotency_key=idempotency_key,
+        study_id=STUDY_ID,
+        work_unit_id=WORK_UNIT_ID,
+        work_unit_fingerprint=FINGERPRINT,
+    )
+
+    assert readback["surface_kind"] == "opl_domain_progress_transition_result"
+    assert readback["outcome_kind"] == "provider_admission_pending"
+    assert readback["event_id"] == "dpte_log_derived"
+    assert readback["outbox_item_id"] == "dpto_log_derived"
+    assert readback["causality"]["same_transaction_event_and_outbox"] is True
+    assert module.valid_opl_transition_readback(readback) is True
+
+
+def test_provider_admission_requires_trusted_opl_readback_not_weak_projection() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+    )
     identity = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity"
     )
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    fingerprint = "publication-blockers::0915410f804b3697"
     candidate = {
-        "study_id": study_id,
-        "quest_id": study_id,
+        "study_id": STUDY_ID,
+        "quest_id": STUDY_ID,
         "action_type": "run_quality_repair_batch",
-        "work_unit_id": "medical_prose_write_repair",
-        "work_unit_fingerprint": fingerprint,
-        "action_fingerprint": fingerprint,
+        "work_unit_id": WORK_UNIT_ID,
+        "work_unit_fingerprint": FINGERPRINT,
+        "action_fingerprint": FINGERPRINT,
         "next_executable_owner": "write",
-        "route_identity_key": f"provider-admission::{study_id}::{fingerprint}",
-        "attempt_idempotency_key": f"provider-admission::{study_id}::{fingerprint}",
+        "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
         "opl_domain_progress_transition_request": {
             "surface_kind": "mas_domain_progress_transition_request",
             "target_runtime_owner": "one-person-lab",
             "target_runtime_kind": "DomainProgressTransitionRuntime",
+            "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
             "mas_can_create_opl_outbox_record": False,
             "mas_can_create_opl_event": False,
             "mas_can_create_opl_stage_run": False,
         },
-        "deprecated_opl_transition_projection": {
+        "opl_domain_progress_transition_result": {
             "runtime_owner": "one-person-lab",
             "runtime_kind": "DomainProgressTransitionRuntime",
             "outcome_kind": "provider_admission_pending",
@@ -127,229 +235,27 @@ def test_provider_admission_requires_structured_opl_readback_not_deprecated_proj
     assert pending["status"] == "transition_request_pending"
     assert pending["provider_admission_pending"] is False
     assert pending["provider_admission_requires_opl_runtime_result"] is True
-    assert "opl_domain_progress_transition_result" not in pending
 
-    admitted = identity.provider_admission_current_control_action(
-        {**candidate, "opl_domain_progress_transition_result": _trusted_readback()}
-    )
-    assert admitted["status"] == "queued"
-    assert admitted["provider_admission_pending"] is True
-    assert admitted["provider_attempt_or_lease_required"] is True
-    assert admitted["provider_completion_is_domain_completion"] is False
-    assert admitted["opl_domain_progress_transition_result"]["identity"]["study_id"] == study_id
-
-
-def test_opl_transition_runtime_log_entries_rebuild_trusted_readback() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
-    )
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    work_unit_id = "medical_prose_write_repair"
-    fingerprint = "publication-blockers::0915410f804b3697"
-    idempotency_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
-    aggregate_identity = {
-        "aggregate_kind": "study_work_unit",
-        "aggregate_id": f"{study_id}::{work_unit_id}",
-        "study_id": study_id,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-    }
-    stage_run_identity = {
-        "stage_run_id": f"stage-run:{study_id}:{work_unit_id}",
-        "route_identity_key": idempotency_key,
-        "attempt_idempotency_key": idempotency_key,
-        "provider_attempt_ref": f"opl://provider-admission/{study_id}/{idempotency_key}",
-        "attempt_lease_ref": f"opl://attempt-leases/{idempotency_key}",
-        "source_generation": "truth-event-000035-39f0b8e96689a623",
-    }
-    command_entry = {
-        "entry_kind": "command",
-        "transaction_id": "dptx_177b554e6934045f8bfbe7d1",
-        "idempotency_key": idempotency_key,
-        "aggregate_identity": aggregate_identity,
-        "aggregate_version": 1,
-        "payload": {
-            "surface_kind": "opl_domain_progress_transition_command",
-            "runtime_owner": "one-person-lab",
-            "runtime_kind": "DomainProgressTransitionRuntime",
-            "transition_kind": "StartProviderAttempt",
-            "command_id": "dptc_4130794f3bdfb3a48b34ca78",
-            "idempotency_key": idempotency_key,
-            "source_generation": "truth-event-000035-39f0b8e96689a623",
-            "expected_version": "truth-event-000035-39f0b8e96689a623",
-            "stage_run_identity": stage_run_identity,
-            "postcondition": {
-                "kind": "provider_admission_enqueued_or_blocked",
-                "outcome_owner": "one-person-lab",
-                "domain_state_owner": "med-autoscience",
-                "exactly_one_transition_required": True,
-                "non_advancing_apply_on_no_outcome": True,
-            },
-            "authority_boundary": {
-                "opl_can_write_domain_truth": False,
-                "opl_can_create_domain_owner_receipt": False,
-                "opl_can_create_domain_typed_blocker": False,
-                "provider_completion_is_domain_completion": False,
-            },
-        },
-    }
-    event_entry = {
-        "entry_kind": "event",
-        "transaction_id": "dptx_177b554e6934045f8bfbe7d1",
-        "event_id": "dpte_c65f77b76a85ce6ac325cbb5",
-        "idempotency_key": idempotency_key,
-        "aggregate_identity": aggregate_identity,
-        "aggregate_version": 1,
-        "payload": {
-            "surface_kind": "opl_domain_progress_transition_event",
-            "runtime_id": "opl_domain_progress_transition_runtime",
-            "runtime_owner": "one-person-lab",
-            "module_id": "runway",
-            "transition_kind": "StartProviderAttempt",
-            "command_id": "dptc_4130794f3bdfb3a48b34ca78",
-            "event_id": "dpte_c65f77b76a85ce6ac325cbb5",
-            "idempotency_key": idempotency_key,
-            "source_generation": "truth-event-000035-39f0b8e96689a623",
-            "expected_version": "truth-event-000035-39f0b8e96689a623",
-            "stage_run_identity": stage_run_identity,
-            "outcome": {
-                "kind": "provider_admission_enqueued_or_blocked",
-                "stable_outcome": True,
-            },
-            "postcondition": command_entry["payload"]["postcondition"],
-            "authority_boundary": command_entry["payload"]["authority_boundary"],
-        },
-    }
-    outbox_entry = {
-        "entry_kind": "outbox_item",
-        "transaction_id": "dptx_177b554e6934045f8bfbe7d1",
-        "outbox_item_id": "dpto_e79fe14bac42132383352fea",
-        "idempotency_key": idempotency_key,
-        "aggregate_identity": aggregate_identity,
-        "aggregate_version": 1,
-        "payload": {
-            "surface_kind": "opl_domain_progress_transition_outbox_item",
-            "outbox_item_id": "dpto_e79fe14bac42132383352fea",
-            "transition_event_id": "dpte_c65f77b76a85ce6ac325cbb5",
-            "outbox_kind": "start_provider_attempt",
-            "idempotency_key": idempotency_key,
-            "stage_run_identity": stage_run_identity,
-            "dispatch_allowed": True,
-            "domain_truth_mutation_allowed": False,
-        },
-    }
-
-    readback = module.opl_transition_readback_from_log_entries(
-        [command_entry, event_entry, outbox_entry],
-        idempotency_key=idempotency_key,
-        study_id=study_id,
-        work_unit_id=work_unit_id,
-        work_unit_fingerprint=fingerprint,
-    )
-
-    assert module.valid_opl_transition_readback(readback) is True
-    assert readback["event_id"] == "dpte_c65f77b76a85ce6ac325cbb5"
-    assert readback["outbox_item_id"] == "dpto_e79fe14bac42132383352fea"
-    assert readback["identity"]["attempt_idempotency_key"] == idempotency_key
-    assert readback["causality"]["mas_transition_request_idempotency_key"] == idempotency_key
-    assert readback["projection_metadata"]["derived_from_event_id"] == "dpte_c65f77b76a85ce6ac325cbb5"
-
-
-def test_opl_transition_runtime_log_readback_falls_back_to_aggregate_identity_when_request_key_drifts() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
-    )
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    work_unit_id = "medical_prose_write_repair"
-    fingerprint = "publication-blockers::0915410f804b3697"
-    opl_idempotency_key = "paper-policy-request:from-opl-transaction"
-    consumer_idempotency_key = "paper-policy-request:consumer-recomputed"
-    aggregate_identity = {
-        "aggregate_kind": "study_work_unit",
-        "aggregate_id": f"{study_id}::{work_unit_id}",
-        "study_id": study_id,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-    }
-    stage_run_identity = {
-        "stage_run_id": f"stage-run:{study_id}:{work_unit_id}",
-        "route_identity_key": opl_idempotency_key,
-        "attempt_idempotency_key": opl_idempotency_key,
-        "source_generation": "truth-event-000035-39f0b8e96689a623",
-    }
-    entries = [
+    legacy_pending = identity.provider_admission_current_control_action(
         {
-            "entry_kind": "command",
-            "transaction_id": "dptx_drifted_key",
-            "idempotency_key": opl_idempotency_key,
-            "aggregate_identity": aggregate_identity,
-            "payload": {
-                "transition_kind": "StartProviderAttempt",
-                "command_id": "dptc_drifted_key",
-                "source_generation": "truth-event-000035-39f0b8e96689a623",
-                "expected_version": "truth-event-000035-39f0b8e96689a623",
-                "stage_run_identity": stage_run_identity,
-            },
-        },
-        {
-            "entry_kind": "event",
-            "transaction_id": "dptx_drifted_key",
-            "event_id": "dpte_drifted_key",
-            "idempotency_key": opl_idempotency_key,
-            "aggregate_identity": aggregate_identity,
-            "payload": {
-                "transition_kind": "StartProviderAttempt",
-                "command_id": "dptc_drifted_key",
-                "event_id": "dpte_drifted_key",
-                "source_generation": "truth-event-000035-39f0b8e96689a623",
-                "expected_version": "truth-event-000035-39f0b8e96689a623",
-                "stage_run_identity": stage_run_identity,
-                "outcome": {"kind": "provider_admission_enqueued_or_blocked"},
-            },
-        },
-        {
-            "entry_kind": "outbox_item",
-            "transaction_id": "dptx_drifted_key",
-            "outbox_item_id": "dpto_drifted_key",
-            "idempotency_key": opl_idempotency_key,
-            "aggregate_identity": aggregate_identity,
-            "payload": {
-                "outbox_item_id": "dpto_drifted_key",
-                "transition_event_id": "dpte_drifted_key",
-                "stage_run_identity": stage_run_identity,
-            },
-        },
-    ]
+            **candidate,
+            "opl_domain_progress_transition_result": _legacy_result(),
+        }
+    )
+    assert legacy_pending["status"] == "transition_request_pending"
+    assert legacy_pending["provider_admission_pending"] is False
+    assert legacy_pending["provider_admission_requires_opl_runtime_result"] is True
 
-    readback = module.opl_transition_readback_from_log_entries(
-        entries,
-        idempotency_key=consumer_idempotency_key,
-        study_id=study_id,
-        work_unit_id=work_unit_id,
-        work_unit_fingerprint=fingerprint,
+    live_admitted = identity.provider_admission_current_control_action(
+        {
+            **candidate,
+            "opl_domain_progress_transition_result": _live_readback(),
+        }
     )
-
-    assert module.valid_opl_transition_readback(readback) is True
-    assert readback["event_id"] == "dpte_drifted_key"
-    assert readback["causality"]["mas_transition_request_idempotency_key"] == opl_idempotency_key
-    assert readback["causality"]["consumer_requested_idempotency_key"] == consumer_idempotency_key
-    assert (
-        module.opl_transition_readback_from_log_entries(
-            entries[:2],
-            idempotency_key=consumer_idempotency_key,
-            study_id=study_id,
-            work_unit_id=work_unit_id,
-            work_unit_fingerprint=fingerprint,
-        )
-        == {}
-    )
-    assert (
-        module.opl_transition_readback_from_log_entries(
-            entries,
-            idempotency_key=consumer_idempotency_key,
-            study_id=study_id,
-            work_unit_id=work_unit_id,
-            work_unit_fingerprint="publication-blockers::other",
-        )
-        == {}
-    )
+    assert live_admitted["status"] == "queued"
+    assert live_admitted["provider_admission_pending"] is True
+    assert live_admitted["provider_attempt_or_lease_required"] is True
+    assert live_admitted["provider_completion_is_domain_completion"] is False
+    assert live_admitted["opl_domain_progress_transition_live_readback"]["identity"][
+        "aggregate_identity"
+    ]["study_id"] == STUDY_ID

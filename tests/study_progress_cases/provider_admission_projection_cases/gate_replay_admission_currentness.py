@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import importlib
 
+from tests.provider_admission_current_control_helpers import (
+    opl_transition_readback,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 from ..shared import _write_json
@@ -15,60 +18,15 @@ def _opl_transition_result(
     stage_run_id: str = "stage-run-gate-replay",
 ) -> dict[str, object]:
     route_key = f"provider-admission::{study_id}::{fingerprint}"
-    return {
-        "surface_kind": "opl_domain_progress_transition_result",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "DomainProgressTransitionRuntime",
-        "transition_kind": "StartProviderAttempt",
-        "outcome_kind": "provider_admission_pending",
-        "event_id": f"opl-domain-progress-event::{study_id}::{fingerprint}",
-        "outbox_item_id": f"opl-domain-progress-outbox::{study_id}::{fingerprint}",
-        "stage_run_identity": {
-            "stage_run_id": stage_run_id,
-            "stage_run_identity_ref": f"stage-run-identity::{study_id}::{fingerprint}",
-            "observed_generation": fingerprint,
-        },
-        "identity": {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": fingerprint,
-            "route_identity_key": route_key,
-            "attempt_idempotency_key": route_key,
-        },
-        "causality": {
-            "mas_transition_request_idempotency_key": route_key,
-            "source_generation": fingerprint,
-            "expected_version": fingerprint,
-            "derived_from_request": True,
-        },
-        "authority_boundary": {
-            "runtime_owner": "one-person-lab",
-            "domain_state_owner": "med-autoscience",
-            "mas_can_authorize_provider_admission": False,
-            "mas_can_create_opl_outbox_record": False,
-            "mas_can_create_opl_event": False,
-            "mas_can_create_opl_stage_run": False,
-            "provider_completion_is_domain_completion": False,
-        },
-        "exactly_one_outcome": {
-            "selected": "provider_admission_pending",
-            "allowed": [
-                "provider_admission_pending",
-                "running_provider_attempt",
-                "owner_receipt_ref",
-                "typed_blocker_ref",
-                "human_gate_ref",
-                "route_back_evidence_ref",
-            ],
-        },
-        "projection_metadata": {
-            "authority": False,
-            "projection_owner": "one-person-lab",
-            "consumer": "med-autoscience",
-            "observed_generation": fingerprint,
-        },
-    }
+    return opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+        stage_run_id=stage_run_id,
+    )
 
 
 def test_existing_projection_refresh_replays_gate_admission_after_recovery_state_materializes(

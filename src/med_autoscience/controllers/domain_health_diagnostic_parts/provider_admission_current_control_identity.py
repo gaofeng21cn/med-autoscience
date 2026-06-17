@@ -71,6 +71,7 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
         "provider_admission_pending_count": 1 if provider_admission_pending else 0,
         "transition_request_candidates": [dict(provider_identity)] if not provider_admission_pending else [],
         "transition_request_pending_count": 0 if provider_admission_pending else 1,
+        "opl_domain_progress_transition_live_readback": dict(opl_readback) if opl_readback else None,
         "opl_domain_progress_transition_result": dict(opl_readback) if opl_readback else None,
         "why_not_applied": [blocked_reason],
         "blocked_reason": blocked_reason,
@@ -196,6 +197,7 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "provider_admission_pending": provider_admission_pending,
             "provider_admission_requires_opl_runtime_result": not provider_admission_pending,
             "provider_completion_is_domain_completion": False,
+            "opl_domain_progress_transition_live_readback": dict(opl_readback) if opl_readback else None,
             "opl_domain_progress_transition_result": dict(opl_readback) if opl_readback else None,
             "paper_progress_policy_result": dict(paper_policy_result) if paper_policy_result else None,
             "opl_domain_progress_transition_request": dict(transition_request)
@@ -232,6 +234,7 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
                 "provider_admission_requires_opl_runtime_result": not provider_admission_pending,
                 "provider_attempt_or_lease_required": provider_attempt_required,
                 "provider_completion_is_domain_completion": False,
+                "opl_domain_progress_transition_live_readback": dict(opl_readback) if opl_readback else None,
                 "opl_domain_progress_transition_result": dict(opl_readback) if opl_readback else None,
                 "paper_progress_policy_result": dict(paper_policy_result)
                 if paper_policy_result

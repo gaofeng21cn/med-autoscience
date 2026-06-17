@@ -7,8 +7,18 @@ from typing import Any
 
 OPL_TRANSITION_RUNTIME_OWNER = "one-person-lab"
 OPL_TRANSITION_RUNTIME_KIND = "DomainProgressTransitionRuntime"
+OPL_TRANSITION_LIVE_READBACK_SURFACE = (
+    "opl_domain_progress_transition_runtime_live_readback"
+)
 OPL_TRANSITION_RESULT_SURFACE = "opl_domain_progress_transition_result"
-PROVIDER_ADMISSION_OUTCOME = "provider_admission_pending"
+LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME = "provider_admission_accepted"
+LOG_READBACK_PROVIDER_ADMISSION_OUTCOME = "provider_admission_pending"
+LOG_RUNTIME_OUTCOMES_ACCEPTED_FOR_PROVIDER_ADMISSION = {
+    "provider_admission_enqueued_or_blocked",
+    "provider_admission_accepted",
+    "StartProviderAttempt",
+}
+LIVE_READBACK_COMPLETE_STATUS = "complete_transaction"
 
 REQUIRED_READBACK_SECTIONS = (
     "identity",
@@ -28,38 +38,28 @@ def valid_opl_transition_readback(value: Mapping[str, Any]) -> bool:
     result = _mapping(value)
     if not result:
         return False
-    if _text(result.get("surface_kind")) != OPL_TRANSITION_RESULT_SURFACE:
-        return False
-    if _text(result.get("runtime_owner")) != OPL_TRANSITION_RUNTIME_OWNER:
-        return False
-    runtime_kind = _text(result.get("runtime_kind")) or _text(result.get("target_runtime_kind"))
-    if runtime_kind != OPL_TRANSITION_RUNTIME_KIND:
-        return False
-    if _text(result.get("outcome_kind")) != PROVIDER_ADMISSION_OUTCOME:
-        return False
-    if not _has_runtime_refs(result):
-        return False
-    return all(
-        validator(_mapping(result.get(section)))
-        for section, validator in (
-            ("identity", _valid_identity),
-            ("causality", _valid_causality),
-            ("authority_boundary", _valid_authority_boundary),
-            ("exactly_one_outcome", _valid_exactly_one_outcome),
-            ("projection_metadata", _valid_projection_metadata),
-        )
-    )
+    surface_kind = _text(result.get("surface_kind"))
+    if surface_kind == OPL_TRANSITION_LIVE_READBACK_SURFACE:
+        return _valid_live_transition_readback(result)
+    if surface_kind == OPL_TRANSITION_RESULT_SURFACE:
+        return _valid_log_transition_result(result)
+    return False
 
 
 def required_opl_transition_readback_shape() -> dict[str, Any]:
     return {
-        "surface_kind": OPL_TRANSITION_RESULT_SURFACE,
+        "surface_kind": OPL_TRANSITION_LIVE_READBACK_SURFACE,
+        "runtime_id": "opl_domain_progress_transition_runtime",
         "runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
         "runtime_kind": OPL_TRANSITION_RUNTIME_KIND,
+        "runtime_readback_status": LIVE_READBACK_COMPLETE_STATUS,
+        "transaction_complete": True,
         "required_sections": list(REQUIRED_READBACK_SECTIONS),
         "required_runtime_refs": list(REQUIRED_RUNTIME_REFS),
-        "accepted_outcome_kind": PROVIDER_ADMISSION_OUTCOME,
+        "accepted_outcome_kind": LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME,
+        "accepted_log_derived_outcome_kind": LOG_READBACK_PROVIDER_ADMISSION_OUTCOME,
         "deprecated_projection_fields_not_authority": [
+            "opl_domain_progress_transition_result.surface_kind",
             "stage_run_id",
             "event_id_without_causality",
             "outbox_item_id_without_authority_boundary",
@@ -67,7 +67,62 @@ def required_opl_transition_readback_shape() -> dict[str, Any]:
     }
 
 
-def _has_runtime_refs(result: Mapping[str, Any]) -> bool:
+def _valid_live_transition_readback(result: Mapping[str, Any]) -> bool:
+    if _text(result.get("runtime_readback_status")) != LIVE_READBACK_COMPLETE_STATUS:
+        return False
+    if result.get("transaction_complete") is not True:
+        return False
+    if not _has_live_runtime_refs(result):
+        return False
+    return all(
+        validator(_mapping(result.get(section)))
+        for section, validator in (
+            ("identity", _valid_live_identity),
+            ("causality", _valid_live_causality),
+            ("authority_boundary", _valid_live_authority_boundary),
+            ("exactly_one_outcome", _valid_live_exactly_one_outcome),
+            ("projection_metadata", _valid_live_projection_metadata),
+        )
+    )
+
+
+def _valid_log_transition_result(result: Mapping[str, Any]) -> bool:
+    if _text(result.get("runtime_owner")) != OPL_TRANSITION_RUNTIME_OWNER:
+        return False
+    runtime_kind = _text(result.get("runtime_kind")) or _text(result.get("target_runtime_kind"))
+    if runtime_kind != OPL_TRANSITION_RUNTIME_KIND:
+        return False
+    if _text(result.get("outcome_kind")) != LOG_READBACK_PROVIDER_ADMISSION_OUTCOME:
+        return False
+    if not _has_log_runtime_refs(result):
+        return False
+    return all(
+        validator(_mapping(result.get(section)))
+        for section, validator in (
+            ("identity", _valid_log_identity),
+            ("causality", _valid_log_causality),
+            ("authority_boundary", _valid_log_authority_boundary),
+            ("exactly_one_outcome", _valid_log_exactly_one_outcome),
+            ("projection_metadata", _valid_log_projection_metadata),
+        )
+    )
+
+
+def _has_live_runtime_refs(result: Mapping[str, Any]) -> bool:
+    identity = _mapping(result.get("identity"))
+    latest_transaction = _mapping(result.get("latest_transaction_readback"))
+    return (
+        _text(identity.get("latest_event_id")) is not None
+        and _text(identity.get("latest_outbox_item_id")) is not None
+        and _text(identity.get("latest_transaction_id")) is not None
+        and latest_transaction.get("command_present") is True
+        and latest_transaction.get("event_present") is True
+        and latest_transaction.get("outbox_item_present") is True
+        and latest_transaction.get("same_transaction_event_and_outbox") is True
+    )
+
+
+def _has_log_runtime_refs(result: Mapping[str, Any]) -> bool:
     stage_run_identity = _mapping(result.get("stage_run_identity"))
     return (
         _text(result.get("event_id")) is not None
@@ -79,7 +134,29 @@ def _has_runtime_refs(result: Mapping[str, Any]) -> bool:
     )
 
 
-def _valid_identity(identity: Mapping[str, Any]) -> bool:
+def _valid_live_identity(identity: Mapping[str, Any]) -> bool:
+    aggregate_identity = _mapping(identity.get("aggregate_identity"))
+    stage_run_identity = _mapping(identity.get("stage_run_identity"))
+    return all(
+        _text(aggregate_identity.get(key)) is not None
+        for key in (
+            "study_id",
+            "work_unit_id",
+            "work_unit_fingerprint",
+        )
+    ) and all(
+        _text(stage_run_identity.get(key)) is not None
+        for key in (
+            "route_identity_key",
+            "attempt_idempotency_key",
+        )
+    )
+
+
+def _valid_log_identity(identity: Mapping[str, Any]) -> bool:
+    aggregate_identity = _mapping(identity.get("aggregate_identity"))
+    if aggregate_identity:
+        identity = {**dict(identity), **dict(aggregate_identity)}
     return all(
         _text(identity.get(key)) is not None
         for key in (
@@ -92,20 +169,48 @@ def _valid_identity(identity: Mapping[str, Any]) -> bool:
     )
 
 
-def _valid_causality(causality: Mapping[str, Any]) -> bool:
-    if causality.get("derived_from_request") is not True:
+def _valid_live_causality(causality: Mapping[str, Any]) -> bool:
+    if causality.get("transaction_complete") is not True:
         return False
-    request_key = _text(causality.get("mas_transition_request_idempotency_key")) or _text(
-        causality.get("transition_request_idempotency_key")
-    )
+    if _text(causality.get("runtime_readback_status")) != LIVE_READBACK_COMPLETE_STATUS:
+        return False
     return (
-        request_key is not None
+        _text(causality.get("event_id")) is not None
+        and _text(causality.get("outbox_item_id")) is not None
+        and causality.get("same_transaction_event_and_outbox") is True
         and _text(causality.get("source_generation")) is not None
         and _text(causality.get("expected_version")) is not None
     )
 
 
-def _valid_authority_boundary(boundary: Mapping[str, Any]) -> bool:
+def _valid_log_causality(causality: Mapping[str, Any]) -> bool:
+    request_key = _text(causality.get("mas_transition_request_idempotency_key")) or _text(
+        causality.get("transition_request_idempotency_key")
+    )
+    return (
+        request_key is not None
+        and causality.get("derived_from_request") is True
+        and _text(causality.get("event_id")) is not None
+        and _text(causality.get("outbox_item_id")) is not None
+        and causality.get("same_transaction_event_and_outbox") is True
+        and _text(causality.get("source_generation")) is not None
+        and _text(causality.get("expected_version")) is not None
+    )
+
+
+def _valid_live_authority_boundary(boundary: Mapping[str, Any]) -> bool:
+    return (
+        _text(boundary.get("runtime_owner")) == OPL_TRANSITION_RUNTIME_OWNER
+        and boundary.get("authority") is False
+        and boundary.get("opl_can_write_domain_truth") is False
+        and boundary.get("opl_can_write_mas_truth") is False
+        and boundary.get("opl_can_create_domain_owner_receipt") is False
+        and boundary.get("opl_can_create_domain_typed_blocker") is False
+        and boundary.get("provider_completion_is_domain_completion") is False
+    )
+
+
+def _valid_log_authority_boundary(boundary: Mapping[str, Any]) -> bool:
     return (
         _text(boundary.get("runtime_owner")) == OPL_TRANSITION_RUNTIME_OWNER
         and _text(boundary.get("domain_state_owner")) == "med-autoscience"
@@ -117,39 +222,65 @@ def _valid_authority_boundary(boundary: Mapping[str, Any]) -> bool:
     )
 
 
-def _valid_exactly_one_outcome(outcome: Mapping[str, Any]) -> bool:
+def _valid_live_exactly_one_outcome(outcome: Mapping[str, Any]) -> bool:
+    return (
+        outcome.get("selected") is True
+        and outcome.get("exactly_one_transition") is True
+        and outcome.get("stable_outcome") is True
+        and outcome.get("fail_closed") is False
+        and _text(outcome.get("outcome_kind")) == LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME
+    )
+
+
+def _valid_log_exactly_one_outcome(outcome: Mapping[str, Any]) -> bool:
     selected = _text(outcome.get("selected"))
     allowed = {
         text
         for item in outcome.get("allowed") or []
         if (text := _text(item)) is not None
     }
-    if selected != PROVIDER_ADMISSION_OUTCOME or selected not in allowed:
-        return False
-    rejected = [
-        text
-        for item in outcome.get("rejected") or []
-        if (text := _text(item)) is not None
-    ]
-    return selected not in rejected
+    source_outcome_kind = _text(outcome.get("source_outcome_kind"))
+    return (
+        selected == LOG_READBACK_PROVIDER_ADMISSION_OUTCOME
+        and selected in allowed
+        and (
+            source_outcome_kind is None
+            or source_outcome_kind in LOG_RUNTIME_OUTCOMES_ACCEPTED_FOR_PROVIDER_ADMISSION
+        )
+    )
 
 
-def _valid_projection_metadata(metadata: Mapping[str, Any]) -> bool:
+def _valid_live_projection_metadata(metadata: Mapping[str, Any]) -> bool:
+    return (
+        metadata.get("authority") is False
+        and _text(metadata.get("runtime_id")) == "opl_domain_progress_transition_runtime"
+        and _text(metadata.get("read_model_rebuild_owner")) == OPL_TRANSITION_RUNTIME_OWNER
+        and _text(metadata.get("derived_from_event_id")) is not None
+        and _text(metadata.get("observed_generation")) is not None
+    )
+
+
+def _valid_log_projection_metadata(metadata: Mapping[str, Any]) -> bool:
     return (
         metadata.get("authority") is False
         and _text(metadata.get("projection_owner")) == OPL_TRANSITION_RUNTIME_OWNER
         and _text(metadata.get("consumer")) == "med-autoscience"
         and _text(metadata.get("observed_generation")) is not None
+        and _text(metadata.get("derived_from_event_id")) is not None
+        and _text(metadata.get("derived_from_outbox_item_id")) is not None
     )
 
 
 def candidate_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str, Any]:
     for value in (
+        candidate.get("opl_domain_progress_transition_live_readback"),
+        candidate.get("opl_domain_progress_transition_runtime_live_readback"),
         candidate.get("opl_domain_progress_transition_result"),
         candidate.get("opl_domain_progress_runtime_result"),
         candidate.get("opl_runtime_result"),
         _mapping(candidate.get("paper_progress_policy_result")).get("opl_runtime_result"),
         _mapping(candidate.get("state")).get("opl_domain_progress_transition_result"),
+        _mapping(candidate.get("state")).get("opl_domain_progress_transition_live_readback"),
         _mapping(candidate.get("state")).get("opl_runtime_result"),
     ):
         result = _mapping(value)
@@ -182,7 +313,8 @@ def opl_transition_readback_from_log_entries(
         return {}
     event_id = _text(event.get("event_id"))
     outbox_item_id = _text(outbox.get("outbox_item_id"))
-    if event_id is None or outbox_item_id is None:
+    outbox_transition_event_id = _text(outbox.get("transition_event_id"))
+    if event_id is None or outbox_item_id is None or outbox_transition_event_id != event_id:
         return {}
     observed_idempotency_key = _transaction_idempotency_key(transaction_entries) or idempotency_key
     stage_run_identity = (
@@ -198,7 +330,8 @@ def opl_transition_readback_from_log_entries(
         or _text(stage_run_identity.get("source_generation"))
     )
     expected_version = _text(event.get("expected_version")) or _text(command.get("expected_version"))
-    if source_generation is None or expected_version is None:
+    transaction_id = _text(_entry_for_kind(transaction_entries, "event").get("transaction_id"))
+    if source_generation is None or expected_version is None or transaction_id is None:
         return {}
     causality = {
         "mas_transition_request_idempotency_key": observed_idempotency_key,
@@ -206,7 +339,10 @@ def opl_transition_readback_from_log_entries(
         "expected_version": expected_version,
         "derived_from_request": True,
         "command_id": _text(event.get("command_id")) or _text(command.get("command_id")),
-        "transaction_id": _text(_entry_for_kind(transaction_entries, "event").get("transaction_id")),
+        "event_id": event_id,
+        "outbox_item_id": outbox_item_id,
+        "transaction_id": transaction_id,
+        "same_transaction_event_and_outbox": True,
     }
     if observed_idempotency_key != idempotency_key:
         causality["consumer_requested_idempotency_key"] = idempotency_key
@@ -215,7 +351,7 @@ def opl_transition_readback_from_log_entries(
         "runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
         "runtime_kind": OPL_TRANSITION_RUNTIME_KIND,
         "transition_kind": _text(event.get("transition_kind")) or _text(command.get("transition_kind")),
-        "outcome_kind": PROVIDER_ADMISSION_OUTCOME,
+        "outcome_kind": LOG_READBACK_PROVIDER_ADMISSION_OUTCOME,
         "event_id": event_id,
         "outbox_item_id": outbox_item_id,
         "stage_run_identity": {
@@ -246,9 +382,9 @@ def opl_transition_readback_from_log_entries(
             "provider_completion_is_domain_completion": False,
         },
         "exactly_one_outcome": {
-            "selected": PROVIDER_ADMISSION_OUTCOME,
+            "selected": LOG_READBACK_PROVIDER_ADMISSION_OUTCOME,
             "allowed": [
-                PROVIDER_ADMISSION_OUTCOME,
+                LOG_READBACK_PROVIDER_ADMISSION_OUTCOME,
                 "running_provider_attempt",
                 "owner_receipt_ref",
                 "typed_blocker_ref",
@@ -395,6 +531,8 @@ def _entry_matches_aggregate_identity(
     work_unit_fingerprint: str,
 ) -> bool:
     aggregate_identity = _mapping(entry.get("aggregate_identity"))
+    if not aggregate_identity:
+        aggregate_identity = _mapping(_mapping(entry.get("payload")).get("aggregate_identity"))
     return (
         _text(aggregate_identity.get("study_id")) == study_id
         and _text(aggregate_identity.get("work_unit_id")) == work_unit_id

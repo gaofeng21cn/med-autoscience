@@ -24,6 +24,7 @@ def trusted_owner_callable_opl_proof(*payloads: object) -> dict[str, Any] | None
         if readback:
             return {
                 "proof_kind": "domain_progress_transition_readback",
+                "opl_domain_progress_transition_live_readback": readback,
                 "opl_domain_progress_transition_result": readback,
             }
     return None
@@ -63,6 +64,8 @@ def _readback_matches_payloads(
     payloads: list[Mapping[str, Any]],
 ) -> bool:
     identity = _mapping(readback.get("identity"))
+    aggregate_identity = _mapping(identity.get("aggregate_identity")) or identity
+    stage_run_identity = _mapping(identity.get("stage_run_identity"))
     expected_study_ids = _union_expected(_expected_study_ids, payloads)
     expected_work_unit_ids = _union_expected(_expected_work_unit_ids, payloads)
     expected_fingerprints = _union_expected(_expected_work_unit_fingerprints, payloads)
@@ -71,21 +74,24 @@ def _readback_matches_payloads(
         return False
     if not (expected_work_unit_ids or expected_fingerprints or request_keys):
         return False
-    if _conflicts(expected_study_ids, [_text(identity.get("study_id"))]):
+    if _conflicts(expected_study_ids, [_text(aggregate_identity.get("study_id"))]):
         return False
-    if _conflicts(expected_work_unit_ids, [_text(identity.get("work_unit_id"))]):
+    if _conflicts(expected_work_unit_ids, [_text(aggregate_identity.get("work_unit_id"))]):
         return False
     if _conflicts(
         expected_fingerprints,
         [
-            _text(identity.get("work_unit_fingerprint")),
-            _text(_mapping(readback.get("stage_run_identity")).get("observed_generation")),
+            _text(aggregate_identity.get("work_unit_fingerprint")),
+            _text(stage_run_identity.get("source_generation")),
+            _text(_mapping(readback.get("projection_metadata")).get("observed_generation")),
         ],
     ):
         return False
     causality_key = _text(
         _mapping(readback.get("causality")).get("mas_transition_request_idempotency_key")
-    ) or _text(_mapping(readback.get("causality")).get("transition_request_idempotency_key"))
+    ) or _text(_mapping(readback.get("causality")).get("transition_request_idempotency_key")) or _text(
+        identity.get("idempotency_key")
+    ) or _text(stage_run_identity.get("attempt_idempotency_key"))
     return not _conflicts(request_keys, [causality_key])
 
 

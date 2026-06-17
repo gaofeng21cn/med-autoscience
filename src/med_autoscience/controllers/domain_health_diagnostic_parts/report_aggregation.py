@@ -293,7 +293,13 @@ def _candidate_with_opl_runtime_readback(
     runtime_root: Path,
 ) -> dict[str, Any]:
     payload = dict(candidate)
-    if candidate_opl_transition_readback(payload):
+    inline_readback = candidate_opl_transition_readback(payload)
+    if inline_readback:
+        payload["opl_transition_readback_source"] = _opl_transition_readback_source(inline_readback)
+        payload["status"] = "provider_admission_pending"
+        payload["provider_admission_pending"] = True
+        payload["provider_attempt_or_lease_required"] = True
+        payload["provider_admission_requires_opl_runtime_result"] = False
         return payload
     request = _transition_request(payload)
     idempotency_key = _text(request.get("idempotency_key"))
@@ -321,12 +327,18 @@ def _candidate_with_opl_runtime_readback(
     if not readback:
         return payload
     payload["opl_domain_progress_transition_result"] = readback
-    payload["opl_transition_readback_source"] = "opl_domain_progress_transition_runtime_log"
+    payload["opl_transition_readback_source"] = _opl_transition_readback_source(readback)
     payload["status"] = "provider_admission_pending"
     payload["provider_admission_pending"] = True
     payload["provider_attempt_or_lease_required"] = True
     payload["provider_admission_requires_opl_runtime_result"] = False
     return payload
+
+
+def _opl_transition_readback_source(readback: Mapping[str, Any]) -> str:
+    if _text(readback.get("surface_kind")) == "opl_domain_progress_transition_result":
+        return "opl_domain_progress_transition_runtime_log"
+    return "opl_domain_progress_transition_runtime_live_readback"
 
 
 def _transition_request(candidate: Mapping[str, Any]) -> Mapping[str, Any]:
