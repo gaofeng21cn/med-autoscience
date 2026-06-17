@@ -25,6 +25,9 @@ from ..current_control_executable_handoff import (
     current_control_executable_owner_action,
 )
 from ..current_executable_owner_action import build_current_executable_owner_action
+from ..current_executable_owner_action_parts.paper_recovery import (
+    paper_recovery_successor_action_ready,
+)
 from ..shared import _mapping_copy, _non_empty_text
 
 
@@ -81,31 +84,69 @@ def refresh_current_execution_surfaces(
         )
     handoff_owner_receipt_work_unit = _canonical_current_control_owner_receipt_work_unit(handoff)
     if handoff_owner_receipt_work_unit:
-        updated["current_executable_owner_action"] = None
-        updated["current_work_unit"] = handoff_owner_receipt_work_unit
-        handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
-        if _non_empty_text(handoff_envelope.get("state_kind")) == "owner_receipt_recorded":
-            updated["current_execution_envelope"] = handoff_envelope
-        else:
+        successor_action = _paper_recovery_successor_action_for_owner_receipt_handoff(
+            payload=updated,
+            handoff=handoff,
+        )
+        if successor_action:
+            updated["current_executable_owner_action"] = successor_action
+            updated["current_work_unit"] = current_work_unit.build_current_work_unit(
+                status=status,
+                progress=updated,
+                actions=[successor_action],
+                current_executable_owner_action=successor_action,
+                provider_admission=handoff,
+                live_provider_attempt=handoff,
+                typed_blocker={},
+                blocked_reason=None,
+                next_owner=_non_empty_text(successor_action.get("next_owner")),
+                runtime_health=runtime_health_snapshot,
+            )
             updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
                 status=status,
                 progress=updated,
-                actions=[],
+                actions=[successor_action],
                 blocked_reason=None,
-                next_owner=_non_empty_text(handoff_owner_receipt_work_unit.get("owner")),
+                next_owner=_non_empty_text(successor_action.get("next_owner")),
                 typed_blocker={},
                 runtime_health=runtime_health_snapshot,
                 live_provider_attempt=handoff,
-                current_work_unit_payload=handoff_owner_receipt_work_unit,
+                current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
             )
-        updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
-            action_queue=[],
-            runtime_health=runtime_health_snapshot,
-            extra={
-                "opl_current_control_state_handoff": dict(handoff) if handoff else None,
-            },
-        )
-        return updated
+            updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+                action_queue=_execution_evidence_actions_for_payload(payload=updated, handoff=handoff),
+                runtime_health=runtime_health_snapshot,
+                extra={
+                    "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+                },
+            )
+            return updated
+        else:
+            updated["current_executable_owner_action"] = None
+            updated["current_work_unit"] = handoff_owner_receipt_work_unit
+            handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+            if _non_empty_text(handoff_envelope.get("state_kind")) == "owner_receipt_recorded":
+                updated["current_execution_envelope"] = handoff_envelope
+            else:
+                updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+                    status=status,
+                    progress=updated,
+                    actions=[],
+                    blocked_reason=None,
+                    next_owner=_non_empty_text(handoff_owner_receipt_work_unit.get("owner")),
+                    typed_blocker={},
+                    runtime_health=runtime_health_snapshot,
+                    live_provider_attempt=handoff,
+                    current_work_unit_payload=handoff_owner_receipt_work_unit,
+                )
+            updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+                action_queue=[],
+                runtime_health=runtime_health_snapshot,
+                extra={
+                    "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+                },
+            )
+            return updated
     handoff_work_unit = _canonical_current_control_typed_blocker_work_unit(handoff)
     if handoff_work_unit:
         updated["current_work_unit"] = handoff_work_unit
@@ -605,6 +646,12 @@ def _current_action_for_execution_refresh(
     ):
         return {}
     if _handoff_current_work_unit_is_owner_receipt(handoff):
+        successor_action = _paper_recovery_successor_action_for_owner_receipt_handoff(
+            payload=payload,
+            handoff=handoff,
+        )
+        if successor_action:
+            return successor_action
         return {}
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if not current_execution_handoff_consumes_current_action(handoff):
@@ -727,6 +774,11 @@ def _handoff_consumes_current_action_for_refresh(
     handoff: Mapping[str, Any],
 ) -> bool:
     if _handoff_current_work_unit_is_owner_receipt(handoff):
+        if _paper_recovery_successor_action_for_owner_receipt_handoff(
+            payload=payload,
+            handoff=handoff,
+        ):
+            return False
         return True
     if not current_execution_handoff_consumes_current_action(handoff):
         return False
@@ -741,6 +793,23 @@ def _handoff_consumes_current_action_for_refresh(
             "progress_payload": payload,
         },
     )
+
+
+def _paper_recovery_successor_action_for_owner_receipt_handoff(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not _handoff_current_work_unit_is_owner_receipt(handoff):
+        return {}
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    decision = _mapping_copy(recovery.get("supervisor_decision"))
+    if decision.get("identity_match") is not True:
+        return {}
+    successor_action = build_current_executable_owner_action(payload)
+    if not paper_recovery_successor_action_ready(successor_action):
+        return {}
+    return dict(successor_action)
 
 
 def _text_list(value: object) -> list[str]:

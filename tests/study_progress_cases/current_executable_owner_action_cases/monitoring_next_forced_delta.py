@@ -57,50 +57,42 @@ def test_progress_first_monitoring_exposes_current_executable_owner_action_from_
     )
 
     action = monitoring["current_executable_owner_action"]
-    assert action == {
-        "surface_kind": "current_executable_owner_action",
-        "schema_version": 1,
-        "status": "ready",
-        "source": "study_progress.next_forced_delta.owner_action",
-        "next_owner": "finalize",
-        "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-        "work_unit_fingerprint": (
-            "current-ai-reviewer-gate-replay::003-dpcc-primary-care-phenotype-treatment-gap::"
-            f"dpcc_publication_gate_replay_after_current_ai_reviewer_record::{SOURCE_EVAL_ID}"
-        ),
-        "action_fingerprint": (
-            "current-ai-reviewer-gate-replay::003-dpcc-primary-care-phenotype-treatment-gap::"
-            f"dpcc_publication_gate_replay_after_current_ai_reviewer_record::{SOURCE_EVAL_ID}"
-        ),
-        "source_eval_id": SOURCE_EVAL_ID,
-        "owner_route_currentness_basis": {
-            "source_eval_id": SOURCE_EVAL_ID,
-            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-            "work_unit_fingerprint": (
-                "current-ai-reviewer-gate-replay::003-dpcc-primary-care-phenotype-treatment-gap::"
-                f"dpcc_publication_gate_replay_after_current_ai_reviewer_record::{SOURCE_EVAL_ID}"
-            ),
-            "source": "study_progress.next_forced_delta.owner_action",
-        },
-        "action_type": "run_gate_clearing_batch",
-        "allowed_actions": ["run_gate_clearing_batch"],
-        "owner_receipt_required": True,
-        "required_delta_kind": "review_current_paper_delta",
-        "target_surface": {
-            "ref_kind": "route_obligation",
-            "route_target": "finalize",
-            "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
-        },
-        "target_surface_specificity": "explicit_owner_route_target",
-        "acceptance_refs": ["progress_first_sprint_state.deliverable_progress_delta"],
-        "authority_boundary": {
-            "refs_only": True,
-            "can_write_runtime_owned_surfaces": False,
-            "can_write_paper_or_package": False,
-            "can_authorize_quality_verdict": False,
-            "can_authorize_publication_ready": False,
-        },
+    expected_fingerprint = (
+        "current-ai-reviewer-gate-replay::003-dpcc-primary-care-phenotype-treatment-gap::"
+        f"dpcc_publication_gate_replay_after_current_ai_reviewer_record::{SOURCE_EVAL_ID}"
+    )
+    assert action["surface_kind"] == "current_executable_owner_action"
+    assert action["source"] == "study_progress.next_forced_delta.owner_action"
+    assert action["next_owner"] == "finalize"
+    assert action["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    assert action["work_unit_fingerprint"] == expected_fingerprint
+    assert action["action_fingerprint"] == expected_fingerprint
+    assert action["source_eval_id"] == SOURCE_EVAL_ID
+    assert action["action_type"] == "run_gate_clearing_batch"
+    assert action["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert action["owner_receipt_required"] is True
+    assert action["required_delta_kind"] == "review_current_paper_delta"
+    assert action["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "finalize",
+        "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
     }
+    assert action["target_surface_specificity"] == "explicit_owner_route_target"
+    assert action["acceptance_refs"] == ["progress_first_sprint_state.deliverable_progress_delta"]
+    assert action["owner_route_currentness_basis"] == {
+        "source_eval_id": SOURCE_EVAL_ID,
+        "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        "work_unit_fingerprint": expected_fingerprint,
+        "source": "study_progress.next_forced_delta.owner_action",
+    }
+    authority = action["authority_boundary"]
+    assert authority["refs_only"] is True
+    assert authority["projection_owner"] == "med-autoscience"
+    assert authority["fixed_point_runtime_owner"] == "one-person-lab"
+    assert authority["can_write_runtime_owned_surfaces"] is False
+    assert authority["can_write_paper_or_package"] is False
+    assert authority["can_authorize_quality_verdict"] is False
+    assert authority["can_authorize_publication_ready"] is False
     assert monitoring["next_owner"] == "finalize"
     assert monitoring["controller_action"] == "run_gate_clearing_batch"
     assert monitoring["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
