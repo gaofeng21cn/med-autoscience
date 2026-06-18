@@ -10,6 +10,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_r
 
 EXECUTE_DECISION = "execute_current_owner_delta"
 BLOCK_REASON = "paper_autonomy_supervisor_decision_blocks_provider_admission"
+READBACK_REQUIRED_DECISION = "opl_supervisor_decision_readback_required"
 
 _REQUIRED_OBLIGATION_FIELDS = (
     "study_id",
@@ -59,12 +60,10 @@ def supervisor_decision_for_projection(
     recovery = _mapping(paper_recovery_state) or _mapping(payload.get("paper_recovery_state"))
     if not recovery:
         return {}
-    from med_autoscience.controllers.paper_autonomy_supervisor import build_supervisor_decision
-
-    return build_supervisor_decision(
+    return _supervisor_decision_readback_required_projection(
         payload,
         paper_recovery_state=recovery,
-        diagnostic_report=_mapping(diagnostic_report),
+        diagnostic_report=diagnostic_report,
     )
 
 
@@ -86,6 +85,8 @@ def provider_admission_supervisor_gate(
             "supervisor_decision": {},
         }
     decision_kind = _text(decision.get("decision"))
+    if decision_kind == READBACK_REQUIRED_DECISION:
+        return _blocked_gate(decision, reason=READBACK_REQUIRED_DECISION)
     if decision_kind != EXECUTE_DECISION:
         if _supervisor_decision_allows_provider_admission_materialization(
             decision,
@@ -235,6 +236,112 @@ def _blocked_gate(supervisor_decision: Mapping[str, Any], *, reason: str) -> dic
     }
 
 
+def _supervisor_decision_readback_required_projection(
+    payload: Mapping[str, Any],
+    *,
+    paper_recovery_state: Mapping[str, Any],
+    diagnostic_report: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    recovery = _mapping(paper_recovery_state)
+    current_work_unit = _mapping(payload.get("current_work_unit"))
+    current_action = _mapping(payload.get("current_executable_owner_action"))
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    diagnostic = _mapping(diagnostic_report)
+    return _clean_mapping(
+        {
+            "surface_kind": "paper_progress_policy_result_projection",
+            "projection_role": "mas_paper_progress_policy_result_projection",
+            "policy_result_role": "mas_paper_progress_policy_result_projection",
+            "decision": READBACK_REQUIRED_DECISION,
+            "decision_authority": False,
+            "legacy_decision_surface_kind": "paper_autonomy_supervisor_decision",
+            "legacy_decision_field_role": "policy_recommendation_label",
+            "legacy_decision_field_is_authority": False,
+            "decision_field_deprecated": True,
+            "read_model_can_build_supervisor_decision": False,
+            "requires_explicit_supervisor_decision_projection": True,
+            "requires_opl_supervisor_decision_engine_readback": True,
+            "supervisor_decision_engine_owner": "one-person-lab",
+            "recovery_obligation_store_owner": "one-person-lab",
+            "mas_can_run_supervisor_decision_engine": False,
+            "mas_can_store_recovery_obligation": False,
+            "mas_can_create_opl_command_event_or_outbox": False,
+            "mas_can_authorize_provider_admission": False,
+            "provider_admission_pending": False,
+            "request_projection_only": True,
+            "paper_progress_classification": "none_until_opl_supervisor_decision_readback",
+            "platform_repair_classification": "readback_required",
+            "next_owner": "one-person-lab",
+            "next_safe_action": {
+                "kind": READBACK_REQUIRED_DECISION,
+                "required_readback_shape": "RecoveryObligationStore/SupervisorDecisionEngine",
+            },
+            "missing_evidence_refs": [
+                "explicit_paper_autonomy_supervisor_decision_projection",
+                "opl_supervisor_decision_engine_readback",
+            ],
+            "evidence_refs": _text_items(recovery.get("evidence_refs"))
+            + _text_items(diagnostic.get("evidence_refs")),
+            "paper_autonomy_obligation_identity": _clean_mapping(
+                {
+                    "study_id": _first_text(
+                        obligation.get("study_id"),
+                        recovery.get("study_id"),
+                        payload.get("study_id"),
+                        current_work_unit.get("study_id"),
+                    ),
+                    "quest_id": _first_text(
+                        obligation.get("quest_id"),
+                        recovery.get("quest_id"),
+                        payload.get("quest_id"),
+                        current_work_unit.get("quest_id"),
+                    ),
+                    "stage_id": _first_text(
+                        obligation.get("stage_id"),
+                        current_work_unit.get("stage_id"),
+                    ),
+                    "action_type": _first_text(
+                        obligation.get("action_type"),
+                        current_work_unit.get("action_type"),
+                        current_action.get("action_type"),
+                    ),
+                    "work_unit_id": _first_text(
+                        obligation.get("work_unit_id"),
+                        current_work_unit.get("work_unit_id"),
+                        current_action.get("work_unit_id"),
+                    ),
+                    "work_unit_fingerprint": _first_text(
+                        obligation.get("work_unit_fingerprint"),
+                        current_work_unit.get("work_unit_fingerprint"),
+                        current_action.get("work_unit_fingerprint"),
+                    ),
+                    "route_identity_key": _first_text(
+                        obligation.get("route_identity_key"),
+                        current_work_unit.get("route_identity_key"),
+                    ),
+                    "attempt_idempotency_key": _first_text(
+                        obligation.get("attempt_idempotency_key"),
+                        current_work_unit.get("attempt_idempotency_key"),
+                        current_work_unit.get("idempotency_key"),
+                    ),
+                }
+            ),
+            "authority_boundary": {
+                "adapter_kind": "mas_policy_adapter",
+                "decision_authority": False,
+                "read_model_can_create_decision": False,
+                "supervisor_decision_engine_owner": "one-person-lab",
+                "recovery_obligation_store_owner": "one-person-lab",
+                "can_run_supervisor_decision_engine": False,
+                "can_store_recovery_obligation": False,
+                "can_create_opl_command_event_or_outbox": False,
+                "can_authorize_provider_admission": False,
+            },
+        },
+        keep_empty_keys={"evidence_refs", "missing_evidence_refs"},
+    )
+
+
 def _explicit_supervisor_decision(
     payload: Mapping[str, Any],
     *,
@@ -286,9 +393,31 @@ def _same_text(left: object, right: object) -> bool:
     return left_text is not None and right_text is not None and left_text == right_text
 
 
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        text = _text(value)
+        if text is not None:
+            return text
+    return None
+
+
+def _clean_mapping(
+    value: Mapping[str, Any],
+    *,
+    keep_empty_keys: set[str] | None = None,
+) -> dict[str, Any]:
+    keep = keep_empty_keys or set()
+    return {
+        key: item
+        for key, item in dict(value).items()
+        if key in keep or item not in (None, "", [], {})
+    }
+
+
 __all__ = [
     "BLOCK_REASON",
     "EXECUTE_DECISION",
+    "READBACK_REQUIRED_DECISION",
     "execute_decision_identity_evidence_complete",
     "provider_admission_supervisor_gate",
     "supervisor_block_projection",

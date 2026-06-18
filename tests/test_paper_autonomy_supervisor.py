@@ -7,6 +7,7 @@ from med_autoscience.controllers.paper_autonomy_supervisor import (
 from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
     execute_decision_identity_evidence_complete,
     provider_admission_supervisor_gate,
+    supervisor_decision_for_projection,
 )
 from tests.test_paper_recovery_state_cases.shared import (
     _executable_work_unit,
@@ -208,6 +209,59 @@ def test_execute_decision_gate_requires_provider_and_stage_run_evidence_together
     assert provider_admission_supervisor_gate(
         {"paper_autonomy_supervisor_decision": both}
     )["admission_allowed"] is True
+
+
+def test_projection_helper_does_not_build_supervisor_decision_without_explicit_readback() -> None:
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_work_unit": _executable_work_unit(),
+    }
+    paper_recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "admission_pending",
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_authority": {
+            "owner": "write",
+            "obligation": {
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+        },
+        "next_safe_action": {"kind": "admit_provider_attempt"},
+    }
+
+    decision = supervisor_decision_for_projection(
+        payload,
+        paper_recovery_state=paper_recovery_state,
+    )
+
+    assert decision["decision"] == "opl_supervisor_decision_readback_required"
+    assert decision["decision_authority"] is False
+    assert decision["read_model_can_build_supervisor_decision"] is False
+    assert decision["mas_can_run_supervisor_decision_engine"] is False
+    assert decision["mas_can_store_recovery_obligation"] is False
+    assert decision["requires_opl_supervisor_decision_engine_readback"] is True
+    assert decision["provider_admission_pending"] is False
+    assert decision["missing_evidence_refs"] == [
+        "explicit_paper_autonomy_supervisor_decision_projection",
+        "opl_supervisor_decision_engine_readback",
+    ]
+    assert "paper_autonomy_obligation" not in decision
+
+    gate = provider_admission_supervisor_gate(
+        payload,
+        paper_recovery_state=paper_recovery_state,
+    )
+    assert gate == {
+        "blocked": True,
+        "admission_allowed": False,
+        "reason": "opl_supervisor_decision_readback_required",
+        "supervisor_decision": decision,
+    }
 
 
 def test_admission_pending_without_identity_bound_provider_admission_materializes_recovery_not_idle() -> None:

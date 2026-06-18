@@ -644,6 +644,16 @@
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
       "no_forbidden_write_proof_surface": "artifacts/mas_authority/typed_blockers/domain_health_diagnostic_obligation/latest.json",
+      "study_progress_supervisor_projection_boundary": {
+        "surface": "study_progress_parts.paper_autonomy_supervisor_decision.supervisor_decision_for_projection",
+        "explicit_projection_required": true,
+        "missing_explicit_projection_outcome": "opl_supervisor_decision_readback_required",
+        "study_progress_supervisor_projection_can_build_decision": false,
+        "read_model_can_run_supervisor_decision_engine": false,
+        "requires_opl_supervisor_decision_engine_readback": true,
+        "provider_admission_gate_outcome_when_missing_readback": "blocked",
+        "provider_admission_pending_when_missing_readback": false
+      },
       "obligation_readback_boundary": {
         "request_projection_is_success_outcome": false,
         "success_proof_required_for_postcondition_ok": true,
@@ -678,13 +688,17 @@
       "transition_request_pending_can_close_physical_tail": false,
       "verified_by": [
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py::test_obligation_actuator_transition_request_is_projection_not_success"
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py::test_obligation_actuator_transition_request_is_projection_not_success",
+        "tests/test_paper_autonomy_supervisor.py::test_projection_helper_does_not_build_supervisor_decision_without_explicit_readback"
       ],
       "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
       "local_allowed_outcome_table_role": "contract_bound_result_shape_validation_not_supervisor_decision_engine",
       "mas_can_choose_supervisor_decision": false,
       "mas_can_mutate_recovery_obligation_store": false,
       "mas_can_run_supervisor_decision_engine": false,
+      "study_progress_supervisor_projection_can_build_decision": false,
+      "read_model_can_run_supervisor_decision_engine": false,
+      "missing_explicit_supervisor_projection_outcome": "opl_supervisor_decision_readback_required",
       "mas_can_create_opl_command_event_or_outbox": false,
       "validator_module": "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.readback_result_validator",
       "can_write_fail_closed_typed_control_blocker": false,
