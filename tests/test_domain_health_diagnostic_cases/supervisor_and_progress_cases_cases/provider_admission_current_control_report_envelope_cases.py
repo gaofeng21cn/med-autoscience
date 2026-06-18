@@ -196,6 +196,78 @@ def test_runtime_report_prefers_fresh_progress_envelope_over_stale_user_waiting_
     assert envelope["parked_state"] is None
 
 
+def test_runtime_report_preserves_explicit_transition_request_projection_without_provider_admission() -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    transition_request = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "transition_request_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "next_executable_owner": "write",
+        "provider_attempt_or_lease_required": False,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_domain_progress_transition_request": _mas_transition_request(
+            study_id=study_id,
+            action_type="run_quality_repair_batch",
+            work_unit_id=work_unit_id,
+            fingerprint=fingerprint,
+        ),
+    }
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[],
+        managed_study_progress_currentness={},
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+        managed_study_opl_transition_request_candidates=[transition_request],
+    )
+
+    assert result["provider_admission_pending_count"] == 0
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert result["managed_study_opl_transition_request_candidates"] == [transition_request]
+    assert result["current_execution_evidence"]["transition_request_candidates"] == [
+        transition_request
+    ]
+    action = result["managed_study_actions"][0]
+    assert action["provider_admission_candidates"] == []
+    assert action["provider_admission_state"]["status"] == "none"
+    assert action["provider_admission_state"]["candidate_count"] == 0
+
+
 def test_runtime_report_managed_action_uses_running_current_work_unit_over_stale_handoff_blocker() -> None:
     report_aggregation = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"

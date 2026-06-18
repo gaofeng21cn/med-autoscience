@@ -65,6 +65,7 @@ def build_runtime_report(
     managed_study_progress_currentness: dict[str, dict[str, Any]],
     managed_study_autonomy_slo_statuses: list[dict[str, Any]],
     managed_study_autonomy_repair_actions: list[dict[str, Any]],
+    managed_study_opl_transition_request_candidates: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     managed_study_actions = _managed_study_actions_with_currentness(
         managed_study_actions=managed_study_actions,
@@ -75,6 +76,10 @@ def build_runtime_report(
             managed_study_opl_provider_admission_candidates,
             runtime_root=runtime_root,
         ),
+        [
+            _candidate_with_opl_runtime_readback(candidate, runtime_root=runtime_root)
+            for candidate in managed_study_opl_transition_request_candidates or []
+        ],
         _progress_currentness_provider_admission_candidates(
             managed_study_progress_currentness,
             runtime_root=runtime_root,

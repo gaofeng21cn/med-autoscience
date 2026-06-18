@@ -164,6 +164,7 @@ def sync_report_provider_admission_current_control_state(
     transition_request_candidates = _filter_transition_requests_consumed_by_currentness(
         transition_request_candidates,
         report=report,
+        current_control_state=current_control_state,
     )
     candidates = _filter_candidates_blocked_by_paper_recovery_state(
         [
@@ -223,20 +224,54 @@ def _filter_transition_requests_consumed_by_currentness(
     candidates: list[dict[str, Any]],
     *,
     report: Mapping[str, Any],
+    current_control_state: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     if not candidates:
         return []
     currentness_by_study = _transition_consuming_currentness_by_study(report)
     if not currentness_by_study:
         return [dict(candidate) for candidate in candidates]
+    protected_keys = _current_control_non_advancing_transition_request_keys(current_control_state)
     filtered: list[dict[str, Any]] = []
     for candidate in candidates:
+        if _transition_request_key(candidate) in protected_keys:
+            filtered.append(dict(candidate))
+            continue
         study_id = _non_empty_text(candidate.get("study_id"))
         currentness = currentness_by_study.get(study_id or "")
         if currentness and _transition_request_consumed_by_currentness(candidate, currentness):
             continue
         filtered.append(dict(candidate))
     return filtered
+
+
+def _current_control_non_advancing_transition_request_keys(
+    current_control_state: Mapping[str, Any],
+) -> set[tuple[str | None, str | None, str | None, str | None]]:
+    keys: set[tuple[str | None, str | None, str | None, str | None]] = set()
+    for decision in current_control_state.get("stage_route_arbiter_decisions") or []:
+        if not isinstance(decision, Mapping):
+            continue
+        if _non_empty_text(decision.get("decision")) != "opl_transition_readback_required":
+            continue
+        if _non_empty_text(decision.get("evidence_status")) != "NonAdvancingApply":
+            continue
+        if _non_empty_text(decision.get("no_progress_signal")) != "transition_request_waits_for_opl_runtime":
+            continue
+        keys.add(_transition_request_key(decision))
+    return keys
+
+
+def _transition_request_key(
+    candidate: Mapping[str, Any],
+) -> tuple[str | None, str | None, str | None, str | None]:
+    return (
+        _non_empty_text(candidate.get("study_id")),
+        _non_empty_text(candidate.get("action_type")),
+        _non_empty_text(candidate.get("work_unit_id")),
+        _non_empty_text(candidate.get("work_unit_fingerprint"))
+        or _non_empty_text(candidate.get("action_fingerprint")),
+    )
 
 
 def _transition_consuming_currentness_by_study(
@@ -307,7 +342,8 @@ def _transition_request_consumed_by_currentness(
 ) -> bool:
     if candidate.get("same_tick_materialized_provider_admission") is not True:
         return False
-    if _non_empty_text(candidate.get("same_tick_materialization_source")) != "dry_run_preview":
+    materialization_source = _non_empty_text(candidate.get("same_tick_materialization_source"))
+    if materialization_source != "dry_run_preview":
         return False
     return _candidate_matches_currentness(candidate, currentness=currentness)
 
@@ -954,12 +990,7 @@ def _merge_provider_admission_candidates(
     index_by_key: dict[tuple[str | None, str | None, str | None, str | None], int] = {}
     for group in candidate_groups:
         for candidate in group:
-            key = (
-                _non_empty_text(candidate.get("study_id")),
-                _non_empty_text(candidate.get("action_type")),
-                _non_empty_text(candidate.get("work_unit_id")),
-                _non_empty_text(candidate.get("dispatch_path")),
-            )
+            key = _provider_admission_candidate_merge_key(candidate)
             if key in index_by_key:
                 existing_index = index_by_key[key]
                 existing = merged[existing_index]
@@ -977,6 +1008,26 @@ def _merge_provider_admission_candidates(
             index_by_key[key] = len(merged)
             merged.append(dict(candidate))
     return merged
+
+
+def _provider_admission_candidate_merge_key(
+    candidate: Mapping[str, Any],
+) -> tuple[str | None, str | None, str | None, str | None]:
+    fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
+        candidate.get("action_fingerprint")
+    )
+    stable_ref = (
+        _non_empty_text(candidate.get("route_identity_key"))
+        or fingerprint
+        or _non_empty_text(candidate.get("dispatch_path"))
+        or _non_empty_text(candidate.get("dispatch_ref"))
+    )
+    return (
+        _non_empty_text(candidate.get("study_id")),
+        _non_empty_text(candidate.get("action_type")),
+        _non_empty_text(candidate.get("work_unit_id")),
+        stable_ref,
+    )
 
 
 def _merge_provider_admission_candidate_payloads(
@@ -1005,7 +1056,7 @@ def _merge_provider_admission_candidate_payloads(
     return merged
 
 
-def _provider_admission_identity_rank(candidate: Mapping[str, Any]) -> tuple[int, int, int]:
+def _provider_admission_identity_rank(candidate: Mapping[str, Any]) -> tuple[int, int, int, int]:
     stage_packet_refs = [
         item
         for item in candidate.get("stage_packet_refs") or []
@@ -1029,7 +1080,16 @@ def _provider_admission_identity_rank(candidate: Mapping[str, Any]) -> tuple[int
             or _non_empty_text(basis.get("source_eval_id")) is not None
         )
     )
-    return (has_stage_packet_identity, has_route_identity, has_currentness_basis)
+    same_tick_materialized = int(
+        _non_empty_text(candidate.get("source")) == "same_tick_materialized_dispatch"
+        or candidate.get("same_tick_materialized_provider_admission") is True
+    )
+    return (
+        same_tick_materialized,
+        has_stage_packet_identity,
+        has_route_identity,
+        has_currentness_basis,
+    )
 
 
 def _filter_provider_admission_candidates_by_progress_currentness(

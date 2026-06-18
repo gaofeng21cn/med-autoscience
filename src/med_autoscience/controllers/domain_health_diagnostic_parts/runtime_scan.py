@@ -88,6 +88,7 @@ def run_domain_health_diagnostic_for_runtime(
     managed_study_no_op_suppressions: list[dict[str, Any]] = []
     managed_study_opl_runtime_owner_handoffs: list[dict[str, Any]] = []
     managed_study_opl_provider_admission_candidates: list[dict[str, Any]] = []
+    managed_study_opl_transition_request_candidates: list[dict[str, Any]] = []
     managed_study_autonomy_slo_statuses: list[dict[str, Any]] = []
     managed_study_autonomy_repair_actions: list[dict[str, Any]] = []
     managed_study_progress_currentness: dict[str, dict[str, Any]] = {}
@@ -730,6 +731,11 @@ def run_domain_health_diagnostic_for_runtime(
                     refresh_currentness=False,
                 )
             )
+            managed_study_opl_transition_request_candidates.extend(
+                dict(item)
+                for item in status_payload.get("managed_study_opl_transition_request_candidates") or []
+                if isinstance(item, Mapping)
+            )
         if scope.runs_outer_loop_wakeup and apply:
             study_id = str(status_payload.get("study_id") or "").strip()
             quest_id = str(status_payload.get("quest_id") or "").strip()
@@ -798,6 +804,7 @@ def run_domain_health_diagnostic_for_runtime(
         managed_study_progress_currentness=managed_study_progress_currentness,
         managed_study_autonomy_slo_statuses=managed_study_autonomy_slo_statuses,
         managed_study_autonomy_repair_actions=managed_study_autonomy_repair_actions,
+        managed_study_opl_transition_request_candidates=managed_study_opl_transition_request_candidates,
     )
 
 
