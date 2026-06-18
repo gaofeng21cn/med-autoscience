@@ -14,11 +14,11 @@
   },
   "overall": {
     "status": "partial",
-    "completion_percent": 70,
+    "completion_percent": 72,
     "goal_complete": false,
     "completion_claim_allowed": false,
     "classification": "platform_runtime_and_policy_adapter_landed_live_paper_acceptance_open",
-    "current_summary": "OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, live readback transaction-consistency fail-closed validation, terminal closeout currentness, provider-hosted stale admission recovery, terminal handoff fixed-point projection rebuild, consumed terminal-blocker precedence over owner-receipt handoff surfaces, and MAS runtime-health local event append retirement have landed. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, full provider-admission consumption, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present; terminal typed-blocker handoff consumption rebuilds paper_recovery_state and current_executable_owner_action so stale successor actions cannot survive the same refresh; current_execution_surfaces now consume same-identity terminal typed blockers even when the handoff current_work_unit still projects owner_receipt_recorded; OPL current-control terminal closeout consumption no longer lets identity-bound admissions fall back to weak action/work-unit/fingerprint matching; and MAS OPL transition readback consumer rejects thin StageRun identity or stale event/outbox/transaction refs. Legacy default-executor latest wire fallback is now explicit-history-only: current provider admission, current provider handoff export, and current clean-migration recovery readers require canonical owner_callable_adapter_receipts/latest.json and do not consume default_executor_execution/latest.json."
+    "current_summary": "OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, live readback transaction-consistency fail-closed validation, terminal closeout currentness, provider-hosted stale admission recovery, terminal handoff fixed-point projection rebuild, consumed terminal-blocker precedence over owner-receipt handoff surfaces, and MAS runtime-health local event append retirement have landed. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, full provider-admission consumption, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present; terminal typed-blocker handoff consumption rebuilds paper_recovery_state and current_executable_owner_action so stale successor actions cannot survive the same refresh; current_execution_surfaces now consume same-identity terminal typed blockers even when the handoff current_work_unit still projects owner_receipt_recorded; OPL current-control terminal closeout consumption no longer lets identity-bound admissions fall back to weak action/work-unit/fingerprint matching; and MAS OPL transition readback consumer rejects thin StageRun identity or stale event/outbox/transaction refs. Legacy default-executor latest wire fallback is now explicit-history-only: current provider admission, current provider handoff export, and current clean-migration recovery readers require canonical owner_callable_adapter_receipts/latest.json and do not consume default_executor_execution/latest.json. Request-task alias retirement now removes the top-level materializer request_tasks field entirely; legacy request task refs survive only under legacy_request_task_diagnostics.legacy_request_task_refs as body-free diagnostic refs. Recovery successor consumption is now fingerprint-bound, so stale repair_progress_projection cannot consume a newer paper_recovery_state successor during fixed-point projection refresh."
   },
   "status_values": [
     "done",
@@ -251,12 +251,13 @@
       "correct_owner": "Derived MAS projection",
       "target": "current_executable_owner_action displays OPL event plus MAS policy result only; it is not an authority selector.",
       "status": "partial",
-      "completion_percent": 75,
+      "completion_percent": 77,
       "evidence": [
         "Same-identity NonAdvancingApply and terminal closeout filters suppress stale executable owner action.",
         "DM003 fresh readback after the v2 lane showed owner_receipt_recorded with current_executable_owner_action null.",
         "tests/study_progress_cases/current_executable_owner_action_cases/dm003_owner_receipt_running_handoff.py::test_paper_recovery_refresh_rebuilds_successor_after_handoff_terminal_blocker proves terminal handoff typed blockers force current_executable_owner_action back to null instead of preserving stale successor action.",
-        "tests/study_progress_cases/current_executable_owner_action_cases/dm003_owner_receipt_running_handoff.py::test_paper_recovery_refresh_consumes_handoff_terminal_blocker_over_owner_receipt proves consumed terminal typed blockers suppress executable action even when the handoff current_work_unit still says owner_receipt_recorded."
+        "tests/study_progress_cases/current_executable_owner_action_cases/dm003_owner_receipt_running_handoff.py::test_paper_recovery_refresh_consumes_handoff_terminal_blocker_over_owner_receipt proves consumed terminal typed blockers suppress executable action even when the handoff current_work_unit still says owner_receipt_recorded.",
+        "tests/study_progress_cases/current_executable_owner_action_cases/paper_recovery_successor_cases.py::test_paper_recovery_successor_survives_stale_repair_progress_during_fixed_point proves repair_progress_projection can only consume a paper recovery successor when the repair and successor fingerprints match; stale repair progress no longer demotes the current successor action."
       ],
       "open_gap": "Projection still needs long-tail live proof across other owner-answer families."
     },
@@ -265,14 +266,15 @@
       "correct_owner": "MAS semantic projection",
       "target": "Paper recovery semantics remain MAS-owned, while materialization, admission, and fixed-point runtime are OPL-owned.",
       "status": "partial",
-      "completion_percent": 73,
+      "completion_percent": 74,
       "evidence": [
         "Paper recovery read models no longer suffice as provider admission.",
         "MAS replay fixtures distinguish domain policy result from OPL runtime authority.",
         "Paper recovery state regression tests cover request-only provider admission candidates and current_work_unit pending booleans as projection repair, not admission.",
         "Current-control handoff projection keeps live-readback-backed admission pending until the terminal closeout binds the same OPL identity.",
         "Terminal handoff typed-blocker refresh now rebuilds stale materialize_successor_owner_action recovery state into domain_blocked / resolve_typed_blocker after current_work_unit consumption.",
-        "Consumed terminal typed-blocker precedence covers handoffs whose current_work_unit still projects owner_receipt_recorded, so paper_recovery_state cannot retain a stale successor over the blocker."
+        "Consumed terminal typed-blocker precedence covers handoffs whose current_work_unit still projects owner_receipt_recorded, so paper_recovery_state cannot retain a stale successor over the blocker.",
+        "Recovery successor fixed-point follow-through now binds repair-progress consumption to the successor work-unit fingerprint, closing the stale repair-progress over current paper-recovery successor path without authorizing provider admission."
       ],
       "open_gap": "Remaining live materialization and closeout paths must prove OPL runtime-backed transitions."
     },
@@ -294,15 +296,16 @@
       "correct_owner": "MAS/OPL",
       "target": "Delete or tombstone MAS private kernel, alias, selector/materializer authority, and local runtime-like surfaces.",
       "status": "partial",
-      "completion_percent": 70,
+      "completion_percent": 72,
       "evidence": [
         "MAS runtime-health local append API is retired.",
         "Runtime surface inventory tracks remaining private surface tails.",
         "domain_owner_action_dispatch has repo-level coverage for missing OPL proof fail-closed across every supported action, trusted OPL authorization, bound DomainProgressTransitionRuntime readback, and provider-hosted exact StageRun authorization.",
         "Legacy default_executor_execution/latest.json fallback is no longer consumed by current provider admission, provider handoff export, or clean-migration recovery readers; legacy latest requires explicit history/replay opt-in.",
-        "domain_authority_refs_index active callers now emit OPL StateIndex source-adapter proofs by default; db_path no longer implies MAS SQLite persistence, and SQLite writes require explicit opt-in for replay/local inspection."
+        "domain_authority_refs_index active callers now emit OPL StateIndex source-adapter proofs by default; db_path no longer implies MAS SQLite persistence, and SQLite writes require explicit opt-in for replay/local inspection.",
+        "domain_action_request_materializer no longer emits top-level request_tasks; request task refs are nested under legacy_request_task_diagnostics.legacy_request_task_refs with diagnostic_ref_only/body_authority=false and tests assert the alias is absent."
       ],
-      "open_gap": "Remaining live dispatcher soak/no-active-caller proof, DHD obligation actuator physical retirement, domain_authority_refs_index live OPL StateIndexKernel takeover or no-active-caller physical delete proof, and full legacy carrier physical delete evidence still require closeout."
+      "open_gap": "Remaining live dispatcher soak/no-active-caller proof, DHD obligation actuator physical retirement, domain_authority_refs_index live OPL StateIndexKernel takeover or no-active-caller physical delete proof, and full legacy carrier physical delete evidence still require closeout; request_tasks alias retirement is repo-level diagnostic-surface cleanup, not physical retirement of every legacy carrier."
     },
     {
       "feature_id": "live_dm002_dm003_acceptance",
@@ -311,9 +314,11 @@
       "status": "partial",
       "completion_percent": 50,
       "evidence": [
-        "Recent readbacks show DM002 stable typed blocker and DM003 owner receipt recorded after currentness fixes."
+        "Fresh read-only study_progress on 2026-06-18 shows DM002 current_work_unit.status=typed_blocker with state.blocker_type=anti_loop_budget_exhausted, owner=one-person-lab, work_unit_id=ai_reviewer_record_gate_consumption, active_run_id=None, provider_attempt_running_proven=None.",
+        "Fresh read-only study_progress on 2026-06-18 shows DM003 current_work_unit.status=executable_owner_action, current_executable_owner_action.source=paper_recovery_state.next_safe_action.successor_owner_action, work_unit_id=medical_prose_write_repair, active_run_id=None, provider_attempt_running_proven=None.",
+        "DM003 owner action ready is a currentness/readiness repair outcome only; it is not strict running proof, OPL outbox/StageRun readback, owner receipt, human gate, route-back evidence, or paper/gate/artifact semantic delta."
       ],
-      "open_gap": "Fresh live paper semantic delta, route-back evidence, human gate, strict running proof, or OPL-readback-backed admission is still required; dry-run and projection cleanliness are not enough."
+      "open_gap": "DM002 still needs owner resolution or accepted stable blocker closeout for the current anti-loop blocker; DM003 still needs OPL-readback-backed admission/running proof or MAS owner receipt/stable blocker/human gate/route-back/paper semantic delta. queue empty, provider_admission_pending_count=0, transition_request_pending_count=0, and owner-action ready are not live paper progress."
     }
   ],
   "phase_audit": [
@@ -365,13 +370,15 @@
     {
       "phase_id": "lane_5_projection_demotion",
       "status": "partial",
-      "completion_percent": 71,
+      "completion_percent": 73,
       "evidence": [
         "Projection metadata and runtime inventory demote several authority surfaces.",
         "Paper recovery state no longer lets request-only current_work_unit/provider-admission projections suppress projection repair without complete OPL live readback.",
         "OPL current-control terminal closeout consumption now preserves identity-bound live-readback provider admissions unless the closeout matches the same StageRun/route/idempotency/packet identity.",
         "Paper recovery execution refresh reruns recovery state, current executable action, provider projection, and admission sync after terminal handoff typed-blocker consumption so stale successor state does not remain current.",
-        "Current execution surface refresh consumes provider_admission_terminal_closeout_consumed typed blockers before owner-receipt successor projection when their identity overlaps without conflict."
+        "Current execution surface refresh consumes provider_admission_terminal_closeout_consumed typed blockers before owner-receipt successor projection when their identity overlaps without conflict.",
+        "Top-level materializer request_tasks alias is retired; DHD preview and stability evidence consume only nested legacy_request_task_diagnostics refs.",
+        "Repair-progress consumption of paper recovery successors is fingerprint-bound, preventing stale projection demotion during fixed-point refresh."
       ],
       "open_gap": "All downstream read models must still rebuild from OPL event plus MAS policy result, and live paper-line acceptance remains open."
     },
@@ -387,10 +394,11 @@
     {
       "phase_id": "lane_7_legacy_retirement",
       "status": "partial",
-      "completion_percent": 64,
+      "completion_percent": 66,
       "evidence": [
         "Runtime-health local append API is retired and inventory tracks remaining surfaces.",
-        "domain_owner_action_dispatch repo tests cover fail-closed typed blockers for missing proof across every supported action, trusted OPL authorization, bound transition readback, and exact provider-hosted StageRun authorization."
+        "domain_owner_action_dispatch repo tests cover fail-closed typed blockers for missing proof across every supported action, trusted OPL authorization, bound transition readback, and exact provider-hosted StageRun authorization.",
+        "Top-level request_tasks alias is physically removed from materializer output, with replacement nested diagnostic refs and retirement inventory updated; remaining carriers still need live/no-active-caller closeout."
       ],
       "open_gap": "Remaining private runtime residue needs live every-active-caller soak, no-active-caller, tombstone, or physical deletion evidence."
     },
@@ -594,13 +602,17 @@
         "tests/test_paper_recovery_state.py::test_current_work_unit_provider_admission_without_candidate_or_opl_readback_repairs_projection_before_admission",
         "tests/test_mcp_opl_current_control_state_handoff_projection.py::test_study_progress_opl_current_control_state_handoff_preserves_runtime_backed_admission_when_closeout_identity_is_not_bound",
         "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape",
-        "tests/test_opl_transition_readback_contract.py::test_provider_admission_requires_trusted_opl_readback_not_weak_projection"
+        "tests/test_opl_transition_readback_contract.py::test_provider_admission_requires_trusted_opl_readback_not_weak_projection",
+        "fresh_read_only:2026-06-18:DM002 study_progress typed_blocker anti_loop_budget_exhausted active_run_id=None provider_attempt_running_proven=None",
+        "fresh_read_only:2026-06-18:DM003 study_progress executable_owner_action paper_recovery_successor medical_prose_write_repair active_run_id=None provider_attempt_running_proven=None"
       ],
       "missing_evidence_tails": [
         "OPL outbox and StageRun identity live readback for the same transition request",
         "DHD apply exactly-one live outcome when explicitly delegated",
         "provider admission arbiter fully consuming OPL transition events",
-        "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family"
+        "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
+        "DM002 current anti_loop_budget_exhausted owner resolution or accepted stable blocker closeout",
+        "DM003 OPL readback backed admission/running proof or MAS owner answer for medical_prose_write_repair"
       ],
       "false_completion_boundary": [
         "DHD_dry_run",
@@ -648,7 +660,10 @@
         "tests/test_mcp_opl_current_control_state_handoff_projection.py::test_study_progress_opl_current_control_state_handoff_preserves_runtime_backed_admission_when_closeout_identity_is_not_bound",
         "tests/test_paper_progress_transition_refs.py::test_transition_ref_default_authority_index_path_is_source_adapter_only",
         "tests/test_domain_owner_action_dispatch_cases/anti_loop_budget.py::test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budget_and_indexes_receipt",
-        "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index"
+        "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
+        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_materialize_domain_action_requests_writes_quality_repair_request_to_canonical_requests_surface",
+        "tests/test_progress_first_global_contract.py::test_domain_action_materializer_blocks_new_default_executor_task_until_running_provider_or_closeout",
+        "tests/study_progress_cases/current_executable_owner_action_cases/paper_recovery_successor_cases.py::test_paper_recovery_successor_survives_stale_repair_progress_during_fixed_point"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_caller_physical_delete_ref",
