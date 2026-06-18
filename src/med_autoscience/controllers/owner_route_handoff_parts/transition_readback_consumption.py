@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from .export_study_projection import mapping, text
+from med_autoscience.controllers.study_progress_parts.owner_receipt_successor import (
+    paper_recovery_consumed_owner_receipt_successor,
+)
 
 
 def currentness_consumes_current_control_transition_request(
@@ -12,6 +15,10 @@ def currentness_consumes_current_control_transition_request(
     work_unit_id: str | None,
     work_unit_fingerprint: str | None,
 ) -> bool:
+    if paper_recovery_consumed_owner_receipt_successor(
+        mapping(currentness.get("paper_recovery_state"))
+    ):
+        return False
     current_work_unit = mapping(currentness.get("current_work_unit"))
     current_execution_envelope = mapping(currentness.get("current_execution_envelope"))
     current_control_handoff = mapping(currentness.get("opl_current_control_state_handoff"))

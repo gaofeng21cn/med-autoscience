@@ -637,6 +637,133 @@ def test_provider_admission_projection_materialize_recovery_action_requires_live
     assert "opl_domain_progress_transition_result" not in candidate
 
 
+def test_provider_admission_projection_keeps_consumed_owner_receipt_successor_under_terminal_closeout(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_ready_quality_repair_dispatch(study_root, study_id=study_id, fingerprint=fingerprint)
+
+    fields = module.provider_admission_projection_fields(
+        payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_action_ready",
+                "conditions": [
+                    {
+                        "condition": "consumed_owner_receipt_routeback_successor",
+                        "source_condition": "current_work_unit_owner_receipt_recorded",
+                    }
+                ],
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "provider_admission_allowed": True,
+                    "successor_owner_action": {
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                },
+                "supervisor_decision": _supervisor_decision(
+                    "materialize_recovery_action",
+                    study_id=study_id,
+                    fingerprint=fingerprint,
+                ),
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                    "provider_admission_pending": False,
+                },
+                "currentness_basis": {
+                    "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "truth_epoch": "truth::current",
+                    "runtime_health_epoch": "runtime::current",
+                },
+            },
+        },
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "source_path": "/tmp/opl_current_control_state/latest.json",
+            "running_provider_attempt": False,
+            "provider_admission_terminal_closeout_consumed": {
+                "surface_kind": "provider_admission_terminal_closeout_consumed",
+                "stage_attempt_id": "sat_f22f2e9d25d336fa2a2a4306",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "owner_receipt_ref": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                    "controller/repair_execution_receipts/latest.json"
+                ),
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "owner_receipt_recorded",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "owner_receipt_recorded",
+                    "owner_receipt_ref": (
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                        "controller/repair_execution_receipts/latest.json"
+                    ),
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "owner_receipt_recorded",
+                "owner": "write",
+            },
+            "action_queue": [],
+        },
+        study_root=study_root,
+    )
+
+    assert fields["provider_admission_pending_count"] == 0
+    assert fields["provider_admission_candidates"] == []
+    assert fields["transition_request_pending_count"] == 1
+    candidate = fields["transition_request_candidates"][0]
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+
+
 def test_provider_admission_projection_keeps_handoff_live_readback_for_successor_after_owner_receipt(
     tmp_path,
 ) -> None:

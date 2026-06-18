@@ -1306,6 +1306,185 @@ def test_domain_handler_export_carries_stage_packet_for_recovery_successor_trans
     assert "stage_run_identity" not in task["payload"]
 
 
+def test_domain_handler_export_keeps_consumed_owner_receipt_successor_transition_request(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    _write_json(study_root / "study.yaml", {"study_id": study_id})
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{action_type}.json"
+    )
+    route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason=work_unit_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=fingerprint,
+        runtime_health_epoch=fingerprint,
+        blocked_actions=[],
+    )
+    _write_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "dispatch_status": "ready",
+            "next_executable_owner": "write",
+            "owner_route": route,
+            "refs": {"dispatch_path": str(dispatch_path)},
+            "generated_at": "2026-06-16T04:54:52+00:00",
+        },
+    )
+
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(
+        study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "write",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                },
+                "currentness_basis": {
+                    "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+                    "runtime_health_epoch": "runtime-health-event-006980-current",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": work_unit_id,
+                "action_type": action_type,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "next_owner": "write",
+                "action_type": action_type,
+                "allowed_actions": [action_type],
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "paper_recovery_state": {
+                "phase": "owner_action_ready",
+                "conditions": [
+                    {
+                        "condition": "consumed_owner_receipt_routeback_successor",
+                        "source_condition": "current_work_unit_owner_receipt_recorded",
+                    }
+                ],
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "provider_admission_allowed": True,
+                    "successor_owner_action": {
+                        "action_type": action_type,
+                        "owner": "write",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                        "source_ref": str(
+                            study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+                        ),
+                    },
+                },
+                "supervisor_decision": {
+                    "decision": "materialize_recovery_action",
+                    "identity_match": True,
+                },
+            },
+            "opl_current_control_state_handoff": {
+                "surface_kind": "opl_current_control_state_study_handoff",
+                "provider_admission_terminal_closeout_consumed": {
+                    "surface_kind": "provider_admission_terminal_closeout_consumed",
+                    "stage_attempt_id": "sat_f22f2e9d25d336fa2a2a4306",
+                    "action_type": action_type,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "owner_receipt_ref": (
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                        "controller/repair_execution_receipts/latest.json"
+                    ),
+                },
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "owner_receipt_recorded",
+                    "owner": "write",
+                    "action_type": action_type,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "state": {
+                        "state_kind": "owner_receipt_recorded",
+                        "owner_receipt_ref": (
+                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                            "controller/repair_execution_receipts/latest.json"
+                        ),
+                    },
+                },
+                "current_execution_envelope": {
+                    "state_kind": "owner_receipt_recorded",
+                    "owner": "write",
+                },
+            },
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 1,
+            "transition_request_candidates": [],
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    [task] = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert task["reason"] == "current_control_transition_request_pending"
+    assert task["payload"]["current_control_action"]["status"] == "transition_request_pending"
+    assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
+
+
 def test_domain_handler_export_does_not_treat_nonconsumable_redrive_budget_as_domain_closeout(
     tmp_path: Path,
     capsys,
