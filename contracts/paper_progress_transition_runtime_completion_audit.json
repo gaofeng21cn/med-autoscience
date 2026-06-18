@@ -723,11 +723,13 @@
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_latest_default_fallback_violation",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/default_executor_dispatch_request#legacy_stage_run_abi_provenance_boundary",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/default_executor_execution_latest_wire_projection#legacy_stage_run_abi_boundary",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/default_executor_execution_latest_wire_projection#legacy_stage_run_abi_boundary.active_stage_run_abi_caller_scan",
         "src/med_autoscience/controllers/study_transition_receipt_consumption_parts/default_executor_candidates.py::_execution_from_stage_closeout#legacy_stage_run_abi_provenance_only",
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_legacy_default_executor_carrier",
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_legacy_stage_run_abi",
         "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#legacy_default_executor_carrier_stage_run_abi_boundary",
         "tests/test_adapter_retirement_boundary.py::test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
+        "tests/test_adapter_retirement_boundary.py::test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_default_executor_carrier_authority_regression"
       ],
       "missing_evidence_tails": [
@@ -748,6 +750,7 @@
         "runtime_storage_apply_as_paper_progress",
         "legacy_latest_default_fallback_reenabled",
         "legacy_stage_run_abi_provenance_without_no_active_caller_physical_delete",
+        "active_stage_run_abi_caller_scan_as_physical_delete",
         "legacy_closeout_packet_identity_recovery_as_provider_admission_authority"
       ]
     },

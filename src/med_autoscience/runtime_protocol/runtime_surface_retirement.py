@@ -232,14 +232,58 @@ def _validate_legacy_stage_run_abi(
             violations.append(_violation(surface_id, f"legacy_stage_run_abi_authority:{key}"))
     if boundary.get("terminal_closeout_consumption_requires_owner_result_or_typed_blocker") is not True:
         violations.append(_violation(surface_id, "stage_closeout_terminal_consumption_not_owner_result_bound"))
-    if boundary.get("physical_delete_requires_no_active_stage_run_abi_caller_scan") is not True:
+    physical_delete_requires_scan = (
+        boundary.get("physical_delete_requires_no_active_stage_run_abi_caller_scan") is True
+    )
+    if not physical_delete_requires_scan:
         violations.append(_violation(surface_id, "stage_closeout_physical_delete_missing_no_active_caller_scan"))
+    else:
+        violations.extend(_validate_stage_run_abi_active_caller_scan(surface_id, boundary))
     closeout_roots = boundary.get("closeout_packet_roots")
     if not isinstance(closeout_roots, list) or not closeout_roots:
         violations.append(_violation(surface_id, "stage_closeout_packet_roots_missing"))
     allowed = boundary.get("allowed_consumption")
     if not isinstance(allowed, list) or "terminal_closeout_consumption" not in allowed:
         violations.append(_violation(surface_id, "stage_closeout_allowed_consumption_missing_terminal_closeout"))
+    return violations
+
+
+def _validate_stage_run_abi_active_caller_scan(
+    surface_id: str,
+    boundary: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    scan = boundary.get("active_stage_run_abi_caller_scan")
+    if not isinstance(scan, Mapping):
+        return [_violation(surface_id, "stage_closeout_active_caller_scan_missing")]
+
+    violations: list[dict[str, str]] = []
+    active_callers = scan.get("active_callers")
+    active_caller_list = active_callers if isinstance(active_callers, list) else []
+    no_active_proven = scan.get("no_active_stage_run_abi_caller_proven")
+    physical_delete_allowed = scan.get("physical_delete_allowed")
+    status = _text(scan.get("status"))
+    if status == "active_callers_present_tail_open":
+        if not active_caller_list:
+            violations.append(_violation(surface_id, "stage_closeout_active_caller_scan_empty"))
+        if no_active_proven is not False:
+            violations.append(_violation(surface_id, "stage_closeout_active_tail_must_not_claim_no_active_callers"))
+        if physical_delete_allowed is not False:
+            violations.append(_violation(surface_id, "stage_closeout_active_callers_block_physical_delete"))
+    if active_caller_list and no_active_proven is True:
+        violations.append(_violation(surface_id, "stage_closeout_no_active_claim_contradicts_active_callers"))
+    if active_caller_list and physical_delete_allowed is not False:
+        violations.append(_violation(surface_id, "stage_closeout_active_callers_block_physical_delete"))
+    allowed_consumption = scan.get("allowed_consumption")
+    if not isinstance(allowed_consumption, list) or "terminal_closeout_consumption" not in allowed_consumption:
+        violations.append(_violation(surface_id, "stage_closeout_active_scan_missing_allowed_consumption"))
+    forbidden_claims = scan.get("forbidden_completion_claims")
+    if not isinstance(forbidden_claims, list) or "stage_closeout_provenance_only_as_physical_delete" not in forbidden_claims:
+        violations.append(_violation(surface_id, "stage_closeout_active_scan_missing_false_completion_guard"))
+    if (
+        _text(scan.get("required_before_physical_delete"))
+        != "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
+    ):
+        violations.append(_violation(surface_id, "stage_closeout_active_scan_missing_physical_delete_ref"))
     return violations
 
 
@@ -307,6 +351,11 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     apply_gate = surface.get("apply_gate")
     retirement_gate = surface.get("retirement_gate")
     legacy_stage_run_boundary = surface.get("legacy_stage_run_abi_boundary")
+    legacy_stage_run_scan = (
+        legacy_stage_run_boundary.get("active_stage_run_abi_caller_scan")
+        if isinstance(legacy_stage_run_boundary, Mapping)
+        else None
+    )
     return {
         "surface_id": surface["surface_id"],
         "current_disposition": surface["current_disposition"],
@@ -344,6 +393,22 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
         "legacy_stage_run_execution_authority": (
             legacy_stage_run_boundary.get("stage_closeout_packets_can_authorize_execution")
             if isinstance(legacy_stage_run_boundary, Mapping)
+            else None
+        ),
+        "legacy_stage_run_no_active_caller_proven": (
+            legacy_stage_run_scan.get("no_active_stage_run_abi_caller_proven")
+            if isinstance(legacy_stage_run_scan, Mapping)
+            else None
+        ),
+        "legacy_stage_run_physical_delete_allowed": (
+            legacy_stage_run_scan.get("physical_delete_allowed")
+            if isinstance(legacy_stage_run_scan, Mapping)
+            else None
+        ),
+        "legacy_stage_run_active_caller_count": (
+            len(legacy_stage_run_scan.get("active_callers"))
+            if isinstance(legacy_stage_run_scan, Mapping)
+            and isinstance(legacy_stage_run_scan.get("active_callers"), list)
             else None
         ),
         "retirement_gate": dict(retirement_gate) if isinstance(retirement_gate, Mapping) else None,
@@ -404,6 +469,18 @@ def _requires_readback(surface: Mapping[str, Any]) -> bool:
 def _physical_delete_gate_open(surface: Mapping[str, Any]) -> bool:
     if surface.get("current_disposition") == "physically_retired":
         return False
+    legacy_stage_run_boundary = surface.get("legacy_stage_run_abi_boundary")
+    if (
+        isinstance(legacy_stage_run_boundary, Mapping)
+        and legacy_stage_run_boundary.get("physical_delete_requires_no_active_stage_run_abi_caller_scan")
+        is True
+    ):
+        scan = legacy_stage_run_boundary.get("active_stage_run_abi_caller_scan")
+        return not (
+            isinstance(scan, Mapping)
+            and scan.get("no_active_stage_run_abi_caller_proven") is True
+            and scan.get("physical_delete_allowed") is True
+        )
     gate = surface.get("retirement_gate")
     if not isinstance(gate, Mapping):
         return False

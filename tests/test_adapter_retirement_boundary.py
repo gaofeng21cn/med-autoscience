@@ -361,6 +361,41 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "dispatch_ref_stage_packet_identity_recovery_is_authority": False,
         "terminal_closeout_consumption_requires_owner_result_or_typed_blocker": True,
         "physical_delete_requires_no_active_stage_run_abi_caller_scan": True,
+        "active_stage_run_abi_caller_scan": {
+            "status": "active_callers_present_tail_open",
+            "no_active_stage_run_abi_caller_proven": False,
+            "physical_delete_allowed": False,
+            "required_before_physical_delete": (
+                "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
+            ),
+            "active_callers": [
+                (
+                    "study_transition_receipt_consumption_parts.default_executor_candidates."
+                    "default_executor_execution_candidates::_stage_closeout_candidates"
+                ),
+                "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
+                "study_transition_receipt_consumption.default_executor_execution_nonconsumable_closeout",
+                (
+                    "study_transition_receipt_consumption_parts.default_executor_followthrough."
+                    "default_executor_execution_followthrough_receipt_consumption"
+                ),
+                "domain_health_diagnostic_parts.provider_admission_report_closeout_scan",
+                "domain_health_diagnostic_work_units",
+                "study_progress_parts.opl_current_control_state_terminal_logs",
+            ],
+            "allowed_consumption": [
+                "terminal_closeout_consumption",
+                "typed_blocker_consumption",
+                "owner_route_currentness_identity_recovery",
+                "paper_stage_log_delta_projection",
+            ],
+            "forbidden_completion_claims": [
+                "stage_closeout_provenance_only_as_physical_delete",
+                "legacy_stage_run_abi_candidate_as_no_active_caller",
+                "stage_closeout_candidate_scan_as_provider_admission_authority",
+                "focused_tests_green_as_physical_delete",
+            ],
+        },
     }
 
     owner_dispatch = surfaces["domain_owner_action_dispatch"]
@@ -813,6 +848,81 @@ def test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provena
     assert candidate["execution_authority"] is False
     assert candidate["attempt_lifecycle_authority"] is False
     assert candidate["queue_authority"] is False
+
+
+def test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open() -> None:
+    inventory = json.loads(
+        (REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+    surface = {
+        item["surface_id"]: item for item in inventory["surfaces"]
+    }["default_executor_execution_latest_wire_projection"]
+    scan = surface["legacy_stage_run_abi_boundary"]["active_stage_run_abi_caller_scan"]
+
+    assert scan["status"] == "active_callers_present_tail_open"
+    assert scan["no_active_stage_run_abi_caller_proven"] is False
+    assert scan["physical_delete_allowed"] is False
+    assert (
+        scan["required_before_physical_delete"]
+        == "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
+    )
+    assert {
+        (
+            "study_transition_receipt_consumption_parts.default_executor_candidates."
+            "default_executor_execution_candidates::_stage_closeout_candidates"
+        ),
+        "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
+        "study_transition_receipt_consumption.default_executor_execution_nonconsumable_closeout",
+        "domain_health_diagnostic_parts.provider_admission_report_closeout_scan",
+        "study_progress_parts.opl_current_control_state_terminal_logs",
+    } <= set(scan["active_callers"])
+    assert "terminal_closeout_consumption" in scan["allowed_consumption"]
+    assert "typed_blocker_consumption" in scan["allowed_consumption"]
+    assert "owner_route_currentness_identity_recovery" in scan["allowed_consumption"]
+    assert "stage_closeout_provenance_only_as_physical_delete" in scan[
+        "forbidden_completion_claims"
+    ]
+
+    audit = retirement.audit_runtime_surface_retirement_inventory(inventory)
+    audited_surface = {
+        item["surface_id"]: item for item in audit["open_surfaces"]
+    }["default_executor_execution_latest_wire_projection"]
+
+    assert audited_surface["legacy_stage_run_no_active_caller_proven"] is False
+    assert audited_surface["legacy_stage_run_physical_delete_allowed"] is False
+    assert audited_surface["legacy_stage_run_active_caller_count"] == len(scan["active_callers"])
+    assert audited_surface["physical_delete_gate_open"] is True
+    assert audit["completion_claim_allowed"] is False
+
+    bad_inventory = json.loads(json.dumps(inventory))
+    bad_surface = {
+        item["surface_id"]: item for item in bad_inventory["surfaces"]
+    }["default_executor_execution_latest_wire_projection"]
+    bad_scan = bad_surface["legacy_stage_run_abi_boundary"]["active_stage_run_abi_caller_scan"]
+    bad_scan["no_active_stage_run_abi_caller_proven"] = True
+    bad_scan["physical_delete_allowed"] = True
+
+    violations = retirement.validate_runtime_surface_retirement_inventory(bad_inventory)
+
+    assert {
+        (
+            "default_executor_execution_latest_wire_projection",
+            "stage_closeout_active_tail_must_not_claim_no_active_callers",
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "stage_closeout_active_callers_block_physical_delete",
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "stage_closeout_no_active_claim_contradicts_active_callers",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in violations}
 
 
 def test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in(

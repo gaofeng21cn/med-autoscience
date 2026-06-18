@@ -401,6 +401,11 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     legacy_stage_run["legacy_stage_run_abi_boundary"][
         "terminal_closeout_consumption_requires_owner_result_or_typed_blocker"
     ] = False
+    legacy_stage_run_scan = legacy_stage_run["legacy_stage_run_abi_boundary"][
+        "active_stage_run_abi_caller_scan"
+    ]
+    legacy_stage_run_scan["no_active_stage_run_abi_caller_proven"] = True
+    legacy_stage_run_scan["physical_delete_allowed"] = True
 
     legacy_stage_run_violations = retirement.validate_runtime_surface_retirement_inventory(
         legacy_stage_run_bad_inventory
@@ -435,6 +440,18 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "default_executor_execution_latest_wire_projection",
             "stage_closeout_terminal_consumption_not_owner_result_bound",
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "stage_closeout_active_tail_must_not_claim_no_active_callers",
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "stage_closeout_active_callers_block_physical_delete",
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "stage_closeout_no_active_claim_contradicts_active_callers",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in legacy_stage_run_violations}
 

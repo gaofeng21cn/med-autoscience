@@ -569,6 +569,7 @@
         "tests/owner_route_reconcile_cases/test_default_executor_receipt_recovery.py::test_default_executor_closeout_with_recovered_stage_packet_currentness_redrives",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression",
         "tests/test_adapter_retirement_boundary.py::test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
+        "tests/test_adapter_retirement_boundary.py::test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_stage_run_abi_violation"
       ],
       "legacy_wire_default_reader_fallback_allowed": false,
@@ -598,7 +599,34 @@
         "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result": false,
         "dispatch_ref_stage_packet_identity_recovery_is_authority": false,
         "terminal_closeout_consumption_requires_owner_result_or_typed_blocker": true,
-        "physical_delete_requires_no_active_stage_run_abi_caller_scan": true
+        "physical_delete_requires_no_active_stage_run_abi_caller_scan": true,
+        "active_stage_run_abi_caller_scan": {
+          "status": "active_callers_present_tail_open",
+          "no_active_stage_run_abi_caller_proven": false,
+          "physical_delete_allowed": false,
+          "required_before_physical_delete": "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref",
+          "active_callers": [
+            "study_transition_receipt_consumption_parts.default_executor_candidates.default_executor_execution_candidates::_stage_closeout_candidates",
+            "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
+            "study_transition_receipt_consumption.default_executor_execution_nonconsumable_closeout",
+            "study_transition_receipt_consumption_parts.default_executor_followthrough.default_executor_execution_followthrough_receipt_consumption",
+            "domain_health_diagnostic_parts.provider_admission_report_closeout_scan",
+            "domain_health_diagnostic_work_units",
+            "study_progress_parts.opl_current_control_state_terminal_logs"
+          ],
+          "allowed_consumption": [
+            "terminal_closeout_consumption",
+            "typed_blocker_consumption",
+            "owner_route_currentness_identity_recovery",
+            "paper_stage_log_delta_projection"
+          ],
+          "forbidden_completion_claims": [
+            "stage_closeout_provenance_only_as_physical_delete",
+            "legacy_stage_run_abi_candidate_as_no_active_caller",
+            "stage_closeout_candidate_scan_as_provider_admission_authority",
+            "focused_tests_green_as_physical_delete"
+          ]
+        }
       }
     },
     {

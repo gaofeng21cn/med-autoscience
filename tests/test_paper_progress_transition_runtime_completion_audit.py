@@ -259,7 +259,20 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only"
     ) in physical_gate["observed_refs"]
     assert (
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
+        "default_executor_execution_latest_wire_projection#"
+        "legacy_stage_run_abi_boundary.active_stage_run_abi_caller_scan"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_adapter_retirement_boundary.py::"
+        "test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open"
+    ) in physical_gate["observed_refs"]
+    assert (
         "legacy_stage_run_abi_provenance_without_no_active_caller_physical_delete"
+        in physical_gate["false_completion_boundary"]
+    )
+    assert (
+        "active_stage_run_abi_caller_scan_as_physical_delete"
         in physical_gate["false_completion_boundary"]
     )
     assert (
