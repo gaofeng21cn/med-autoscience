@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import json
-import sqlite3
 from pathlib import Path
 
 from tests.domain_owner_action_dispatch_helpers import (
@@ -167,17 +165,8 @@ def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budge
     assert execution["anti_loop_budget"]["escalation_route"] == "publishability_repair_sprint"
 
     db_path = profile.workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
-    assert db_path.is_file()
-    with sqlite3.connect(db_path) as conn:
-        row = conn.execute(
-            """
-            SELECT status, idempotency_key, payload_json
-            FROM dispatch_receipts
-            WHERE study_id = ? AND action_type = ? AND status = ?
-            """,
-            (study_id, "return_to_ai_reviewer_workflow", "repeat_suppressed"),
-        ).fetchone()
-    assert row is not None
-    assert row[0] == "repeat_suppressed"
-    assert row[1] == route["idempotency_key"]
-    assert json.loads(row[2])["why_not_applied"] == "anti_loop_budget_exhausted"
+    assert execution["domain_authority_ref_index"]["status"] == "source_adapter_emitted"
+    assert execution["domain_authority_ref_index"]["indexed_table"] == "dispatch_receipts"
+    assert execution["domain_authority_ref_index"]["sqlite_persisted"] is False
+    assert execution["domain_authority_ref_index"]["opl_state_index_kernel_required"] is True
+    assert not db_path.exists()

@@ -53,12 +53,14 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sid
         receipt=owner_receipt,
         receipt_path=owner_receipt_path,
         db_path=db_path,
+        persist_sqlite=True,
     )
     refs_index.record_dispatch_receipt(
         quest_root=quest_root,
         receipt=dispatch_receipt,
         receipt_path=dispatch_receipt_path,
         db_path=db_path,
+        persist_sqlite=True,
     )
 
     surface = adoption_module.build_opl_family_adoption_surface(

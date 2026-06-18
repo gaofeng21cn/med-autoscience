@@ -37,6 +37,7 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
         intent=_intent(),
         recorded_at="2026-05-10T00:00:00+00:00",
         db_path=db_path,
+        persist_authority_refs_index=True,
     )
     replay = refs.record_paper_progress_transition_ref(
         study_root=study_root,
@@ -45,6 +46,7 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
         intent=_intent(),
         recorded_at="2026-05-10T00:01:00+00:00",
         db_path=db_path,
+        persist_authority_refs_index=True,
     )
 
     assert first["receipt_status"] == "transition_request_pending_opl_runtime_required"
@@ -131,6 +133,27 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
     )
     assert rows[0][5] != ""
     assert rows[0][6].endswith("paper_progress_transition_refs/receipts.jsonl")
+
+
+def test_transition_ref_default_authority_index_path_is_source_adapter_only(tmp_path: Path) -> None:
+    refs = importlib.import_module("med_autoscience.controllers.paper_progress_transition_refs")
+    refs_index = importlib.import_module("med_autoscience.runtime_protocol.domain_authority_refs_index")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
+    db_path = refs_index.workspace_authority_refs_index_path(tmp_path / "workspace")
+
+    receipt = refs.record_paper_progress_transition_ref(
+        study_root=study_root,
+        quest_root=quest_root,
+        idempotency_key="paper-work-unit::001",
+        intent=_intent(),
+        recorded_at="2026-05-10T00:00:00+00:00",
+        db_path=db_path,
+    )
+
+    assert receipt["receipt_status"] == "transition_request_pending_opl_runtime_required"
+    assert not db_path.exists()
+    assert len(refs.read_transition_refs(study_root=study_root)) == 1
 
 
 def test_transition_ref_fails_closed_for_same_idempotency_key_with_different_intent(tmp_path: Path) -> None:

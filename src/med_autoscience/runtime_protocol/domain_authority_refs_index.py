@@ -55,6 +55,14 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
         "generic_runtime_owner": "one-person-lab",
         "generic_persistence_engine_claim_allowed": False,
         "generic_scheduler_queue_attempt_claim_allowed": False,
+        "default_record_behavior": "source_adapter_emitted_no_default_sqlite_persistence",
+        "sqlite_persistence_policy": {
+            "default_persist_sqlite": False,
+            "requires_explicit_opt_in": True,
+            "opt_in_parameter": "persist_sqlite",
+            "allowed_use": "historical_replay_or_explicit_local_refs_inspection",
+            "active_caller_db_path_does_not_imply_persistence": True,
+        },
         "authority_policy": {
             "stores_body": False,
             "stores_domain_truth": False,
@@ -106,7 +114,10 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
             "replacement_owner_surface": "one-person-lab StateIndexKernel",
             "mas_source_adapter_role": "refs_only_domain_authority_receipt_source_adapter",
             "active_caller_status": "repo_proven_no_active_authority_caller",
-            "active_caller_effect": "body_free_refs_only_locator_index",
+            "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
+            "default_sqlite_persistence": False,
+            "sqlite_persistence_requires_explicit_opt_in": True,
+            "active_caller_db_path_does_not_imply_persistence": True,
             "active_caller_retains_surface": True,
             "active_caller_retains_authority": False,
             "source_tables": list(AUTHORITY_REF_TABLES),
@@ -149,6 +160,7 @@ def record_archive_ref(
     quest_root: Path,
     archive_ref: Mapping[str, Any],
     db_path: Path | None = None,
+    persist_sqlite: bool = False,
 ) -> dict[str, Any]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     resolved_db_path = _resolve_db_path(db_path, default=quest_authority_refs_index_path(resolved_quest_root))
@@ -159,6 +171,14 @@ def record_archive_ref(
     archived_at = _text(archive_ref.get("archived_at")) or _utc_now()
     payload_json = _stable_json(_archive_ref_projection_payload(archive_ref))
     payload_sha256 = _sha256(_stable_json(archive_ref))
+    if not persist_sqlite:
+        return _source_adapter_result(
+            indexed_table="archive_refs",
+            scope="quest",
+            source_path=archive_path,
+            payload_sha256=payload_sha256,
+            db_path=resolved_db_path,
+        )
     with _connect(resolved_db_path) as conn:
         _ensure_schema(conn)
         conn.execute(
@@ -206,6 +226,7 @@ def record_owner_route_receipt(
     receipt: Mapping[str, Any],
     receipt_path: Path,
     db_path: Path | None = None,
+    persist_sqlite: bool = False,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_db_path = _resolve_db_path(db_path, default=workspace_authority_refs_index_path(resolved_study_root.parent.parent))
@@ -228,6 +249,14 @@ def record_owner_route_receipt(
         "payload_json": payload_json,
         "recorded_at": _utc_now(),
     }
+    if not persist_sqlite:
+        return _source_adapter_result(
+            indexed_table="owner_route_receipts",
+            scope="study",
+            source_path=resolved_receipt_path,
+            payload_sha256=payload_sha256,
+            db_path=resolved_db_path,
+        )
     with _connect(resolved_db_path) as conn:
         _ensure_schema(conn)
         _upsert_row(conn, table="owner_route_receipts", conflict_columns=("study_root", "idempotency_key"), row=row)
@@ -240,6 +269,7 @@ def record_dispatch_receipt(
     receipt: Mapping[str, Any],
     receipt_path: Path,
     db_path: Path | None = None,
+    persist_sqlite: bool = False,
 ) -> dict[str, Any]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     resolved_db_path = _resolve_db_path(db_path, default=quest_authority_refs_index_path(resolved_quest_root))
@@ -261,6 +291,14 @@ def record_dispatch_receipt(
         "payload_json": payload_json,
         "recorded_at": _utc_now(),
     }
+    if not persist_sqlite:
+        return _source_adapter_result(
+            indexed_table="dispatch_receipts",
+            scope="quest",
+            source_path=resolved_receipt_path,
+            payload_sha256=payload_sha256,
+            db_path=resolved_db_path,
+        )
     with _connect(resolved_db_path) as conn:
         _ensure_schema(conn)
         _upsert_row(conn, table="dispatch_receipts", conflict_columns=("quest_root", "dispatch_id"), row=row)
@@ -274,6 +312,7 @@ def record_paper_progress_transition_ref(
     receipt: Mapping[str, Any],
     receipt_path: Path,
     db_path: Path | None = None,
+    persist_sqlite: bool = False,
 ) -> dict[str, Any]:
     return _record_study_receipt_ref(
         table="paper_progress_transition_refs",
@@ -282,6 +321,7 @@ def record_paper_progress_transition_ref(
         receipt=receipt,
         receipt_path=receipt_path,
         db_path=db_path,
+        persist_sqlite=persist_sqlite,
     )
 
 
@@ -292,6 +332,7 @@ def record_stage_artifact_delta_ref(
     receipt: Mapping[str, Any],
     receipt_path: Path,
     db_path: Path | None = None,
+    persist_sqlite: bool = False,
 ) -> dict[str, Any]:
     return _record_study_receipt_ref(
         table="stage_artifact_delta_refs",
@@ -300,6 +341,7 @@ def record_stage_artifact_delta_ref(
         receipt=receipt,
         receipt_path=receipt_path,
         db_path=db_path,
+        persist_sqlite=persist_sqlite,
     )
 
 
@@ -311,6 +353,7 @@ def _record_study_receipt_ref(
     receipt: Mapping[str, Any],
     receipt_path: Path,
     db_path: Path | None,
+    persist_sqlite: bool,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_quest_root = Path(quest_root).expanduser().resolve()
@@ -335,6 +378,24 @@ def _record_study_receipt_ref(
         "payload_sha256": payload_sha256,
         "recorded_at": _require_text("receipt.recorded_at", receipt.get("recorded_at")),
     }
+    if not persist_sqlite:
+        result = _source_adapter_result(
+            indexed_table=table,
+            scope="study",
+            source_path=resolved_receipt_path,
+            payload_sha256=payload_sha256,
+            db_path=resolved_db_path,
+        )
+        result.update(
+            {
+                "started_worker": False,
+                "worker_start_ref": None,
+                "outbox_record": False,
+                "body_included": False,
+                "authority_boundary": _refs_only_authority_boundary(),
+            }
+        )
+        return result
     with _connect(resolved_db_path) as conn:
         _ensure_schema(conn)
         _upsert_row(conn, table=table, conflict_columns=("study_root", "receipt_id"), row=row)
@@ -543,6 +604,34 @@ def _index_result(*, db_path: Path, indexed_table: str, indexed_count: int, scop
         "db_path": str(db_path),
         "indexed_table": indexed_table,
         "indexed_count": indexed_count,
+    }
+
+
+def _source_adapter_result(
+    *,
+    indexed_table: str,
+    scope: str,
+    source_path: Path,
+    payload_sha256: str,
+    db_path: Path,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "status": "source_adapter_emitted",
+        "scope": scope,
+        "indexed_table": indexed_table,
+        "indexed_count": 0,
+        "sqlite_persisted": False,
+        "sqlite_persistence_requires_explicit_opt_in": True,
+        "db_path": str(db_path),
+        "source_path": str(source_path),
+        "payload_sha256": payload_sha256,
+        "source_adapter_role": "refs_only_domain_authority_receipt_source_adapter",
+        "replacement_owner_surface": "one-person-lab StateIndexKernel",
+        "opl_state_index_kernel_required": True,
+        "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
+        "authority_boundary": _refs_only_authority_boundary(),
     }
 
 

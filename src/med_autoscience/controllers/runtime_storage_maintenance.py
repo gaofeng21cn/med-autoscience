@@ -799,5 +799,6 @@ def _archive_ref_index_summary(indexed_results: list[Mapping[str, Any]]) -> dict
         return {}
     result = dict(indexed_results[-1])
     result["indexed_count"] = len(indexed_results)
+    result["emitted_source_ref_count"] = len(indexed_results)
     result["indexed_results_inlined"] = False
     return result

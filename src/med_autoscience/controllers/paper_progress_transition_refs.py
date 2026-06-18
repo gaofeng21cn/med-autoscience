@@ -25,6 +25,7 @@ def record_paper_progress_transition_ref(
     intent: Mapping[str, Any],
     recorded_at: str,
     db_path: Path | None = None,
+    persist_authority_refs_index: bool = False,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_quest_root = Path(quest_root).expanduser().resolve()
@@ -62,6 +63,7 @@ def record_paper_progress_transition_ref(
             quest_root=resolved_quest_root,
             receipt=conflict,
             db_path=db_path,
+            persist_authority_refs_index=persist_authority_refs_index,
         )
         return conflict
 
@@ -86,6 +88,7 @@ def record_paper_progress_transition_ref(
             quest_root=resolved_quest_root,
             receipt=receipt,
             db_path=db_path,
+            persist_authority_refs_index=persist_authority_refs_index,
         )
         return receipt
 
@@ -108,6 +111,7 @@ def record_paper_progress_transition_ref(
         quest_root=resolved_quest_root,
         receipt=receipt,
         db_path=db_path,
+        persist_authority_refs_index=persist_authority_refs_index,
     )
     return receipt
 
@@ -212,6 +216,7 @@ def _index_receipt(
     quest_root: Path,
     receipt: Mapping[str, Any],
     db_path: Path | None,
+    persist_authority_refs_index: bool,
 ) -> None:
     domain_authority_refs_index.record_paper_progress_transition_ref(
         study_root=study_root,
@@ -219,6 +224,7 @@ def _index_receipt(
         receipt=receipt,
         receipt_path=transition_refs_path(study_root),
         db_path=db_path,
+        persist_sqlite=persist_authority_refs_index,
     )
 
 

@@ -74,7 +74,7 @@
     {
       "active_caller_migrated": false,
       "active_caller_boundary": {
-        "active_caller_effect": "body_free_refs_only_locator_index",
+        "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
         "active_caller_retains_authority": false,
         "active_caller_retains_runtime_authority": false,
         "active_caller_retains_surface": true,
@@ -91,7 +91,10 @@
           "no_active_caller_scan",
           "replacement_parity_ref",
           "tombstone_or_provenance_ref"
-        ]
+        ],
+        "default_sqlite_persistence": false,
+        "sqlite_persistence_requires_explicit_opt_in": true,
+        "active_caller_db_path_does_not_imply_persistence": true
       },
       "authority_boundary": {
         "can_authorize_provider_admission": false,
@@ -108,7 +111,7 @@
         "stores_domain_truth": false
       },
       "compatibility_alias_allowed": false,
-      "current_disposition": "repo_replacement_parity_proven_live_state_index_takeover_tail_open",
+      "current_disposition": "source_adapter_emitted_live_state_index_takeover_tail_open",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_generic_persistence_engine",
@@ -134,10 +137,14 @@
         "required_opl_readback_ref": "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py#opl_state_index_kernel_readback_requirement",
         "active_caller_retains_surface": true,
         "active_caller_retains_authority": false,
-        "completion_claim_requires_live_opl_readback_or_no_active_caller": true
+        "completion_claim_requires_live_opl_readback_or_no_active_caller": true,
+        "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
+        "default_sqlite_persistence": false,
+        "sqlite_persistence_requires_explicit_opt_in": true,
+        "active_caller_db_path_does_not_imply_persistence": true
       },
-      "replacement_surface": "OPL StateIndexKernel / Vault refs readback plus MAS authority receipt functions",
-      "retained_mas_role": "refs_only_domain_authority_receipt_locator_index",
+      "replacement_surface": "OPL StateIndexKernel / Vault refs readback consuming emitted MAS authority receipt refs",
+      "retained_mas_role": "refs_only_domain_authority_receipt_source_adapter",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,
@@ -153,7 +160,10 @@
         "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sidecar_refs",
         "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox",
         "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies",
-        "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable"
+        "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
+        "tests/test_paper_progress_transition_refs.py::test_transition_ref_default_authority_index_path_is_source_adapter_only",
+        "tests/test_domain_owner_action_dispatch_cases/anti_loop_budget.py::test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budget_and_indexes_receipt",
+        "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index"
       ]
     },
     {

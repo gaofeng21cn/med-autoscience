@@ -54,20 +54,15 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_co
     assert all("/.ds/restore_proof_archives/" not in ref["archive_path"] for ref in archive_refs)
     assert sum(1 for path in (quest_root / ".ds").rglob("*") if path.is_file()) < file_count_before
 
+    domain_index = study_report["apply_result"]["domain_authority_archive_ref_index"]
+    assert domain_index["status"] == "source_adapter_emitted"
+    assert domain_index["sqlite_persisted"] is False
+    assert domain_index["emitted_source_ref_count"] == 13
+    assert domain_index["opl_state_index_kernel_required"] is True
     db_path = quest_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
-    with sqlite3.connect(db_path) as conn:
-        quest_ref_count = conn.execute(
-            "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
-            (str(quest_root.resolve()),),
-        ).fetchone()[0]
-    assert quest_ref_count == 13
     workspace_db_path = profile.workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
-    with sqlite3.connect(workspace_db_path) as conn:
-        workspace_ref_count = conn.execute(
-            "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
-            (str(quest_root.resolve()),),
-        ).fetchone()[0]
-    assert workspace_ref_count == 13
+    assert not db_path.exists()
+    assert not workspace_db_path.exists()
     assert study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]["indexed_table"] == "archive_refs"
     assert study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]["indexed_count"] == 13
 
@@ -238,6 +233,8 @@ def test_audit_workspace_storage_restore_proof_compaction_shards_codex_homes(
     assert not (quest_root / ".ds" / "codex_homes" / "mas-run-a").exists()
     assert not (quest_root / ".ds" / "codex_homes" / "mas-run-b").exists()
     assert study_report["apply_result"]["domain_authority_archive_ref_index"]["indexed_count"] == 2
+    assert study_report["apply_result"]["domain_authority_archive_ref_index"]["emitted_source_ref_count"] == 2
+    assert study_report["apply_result"]["domain_authority_archive_ref_index"]["sqlite_persisted"] is False
     assert study_report["apply_result"]["domain_authority_archive_ref_index"]["indexed_results_inlined"] is False
     assert "indexed_results" not in study_report["apply_result"]["domain_authority_archive_ref_index"]
     assert study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]["indexed_count"] == 2
@@ -245,19 +242,9 @@ def test_audit_workspace_storage_restore_proof_compaction_shards_codex_homes(
     assert "indexed_results" not in study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]
 
     db_path = quest_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
-    with sqlite3.connect(db_path) as conn:
-        quest_ref_count = conn.execute(
-            "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
-            (str(quest_root.resolve()),),
-        ).fetchone()[0]
     workspace_db_path = profile.workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
-    with sqlite3.connect(workspace_db_path) as conn:
-        workspace_ref_count = conn.execute(
-            "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
-            (str(quest_root.resolve()),),
-        ).fetchone()[0]
-    assert quest_ref_count == 2
-    assert workspace_ref_count == 2
+    assert not db_path.exists()
+    assert not workspace_db_path.exists()
 
 
 def test_runtime_storage_maintenance_no_longer_exports_legacy_ds_root_surface() -> None:
@@ -424,6 +411,8 @@ def test_maintain_quest_runtime_storage_slims_sharded_codex_home_report(
     assert compaction["pruned_paths_inlined"] is False
     assert "pruned_paths" not in compaction
     assert result["domain_authority_archive_ref_index"]["indexed_count"] == 3
+    assert result["domain_authority_archive_ref_index"]["emitted_source_ref_count"] == 3
+    assert result["domain_authority_archive_ref_index"]["sqlite_persisted"] is False
     assert result["domain_authority_archive_ref_index"]["indexed_results_inlined"] is False
     assert "indexed_results" not in result["domain_authority_archive_ref_index"]
     assert len(json.dumps(result, ensure_ascii=False)) < 30_000

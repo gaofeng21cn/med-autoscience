@@ -20,13 +20,14 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     refs_surface = surfaces["domain_authority_refs_index"]
     assert refs_surface["active_caller_migrated"] is False
     assert refs_surface["current_disposition"] == (
-        "repo_replacement_parity_proven_live_state_index_takeover_tail_open"
+        "source_adapter_emitted_live_state_index_takeover_tail_open"
     )
     assert refs_surface["active_caller_boundary"] == {
-        "active_caller_effect": "body_free_refs_only_locator_index",
+        "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
         "active_caller_retains_authority": False,
         "active_caller_retains_runtime_authority": False,
         "active_caller_retains_surface": True,
+        "active_caller_db_path_does_not_imply_persistence": True,
         "active_callers": [
             "stage_artifact_materializer.record_stage_artifact_delta_ref",
             "owner_route_reconcile.scan_output.record_owner_route_receipt",
@@ -35,12 +36,14 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
             "runtime_storage_maintenance.record_archive_ref",
         ],
         "completion_claim_requires_live_owner_or_opl_readback": True,
+        "default_sqlite_persistence": False,
         "physical_delete_requires": [
             "opl_state_index_kernel_takeover",
             "no_active_caller_scan",
             "replacement_parity_ref",
             "tombstone_or_provenance_ref",
         ],
+        "sqlite_persistence_requires_explicit_opt_in": True,
     }
     assert refs_surface["authority_boundary"] == {
         "stores_body": False,
@@ -66,11 +69,14 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "tombstone_or_provenance_required": True,
     }
     assert refs_surface["opl_state_index_takeover_bridge"] == {
+        "active_caller_db_path_does_not_imply_persistence": True,
+        "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
         "active_caller_status": "repo_proven_no_active_authority_caller",
         "active_caller_retains_authority": False,
         "active_caller_retains_surface": True,
         "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
         "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
+        "default_sqlite_persistence": False,
         "live_takeover_required_before_physical_delete": True,
         "mas_projection_cannot_replace": [
             "opl_state_index_kernel_readback",
@@ -84,6 +90,7 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
             "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py#"
             "opl_state_index_kernel_readback_requirement"
         ),
+        "sqlite_persistence_requires_explicit_opt_in": True,
     }
     assert "mas_owned_state_index_kernel" in refs_surface["forbidden_claims"]
 
@@ -102,6 +109,16 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     assert policy["can_authorize_publication_ready"] is False
     assert refs_contract["generic_persistence_engine_claim_allowed"] is False
     assert refs_contract["generic_scheduler_queue_attempt_claim_allowed"] is False
+    assert refs_contract["default_record_behavior"] == (
+        "source_adapter_emitted_no_default_sqlite_persistence"
+    )
+    assert refs_contract["sqlite_persistence_policy"] == {
+        "default_persist_sqlite": False,
+        "requires_explicit_opt_in": True,
+        "opt_in_parameter": "persist_sqlite",
+        "allowed_use": "historical_replay_or_explicit_local_refs_inspection",
+        "active_caller_db_path_does_not_imply_persistence": True,
+    }
     assert refs_contract["opl_state_index_kernel_takeover_bridge"][
         "active_caller_status"
     ] == "repo_proven_no_active_authority_caller"

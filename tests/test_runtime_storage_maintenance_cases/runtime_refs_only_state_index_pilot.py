@@ -233,9 +233,12 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
         "replacement_owner_surface": "one-person-lab StateIndexKernel",
         "mas_source_adapter_role": "refs_only_domain_authority_receipt_source_adapter",
         "active_caller_status": "repo_proven_no_active_authority_caller",
-        "active_caller_effect": "body_free_refs_only_locator_index",
+        "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
+        "default_sqlite_persistence": False,
+        "sqlite_persistence_requires_explicit_opt_in": True,
         "active_caller_retains_surface": True,
         "active_caller_retains_authority": False,
+        "active_caller_db_path_does_not_imply_persistence": True,
         "source_tables": list(refs.AUTHORITY_REF_TABLES),
         "forbidden_legacy_tables": list(refs.LEGACY_TABLE_POLICY),
         "repo_replacement_parity_refs": [
@@ -284,6 +287,12 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
         receipt_path=receipt_path,
     )
 
+    assert result["status"] == "source_adapter_emitted"
+    assert result["sqlite_persisted"] is False
+    assert result["sqlite_persistence_requires_explicit_opt_in"] is True
+    assert result["source_adapter_role"] == "refs_only_domain_authority_receipt_source_adapter"
+    assert result["replacement_owner_surface"] == "one-person-lab StateIndexKernel"
+    assert result["opl_state_index_kernel_required"] is True
     assert result["started_worker"] is False
     assert result["outbox_record"] is False
     assert result["body_included"] is False
@@ -291,6 +300,17 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
     assert result["authority_boundary"]["can_create_outbox_record"] is False
     assert result["authority_boundary"]["can_authorize_provider_admission"] is False
     db_path = Path(result["db_path"])
+    assert not db_path.exists()
+
+    persisted = refs.record_paper_progress_transition_ref(
+        study_root=study_root,
+        quest_root=quest_root,
+        receipt=receipt,
+        receipt_path=receipt_path,
+        persist_sqlite=True,
+    )
+    assert persisted["status"] == "indexed"
+    db_path = Path(persisted["db_path"])
     with sqlite3.connect(db_path) as conn:
         columns = [row[1] for row in conn.execute("PRAGMA table_info(paper_progress_transition_refs)").fetchall()]
         row = conn.execute(
@@ -306,7 +326,7 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
 
     assert "payload_json" not in columns
     assert "body" not in columns
-    assert row == (0, None, str(receipt_path.resolve()), result["payload_sha256"])
+    assert row == (0, None, str(receipt_path.resolve()), persisted["payload_sha256"])
     assert "OWNER_RECEIPT_BODY_MUST_NOT_ENTER_SQLITE" not in table_text
 
 
