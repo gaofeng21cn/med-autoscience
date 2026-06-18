@@ -75,6 +75,49 @@ AUTHORITY_BOUNDARY = {
     "can_persist_obligation_store": False,
 }
 
+OPL_SUPERVISOR_DECISION_ENGINE_READBACK_REQUIREMENT = {
+    "surface_kind": "opl_supervisor_decision_engine_readback_requirement",
+    "runtime_owner": "one-person-lab",
+    "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
+    "required_sections": [
+        "identity",
+        "causality",
+        "authority_boundary",
+        "exactly_one_outcome",
+        "projection_metadata",
+    ],
+    "identity_required_fields": [
+        "study_id",
+        "quest_id",
+        "stage_id",
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key",
+    ],
+    "authority_boundary_required": {
+        "runtime_owner": "one-person-lab",
+        "domain_state_owner": "med-autoscience",
+        "mas_can_store_recovery_obligation": False,
+        "mas_can_run_supervisor_decision_engine": False,
+        "mas_can_run_fixed_point_runtime": False,
+        "mas_can_replay_obligation": False,
+    },
+    "mas_policy_projection_can_satisfy_readback": False,
+    "mas_decision_field_is_authority": False,
+}
+
+POLICY_RECOMMENDATION_SEMANTICS = {
+    "surface_kind": "mas_paper_policy_recommendation_semantics",
+    "decision_field_role": "policy_recommendation_label",
+    "decision_field_is_authority": False,
+    "can_authorize_provider_admission": False,
+    "can_authorize_fixed_point_replay": False,
+    "can_mutate_recovery_obligation_store": False,
+    "requires_opl_supervisor_decision_engine_readback": True,
+}
+
 
 def build_supervisor_decision(
     payload: Mapping[str, Any],
@@ -403,6 +446,10 @@ def _decision(
         "recovery_obligation_store_owner": "one-person-lab",
         "mas_can_run_supervisor_decision_engine": False,
         "mas_can_store_recovery_obligation": False,
+        "decision_semantics": dict(POLICY_RECOMMENDATION_SEMANTICS),
+        "opl_supervisor_decision_engine_readback_requirement": dict(
+            OPL_SUPERVISOR_DECISION_ENGINE_READBACK_REQUIREMENT
+        ),
         "opl_supervisor_decision_engine_boundary": {
             "surface_kind": "opl_supervisor_decision_engine_boundary",
             "owner": "one-person-lab",

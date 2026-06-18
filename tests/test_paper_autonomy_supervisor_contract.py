@@ -120,6 +120,48 @@ def test_supervisor_decision_taxonomy_is_closed_and_identity_bound() -> None:
     taxonomy = contract["supervisor_decision_taxonomy"]
 
     assert taxonomy["decision_field"] == "decision"
+    assert taxonomy["decision_field_role"] == "policy_recommendation_label"
+    assert taxonomy["decision_field_is_authority"] is False
+    assert taxonomy["decision_semantics"] == {
+        "surface_kind": "mas_paper_policy_recommendation_semantics",
+        "decision_field_role": "policy_recommendation_label",
+        "decision_field_is_authority": False,
+        "can_authorize_provider_admission": False,
+        "can_authorize_fixed_point_replay": False,
+        "can_mutate_recovery_obligation_store": False,
+        "requires_opl_supervisor_decision_engine_readback": True,
+    }
+    readback = taxonomy["opl_supervisor_decision_engine_readback_requirement"]
+    assert readback["surface_kind"] == "opl_supervisor_decision_engine_readback_requirement"
+    assert readback["runtime_owner"] == "one-person-lab"
+    assert readback["runtime_kind"] == "RecoveryObligationStore/SupervisorDecisionEngine"
+    assert readback["required_sections"] == [
+        "identity",
+        "causality",
+        "authority_boundary",
+        "exactly_one_outcome",
+        "projection_metadata",
+    ]
+    assert readback["identity_required_fields"] == [
+        "study_id",
+        "quest_id",
+        "stage_id",
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key",
+    ]
+    assert readback["authority_boundary_required"] == {
+        "runtime_owner": "one-person-lab",
+        "domain_state_owner": "med-autoscience",
+        "mas_can_store_recovery_obligation": False,
+        "mas_can_run_supervisor_decision_engine": False,
+        "mas_can_run_fixed_point_runtime": False,
+        "mas_can_replay_obligation": False,
+    }
+    assert readback["mas_policy_projection_can_satisfy_readback"] is False
+    assert readback["mas_decision_field_is_authority"] is False
     assert taxonomy["allowed_decisions"] == [
         "execute_current_owner_delta",
         "consume_terminal_closeout",
