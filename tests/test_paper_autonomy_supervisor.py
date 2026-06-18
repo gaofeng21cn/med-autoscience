@@ -120,6 +120,29 @@ def test_execute_decision_requires_provider_and_stage_run_identity() -> None:
         "mas_can_run_decision_engine": False,
         "mas_can_persist_recovery_obligation_store": False,
     }
+    projection = decision["paper_progress_policy_result_projection"]
+    assert projection["surface_kind"] == "paper_progress_policy_result_projection"
+    assert projection["adapter_kind"] == "mas_policy_adapter"
+    assert projection["projection_role"] == "mas_paper_progress_policy_result_projection"
+    assert projection["authority"] == "mas_paper_progress_policy_adapter"
+    assert projection["policy_recommendation_label"] == "execute_current_owner_delta"
+    assert projection["policy_recommendation_label_is_authority"] is False
+    assert projection["legacy_decision_surface_kind"] == "paper_autonomy_supervisor_decision"
+    assert projection["legacy_decision_field"] == decision["decision"]
+    assert projection["legacy_decision_field_role"] == "policy_recommendation_label"
+    assert projection["legacy_decision_field_is_authority"] is False
+    assert projection["decision_authority"] is False
+    assert projection["mas_can_run_supervisor_decision_engine"] is False
+    assert projection["mas_can_store_recovery_obligation"] is False
+    assert projection["mas_can_create_opl_command_event_or_outbox"] is False
+    assert projection["mas_can_authorize_provider_admission"] is False
+    assert projection["paper_autonomy_obligation_ref"] == decision[
+        "paper_autonomy_obligation_ref"
+    ]
+    assert projection["next_owner"] == decision["next_owner"]
+    assert projection["next_safe_action"] == decision["next_safe_action"]
+    assert projection["evidence_refs"] == decision["evidence_refs"]
+    assert projection["missing_evidence_refs"] == decision.get("missing_evidence_refs", [])
     assert decision["source_of_truth_chain"] == [
         "DomainIntent",
         "OPL Command/Event/Outbox/StageRun",
@@ -330,6 +353,11 @@ def test_missing_opl_readback_returns_non_advancing_policy_requirement() -> None
     assert decision["authority_boundary"]["can_run_supervisor_decision_engine"] is False
     assert decision["authority_boundary"]["can_apply_non_advancing_transition"] is False
     assert decision["authority_boundary"]["can_replay_obligation"] is False
+    projection = decision["paper_progress_policy_result_projection"]
+    assert projection["policy_recommendation_label"] == "materialize_recovery_action"
+    assert projection["missing_evidence_refs"] == ["opl_stage_run_readback"]
+    assert projection["mas_can_create_opl_command_event_or_outbox"] is False
+    assert projection["mas_can_authorize_provider_admission"] is False
 
 
 def test_typed_blocker_identity_uses_currentness_basis_when_top_level_work_unit_is_sparse() -> None:

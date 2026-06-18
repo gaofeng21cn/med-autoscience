@@ -151,6 +151,34 @@
       "can_mutate_recovery_obligation_store": false,
       "requires_opl_supervisor_decision_engine_readback": true
     },
+    "canonical_policy_result_projection": {
+      "surface_kind": "paper_progress_policy_result_projection",
+      "adapter_kind": "mas_policy_adapter",
+      "projection_role": "mas_paper_progress_policy_result_projection",
+      "authority": "mas_paper_progress_policy_adapter",
+      "policy_recommendation_label_field": "policy_recommendation_label",
+      "policy_recommendation_label_is_authority": false,
+      "legacy_decision_surface_kind": "paper_autonomy_supervisor_decision",
+      "legacy_decision_field_role": "policy_recommendation_label",
+      "legacy_decision_field_is_authority": false,
+      "mas_can_run_supervisor_decision_engine": false,
+      "mas_can_store_recovery_obligation": false,
+      "mas_can_create_opl_command_event_or_outbox": false,
+      "mas_can_authorize_provider_admission": false,
+      "requires_opl_supervisor_decision_engine_readback": true,
+      "required_fields": [
+        "policy_recommendation_label",
+        "paper_autonomy_obligation_ref",
+        "paper_autonomy_obligation_identity",
+        "evidence_refs",
+        "missing_evidence_refs",
+        "next_owner",
+        "next_safe_action",
+        "paper_progress_classification",
+        "platform_repair_classification",
+        "authority_boundary"
+      ]
+    },
     "opl_supervisor_decision_engine_readback_requirement": {
       "surface_kind": "opl_supervisor_decision_engine_readback_requirement",
       "runtime_owner": "one-person-lab",

@@ -5,118 +5,18 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import paper_progress_policy_adapter
-
-
-SURFACE_KIND = "paper_autonomy_supervisor_decision"
-OBLIGATION_SURFACE_KIND = "paper_autonomy_obligation"
-SCHEMA_VERSION = 1
-SOURCE_OF_TRUTH_CHAIN = (
-    "DomainIntent",
-    "OPL Command/Event/Outbox/StageRun",
-    "MAS OwnerAnswer",
-    "Derived Projection",
+from med_autoscience.controllers.paper_autonomy_supervisor_parts.policy_result_shape import (
+    ALLOWED_DECISIONS,
+    AUTHORITY_BOUNDARY,
+    FORBIDDEN_TERMINAL_INTERPRETATIONS,
+    OBLIGATION_SURFACE_KIND,
+    OPL_SUPERVISOR_DECISION_ENGINE_READBACK_REQUIREMENT,
+    POLICY_RECOMMENDATION_SEMANTICS,
+    SCHEMA_VERSION,
+    SOURCE_OF_TRUTH_CHAIN,
+    SURFACE_KIND,
+    build_paper_progress_policy_result_projection,
 )
-
-ALLOWED_DECISIONS = {
-    "execute_current_owner_delta",
-    "consume_terminal_closeout",
-    "materialize_recovery_action",
-    "wait_for_owner_with_resume_token",
-    "stop_with_stable_typed_blocker",
-    "stop_with_owner_receipt",
-}
-
-FORBIDDEN_TERMINAL_INTERPRETATIONS = [
-    "operator_decision_required",
-    "human_gate",
-    "typed_blocker",
-    "provider_admission_pending_count=0",
-    "action_queue=[]",
-    "queue_empty",
-    "idle",
-    "observe_only",
-    "read_model_refreshed",
-]
-
-AUTHORITY_BOUNDARY = {
-    "surface_kind": SURFACE_KIND,
-    "authority": "mas_paper_progress_policy_projection",
-    "authority_role": "paper_policy_projection_only_opl_transition_runtime_consumer",
-    "adapter_kind": "mas_policy_adapter",
-    "policy_result_role": "mas_paper_progress_policy_result_projection",
-    "projection_role": "derived_policy_adapter_projection",
-    "decision_authority": False,
-    "supervisor_decision_engine_owner": "one-person-lab",
-    "recovery_obligation_store_owner": "one-person-lab",
-    "opl_transition_runtime_owner": "one-person-lab",
-    "opl_recovery_obligation_store_owner": "one-person-lab",
-    "opl_supervisor_decision_engine_owner": "one-person-lab",
-    "opl_human_gate_transport_owner": "one-person-lab",
-    "opl_stage_run_owner": "one-person-lab",
-    "top_level_truth": "decision",
-    "allowed_decisions": sorted(ALLOWED_DECISIONS),
-    "read_models_can_create_decision": False,
-    "can_store_recovery_obligation": False,
-    "can_generate_supervisor_decision_authority": False,
-    "provider_admission_requires_execute_decision": True,
-    "provider_admission_requires_opl_stage_run_readback": True,
-    "provider_completion_is_paper_progress": False,
-    "can_write_study_truth": False,
-    "can_authorize_publication_ready": False,
-    "can_write_paper_or_package": False,
-    "can_own_generic_event_log_or_outbox": False,
-    "can_create_opl_command_event_or_outbox": False,
-    "can_own_stage_run": False,
-    "can_generate_human_gate_resume_token": False,
-    "can_run_fixed_point_runtime": False,
-    "can_run_supervisor_decision_engine": False,
-    "can_apply_non_advancing_transition": False,
-    "can_replay_obligation": False,
-    "can_persist_obligation_store": False,
-}
-
-OPL_SUPERVISOR_DECISION_ENGINE_READBACK_REQUIREMENT = {
-    "surface_kind": "opl_supervisor_decision_engine_readback_requirement",
-    "runtime_owner": "one-person-lab",
-    "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
-    "required_sections": [
-        "identity",
-        "causality",
-        "authority_boundary",
-        "exactly_one_outcome",
-        "projection_metadata",
-    ],
-    "identity_required_fields": [
-        "study_id",
-        "quest_id",
-        "stage_id",
-        "action_type",
-        "work_unit_id",
-        "work_unit_fingerprint",
-        "route_identity_key",
-        "attempt_idempotency_key",
-    ],
-    "authority_boundary_required": {
-        "runtime_owner": "one-person-lab",
-        "domain_state_owner": "med-autoscience",
-        "mas_can_store_recovery_obligation": False,
-        "mas_can_run_supervisor_decision_engine": False,
-        "mas_can_run_fixed_point_runtime": False,
-        "mas_can_replay_obligation": False,
-    },
-    "mas_policy_projection_can_satisfy_readback": False,
-    "mas_decision_field_is_authority": False,
-}
-
-POLICY_RECOMMENDATION_SEMANTICS = {
-    "surface_kind": "mas_paper_policy_recommendation_semantics",
-    "decision_field_role": "policy_recommendation_label",
-    "decision_field_is_authority": False,
-    "can_authorize_provider_admission": False,
-    "can_authorize_fixed_point_replay": False,
-    "can_mutate_recovery_obligation_store": False,
-    "requires_opl_supervisor_decision_engine_readback": True,
-}
 
 
 def build_supervisor_decision(
@@ -435,6 +335,21 @@ def _decision(
         raise ValueError(f"unsupported supervisor decision: {decision}")
     evidence = _dedupe([ref for ref in evidence_refs if ref])
     missing = _dedupe(missing_evidence_refs or [])
+    next_safe_action_payload = (
+        {"kind": next_safe_action}
+        if isinstance(next_safe_action, str)
+        else _clean_mapping(next_safe_action)
+    )
+    policy_result_projection = build_paper_progress_policy_result_projection(
+        policy_recommendation_label=decision,
+        obligation=obligation,
+        evidence_refs=evidence,
+        missing_evidence_refs=missing,
+        next_owner=next_owner,
+        next_safe_action=next_safe_action_payload,
+        paper_progress_classification=paper_progress_classification,
+        platform_repair_classification=platform_repair_classification,
+    )
     payload = {
         "surface_kind": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
@@ -459,6 +374,7 @@ def _decision(
         },
         "source_of_truth_chain": list(SOURCE_OF_TRUTH_CHAIN),
         "runtime_substrate_owner": "one-person-lab",
+        "paper_progress_policy_result_projection": policy_result_projection,
         "decision_id": _decision_id(obligation, decision=decision, evidence_refs=evidence),
         "decision": decision,
         "identity_match": _identity_complete(obligation),
@@ -470,11 +386,7 @@ def _decision(
         "missing_evidence_refs": missing,
         "forbidden_interpretations": _forbidden_interpretations(progress),
         "next_owner": next_owner,
-        "next_safe_action": (
-            {"kind": next_safe_action}
-            if isinstance(next_safe_action, str)
-            else _clean_mapping(next_safe_action)
-        ),
+        "next_safe_action": next_safe_action_payload,
         "paper_progress_classification": paper_progress_classification,
         "platform_repair_classification": platform_repair_classification,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),

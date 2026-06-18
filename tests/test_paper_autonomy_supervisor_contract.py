@@ -131,6 +131,35 @@ def test_supervisor_decision_taxonomy_is_closed_and_identity_bound() -> None:
         "can_mutate_recovery_obligation_store": False,
         "requires_opl_supervisor_decision_engine_readback": True,
     }
+    projection = taxonomy["canonical_policy_result_projection"]
+    assert projection == {
+        "surface_kind": "paper_progress_policy_result_projection",
+        "adapter_kind": "mas_policy_adapter",
+        "projection_role": "mas_paper_progress_policy_result_projection",
+        "authority": "mas_paper_progress_policy_adapter",
+        "policy_recommendation_label_field": "policy_recommendation_label",
+        "policy_recommendation_label_is_authority": False,
+        "legacy_decision_surface_kind": "paper_autonomy_supervisor_decision",
+        "legacy_decision_field_role": "policy_recommendation_label",
+        "legacy_decision_field_is_authority": False,
+        "mas_can_run_supervisor_decision_engine": False,
+        "mas_can_store_recovery_obligation": False,
+        "mas_can_create_opl_command_event_or_outbox": False,
+        "mas_can_authorize_provider_admission": False,
+        "requires_opl_supervisor_decision_engine_readback": True,
+        "required_fields": [
+            "policy_recommendation_label",
+            "paper_autonomy_obligation_ref",
+            "paper_autonomy_obligation_identity",
+            "evidence_refs",
+            "missing_evidence_refs",
+            "next_owner",
+            "next_safe_action",
+            "paper_progress_classification",
+            "platform_repair_classification",
+            "authority_boundary",
+        ],
+    }
     readback = taxonomy["opl_supervisor_decision_engine_readback_requirement"]
     assert readback["surface_kind"] == "opl_supervisor_decision_engine_readback_requirement"
     assert readback["runtime_owner"] == "one-person-lab"
