@@ -19,9 +19,12 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
 
     refs_surface = surfaces["domain_authority_refs_index"]
     assert refs_surface["active_caller_migrated"] is False
-    assert refs_surface["current_disposition"] == "opl_migration_input"
+    assert refs_surface["current_disposition"] == (
+        "repo_replacement_parity_proven_live_state_index_takeover_tail_open"
+    )
     assert refs_surface["active_caller_boundary"] == {
         "active_caller_effect": "body_free_refs_only_locator_index",
+        "active_caller_retains_authority": False,
         "active_caller_retains_runtime_authority": False,
         "active_caller_retains_surface": True,
         "active_callers": [
@@ -57,8 +60,30 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "active_caller_alone_retains_surface": False,
         "completion_claim_requires_live_owner_or_opl_readback": True,
         "no_active_caller_required_before_physical_delete": True,
+        "no_active_authority_caller_proven": True,
+        "repo_replacement_parity_proven": True,
         "replacement_parity_required": True,
         "tombstone_or_provenance_required": True,
+    }
+    assert refs_surface["opl_state_index_takeover_bridge"] == {
+        "active_caller_status": "repo_proven_no_active_authority_caller",
+        "active_caller_retains_authority": False,
+        "active_caller_retains_surface": True,
+        "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
+        "completion_claim_requires_live_opl_readback_or_no_active_authority_caller": True,
+        "live_takeover_required_before_physical_delete": True,
+        "mas_projection_cannot_replace": [
+            "opl_state_index_kernel_readback",
+            "opl_lifecycle_index",
+            "opl_operator_read_model",
+            "opl_artifact_index",
+            "opl_queue_index",
+        ],
+        "replacement_owner_surface": "one-person-lab StateIndexKernel",
+        "required_opl_readback_ref": (
+            "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py#"
+            "opl_state_index_kernel_readback_requirement"
+        ),
     }
     assert "mas_owned_state_index_kernel" in refs_surface["forbidden_claims"]
 
@@ -77,6 +102,15 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     assert policy["can_authorize_publication_ready"] is False
     assert refs_contract["generic_persistence_engine_claim_allowed"] is False
     assert refs_contract["generic_scheduler_queue_attempt_claim_allowed"] is False
+    assert refs_contract["opl_state_index_kernel_takeover_bridge"][
+        "active_caller_status"
+    ] == "repo_proven_no_active_authority_caller"
+    assert refs_contract["opl_state_index_kernel_takeover_bridge"][
+        "active_caller_retains_surface"
+    ] is True
+    assert refs_contract["opl_state_index_kernel_takeover_bridge"][
+        "active_caller_retains_authority"
+    ] is False
 
     actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
     assert actuator["active_caller_migrated"] is False

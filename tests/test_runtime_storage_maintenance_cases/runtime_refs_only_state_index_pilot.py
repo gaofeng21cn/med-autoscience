@@ -226,6 +226,47 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
     assert contract["authority_policy"]["started_worker"] is False
     assert contract["authority_policy"]["outbox_record"] is False
     assert contract["authority_policy"]["can_generate_next_action_authority"] is False
+    bridge = contract["opl_state_index_kernel_takeover_bridge"]
+    assert bridge == {
+        "surface_kind": "domain_authority_refs_index_state_index_takeover_bridge",
+        "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
+        "replacement_owner_surface": "one-person-lab StateIndexKernel",
+        "mas_source_adapter_role": "refs_only_domain_authority_receipt_source_adapter",
+        "active_caller_status": "repo_proven_no_active_authority_caller",
+        "active_caller_effect": "body_free_refs_only_locator_index",
+        "active_caller_retains_surface": True,
+        "active_caller_retains_authority": False,
+        "source_tables": list(refs.AUTHORITY_REF_TABLES),
+        "forbidden_legacy_tables": list(refs.LEGACY_TABLE_POLICY),
+        "repo_replacement_parity_refs": [
+            "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py",
+            "src/med_autoscience/controllers/opl_state_index_kernel.py",
+            (
+                "tests/test_runtime_storage_maintenance_cases/"
+                "runtime_refs_only_state_index_pilot.py::"
+                "test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies"
+            ),
+            (
+                "tests/test_opl_state_index_kernel.py::"
+                "test_state_index_kernel_rows_are_refs_only_and_rebuildable"
+            ),
+        ],
+        "required_opl_readback_ref": (
+            "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py#"
+            "opl_state_index_kernel_readback_requirement"
+        ),
+        "live_takeover_required_before_physical_delete": True,
+        "no_active_caller_required_before_physical_delete": True,
+        "tombstone_or_provenance_required_before_physical_delete": True,
+        "completion_claim_requires_live_opl_readback_or_no_active_authority_caller": True,
+        "mas_projection_cannot_replace": [
+            "opl_state_index_kernel_readback",
+            "opl_lifecycle_index",
+            "opl_operator_read_model",
+            "opl_artifact_index",
+            "opl_queue_index",
+        ],
+    }
     assert contract["legacy_table_policy"] == {
         "runtime_events": "tombstone_provenance_only",
         "runtime_snapshots": "tombstone_provenance_only",

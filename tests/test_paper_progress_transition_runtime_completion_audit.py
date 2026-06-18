@@ -97,7 +97,7 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
         "DHD apply exactly-one live outcome when explicitly delegated",
         "provider admission arbiter fully consuming OPL transition events",
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
-        "domain_authority_refs_index OPL StateIndexKernel takeover or no-active-caller proof",
+        "domain_authority_refs_index live OPL StateIndexKernel takeover or no-active-caller physical delete proof",
         "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
         "domain_owner_action_dispatch live every-active-caller soak or no-active-caller proof",
     } <= open_tails
@@ -175,10 +175,19 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert surfaces["domain_health_diagnostic_obligation_actuator"]["current_disposition"] == (
         "opl_recovery_obligation_readback_consumer"
     )
+    assert surfaces["domain_authority_refs_index"]["current_disposition"] == (
+        "repo_replacement_parity_proven_live_state_index_takeover_tail_open"
+    )
     assert surfaces["domain_authority_refs_index"]["active_caller_migrated"] is False
+    assert surfaces["domain_authority_refs_index"]["retirement_gate"][
+        "repo_replacement_parity_proven"
+    ] is True
+    assert surfaces["domain_authority_refs_index"]["retirement_gate"][
+        "no_active_authority_caller_proven"
+    ] is True
 
     assert {
-        "domain_authority_refs_index_opl_state_index_kernel_takeover_or_no_active_caller_ref",
+        "domain_authority_refs_index_live_state_index_takeover_or_no_active_caller_physical_delete_ref",
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
         "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
         "legacy_default_executor_carrier_physical_delete_ref",
@@ -190,6 +199,10 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert (
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::"
         "test_owner_dispatch_accepts_bound_domain_progress_transition_readback_only"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::"
+        "test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies"
     ) in physical_gate["observed_refs"]
     assert "inventory_entry_updated" in physical_gate["false_completion_boundary"]
 

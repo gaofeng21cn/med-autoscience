@@ -100,6 +100,39 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
             "report_index",
         ],
         "legacy_table_policy": dict(LEGACY_TABLE_POLICY),
+        "opl_state_index_kernel_takeover_bridge": {
+            "surface_kind": "domain_authority_refs_index_state_index_takeover_bridge",
+            "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
+            "replacement_owner_surface": "one-person-lab StateIndexKernel",
+            "mas_source_adapter_role": "refs_only_domain_authority_receipt_source_adapter",
+            "active_caller_status": "repo_proven_no_active_authority_caller",
+            "active_caller_effect": "body_free_refs_only_locator_index",
+            "active_caller_retains_surface": True,
+            "active_caller_retains_authority": False,
+            "source_tables": list(AUTHORITY_REF_TABLES),
+            "forbidden_legacy_tables": list(LEGACY_TABLE_POLICY),
+            "repo_replacement_parity_refs": [
+                "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py",
+                "src/med_autoscience/controllers/opl_state_index_kernel.py",
+                "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies",
+                "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
+            ],
+            "required_opl_readback_ref": (
+                "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py#"
+                "opl_state_index_kernel_readback_requirement"
+            ),
+            "live_takeover_required_before_physical_delete": True,
+            "no_active_caller_required_before_physical_delete": True,
+            "tombstone_or_provenance_required_before_physical_delete": True,
+            "completion_claim_requires_live_opl_readback_or_no_active_authority_caller": True,
+            "mas_projection_cannot_replace": [
+                "opl_state_index_kernel_readback",
+                "opl_lifecycle_index",
+                "opl_operator_read_model",
+                "opl_artifact_index",
+                "opl_queue_index",
+            ],
+        },
     }
 
 

@@ -75,6 +75,7 @@
       "active_caller_migrated": false,
       "active_caller_boundary": {
         "active_caller_effect": "body_free_refs_only_locator_index",
+        "active_caller_retains_authority": false,
         "active_caller_retains_runtime_authority": false,
         "active_caller_retains_surface": true,
         "active_callers": [
@@ -107,7 +108,7 @@
         "stores_domain_truth": false
       },
       "compatibility_alias_allowed": false,
-      "current_disposition": "opl_migration_input",
+      "current_disposition": "repo_replacement_parity_proven_live_state_index_takeover_tail_open",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_generic_persistence_engine",
@@ -118,19 +119,41 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "opl_state_index_takeover_bridge": {
+        "active_caller_status": "repo_proven_no_active_authority_caller",
+        "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
+        "live_takeover_required_before_physical_delete": true,
+        "mas_projection_cannot_replace": [
+          "opl_state_index_kernel_readback",
+          "opl_lifecycle_index",
+          "opl_operator_read_model",
+          "opl_artifact_index",
+          "opl_queue_index"
+        ],
+        "replacement_owner_surface": "one-person-lab StateIndexKernel",
+        "required_opl_readback_ref": "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py#opl_state_index_kernel_readback_requirement",
+        "active_caller_retains_surface": true,
+        "active_caller_retains_authority": false,
+        "completion_claim_requires_live_opl_readback_or_no_active_authority_caller": true
+      },
       "replacement_surface": "OPL StateIndexKernel / Vault refs readback plus MAS authority receipt functions",
       "retained_mas_role": "refs_only_domain_authority_receipt_locator_index",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,
         "no_active_caller_required_before_physical_delete": true,
+        "no_active_authority_caller_proven": true,
+        "repo_replacement_parity_proven": true,
         "replacement_parity_required": true,
         "tombstone_or_provenance_required": true
       },
       "surface_id": "domain_authority_refs_index",
       "verified_by": [
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
-        "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sidecar_refs"
+        "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sidecar_refs",
+        "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox",
+        "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies",
+        "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable"
       ]
     },
     {
