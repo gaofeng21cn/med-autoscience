@@ -182,3 +182,64 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     assert actuator["retirement_gate"]["owner_retirement_decision_required"] is True
     assert "mas_owned_recovery_obligation_store" in actuator["forbidden_claims"]
     assert "mas_owned_supervisor_decision_engine" in actuator["forbidden_claims"]
+
+
+def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression() -> None:
+    inventory_path = REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json"
+    inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+
+    audit = retirement.audit_runtime_surface_retirement_inventory(inventory)
+
+    assert audit["surface_kind"] == "mas_runtime_surface_retirement_no_authority_audit"
+    assert audit["status"] == "repo_no_authority_guard_landed_live_physical_retirement_tail_open"
+    assert audit["generic_runtime_owner"] == "one-person-lab"
+    assert audit["completion_claim_allowed"] is False
+    assert audit["physical_retirement_tail_open"] is True
+    assert audit["no_active_authority_caller_proven"] is True
+    assert audit["violations"] == []
+    assert "active_caller_exists_as_retention_reason" in audit["forbidden_completion_interpretations"]
+    assert "maintenance_apply_gate_as_paper_progress" in audit["forbidden_completion_interpretations"]
+
+    open_surfaces = {surface["surface_id"]: surface for surface in audit["open_surfaces"]}
+    assert open_surfaces["domain_authority_refs_index"]["authority_status"] == (
+        "refs_only_source_adapter_live_takeover_tail_open"
+    )
+    assert open_surfaces["domain_authority_refs_index"]["allowed_effect"] == (
+        "source_adapter_emitted_no_default_sqlite_persistence"
+    )
+    assert open_surfaces["domain_health_diagnostic_obligation_actuator"]["authority_status"] == (
+        "consume_only_readback_projection_live_tail_open"
+    )
+    assert open_surfaces["domain_owner_action_dispatch"]["authority_status"] == (
+        "opl_authorized_owner_callable_adapter_live_tail_open"
+    )
+    assert open_surfaces["runtime_storage_maintenance"]["apply_authorization_surface"] == (
+        "opl_runtime_storage_maintenance_authorization"
+    )
+    assert all(surface["active_caller_retains_authority"] is False for surface in open_surfaces.values())
+    assert all(
+        surface["active_caller_retains_runtime_authority"] is False
+        for surface in open_surfaces.values()
+    )
+
+    bad_inventory = json.loads(json.dumps(inventory))
+    refs_surface = next(
+        surface
+        for surface in bad_inventory["surfaces"]
+        if surface["surface_id"] == "domain_authority_refs_index"
+    )
+    refs_surface["active_caller_boundary"]["active_caller_retains_authority"] = True
+    refs_surface["retirement_gate"]["active_caller_alone_retains_surface"] = True
+    refs_surface["authority_boundary"]["can_authorize_provider_admission"] = True
+
+    violations = retirement.validate_runtime_surface_retirement_inventory(bad_inventory)
+
+    assert {
+        ("domain_authority_refs_index", "truthy_authority_flag:active_caller_boundary.active_caller_retains_authority"),
+        ("domain_authority_refs_index", "truthy_authority_flag:authority_boundary.can_authorize_provider_admission"),
+        ("domain_authority_refs_index", "active_caller_retains_authority"),
+        ("domain_authority_refs_index", "active_caller_alone_can_retain_surface"),
+    } <= {(item["surface_id"], item["reason"]) for item in violations}

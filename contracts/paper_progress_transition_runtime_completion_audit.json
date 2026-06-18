@@ -405,7 +405,8 @@
         "domain_owner_action_dispatch repo tests cover fail-closed typed blockers for missing proof across every supported action, trusted OPL authorization, bound transition readback, and exact provider-hosted StageRun authorization.",
         "domain_owner_action_dispatch no longer accepts its own weak readback binding; tests cover missing explicit route/attempt identity fail-closed through the shared OPL transition ABI helper.",
         "Top-level request_tasks alias is physically removed from materializer output, with replacement nested diagnostic refs and retirement inventory updated; remaining carriers still need live/no-active-caller closeout.",
-        "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention projections remain authorization-free and non-progress claims."
+        "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention projections remain authorization-free and non-progress claims.",
+        "runtime_surface_retirement_no_authority_audit now derives a repo-wide no-authority guard from the retirement inventory, proving open active callers are refs-only, consume-only, read-only, or OPL-authorized adapters rather than MAS private runtime authority."
       ],
       "open_gap": "Remaining private runtime residue still needs live OPL takeover/no-active-caller/tombstone evidence for physical deletion; storage maintenance is now an OPL-authorized MAS callable adapter, not a MAS-owned runtime storage shell."
     },
@@ -444,7 +445,7 @@
     {
       "gate_id": "no_private_runtime_residue_as_authority",
       "status": "open",
-      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller. Current repo evidence proves domain_authority_refs_index active callers emit refs-only OPL StateIndex source-adapter proofs by default, do not persist MAS SQLite unless explicitly opted in, and cannot authorize runtime/progress; domain_health_diagnostic_obligation_actuator is consume-only with success-proof-gated postconditions and fail-closed typed blockers; runtime_lifecycle_payload_retention apply paths are OPL-authorized maintenance callable adapters and fail closed without bound OPL maintenance authorization proof; runtime_storage_maintenance workspace apply and direct quest physical apply now fail closed without bound opl_runtime_storage_maintenance_authorization proof while dry-run, source-retained restore-proof canary, refs-only index-only, and planned retention/capsule projections remain non-authority. Physical deletion still requires live OPL takeover, no-active-caller or owner-retirement evidence, and tombstone/provenance."
+      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller. Current repo evidence proves domain_authority_refs_index active callers emit refs-only OPL StateIndex source-adapter proofs by default, do not persist MAS SQLite unless explicitly opted in, and cannot authorize runtime/progress; domain_health_diagnostic_obligation_actuator is consume-only with success-proof-gated postconditions and fail-closed typed blockers; domain_owner_action_dispatch is only an OPL-authorized owner callable adapter; runtime_lifecycle_payload_retention apply paths are OPL-authorized maintenance callable adapters and fail closed without bound OPL maintenance authorization proof; runtime_storage_maintenance workspace apply and direct quest physical apply now fail closed without bound opl_runtime_storage_maintenance_authorization proof while dry-run, source-retained restore-proof canary, refs-only index-only, and planned retention/capsule projections remain non-authority. src/med_autoscience/runtime_protocol/runtime_surface_retirement.py#runtime_surface_retirement_no_authority_audit derives this no-authority guard from the inventory and keeps completion_claim_allowed=false. Physical deletion still requires live OPL takeover, no-active-caller or owner-retirement evidence, and tombstone/provenance."
     }
   ],
   "forbidden_completion_interpretations": [
@@ -664,8 +665,10 @@
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_authority_refs_index",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_health_diagnostic_obligation_actuator",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_health_kernel",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::audit_runtime_surface_retirement_inventory",
         "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression",
         "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_fails_closed_without_opl_authorization_or_bound_readback",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_accepts_trusted_opl_execution_authorization_only",
@@ -705,7 +708,9 @@
       "false_completion_boundary": [
         "inventory_entry_updated",
         "current_disposition_demoted_without_no_active_caller",
+        "active_caller_exists_as_retention_reason",
         "legacy_carrier_retained_as_provenance",
+        "read_only_projection_as_execution_authority",
         "focused_tests_green",
         "line_budget_advisory_only",
         "storage_authorization_gate_as_live_opl_takeover",

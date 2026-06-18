@@ -904,6 +904,7 @@
         "provider_completion_as_domain_ready"
       ],
       "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
         "replacement_parity_required": true,
         "live_opl_cleanup_policy_takeover_required": true,
         "no_active_caller_required_before_physical_delete": true,
@@ -1002,9 +1003,11 @@
         "runtime_storage_apply_as_runtime_ready",
         "runtime_storage_apply_as_paper_progress",
         "runtime_storage_apply_as_provider_admission",
-        "runtime_storage_apply_as_publication_ready"
+        "runtime_storage_apply_as_publication_ready",
+        "provider_completion_as_domain_ready"
       ],
       "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
         "replacement_parity_required": true,
         "live_opl_storage_policy_takeover_required": true,
         "no_active_caller_required_before_physical_delete": true,

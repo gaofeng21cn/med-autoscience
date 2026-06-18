@@ -486,6 +486,11 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     }
     assert "mas_owned_generic_runtime" in runtime_storage["forbidden_claims"]
     assert "runtime_storage_apply_as_paper_progress" in runtime_storage["forbidden_claims"]
+    assert "provider_completion_as_domain_ready" in runtime_storage["forbidden_claims"]
+    assert runtime_storage["retirement_gate"]["active_caller_alone_retains_surface"] is False
+
+    lifecycle_retention = surfaces["runtime_lifecycle_payload_retention"]
+    assert lifecycle_retention["retirement_gate"]["active_caller_alone_retains_surface"] is False
 
 
 def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -> None:

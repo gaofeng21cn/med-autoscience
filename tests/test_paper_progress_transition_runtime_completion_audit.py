@@ -219,7 +219,17 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::"
         "test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies"
     ) in physical_gate["observed_refs"]
+    assert (
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
+        "audit_runtime_surface_retirement_inventory"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::"
+        "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
+    ) in physical_gate["observed_refs"]
     assert "inventory_entry_updated" in physical_gate["false_completion_boundary"]
+    assert "active_caller_exists_as_retention_reason" in physical_gate["false_completion_boundary"]
+    assert "read_only_projection_as_execution_authority" in physical_gate["false_completion_boundary"]
 
 
 def test_transition_runtime_completion_audit_records_fresh_opl_repo_evidence_without_live_claim() -> None:
