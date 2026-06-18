@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-18：physical source morphology scan 只关闭 repo-backed scan proof
+
+- 决策：`contracts/functional_privatization_audit.json#/physical_source_morphology_scan` 成为 MAS standard Agent physical source morphology 的 repo-backed scan proof。它记录 active private generic residue、repo-local wrapper tail、default caller、runtime package residue、functional structure gap 和 classification gap 均为 0，并把 `physical_source_morphology_scan_beyond_classification_zero_ref` 从 completion evidence ledger 的 missing tail 中移除。
+- 决策：该 scan proof 不授权物理删除，不关闭 `direct_or_hosted_generated_surface_production_consumption_ref`、`physical_retirement_owner_decision_ref`、真实 target owner scaleout、production generated-surface caller negative samples 或 provider/operator long-soak；`contracts/standard_agent_completion_evidence_status.json` 的 overall status 继续是 `evidence_tail_open_not_complete`。
+- 理由：此前 ledger 中的 physical morphology tail 过于泛化，容易把 `functional_structure_gap_count=0` 误读成源形态已 100% 完成。把 scan proof 做成机器字段和 focused tests 后，本仓能证明的是 repo-source morphology guard，而不是 OPL/live production consumption、owner decision 或 long-soak。
+- 影响：这是合同、测试和文档 foldback；不执行 live DHD apply、hydrate、tick、redrive、provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。它不声明 MAS 私有 residue 物理清零、DM002/DM003 论文推进、publication-ready、domain-ready、production-ready 或 OPL family-wide conformance complete。
+
 ## 2026-06-17：MAS request-only transition 必须等待 OPL runtime readback
 
 - 决策：MAS `opl_domain_progress_transition_request` 只是 domain policy request。没有 OPL `DomainProgressTransitionRuntime` readback 时，DHD、`study_progress`、provider-admission projection 和 replay 只能显示 `transition_request_pending` 或 `NonAdvancingApply`；不得把 request-only carrier、自身 materialization、queue residue、dispatch carrier、projection refresh 或 `provider_admission_pending_count=0` 解释成 provider admission、running proof 或 paper progress。

@@ -56,6 +56,7 @@
       "required_evidence_refs": [
         "contracts/authority_kernel_inventory.json",
         "contracts/functional_privatization_audit.json",
+        "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
         "tests/test_authority_kernel_inventory.py",
         "tests/standard_agent_purity_helpers.py",
         "physical_retirement_owner_decision_ref",
@@ -65,10 +66,11 @@
       "observed_refs": [
         "contracts/authority_kernel_inventory.json",
         "contracts/functional_privatization_audit.json",
-        "tests/test_authority_kernel_inventory.py::test_authority_kernel_inventory_does_not_list_generic_runtime_owner_as_retained_authority"
+        "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
+        "tests/test_authority_kernel_inventory.py::test_authority_kernel_inventory_does_not_list_generic_runtime_owner_as_retained_authority",
+        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_physical_source_morphology_scan_without_completion_claim"
       ],
       "missing_evidence_tails": [
-        "physical_source_morphology_scan_beyond_classification_zero_ref",
         "direct_or_hosted_generated_surface_production_consumption_ref",
         "physical_retirement_owner_decision_ref"
       ],

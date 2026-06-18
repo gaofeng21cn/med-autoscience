@@ -550,6 +550,68 @@ def _owner_receipt_contract() -> dict[str, Any]:
     }
 
 
+def _physical_source_morphology_scan(functional_boundary: Mapping[str, Any]) -> dict[str, Any]:
+    purity = functional_boundary["standard_agent_purity"]
+    guard = functional_boundary["standard_agent_purity_guard"]
+    summary = functional_boundary["functional_module_inventory_summary"]
+    return {
+        "surface_kind": "mas_physical_source_morphology_scan",
+        "schema_version": 1,
+        "status": "repo_scan_proof_landed_live_and_owner_tail_open",
+        "evidence_ref": (
+            "contracts/functional_privatization_audit.json#/physical_source_morphology_scan"
+        ),
+        "closes_evidence_tail": "physical_source_morphology_scan_beyond_classification_zero_ref",
+        "scan_scope": [
+            "agent/",
+            "contracts/",
+            "runtime/authority_functions/",
+            "src/",
+            "tests/standard_agent_purity_helpers.py",
+        ],
+        "source_refs": [
+            "contracts/functional_privatization_audit.json#/functional_consumer_boundary",
+            "contracts/authority_kernel_inventory.json",
+            "tests/standard_agent_purity_helpers.py",
+            "tests/test_authority_kernel_inventory.py",
+        ],
+        "observed_counts": {
+            "active_private_generic_residue_count": (
+                purity["active_private_generic_residue_count"]
+            ),
+            "repo_local_wrapper_tail_count": purity["repo_local_wrapper_tail_count"],
+            "default_caller_count": purity["default_caller_count"],
+            "runtime_package_residue_count": purity["runtime_package_residue_count"],
+            "functional_structure_gap_count": purity["functional_structure_gap_count"],
+            "classification_gap_count": summary["classification_gap_count"],
+            "functional_module_total_count": summary["total_count"],
+        },
+        "proof_assertions": {
+            "generic_runtime_owner_in_active_src": False,
+            "generated_surface_owner_in_domain_repo": False,
+            "repo_local_wrapper_tail_in_default_caller": False,
+            "history_detail_in_default_read_model": False,
+            "physical_delete_authorized": guard["domain_repo_physical_delete_authorized"],
+            "domain_projection_policy": purity["domain_projection_policy"],
+        },
+        "does_not_close": [
+            "direct_or_hosted_generated_surface_production_consumption_ref",
+            "production_generated_surface_consumption_ref",
+            "physical_retirement_owner_decision_ref",
+            "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+            "long_soak_negative_conformance_ref",
+        ],
+        "completion_boundary": {
+            "scan_proof_repo_backed": True,
+            "production_consumption_proven": False,
+            "physical_retirement_owner_decision_present": False,
+            "live_owner_or_stable_blocker_scaleout_complete": False,
+            "provider_or_operator_long_soak_complete": False,
+            "completion_claim_authorized": False,
+        },
+    }
+
+
 def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "surface_kind": "functional_privatization_audit",
@@ -598,6 +660,9 @@ def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> d
             ],
         },
         "functional_followthrough_gap_summary": dict(functional_boundary["functional_followthrough_gap_summary"]),
+        "physical_source_morphology_scan": _physical_source_morphology_scan(
+            functional_boundary
+        ),
         "retirement_disposition_matrix": _json_ready(
             PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX
         ),

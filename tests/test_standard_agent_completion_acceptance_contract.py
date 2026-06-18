@@ -268,6 +268,37 @@ def test_standard_agent_completion_evidence_ledger_records_opl_family_negative_c
     assert ledger["completion_claim_allowed"] is False
 
 
+def test_standard_agent_completion_evidence_ledger_records_physical_source_morphology_scan_without_completion_claim() -> None:
+    ledger = _ledger()
+    gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
+    morphology = gates["physical_source_morphology_standardized"]
+
+    scan_ref = "contracts/functional_privatization_audit.json#/physical_source_morphology_scan"
+    scan_test_ref = (
+        "tests/test_standard_agent_completion_acceptance_contract.py::"
+        "test_standard_agent_completion_evidence_ledger_records_physical_source_morphology_scan_without_completion_claim"
+    )
+    assert morphology["status"] == "evidence_required"
+    assert scan_ref in morphology["required_evidence_refs"]
+    assert {scan_ref, scan_test_ref} <= set(morphology["observed_refs"])
+    assert (
+        "physical_source_morphology_scan_beyond_classification_zero_ref"
+        not in morphology["missing_evidence_tails"]
+    )
+    assert {
+        "direct_or_hosted_generated_surface_production_consumption_ref",
+        "physical_retirement_owner_decision_ref",
+    } <= set(morphology["missing_evidence_tails"])
+    assert {
+        "functional_structure_gap_count_zero",
+        "descriptor_ready",
+        "generated_interface_ready",
+        "history_or_tombstone_prose",
+    } <= set(morphology["false_completion_boundary"])
+    assert ledger["overall_status"] == "evidence_tail_open_not_complete"
+    assert ledger["completion_claim_allowed"] is False
+
+
 def test_standard_agent_completion_evidence_ledger_records_lifecycle_owner_followthrough_without_ready_claim() -> None:
     ledger = _ledger()
     gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}

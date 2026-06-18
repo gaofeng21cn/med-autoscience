@@ -173,6 +173,58 @@ def test_private_surface_retirement_contracts_expose_completion_gates() -> None:
             assert item["disposition"] == "retained_minimal_authority_function", item["item_id"]
 
 
+def test_physical_source_morphology_scan_is_repo_proof_not_completion_claim() -> None:
+    audit = json.loads(_read("contracts/functional_privatization_audit.json"))
+    scan = audit["physical_source_morphology_scan"]
+
+    assert scan["surface_kind"] == "mas_physical_source_morphology_scan"
+    assert scan["status"] == "repo_scan_proof_landed_live_and_owner_tail_open"
+    assert scan["closes_evidence_tail"] == (
+        "physical_source_morphology_scan_beyond_classification_zero_ref"
+    )
+    assert scan["evidence_ref"] == (
+        "contracts/functional_privatization_audit.json#/physical_source_morphology_scan"
+    )
+    assert set(scan["scan_scope"]) == {
+        "agent/",
+        "contracts/",
+        "runtime/authority_functions/",
+        "src/",
+        "tests/standard_agent_purity_helpers.py",
+    }
+    assert scan["observed_counts"] == {
+        "active_private_generic_residue_count": 0,
+        "repo_local_wrapper_tail_count": 0,
+        "default_caller_count": 0,
+        "runtime_package_residue_count": 0,
+        "functional_structure_gap_count": 0,
+        "classification_gap_count": 0,
+        "functional_module_total_count": 15,
+    }
+    assert scan["proof_assertions"] == {
+        "generic_runtime_owner_in_active_src": False,
+        "generated_surface_owner_in_domain_repo": False,
+        "repo_local_wrapper_tail_in_default_caller": False,
+        "history_detail_in_default_read_model": False,
+        "physical_delete_authorized": False,
+        "domain_projection_policy": "refs_receipts_blockers_only_no_body_verdict_or_blob",
+    }
+    assert {
+        "direct_or_hosted_generated_surface_production_consumption_ref",
+        "physical_retirement_owner_decision_ref",
+        "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+        "long_soak_negative_conformance_ref",
+    } <= set(scan["does_not_close"])
+    assert scan["completion_boundary"] == {
+        "scan_proof_repo_backed": True,
+        "production_consumption_proven": False,
+        "physical_retirement_owner_decision_present": False,
+        "live_owner_or_stable_blocker_scaleout_complete": False,
+        "provider_or_operator_long_soak_complete": False,
+        "completion_claim_authorized": False,
+    }
+
+
 def test_smoke_lane_files_do_not_perform_subprocess_or_repo_root_writes() -> None:
     manifest = _test_lane_manifest()
 

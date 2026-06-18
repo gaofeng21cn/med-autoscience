@@ -2681,6 +2681,58 @@
   },
   "opl_unified_audit_read_model": true,
   "owner": "med-autoscience",
+  "physical_source_morphology_scan": {
+    "closes_evidence_tail": "physical_source_morphology_scan_beyond_classification_zero_ref",
+    "completion_boundary": {
+      "completion_claim_authorized": false,
+      "live_owner_or_stable_blocker_scaleout_complete": false,
+      "physical_retirement_owner_decision_present": false,
+      "production_consumption_proven": false,
+      "provider_or_operator_long_soak_complete": false,
+      "scan_proof_repo_backed": true
+    },
+    "does_not_close": [
+      "direct_or_hosted_generated_surface_production_consumption_ref",
+      "production_generated_surface_consumption_ref",
+      "physical_retirement_owner_decision_ref",
+      "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+      "long_soak_negative_conformance_ref"
+    ],
+    "evidence_ref": "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
+    "observed_counts": {
+      "active_private_generic_residue_count": 0,
+      "classification_gap_count": 0,
+      "default_caller_count": 0,
+      "functional_module_total_count": 15,
+      "functional_structure_gap_count": 0,
+      "repo_local_wrapper_tail_count": 0,
+      "runtime_package_residue_count": 0
+    },
+    "proof_assertions": {
+      "domain_projection_policy": "refs_receipts_blockers_only_no_body_verdict_or_blob",
+      "generated_surface_owner_in_domain_repo": false,
+      "generic_runtime_owner_in_active_src": false,
+      "history_detail_in_default_read_model": false,
+      "physical_delete_authorized": false,
+      "repo_local_wrapper_tail_in_default_caller": false
+    },
+    "scan_scope": [
+      "agent/",
+      "contracts/",
+      "runtime/authority_functions/",
+      "src/",
+      "tests/standard_agent_purity_helpers.py"
+    ],
+    "schema_version": 1,
+    "source_refs": [
+      "contracts/functional_privatization_audit.json#/functional_consumer_boundary",
+      "contracts/authority_kernel_inventory.json",
+      "tests/standard_agent_purity_helpers.py",
+      "tests/test_authority_kernel_inventory.py"
+    ],
+    "status": "repo_scan_proof_landed_live_and_owner_tail_open",
+    "surface_kind": "mas_physical_source_morphology_scan"
+  },
   "privatized_functional_module_audit": {
     "audit_id": "mas.privatized_functional_module_audit.v1",
     "claims_generic_runtime_removed_from_mas": true,
