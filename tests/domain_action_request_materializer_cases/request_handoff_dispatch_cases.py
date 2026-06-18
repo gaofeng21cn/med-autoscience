@@ -9,6 +9,9 @@ from tests.domain_action_request_materializer_cases.shared import (
     disable_progress_projection as _disable_progress_projection,
 )
 from tests.domain_action_request_materializer_cases.shared import (
+    legacy_request_task_refs as _legacy_request_task_refs,
+)
+from tests.domain_action_request_materializer_cases.shared import (
     unsupported_domain_action as _unsupported_domain_action,
 )
 from tests.domain_action_request_materializer_cases.shared import write_json as _write_json
@@ -141,6 +144,7 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
         mode="developer_apply_safe",
         apply=True,
     )
+    request_tasks = _legacy_request_task_refs(result)
 
     gate_packet_path = (
         study_root
@@ -175,40 +179,40 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
         / "latest.json"
     )
     assert result["runtime_control_owner"] == "one-person-lab"
-    assert result["request_tasks"][0]["action_type"] == "publication_gate_specificity_required"
-    assert result["request_tasks"][1]["action_type"] == "return_to_ai_reviewer_workflow"
-    assert result["request_tasks"][2]["action_type"] == "current_package_freshness_required"
-    assert result["request_tasks"][3]["action_type"] == "artifact_display_surface_materialization_required"
-    assert result["request_tasks"][0]["request_owner"] == "publication_gate"
-    assert result["request_tasks"][1]["request_owner"] == "ai_reviewer"
-    assert result["request_tasks"][2]["request_owner"] == "artifact_os"
-    assert result["request_tasks"][3]["request_owner"] == "artifact_os"
-    assert result["request_tasks"][0]["expected_owner"] == "publication_gate"
-    assert result["request_tasks"][1]["expected_owner"] == "ai_reviewer"
-    assert result["request_tasks"][2]["expected_owner"] == "artifact_os"
-    assert result["request_tasks"][3]["expected_owner"] == "artifact_os"
-    assert result["request_tasks"][0]["owner_pickup"]["owner"] == "publication_gate"
-    assert result["request_tasks"][1]["owner_pickup"]["owner"] == "ai_reviewer"
-    assert result["request_tasks"][2]["owner_pickup"]["owner"] == "artifact_os"
-    assert result["request_tasks"][3]["owner_pickup"]["owner"] == "artifact_os"
-    assert result["request_tasks"][1]["required_output_surface"] == "artifacts/publication_eval/latest.json"
-    assert result["request_tasks"][2]["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
-    assert result["request_tasks"][3]["required_output_surface"] == "paper/display_registry.json"
-    assert result["request_tasks"][0]["refs"]["request_packet_path"] == str(gate_packet_path)
-    assert result["request_tasks"][1]["refs"]["request_packet_path"] == str(ai_packet_path)
-    assert result["request_tasks"][2]["refs"]["request_packet_path"] == str(freshness_packet_path)
-    assert result["request_tasks"][3]["refs"]["request_packet_path"] == str(display_packet_path)
+    assert request_tasks[0]["action_type"] == "publication_gate_specificity_required"
+    assert request_tasks[1]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert request_tasks[2]["action_type"] == "current_package_freshness_required"
+    assert request_tasks[3]["action_type"] == "artifact_display_surface_materialization_required"
+    assert request_tasks[0]["request_owner"] == "publication_gate"
+    assert request_tasks[1]["request_owner"] == "ai_reviewer"
+    assert request_tasks[2]["request_owner"] == "artifact_os"
+    assert request_tasks[3]["request_owner"] == "artifact_os"
+    assert request_tasks[0]["expected_owner"] == "publication_gate"
+    assert request_tasks[1]["expected_owner"] == "ai_reviewer"
+    assert request_tasks[2]["expected_owner"] == "artifact_os"
+    assert request_tasks[3]["expected_owner"] == "artifact_os"
+    assert request_tasks[0]["owner_pickup"]["owner"] == "publication_gate"
+    assert request_tasks[1]["owner_pickup"]["owner"] == "ai_reviewer"
+    assert request_tasks[2]["owner_pickup"]["owner"] == "artifact_os"
+    assert request_tasks[3]["owner_pickup"]["owner"] == "artifact_os"
+    assert request_tasks[1]["required_output_surface"] == "artifacts/publication_eval/latest.json"
+    assert request_tasks[2]["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
+    assert request_tasks[3]["required_output_surface"] == "paper/display_registry.json"
+    assert request_tasks[0]["refs"]["request_packet_path"] == str(gate_packet_path)
+    assert request_tasks[1]["refs"]["request_packet_path"] == str(ai_packet_path)
+    assert request_tasks[2]["refs"]["request_packet_path"] == str(freshness_packet_path)
+    assert request_tasks[3]["refs"]["request_packet_path"] == str(display_packet_path)
     assert result["ignored_actions"] == []
-    assert {task["dispatch_status"] for task in result["request_tasks"]} == {"transition_request_pending"}
-    assert {task["provider_admission_pending"] for task in result["request_tasks"]} == {False}
-    assert {task["provider_admission_requires_opl_runtime_result"] for task in result["request_tasks"]} == {True}
-    assert {task["mas_local_request_packet_persistence"] for task in result["request_tasks"]} == {"forbidden"}
+    assert {task["dispatch_status"] for task in request_tasks} == {"transition_request_pending"}
+    assert {task["provider_admission_pending"] for task in request_tasks} == {False}
+    assert {task["provider_admission_requires_opl_runtime_result"] for task in request_tasks} == {True}
+    assert {task["mas_local_request_packet_persistence"] for task in request_tasks} == {"forbidden"}
     task_postconditions = {
         json.dumps(task["opl_transition_runtime_postcondition"], sort_keys=True)
-        for task in result["request_tasks"]
+        for task in request_tasks
     }
     assert len(task_postconditions) == 1
-    task_postcondition = result["request_tasks"][0]["opl_transition_runtime_postcondition"]
+    task_postcondition = request_tasks[0]["opl_transition_runtime_postcondition"]
     assert task_postcondition["surface_kind"] == "opl_domain_progress_transition_runtime_postcondition"
     assert task_postcondition["required_owner_surface"] == "one-person-lab DomainProgressTransitionRuntime"
     assert task_postcondition["mas_can_satisfy_readback"] is False
@@ -221,20 +225,20 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
         "opl_provider_admission",
         "opl_fixed_point_reconcile",
     ]
-    assert {task["authority_boundary"]["mas_creates_opl_outbox"] for task in result["request_tasks"]} == {False}
-    assert {task["authority_boundary"]["mas_creates_opl_event"] for task in result["request_tasks"]} == {False}
-    assert {task["authority_boundary"]["mas_creates_opl_stage_run"] for task in result["request_tasks"]} == {False}
-    assert {task["authority_boundary"]["can_select_next_action"] for task in result["request_tasks"]} == {False}
+    assert {task["authority_boundary"]["mas_creates_opl_outbox"] for task in request_tasks} == {False}
+    assert {task["authority_boundary"]["mas_creates_opl_event"] for task in request_tasks} == {False}
+    assert {task["authority_boundary"]["mas_creates_opl_stage_run"] for task in request_tasks} == {False}
+    assert {task["authority_boundary"]["can_select_next_action"] for task in request_tasks} == {False}
     assert not gate_packet_path.exists()
     assert not ai_packet_path.exists()
     assert not freshness_packet_path.exists()
     assert not display_packet_path.exists()
-    assert {task["surface"] for task in result["request_tasks"]} == {"supervisor_request_handoff_task_ref"}
-    assert {task["payload_body_omitted"] for task in result["request_tasks"]} == {True}
-    assert {task["handoff_packet_body_omitted"] for task in result["request_tasks"]} == {True}
-    assert {task["source_action_body_omitted"] for task in result["request_tasks"]} == {True}
-    assert all("handoff_packet" not in task for task in result["request_tasks"])
-    assert all("source_action" not in task for task in result["request_tasks"])
+    assert {task["surface"] for task in request_tasks} == {"supervisor_request_handoff_task_ref"}
+    assert {task["payload_body_omitted"] for task in request_tasks} == {True}
+    assert {task["handoff_packet_body_omitted"] for task in request_tasks} == {True}
+    assert {task["source_action_body_omitted"] for task in request_tasks} == {True}
+    assert all("handoff_packet" not in task for task in request_tasks)
+    assert all("source_action" not in task for task in request_tasks)
 
     prompt_contracts = [dispatch["prompt_contract_ref"] for dispatch in result["domain_progress_transition_requests"]]
     gate_packet, ai_packet, freshness_packet, display_packet = prompt_contracts
@@ -319,7 +323,7 @@ def test_materialize_domain_action_requests_request_handoff_requires_owner_route
         apply=True,
     )
 
-    task = result["request_tasks"][0]
+    task = _legacy_request_task_refs(result)[0]
     packet_path = (
         study_root
         / "artifacts"
@@ -451,7 +455,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_owner_callable_ad
     ).exists()
     blocked_tasks = {
         task["action_type"]: task
-        for task in result["request_tasks"]
+        for task in _legacy_request_task_refs(result)
         if task["action_type"] in {"publication_gate_specificity_required", "return_to_ai_reviewer_workflow"}
     }
     assert blocked_tasks["publication_gate_specificity_required"]["dispatch_status"] == "blocked"

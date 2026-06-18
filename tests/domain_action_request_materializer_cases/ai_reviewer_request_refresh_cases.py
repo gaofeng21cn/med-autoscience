@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+
 from tests.domain_action_request_materializer_cases.ai_reviewer_currentness_helpers import (
     disable_progress_projection as _disable_progress_projection,
 )
@@ -318,7 +320,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
 
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
-    request = result["request_tasks"][0]
+    request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     assert request["action_type"] == "run_gate_clearing_batch"
     assert request["request_owner"] == "gate_clearing_batch"
@@ -423,7 +425,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_missing_current
         apply=True,
     )
 
-    request = result["request_tasks"][0]
+    request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
     assert request["request_owner"] == "ai_reviewer"

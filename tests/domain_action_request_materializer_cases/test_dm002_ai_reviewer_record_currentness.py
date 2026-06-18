@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -88,7 +90,7 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
         apply=True,
     )
 
-    request = result["request_tasks"][0]
+    request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     route = dispatch["owner_route"]
     basis = route["currentness_contract"]["basis"]

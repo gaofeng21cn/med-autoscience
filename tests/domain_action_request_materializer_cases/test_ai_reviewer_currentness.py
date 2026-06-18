@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+
 from tests.domain_action_request_materializer_cases.ai_reviewer_currentness_helpers import (
     disable_progress_projection as _disable_progress_projection,
 )
@@ -341,7 +343,7 @@ def test_materialize_domain_action_requests_prefers_fresh_progress_action_when_t
 
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
-    request = result["request_tasks"][0]
+    request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
     assert request["request_owner"] == "ai_reviewer"
@@ -877,7 +879,7 @@ def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_ref
     assert not dispatch_path.exists()
     dispatch = result["domain_progress_transition_requests"][0]
     expected_refs = [str(manuscript_path.resolve()), str(review_manuscript_path.resolve())]
-    assert result["request_tasks"][0]["dispatch_status"] == "transition_request_pending"
+    assert _legacy_request_task_refs(result)[0]["dispatch_status"] == "transition_request_pending"
     assert request["request_lifecycle"]["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
     assert request["request_lifecycle"]["required_currentness_refs"] == expected_refs
     assert request["request_lifecycle"]["stale_record_ref"] == str(

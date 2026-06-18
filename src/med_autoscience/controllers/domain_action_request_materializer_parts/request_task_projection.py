@@ -28,6 +28,39 @@ def request_task_ref_projections(
     ]
 
 
+def legacy_request_task_diagnostics(
+    request_task_refs: Iterable[Mapping[str, Any]],
+    *,
+    schema_version: int,
+) -> dict[str, Any]:
+    refs = [dict(item) for item in request_task_refs if isinstance(item, Mapping)]
+    return {
+        "surface": "legacy_request_task_diagnostics",
+        "schema_version": schema_version,
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "diagnostic_only": True,
+        "diagnostic_ref_only": True,
+        "counts_authority": False,
+        "readiness_authority": False,
+        "can_create_success_outcome": False,
+        "body_authority": False,
+        "body_projection": False,
+        "legacy_payload_scope": "identity_refs_only",
+        "legacy_request_task_count": len(refs),
+        "legacy_request_task_refs": refs,
+        "legacy_request_task_body_omitted": True,
+        "legacy_alias_field": "request_tasks",
+        "legacy_alias_retirement_gate": "no_active_caller_before_physical_delete",
+        "omitted_body_fields": [
+            "handoff_packet",
+            "owner_route",
+            "operator_payload",
+            "payload_authoring_target",
+            "source_action",
+        ],
+    }
+
+
 def _request_task_ref_projection(
     task: Mapping[str, Any],
     *,
@@ -150,4 +183,4 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["request_task_ref_projections"]
+__all__ = ["legacy_request_task_diagnostics", "request_task_ref_projections"]

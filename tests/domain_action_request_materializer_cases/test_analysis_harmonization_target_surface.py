@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -106,7 +108,7 @@ def test_unit_harmonization_uses_body_free_precise_target_surface(
         apply=True,
     )
 
-    task = result["request_tasks"][0]
+    task = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     target_surface = task["required_output_target_surface"]
     assert target_surface == dispatch["prompt_contract_ref"]["required_output_target_surface"]

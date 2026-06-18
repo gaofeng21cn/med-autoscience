@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -93,7 +95,7 @@ def test_materialize_domain_action_requests_routes_clean_canonical_rehydrate_to_
         apply=True,
     )
 
-    task = result["request_tasks"][0]
+    task = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     packet_path = (
         study_root
@@ -187,7 +189,7 @@ def test_materialize_domain_action_requests_routes_hard_methodology_handoff_to_a
         apply=True,
     )
 
-    task = result["request_tasks"][0]
+    task = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     packet_path = (
         study_root
@@ -281,7 +283,7 @@ def test_materialize_domain_action_requests_routes_model_provenance_handoff_to_s
         apply=True,
     )
 
-    task = result["request_tasks"][0]
+    task = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     packet_path = (
         study_root
@@ -379,7 +381,7 @@ def test_materialize_domain_action_requests_routes_methodology_reframe_to_decisi
         apply=True,
     )
 
-    task = result["request_tasks"][0]
+    task = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     packet_path = (
         study_root
@@ -571,7 +573,7 @@ def test_materialize_domain_action_requests_rejects_stale_top_level_queue_when_e
 
     ignored = result["ignored_actions"]
     assert result["domain_progress_transition_request_count"] == 0
-    assert result["request_tasks"] == []
+    assert _legacy_request_task_refs(result) == []
     assert ignored[0]["action_type"] == "methodology_reframe_route_decision"
     assert ignored[0]["reason"] == "superseded_by_current_execution_envelope"
     assert not (

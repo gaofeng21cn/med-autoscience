@@ -5,6 +5,8 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -216,7 +218,7 @@ def test_dm002_20260529_current_positive_ai_reviewer_archive_replays_gate_withou
     )
 
     dispatch = result["domain_progress_transition_requests"][0]
-    request = result["request_tasks"][0]
+    request = _legacy_request_task_refs(result)[0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "run_gate_clearing_batch"
     assert request["request_owner"] == "gate_clearing_batch"

@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+
 import pytest
 
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
@@ -165,7 +167,7 @@ def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surf
         apply=True,
     )
 
-    request = result["request_tasks"][0]
+    request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
@@ -293,7 +295,7 @@ def test_ai_reviewer_record_production_work_unit_consumes_current_record_before_
         apply=True,
     )
 
-    request = result["request_tasks"][0]
+    request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
@@ -446,7 +448,7 @@ def test_current_input_ai_reviewer_record_consumption_work_unit_materializes_to_
         apply=True,
     )
 
-    request = result["request_tasks"][0]
+    request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
@@ -600,7 +602,7 @@ def test_ai_reviewer_record_stale_after_current_inputs_keeps_ai_reviewer_product
         apply=True,
     )
 
-    request = result["request_tasks"][0]
+    request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
@@ -749,7 +751,7 @@ def test_current_ai_reviewer_write_routeback_preempts_stale_package_freshness_fo
         apply=True,
     )
 
-    request = result["request_tasks"][0]
+    request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"

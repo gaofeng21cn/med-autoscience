@@ -105,7 +105,22 @@ def test_materialize_domain_action_requests_writes_quality_repair_request_to_can
         / "consumer"
         / "run_quality_repair_batch.json"
     )
-    task = result["request_tasks"][0]
+    assert result["request_tasks_are_legacy_diagnostic_alias"] is True
+    assert result["request_tasks_legacy_alias_for"] == (
+        "legacy_request_task_diagnostics.legacy_request_task_refs"
+    )
+    assert result["request_task_counts_authority"] is False
+    assert result["request_task_readiness_authority"] is False
+    legacy_request_tasks = result["legacy_request_task_diagnostics"]
+    assert legacy_request_tasks["surface"] == "legacy_request_task_diagnostics"
+    assert legacy_request_tasks["canonical_transition_request_surface"] == (
+        "domain_progress_transition_requests"
+    )
+    assert legacy_request_tasks["diagnostic_only"] is True
+    assert legacy_request_tasks["counts_authority"] is False
+    assert legacy_request_tasks["readiness_authority"] is False
+    assert legacy_request_tasks["legacy_request_task_refs"] == result["request_tasks"]
+    task = legacy_request_tasks["legacy_request_task_refs"][0]
     assert task["dispatch_status"] == "transition_request_pending"
     assert task["blocked_reason"] == "opl_execution_authorization_required"
     assert task["provider_admission_pending"] is False

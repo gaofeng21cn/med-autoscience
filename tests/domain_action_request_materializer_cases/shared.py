@@ -17,6 +17,26 @@ def disable_progress_projection(monkeypatch) -> None:
     monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
 
 
+def legacy_request_task_refs(result: dict[str, object]) -> list[dict[str, object]]:
+    diagnostics = result["legacy_request_task_diagnostics"]
+    assert isinstance(diagnostics, dict)
+    assert diagnostics["surface"] == "legacy_request_task_diagnostics"
+    assert diagnostics["canonical_transition_request_surface"] == "domain_progress_transition_requests"
+    assert diagnostics["diagnostic_only"] is True
+    assert diagnostics["diagnostic_ref_only"] is True
+    assert diagnostics["counts_authority"] is False
+    assert diagnostics["readiness_authority"] is False
+    assert diagnostics["can_create_success_outcome"] is False
+    assert diagnostics["body_authority"] is False
+    assert diagnostics["legacy_payload_scope"] == "identity_refs_only"
+    assert diagnostics["legacy_request_task_refs"] == result["request_tasks"]
+    assert result["request_tasks_are_legacy_diagnostic_alias"] is True
+    assert result["request_tasks_legacy_alias_for"] == (
+        "legacy_request_task_diagnostics.legacy_request_task_refs"
+    )
+    return diagnostics["legacy_request_task_refs"]
+
+
 def stage_native_admission_fields(
     *,
     action_type: str = "run_quality_repair_batch",

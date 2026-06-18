@@ -1324,6 +1324,10 @@ def materialize_domain_action_requests(
         transition_runtime_postcondition=_opl_transition_runtime_postcondition(),
         authority_boundary=_mas_transition_projection_authority_boundary(),
     )
+    legacy_request_task_diagnostics = request_task_projection.legacy_request_task_diagnostics(
+        request_task_refs,
+        schema_version=SCHEMA_VERSION,
+    )
     transition_requests = transition_request_projection.domain_progress_transition_request_projection(owner_callable_adapters)
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
@@ -1383,9 +1387,15 @@ def materialize_domain_action_requests(
         "mas_dispatch_authority": False,
         "authority_boundary": _mas_transition_projection_authority_boundary(),
         "request_task_count": len(request_task_refs),
-        "request_task_projection_scope": "identity_refs_only",
+        "request_task_projection_scope": "legacy_diagnostic_identity_refs_only",
         "request_task_body_omitted": True,
+        "request_task_counts_authority": False,
+        "request_task_readiness_authority": False,
+        "request_tasks_are_legacy_diagnostic_alias": True,
+        "request_tasks_legacy_alias_for": "legacy_request_task_diagnostics.legacy_request_task_refs",
+        "request_tasks_retirement_gate": "no_active_caller_before_physical_delete",
         "request_tasks": request_task_refs,
+        "legacy_request_task_diagnostics": legacy_request_task_diagnostics,
         "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
         "ai_reviewer_request_refreshes": ai_reviewer_request_refreshes,
         "legacy_owner_callable_adapter_diagnostics": legacy_owner_callable_adapter_diagnostics(

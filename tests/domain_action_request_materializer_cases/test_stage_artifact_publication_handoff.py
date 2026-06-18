@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+
 from med_autoscience.controllers import stage_native_next_action_admission
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -316,7 +318,7 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
         apply=True,
     )
 
-    task = result["request_tasks"][0]
+    task = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     request_ref = "artifacts/supervision/requests/medical_paper_readiness/latest.json"
     request_path = study_root / request_ref
