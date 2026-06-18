@@ -318,6 +318,21 @@ def _source_action_ref(action: Mapping[str, Any]) -> dict[str, Any]:
     for key in ("work_unit_id", "work_unit_fingerprint", "action_fingerprint", "required_delta_kind"):
         if key in action and key not in source_ref:
             source_ref[key] = action[key]
+    supervisor_decision = _mapping(source_ref.get("supervisor_decision"))
+    if supervisor_decision and "supervisor_policy_projection" not in source_ref:
+        source_ref["supervisor_policy_projection"] = "paper_autonomy_supervisor_policy_projection"
+        source_ref["supervisor_authority"] = "paper_autonomy_supervisor_policy_projection"
+        source_ref["supervisor_authority_boundary"] = "policy_projection_requires_opl_readback"
+        source_ref["supervisor_policy_projection_boundary"] = {
+            "surface_kind": "paper_autonomy_supervisor_policy_projection_boundary",
+            "decision_field_role": "policy_recommendation_label",
+            "decision_field_is_authority": False,
+            "mas_can_authorize_provider_admission": False,
+            "mas_can_run_supervisor_decision_engine": False,
+            "mas_can_store_recovery_obligation": False,
+            "mas_can_run_fixed_point_runtime": False,
+            "requires_opl_supervisor_decision_engine_readback": True,
+        }
     handoff = _mapping(action.get("handoff_packet"))
     handoff_ref = {key: handoff[key] for key in SOURCE_HANDOFF_REF_FIELDS if key in handoff}
     if handoff_ref:

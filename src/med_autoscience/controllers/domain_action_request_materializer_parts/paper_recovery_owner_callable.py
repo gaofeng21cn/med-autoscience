@@ -18,6 +18,17 @@ PUBLISHABILITY_REPAIR_SPRINT_REQUIRED_INPUT = (
 )
 PUBLISHABILITY_REPAIR_SPRINT_ACTION_TYPE = "run_quality_repair_batch"
 PUBLISHABILITY_REPAIR_SPRINT_WORK_UNIT_ID = "publishability_repair_sprint"
+SUPERVISOR_POLICY_PROJECTION_SURFACE = "paper_autonomy_supervisor_policy_projection"
+SUPERVISOR_POLICY_PROJECTION_BOUNDARY = {
+    "surface_kind": "paper_autonomy_supervisor_policy_projection_boundary",
+    "decision_field_role": "policy_recommendation_label",
+    "decision_field_is_authority": False,
+    "mas_can_authorize_provider_admission": False,
+    "mas_can_run_supervisor_decision_engine": False,
+    "mas_can_store_recovery_obligation": False,
+    "mas_can_run_fixed_point_runtime": False,
+    "requires_opl_supervisor_decision_engine_readback": True,
+}
 
 
 def current_actions(
@@ -64,6 +75,12 @@ def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
     if _text(recovery.get("phase")) != "owner_action_ready":
         return None
     if _text(supervisor_decision.get("decision")) not in {None, "materialize_recovery_action"}:
+        return None
+    if _terminal_owner_receipt_consumed_same_identity(
+        study=study,
+        recovery=recovery,
+        next_action=next_action,
+    ):
         return None
     successor_owner_action = _mapping(next_action.get("successor_owner_action"))
     if _text(next_action.get("kind")) == "materialize_successor_owner_action":
@@ -113,7 +130,6 @@ def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
             supervisor_decision=supervisor_decision,
         )
     )
-    supervisor_decision_ref = _text(supervisor_decision.get("decision_id"))
     action = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -128,9 +144,7 @@ def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
         "required_output_surface": request_output_surface_for_action_type(action_type),
         "source_surface": "paper_recovery_state",
         "source_ref": _text(recovery.get("recovery_obligation_id")),
-        "supervisor_decision": supervisor_decision or None,
-        "supervisor_decision_ref": supervisor_decision_ref,
-        "supervisor_authority": "paper_autonomy_supervisor_decision" if supervisor_decision else None,
+        **_supervisor_policy_projection_fields(supervisor_decision),
         "work_unit_id": work_unit_id,
         "next_work_unit": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,
@@ -144,11 +158,7 @@ def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
             "next_executable_owner": owner,
             "source_surface": "paper_recovery_state",
             "source_ref": _text(recovery.get("recovery_obligation_id")),
-            "supervisor_decision": supervisor_decision or None,
-            "supervisor_decision_ref": supervisor_decision_ref,
-            "supervisor_authority": (
-                "paper_autonomy_supervisor_decision" if supervisor_decision else None
-            ),
+            **_supervisor_policy_projection_fields(supervisor_decision),
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": work_unit_fingerprint,
@@ -285,7 +295,6 @@ def _action_from_successor_owner_gate(
             source_ref=_first_text(*_text_items(successor_owner_gate.get("evidence_refs"))),
         )
     )
-    supervisor_decision_ref = _text(supervisor_decision.get("decision_id"))
     evidence_refs = _text_items(successor_owner_gate.get("evidence_refs"))
     compact_predecessor = {
         key: value for key, value in predecessor.items() if value not in (None, "", [], {})
@@ -304,9 +313,7 @@ def _action_from_successor_owner_gate(
         "required_output_surface": request_output_surface_for_action_type(action_type),
         "source_surface": "paper_recovery_state",
         "source_ref": _text(recovery.get("recovery_obligation_id")),
-        "supervisor_decision": supervisor_decision or None,
-        "supervisor_decision_ref": supervisor_decision_ref,
-        "supervisor_authority": "paper_autonomy_supervisor_decision" if supervisor_decision else None,
+        **_supervisor_policy_projection_fields(supervisor_decision),
         "work_unit_id": work_unit_id,
         "next_work_unit": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,
@@ -330,11 +337,7 @@ def _action_from_successor_owner_gate(
             "next_executable_owner": owner,
             "source_surface": "paper_recovery_state",
             "source_ref": _text(recovery.get("recovery_obligation_id")),
-            "supervisor_decision": supervisor_decision or None,
-            "supervisor_decision_ref": supervisor_decision_ref,
-            "supervisor_authority": (
-                "paper_autonomy_supervisor_decision" if supervisor_decision else None
-            ),
+            **_supervisor_policy_projection_fields(supervisor_decision),
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": work_unit_fingerprint,
@@ -446,7 +449,6 @@ def _action_from_successor_owner_action(
             source_eval_id=source_eval_id,
         )
     )
-    supervisor_decision_ref = _text(supervisor_decision.get("decision_id"))
     successor_source_ref = _text(successor_owner_action.get("source_ref"))
     source_ref = _text(recovery.get("recovery_obligation_id")) or successor_source_ref
     action = {
@@ -464,9 +466,7 @@ def _action_from_successor_owner_action(
         "source_surface": "paper_recovery_state",
         "source_ref": source_ref,
         "source_eval_id": source_eval_id,
-        "supervisor_decision": supervisor_decision or None,
-        "supervisor_decision_ref": supervisor_decision_ref,
-        "supervisor_authority": "paper_autonomy_supervisor_decision" if supervisor_decision else None,
+        **_supervisor_policy_projection_fields(supervisor_decision),
         "work_unit_id": work_unit_id,
         "next_work_unit": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,
@@ -483,11 +483,7 @@ def _action_from_successor_owner_action(
             "source_surface": "paper_recovery_state",
             "source_ref": source_ref,
             "source_eval_id": source_eval_id,
-            "supervisor_decision": supervisor_decision or None,
-            "supervisor_decision_ref": supervisor_decision_ref,
-            "supervisor_authority": (
-                "paper_autonomy_supervisor_decision" if supervisor_decision else None
-            ),
+            **_supervisor_policy_projection_fields(supervisor_decision),
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": work_unit_fingerprint,
@@ -520,7 +516,6 @@ def _owner_route(
 ) -> dict[str, Any]:
     decision = _mapping(supervisor_decision)
     predecessor_payload = _mapping(predecessor)
-    supervisor_decision_ref = _text(decision.get("decision_id"))
     return {
         "surface": "domain_route_owner_route",
         "schema_version": 2,
@@ -546,8 +541,7 @@ def _owner_route(
             "successor_source_surface": source_surface,
             "successor_source_ref": source_ref,
             "source_eval_id": source_eval_id,
-            "supervisor_authority": "paper_autonomy_supervisor_decision" if decision else None,
-            "supervisor_decision_ref": supervisor_decision_ref,
+            **_supervisor_policy_projection_ref_fields(decision),
             "predecessor_action_type": _text(predecessor_payload.get("action_type")),
             "predecessor_work_unit_id": _text(predecessor_payload.get("work_unit_id")),
             "predecessor_work_unit_fingerprint": _text(
@@ -563,6 +557,126 @@ def _owner_route(
             },
         },
     }
+
+
+def _supervisor_policy_projection_fields(supervisor_decision: Mapping[str, Any]) -> dict[str, Any]:
+    decision = _mapping(supervisor_decision)
+    if not decision:
+        return {}
+    return {
+        "supervisor_decision": decision,
+        "supervisor_decision_ref": _text(decision.get("decision_id")),
+        "supervisor_policy_projection": SUPERVISOR_POLICY_PROJECTION_SURFACE,
+        "supervisor_authority": SUPERVISOR_POLICY_PROJECTION_SURFACE,
+        "supervisor_authority_boundary": "policy_projection_requires_opl_readback",
+        "supervisor_policy_projection_boundary": dict(SUPERVISOR_POLICY_PROJECTION_BOUNDARY),
+    }
+
+
+def _supervisor_policy_projection_ref_fields(supervisor_decision: Mapping[str, Any]) -> dict[str, Any]:
+    fields = _supervisor_policy_projection_fields(supervisor_decision)
+    fields.pop("supervisor_authority", None)
+    return fields
+
+
+def _terminal_owner_receipt_consumed_same_identity(
+    *,
+    study: Mapping[str, Any],
+    recovery: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+) -> bool:
+    target_work_unit_id, target_fingerprint = _target_recovery_identity(
+        recovery=recovery,
+        next_action=next_action,
+    )
+    if target_work_unit_id is None or target_fingerprint is None:
+        return False
+    for surface in (
+        _mapping(study.get("current_work_unit")),
+        _mapping(study.get("current_execution_envelope")),
+    ):
+        if not surface:
+            continue
+        if _terminal_surface_state_kind(surface) != "owner_receipt_recorded":
+            continue
+        if _owner_receipt_ref(surface) is None:
+            continue
+        work_unit_id, fingerprint = _surface_identity(surface)
+        if work_unit_id == target_work_unit_id and fingerprint == target_fingerprint:
+            return True
+    return False
+
+
+def _target_recovery_identity(
+    *,
+    recovery: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+) -> tuple[str | None, str | None]:
+    successor_owner_action = _mapping(next_action.get("successor_owner_action"))
+    successor_owner_gate = _mapping(next_action.get("successor_owner_gate"))
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    return (
+        _first_text(
+            successor_owner_action.get("work_unit_id"),
+            successor_owner_gate.get("work_unit_id"),
+            obligation.get("work_unit_id"),
+        ),
+        _first_text(
+            successor_owner_action.get("work_unit_fingerprint"),
+            successor_owner_action.get("action_fingerprint"),
+            successor_owner_gate.get("work_unit_fingerprint"),
+            successor_owner_gate.get("action_fingerprint"),
+            obligation.get("work_unit_fingerprint"),
+            obligation.get("action_fingerprint"),
+        ),
+    )
+
+
+def _terminal_surface_state_kind(surface: Mapping[str, Any]) -> str | None:
+    state = _mapping(surface.get("state"))
+    return _first_text(
+        surface.get("status"),
+        surface.get("state_kind"),
+        state.get("state_kind"),
+    )
+
+
+def _surface_identity(surface: Mapping[str, Any]) -> tuple[str | None, str | None]:
+    state = _mapping(surface.get("state"))
+    binding = _mapping(state.get("owner_answer_binding")) or _mapping(
+        surface.get("owner_answer_binding")
+    )
+    basis = _mapping(state.get("currentness_basis")) or _mapping(surface.get("currentness_basis"))
+    return (
+        _first_text(
+            surface.get("work_unit_id"),
+            state.get("work_unit_id"),
+            binding.get("work_unit_id"),
+            basis.get("work_unit_id"),
+        ),
+        _first_text(
+            surface.get("work_unit_fingerprint"),
+            surface.get("action_fingerprint"),
+            state.get("work_unit_fingerprint"),
+            state.get("action_fingerprint"),
+            binding.get("work_unit_fingerprint"),
+            binding.get("action_fingerprint"),
+            basis.get("work_unit_fingerprint"),
+            basis.get("action_fingerprint"),
+        ),
+    )
+
+
+def _owner_receipt_ref(surface: Mapping[str, Any]) -> str | None:
+    state = _mapping(surface.get("state"))
+    binding = _mapping(state.get("owner_answer_binding")) or _mapping(
+        surface.get("owner_answer_binding")
+    )
+    return _first_text(
+        surface.get("owner_receipt_ref"),
+        state.get("owner_receipt_ref"),
+        binding.get("owner_receipt_ref"),
+    )
 
 
 def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:

@@ -217,9 +217,28 @@ def test_materializer_dispatches_fresh_paper_recovery_owner_callable_without_sca
     assert dispatch["owner_route"]["source_refs"]["supervisor_decision_ref"] == (
         dispatch["source_action"]["supervisor_decision_ref"]
     )
-    assert dispatch["owner_route"]["source_refs"]["supervisor_authority"] == (
-        "paper_autonomy_supervisor_decision"
+    assert dispatch["source_action"]["supervisor_policy_projection"] == (
+        "paper_autonomy_supervisor_policy_projection"
     )
+    assert dispatch["source_action"]["supervisor_authority"] == (
+        "paper_autonomy_supervisor_policy_projection"
+    )
+    assert dispatch["source_action"]["supervisor_authority_boundary"] == (
+        "policy_projection_requires_opl_readback"
+    )
+    boundary = dispatch["source_action"]["supervisor_policy_projection_boundary"]
+    assert boundary["decision_field_role"] == "policy_recommendation_label"
+    assert boundary["decision_field_is_authority"] is False
+    assert boundary["mas_can_authorize_provider_admission"] is False
+    assert boundary["mas_can_run_supervisor_decision_engine"] is False
+    assert boundary["mas_can_store_recovery_obligation"] is False
+    assert boundary["requires_opl_supervisor_decision_engine_readback"] is True
+    handoff = dispatch["source_action"]["handoff_packet"]
+    assert handoff["supervisor_policy_projection"] == (
+        "paper_autonomy_supervisor_policy_projection"
+    )
+    assert handoff["supervisor_policy_projection_boundary"] == boundary
+    assert "supervisor_authority" not in dispatch["owner_route"]["source_refs"]
     assert dispatch["action_fingerprint"] == fingerprint
 
 
@@ -706,6 +725,119 @@ def test_materializer_prefers_fresh_progress_owner_action_over_stale_scan_paper_
         and item["reason"] == "superseded_by_fresh_study_progress_current_owner_ticket"
         for item in result["ignored_actions"]
     )
+
+
+def test_materializer_suppresses_paper_recovery_after_same_identity_owner_receipt(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    repair_fingerprint = "publication-blockers::0915410f804b3697"
+    owner_receipt_ref = (
+        "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+        "artifacts/controller/repair_execution_receipts/latest.json"
+    )
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [],
+            "action_queue": [],
+        },
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "owner_receipt_recorded",
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": repair_fingerprint,
+                "state": {
+                    "state_kind": "owner_receipt_recorded",
+                    "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                    "owner_receipt_ref": owner_receipt_ref,
+                    "owner_answer_binding": {
+                        "answer_kind": "owner_receipt_ref",
+                        "owner_receipt_ref": owner_receipt_ref,
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": repair_fingerprint,
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "owner_receipt_recorded",
+                "owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": repair_fingerprint,
+                "owner_answer_binding": {
+                    "answer_kind": "owner_receipt_ref",
+                    "owner_receipt_ref": owner_receipt_ref,
+                },
+            },
+            "paper_recovery_state": {
+                "phase": "owner_action_ready",
+                "current_authority": {
+                    "owner": "write",
+                    "obligation": {
+                        "study_id": study_id,
+                        "quest_id": quest_id,
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": repair_fingerprint,
+                        "blocker_type": "medical_prose_write_repair",
+                    },
+                },
+                "supervisor_decision": {
+                    "decision": "materialize_recovery_action",
+                    "decision_id": "supervisor-decision::materialize_recovery_action::dm003",
+                },
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "provider_admission_allowed": True,
+                    "successor_owner_action": {
+                        "action_type": "run_quality_repair_batch",
+                        "owner": "write",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": repair_fingerprint,
+                        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                        "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                    },
+                },
+            },
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["domain_progress_transition_request_count"] == 0
+    assert result["request_task_count"] == 0
+    assert result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"] == []
 
 
 def test_materializer_turns_dm002_anti_loop_owner_gate_into_publishability_repair_sprint(
