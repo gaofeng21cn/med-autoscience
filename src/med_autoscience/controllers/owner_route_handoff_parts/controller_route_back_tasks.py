@@ -18,6 +18,7 @@ _AUTO_CONTINUATION_BLOCKING_DECISIONS = {"stop_loss", "terminal_stop", "complete
 def controller_decision_route_back_task(
     *,
     study: Mapping[str, Any],
+    current_progress: Mapping[str, Any] | None = None,
     profile: WorkspaceProfile,
     profile_ref: Path,
     study_id: str,
@@ -33,6 +34,12 @@ def controller_decision_route_back_task(
     next_work_unit = _mapping(controller.get("next_work_unit"))
     work_unit_id = _text(next_work_unit.get("unit_id"))
     if route_target is None or work_unit_id is None:
+        return None
+    if _owner_receipt_recorded_for_work_unit(
+        current_progress or {},
+        action_type="run_quality_repair_batch",
+        work_unit_id=work_unit_id,
+    ):
         return None
     study_root = Path(_text(study.get("study_root")) or profile.studies_root / study_id)
     controller_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
@@ -101,6 +108,39 @@ def controller_decision_route_back_task(
             "authority_boundary": "mas_owner_reconcile_only",
         },
     }
+
+
+def _owner_receipt_recorded_for_work_unit(
+    progress: Mapping[str, Any],
+    *,
+    action_type: str,
+    work_unit_id: str,
+) -> bool:
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    current_work_unit_state = _mapping(current_work_unit.get("state"))
+    if _text(current_work_unit.get("status")) != "owner_receipt_recorded":
+        return False
+    if _text(current_work_unit_state.get("state_kind")) not in {None, "owner_receipt_recorded"}:
+        return False
+    if _text(current_work_unit.get("action_type")) not in {None, action_type}:
+        return False
+    if _text(current_work_unit.get("work_unit_id")) != work_unit_id:
+        return False
+    return _owner_receipt_ref(current_work_unit) is not None or _owner_receipt_ref(
+        _mapping(progress.get("current_execution_envelope"))
+    ) is not None
+
+
+def _owner_receipt_ref(surface: Mapping[str, Any]) -> str | None:
+    state = _mapping(surface.get("state"))
+    binding = _mapping(surface.get("owner_answer_binding")) or _mapping(
+        state.get("owner_answer_binding")
+    )
+    return (
+        _text(surface.get("owner_receipt_ref"))
+        or _text(state.get("owner_receipt_ref"))
+        or _text(binding.get("owner_receipt_ref"))
+    )
 
 
 def _hard_human_gate_required(controller: Mapping[str, Any]) -> bool:

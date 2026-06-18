@@ -935,6 +935,99 @@ def test_domain_handler_export_projects_controller_route_back_as_pending_task(
     assert evidence_payload["domain_ready_claimed"] is False
 
 
+def test_domain_handler_export_suppresses_controller_route_back_after_owner_receipt(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = workspace_root / "studies" / study_id
+    write_profile(profile_path, workspace_root=workspace_root)
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    receipt_fingerprint = "publication-blockers::0915410f804b3697"
+    owner_receipt_ref = str(
+        study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "controller-decision::dm003-route-back",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "emitted_at": "2026-06-16T04:24:03+00:00",
+            "decision_type": "route_back_same_line",
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "request_opl_stage_attempt"}],
+            "route_target": "write",
+            "route_key_question": "当前 AI reviewer-backed route-back 应由哪一个同线 owner work unit 继续？",
+            "route_rationale": "The current AI reviewer-backed quality record names a same-line owner route.",
+            "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+            "next_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+                "summary": "Continue the current MAS controller-authorized domain route.",
+            },
+            "blocking_work_units": [
+                {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                    "summary": "Continue the current MAS controller-authorized domain route.",
+                }
+            ],
+        },
+    )
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "owner_receipt_recorded",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": receipt_fingerprint,
+                "state": {
+                    "state_kind": "owner_receipt_recorded",
+                    "owner_receipt_ref": owner_receipt_ref,
+                    "owner_answer_binding": {
+                        "answer_kind": "owner_receipt_ref",
+                        "owner_receipt_ref": owner_receipt_ref,
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "owner_receipt_recorded",
+                "owner": "write",
+                "owner_answer_binding": {
+                    "answer_kind": "owner_receipt_ref",
+                    "owner_receipt_ref": owner_receipt_ref,
+                },
+            },
+            "current_executable_owner_action": None,
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert not [
+        task
+        for task in payload["pending_family_tasks"]
+        if task.get("reason") == "controller_decision_route_back"
+        and task.get("payload", {}).get("study_id") == study_id
+    ]
+
+
 def test_domain_handler_export_projects_publication_aftercare_analysis_and_reviewer_tasks(
     tmp_path: Path,
     capsys,

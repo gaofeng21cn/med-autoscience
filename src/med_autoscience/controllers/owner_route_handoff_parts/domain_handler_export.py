@@ -362,6 +362,7 @@ def _pending_family_tasks(
             tasks.append(continuation_task)
         controller_task = controller_decision_route_back_task(
             study=study,
+            current_progress=current_progress,
             profile=profile,
             profile_ref=profile_ref,
             study_id=study_id,
