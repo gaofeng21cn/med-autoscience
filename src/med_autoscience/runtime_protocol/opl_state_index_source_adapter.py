@@ -123,7 +123,16 @@ def source_adapter_contract() -> dict[str, Any]:
         "domain_authority_refs_index_persist_sqlite_allowed_use": (
             "explicit_history_replay_or_local_refs_inspection_only"
         ),
+        "active_caller_status": "repo_active_callers_migrated_to_opl_state_index_source_adapter",
+        "active_caller_effect": "opl_state_index_source_adapter_emitted_no_sqlite_persistence",
+        "active_caller_retains_surface": False,
+        "active_caller_retains_authority": False,
+        "active_caller_retains_runtime_authority": False,
         "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
+        "live_takeover_required_before_physical_delete": True,
+        "legacy_domain_authority_refs_index_role": (
+            "explicit_history_replay_or_local_refs_inspection_only"
+        ),
         "authority_boundary": _authority_boundary(),
     }
 

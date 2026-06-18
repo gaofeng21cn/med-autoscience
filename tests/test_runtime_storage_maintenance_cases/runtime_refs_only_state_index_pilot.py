@@ -233,13 +233,16 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
         "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
         "replacement_owner_surface": "one-person-lab StateIndexKernel",
         "mas_source_adapter_role": "refs_only_domain_authority_receipt_source_adapter",
-        "active_caller_status": "repo_proven_no_active_authority_caller",
-        "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
+        "active_caller_status": "repo_active_callers_migrated_to_opl_state_index_source_adapter",
+        "active_caller_effect": "opl_state_index_source_adapter_emitted_no_sqlite_persistence",
         "default_sqlite_persistence": False,
         "sqlite_persistence_requires_explicit_opt_in": True,
-        "active_caller_retains_surface": True,
+        "active_caller_retains_surface": False,
         "active_caller_retains_authority": False,
         "active_caller_db_path_does_not_imply_persistence": True,
+        "legacy_domain_authority_refs_index_role": (
+            "explicit_history_replay_or_local_refs_inspection_only"
+        ),
         "source_tables": list(refs.AUTHORITY_REF_TABLES),
         "forbidden_legacy_tables": list(refs.LEGACY_TABLE_POLICY),
         "repo_replacement_parity_refs": [
@@ -306,6 +309,19 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
     adapter_contract = source_adapter.source_adapter_contract()
     assert adapter_contract["sqlite_persistence_parameter_exposed"] is False
     assert adapter_contract["sqlite_persistence_allowed"] is False
+    assert adapter_contract["active_caller_retains_surface"] is False
+    assert adapter_contract["active_caller_retains_authority"] is False
+    assert adapter_contract["active_caller_retains_runtime_authority"] is False
+    assert adapter_contract["active_caller_status"] == (
+        "repo_active_callers_migrated_to_opl_state_index_source_adapter"
+    )
+    assert adapter_contract["active_caller_effect"] == (
+        "opl_state_index_source_adapter_emitted_no_sqlite_persistence"
+    )
+    assert adapter_contract["live_takeover_required_before_physical_delete"] is True
+    assert adapter_contract["legacy_domain_authority_refs_index_role"] == (
+        "explicit_history_replay_or_local_refs_inspection_only"
+    )
     adapter_result = source_adapter.emit_paper_progress_transition_source(
         study_root=study_root,
         quest_root=quest_root,

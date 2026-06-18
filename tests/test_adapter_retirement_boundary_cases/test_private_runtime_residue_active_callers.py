@@ -99,6 +99,9 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     refs_contract = importlib.import_module(
         "med_autoscience.runtime_protocol.domain_authority_refs_index"
     ).domain_authority_refs_index_contract()
+    adapter_contract = importlib.import_module(
+        "med_autoscience.runtime_protocol.opl_state_index_source_adapter"
+    ).source_adapter_contract()
     assert refs_contract["role"] == "refs_only_domain_authority_receipt_index"
     policy = refs_contract["authority_policy"]
     assert policy["stores_body"] is False
@@ -121,15 +124,70 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "allowed_use": "historical_replay_or_explicit_local_refs_inspection",
         "active_caller_db_path_does_not_imply_persistence": True,
     }
-    assert refs_contract["opl_state_index_kernel_takeover_bridge"][
-        "active_caller_status"
-    ] == "repo_proven_no_active_authority_caller"
-    assert refs_contract["opl_state_index_kernel_takeover_bridge"][
-        "active_caller_retains_surface"
-    ] is True
-    assert refs_contract["opl_state_index_kernel_takeover_bridge"][
-        "active_caller_retains_authority"
-    ] is False
+    bridge = refs_contract["opl_state_index_kernel_takeover_bridge"]
+    inventory_bridge = refs_surface["opl_state_index_takeover_bridge"]
+    assert bridge["active_caller_status"] == inventory_bridge["active_caller_status"]
+    assert bridge["active_caller_effect"] == inventory_bridge["active_caller_effect"]
+    assert (
+        bridge["active_caller_retains_surface"]
+        is inventory_bridge["active_caller_retains_surface"]
+        is False
+    )
+    assert (
+        bridge["active_caller_retains_authority"]
+        is inventory_bridge["active_caller_retains_authority"]
+        is False
+    )
+    assert (
+        bridge["default_sqlite_persistence"]
+        is inventory_bridge["default_sqlite_persistence"]
+        is False
+    )
+    assert (
+        bridge["sqlite_persistence_requires_explicit_opt_in"]
+        is inventory_bridge["sqlite_persistence_requires_explicit_opt_in"]
+        is True
+    )
+    assert (
+        bridge["active_caller_db_path_does_not_imply_persistence"]
+        is inventory_bridge["active_caller_db_path_does_not_imply_persistence"]
+        is True
+    )
+    assert (
+        bridge["completion_claim_requires_live_opl_readback_or_no_active_caller"]
+        is inventory_bridge["completion_claim_requires_live_opl_readback_or_no_active_caller"]
+        is True
+    )
+    assert (
+        bridge["live_takeover_required_before_physical_delete"]
+        is inventory_bridge["live_takeover_required_before_physical_delete"]
+        is True
+    )
+    assert bridge["replacement_owner_surface"] == inventory_bridge["replacement_owner_surface"]
+    assert bridge["required_opl_readback_ref"] == inventory_bridge["required_opl_readback_ref"]
+    assert bridge["mas_projection_cannot_replace"] == inventory_bridge["mas_projection_cannot_replace"]
+    assert (
+        bridge["legacy_domain_authority_refs_index_role"]
+        == refs_surface["active_caller_boundary"]["legacy_domain_authority_refs_index_role"]
+        == inventory_bridge["legacy_domain_authority_refs_index_role"]
+        == "explicit_history_replay_or_local_refs_inspection_only"
+    )
+    assert adapter_contract["active_caller_status"] == inventory_bridge["active_caller_status"]
+    assert adapter_contract["active_caller_effect"] == inventory_bridge["active_caller_effect"]
+    assert adapter_contract["active_caller_retains_surface"] is False
+    assert adapter_contract["active_caller_retains_authority"] is False
+    assert adapter_contract["active_caller_retains_runtime_authority"] is False
+    assert adapter_contract["sqlite_persistence_allowed"] is False
+    assert adapter_contract["sqlite_persistence_parameter_exposed"] is False
+    assert (
+        adapter_contract["completion_claim_requires_live_opl_readback_or_no_active_caller"]
+        is True
+    )
+    assert adapter_contract["live_takeover_required_before_physical_delete"] is True
+    assert (
+        adapter_contract["legacy_domain_authority_refs_index_role"]
+        == "explicit_history_replay_or_local_refs_inspection_only"
+    )
 
     actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
     assert actuator["active_caller_migrated"] is False
