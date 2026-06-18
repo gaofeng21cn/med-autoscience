@@ -136,8 +136,11 @@ def _valid_live_projection_metadata(metadata: Mapping[str, Any]) -> bool:
 def _valid_live_readback_consistency(result: Mapping[str, Any]) -> bool:
     identity = _mapping(result.get("identity"))
     causality = _mapping(result.get("causality"))
+    authority_boundary = _mapping(result.get("authority_boundary"))
+    exactly_one_outcome = _mapping(result.get("exactly_one_outcome"))
     projection_metadata = _mapping(result.get("projection_metadata"))
     latest_transaction = _mapping(result.get("latest_transaction_readback"))
+    read_model = _mapping(result.get("read_model_readback"))
 
     event_id = _text(identity.get("latest_event_id"))
     outbox_item_id = _text(identity.get("latest_outbox_item_id"))
@@ -160,6 +163,38 @@ def _valid_live_readback_consistency(result: Mapping[str, Any]) -> bool:
             _same_text(latest_transaction.get(key), expected.get(key, event_id))
             for key in transition_contract.LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS
         )
+        and _read_model_rebuild_matches_live_sections(
+            read_model,
+            identity=identity,
+            causality=causality,
+            authority_boundary=authority_boundary,
+            exactly_one_outcome=exactly_one_outcome,
+            projection_metadata=projection_metadata,
+        )
+    )
+
+
+def _read_model_rebuild_matches_live_sections(
+    read_model: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+    causality: Mapping[str, Any],
+    authority_boundary: Mapping[str, Any],
+    exactly_one_outcome: Mapping[str, Any],
+    projection_metadata: Mapping[str, Any],
+) -> bool:
+    if not read_model:
+        return False
+    expected_sections = {
+        "identity": identity,
+        "causality": causality,
+        "authority_boundary": authority_boundary,
+        "exactly_one_outcome": exactly_one_outcome,
+        "projection_metadata": projection_metadata,
+    }
+    return all(
+        _mapping(read_model.get(section)) == dict(expected)
+        for section, expected in expected_sections.items()
     )
 
 

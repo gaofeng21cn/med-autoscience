@@ -50,6 +50,9 @@ def test_opl_domain_progress_transition_runtime_contract_matches_helper_abi() ->
     assert contract["live_readback_contract"]["latest_transaction_ref_fields"] == list(
         helper.LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS
     )
+    assert contract["live_readback_contract"]["read_model_rebuild_required_sections"] == list(
+        helper.LIVE_READBACK_READ_MODEL_SECTIONS
+    )
     assert contract["live_readback_contract"]["transaction_consistency"] == (
         helper.live_readback_transaction_consistency()
     )

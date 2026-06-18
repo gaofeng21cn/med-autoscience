@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from tests.provider_admission_current_control_helpers import opl_transition_readback
 from tests.test_domain_health_diagnostic_cases import shared as _shared
 
 globals().update({
@@ -591,78 +592,15 @@ def _opl_transition_live_readback(
     fingerprint: str,
     idempotency_key: str,
 ) -> dict[str, object]:
-    stage_run_identity = {
-        "stage_run_id": f"stage-run:{study_id}:{work_unit_id}",
-        "route_identity_key": idempotency_key,
-        "attempt_idempotency_key": idempotency_key,
-        "source_generation": fingerprint,
-    }
-    aggregate_identity = {
-        "aggregate_kind": "study_work_unit",
-        "aggregate_id": f"{study_id}::{work_unit_id}",
-        "study_id": study_id,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-    }
-    return {
-        "surface_kind": "opl_domain_progress_transition_runtime_live_readback",
-        "runtime_id": "opl_domain_progress_transition_runtime",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "DomainProgressTransitionRuntime",
-        "runtime_readback_status": "complete_transaction",
-        "transaction_complete": True,
-        "identity": {
-            "aggregate_identity": aggregate_identity,
-            "stage_run_identity": stage_run_identity,
-            "latest_event_id": "dpte_c65f77b76a85ce6ac325cbb5",
-            "latest_outbox_item_id": "dpto_e79fe14bac42132383352fea",
-            "latest_transaction_id": "dptx_177b554e6934045f8bfbe7d1",
-        },
-        "latest_transaction_readback": {
-            "transaction_id": "dptx_177b554e6934045f8bfbe7d1",
-            "command_present": True,
-            "event_present": True,
-            "outbox_item_present": True,
-            "event_id": "dpte_c65f77b76a85ce6ac325cbb5",
-            "outbox_item_id": "dpto_e79fe14bac42132383352fea",
-            "same_transaction_event_and_outbox": True,
-            "transition_event_id": "dpte_c65f77b76a85ce6ac325cbb5",
-            "outbox_transition_event_id": "dpte_c65f77b76a85ce6ac325cbb5",
-        },
-        "causality": {
-            "transaction_complete": True,
-            "runtime_readback_status": "complete_transaction",
-            "event_id": "dpte_c65f77b76a85ce6ac325cbb5",
-            "outbox_item_id": "dpto_e79fe14bac42132383352fea",
-            "transaction_id": "dptx_177b554e6934045f8bfbe7d1",
-            "same_transaction_event_and_outbox": True,
-            "source_generation": fingerprint,
-            "expected_version": fingerprint,
-        },
-        "authority_boundary": {
-            "runtime_owner": "one-person-lab",
-            "authority": False,
-            "opl_can_write_domain_truth": False,
-            "opl_can_write_mas_truth": False,
-            "opl_can_create_domain_owner_receipt": False,
-            "opl_can_create_domain_typed_blocker": False,
-            "provider_completion_is_domain_completion": False,
-        },
-        "exactly_one_outcome": {
-            "selected": True,
-            "exactly_one_transition": True,
-            "stable_outcome": True,
-            "fail_closed": False,
-            "outcome_kind": "provider_admission_enqueued_or_blocked",
-        },
-        "projection_metadata": {
-            "authority": False,
-            "runtime_id": "opl_domain_progress_transition_runtime",
-            "read_model_rebuild_owner": "one-person-lab",
-            "derived_from_event_id": "dpte_c65f77b76a85ce6ac325cbb5",
-            "observed_generation": fingerprint,
-        },
-    }
+    return opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=idempotency_key,
+        attempt_idempotency_key=idempotency_key,
+        request_idempotency_key=idempotency_key,
+        stage_run_id=f"stage-run:{study_id}:{work_unit_id}",
+    )
 
 
 def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_queue(

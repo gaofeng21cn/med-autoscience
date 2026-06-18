@@ -100,10 +100,18 @@
       "transition_event_id",
       "outbox_transition_event_id"
     ],
+    "read_model_rebuild_required_sections": [
+      "identity",
+      "causality",
+      "authority_boundary",
+      "exactly_one_outcome",
+      "projection_metadata"
+    ],
     "accepted_outcome_kind": "provider_admission_enqueued_or_blocked",
     "transaction_consistency": {
       "identity_latest_refs_match_causality": true,
       "identity_latest_refs_match_latest_transaction_readback": true,
+      "read_model_rebuild_matches_live_sections": true,
       "projection_metadata_derived_from_event_id_matches_identity_latest_event_id": true,
       "latest_transaction_requires_command_event_outbox": true,
       "same_transaction_event_and_outbox": true

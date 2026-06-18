@@ -143,6 +143,10 @@ def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() 
     projection_event_mismatch["projection_metadata"]["derived_from_event_id"] = "dpte-stale"
     assert module.valid_opl_transition_readback(projection_event_mismatch) is False
 
+    read_model_identity_mismatch = copy.deepcopy(trusted)
+    read_model_identity_mismatch["read_model_readback"]["identity"]["latest_event_id"] = "dpte-stale"
+    assert module.valid_opl_transition_readback(read_model_identity_mismatch) is False
+
 
 def test_provider_admission_readback_must_match_current_transition_identity() -> None:
     module = importlib.import_module(

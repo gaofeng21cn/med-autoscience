@@ -65,9 +65,18 @@ LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS = (
     "outbox_transition_event_id",
 )
 
+LIVE_READBACK_READ_MODEL_SECTIONS = (
+    "identity",
+    "causality",
+    "authority_boundary",
+    "exactly_one_outcome",
+    "projection_metadata",
+)
+
 LIVE_READBACK_TRANSACTION_CONSISTENCY = {
     "identity_latest_refs_match_causality": True,
     "identity_latest_refs_match_latest_transaction_readback": True,
+    "read_model_rebuild_matches_live_sections": True,
     "projection_metadata_derived_from_event_id_matches_identity_latest_event_id": True,
     "latest_transaction_requires_command_event_outbox": True,
     "same_transaction_event_and_outbox": True,
@@ -127,6 +136,7 @@ def required_readback_shape() -> dict[str, Any]:
             LIVE_READBACK_CAUSALITY_TRANSACTION_REF_FIELDS
         ),
         "latest_transaction_ref_fields": list(LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS),
+        "read_model_rebuild_required_sections": list(LIVE_READBACK_READ_MODEL_SECTIONS),
         "transaction_consistency": live_readback_transaction_consistency(),
         "provider_admission_identity_binding": {
             "required_fields": list(PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS),
@@ -269,6 +279,7 @@ __all__ = [
     "LIVE_READBACK_IDENTITY_TRANSACTION_REFS",
     "LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS",
     "LIVE_READBACK_LATEST_TRANSACTION_REQUIRED_FLAGS",
+    "LIVE_READBACK_READ_MODEL_SECTIONS",
     "LIVE_READBACK_SURFACE",
     "LIVE_READBACK_TRANSACTION_CONSISTENCY",
     "MAS_PROJECTION_CANNOT_REPLACE",
