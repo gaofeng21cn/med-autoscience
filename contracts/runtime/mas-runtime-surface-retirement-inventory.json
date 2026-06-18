@@ -381,14 +381,17 @@
       "canonical_surface": "owner_callable_adapter_receipt_study_latest",
       "canonical_wire_path": "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json",
       "compatibility_alias_allowed": false,
-      "current_disposition": "canonical_writer_and_readers_migrated_legacy_wire_provenance_fallback",
+      "current_disposition": "canonical_writer_and_current_readers_migrated_legacy_wire_explicit_history_fallback_only",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
         "mas_owned_attempt_ledger",
         "mas_owned_retry_dead_letter",
         "mas_local_execution_ledger_authority",
-        "provider_completion_as_domain_ready"
+        "provider_completion_as_domain_ready",
+        "legacy_wire_latest_as_current_provider_admission",
+        "legacy_wire_latest_as_current_owner_handoff",
+        "legacy_wire_latest_as_current_recovery_action"
       ],
       "generic_runtime_owner": "one-person-lab",
       "legacy_wire_path": "artifacts/supervision/consumer/default_executor_execution/latest.json",
@@ -397,7 +400,27 @@
       "mas_owner_claim_allowed": false,
       "replacement_surface": "owner_callable_adapter_receipt_study_latest plus OPL StageRun closeout binding",
       "retained_mas_role": "owner_callable_receipt_projection_and_domain_authority_ref",
-      "surface_id": "default_executor_execution_latest_wire_projection"
+      "surface_id": "default_executor_execution_latest_wire_projection",
+      "legacy_wire_current_reader_fallback_allowed": false,
+      "legacy_wire_history_replay_fallback_requires_explicit_opt_in": true,
+      "current_reader_boundary": {
+        "current_provider_admission_reads_legacy_wire": false,
+        "current_provider_handoff_export_reads_legacy_wire": false,
+        "current_recovery_action_reads_legacy_wire": false,
+        "canonical_missing_outcome": "no_current_owner_callable_receipt",
+        "legacy_wire_role": "history_replay_and_provenance_only"
+      },
+      "history_replay_boundary": {
+        "default_executor_execution_candidates_reads_legacy_wire": true,
+        "legacy_latest_payload_helper_requires_allow_legacy_fallback": true,
+        "can_authorize_provider_admission": false,
+        "can_generate_current_handoff": false,
+        "can_satisfy_current_recovery_action": false
+      },
+      "verified_by": [
+        "tests/test_adapter_retirement_boundary.py::test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy",
+        "tests/test_adapter_retirement_boundary.py::test_current_owner_callable_readers_do_not_consume_legacy_latest_wire"
+      ]
     },
     {
       "active_caller_migrated": true,

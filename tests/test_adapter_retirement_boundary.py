@@ -247,7 +247,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert execution_latest["active_caller_migrated"] is True
     assert (
         execution_latest["current_disposition"]
-        == "canonical_writer_and_readers_migrated_legacy_wire_provenance_fallback"
+        == "canonical_writer_and_current_readers_migrated_legacy_wire_explicit_history_fallback_only"
     )
     assert execution_latest["retained_mas_role"] == "owner_callable_receipt_projection_and_domain_authority_ref"
     assert execution_latest["canonical_surface"] == "owner_callable_adapter_receipt_study_latest"
@@ -257,12 +257,31 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert execution_latest["legacy_wire_surface"] == "default_executor_dispatch_execution_study_latest"
     assert execution_latest["legacy_wire_path"] == "artifacts/supervision/consumer/default_executor_execution/latest.json"
     assert execution_latest["legacy_wire_readers_tail_open"] == []
+    assert execution_latest["legacy_wire_current_reader_fallback_allowed"] is False
+    assert execution_latest["legacy_wire_history_replay_fallback_requires_explicit_opt_in"] is True
+    assert execution_latest["current_reader_boundary"] == {
+        "current_provider_admission_reads_legacy_wire": False,
+        "current_provider_handoff_export_reads_legacy_wire": False,
+        "current_recovery_action_reads_legacy_wire": False,
+        "canonical_missing_outcome": "no_current_owner_callable_receipt",
+        "legacy_wire_role": "history_replay_and_provenance_only",
+    }
+    assert execution_latest["history_replay_boundary"] == {
+        "default_executor_execution_candidates_reads_legacy_wire": True,
+        "legacy_latest_payload_helper_requires_allow_legacy_fallback": True,
+        "can_authorize_provider_admission": False,
+        "can_generate_current_handoff": False,
+        "can_satisfy_current_recovery_action": False,
+    }
     assert set(execution_latest["canonical_first_readers"]) == {
         "domain_health_diagnostic_parts.provider_admission.persisted_provider_admission_candidates",
         "owner_route_handoff_parts.export_study_projection._current_provider_handoff_execution",
         "owner_route_reconcile_parts.recovery_actions._latest_clean_migration_rehydrate_execution",
     }
     assert "mas_local_execution_ledger_authority" in execution_latest["forbidden_claims"]
+    assert "legacy_wire_latest_as_current_provider_admission" in execution_latest["forbidden_claims"]
+    assert "legacy_wire_latest_as_current_owner_handoff" in execution_latest["forbidden_claims"]
+    assert "legacy_wire_latest_as_current_recovery_action" in execution_latest["forbidden_claims"]
 
     owner_dispatch = surfaces["domain_owner_action_dispatch"]
     assert owner_dispatch["active_caller_migrated"] is True
@@ -430,12 +449,101 @@ def test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_l
     canonical_path.unlink()
     payload, receipt_ref = candidates.latest_owner_callable_adapter_receipt_payload(study_root=study_root)
 
+    assert payload is None
+    assert receipt_ref == "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
+
+    payload, receipt_ref = candidates.latest_owner_callable_adapter_receipt_payload(
+        study_root=study_root,
+        allow_legacy_fallback=True,
+    )
+
     assert receipt_ref == "artifacts/supervision/consumer/default_executor_execution/latest.json"
     assert payload["executions"][0]["action_type"] == "legacy_action"
     assert payload["executions"][0]["surface"] == "owner_callable_adapter_receipt"
     assert payload["executions"][0]["legacy_wire_surface"] == "default_executor_dispatch_execution"
     assert payload["execution_ledger_authority"] is False
     assert payload["attempt_lifecycle_authority"] is False
+
+
+def test_current_owner_callable_readers_do_not_consume_legacy_latest_wire(tmp_path) -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    export_projection = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.export_study_projection"
+    )
+    recovery_actions = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.recovery_actions"
+    )
+    study_root = tmp_path / "studies" / "study-1"
+    legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json"
+    legacy_execution = {
+        "surface": "default_executor_dispatch_execution",
+        "study_id": "study-1",
+        "quest_id": "study-1",
+        "execution_status": "handoff_ready",
+        "provider_attempt_or_lease_required": True,
+        "owner_callable_surface": "opl_default_executor.stage_attempt",
+        "owner_route_current": True,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "fingerprint-legacy",
+        "action_fingerprint": "fingerprint-legacy",
+        "dispatch_path": "artifacts/supervision/consumer/default_executor_dispatches/immutable/run_quality_repair_batch/fingerprint-legacy.json",
+        "dispatch_ref": "artifacts/supervision/consumer/default_executor_dispatches/immutable/run_quality_repair_batch/fingerprint-legacy.json",
+        "owner_route": {
+            "source_refs": {
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "fingerprint-legacy",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "fingerprint-legacy",
+                },
+            }
+        },
+    }
+    legacy_path.parent.mkdir(parents=True)
+    legacy_path.write_text(
+        json.dumps(
+            {
+                "surface": "default_executor_dispatch_execution_study_latest",
+                "executions": [legacy_execution],
+                "execution_ledger": [
+                    {
+                        "surface": "default_executor_dispatch_execution",
+                        "execution_status": "blocked",
+                        "action_type": "canonical_paper_inputs_rehydrate_required",
+                        "blocked_reason": "canonical_paper_inputs_rehydrate_failed",
+                        "next_owner": "write",
+                        "owner_callable_surface": "legacy.rehydrate",
+                        "required_input_surface": "legacy-input.json",
+                        "required_output_surface": str(
+                            study_root / "paper" / "legacy_medical_manuscript_blueprint_source.json"
+                        ),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert provider_admission.persisted_provider_admission_candidates(
+        study_root=study_root,
+        status_payload={
+            "study_id": "study-1",
+            "current_executable_owner_action": {
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "fingerprint-legacy",
+            },
+        },
+    ) == []
+    assert export_projection._current_provider_handoff_execution(
+        study_root=study_root,
+        action_type="run_quality_repair_batch",
+        work_unit_id="medical_prose_write_repair",
+    ) == {}
+    assert recovery_actions._latest_clean_migration_rehydrate_execution(study_root) is None
 
 
 def test_legacy_latest_readers_consume_canonical_owner_callable_receipt_first(tmp_path) -> None:
