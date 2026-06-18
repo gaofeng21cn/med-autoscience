@@ -13,6 +13,7 @@ from . import current_writer_handoff
 from . import fresh_progress_owner_actions
 from . import opl_execution_preflight
 from . import persisted_dispatches
+from . import stage_native_dispatch_selection
 
 
 PAPER_RECOVERY_OWNER_CALLABLE_BRIDGE_AUTHORITY = (
@@ -70,7 +71,9 @@ def execution_owner_route(
         stage_native_route is not None
         and owner_route_block_reason(dispatch=dispatch, current_route=stage_native_route) is None
     ):
-        return stage_native_route, "stage_native_workspace_next_action"
+        if stage_native_dispatch_selection.dispatch_has_opl_execution_proof(dispatch):
+            return stage_native_route, "stage_native_workspace_next_action"
+        return stage_native_route, "stage_native_workspace_next_action_blocker_projection"
     provider_hosted_route = _provider_hosted_stage_attempt_dispatch_route(dispatch)
     if provider_hosted_route is not None:
         return provider_hosted_route, "provider_hosted_stage_attempt_dispatch"

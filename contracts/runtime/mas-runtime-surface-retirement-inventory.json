@@ -595,6 +595,9 @@
         "candidate_without_opl_proof_can_preempt_other_current_dispatch": false,
         "candidate_without_opl_proof_can_authorize_execution": false,
         "candidate_without_opl_proof_explicit_action_outcome": "opl_execution_authorization_required",
+        "candidate_without_opl_proof_owner_route_basis": "stage_native_workspace_next_action_blocker_projection",
+        "candidate_without_opl_proof_owner_route_basis_is_authority": false,
+        "candidate_with_opl_proof_owner_route_basis": "stage_native_workspace_next_action",
         "required_execution_proofs": [
           "trusted_opl_execution_authorization",
           "exact_provider_hosted_stage_attempt",

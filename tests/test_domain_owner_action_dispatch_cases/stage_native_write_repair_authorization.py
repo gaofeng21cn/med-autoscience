@@ -162,6 +162,17 @@ def _stage_native_quality_repair_dispatch(
     return payload
 
 
+def _trusted_opl_execution_authorization() -> dict[str, str]:
+    return {
+        "owner": "one-person-lab",
+        "executor_kind": "codex_cli",
+        "provider_attempt_ref": "temporal://attempt/stage-native-proof",
+        "attempt_lease_ref": "temporal://lease/stage-native-proof",
+        "attempt_lease_status": "active",
+        "execution_authorization_decision_ref": "opl://execution-authorizations/stage-native-proof",
+    }
+
+
 def test_stage_native_write_repair_dispatch_requires_opl_authorization_after_current_next_action_selection(
     monkeypatch,
     tmp_path: Path,
@@ -201,8 +212,48 @@ def test_stage_native_write_repair_dispatch_requires_opl_authorization_after_cur
     assert execution["execution_status"] == "blocked"
     assert execution["blocked_reason"] == "opl_execution_authorization_required"
     assert execution["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
-    assert execution["owner_route_basis"] == "stage_native_workspace_next_action"
+    assert execution["owner_route_basis"] == "stage_native_workspace_next_action_blocker_projection"
     assert execution["owner_route_current"] is True
+
+
+def test_stage_native_write_repair_dispatch_with_opl_proof_keeps_stage_native_route_basis(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_stage_native_next_action(study_root)
+    dispatch_payload = _stage_native_quality_repair_dispatch(study_id=study_id)
+    dispatch_payload["opl_execution_authorization"] = _trusted_opl_execution_authorization()
+    prompt_contract = dispatch_payload["prompt_contract"]
+    assert isinstance(prompt_contract, dict)
+    prompt_contract["opl_execution_authorization"] = _trusted_opl_execution_authorization()
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["execution_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "dry_run"
+    assert execution["owner_route_basis"] == "stage_native_workspace_next_action"
+    assert execution["opl_execution_authorization_present"] is True
 
 
 def test_stage_native_write_repair_owner_request_survives_stale_readiness_scan(
@@ -330,7 +381,7 @@ def test_stage_native_write_repair_owner_request_survives_stale_readiness_scan(
     assert execution["execution_status"] == "blocked"
     assert execution["blocked_reason"] == "opl_execution_authorization_required"
     assert execution["owner_route_current"] is True
-    assert execution["owner_route_basis"] in {"owner_request", "stage_native_workspace_next_action"}
+    assert execution["owner_route_basis"] == "stage_native_workspace_next_action_blocker_projection"
 
 
 def test_stage_native_write_repair_dispatch_survives_readiness_missing_typed_blocker_envelope(
