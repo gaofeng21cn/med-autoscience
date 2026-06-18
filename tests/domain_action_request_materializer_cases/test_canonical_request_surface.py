@@ -133,3 +133,49 @@ def test_materialize_domain_action_requests_writes_quality_repair_request_to_can
     assert not legacy_consumer_request_path.exists()
     assert result["apply_writes_domain_intent_projection_only"] is True
     assert result["written_files"] == []
+
+
+def test_canonical_transition_request_projection_carries_dispatcher_boundary_fields() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.transition_request_projection"
+    )
+    dispatch = {
+        "surface": "default_executor_dispatch_request",
+        "dispatch_status": "ready",
+        "study_id": "study-a",
+        "quest_id": "quest-a",
+        "action_type": "run_quality_repair_batch",
+        "executor_kind": "codex_cli_default",
+        "refs": {
+            "dispatch_path": (
+                "studies/study-a/artifacts/supervision/consumer/"
+                "default_executor_dispatches/run_quality_repair_batch.json"
+            )
+        },
+        "prompt_contract": {
+            "study_id": "study-a",
+            "action_type": "run_quality_repair_batch",
+            "prompt_budget": {},
+            "compact_evidence_packet_ref": "packet://evidence",
+            "do_not_repeat": True,
+            "repeat_suppression_key": "repeat-key",
+            "forbidden_surfaces": ["paper/**"],
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "manual_study_patch_allowed": False,
+            "medical_claim_authoring_allowed": False,
+        },
+    }
+
+    request = projection.domain_progress_transition_request_projection([dispatch])[0]
+
+    assert request["surface"] == "mas_domain_progress_transition_request_projection"
+    assert request["legacy_surface"] == "default_executor_dispatch_request"
+    assert request["projection_only"] is True
+    assert request["owner_callable_carrier_projection_only"] is True
+    assert request["owner_callable_adapter_diagnostic_only"] is True
+    assert request["owner_callable_adapter_readiness_authority"] is False
+    assert request["owner_callable_adapter_can_create_success_outcome"] is False
+    assert request["mas_private_attempt_loop_forbidden"] is True
+    assert request["prompt_contract"] == dispatch["prompt_contract"]
+    assert request["prompt_contract_ref"] == dispatch["prompt_contract"]
