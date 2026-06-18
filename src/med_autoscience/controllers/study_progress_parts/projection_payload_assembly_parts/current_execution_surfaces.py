@@ -25,6 +25,9 @@ from ..current_control_executable_handoff import (
     current_control_executable_owner_action,
 )
 from ..current_executable_owner_action import build_current_executable_owner_action
+from ..current_executable_owner_action_parts.non_advancing_terminal_closeout import (
+    canonical_current_work_unit_terminal_typed_blocker,
+)
 from ..current_executable_owner_action_parts.paper_recovery import (
     paper_recovery_successor_action_ready,
 )
@@ -200,6 +203,28 @@ def refresh_current_execution_surfaces(
             },
         )
         return updated
+    retained_terminal_blocker = _retained_current_terminal_typed_blocker(updated)
+    if retained_terminal_blocker:
+        updated["current_executable_owner_action"] = None
+        updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+            status=status,
+            progress=updated,
+            actions=[],
+            blocked_reason=typed_blocker_reason(retained_terminal_blocker),
+            next_owner=_non_empty_text(retained_terminal_blocker.get("owner")),
+            typed_blocker=retained_terminal_blocker,
+            runtime_health=runtime_health_snapshot,
+            live_provider_attempt=handoff,
+            current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
+        )
+        updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+            action_queue=[],
+            runtime_health=runtime_health_snapshot,
+            extra={
+                "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+            },
+        )
+        return updated
     actions = _canonical_actions_for_execution_refresh(payload=updated, handoff=handoff)
     evidence_actions = _execution_evidence_actions_for_payload(payload=updated, handoff=handoff)
     current_action = _current_action_for_execution_refresh(payload=updated, handoff=handoff)
@@ -283,6 +308,19 @@ def refresh_current_execution_surfaces(
         },
     )
     return updated
+
+
+def _retained_current_terminal_typed_blocker(payload: Mapping[str, Any]) -> dict[str, Any]:
+    if _mapping_copy(payload.get("current_executable_owner_action")):
+        return {}
+    blocker = canonical_current_work_unit_terminal_typed_blocker(payload)
+    if not blocker:
+        return {}
+    current = _mapping_copy(payload.get("current_work_unit"))
+    state = _mapping_copy(current.get("state"))
+    if _non_empty_text(state.get("source")) != "terminal_closeout_typed_blocker":
+        return {}
+    return blocker
 
 
 def _paper_recovery_successor_action(payload: Mapping[str, Any]) -> dict[str, Any]:

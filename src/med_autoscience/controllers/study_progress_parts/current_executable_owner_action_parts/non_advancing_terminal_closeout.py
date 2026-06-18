@@ -32,6 +32,27 @@ def without_same_identity_non_advancing_apply(
     return None
 
 
+def without_same_identity_terminal_typed_blocker(
+    payload: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    candidate = _mapping_copy(action)
+    if not candidate:
+        return None
+    blocker = _canonical_terminal_typed_blocker(payload)
+    if not blocker:
+        return candidate
+    if not _same_work_unit_identity(left=blocker, right=candidate):
+        return candidate
+    return None
+
+
+def canonical_current_work_unit_terminal_typed_blocker(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    return _canonical_terminal_typed_blocker(payload)
+
+
 def canonical_current_work_unit_has_non_advancing_apply(
     payload: Mapping[str, Any],
 ) -> bool:
@@ -46,6 +67,33 @@ def _canonical_non_advancing_blocker(payload: Mapping[str, Any]) -> dict[str, An
     if terminal_blocker:
         return terminal_blocker
     return {}
+
+
+def _canonical_terminal_typed_blocker(payload: Mapping[str, Any]) -> dict[str, Any]:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) not in {"typed_blocker", "blocked_current_work_unit"}:
+        return {}
+    state = _mapping_copy(current_work_unit.get("state"))
+    typed_blocker = _mapping_copy(state.get("typed_blocker")) or _mapping_copy(
+        current_work_unit.get("typed_blocker")
+    )
+    if not _typed_blocker_has_terminal_owner_answer(typed_blocker, state=state):
+        return {}
+    return _compact(
+        {
+            **typed_blocker,
+            "work_unit_id": _non_empty_text(current_work_unit.get("work_unit_id"))
+            or _non_empty_text(typed_blocker.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+            or _non_empty_text(current_work_unit.get("action_fingerprint"))
+            or _non_empty_text(typed_blocker.get("work_unit_fingerprint"))
+            or _non_empty_text(typed_blocker.get("action_fingerprint")),
+            "action_fingerprint": _non_empty_text(current_work_unit.get("action_fingerprint"))
+            or _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+            or _non_empty_text(typed_blocker.get("action_fingerprint"))
+            or _non_empty_text(typed_blocker.get("work_unit_fingerprint")),
+        }
+    )
 
 
 def _current_work_unit_non_advancing_blocker(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -114,6 +162,29 @@ def _latest_terminal_stage(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {}
 
 
+def _typed_blocker_has_terminal_owner_answer(
+    typed_blocker: Mapping[str, Any],
+    *,
+    state: Mapping[str, Any],
+) -> bool:
+    if _typed_blocker_is_non_advancing_apply(typed_blocker, state=state):
+        return True
+    if _non_empty_text(typed_blocker.get("terminal_closeout_outcome")) == "typed_blocker":
+        return True
+    if _non_empty_text(typed_blocker.get("latest_owner_answer_kind")) == "typed_blocker":
+        return _non_empty_text(typed_blocker.get("latest_owner_answer_ref")) is not None
+    if _non_empty_text(typed_blocker.get("owner_answer_shape")) == "typed_blocker_ref":
+        return _non_empty_text(typed_blocker.get("latest_owner_answer_ref")) is not None
+    if _non_empty_text(typed_blocker.get("typed_blocker_ref")) is not None:
+        return True
+    return bool(
+        _non_empty_text(typed_blocker.get("source_ref"))
+        or _non_empty_text(typed_blocker.get("closeout_ref"))
+        or typed_blocker.get("closeout_refs")
+        or typed_blocker.get("acceptance_refs")
+    )
+
+
 def _typed_blocker_is_non_advancing_apply(
     typed_blocker: Mapping[str, Any],
     *,
@@ -166,6 +237,8 @@ def _compact(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 
 __all__ = [
+    "canonical_current_work_unit_terminal_typed_blocker",
     "canonical_current_work_unit_has_non_advancing_apply",
     "without_same_identity_non_advancing_apply",
+    "without_same_identity_terminal_typed_blocker",
 ]

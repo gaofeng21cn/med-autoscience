@@ -3,6 +3,9 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from ..current_executable_owner_action_parts.non_advancing_terminal_closeout import (
+    without_same_identity_terminal_typed_blocker,
+)
 from ..shared import _mapping_copy
 
 
@@ -20,6 +23,12 @@ def normalize_paper_recovery_execution_projection(
     build_paper_recovery_state: Callable[[Mapping[str, Any]], dict[str, Any]],
 ) -> dict[str, Any]:
     updated = _with_recovery_supervisor_decision(dict(payload))
+    updated["paper_recovery_state"] = _build_recovery_state_unless_successor_current(
+        updated,
+        build_paper_recovery_state=build_paper_recovery_state,
+        build_current_executable_owner_action=build_current_executable_owner_action,
+    )
+    updated = _with_recovery_supervisor_decision(updated)
     recovery_current_action = build_current_executable_owner_action(updated)
     refreshed = refresh_current_execution_surfaces(
         payload={**updated, "current_executable_owner_action": recovery_current_action},
@@ -131,9 +140,14 @@ def _build_recovery_state_unless_successor_current(
 ) -> dict[str, Any]:
     recovery = _mapping_copy(payload.get("paper_recovery_state"))
     current_action = build_current_executable_owner_action(payload)
-    if _paper_recovery_successor_state_current(recovery) and _action_source(
-        current_action
-    ) in {None, "paper_recovery_state.next_safe_action.successor_owner_action"}:
+    if (
+        _paper_recovery_successor_state_current(recovery)
+        and _action_source(current_action) in {None, "paper_recovery_state.next_safe_action.successor_owner_action"}
+        and not _terminal_typed_blocker_supersedes_recovery_successor(
+            payload,
+            recovery=recovery,
+        )
+    ):
         return recovery
     return build_paper_recovery_state(payload)
 
@@ -161,6 +175,18 @@ def _paper_recovery_successor_state_current(recovery: Mapping[str, Any]) -> bool
         and bool(successor.get("work_unit_id"))
         and bool(successor.get("work_unit_fingerprint") or successor.get("action_fingerprint"))
     )
+
+
+def _terminal_typed_blocker_supersedes_recovery_successor(
+    payload: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+) -> bool:
+    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
+    successor = _mapping_copy(next_safe_action.get("successor_owner_action"))
+    if not successor:
+        return False
+    return without_same_identity_terminal_typed_blocker(payload, successor) is None
 
 
 def _projection_metadata_value(

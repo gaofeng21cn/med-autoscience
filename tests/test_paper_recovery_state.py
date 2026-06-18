@@ -96,6 +96,92 @@ def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     assert state["suppressed_surfaces"] == ["current_executable_owner_action"]
 
 
+def test_terminal_typed_blocker_owns_recovery_over_stale_progress_first_owner_receipt() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _typed_blocker_work_unit(
+                study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+                owner="one-person-lab",
+                action_type="run_quality_repair_batch",
+                work_unit_id="medical_prose_write_repair",
+                blocker_type="no_selected_dispatch_for_authorized_stage_packet",
+            )
+            | {
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "action_fingerprint": "publication-blockers::0915410f804b3697",
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "source": "terminal_closeout_typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                        "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                        "latest_owner_answer_kind": "typed_blocker",
+                        "latest_owner_answer_ref": "studies/003/artifacts/supervision/consumer/default_executor_execution/sat.closeout.json",
+                    },
+                },
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "next_owner": "write",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "action_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "progress_first_monitoring_summary": {
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "owner_receipt_recorded",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "action_fingerprint": "publication-blockers::0915410f804b3697",
+                    "state": {
+                        "state_kind": "owner_receipt_recorded",
+                        "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                        "owner_receipt_ref": "studies/003/artifacts/controller/repair_execution_receipts/latest.json",
+                    },
+                }
+            },
+            "gate_clearing_batch_followthrough": {
+                "gate_replay_status": "blocked",
+                "latest_record_path": "studies/003/artifacts/controller/gate_clearing_batch/latest.json",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "work_unit_currentness": {
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                },
+                "current_publication_work_unit": {"unit_id": "medical_prose_write_repair", "lane": "write"},
+            },
+        }
+    )
+
+    assert state["phase"] == "domain_blocked"
+    assert state["conditions"] == [
+        {
+            "condition": "current_work_unit_typed_blocker",
+            "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["supervisor_decision"]["decision"] == "stop_with_stable_typed_blocker"
+
+
 def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
     fingerprint = "publication-blockers::497d1260db522f01"
     state = _module().build_paper_recovery_state(

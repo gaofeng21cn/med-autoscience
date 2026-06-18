@@ -203,6 +203,62 @@ def test_current_work_unit_does_not_turn_handoff_ready_terminal_log_into_typed_b
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_executable_owner_action_suppressed_by_canonical_terminal_typed_blocker() -> None:
+    from med_autoscience.controllers.study_progress_parts.current_executable_owner_action import (
+        build_current_executable_owner_action,
+    )
+
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    action = build_current_executable_owner_action(
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "source": "terminal_closeout_typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                        "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "latest_owner_answer_kind": "typed_blocker",
+                        "latest_owner_answer_ref": "studies/003/artifacts/supervision/consumer/default_executor_execution/sat.closeout.json",
+                    },
+                },
+            },
+            "paper_recovery_state": {
+                "phase": "owner_action_ready",
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "successor_owner_action": {
+                        "action_type": "run_quality_repair_batch",
+                        "owner": "write",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                    },
+                },
+            },
+        }
+    )
+
+    assert action is None
+
+
 def test_current_work_unit_uses_write_repair_after_executed_ai_reviewer_receipt_over_stale_gate_blocker() -> None:
     module = _module()
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

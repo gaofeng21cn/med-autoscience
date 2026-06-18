@@ -386,6 +386,183 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
     assert projection["refresh_mode"] == "single_pass_projection_normalization"
 
 
+def test_paper_recovery_refresh_rebuilds_stale_successor_under_terminal_typed_blocker(
+    tmp_path: Path,
+) -> None:
+    refresh_module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."
+        "paper_recovery_execution_refresh"
+    )
+    action_module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."
+        "current_execution_surfaces"
+    )
+    provider_projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    payload_sync = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.payload_sync"
+    )
+    recovery_state = importlib.import_module("med_autoscience.controllers.paper_recovery_state")
+
+    payload = {
+        "study_id": STUDY_ID,
+        "quest_id": STUDY_ID,
+        "current_stage": "publication_supervision",
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "schema_version": 1,
+            "status": "typed_blocker",
+            "owner": "one-person-lab",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": WRITE_WORK_UNIT,
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+            "action_fingerprint": WRITE_FINGERPRINT,
+            "state": {
+                "state_kind": "typed_blocker",
+                "source": "terminal_closeout_typed_blocker",
+                "typed_blocker": {
+                    "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                    "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+                    "owner": "one-person-lab",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": WRITE_WORK_UNIT,
+                    "work_unit_fingerprint": WRITE_FINGERPRINT,
+                    "latest_owner_answer_kind": "typed_blocker",
+                    "latest_owner_answer_ref": (
+                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_874630c42f23f77d537c5781.closeout.json"
+                    ),
+                },
+            },
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "next_owner": "write",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "work_unit_id": WRITE_WORK_UNIT,
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+            "action_fingerprint": WRITE_FINGERPRINT,
+            "owner_receipt_required": True,
+            "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            "paper_recovery_successor": {
+                "phase": "owner_action_ready",
+                "source_next_safe_action_kind": "materialize_successor_owner_action",
+            },
+        },
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "schema_version": 1,
+            "study_id": STUDY_ID,
+            "quest_id": STUDY_ID,
+            "phase": "owner_action_ready",
+            "current_authority": {
+                "owner": "write",
+                "authority": "med-autoscience",
+                "obligation": {
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": WRITE_WORK_UNIT,
+                    "work_unit_fingerprint": WRITE_FINGERPRINT,
+                },
+            },
+            "conditions": [
+                {
+                    "condition": "consumed_owner_receipt_routeback_successor",
+                    "source_condition": "current_work_unit_owner_receipt_recorded",
+                }
+            ],
+            "next_safe_action": {
+                "kind": "materialize_successor_owner_action",
+                "owner": "write",
+                "provider_admission_allowed": True,
+                "successor_owner_action": {
+                    "action_type": "run_quality_repair_batch",
+                    "owner": "write",
+                    "work_unit_id": WRITE_WORK_UNIT,
+                    "work_unit_fingerprint": WRITE_FINGERPRINT,
+                    "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                },
+            },
+            "supervisor_decision": {
+                "decision": "materialize_recovery_action",
+                "identity_match": True,
+            },
+        },
+        "progress_first_monitoring_summary": {
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "owner_receipt_recorded",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": WRITE_WORK_UNIT,
+                "work_unit_fingerprint": WRITE_FINGERPRINT,
+                "action_fingerprint": WRITE_FINGERPRINT,
+                "state": {
+                    "state_kind": "owner_receipt_recorded",
+                    "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                    "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                },
+            }
+        },
+        "gate_clearing_batch_followthrough": {
+            "surface_kind": "gate_clearing_batch_followthrough",
+            "gate_replay_status": "blocked",
+            "latest_record_path": "artifacts/controller/gate_clearing_batch/latest.json",
+            "work_unit_id": WRITE_WORK_UNIT,
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+            "work_unit_currentness": {
+                "current_actionability_status": "actionable",
+                "lacks_specific_blocker_object": False,
+                "current_publication_work_unit_id": WRITE_WORK_UNIT,
+                "current_work_unit_fingerprint": WRITE_FINGERPRINT,
+            },
+            "current_publication_work_unit": {"unit_id": WRITE_WORK_UNIT, "lane": "write"},
+        },
+    }
+
+    result = refresh_module.normalize_paper_recovery_execution_projection(
+        payload=payload,
+        status={},
+        handoff={},
+        runtime_health_snapshot={},
+        study_root=tmp_path / "studies" / STUDY_ID,
+        build_current_executable_owner_action=(
+            action_module.build_current_executable_owner_action
+        ),
+        refresh_current_execution_surfaces=surfaces.refresh_current_execution_surfaces,
+        provider_admission_projection_fields=(
+            provider_projection.provider_admission_projection_fields
+        ),
+        sync_progress_first_owner_action_admission=(
+            payload_sync.sync_progress_first_owner_action_admission
+        ),
+        build_paper_recovery_state=recovery_state.build_paper_recovery_state,
+    )
+
+    assert result["current_executable_owner_action"] is None
+    assert result["current_work_unit"]["status"] == "typed_blocker"
+    assert result["paper_recovery_state"]["phase"] == "domain_blocked"
+    assert result["paper_recovery_state"]["conditions"] == [
+        {
+            "condition": "current_work_unit_typed_blocker",
+            "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+        }
+    ]
+    assert result["paper_recovery_state"]["next_safe_action"]["kind"] == "resolve_typed_blocker"
+    assert result["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is False
+
+
 def test_current_execution_refresh_keeps_handoff_owner_receipt_over_stale_closeout() -> None:
     surfaces = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."

@@ -46,6 +46,7 @@ from .current_executable_owner_action_parts import gate_replay_identity
 from .current_executable_owner_action_parts.non_advancing_terminal_closeout import (
     canonical_current_work_unit_has_non_advancing_apply,
     without_same_identity_non_advancing_apply,
+    without_same_identity_terminal_typed_blocker,
 )
 from .current_executable_owner_action_parts.paper_recovery import (
     owner_action_from_paper_recovery_state,
@@ -81,19 +82,19 @@ GATE_REPLAY_WORK_UNITS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS | frozenset({READ
 
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    repair_progress_action = without_same_identity_non_advancing_apply(
+    repair_progress_action = _without_canonical_terminal_blocker(
         payload,
         _from_repair_progress_projection(payload),
     )
-    gate_followthrough_action = without_same_identity_non_advancing_apply(
+    gate_followthrough_action = _without_canonical_terminal_blocker(
         payload,
         _from_gate_followthrough_current_work_unit(payload),
     )
-    paper_recovery_action = without_same_identity_non_advancing_apply(
+    paper_recovery_action = _without_canonical_terminal_blocker(
         payload,
         _from_paper_recovery_state(payload),
     )
-    domain_transition_action = without_same_identity_non_advancing_apply(
+    domain_transition_action = _without_canonical_terminal_blocker(
         payload,
         _from_domain_transition(payload),
     )
@@ -273,6 +274,16 @@ def _canonical_current_work_unit_has_terminal_stop_loss(
     if canonical_current_work_unit_has_non_advancing_apply(payload):
         return True
     return is_anti_loop_stop_loss_closeout(closeout_like)
+
+
+def _without_canonical_terminal_blocker(
+    payload: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    return without_same_identity_terminal_typed_blocker(
+        payload,
+        without_same_identity_non_advancing_apply(payload, action),
+    )
 
 
 def _repair_progress_consumes_paper_recovery_successor(
