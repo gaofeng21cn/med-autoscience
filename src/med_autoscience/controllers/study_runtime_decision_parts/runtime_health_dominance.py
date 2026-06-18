@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
@@ -12,6 +13,31 @@ from med_autoscience.controllers.study_runtime_types import (
     ProgressProjectionStatus,
     _LIVE_QUEST_STATUSES,
 )
+
+
+_OPL_RECOVERY_READBACK_REF_KEYS = (
+    "opl_lifecycle_proof_ref",
+    "opl_lifecycle_ref",
+    "opl_current_control_state_ref",
+    "opl_command_ref",
+    "opl_event_ref",
+    "opl_outbox_ref",
+    "opl_stage_run_ref",
+    "opl_stage_attempt_id",
+    "stage_attempt_id",
+    "active_stage_attempt_id",
+    "active_workflow_id",
+    "provider_attempt_ref",
+)
+
+
+def _mapping(value: object) -> Mapping[str, object]:
+    return value if isinstance(value, Mapping) else {}
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
 
 
 def _latest_runtime_health_snapshot(study_root: Path) -> dict[str, object]:
@@ -70,6 +96,83 @@ def _runtime_health_requires_live_recovery(
         else ""
     )
     return worker_state == "activity_timeout"
+
+
+def _contains_opl_runtime_readback_ref(payload: Mapping[str, object]) -> bool:
+    for key in _OPL_RECOVERY_READBACK_REF_KEYS:
+        if _text(payload.get(key)) is not None:
+            return True
+    for nested_key in (
+        "opl_lifecycle_readback",
+        "opl_current_control_state",
+        "current_control_state",
+        "stage_run_readback",
+        "latest_terminal_stage_log",
+    ):
+        nested = _mapping(payload.get(nested_key))
+        if not nested:
+            continue
+        if _contains_opl_runtime_readback_ref(nested):
+            return True
+        if _text(nested.get("surface_kind")) in {
+            "opl_current_control_state_handoff",
+            "opl_current_control_state_study_handoff",
+            "opl_current_control_state_provider_attempt_handoff",
+            "opl_stage_run_readback",
+            "opl_terminal_stage_log",
+        }:
+            return True
+    return False
+
+
+def _runtime_health_recovery_decision_authorized_by_opl_readback(
+    *,
+    status: ProgressProjectionStatus,
+    runtime_health_snapshot: Mapping[str, object],
+) -> bool:
+    if runtime_health_snapshot.get("authority") is True:
+        return False
+    status_payload = status.to_dict()
+    runtime_liveness_audit = _mapping(status_payload.get("runtime_liveness_audit"))
+    if _text(runtime_liveness_audit.get("source")) == "opl_current_control_state_provider_attempt":
+        return True
+    return any(
+        _contains_opl_runtime_readback_ref(payload)
+        for payload in (
+            status_payload,
+            runtime_liveness_audit,
+            _mapping(runtime_liveness_audit.get("runtime_audit")),
+            _mapping(status_payload.get("opl_current_control_state")),
+            _mapping(status_payload.get("current_control_state")),
+        )
+    )
+
+
+def _record_runtime_health_decision_gate(
+    *,
+    status: ProgressProjectionStatus,
+    runtime_health_snapshot: Mapping[str, object],
+    decision_authorized: bool,
+) -> None:
+    status.extras["runtime_health_decision_gate"] = {
+        "surface_kind": "runtime_health_diagnostic_consumer_gate",
+        "runtime_owner": "one-person-lab",
+        "mas_role": "read_only_diagnostic_consumer",
+        "decision_authorized": decision_authorized,
+        "decision_source": "opl_runtime_readback" if decision_authorized else None,
+        "suppressed_reason": (
+            None
+            if decision_authorized
+            else "opl_runtime_readback_required_for_runtime_health_decision"
+        ),
+        "runtime_health_snapshot_authority": runtime_health_snapshot.get("authority") is True,
+        "runtime_health_hint_only": runtime_health_snapshot.get("diagnostic_only") is True,
+        "canonical_runtime_action_hint": runtime_health_snapshot.get("canonical_runtime_action"),
+        "worker_liveness_state_hint": dict(_mapping(runtime_health_snapshot.get("worker_liveness_state"))),
+        "can_generate_next_action_authority": False,
+        "can_authorize_running_progress": False,
+        "can_authorize_runtime_currentness": False,
+    }
 
 
 def _record_autonomy_slo_status_if_present(*, status: ProgressProjectionStatus, study_root: Path) -> None:
@@ -161,11 +264,23 @@ def _record_runtime_health_dominance(
         recorded_at=recorded_at,
     )
     if _runtime_health_requires_live_recovery(status=status, runtime_health_snapshot=runtime_health_snapshot):
+        decision_authorized = _runtime_health_recovery_decision_authorized_by_opl_readback(
+            status=status,
+            runtime_health_snapshot=runtime_health_snapshot,
+        )
+        _record_runtime_health_decision_gate(
+            status=status,
+            runtime_health_snapshot=runtime_health_snapshot,
+            decision_authorized=decision_authorized,
+        )
         try:
             runtime_liveness = status.runtime_liveness_audit_record
         except KeyError:
             runtime_liveness = None
-        if runtime_liveness is None or runtime_liveness.status is not StudyRuntimeAuditStatus.LIVE:
+        if (
+            decision_authorized
+            and (runtime_liveness is None or runtime_liveness.status is not StudyRuntimeAuditStatus.LIVE)
+        ):
             status.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
