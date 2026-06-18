@@ -200,6 +200,18 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert surfaces["domain_authority_refs_index"]["retirement_gate"][
         "no_active_authority_caller_proven"
     ] is True
+    assert surfaces["runtime_lifecycle_payload_retention"]["current_disposition"] == (
+        "opl_authorized_maintenance_callable_adapter_live_takeover_tail_open"
+    )
+    assert surfaces["runtime_lifecycle_payload_retention"]["apply_gate"][
+        "required_authorization_surface"
+    ] == "opl_runtime_lifecycle_maintenance_authorization"
+    assert surfaces["runtime_storage_maintenance"]["current_disposition"] == (
+        "opl_authorized_storage_maintenance_callable_adapter_live_takeover_tail_open"
+    )
+    assert surfaces["runtime_storage_maintenance"]["apply_gate"][
+        "required_authorization_surface"
+    ] == "opl_runtime_storage_maintenance_authorization"
 
     assert {
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_caller_physical_delete_ref",
@@ -207,6 +219,14 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
         "legacy_default_executor_carrier_opl_stagerun_abi_or_no_active_caller_physical_delete_ref",
     } <= set(physical_gate["missing_evidence_tails"])
+    assert (
+        "runtime_lifecycle_payload_retention_live_opl_cleanup_policy_takeover_or_no_active_caller_physical_delete_ref"
+        not in physical_gate["missing_evidence_tails"]
+    )
+    assert (
+        "runtime_storage_maintenance_live_opl_storage_policy_takeover_or_no_active_caller_physical_delete_ref"
+        not in physical_gate["missing_evidence_tails"]
+    )
     assert (
         "tests/test_domain_owner_action_dispatch_contract.py::"
         "test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action"
@@ -227,9 +247,18 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::"
         "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
     ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_runtime_lifecycle_payload_retention.py::"
+        "test_runtime_lifecycle_payload_retention_apply_requires_opl_authorization"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_basics.py::"
+        "test_workspace_storage_apply_without_opl_authorization_blocks_before_physical_cleanup"
+    ) in physical_gate["observed_refs"]
     assert "inventory_entry_updated" in physical_gate["false_completion_boundary"]
     assert "active_caller_exists_as_retention_reason" in physical_gate["false_completion_boundary"]
     assert "read_only_projection_as_execution_authority" in physical_gate["false_completion_boundary"]
+    assert "storage_authorization_gate_as_live_opl_takeover" in physical_gate["false_completion_boundary"]
 
 
 def test_transition_runtime_completion_audit_records_fresh_opl_repo_evidence_without_live_claim() -> None:
