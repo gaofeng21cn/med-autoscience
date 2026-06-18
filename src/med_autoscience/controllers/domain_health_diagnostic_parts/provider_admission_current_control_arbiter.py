@@ -310,6 +310,8 @@ def _matching_accepted_closeout(
         if current_control_receipts.receipt_is_accepted_closeout(
             receipt
         ):
+            if _exact_owner_refs_closeout_matches_candidate(receipt, identity=identity):
+                return receipt
             if current_control_receipts.accepted_closeout_matches_candidate_identity(
                 receipt,
                 identity=identity,
@@ -341,6 +343,65 @@ def _explicit_accepted_closeout_core_identity_matches_without_currentness_confli
         identity_basis=identity_basis,
     ):
         return False
+    receipt_source_eval = _non_empty_text(receipt_basis.get("source_eval_id")) or _non_empty_text(
+        receipt.get("source_eval_id")
+    )
+    identity_source_eval = _non_empty_text(identity_basis.get("source_eval_id")) or _non_empty_text(
+        identity.get("source_eval_id")
+    )
+    return not (
+        receipt_source_eval is not None
+        and identity_source_eval is not None
+        and receipt_source_eval != identity_source_eval
+    )
+
+
+def _exact_owner_refs_closeout_matches_candidate(
+    receipt: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    statuses = current_control_receipts.receipt_statuses(receipt)
+    if not ("closed_with_domain_owner_refs" in statuses or "executed" in statuses):
+        return False
+    if _non_empty_text(receipt.get("owner_receipt_ref")) is None and _non_empty_text(
+        receipt.get("record_ref")
+    ) is None and _non_empty_text(receipt.get("publication_eval_record_ref")) is None:
+        owner_result = _mapping(receipt.get("owner_result"))
+        owner_receipt = _mapping(receipt.get("owner_receipt"))
+        if not any(
+            _non_empty_text(value) is not None
+            for value in (
+                owner_result.get("owner_receipt_ref"),
+                owner_result.get("publication_eval_record_ref"),
+                owner_receipt.get("owner_receipt_ref"),
+                owner_receipt.get("publication_eval_record_ref"),
+            )
+        ):
+            return False
+    expected_action = _non_empty_text(identity.get("action_type"))
+    expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
+    expected_fingerprint = _non_empty_text(identity.get("work_unit_fingerprint")) or _non_empty_text(
+        identity.get("action_fingerprint")
+    )
+    receipt_fingerprint = _non_empty_text(receipt.get("work_unit_fingerprint")) or _non_empty_text(
+        receipt.get("action_fingerprint")
+    )
+    if (
+        expected_action is None
+        or expected_work_unit is None
+        or expected_fingerprint is None
+        or receipt_fingerprint is None
+    ):
+        return False
+    if _non_empty_text(receipt.get("action_type")) != expected_action:
+        return False
+    if _non_empty_text(receipt.get("work_unit_id")) != expected_work_unit:
+        return False
+    if receipt_fingerprint != expected_fingerprint:
+        return False
+    receipt_basis = _accepted_closeout_currentness_basis(receipt)
+    identity_basis = _mapping(identity.get("currentness_basis"))
     receipt_source_eval = _non_empty_text(receipt_basis.get("source_eval_id")) or _non_empty_text(
         receipt.get("source_eval_id")
     )
@@ -598,7 +659,7 @@ def _candidates_not_covered_by_live_attempt(
         )
         if _terminal_closeout_precedence_evidence(scanned_study, identity=candidate):
             continue
-        if current_control_receipts.accepted_closeout_matches_identity(
+        if _matching_accepted_closeout(
             scanned_study,
             identity=candidate,
         ) and not _unconsumed_closeout_blocks_weak_identity_suppression(
@@ -715,6 +776,11 @@ def _candidate_requires_strong_current_control_identity(candidate: Mapping[str, 
         candidate.get("same_tick_materialized_provider_admission") is True
         and _non_empty_text(candidate.get("same_tick_materialization_source"))
         != "dry_run_preview"
+    ):
+        return True
+    if (
+        _non_empty_text(candidate.get("status")) == "provider_admission_pending"
+        and _current_control_weak_provider_admission_identity(candidate)
     ):
         return True
     return _non_empty_text(candidate.get("source")) in {
