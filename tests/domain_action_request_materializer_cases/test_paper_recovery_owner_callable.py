@@ -961,8 +961,12 @@ def test_current_default_dispatch_for_execution_marks_paper_recovery_callable_re
         dispatch_ready_for_execution=True,
     )
 
-    assert observe_payload["owner_callable_adapters"][0]["dispatch_status"] == "dry_run"
-    assert execution_payload["owner_callable_adapters"][0]["dispatch_status"] == "transition_request_pending"
+    assert observe_payload["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0][
+        "dispatch_status"
+    ] == "dry_run"
+    assert execution_payload["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0][
+        "dispatch_status"
+    ] == "transition_request_pending"
 
 
 def test_materialize_dry_run_reports_paper_recovery_callable_as_would_be_ready(
