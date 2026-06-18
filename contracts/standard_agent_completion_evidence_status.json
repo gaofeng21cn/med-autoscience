@@ -211,7 +211,11 @@
         "opl:runtime/app-operator-drilldown/memory_artifact_lifecycle/memory-artifact-lifecycle-owner-decision",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-landing-acceptance-contract.json",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-negative-conformance-samples.json",
-        "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#tests/src/cli/cases/work-order-execution.test.ts::omaTargetAgentGuardMissingCases"
+        "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#tests/src/cli/cases/work-order-execution.test.ts::omaTargetAgentGuardMissingCases",
+        "contracts/agent_tool_arsenal.json#/scientific_capability_registry/owner_consumption_evidence_schema/standard_agent_feedback_loop_tail",
+        "src/med_autoscience/scientific_capability_registry.py::build_capability_owner_consumption_evidence/standard_agent_feedback_loop_tail",
+        "tests/test_scientific_capability_registry.py::test_scientific_capability_registry_builds_nonblocking_consumption_evidence_without_owner_refs",
+        "tests/test_scientific_capability_registry.py::test_scientific_capability_registry_consumption_evidence_with_owner_refs_stays_non_authorizing"
       ],
       "missing_evidence_tails": [
         "production_generated_surface_caller_negative_samples_ref",

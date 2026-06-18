@@ -29,6 +29,23 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
     assert registry["surface_kind"] == "mas_scientific_capability_registry"
     assert registry["default_policy"]["fail_open"] is True
     assert registry["default_policy"]["always_on_scan"] is False
+    assert registry["owner_consumption_evidence_schema"][
+        "standard_agent_feedback_loop_tail"
+    ] == {
+        "required_keys": [
+            "production_generated_surface_caller_negative_samples_ref",
+            "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+            "long_soak_negative_conformance_ref",
+        ],
+        "false_completion_blockers": [
+            "MAS_contract_landed_without_OPL_family_consumption",
+            "suite_pass_without_target_owner_receipt_or_typed_blocker",
+            "hosted_consumption_packet_without_live_owner_answer",
+            "domain_local_selector_or_always_on_sidecar",
+        ],
+        "mas_repo_can_close_opl_family_tail": False,
+        "opl_hosted_runtime_consumption_required": True,
+    }
     assert registry["authority_boundary"]["can_write_domain_truth"] is False
     assert registry["authority_boundary"]["can_write_owner_receipt"] is False
     capability_ids = {item["capability_id"] for item in registry["capabilities"]}
@@ -149,6 +166,24 @@ def test_scientific_capability_registry_builds_nonblocking_consumption_evidence_
     assert evidence["mainline_waits_for_owner_consumption"] is False
     assert evidence["fail_open"] is True
     assert evidence["missing_owner_response_refs_blocks"] is False
+    tail = evidence["standard_agent_feedback_loop_tail"]
+    assert tail["surface_kind"] == "mas_standard_agent_feedback_loop_tail_evidence"
+    assert tail["repo_side_shape_landed"] is True
+    assert tail["owner_answer_or_typed_blocker_observed"] is False
+    assert tail["real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref"] is None
+    assert tail["production_generated_surface_caller_negative_samples_ref"] is None
+    assert tail["long_soak_negative_conformance_ref"] is None
+    assert tail["missing_external_tail_keys"] == [
+        "production_generated_surface_caller_negative_samples_ref",
+        "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+        "long_soak_negative_conformance_ref",
+    ]
+    assert "MAS_contract_landed_without_OPL_family_consumption" in tail[
+        "false_completion_blockers"
+    ]
+    assert tail["mas_repo_can_close_opl_family_tail"] is False
+    assert tail["opl_hosted_runtime_consumption_required"] is True
+    assert tail["counts_as_opl_family_completion"] is False
     assert evidence["no_forbidden_write_proof"]["forbidden_refs_absent"] is True
     assert evidence["no_forbidden_write_proof"]["checked_relative_refs"] == [
         "artifacts/publication_eval/latest.json",
@@ -207,6 +242,21 @@ def test_scientific_capability_registry_consumption_evidence_with_owner_refs_sta
     assert evidence["route_back_evidence_ref"] == "artifacts/routes/route-back.json"
     assert evidence["counts_as_progress"] is False
     assert evidence["consumption_evidence_only"] is True
+    tail = evidence["standard_agent_feedback_loop_tail"]
+    assert tail["owner_answer_or_typed_blocker_observed"] is True
+    assert tail["real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json"
+    )
+    assert tail["observed_owner_response_refs"] == [
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+        "artifacts/reviewer/receipt.json",
+        "artifacts/routes/route-back.json",
+    ]
+    assert tail["missing_external_tail_keys"] == [
+        "production_generated_surface_caller_negative_samples_ref",
+        "long_soak_negative_conformance_ref",
+    ]
+    assert tail["counts_as_opl_family_completion"] is False
     assert evidence["authority_boundary"]["can_write_owner_receipt"] is False
     assert evidence["authority_boundary"]["can_write_typed_blocker"] is False
     assert evidence["authority_boundary"]["can_authorize_publication_readiness"] is False

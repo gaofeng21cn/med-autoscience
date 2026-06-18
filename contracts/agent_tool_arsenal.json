@@ -17821,6 +17821,25 @@
         }
       }
     ],
+    "owner_consumption_evidence_schema": {
+      "surface_kind": "mas_scientific_capability_owner_consumption_evidence",
+      "schema_version": 1,
+      "standard_agent_feedback_loop_tail": {
+        "required_keys": [
+          "production_generated_surface_caller_negative_samples_ref",
+          "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+          "long_soak_negative_conformance_ref"
+        ],
+        "false_completion_blockers": [
+          "MAS_contract_landed_without_OPL_family_consumption",
+          "suite_pass_without_target_owner_receipt_or_typed_blocker",
+          "hosted_consumption_packet_without_live_owner_answer",
+          "domain_local_selector_or_always_on_sidecar"
+        ],
+        "mas_repo_can_close_opl_family_tail": false,
+        "opl_hosted_runtime_consumption_required": true
+      }
+    },
     "authority_boundary": {
       "surface_role": "current_delta_bound_capability_resolver",
       "can_write_domain_truth": false,

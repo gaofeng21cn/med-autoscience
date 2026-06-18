@@ -36,6 +36,17 @@ _FORBIDDEN_PATH_ABSENCE_REFS = (
     "paper",
     "package",
 )
+_STANDARD_AGENT_FEEDBACK_LOOP_TAIL_KEYS = (
+    "production_generated_surface_caller_negative_samples_ref",
+    "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+    "long_soak_negative_conformance_ref",
+)
+_STANDARD_AGENT_FALSE_COMPLETION_BLOCKERS = (
+    "MAS_contract_landed_without_OPL_family_consumption",
+    "suite_pass_without_target_owner_receipt_or_typed_blocker",
+    "hosted_consumption_packet_without_live_owner_answer",
+    "domain_local_selector_or_always_on_sidecar",
+)
 
 
 def build_scientific_capability_registry() -> dict[str, Any]:
@@ -57,6 +68,18 @@ def build_scientific_capability_registry() -> dict[str, Any]:
         },
         "capability_count": len(capabilities),
         "capabilities": capabilities,
+        "owner_consumption_evidence_schema": {
+            "surface_kind": OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND,
+            "schema_version": SCHEMA_VERSION,
+            "standard_agent_feedback_loop_tail": {
+                "required_keys": list(_STANDARD_AGENT_FEEDBACK_LOOP_TAIL_KEYS),
+                "false_completion_blockers": list(
+                    _STANDARD_AGENT_FALSE_COMPLETION_BLOCKERS
+                ),
+                "mas_repo_can_close_opl_family_tail": False,
+                "opl_hosted_runtime_consumption_required": True,
+            },
+        },
         "authority_boundary": _authority_boundary(),
     }
 
@@ -179,6 +202,10 @@ def build_capability_owner_consumption_evidence(
         "mainline_waits_for_owner_consumption": False,
         "fail_open": True,
         "missing_owner_response_refs_blocks": False,
+        "standard_agent_feedback_loop_tail": _standard_agent_feedback_loop_tail(
+            owner_refs=owner_refs,
+            observed_owner_refs=observed_owner_refs,
+        ),
         "no_forbidden_write_proof": _no_forbidden_write_proof(invocation),
         "fail_open_policy": {
             "missing_owner_response_refs_blocks": False,
@@ -270,6 +297,41 @@ def _capabilities() -> list[dict[str, Any]]:
             role="figure_intent_compilation_template_preflight_quality_floor_and_render_next_step",
         ),
     ]
+
+
+def _standard_agent_feedback_loop_tail(
+    *,
+    owner_refs: Mapping[str, str | None],
+    observed_owner_refs: list[str],
+) -> dict[str, Any]:
+    owner_answer_refs = [
+        ref
+        for key, ref in owner_refs.items()
+        if key in {"owner_receipt_ref", "typed_blocker_ref"} and ref is not None
+    ]
+    return {
+        "surface_kind": "mas_standard_agent_feedback_loop_tail_evidence",
+        "schema_version": SCHEMA_VERSION,
+        "required_tail_keys": list(_STANDARD_AGENT_FEEDBACK_LOOP_TAIL_KEYS),
+        "repo_side_shape_landed": True,
+        "production_generated_surface_caller_negative_samples_ref": None,
+        "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref": (
+            owner_answer_refs[0] if owner_answer_refs else None
+        ),
+        "observed_owner_response_refs": list(observed_owner_refs),
+        "owner_answer_or_typed_blocker_observed": bool(owner_answer_refs),
+        "long_soak_negative_conformance_ref": None,
+        "missing_external_tail_keys": [
+            key
+            for key in _STANDARD_AGENT_FEEDBACK_LOOP_TAIL_KEYS
+            if key != "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref"
+            or not owner_answer_refs
+        ],
+        "false_completion_blockers": list(_STANDARD_AGENT_FALSE_COMPLETION_BLOCKERS),
+        "mas_repo_can_close_opl_family_tail": False,
+        "opl_hosted_runtime_consumption_required": True,
+        "counts_as_opl_family_completion": False,
+    }
 
 
 def _capability(
