@@ -405,20 +405,26 @@
         "can_authorize_provider_admission": false,
         "can_authorize_worker_attempt": false,
         "can_execute": false,
+        "can_emit_runtime_command": false,
         "can_generate_action": false,
+        "can_open_runtime_endpoint": false,
+        "can_transport_operator_action": false,
         "must_not_be_used_as_next_action_authority": true,
         "must_not_be_used_as_paper_progress": true,
         "must_not_be_used_as_provider_admission": true,
         "must_not_be_used_as_publication_ready": true,
         "next_system_action_role": "read_only_owner_delta_summary",
+        "operator_intent_refs_are_inert": true,
         "projection_only": true,
         "requires_opl_current_control_readback": true
       },
-      "replacement_surface": "OPL Workbench Shell consuming current_owner_delta and DomainProgressTransitionRuntime readback",
+      "replacement_surface": "OPL Workbench Shell owns operator action transport; MAS only publishes inert current_owner_delta and DomainProgressTransitionRuntime readback refs",
       "retained_mas_role": "body_free_workbench_read_model_projection",
       "surface_id": "progress_portal_study_workbench_overview_action_projection",
       "verified_by": [
-        "tests/progress_portal_cases/test_study_workbench_and_routes.py"
+        "tests/progress_portal_cases/test_study_workbench_and_routes.py",
+        "tests/test_progress_portal.py",
+        "tests/test_progress_portal_workbench_boundary.py"
       ]
     }
   ],

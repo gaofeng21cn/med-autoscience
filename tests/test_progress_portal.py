@@ -556,15 +556,24 @@ def test_progress_portal_payload_exposes_opl_runtime_workbench_projection_withou
     assert intents["pause"]["surface_kind"] == "workbench_operator_intent_projection_ref"
     assert intents["pause"]["command"] is None
     assert intents["pause"]["execute_authority"] is False
-    assert intents["pause"]["must_route_to_opl_runtime"] is True
+    assert intents["pause"]["runtime_endpoint_ref"] is None
+    assert intents["pause"]["intent_ref_only"] is True
+    assert intents["pause"]["transport_authority"] is False
+    assert intents["pause"]["can_transport_operator_action"] is False
+    assert intents["pause"]["can_emit_runtime_command"] is False
+    assert intents["pause"]["handled_by_external_opl_workbench_shell"] is True
     assert intents["stop"]["confirmation_required"] is False
-    assert intents["stop"]["external_authority_confirmation_required"] is True
+    assert intents["stop"]["external_authority_confirmation_required"] is False
     assert projection["terminal"]["mode"] == "external_control_plane_required"
     assert projection["terminal"]["active_run_id"] == "run-opl-001"
     assert projection["terminal"]["token_required"] is True
     assert projection["terminal"]["lease_required"] is True
-    assert projection["authority"]["opl_role"] == "projection_consumer_and_action_transport_only"
+    assert projection["authority"]["opl_role"] == "workbench_readback_projection_consumer_only"
     assert projection["authority"]["mas_truth_owner"] is True
+    assert projection["authority"]["can_transport_operator_action"] is False
+    assert projection["authority"]["can_emit_runtime_command"] is False
+    assert projection["authority"]["operator_intent_refs_are_inert"] is True
+    assert projection["authority"]["external_opl_workbench_shell_required"] is True
     assert projection["authority"]["forbidden_writes"] == [
         "study_truth",
         "publication_judgment",
@@ -604,6 +613,7 @@ def test_progress_portal_runtime_workbench_boundary_is_read_only_projection() ->
         "surface_kind": "mas_opl_runtime_workbench_projection_boundary",
         "projection_only": True,
         "actions_role": "operator_intent_projection_refs",
+        "operator_intent_refs_are_inert": True,
         "links_role": "read_only_drilldown_refs",
         "next_summary_role": "read_only_drilldown_summary",
         "must_not_be_used_as_next_action_authority": True,
@@ -614,6 +624,9 @@ def test_progress_portal_runtime_workbench_boundary_is_read_only_projection() ->
         "can_generate_next_action_authority": False,
         "can_authorize_provider_admission": False,
         "can_authorize_worker_attempt": False,
+        "can_transport_operator_action": False,
+        "can_emit_runtime_command": False,
+        "can_open_runtime_endpoint": False,
         "can_retry_or_dead_letter": False,
         "can_authorize_publication_ready": False,
         "can_authorize_quality_verdict": False,
@@ -633,6 +646,11 @@ def test_progress_portal_runtime_workbench_boundary_is_read_only_projection() ->
     assert all(action["allowed"] is False for action in study["operator_intent_projection"].values())
     assert all(action["execute_authority"] is False for action in study["operator_intent_projection"].values())
     assert all(action["command"] is None for action in study["operator_intent_projection"].values())
+    assert all(action["runtime_endpoint_ref"] is None for action in study["operator_intent_projection"].values())
+    assert all(action["intent_ref_only"] is True for action in study["operator_intent_projection"].values())
+    assert all(action["transport_authority"] is False for action in study["operator_intent_projection"].values())
+    assert all(action["can_transport_operator_action"] is False for action in study["operator_intent_projection"].values())
+    assert all(action["can_emit_runtime_command"] is False for action in study["operator_intent_projection"].values())
     assert all(action["confirmation_required"] is False for action in study["operator_intent_projection"].values())
     assert all(
         action["must_read_back_mas_owner_receipt"] is True

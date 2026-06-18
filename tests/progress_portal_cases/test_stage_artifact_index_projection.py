@@ -96,12 +96,16 @@ def test_progress_portal_workbench_projects_stage_operating_layer_for_selected_s
 
     study = payload["mas_opl_runtime_workbench_projection"]["studies"][0]
     assert payload["mas_opl_runtime_workbench_projection"]["authority"] == {
-        "opl_role": "projection_consumer_and_action_transport_only",
+        "opl_role": "workbench_readback_projection_consumer_only",
         "mas_truth_owner": True,
         "page_scope": "study",
         "writes_mas_truth": False,
         "claims_publication_ready": False,
         "current_truth_source": "stage_kernel_projection",
+        "can_transport_operator_action": False,
+        "can_emit_runtime_command": False,
+        "operator_intent_refs_are_inert": True,
+        "external_opl_workbench_shell_required": True,
         "forbidden_writes": [
             "study_truth",
             "publication_judgment",

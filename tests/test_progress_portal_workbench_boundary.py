@@ -102,6 +102,7 @@ def test_runtime_workbench_projection_actions_and_summaries_remain_read_only_ref
     assert projection["projection_boundary"]["projection_only"] is True
     assert projection["projection_boundary"]["next_summary_role"] == "read_only_drilldown_summary"
     assert projection["projection_boundary"]["actions_role"] == "operator_intent_projection_refs"
+    assert projection["projection_boundary"]["operator_intent_refs_are_inert"] is True
     assert projection["projection_boundary"]["must_not_be_used_as_next_action_authority"] is True
     assert projection["projection_boundary"]["must_not_be_used_as_provider_admission"] is True
     assert projection["projection_boundary"]["must_not_be_used_as_publication_ready"] is True
@@ -109,8 +110,15 @@ def test_runtime_workbench_projection_actions_and_summaries_remain_read_only_ref
     assert projection["projection_boundary"]["can_execute_controller_action"] is False
     assert projection["projection_boundary"]["can_authorize_provider_admission"] is False
     assert projection["projection_boundary"]["can_authorize_worker_attempt"] is False
+    assert projection["projection_boundary"]["can_transport_operator_action"] is False
+    assert projection["projection_boundary"]["can_emit_runtime_command"] is False
+    assert projection["projection_boundary"]["can_open_runtime_endpoint"] is False
     assert projection["authority"]["claims_publication_ready"] is False
     assert projection["authority"]["writes_mas_truth"] is False
+    assert projection["authority"]["opl_role"] == "workbench_readback_projection_consumer_only"
+    assert projection["authority"]["can_transport_operator_action"] is False
+    assert projection["authority"]["can_emit_runtime_command"] is False
+    assert projection["authority"]["operator_intent_refs_are_inert"] is True
 
     assert selected["next_action_summary_role"] == "read_only_drilldown_summary"
     assert selected["next_action_summary_is_controller_action"] is False
@@ -130,8 +138,14 @@ def test_runtime_workbench_projection_actions_and_summaries_remain_read_only_ref
         assert action["execute_authority"] is False
         assert action["controller_action"] is False
         assert action["projection_only"] is True
+        assert action["intent_ref_only"] is True
+        assert action["transport_authority"] is False
+        assert action["runtime_endpoint_ref"] is None
+        assert action["can_transport_operator_action"] is False
+        assert action["can_emit_runtime_command"] is False
         assert action["display_command_ref_only"] is True
         assert action["requires_opl_current_control_readback"] is True
+        assert action["handled_by_external_opl_workbench_shell"] is True
 
 
 def test_retirement_inventory_tracks_workbench_read_only_action_projection() -> None:
@@ -160,12 +174,16 @@ def test_retirement_inventory_tracks_workbench_read_only_action_projection() -> 
         "next_system_action_role": "read_only_owner_delta_summary",
         "projection_only": True,
         "can_generate_action": False,
-        "can_execute": False,
-        "can_authorize_provider_admission": False,
-        "can_authorize_worker_attempt": False,
-        "requires_opl_current_control_readback": True,
-        "must_not_be_used_as_provider_admission": True,
-        "must_not_be_used_as_next_action_authority": True,
+            "can_execute": False,
+            "can_emit_runtime_command": False,
+            "can_authorize_provider_admission": False,
+            "can_authorize_worker_attempt": False,
+            "can_open_runtime_endpoint": False,
+            "can_transport_operator_action": False,
+            "operator_intent_refs_are_inert": True,
+            "requires_opl_current_control_readback": True,
+            "must_not_be_used_as_provider_admission": True,
+            "must_not_be_used_as_next_action_authority": True,
         "must_not_be_used_as_publication_ready": True,
         "must_not_be_used_as_paper_progress": True,
     }
