@@ -405,7 +405,7 @@
     {
       "gate_id": "no_private_runtime_residue_as_authority",
       "status": "open",
-      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller."
+      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller. Current repo evidence proves domain_authority_refs_index is body-free refs-only and domain_health_diagnostic_obligation_actuator is consume-only/fail-closed, but physical deletion still requires OPL takeover, no-active-caller or owner-retirement evidence, replacement parity, and tombstone/provenance."
     }
   ],
   "forbidden_completion_interpretations": [
@@ -599,12 +599,14 @@
       "observed_refs": [
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_action_request_materializer_request_tasks_projection",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_owner_action_dispatch",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_authority_refs_index",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_health_diagnostic_obligation_actuator",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_health_kernel",
-        "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory"
+        "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only"
       ],
       "missing_evidence_tails": [
-        "domain_authority_refs_index_active_caller_migration_ref",
+        "domain_authority_refs_index_opl_state_index_kernel_takeover_or_no_active_caller_ref",
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
         "domain_owner_action_dispatch_live_opl_authorization_for_every_active_caller_ref",
         "legacy_default_executor_carrier_physical_delete_ref"
@@ -675,7 +677,7 @@
     "DHD apply exactly-one live outcome when explicitly delegated",
     "provider admission arbiter fully consuming OPL transition events",
     "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
-    "domain_authority_refs_index active-caller migration or OPL StateIndexKernel takeover proof",
+    "domain_authority_refs_index OPL StateIndexKernel takeover or no-active-caller proof",
     "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
     "domain_owner_action_dispatch live OPL authorization coverage for every active caller",
     "legacy default-executor carrier physical delete proof"

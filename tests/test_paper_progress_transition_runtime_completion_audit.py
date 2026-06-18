@@ -97,6 +97,7 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
         "DHD apply exactly-one live outcome when explicitly delegated",
         "provider admission arbiter fully consuming OPL transition events",
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
+        "domain_authority_refs_index OPL StateIndexKernel takeover or no-active-caller proof",
         "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
     } <= open_tails
 
@@ -176,7 +177,7 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert surfaces["domain_authority_refs_index"]["active_caller_migrated"] is False
 
     assert {
-        "domain_authority_refs_index_active_caller_migration_ref",
+        "domain_authority_refs_index_opl_state_index_kernel_takeover_or_no_active_caller_ref",
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
         "domain_owner_action_dispatch_live_opl_authorization_for_every_active_caller_ref",
         "legacy_default_executor_carrier_physical_delete_ref",

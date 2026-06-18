@@ -73,19 +73,65 @@
     },
     {
       "active_caller_migrated": false,
+      "active_caller_boundary": {
+        "active_caller_effect": "body_free_refs_only_locator_index",
+        "active_caller_retains_runtime_authority": false,
+        "active_caller_retains_surface": true,
+        "active_callers": [
+          "stage_artifact_materializer.record_stage_artifact_delta_ref",
+          "owner_route_reconcile.scan_output.record_owner_route_receipt",
+          "domain_owner_action_dispatch.record_dispatch_receipt",
+          "paper_progress_transition_refs.record_paper_progress_transition_ref",
+          "runtime_storage_maintenance.record_archive_ref"
+        ],
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "physical_delete_requires": [
+          "opl_state_index_kernel_takeover",
+          "no_active_caller_scan",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ]
+      },
+      "authority_boundary": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_ready": false,
+        "can_authorize_quality_verdict": false,
+        "can_create_opl_event": false,
+        "can_create_opl_outbox": false,
+        "can_create_opl_stage_run": false,
+        "can_generate_next_action_authority": false,
+        "outbox_record": false,
+        "rebuildable": true,
+        "started_worker": false,
+        "stores_body": false,
+        "stores_domain_truth": false
+      },
       "compatibility_alias_allowed": false,
       "current_disposition": "opl_migration_input",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_generic_persistence_engine",
+        "mas_owned_state_index_kernel",
         "mas_owned_queue",
         "mas_owned_attempt_ledger",
         "provider_completion_as_domain_ready"
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "replacement_surface": "OPL StateIndexKernel / Vault refs readback plus MAS authority receipt functions",
       "retained_mas_role": "refs_only_domain_authority_receipt_locator_index",
-      "surface_id": "domain_authority_refs_index"
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
+      },
+      "surface_id": "domain_authority_refs_index",
+      "verified_by": [
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
+        "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sidecar_refs"
+      ]
     },
     {
       "active_caller_migrated": true,
@@ -371,6 +417,21 @@
     },
     {
       "active_caller_migrated": false,
+      "active_caller_boundary": {
+        "active_caller_effect": "consume_only_readback_projection_and_fail_closed_postcondition",
+        "active_caller_retains_runtime_authority": false,
+        "active_caller_retains_surface": true,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "physical_delete_requires": [
+          "opl_recovery_obligation_store_active_caller",
+          "opl_supervisor_decision_engine_active_caller",
+          "no_active_caller_scan",
+          "replacement_parity_ref",
+          "owner_retirement_decision_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "request_projection_only_can_satisfy_success": false
+      },
       "compatibility_alias_allowed": false,
       "current_disposition": "opl_recovery_obligation_readback_consumer",
       "forbidden_claims": [
@@ -410,7 +471,11 @@
         "tombstone_or_provenance_required": true
       },
       "surface_id": "domain_health_diagnostic_obligation_actuator",
-      "transition_request_pending_can_close_physical_tail": false
+      "transition_request_pending_can_close_physical_tail": false,
+      "verified_by": [
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py::test_obligation_actuator_transition_request_is_projection_not_success"
+      ]
     },
     {
       "active_caller_migrated": true,

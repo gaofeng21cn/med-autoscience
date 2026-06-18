@@ -201,6 +201,8 @@ OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；
 
 完成门：grep / tests / contract inventory 证明 projection surface 不再有 transition authority；旧入口只保留 tombstone/provenance 或 diagnostic。
 
+当前状态：2026-06-18 residue closeout 已把 `domain_authority_refs_index` 的 active callers 固定为 body-free authority-ref indexing，并把 `domain_health_diagnostic_obligation_actuator` 固定为 consume-only readback projection / fail-closed postcondition；二者仍不是物理退役完成。后续完成门继续要求 OPL `StateIndexKernel`、`RecoveryObligationStore` / `SupervisorDecisionEngine` 接管，或 no-active-caller / owner-retirement / replacement-parity / tombstone evidence。
+
 ### Lane 5：Live paper-line acceptance
 
 - 对 DM002 / DM003 执行 fresh kernel-driven apply。
