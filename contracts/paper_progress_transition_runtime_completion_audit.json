@@ -1,0 +1,703 @@
+{
+  "surface_kind": "paper_progress_transition_runtime_completion_audit",
+  "version": "paper-progress-transition-runtime-completion-audit.v1",
+  "owner": "MedAutoScience / One Person Lab",
+  "state": "active_evidence_audit",
+  "purpose": "Machine-readable completion audit for the OPL DomainProgressTransitionRuntime and MAS PaperProgressPolicyAdapter target chain.",
+  "machine_boundary": "This audit records completion evidence and open tails only. It does not create OPL commands, events, outbox items, StageRun identity, provider attempts, MAS owner receipts, typed blockers, human gates, route-back evidence, paper deltas, publication verdicts, artifact mutations, current package freshness, production readiness, or live paper progress.",
+  "source_of_truth": {
+    "target_design": "docs/runtime/designs/paper_progress_transition_kernel_target.md",
+    "active_plan": "docs/active/mas-ideal-state-gap-plan.md",
+    "replay_status": "contracts/paper_progress_replay_live_evidence_status.json",
+    "runtime_inventory": "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+    "fresh_opl_repo_ref": "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7"
+  },
+  "overall": {
+    "status": "partial",
+    "completion_percent": 68,
+    "goal_complete": false,
+    "completion_claim_allowed": false,
+    "classification": "platform_runtime_and_policy_adapter_landed_live_paper_acceptance_open",
+    "current_summary": "OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, terminal closeout currentness, provider-hosted stale admission recovery, and MAS runtime-health local event append retirement have landed. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, full provider-admission consumption, and DM002/DM003 fresh paper-line outcome are not closed."
+  },
+  "status_values": [
+    "done",
+    "partial",
+    "not_started",
+    "blocked"
+  ],
+  "completion_evidence_rules": {
+    "hundred_percent_requires": [
+      "fresh executable evidence for the requirement scope",
+      "same identity runtime readback when runtime authority is claimed",
+      "owner receipt, stable typed blocker, human gate, route-back evidence, or paper/gate/artifact semantic delta when paper progress is claimed"
+    ],
+    "not_sufficient": [
+      "docs_updated",
+      "contract_landed",
+      "focused_tests_passed",
+      "projection_clean",
+      "queue_empty",
+      "DHD_dry_run",
+      "provider_admission_pending_count=0",
+      "transition_request_pending_count=0",
+      "refs_only_surface",
+      "owner_resolution_preview",
+      "recorded_only_owner_receipt_without_consumption_or_next_delta"
+    ]
+  },
+  "feature_audit": [
+    {
+      "feature_id": "transition_taxonomy",
+      "correct_owner": "OPL Pack/Stagecraft plus MAS policy mapping",
+      "target": "Fixed transitions for owner receipt, provider attempt, terminal closeout, typed blocker, human gate, paper/gate delta, route-back, stop-loss, and NonAdvancingApply.",
+      "status": "partial",
+      "completion_percent": 90,
+      "evidence": [
+        "OPL runtime tests cover normalized transitions and NonAdvancingApply.",
+        "MAS policy adapter and replay fixtures cover representative paper-domain transition kinds."
+      ],
+      "open_gap": "Live acceptance still needs OPL runtime event plus MAS owner-answer evidence for DM002/DM003."
+    },
+    {
+      "feature_id": "aggregate_identity",
+      "correct_owner": "OPL Runway",
+      "target": "Every transition binds study_id, work_unit_id, fingerprint, source_generation, expected_version, and idempotency_key.",
+      "status": "partial",
+      "completion_percent": 85,
+      "evidence": [
+        "OPL runtime tests cover aggregate version and idempotency readback.",
+        "MAS adapter and replay tests assert clean request identity without OPL artifact fields."
+      ],
+      "open_gap": "Fresh live DHD apply and provider admission must prove the same aggregate identity reaches OPL StageRun readback."
+    },
+    {
+      "feature_id": "mas_policy_verdict",
+      "correct_owner": "MAS PaperProgressPolicyAdapter",
+      "target": "MAS judges owner receipt, blocker semantics, paper delta validity, publication gate progress, forbidden write, human gate, route-back, and domain authority result shapes.",
+      "status": "partial",
+      "completion_percent": 82,
+      "evidence": [
+        "tests/test_paper_progress_policy_adapter.py covers authority-only adapter fields and forbidden OPL runtime fields.",
+        "tests/test_paper_progress_transition_replay_fixtures.py covers representative DM002/DM003 policy outcomes."
+      ],
+      "open_gap": "More live owner-answer shapes must be proven by fresh DM002/DM003 outcomes, not only fixtures."
+    },
+    {
+      "feature_id": "command_normalization",
+      "correct_owner": "OPL Runway/Pack",
+      "target": "MAS request is normalized into OPL command; legacy alias and MAS runtime artifact fields fail closed.",
+      "status": "partial",
+      "completion_percent": 92,
+      "evidence": [
+        "OPL tests cover MAS policy request normalization and legacy supervisor apply alias rejection.",
+        "MAS tests assert transition request excludes projection_metadata, OPL event, OPL outbox, and StageRun identity."
+      ],
+      "open_gap": "Live OPL intake must continue proving normalized command/event/outbox for fresh DM002/DM003 requests."
+    },
+    {
+      "feature_id": "durable_command_event_log",
+      "correct_owner": "OPL Vault/Runway",
+      "target": "Append-only command/event authority log; corrections append new events rather than overwriting read models.",
+      "status": "partial",
+      "completion_percent": 76,
+      "evidence": [
+        "OPL JSONL runtime tests cover append-only command/event/outbox log and readback.",
+        "OPL decisions record physical command_event_log.jsonl live intake behavior."
+      ],
+      "open_gap": "Production/live paper-line soak and terminal closeout side effects are still evidence tails."
+    },
+    {
+      "feature_id": "transactional_outbox",
+      "correct_owner": "OPL Runway",
+      "target": "Transition event and provider/human/owner callable outbox are persisted in one transaction boundary.",
+      "status": "partial",
+      "completion_percent": 72,
+      "evidence": [
+        "OPL tests assert event and outbox committed together in runtime results.",
+        "MAS provider admission boundary requires OPL live readback instead of MAS self-signed outbox."
+      ],
+      "open_gap": "Fresh live outbox identity must be read back for DM002/DM003 transition requests."
+    },
+    {
+      "feature_id": "stagerun_identity",
+      "correct_owner": "OPL Runway/Stagecraft",
+      "target": "Provider attempt, lease, execution authorization, and closeout binding read back the same identity.",
+      "status": "partial",
+      "completion_percent": 78,
+      "evidence": [
+        "OPL provider-hosted tests cover currentness, stale admission recovery, and StageRun identity guards.",
+        "MAS closeout/StageRun identity split replay converges to a stable typed blocker."
+      ],
+      "open_gap": "DM002/DM003 still need fresh same-identity StageRun readback tied to current paper-line transition."
+    },
+    {
+      "feature_id": "fixed_point_reconciler",
+      "correct_owner": "OPL Runway",
+      "target": "Read, decide, apply, readback, and repeat until stable; each round yields exactly-one outcome.",
+      "status": "partial",
+      "completion_percent": 62,
+      "evidence": [
+        "OPL runtime tests cover fixed-point helper choosing exactly one transition or NonAdvancingApply.",
+        "MAS DHD boundary documents exactly-one postcondition requirements."
+      ],
+      "open_gap": "DHD apply live path has not yet proven end-to-end exactly-one closure for DM002/DM003 under the new runtime."
+    },
+    {
+      "feature_id": "exactly_one_postcondition",
+      "correct_owner": "OPL Runway plus MAS readback",
+      "target": "Apply cannot only refresh projection; it must yield running, receipt, blocker, human gate, route-back, semantic delta, or NonAdvancingApply.",
+      "status": "partial",
+      "completion_percent": 68,
+      "evidence": [
+        "MAS replay fixtures and terminal closeout currentness tests prevent projection-only success for representative cases.",
+        "DHD policy states transition_request_pending is not postcondition_ok without OPL readback."
+      ],
+      "open_gap": "Fresh live DHD apply outcome remains open by current instructions and must not be inferred from dry-run."
+    },
+    {
+      "feature_id": "non_advancing_apply",
+      "correct_owner": "OPL Runway plus MAS blocker semantics",
+      "target": "Same identity apply that does not advance writes a stable typed blocker instead of returning ok.",
+      "status": "partial",
+      "completion_percent": 82,
+      "evidence": [
+        "OPL runtime tests cover NonAdvancingApply.",
+        "MAS replay fixtures and terminal closeout currentness tests cover request-only and record-only no-progress cases."
+      ],
+      "open_gap": "Live DHD apply must still show NonAdvancingApply or another accepted outcome when explicitly delegated."
+    },
+    {
+      "feature_id": "historical_replay_harness",
+      "correct_owner": "OPL Vault/Stagecraft plus MAS fixtures",
+      "target": "DM002/DM003 bad histories replay to exactly-one or NonAdvancingApply.",
+      "status": "partial",
+      "completion_percent": 78,
+      "evidence": [
+        "contracts/paper_progress_replay_live_evidence_status.json enumerates representative replay coverage.",
+        "tests/test_paper_progress_transition_replay_fixtures.py covers DM002/DM003 historical bad traces."
+      ],
+      "open_gap": "Replay is broad but not a substitute for fresh live paper-line acceptance."
+    },
+    {
+      "feature_id": "human_gate_resume_token",
+      "correct_owner": "OPL Runway/Console with MAS answer semantics",
+      "target": "Human gate token, pause/resume, and accepted answer readback are OPL-persisted; MAS interprets answer semantics.",
+      "status": "partial",
+      "completion_percent": 60,
+      "evidence": [
+        "OPL runtime tests cover human gate resume token issue/readback/consume/idempotent replay.",
+        "MAS replay fixtures accept human gate and route-back evidence shapes."
+      ],
+      "open_gap": "No fresh DM002/DM003 human-gate resume chain has closed this target."
+    },
+    {
+      "feature_id": "read_model_rebuild",
+      "correct_owner": "OPL Console/Vault and derived MAS projections",
+      "target": "study_progress, DHD, Workbench, and current surfaces rebuild from OPL events plus MAS policy result, not local authority.",
+      "status": "partial",
+      "completion_percent": 66,
+      "evidence": [
+        "MAS projection metadata demotes authority and live-readback-only provider admission.",
+        "MAS runtime-health local event append API is retired."
+      ],
+      "open_gap": "Workbench and all downstream projections still need fresh live proof of full event-driven rebuild under real paper-line flow."
+    },
+    {
+      "feature_id": "dhd_apply_consumer",
+      "correct_owner": "OPL runtime consumer plus MAS adapter",
+      "target": "DHD apply triggers or consumes OPL fixed-point runtime and does not self-sign provider admission.",
+      "status": "partial",
+      "completion_percent": 58,
+      "evidence": [
+        "MAS DHD contracts fail closed request-only transitions without OPL readback.",
+        "Focused tests cover consume-only and live-readback-only admission boundaries."
+      ],
+      "open_gap": "Current session did not run DHD apply; fresh live exactly-one apply outcome is still required before completion."
+    },
+    {
+      "feature_id": "provider_admission",
+      "correct_owner": "OPL Runway",
+      "target": "Provider admission accepts only OPL transition outbox or StageRun identity, not MAS projection residue.",
+      "status": "partial",
+      "completion_percent": 74,
+      "evidence": [
+        "OPL current-control and provider-hosted tests cover transition runtime payload, stale admission recovery, and single-flight guards.",
+        "MAS arbiter tests require OPL live readback for provider_admission_pending."
+      ],
+      "open_gap": "Fresh DM002/DM003 provider admission/running proof remains open."
+    },
+    {
+      "feature_id": "current_work_unit_projection",
+      "correct_owner": "Derived MAS projection",
+      "target": "current_work_unit projects current aggregate but does not choose or authorize the next action.",
+      "status": "partial",
+      "completion_percent": 70,
+      "evidence": [
+        "Projection metadata authority demotion tests are in place.",
+        "Terminal closeout currentness now blocks same-identity record-only re-execution."
+      ],
+      "open_gap": "Full consume-only derivation from OPL transition event remains tied to live apply/readback closure."
+    },
+    {
+      "feature_id": "current_executable_owner_action_projection",
+      "correct_owner": "Derived MAS projection",
+      "target": "current_executable_owner_action displays OPL event plus MAS policy result only; it is not an authority selector.",
+      "status": "partial",
+      "completion_percent": 72,
+      "evidence": [
+        "Same-identity NonAdvancingApply and terminal closeout filters suppress stale executable owner action.",
+        "DM003 fresh readback after the v2 lane showed owner_receipt_recorded with current_executable_owner_action null."
+      ],
+      "open_gap": "Projection still needs long-tail live proof across other owner-answer families."
+    },
+    {
+      "feature_id": "paper_recovery_state_projection",
+      "correct_owner": "MAS semantic projection",
+      "target": "Paper recovery semantics remain MAS-owned, while materialization, admission, and fixed-point runtime are OPL-owned.",
+      "status": "partial",
+      "completion_percent": 68,
+      "evidence": [
+        "Paper recovery read models no longer suffice as provider admission.",
+        "MAS replay fixtures distinguish domain policy result from OPL runtime authority."
+      ],
+      "open_gap": "Remaining live materialization and closeout paths must prove OPL runtime-backed transitions."
+    },
+    {
+      "feature_id": "workbench_portal_projection",
+      "correct_owner": "OPL Console plus MAS domain projection",
+      "target": "Workbench/Portal display current owner, accepted answer shape, and evidence refs without becoming a second truth source.",
+      "status": "partial",
+      "completion_percent": 55,
+      "evidence": [
+        "Projection metadata and runtime inventory identify non-authority display surfaces."
+      ],
+      "open_gap": "Workbench/Portal still need event-driven rebuild proof from OPL transition event plus MAS policy result."
+    },
+    {
+      "feature_id": "legacy_private_surface_retirement",
+      "correct_owner": "MAS/OPL",
+      "target": "Delete or tombstone MAS private kernel, alias, selector/materializer authority, and local runtime-like surfaces.",
+      "status": "partial",
+      "completion_percent": 64,
+      "evidence": [
+        "MAS runtime-health local append API is retired.",
+        "Runtime surface inventory tracks remaining private surface tails."
+      ],
+      "open_gap": "Remaining carriers, selector/materializer authority, and no-active-caller scans still require closeout evidence."
+    },
+    {
+      "feature_id": "live_dm002_dm003_acceptance",
+      "correct_owner": "MAS/OPL runtime truth",
+      "target": "DM002 and DM003 must show fresh running proof, receipt, stable blocker, human gate, route-back, or semantic paper/gate/artifact delta.",
+      "status": "partial",
+      "completion_percent": 50,
+      "evidence": [
+        "Recent readbacks show DM002 stable typed blocker and DM003 owner receipt recorded after currentness fixes."
+      ],
+      "open_gap": "Fresh live paper semantic delta, route-back evidence, human gate, strict running proof, or OPL-readback-backed admission is still required; dry-run and projection cleanliness are not enough."
+    }
+  ],
+  "phase_audit": [
+    {
+      "phase_id": "lane_0_boundary_correction",
+      "status": "done",
+      "completion_percent": 100,
+      "evidence": [
+        "Planning and contract language now place generic transition runtime under OPL and leave MAS as policy adapter."
+      ],
+      "open_gap": "No boundary-correction gap remains for this phase; later phases still require executable evidence."
+    },
+    {
+      "phase_id": "lane_1_minimal_request_command_slice",
+      "status": "partial",
+      "completion_percent": 85,
+      "evidence": [
+        "MAS emits OPL transition request and OPL normalizes runtime commands in repo tests."
+      ],
+      "open_gap": "Fresh live request-command-outbox readback remains required."
+    },
+    {
+      "phase_id": "lane_2_durable_log_outbox",
+      "status": "partial",
+      "completion_percent": 72,
+      "evidence": [
+        "OPL runtime tests cover command/event/outbox append and readback."
+      ],
+      "open_gap": "DM002/DM003 live outbox and StageRun identity readback remains required."
+    },
+    {
+      "phase_id": "lane_3_fixed_point_reconciler",
+      "status": "partial",
+      "completion_percent": 62,
+      "evidence": [
+        "OPL fixed-point helper and MAS postcondition boundaries are covered by repo tests."
+      ],
+      "open_gap": "DHD apply exactly-one live outcome remains open."
+    },
+    {
+      "phase_id": "lane_4_replay_suite",
+      "status": "partial",
+      "completion_percent": 78,
+      "evidence": [
+        "DM002/DM003 replay fixtures cover representative historical failure traces."
+      ],
+      "open_gap": "Replay coverage still does not equal live paper-line acceptance."
+    },
+    {
+      "phase_id": "lane_5_projection_demotion",
+      "status": "partial",
+      "completion_percent": 66,
+      "evidence": [
+        "Projection metadata and runtime inventory demote several authority surfaces."
+      ],
+      "open_gap": "All downstream read models must be rebuilt from OPL event plus MAS policy result."
+    },
+    {
+      "phase_id": "lane_6_human_gate_read_model_rebuild",
+      "status": "partial",
+      "completion_percent": 55,
+      "evidence": [
+        "OPL tests cover human gate resume token semantics."
+      ],
+      "open_gap": "No fresh DM002/DM003 human-gate resume readback has closed the phase."
+    },
+    {
+      "phase_id": "lane_7_legacy_retirement",
+      "status": "partial",
+      "completion_percent": 64,
+      "evidence": [
+        "Runtime-health local append API is retired and inventory tracks remaining surfaces."
+      ],
+      "open_gap": "Remaining private runtime residue needs no-active-caller, tombstone, or physical deletion evidence."
+    },
+    {
+      "phase_id": "lane_8_live_paper_acceptance",
+      "status": "partial",
+      "completion_percent": 50,
+      "evidence": [
+        "Fresh readbacks have shown stable blocker/owner receipt states but not paper progress completion."
+      ],
+      "open_gap": "DM002/DM003 must each show an accepted live outcome family before full completion."
+    }
+  ],
+  "required_before_goal_complete": [
+    {
+      "gate_id": "live_dhd_apply_exactly_one_outcome",
+      "status": "open",
+      "required_evidence": "Fresh DHD apply, when explicitly delegated, must produce exactly one accepted live outcome family rather than projection refresh, observe_only, or dry-run evidence."
+    },
+    {
+      "gate_id": "opl_outbox_stagerun_identity_live_readback",
+      "status": "open",
+      "required_evidence": "Same-transition OPL command/event/outbox readback must include event_id, outbox_item_id, stage_run_identity, causality, authority boundary, and projection metadata."
+    },
+    {
+      "gate_id": "provider_admission_event_consumption",
+      "status": "open",
+      "required_evidence": "Provider admission must consume OPL transition event/outbox/StageRun identity and reject MAS projection residue or MAS self-signed admission."
+    },
+    {
+      "gate_id": "dm002_dm003_fresh_live_outcome",
+      "status": "open",
+      "required_evidence": "DM002 and DM003 must each have fresh live owner receipt, stable typed blocker, human gate, route-back evidence, strict running proof, or paper/gate/artifact semantic delta."
+    },
+    {
+      "gate_id": "no_private_runtime_residue_as_authority",
+      "status": "open",
+      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller."
+    }
+  ],
+  "forbidden_completion_interpretations": [
+    "docs_updated",
+    "contract_landed",
+    "focused_tests_passed",
+    "projection_clean",
+    "queue_empty",
+    "DHD_dry_run",
+    "provider_admission_pending_count=0",
+    "transition_request_pending_count=0",
+    "owner_resolution_preview",
+    "OPL_repo_slice_landed",
+    "refs_only_ledger",
+    "provider_completed",
+    "read_model_refreshed"
+  ],
+  "overall_status": "evidence_tail_open_not_complete",
+  "completion_claim_allowed": false,
+  "completion_claim_policy": {
+    "required_final_claim": "all_transition_runtime_gates_satisfied_with_current_repo_and_live_evidence",
+    "current_completion_status": "evidence_tail_open_not_complete",
+    "docs_or_contract_can_claim_complete": false,
+    "focused_tests_can_claim_complete": false,
+    "opl_repo_slice_can_claim_mas_live_complete": false,
+    "projection_clean_can_claim_complete": false,
+    "queue_empty_can_claim_complete": false,
+    "dhd_dry_run_can_claim_complete": false
+  },
+  "required_runtime_readback_sections": [
+    "identity",
+    "causality",
+    "authority_boundary",
+    "exactly_one_outcome",
+    "projection_metadata"
+  ],
+  "accepted_exactly_one_live_evidence_families": [
+    "strict_current_identity_running_proof",
+    "owner_receipt_ref",
+    "stable_typed_blocker_ref",
+    "human_gate_ref",
+    "route_back_evidence_ref",
+    "paper_gate_artifact_semantic_delta_ref"
+  ],
+  "gate_evidence_status": [
+    {
+      "gate_id": "lane_0_contract_and_taxonomy",
+      "target_role": "Define transition taxonomy, aggregate identity, projection metadata, fixed-point postcondition, and forbidden interpretations.",
+      "status": "satisfied_with_repo_evidence",
+      "required_evidence_refs": [
+        "docs/runtime/designs/paper_progress_transition_kernel_target.md",
+        "contracts/paper_autonomy_supervisor_contract.json",
+        "contracts/paper_progress_replay_live_evidence_status.json",
+        "tests/test_paper_progress_policy_adapter.py",
+        "tests/test_paper_progress_transition_replay_fixtures.py"
+      ],
+      "observed_refs": [
+        "docs/runtime/designs/paper_progress_transition_kernel_target.md#Transition-types",
+        "contracts/paper_autonomy_supervisor_contract.json#/supervisor_decision_taxonomy",
+        "contracts/paper_progress_replay_live_evidence_status.json#/projection_metadata_completion_gate",
+        "tests/test_paper_progress_policy_adapter.py::_assert_mas_adapter_authority_only",
+        "tests/test_paper_progress_transition_replay_fixtures.py::_assert_exactly_one_transition"
+      ],
+      "missing_evidence_tails": [],
+      "false_completion_boundary": [
+        "contract_landed",
+        "docs_updated",
+        "focused_tests_passed",
+        "projection_metadata_fields_present_without_live_readback"
+      ]
+    },
+    {
+      "gate_id": "lane_1_replay_fixtures",
+      "target_role": "Cover DM002/DM003 bad trajectories and converge each trace to exactly one transition or NonAdvancingApply.",
+      "status": "satisfied_with_repo_evidence",
+      "required_evidence_refs": [
+        "tests/test_paper_progress_transition_replay_fixtures.py",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage"
+      ],
+      "observed_refs": [
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/dm002_stable_typed_blocker",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/dm003_owner_action_request_without_opl_readback",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/owner_receipt_recorded_after_apply_does_not_advance",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/terminal_owner_receipt_closeout_transition_request_residue",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/closeout_stagerun_identity_split",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/dhd_request_without_opl_readback",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/human_gate_and_route_back_accepted_shapes"
+      ],
+      "missing_evidence_tails": [],
+      "false_completion_boundary": [
+        "replay_suite_green_as_live_progress",
+        "representative_trace_coverage_as_production_soak",
+        "provider_admission_pending_count_zero",
+        "recorded_only_owner_receipt_without_consumption_or_next_delta"
+      ]
+    },
+    {
+      "gate_id": "lane_2_opl_runtime_repo_readback_shape",
+      "target_role": "OPL owns command/event/outbox append, idempotency, StageRun identity, NonAdvancingApply, live readback, and read-model rebuild metadata.",
+      "status": "satisfied_with_opl_repo_evidence",
+      "required_evidence_refs": [
+        "external_repo:one-person-lab/src/family-runtime-domain-progress-transition-runtime.ts",
+        "external_repo:one-person-lab/src/family-runtime-domain-progress-transition-runtime-parts/live-readback.ts",
+        "external_repo:one-person-lab/tests/src/cli/cases/family-runtime-domain-progress-transition-runtime.test.ts"
+      ],
+      "observed_refs": [
+        "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7#src/family-runtime-domain-progress-transition-runtime.ts",
+        "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7#src/family-runtime-domain-progress-transition-runtime-parts/live-readback.ts",
+        "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7#tests/src/cli/cases/family-runtime-domain-progress-transition-runtime.test.ts::DomainProgressTransitionRuntime result and read model expose stable identity causality authority and outcome readback",
+        "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7#tests/src/cli/cases/family-runtime-domain-progress-transition-runtime.test.ts::DomainProgressTransitionRuntime live readback fail-closes outbox identity mismatch inside a physical transaction"
+      ],
+      "missing_evidence_tails": [
+        "MAS_same_transition_request_consumes_opl_runtime_live_readback_ref",
+        "provider_hosted_stage_attempt_live_readback_for_DM002_DM003_ref",
+        "terminal_closeout_side_effect_consumed_by_MAS_owner_answer_ref"
+      ],
+      "false_completion_boundary": [
+        "OPL_repo_tests_as_MAS_live_acceptance",
+        "command_event_log_present_without_MAS_identity_match",
+        "event_id_or_outbox_item_id_without_full_readback_shape",
+        "provider_completion_without_MAS_owner_acceptance"
+      ]
+    },
+    {
+      "gate_id": "lane_2_mas_policy_adapter_boundary",
+      "target_role": "MAS emits paper policy result and clean OPL transition request without owning provider admission, fixed-point, event log, outbox, or StageRun lifecycle.",
+      "status": "satisfied_with_repo_evidence",
+      "required_evidence_refs": [
+        "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
+        "tests/test_paper_progress_policy_adapter.py",
+        "contracts/paper_progress_replay_live_evidence_status.json#/projection_metadata_completion_gate"
+      ],
+      "observed_refs": [
+        "tests/test_paper_progress_policy_adapter.py::test_policy_adapter_emits_opl_transition_request_without_claiming_runtime_authority",
+        "tests/test_paper_progress_policy_adapter.py::test_policy_adapter_rejects_provider_admission_for_owner_callable_recovery",
+        "tests/test_paper_progress_policy_adapter.py::test_policy_adapter_projection_metadata_keeps_event_and_generation_diagnostic_only",
+        "contracts/paper_progress_replay_live_evidence_status.json#/projection_metadata_completion_gate"
+      ],
+      "missing_evidence_tails": [],
+      "false_completion_boundary": [
+        "paper_policy_result_as_provider_admission",
+        "transition_request_as_opl_event",
+        "transition_request_as_outbox_item",
+        "transition_request_as_stage_run_identity"
+      ]
+    },
+    {
+      "gate_id": "lane_3_opl_substrate_hardening_live_consumption",
+      "target_role": "Provider admission and DHD apply consume OPL live readback for the same transition, outbox item, and StageRun identity.",
+      "status": "evidence_required",
+      "required_evidence_refs": [
+        "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref",
+        "DHD_apply_exactly_one_live_outcome_ref",
+        "provider_admission_arbiter_consumes_opl_transition_event_ref",
+        "StageRun_identity_packet_currentness_ref"
+      ],
+      "observed_refs": [
+        "contracts/paper_progress_replay_live_evidence_status.json#/live_evidence_acceptance",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/default_executor_dispatch_request",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_owner_action_dispatch"
+      ],
+      "missing_evidence_tails": [
+        "OPL outbox and StageRun identity live readback for the same transition request",
+        "DHD apply exactly-one live outcome when explicitly delegated",
+        "provider admission arbiter fully consuming OPL transition events",
+        "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family"
+      ],
+      "false_completion_boundary": [
+        "DHD_dry_run",
+        "DHD_observe_only",
+        "provider_admission_pending_count=0",
+        "managed_study_opl_provider_admission_candidates=0",
+        "transition_request_pending_count=0",
+        "queue_empty",
+        "projection_clean",
+        "read_model_refreshed"
+      ]
+    },
+    {
+      "gate_id": "lane_4_projection_demotion_and_physical_retirement",
+      "target_role": "Read models carry authority=false metadata, old selector/materializer/alias surfaces no longer own transitions, and remaining tails have retirement gates.",
+      "status": "evidence_required",
+      "required_evidence_refs": [
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+        "tests/test_adapter_retirement_boundary.py",
+        "no_active_caller_scan_ref",
+        "replacement_parity_ref",
+        "tombstone_or_provenance_ref",
+        "owner_receipt_or_stable_typed_blocker_ref"
+      ],
+      "observed_refs": [
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_action_request_materializer_request_tasks_projection",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_owner_action_dispatch",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_health_diagnostic_obligation_actuator",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_health_kernel",
+        "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory"
+      ],
+      "missing_evidence_tails": [
+        "domain_authority_refs_index_active_caller_migration_ref",
+        "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
+        "domain_owner_action_dispatch_live_opl_authorization_for_every_active_caller_ref",
+        "legacy_default_executor_carrier_physical_delete_ref"
+      ],
+      "false_completion_boundary": [
+        "inventory_entry_updated",
+        "current_disposition_demoted_without_no_active_caller",
+        "legacy_carrier_retained_as_provenance",
+        "focused_tests_green",
+        "line_budget_advisory_only"
+      ]
+    },
+    {
+      "gate_id": "lane_5_live_paper_line_acceptance",
+      "target_role": "DM002/DM003 live paper lines show exactly one allowed outcome family with fresh study_progress, DHD readback, OPL readback when applicable, and MAS owner evidence.",
+      "status": "evidence_required",
+      "required_evidence_refs": [
+        "fresh_DM002_study_progress_ref",
+        "fresh_DM003_study_progress_ref",
+        "fresh_DHD_readback_or_delegated_apply_ref",
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref",
+        "OPL_current_control_or_StageRun_readback_ref_when_provider_claim_exists"
+      ],
+      "observed_refs": [
+        "contracts/paper_progress_replay_live_evidence_status.json#/live_evidence_acceptance",
+        "contracts/paper_progress_replay_live_evidence_status.json#/remaining_evidence_tails"
+      ],
+      "missing_evidence_tails": [
+        "DM002 fresh live paper-line outcome per allowed exactly-one family",
+        "DM003 fresh live paper-line outcome per allowed exactly-one family",
+        "fresh OPL current-control or StageRun readback for any active provider claim",
+        "fresh MAS owner evidence after transition runtime consumption"
+      ],
+      "false_completion_boundary": [
+        "repo_tests",
+        "contract_landed",
+        "docs_updated",
+        "OPL_repo_slice_landed",
+        "DHD_dry_run",
+        "provider_completed_without_mas_closeout_consumption",
+        "active_run_id_present_without_same_identity_running_proof"
+      ]
+    }
+  ],
+  "rejected_completion_claims": [
+    "contract_landed",
+    "docs_updated",
+    "focused_tests_passed",
+    "make_test_meta_passed",
+    "scripts_verify_passed",
+    "OPL_repo_slice_landed",
+    "DHD_dry_run",
+    "DHD_observe_only",
+    "queue_empty",
+    "provider_completed",
+    "provider_admission_pending_count=0",
+    "transition_request_pending_count=0",
+    "projection_clean",
+    "read_model_refreshed",
+    "refs_only_ledger",
+    "command_event_log_present",
+    "event_id_present_without_full_readback",
+    "outbox_item_id_present_without_full_readback",
+    "StageRun_identity_present_without_currentness_match"
+  ],
+  "open_evidence_tails": [
+    "OPL outbox and StageRun identity live readback for the same transition request",
+    "DHD apply exactly-one live outcome when explicitly delegated",
+    "provider admission arbiter fully consuming OPL transition events",
+    "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
+    "domain_authority_refs_index active-caller migration or OPL StateIndexKernel takeover proof",
+    "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
+    "domain_owner_action_dispatch live OPL authorization coverage for every active caller",
+    "legacy default-executor carrier physical delete proof"
+  ],
+  "non_claims": {
+    "all_mas_private_surfaces_physically_retired": false,
+    "domain_progress_transition_runtime_live_complete": false,
+    "dhd_apply_runtime_ready": false,
+    "provider_admission_ready": false,
+    "dm002_dm003_live_paper_progress": false,
+    "paper_closure": false,
+    "publication_ready": false,
+    "submission_ready": false,
+    "current_package_fresh": false,
+    "production_ready": false
+  },
+  "verification_refs": [
+    "tests/test_paper_progress_transition_runtime_completion_audit.py",
+    "tests/test_paper_progress_transition_replay_fixtures.py",
+    "tests/test_paper_progress_policy_adapter.py",
+    "tests/test_adapter_retirement_boundary.py",
+    "contracts/paper_progress_replay_live_evidence_status.json",
+    "contracts/runtime/mas-runtime-surface-retirement-inventory.json"
+  ]
+}

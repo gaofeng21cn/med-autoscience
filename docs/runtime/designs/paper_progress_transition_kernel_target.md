@@ -20,6 +20,8 @@ DHD `obligation_actuator` 现在只作为 MAS policy / owner-answer readback 和
 
 2026-06-17 MAS adapter 消费面补齐：`PaperProgressPolicyAdapter` 现在显式覆盖 owner receipt、typed blocker、publication gate / paper delta、forbidden write、human gate / route-back 和 `NonAdvancingApply` 结果形状，并把 clean `opl_domain_progress_transition_request` 保持为 MAS domain policy request；request 不携带 OPL runtime artifact 字段，authority boundary 继续声明 MAS 不能 authorize provider admission、event log、outbox、StageRun 或 fixed-point runtime。该状态由 `tests/test_paper_progress_policy_adapter.py` 与 replay fixture focused tests 证明；它仍不是 live DHD apply 前进、provider running proof 或 paper-line completion claim。
 
+2026-06-18 completion audit foldback：`contracts/paper_progress_transition_runtime_completion_audit.json` 固定原 PaperProgressTransitionKernel 功能全集的当前完成度、开放 gate 和禁止完成解释。当前状态仍是 `partial`：OPL runtime slice、MAS adapter consumption、replay/projection demotion、terminal closeout currentness、provider-hosted stale admission recovery 和 MAS runtime-health local append API 退役已经落地，但 full target 还需要 fresh DHD apply exactly-one outcome、OPL outbox / StageRun identity live readback、provider admission event consumption、DM002 / DM003 fresh live paper-line outcome，以及剩余 legacy/private runtime residue 的 no-authority closeout。该 audit 是完成度护栏，不是完成证据。
+
 ## 目标判断
 
 DM002 / DM003 最近一个月反复暴露的 currentness、owner-route、owner receipt、provider admission 和 supervision 修复，不是因为 MAS 缺少又一个私有控制模块，而是因为 OPL 尚未把“domain agent 的 current owner delta 如何事务化前进”做成一等通用基座。论文推进状态机因此被拆散在多个 projection / selector / arbiter / actuator 中：`current_work_unit`、`paper_recovery_state`、`current_executable_owner_action`、DHD provider admission、OPL current-control、Paper Autonomy Supervisor 和 read-model projection 都可能重新解释同一个 owner receipt、typed blocker、closeout 或 queue residue。
