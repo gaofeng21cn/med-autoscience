@@ -259,12 +259,12 @@ def test_materialize_domain_action_requests_routes_bound_stage_native_write_afte
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "run_quality_repair_batch"
     assert dispatch["next_executable_owner"] == "write"
-    source_action = dispatch["source_action"]
+    source_action = dispatch["source_action_ref"]
     assert source_action["authority"] == "stage_native_workspace_next_action"
     assert source_action["stage_native_next_action_admission"]["default_dispatch_allowed"] is True
     assert source_action["current_work_unit_binding"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == "medical_publication_surface_blocked_write_repair"
-    assert dispatch["owner_route"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == "medical_publication_surface_blocked_write_repair"
+    assert dispatch["owner_route_ref"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
     assert any(
         item["action_type"] == "complete_medical_paper_readiness_surface"
         and item["reason"] == "superseded_by_readiness_blocker_derived_repair"
@@ -367,12 +367,12 @@ def test_materialize_domain_action_requests_routes_stage_native_write_when_curre
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "write"
-    source_action = dispatch["source_action"]
+    source_action = dispatch["source_action_ref"]
     assert source_action["authority"] == "stage_native_workspace_next_action"
     assert source_action["stage_native_next_action_admission"]["default_dispatch_allowed"] is True
     assert source_action["current_work_unit_binding"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
-    assert dispatch["owner_route"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == work_unit_id
+    assert dispatch["owner_route_ref"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
 
 
 def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_authority_boundary(
@@ -510,11 +510,11 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
     assert dispatch["authority_boundary"]["mas_can_authorize_provider_admission"] is False
     assert dispatch["authority_boundary"]["mas_can_create_opl_outbox_record"] is False
     assert (
-        dispatch["stage_transition_authority_boundary"]["stage_transition_authority"]
+        dispatch["stage_transition_authority_boundary_ref"]["stage_transition_authority"]
         == "one-person-lab"
     )
     assert (
-        dispatch["stage_transition_authority_boundary"][
+        dispatch["stage_transition_authority_boundary_ref"][
             "provider_completion_counts_as_stage_transition"
         ]
         is False

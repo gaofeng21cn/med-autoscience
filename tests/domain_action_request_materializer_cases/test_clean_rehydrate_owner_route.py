@@ -492,8 +492,8 @@ def test_materialize_domain_action_requests_prefers_current_study_queue_over_sta
     assert result["domain_progress_transition_request_count"] == 1
     assert dispatch["action_type"] == "canonical_paper_inputs_rehydrate_required"
     assert dispatch["next_executable_owner"] == "write"
-    assert dispatch["owner_route"]["next_owner"] == "write"
-    assert dispatch["owner_route"]["work_unit_fingerprint"] == current_route["source_fingerprint"]
+    assert dispatch["owner_route_ref"]["next_owner"] == "write"
+    assert dispatch["owner_route_ref"]["work_unit_fingerprint"] == current_route["source_fingerprint"]
     assert dispatch["required_output_surface"].endswith("paper/medical_manuscript_blueprint_source.json")
     assert not (
         study_root

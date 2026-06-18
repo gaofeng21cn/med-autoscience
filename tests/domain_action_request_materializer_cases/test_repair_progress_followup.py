@@ -165,12 +165,12 @@ def test_materialize_domain_action_requests_prefers_fresh_repair_followup_withou
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
-    assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == (
         "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     )
-    assert dispatch["source_action"]["authority"] == "study_progress.current_executable_owner_action"
-    assert dispatch["source_action"]["source_surface"] == "study_progress.current_executable_owner_action"
+    assert dispatch["source_action_ref"]["authority"] == "study_progress.current_executable_owner_action"
+    assert dispatch["source_action_ref"]["source_surface"] == "study_progress.current_executable_owner_action"
     assert {
         item["action_type"]: item["reason"]
         for item in result["ignored_actions"]
@@ -297,7 +297,7 @@ def test_materialize_domain_action_requests_allows_repair_followup_when_readines
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
-    assert dispatch["source_action"]["current_action_source"] == (
+    assert dispatch["source_action_ref"]["current_action_source"] == (
         "repair_progress_projection.mas_owner_repair_execution_evidence"
     )
     assert {
@@ -422,7 +422,7 @@ def test_materialize_domain_action_requests_prefers_repair_followup_over_provide
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
-    assert dispatch["source_action"]["current_action_source"] == (
+    assert dispatch["source_action_ref"]["current_action_source"] == (
         "repair_progress_projection.mas_owner_repair_execution_evidence"
     )
     assert {
@@ -553,12 +553,12 @@ def test_materialize_domain_action_requests_does_not_bridge_repair_followup_to_o
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
-    assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
-    assert dispatch["source_action"]["current_action_source"] == (
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert dispatch["source_action_ref"]["current_action_source"] == (
         "repair_progress_projection.mas_owner_repair_execution_evidence"
     )
-    assert dispatch["source_action"]["reason"] == "ai_reviewer_record_stale_after_current_inputs"
-    assert dispatch["source_action"]["next_work_unit"] == (
+    assert dispatch["source_action_ref"]["reason"] == "ai_reviewer_record_stale_after_current_inputs"
+    assert dispatch["source_action_ref"]["next_work_unit"] == (
         "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     )
 
@@ -720,11 +720,11 @@ def test_materialize_domain_action_requests_prefers_repair_followup_over_stale_a
     assert dispatch["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
-    assert dispatch["source_action"]["source_surface"] == "study_progress.current_executable_owner_action"
-    assert dispatch["source_action"]["next_work_unit"] == work_unit_id
-    assert dispatch["source_action"]["controller_work_unit_id"] == work_unit_id
-    assert dispatch["source_action"]["reason"] == "ai_reviewer_record_stale_after_current_inputs"
-    assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert dispatch["source_action_ref"]["source_surface"] == "study_progress.current_executable_owner_action"
+    assert dispatch["source_action_ref"]["next_work_unit"] == work_unit_id
+    assert dispatch["source_action_ref"]["controller_work_unit_id"] == work_unit_id
+    assert dispatch["source_action_ref"]["reason"] == "ai_reviewer_record_stale_after_current_inputs"
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
 
 
 def test_materialize_domain_action_requests_prefers_terminal_next_forced_write_over_old_ai_reviewer_currentness(
@@ -857,12 +857,12 @@ def test_materialize_domain_action_requests_prefers_terminal_next_forced_write_o
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "write"
-    assert dispatch["source_action"]["source_surface"] == "study_progress.current_executable_owner_action"
-    assert dispatch["source_action"]["current_action_source"] == "study_progress.next_forced_delta.owner_action"
-    assert dispatch["source_action"]["work_unit_id"] == write_work_unit_id
-    assert dispatch["source_action"]["work_unit_fingerprint"] == write_fingerprint
-    assert dispatch["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == write_work_unit_id
+    assert dispatch["source_action_ref"]["source_surface"] == "study_progress.current_executable_owner_action"
+    assert dispatch["source_action_ref"]["current_action_source"] == "study_progress.next_forced_delta.owner_action"
+    assert dispatch["source_action_ref"]["work_unit_id"] == write_work_unit_id
+    assert dispatch["source_action_ref"]["work_unit_fingerprint"] == write_fingerprint
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["run_quality_repair_batch"]
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == write_work_unit_id
     assert {
         item["action_type"]: item["reason"]
         for item in result["ignored_actions"]

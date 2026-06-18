@@ -389,6 +389,85 @@
     },
     {
       "active_caller_migrated": true,
+      "canonical_surface": "domain_progress_transition_requests",
+      "compatibility_alias_allowed": false,
+      "current_disposition": "canonical_transition_request_projection_body_retired",
+      "forbidden_claims": [
+        "domain_progress_transition_requests_as_outbox",
+        "domain_progress_transition_requests_as_command",
+        "domain_progress_transition_requests_as_event",
+        "domain_progress_transition_requests_as_stage_run",
+        "domain_progress_transition_requests_as_provider_admission",
+        "domain_progress_transition_requests_as_next_action_authority",
+        "domain_progress_transition_requests_as_executable_handoff_body",
+        "mas_owned_generic_runtime",
+        "mas_owned_queue",
+        "mas_owned_attempt_ledger",
+        "mas_owned_retry_dead_letter",
+        "provider_completion_as_domain_ready"
+      ],
+      "generic_runtime_owner": "one-person-lab",
+      "mas_owner_claim_allowed": false,
+      "projection_boundary": {
+        "body_authority": false,
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "payload_scope": "identity_refs_and_contract_metadata_only",
+        "transition_request_projection_body_authority": false,
+        "transition_request_projection_body_omitted": true,
+        "source_action_body_omitted": true,
+        "owner_route_body_omitted": true,
+        "prompt_contract_body_omitted": true,
+        "domain_intent_body_omitted": true,
+        "stage_transition_authority_boundary_body_omitted": true,
+        "progress_first_closeout_admission_body_omitted": true,
+        "operator_payload_body_omitted": true,
+        "payload_authoring_target_body_omitted": true,
+        "record_production_satisfaction_body_omitted": true,
+        "owner_route_attempt_envelope_body_omitted": true,
+        "legacy_owner_callable_adapter_body_omitted": true,
+        "allowed_ref_fields": [
+          "domain_intent_ref",
+          "owner_route_attempt_envelope_ref",
+          "owner_route_ref",
+          "progress_first_closeout_admission_ref",
+          "prompt_contract_ref",
+          "record_production_satisfaction_ref",
+          "source_action_ref",
+          "stage_transition_authority_boundary_ref"
+        ],
+        "omitted_body_fields": [
+          "domain_intent",
+          "operator_payload",
+          "owner_route",
+          "owner_route_attempt_envelope",
+          "payload_authoring_target",
+          "progress_first_closeout_admission",
+          "prompt_contract",
+          "record_production_satisfaction",
+          "source_action",
+          "stage_transition_authority_boundary"
+        ]
+      },
+      "replacement_surface": "OPL DomainProgressTransitionRuntime command/event/outbox/StageRun readback plus MAS refs-only policy request projection",
+      "retained_mas_role": "identity_refs_and_contract_metadata_projection_only",
+      "retention_reason": "MAS may publish a policy request projection for OPL intake, but executable body, command/event/outbox, attempt lifecycle and StageRun authority remain OPL-owned",
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": false,
+        "no_forbidden_write_proof_required": true,
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
+      },
+      "surface_id": "domain_action_request_materializer_canonical_transition_request_body_projection",
+      "verified_by": [
+        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
+        "tests/test_domain_action_request_materializer.py",
+        "tests/domain_action_request_materializer_cases"
+      ]
+    },
+    {
+      "active_caller_migrated": true,
       "canonical_first_readers": [
         "domain_health_diagnostic_parts.provider_admission.persisted_provider_admission_candidates",
         "owner_route_handoff_parts.export_study_projection._current_provider_handoff_execution",

@@ -122,9 +122,9 @@ def test_materializer_dispatches_paper_recovery_owner_callable_for_current_typed
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "complete_medical_paper_readiness_surface"
     assert dispatch["next_executable_owner"] == "MedAutoScience"
-    assert dispatch["owner_route"]["work_unit_fingerprint"] == fingerprint
-    assert dispatch["source_action"]["authority"] == "paper_recovery_state"
-    assert dispatch["source_action"]["reason"] == "medical_paper_readiness_missing"
+    assert dispatch["owner_route_ref"]["work_unit_fingerprint"] == fingerprint
+    assert dispatch["source_action_ref"]["authority"] == "paper_recovery_state"
+    assert dispatch["source_action_ref"]["reason"] == "medical_paper_readiness_missing"
     assert not (
         study_root
         / "artifacts"
@@ -204,41 +204,35 @@ def test_materializer_dispatches_fresh_paper_recovery_owner_callable_without_sca
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "run_gate_clearing_batch"
     assert dispatch["next_executable_owner"] == "publication_gate"
-    assert dispatch["source_action"]["authority"] == "paper_recovery_state"
-    assert dispatch["source_action"]["supervisor_decision"]["decision"] == (
-        "materialize_recovery_action"
-    )
-    assert dispatch["source_action"]["supervisor_decision_ref"].startswith(
+    assert dispatch["source_action_ref"]["authority"] == "paper_recovery_state"
+    assert "supervisor_decision" not in dispatch["source_action_ref"]
+    assert dispatch["source_action_ref"]["supervisor_decision_ref"].startswith(
         "supervisor-decision::materialize_recovery_action::"
     )
-    assert dispatch["owner_route"]["source_refs"]["bridge_authority"] == (
+    assert dispatch["owner_route_ref"]["source_refs"]["bridge_authority"] == (
         "domain_action_request_materializer_paper_recovery_owner_callable"
     )
-    assert dispatch["owner_route"]["source_refs"]["supervisor_decision_ref"] == (
-        dispatch["source_action"]["supervisor_decision_ref"]
+    assert dispatch["owner_route_ref"]["source_refs"]["supervisor_decision_ref"] == (
+        dispatch["source_action_ref"]["supervisor_decision_ref"]
     )
-    assert dispatch["source_action"]["supervisor_policy_projection"] == (
+    assert dispatch["source_action_ref"]["supervisor_policy_projection"] == (
         "paper_autonomy_supervisor_policy_projection"
     )
-    assert dispatch["source_action"]["supervisor_authority"] == (
+    assert dispatch["source_action_ref"]["supervisor_authority"] == (
         "paper_autonomy_supervisor_policy_projection"
     )
-    assert dispatch["source_action"]["supervisor_authority_boundary"] == (
+    assert dispatch["source_action_ref"]["supervisor_authority_boundary"] == (
         "policy_projection_requires_opl_readback"
     )
-    boundary = dispatch["source_action"]["supervisor_policy_projection_boundary"]
+    boundary = dispatch["source_action_ref"]["supervisor_policy_projection_boundary"]
     assert boundary["decision_field_role"] == "policy_recommendation_label"
     assert boundary["decision_field_is_authority"] is False
     assert boundary["mas_can_authorize_provider_admission"] is False
     assert boundary["mas_can_run_supervisor_decision_engine"] is False
     assert boundary["mas_can_store_recovery_obligation"] is False
     assert boundary["requires_opl_supervisor_decision_engine_readback"] is True
-    handoff = dispatch["source_action"]["handoff_packet"]
-    assert handoff["supervisor_policy_projection"] == (
-        "paper_autonomy_supervisor_policy_projection"
-    )
-    assert handoff["supervisor_policy_projection_boundary"] == boundary
-    assert "supervisor_authority" not in dispatch["owner_route"]["source_refs"]
+    assert "handoff_packet" not in dispatch["source_action_ref"]
+    assert "supervisor_authority" not in dispatch["owner_route_ref"]["source_refs"]
     assert dispatch["action_fingerprint"] == fingerprint
 
 
@@ -344,15 +338,16 @@ def test_materializer_dispatches_identity_different_paper_recovery_successor_act
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["work_unit_id"] == "medical_prose_write_repair"
     assert dispatch["work_unit_fingerprint"] == successor_fingerprint
-    assert dispatch["source_action"]["authority"] == "paper_recovery_state"
-    assert dispatch["source_action"]["reason"] == "publication_gate_replay_blocked"
-    assert dispatch["source_action"]["supervisor_decision"]["decision"] == (
-        "materialize_recovery_action"
+    assert dispatch["source_action_ref"]["authority"] == "paper_recovery_state"
+    assert dispatch["source_action_ref"]["reason"] == "publication_gate_replay_blocked"
+    assert "supervisor_decision" not in dispatch["source_action_ref"]
+    assert dispatch["source_action_ref"]["supervisor_decision_ref"].startswith(
+        "supervisor-decision::materialize_recovery_action::"
     )
-    assert dispatch["owner_route"]["source_refs"]["predecessor_work_unit_id"] == (
+    assert dispatch["owner_route_ref"]["source_refs"]["predecessor_work_unit_id"] == (
         "publication_gate_replay"
     )
-    assert dispatch["owner_route"]["source_refs"]["predecessor_work_unit_fingerprint"] == (
+    assert dispatch["owner_route_ref"]["source_refs"]["predecessor_work_unit_fingerprint"] == (
         gate_fingerprint
     )
 
@@ -537,10 +532,10 @@ def test_materializer_prefers_fresh_paper_recovery_successor_over_stale_scan_sta
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
     assert dispatch["work_unit_id"] == "publication_gate_replay"
     assert dispatch["work_unit_fingerprint"] == gate_fingerprint
-    assert dispatch["source_action"]["source_ref"] != (
+    assert dispatch["source_action_ref"]["source_ref"] != (
         "supervisor-decision::materialize_recovery_action::stale-scan"
     )
-    assert dispatch["owner_route"]["source_refs"]["successor_source_surface"] == (
+    assert dispatch["owner_route_ref"]["source_refs"]["successor_source_surface"] == (
         "repair_progress_projection.mas_owner_repair_execution_evidence"
     )
 
@@ -719,7 +714,7 @@ def test_materializer_prefers_fresh_progress_owner_action_over_stale_scan_paper_
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["work_unit_id"] == "medical_prose_write_repair"
     assert dispatch["work_unit_fingerprint"] == repair_fingerprint
-    assert dispatch["source_action"]["authority"] == "study_progress.current_executable_owner_action"
+    assert dispatch["source_action_ref"]["authority"] == "study_progress.current_executable_owner_action"
     assert any(
         item["action_type"] == "run_gate_clearing_batch"
         and item["reason"] == "superseded_by_fresh_study_progress_current_owner_ticket"
@@ -1004,18 +999,18 @@ def test_materializer_turns_dm002_anti_loop_owner_gate_into_publishability_repai
     assert dispatch["work_unit_id"] == "publishability_repair_sprint"
     assert dispatch["work_unit_fingerprint"] == repair_fingerprint
     assert dispatch["action_fingerprint"] == repair_fingerprint
-    assert dispatch["source_action"]["authority"] == "paper_recovery_state"
-    assert dispatch["source_action"]["required_delta_kind"] == (
+    assert dispatch["source_action_ref"]["authority"] == "paper_recovery_state"
+    assert dispatch["source_action_ref"]["required_delta_kind"] == (
         "publishability_repair_sprint_or_single_typed_blocker_or_human_or_operator_gate"
     )
-    assert dispatch["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
-    assert dispatch["owner_route"]["source_refs"]["bridge_authority"] == (
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["run_quality_repair_batch"]
+    assert dispatch["owner_route_ref"]["source_refs"]["bridge_authority"] == (
         "domain_action_request_materializer_paper_recovery_owner_callable"
     )
-    assert dispatch["owner_route"]["source_refs"]["predecessor_action_type"] == (
+    assert dispatch["owner_route_ref"]["source_refs"]["predecessor_action_type"] == (
         "run_gate_clearing_batch"
     )
-    assert dispatch["owner_route"]["source_refs"]["predecessor_work_unit_id"] == (
+    assert dispatch["owner_route_ref"]["source_refs"]["predecessor_work_unit_id"] == (
         "ai_reviewer_record_gate_consumption"
     )
 

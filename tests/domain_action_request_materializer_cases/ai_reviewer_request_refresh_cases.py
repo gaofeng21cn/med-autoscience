@@ -329,18 +329,18 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
     assert dispatch["action_type"] == "run_gate_clearing_batch"
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
     assert dispatch["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
-    assert dispatch["owner_route"]["allowed_actions"] == ["run_gate_clearing_batch"]
-    source_refs = dispatch["owner_route"]["source_refs"]
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["run_gate_clearing_batch"]
+    source_refs = dispatch["owner_route_ref"]["source_refs"]
     assert source_refs["work_unit_id"] == work_unit_id
     assert source_refs["materialized_work_unit_id"] == "publication_gate_replay"
     assert source_refs["materialized_from_action_type"] == "run_quality_repair_batch"
     assert source_refs["bridge_authority"] == "domain_action_request_materializer_publication_owner_bridge"
     assert source_refs["bridged_from_owner_reason"] == "quest_waiting_opl_runtime_owner_route"
     assert source_refs["bridged_from_idempotency_key"] == route["idempotency_key"]
-    assert dispatch["source_action"]["controller_work_unit_id"] == work_unit_id
-    assert dispatch["source_action"]["materialization_decision"] == "publication_gate_replay"
-    assert dispatch["source_action"]["reviewer_record_ref"] == str(record_path.resolve())
-    assert dispatch["source_action"]["story_surface_delta_refs"] == [
+    assert dispatch["source_action_ref"]["controller_work_unit_id"] == work_unit_id
+    assert dispatch["source_action_ref"]["materialization_decision"] == "publication_gate_replay"
+    assert dispatch["source_action_ref"]["reviewer_record_ref"] == str(record_path.resolve())
+    assert dispatch["source_action_ref"]["story_surface_delta_refs"] == [
         str(manuscript_path.resolve()),
         str(review_manuscript_path.resolve()),
     ]
@@ -430,5 +430,5 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_missing_current
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
     assert request["request_owner"] == "ai_reviewer"
     assert request["reason"] == "ai_reviewer_record_stale_after_current_manuscript"
-    assert dispatch["source_action"]["materialization_decision"] == "ai_reviewer_currentness_required"
-    assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert dispatch["source_action_ref"]["materialization_decision"] == "ai_reviewer_currentness_required"
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]

@@ -113,7 +113,7 @@ def test_default_executor_dispatch_materializes_runtime_completion_as_transport_
     )
     assert not dispatch_path.exists()
     dispatch = result["domain_progress_transition_requests"][0]
-    envelope = dispatch["owner_route_attempt_envelope"]
+    envelope = dispatch["owner_route_attempt_envelope_ref"]
     assert dispatch["surface"] == "mas_domain_progress_transition_request_projection"
     assert dispatch["legacy_surface"] == "default_executor_dispatch_request"
     assert dispatch["dispatch_status"] == "transition_request_pending"
@@ -140,11 +140,11 @@ def test_default_executor_dispatch_materializes_runtime_completion_as_transport_
         "owner_receipt",
         "typed_blocker",
     ]
-    assert envelope["runtime_completion_guard"]["provider_completion_is_domain_completion"] is False
-    assert envelope["runtime_completion_guard"]["provider_completion_is_stage_state"] is False
-    assert envelope["runtime_completion_guard"]["running_worker_is_stage_state"] is False
-    assert envelope["runtime_completion_guard"]["queue_succeeded_is_domain_completion"] is False
-    assert envelope["runtime_completion_guard"]["retry_budget_is_domain_completion"] is False
+    assert envelope["runtime_completion_guard_ref"]["provider_completion_is_domain_completion"] is False
+    assert envelope["runtime_completion_guard_ref"]["provider_completion_is_stage_state"] is False
+    assert envelope["runtime_completion_guard_ref"]["running_worker_is_stage_state"] is False
+    assert envelope["runtime_completion_guard_ref"]["queue_succeeded_is_domain_completion"] is False
+    assert envelope["runtime_completion_guard_ref"]["retry_budget_is_domain_completion"] is False
     assert "domain_completion" not in dispatch
     assert "stage_state" not in dispatch
     assert dispatch["source_action_runtime_completion_fields_omitted"] == [
@@ -153,7 +153,7 @@ def test_default_executor_dispatch_materializes_runtime_completion_as_transport_
         "retry_budget_remaining",
         "running_worker",
     ]
-    assert "provider_completion" not in dispatch["source_action"]
-    assert "queue_status" not in dispatch["source_action"]
-    assert "retry_budget_remaining" not in dispatch["source_action"]
-    assert "running_worker" not in dispatch["source_action"]
+    assert "provider_completion" not in dispatch["source_action_ref"]
+    assert "queue_status" not in dispatch["source_action_ref"]
+    assert "retry_budget_remaining" not in dispatch["source_action_ref"]
+    assert "running_worker" not in dispatch["source_action_ref"]

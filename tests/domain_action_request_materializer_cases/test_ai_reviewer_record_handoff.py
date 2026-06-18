@@ -129,19 +129,18 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
     assert dispatch["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
-    assert dispatch["prompt_contract_ref"]["owner_callable_command"].endswith("--build-production-trace")
+    assert dispatch["prompt_contract_ref"]["owner_callable_command_ref"].endswith("--build-production-trace")
     assert dispatch["prompt_contract_ref"]["owner_callable_payload_ref"].endswith(
         "record_production_payloads/return_to_ai_reviewer_workflow_payload.json"
     )
     prompt_forbidden_surfaces = set(dispatch["prompt_contract_ref"]["forbidden_surfaces"])
     for surface in owner_forbidden_surfaces:
         assert surface in prompt_forbidden_surfaces
-    assert dispatch_contract.prompt_contract_error(
-        dispatch["prompt_contract_ref"],
-        forbidden_surfaces=module.FORBIDDEN_SURFACES,
-    ) is None
-    assert dispatch["source_action"]["record_only_surface"] is True
-    assert dispatch["source_action"]["publication_eval_latest_write_allowed"] is False
+    assert dispatch["prompt_contract_ref"]["payload_body_omitted"] is True
+    assert dispatch["prompt_contract_body_omitted"] is True
+    assert "prompt_contract" not in dispatch
+    assert dispatch["source_action_ref"]["record_only_surface"] is True
+    assert dispatch["source_action_ref"]["publication_eval_latest_write_allowed"] is False
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert result["mas_local_request_packet_persistence"] == "forbidden"
     assert result["opl_transition_runtime_required_for_durable_carrier"] is True
@@ -304,7 +303,7 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
     assert dispatch["repeat_suppression"]["suppression_source"] == (
         "ai_reviewer_record_production_output_satisfied"
     )
-    assert dispatch["record_production_satisfaction"]["record_ref"].endswith(
+    assert dispatch["record_production_satisfaction_ref"]["record_ref"].endswith(
         "20260605T045553Z_publication_eval_record.json"
     )
     assert result["ready_domain_progress_transition_request_count"] == 0
@@ -314,4 +313,4 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
     assert "record_production_satisfaction" not in persisted
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert result["written_files"] == []
-    assert dispatch["record_production_satisfaction"]["eval_id"] == eval_id
+    assert dispatch["record_production_satisfaction_ref"]["eval_id"] == eval_id

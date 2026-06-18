@@ -177,5 +177,25 @@ def test_canonical_transition_request_projection_carries_dispatcher_boundary_fie
     assert request["owner_callable_adapter_readiness_authority"] is False
     assert request["owner_callable_adapter_can_create_success_outcome"] is False
     assert request["mas_private_attempt_loop_forbidden"] is True
-    assert request["prompt_contract"] == dispatch["prompt_contract"]
-    assert request["prompt_contract_ref"] == dispatch["prompt_contract"]
+    omitted_body_fields = {
+        "domain_intent",
+        "operator_payload",
+        "owner_route",
+        "owner_route_attempt_envelope",
+        "payload_authoring_target",
+        "progress_first_closeout_admission",
+        "prompt_contract",
+        "record_production_satisfaction",
+        "source_action",
+        "stage_transition_authority_boundary",
+    }
+    assert set(request["omitted_body_fields"]) == omitted_body_fields
+    assert omitted_body_fields.isdisjoint(request)
+    assert request["transition_request_payload_scope"] == "identity_refs_and_contract_metadata_only"
+    assert request["prompt_contract_body_omitted"] is True
+    assert request["transition_request_projection_body_omitted"] is True
+    assert request["transition_request_projection_body_authority"] is False
+    assert request["prompt_contract_ref"]["payload_body_omitted"] is True
+    assert request["prompt_contract_ref"]["compact_evidence_packet_ref"] == "packet://evidence"
+    assert request["prompt_contract_ref"]["forbidden_surfaces"] == ["paper/**"]
+    assert "prompt_budget" not in request["prompt_contract_ref"]

@@ -169,18 +169,18 @@ def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surf
 
     request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
-    source_refs = dispatch["owner_route"]["source_refs"]
+    source_refs = dispatch["owner_route_ref"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
     assert request["request_owner"] == "write"
     assert request["reason"] == "manuscript_story_surface_delta_missing"
     assert dispatch["dispatch_status"] == "transition_request_pending"
-    assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route_ref"]["owner_reason"] == "manuscript_story_surface_delta_missing"
     assert source_refs["bridge_authority"] == "domain_action_request_materializer_story_surface_bridge"
     assert source_refs["bridged_from_owner_reason"] == "quest_waiting_opl_runtime_owner_route"
     assert source_refs["bridged_from_idempotency_key"] == route["idempotency_key"]
     assert source_refs["work_unit_id"] == work_unit_id
     assert source_refs["materialized_work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
-    assert dispatch["source_action"]["materialization_decision"] == "story_surface_delta_or_typed_blocker_required"
+    assert dispatch["source_action_ref"]["materialization_decision"] == "story_surface_delta_or_typed_blocker_required"
 
 
 def test_ai_reviewer_record_production_work_unit_consumes_current_record_before_redrive(
@@ -297,13 +297,13 @@ def test_ai_reviewer_record_production_work_unit_consumes_current_record_before_
 
     request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
-    source_refs = dispatch["owner_route"]["source_refs"]
+    source_refs = dispatch["owner_route_ref"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
     assert request["request_owner"] == "write"
     assert request["reason"] == "manuscript_story_surface_delta_missing"
     assert dispatch["action_type"] == "run_quality_repair_batch"
-    assert dispatch["source_action"]["reviewer_record_ref"] == str(record_path.resolve())
-    assert dispatch["source_action"]["materialization_decision"] == "story_surface_delta_or_typed_blocker_required"
+    assert dispatch["source_action_ref"]["reviewer_record_ref"] == str(record_path.resolve())
+    assert dispatch["source_action_ref"]["materialization_decision"] == "story_surface_delta_or_typed_blocker_required"
     assert source_refs["bridge_authority"] == "domain_action_request_materializer_story_surface_bridge"
     assert source_refs["materialized_from_action_type"] == "return_to_ai_reviewer_workflow"
     assert source_refs["materialized_work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
@@ -450,18 +450,18 @@ def test_current_input_ai_reviewer_record_consumption_work_unit_materializes_to_
 
     request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
-    source_refs = dispatch["owner_route"]["source_refs"]
+    source_refs = dispatch["owner_route_ref"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
     assert request["request_owner"] == "write"
     assert request["reason"] == "manuscript_story_surface_delta_missing"
     assert "source_action" not in request
     assert dispatch["action_type"] == "run_quality_repair_batch"
     assert dispatch["next_executable_owner"] == "write"
-    assert dispatch["owner_route_attempt_envelope"]["work_unit_id"] == work_unit_id
-    assert dispatch["source_action"]["next_work_unit"] == "medical_prose_write_repair"
-    assert dispatch["source_action"]["reviewer_record_ref"] == str(record_path.resolve())
-    assert dispatch["source_action"]["source_eval_id"] == eval_id
-    assert dispatch["source_action"]["materialization_decision"] == "story_surface_delta_or_typed_blocker_required"
+    assert dispatch["owner_route_attempt_envelope_ref"]["work_unit_id"] == work_unit_id
+    assert dispatch["source_action_ref"]["next_work_unit"] == "medical_prose_write_repair"
+    assert dispatch["source_action_ref"]["reviewer_record_ref"] == str(record_path.resolve())
+    assert dispatch["source_action_ref"]["source_eval_id"] == eval_id
+    assert dispatch["source_action_ref"]["materialization_decision"] == "story_surface_delta_or_typed_blocker_required"
     assert source_refs["work_unit_id"] == work_unit_id
     assert source_refs["source_eval_id"] == eval_id
     assert source_refs["materialized_work_unit_id"] == "medical_prose_write_repair"
@@ -604,13 +604,13 @@ def test_ai_reviewer_record_stale_after_current_inputs_keeps_ai_reviewer_product
 
     request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
-    source_refs = dispatch["owner_route"]["source_refs"]
+    source_refs = dispatch["owner_route_ref"]["source_refs"]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
     assert request["request_owner"] == "ai_reviewer"
     assert request["reason"] == "ai_reviewer_record_stale_after_current_inputs"
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["next_executable_owner"] == "ai_reviewer"
-    assert dispatch["source_action"]["next_work_unit"] == work_unit_id
+    assert dispatch["source_action_ref"]["next_work_unit"] == work_unit_id
     assert source_refs["work_unit_id"] == work_unit_id
     assert "materialized_work_unit_id" not in source_refs
 
@@ -753,7 +753,7 @@ def test_current_ai_reviewer_write_routeback_preempts_stale_package_freshness_fo
 
     request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
-    source_refs = dispatch["owner_route"]["source_refs"]
+    source_refs = dispatch["owner_route_ref"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
     assert request["request_owner"] == "write"
     assert request["reason"] == "manuscript_story_surface_delta_missing"

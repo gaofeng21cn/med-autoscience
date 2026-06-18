@@ -139,8 +139,8 @@ def test_materialize_domain_action_requests_prefers_fresh_progress_ticket_over_s
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "finalize"
-    assert dispatch["owner_route"]["allowed_actions"] == ["run_gate_clearing_batch"]
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     )
     assert {
@@ -266,10 +266,10 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
-    assert dispatch["source_action"]["controller_work_unit_id"] == (
+    assert dispatch["source_action_ref"]["controller_work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     )
-    assert dispatch["owner_route"]["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["run_gate_clearing_batch"]
     assert {
         item["action_type"]: item["reason"]
         for item in result["ignored_actions"]
@@ -482,8 +482,8 @@ def test_materialize_domain_action_requests_routes_consumed_write_closeout_to_ai
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
-    assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == (
         "ai_reviewer_medical_prose_quality_review"
     )
     assert not any(
@@ -686,7 +686,7 @@ def test_materialize_domain_action_requests_prefers_fresh_readiness_action_over_
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["surface_key"] == "authoring_runtime_authorization"
-    assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
 
 
 def test_materialize_domain_action_requests_routes_publication_eval_recommended_repair_without_ticket(
@@ -804,9 +804,9 @@ def test_materialize_domain_action_requests_routes_publication_eval_recommended_
     assert dispatch["attempt_idempotency_key"] == attempt_idempotency_key
     assert dispatch["currentness_basis"]["route_identity_key"] == route_identity_key
     assert dispatch["currentness_basis"]["attempt_idempotency_key"] == attempt_idempotency_key
-    assert dispatch["owner_route"]["work_unit_fingerprint"] == fingerprint
-    assert dispatch["owner_route"]["source_fingerprint"] == publication_eval_id
-    assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"] == {
+    assert dispatch["owner_route_ref"]["work_unit_fingerprint"] == fingerprint
+    assert dispatch["owner_route_ref"]["source_fingerprint"] == publication_eval_id
+    assert dispatch["owner_route_ref"]["source_refs"]["owner_route_currentness_basis"] == {
         "truth_epoch": "truth-event-000035-39f0b8e96689a623",
         "runtime_health_epoch": "runtime-health-event-006839-87fcfd5b5277d89f",
         "work_unit_id": "medical_prose_write_repair",
@@ -1043,7 +1043,9 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert transition_requests[0]["authority_boundary"]["can_select_next_action"] is False
     assert transition_requests[0]["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert transition_requests[0]["blocked_reason"] == "opl_execution_authorization_required"
-    assert transition_requests[0]["domain_intent"]["target_runtime_transition"] == "OPL Command/Event/Outbox/StageRun"
+    assert "domain_intent" not in transition_requests[0]
+    assert transition_requests[0]["domain_intent_body_omitted"] is True
+    assert transition_requests[0]["domain_intent_ref"]["action_type"] == "current_package_freshness_required"
     assert transition_requests[0]["owner_callable_adapter_contract"]["execution_authority_owner"] == "one-person-lab"
     assert transition_requests[1]["dispatch_status"] == "blocked"
     assert transition_requests[1]["blocked_reason"] == "owner_route_next_owner_mismatch"

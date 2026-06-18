@@ -203,8 +203,8 @@ def test_materialize_domain_action_requests_dispatches_stage_artifact_publicatio
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "publication_gate_owner"
-    assert dispatch["owner_route"]["next_owner"] == "publication_gate_owner"
-    assert dispatch["owner_route"]["allowed_actions"] == ["publication_handoff_owner_gate"]
+    assert dispatch["owner_route_ref"]["next_owner"] == "publication_gate_owner"
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["publication_handoff_owner_gate"]
     assert dispatch["prompt_contract_ref"]["request_packet_ref"] == (
         "artifacts/supervision/requests/publication_handoff_owner_gate/latest.json"
     )
@@ -348,21 +348,16 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     assert dispatch["readiness_surface_identity"] == task["readiness_surface_identity"]
     assert dispatch["surface_key"] == "literature_provider_runtime"
     assert dispatch["operator_payload_present"] is True
-    assert dispatch["operator_payload"]["payload_source"] == "medical_paper_readiness_owner_payload_authoring"
-    assert dispatch["operator_payload"]["provider_payloads"][0]["provider"] == "pubmed"
-    assert dispatch["operator_payload"]["provider_payloads"][2]["provider"] == "semantic_scholar"
+    assert dispatch["operator_payload_body_omitted"] is True
+    assert "operator_payload" not in dispatch
     assert dispatch["operator_payload_ref"] == request_ref
     assert dispatch["prompt_contract_ref"]["surface_key"] == "literature_provider_runtime"
     assert dispatch["prompt_contract_ref"]["readiness_surface_identity"] == task["readiness_surface_identity"]
     assert dispatch["prompt_contract_ref"]["operator_payload_present"] is True
-    assert dispatch["prompt_contract_ref"]["operator_payload"]["payload_source"] == (
-        "medical_paper_readiness_owner_payload_authoring"
-    )
+    assert "operator_payload" not in dispatch["prompt_contract_ref"]
     assert dispatch["prompt_contract_ref"]["operator_payload_ref"] == request_ref
-    assert dispatch["prompt_contract_ref"]["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
-    assert dispatch["prompt_contract_ref"]["payload_authoring_target"]["operator_payload_contract"][
-        "empty_payload_is_not_success_evidence"
-    ] is True
+    assert "payload_authoring_target" not in dispatch["prompt_contract_ref"]
+    assert dispatch["payload_authoring_target_body_omitted"] is True
     assert not persisted_dispatch_path.exists()
 
 
@@ -510,8 +505,8 @@ def test_materialize_prefers_stage_readiness_followup_over_stale_control_next_ac
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["surface_key"] == "literature_provider_runtime"
-    assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
-    assert dispatch["source_action"]["source_ref"] == typed_blocker_ref
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
+    assert dispatch["source_action_ref"]["source_ref"] == typed_blocker_ref
     assert any(
         item["reason"] == "superseded_by_current_stage_readiness_followup"
         and item["action_type"] == "run_quality_repair_batch"
@@ -670,10 +665,10 @@ def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_wi
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "MedAutoScience"
-    source_action = dispatch["source_action"]
+    source_action = dispatch["source_action_ref"]
     assert source_action["authority"] == "mas_owner_surface"
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == "complete_medical_paper_readiness_surface"
-    assert dispatch["owner_route"]["work_unit_fingerprint"] == readiness_fingerprint
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == "complete_medical_paper_readiness_surface"
+    assert dispatch["owner_route_ref"]["work_unit_fingerprint"] == readiness_fingerprint
     assert any(
         item["reason"]
         == "stage_native_workspace_next_action_requires_current_work_unit_currentness_match"
@@ -813,8 +808,8 @@ def test_materialize_prefers_readiness_blocker_derived_repair_over_old_readiness
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "write"
-    assert dispatch["source_action"]["next_work_unit"] == "readiness_blocker_publication_repair"
-    assert dispatch["source_action"]["readiness_blocker_followup_superseded"] == (
+    assert dispatch["source_action_ref"]["next_work_unit"] == "readiness_blocker_publication_repair"
+    assert dispatch["source_action_ref"]["readiness_blocker_followup_superseded"] == (
         "complete_medical_paper_readiness_surface"
     )
     assert any(

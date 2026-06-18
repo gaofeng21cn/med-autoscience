@@ -92,7 +92,7 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
 
     request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
-    route = dispatch["owner_route"]
+    route = dispatch["owner_route_ref"]
     basis = route["currentness_contract"]["basis"]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
     assert request["request_owner"] == "ai_reviewer"
@@ -102,13 +102,13 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
     assert dispatch["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
-    assert dispatch["prompt_contract_ref"]["owner_callable_command"].endswith("--build-production-trace")
+    assert dispatch["prompt_contract_ref"]["owner_callable_command_ref"].endswith("--build-production-trace")
     assert dispatch["prompt_contract_ref"]["owner_callable_payload_ref"].endswith(
         "record_production_payloads/return_to_ai_reviewer_workflow_payload.json"
     )
-    assert dispatch["source_action"]["record_only_surface"] is True
-    assert dispatch["source_action"]["publication_eval_latest_write_allowed"] is False
-    assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
+    assert dispatch["source_action_ref"]["record_only_surface"] is True
+    assert dispatch["source_action_ref"]["publication_eval_latest_write_allowed"] is False
+    assert dispatch["owner_route_attempt_envelope_ref"]["dispatchable"] is True
     assert route["currentness_contract"]["missing_required_fields"] == []
     transition_basis = dispatch["opl_domain_progress_transition_request"]["currentness_basis"]
     assert transition_basis["source_eval_id"] == eval_id

@@ -52,11 +52,16 @@ def transition_request_record_extra_fields(
         "required_output_target_surface": mapping(dispatch.get("required_output_target_surface")) or None,
         "operator_payload_present": dispatch.get("operator_payload_present"),
         "operator_payload_ref": text(dispatch.get("operator_payload_ref")),
-        "operator_payload": mapping(dispatch.get("operator_payload")) or None,
-        "payload_authoring_target": mapping(dispatch.get("payload_authoring_target")) or None,
         "readiness_surface_identity": mapping(dispatch.get("readiness_surface_identity")) or None,
-        "record_production_satisfaction": mapping(dispatch.get("record_production_satisfaction")) or None,
-        "owner_route_attempt_envelope": mapping(dispatch.get("owner_route_attempt_envelope")) or None,
+        "record_production_satisfaction_ref": _record_production_satisfaction_ref(
+            mapping(dispatch.get("record_production_satisfaction")),
+            text=text,
+        ),
+        "owner_route_attempt_envelope_ref": _owner_route_attempt_envelope_ref(
+            mapping(dispatch.get("owner_route_attempt_envelope")),
+            text=text,
+            mapping=mapping,
+        ),
         "medical_claim_authoring_allowed": dispatch.get("medical_claim_authoring_allowed"),
         "paper_package_mutation_allowed": dispatch.get("paper_package_mutation_allowed"),
         "quality_gate_relaxation_allowed": dispatch.get("quality_gate_relaxation_allowed"),
@@ -65,6 +70,46 @@ def transition_request_record_extra_fields(
             "source_action_runtime_completion_fields_omitted"
         ),
     }
+
+
+def _record_production_satisfaction_ref(
+    satisfaction: Mapping[str, Any],
+    *,
+    text: Text,
+) -> dict[str, Any] | None:
+    if not satisfaction:
+        return None
+    ref = {
+        "diagnostic_ref_only": True,
+        "payload_body_omitted": True,
+        "record_ref": text(satisfaction.get("record_ref")),
+        "eval_id": text(satisfaction.get("eval_id")),
+        "source_eval_id": text(satisfaction.get("source_eval_id")),
+        "status": text(satisfaction.get("status")),
+    }
+    return {key: value for key, value in ref.items() if value is not None}
+
+
+def _owner_route_attempt_envelope_ref(
+    envelope: Mapping[str, Any],
+    *,
+    text: Text,
+    mapping: AsMapping,
+) -> dict[str, Any] | None:
+    if not envelope:
+        return None
+    ref = {
+        "diagnostic_ref_only": True,
+        "payload_body_omitted": True,
+        "work_unit_id": text(envelope.get("work_unit_id")),
+        "work_unit_fingerprint": text(envelope.get("work_unit_fingerprint")),
+        "route_identity_key": text(envelope.get("route_identity_key")),
+        "attempt_idempotency_key": text(envelope.get("attempt_idempotency_key")),
+        "dispatchable": envelope.get("dispatchable"),
+        "authority_boundary": mapping(envelope.get("authority_boundary")) or None,
+        "runtime_completion_guard_ref": mapping(envelope.get("runtime_completion_guard")) or None,
+    }
+    return {key: value for key, value in ref.items() if value is not None}
 
 
 __all__ = ["transition_request_record_extra_fields"]

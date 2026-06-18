@@ -110,7 +110,7 @@ def test_materializer_selects_identity_different_current_owner_action_over_prior
     )
     assert result["domain_progress_transition_requests"][0]["dispatch_status"] == "dry_run"
     assert (
-        result["domain_progress_transition_requests"][0]["source_action"]["work_unit_id"]
+        result["domain_progress_transition_requests"][0]["source_action_ref"]["work_unit_id"]
         == "analysis_claim_evidence_repair"
     )
     assert (
@@ -233,10 +233,10 @@ def test_materializer_selects_owner_gate_route_back_followthrough_over_typed_blo
     assert _legacy_request_task_refs(result)[0]["reason"] == "analysis_claim_evidence_repair"
     assert _legacy_request_task_refs(result)[0]["work_unit_id"] == "analysis_claim_evidence_repair"
     assert _legacy_request_task_refs(result)[0]["work_unit_fingerprint"] == fingerprint
-    source_action = result["domain_progress_transition_requests"][0]["source_action"]
+    source_action = result["domain_progress_transition_requests"][0]["source_action_ref"]
     assert source_action["source_ref"] == route_back_ref
     assert source_action["provider_admission_allowed"] is False
-    assert source_action["paper_progress_stall"] == {
+    assert source_action["paper_progress_stall_ref"] == {
         "kind": "owner_gate_route_back",
         "route_back_evidence_ref": route_back_ref,
         "provider_admission_allowed": False,

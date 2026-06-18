@@ -219,18 +219,18 @@ def test_dm002_20260529_current_positive_ai_reviewer_archive_replays_gate_withou
 
     dispatch = result["domain_progress_transition_requests"][0]
     request = _legacy_request_task_refs(result)[0]
-    source_refs = dispatch["owner_route"]["source_refs"]
+    source_refs = dispatch["owner_route_ref"]["source_refs"]
     assert request["action_type"] == "run_gate_clearing_batch"
     assert request["request_owner"] == "gate_clearing_batch"
     assert dispatch["action_type"] == "run_gate_clearing_batch"
-    assert dispatch["source_action"]["materialization_decision"] == "publication_gate_replay"
-    assert dispatch["source_action"]["reviewer_record_ref"] == str(record_path.resolve())
-    assert dispatch["source_action"]["source_eval_id"] == eval_id
+    assert dispatch["source_action_ref"]["materialization_decision"] == "publication_gate_replay"
+    assert dispatch["source_action_ref"]["reviewer_record_ref"] == str(record_path.resolve())
+    assert dispatch["source_action_ref"]["source_eval_id"] == eval_id
     assert source_refs["materialized_work_unit_id"] == "publication_gate_replay"
     assert source_refs["materialized_from_action_type"] == "return_to_ai_reviewer_workflow"
     assert source_refs["bridge_authority"] == "domain_action_request_materializer_publication_owner_bridge"
     assert "produce_ai_reviewer_publication_eval_record_against_current_inputs" not in {
         dispatch["action_type"],
-        dispatch["source_action"]["next_work_unit"],
-        dispatch["owner_route"]["source_refs"]["materialized_work_unit_id"],
+        dispatch["source_action_ref"]["next_work_unit"],
+        dispatch["owner_route_ref"]["source_refs"]["materialized_work_unit_id"],
     }

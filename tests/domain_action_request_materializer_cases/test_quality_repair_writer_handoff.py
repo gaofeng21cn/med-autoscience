@@ -165,11 +165,11 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
         "paper/evidence_ledger.json",
         "paper/review/**",
     ]
-    assert dispatch["prompt_contract_ref"]["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
-    assert "grep -R" in dispatch["prompt_contract_ref"]["search_boundaries"]["forbidden_command_patterns"]
-    assert "runtime/.ds/**" in dispatch["prompt_contract_ref"]["search_boundaries"]["forbidden_path_globs"]
-    assert dispatch["source_action"]["surface"] == "quality_repair_batch"
-    assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["prompt_contract_ref"]["search_boundaries_ref"]["surface"] == "default_executor_search_discipline.v1"
+    assert "grep -R" in dispatch["prompt_contract_ref"]["search_boundaries_ref"]["forbidden_command_patterns"]
+    assert "runtime/.ds/**" in dispatch["prompt_contract_ref"]["search_boundaries_ref"]["forbidden_path_globs"]
+    assert dispatch["source_action_ref"]["surface"] == "quality_repair_batch"
+    assert dispatch["source_action_ref"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
     assert transition_request["dispatch_ref"] == str(dispatch_path)
     assert written_dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert written_dispatch["medical_claim_authoring_allowed"] is True
@@ -294,10 +294,10 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
     transition_request = _assert_transition_request_projection(dispatch)
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["medical_claim_authoring_allowed"] is True
-    assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
-    assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == "medical_prose_currentness_recheck"
-    assert dispatch["owner_route"]["source_refs"]["bridged_from_owner_reason"] == (
+    assert dispatch["source_action_ref"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route_ref"]["owner_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == "medical_prose_currentness_recheck"
+    assert dispatch["owner_route_ref"]["source_refs"]["bridged_from_owner_reason"] == (
         "quest_waiting_opl_runtime_owner_route"
     )
     assert prompt_contract["medical_claim_authoring_allowed"] is True
@@ -311,10 +311,8 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
     assert "paper/**" not in prompt_contract["forbidden_surfaces"]
     assert "artifacts/publication_eval/latest.json" in prompt_contract["forbidden_surfaces"]
     assert "artifacts/controller_decisions/latest.json" in prompt_contract["forbidden_surfaces"]
-    assert dispatch_contract.prompt_contract_error(
-        prompt_contract,
-        forbidden_surfaces=module.FORBIDDEN_SURFACES,
-    ) is None
+    assert prompt_contract["payload_body_omitted"] is True
+    assert "prompt_contract" not in dispatch
     assert not dispatch_path.exists()
     assert "dispatch_ref" not in transition_request
     assert result["apply_writes_domain_intent_projection_only"] is True
@@ -479,7 +477,7 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     request = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     prompt_contract = dispatch["prompt_contract_ref"]
-    source_refs = dispatch["owner_route"]["source_refs"]
+    source_refs = dispatch["owner_route_ref"]["source_refs"]
     dispatch_path = (
         study_root
         / "artifacts"
@@ -494,9 +492,9 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     assert "source_action" not in request
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["medical_claim_authoring_allowed"] is True
-    assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
-    assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
-    assert prompt_contract["next_work_unit"]["unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+    assert dispatch["source_action_ref"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route_ref"]["owner_reason"] == "manuscript_story_surface_delta_missing"
+    assert "next_work_unit" not in prompt_contract
     assert source_refs["work_unit_id"] == work_unit_id
     assert source_refs["source_eval_id"] == source_eval_id
     assert source_refs["materialized_work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
@@ -511,10 +509,8 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
         "paper/evidence_ledger.json",
         "paper/review/**",
     ]
-    assert dispatch_contract.prompt_contract_error(
-        prompt_contract,
-        forbidden_surfaces=module.FORBIDDEN_SURFACES,
-    ) is None
+    assert prompt_contract["payload_body_omitted"] is True
+    assert "prompt_contract" not in dispatch
     assert not dispatch_path.exists()
     assert "dispatch_ref" not in transition_request
     assert result["ready_domain_progress_transition_request_count"] == 0
@@ -697,8 +693,8 @@ def test_materialize_prefers_current_writer_handoff_over_consumed_reviewer_trans
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
-    assert dispatch["owner_route"]["source_refs"]["source_eval_id"] == source_eval_id
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
+    assert dispatch["owner_route_ref"]["source_refs"]["source_eval_id"] == source_eval_id
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["medical_claim_authoring_allowed"] is True
     assert _legacy_request_task_refs(result)[0]["action_type"] == "run_quality_repair_batch"
     assert _legacy_request_task_refs(result)[0]["reason"] == "manuscript_story_surface_delta_missing"

@@ -531,9 +531,9 @@ def test_materializer_allows_explicit_readiness_current_action_to_block_stale_do
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "complete_medical_paper_readiness_surface"
     assert dispatch["next_executable_owner"] == "MedAutoScience"
-    assert dispatch["source_action"]["authority"] == "mas_owner_surface"
-    assert dispatch["source_action"]["source_surface"] == "stage_kernel_projection.current_owner_delta"
-    assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
+    assert dispatch["source_action_ref"]["authority"] == "mas_owner_surface"
+    assert dispatch["source_action_ref"]["source_surface"] == "stage_kernel_projection.current_owner_delta"
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
     assert any(
         item["action_type"] == "run_gate_clearing_batch"
         and item["reason"] == "superseded_by_current_stage_readiness_followup"
@@ -729,9 +729,9 @@ def test_materializer_dispatches_fresh_progress_ticket_with_strong_currentness_i
     assert result["domain_progress_transition_request_count"] == 1
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "run_gate_clearing_batch"
-    assert dispatch["owner_route"]["source_fingerprint"] == "sha256:current-gate-replay-source"
-    assert dispatch["owner_route"]["work_unit_fingerprint"] == "sha256:current-gate-replay-work-unit"
-    assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"] == {
+    assert dispatch["owner_route_ref"]["source_fingerprint"] == "sha256:current-gate-replay-source"
+    assert dispatch["owner_route_ref"]["work_unit_fingerprint"] == "sha256:current-gate-replay-work-unit"
+    assert dispatch["owner_route_ref"]["source_refs"]["owner_route_currentness_basis"] == {
         "truth_epoch": "truth-event-current",
         "runtime_health_epoch": "runtime-health-current",
         "source_fingerprint": "sha256:current-gate-replay-source",
