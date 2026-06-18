@@ -8,6 +8,9 @@ from pathlib import Path
 import pytest
 
 from tests.study_runtime_test_helpers import make_profile
+from tests.test_runtime_storage_maintenance_cases.runtime_storage_maintenance_helpers import (
+    _opl_quest_storage_authorization,
+)
 
 
 def _write_study(study_root: Path, *, study_id: str, quest_id: str) -> None:
@@ -89,6 +92,7 @@ def test_maintain_runtime_storage_slims_oversized_runtime_jsonl_without_backend(
         slim_jsonl_threshold_mb=1,
         head_lines=2,
         tail_lines=3,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     assert result["status"] == "maintained"
@@ -137,6 +141,7 @@ def test_maintain_runtime_storage_bounds_single_line_jsonl_slim_ref(
         slim_jsonl_threshold_mb=1,
         head_lines=2,
         tail_lines=3,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     assert result["status"] == "maintained"

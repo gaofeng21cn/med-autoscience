@@ -915,6 +915,112 @@
         "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_payload_retention_externalizes_large_payload_columns",
         "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_sqlite_sidecar_repair_removes_stale_sidecars_after_immutable_integrity_ok"
       ]
+    },
+    {
+      "surface_id": "runtime_storage_maintenance",
+      "active_caller_migrated": false,
+      "compatibility_alias_allowed": false,
+      "generic_runtime_owner": "one-person-lab",
+      "mas_owner_claim_allowed": false,
+      "current_disposition": "opl_authorized_storage_maintenance_callable_adapter_live_takeover_tail_open",
+      "retained_mas_role": "maintenance_callable_adapter_and_body_free_diagnostic_projection",
+      "replacement_surface": "OPL runtime storage maintenance authorization / retention shell plus OPL StateIndex and restore/readback surfaces",
+      "authority_boundary": {
+        "can_create_opl_command": false,
+        "can_create_opl_event": false,
+        "can_create_opl_outbox": false,
+        "can_create_opl_stage_run": false,
+        "can_claim_runtime_currentness": false,
+        "can_claim_paper_progress": false,
+        "can_authorize_generic_cleanup_policy": false,
+        "can_authorize_artifact_mutation": false,
+        "can_authorize_publication_ready": false,
+        "can_write_domain_truth": false,
+        "can_write_publication_eval": false,
+        "can_write_controller_decision": false,
+        "stores_body": false,
+        "dry_run_projection_only": true,
+        "mutates_runtime_storage_payload_only_when_opl_authorized": true
+      },
+      "apply_gate": {
+        "required_authorization_surface": "opl_runtime_storage_maintenance_authorization",
+        "proof_surface": "opl_runtime_storage_maintenance_authorization_proof",
+        "required_for_workspace_apply": true,
+        "required_for_direct_quest_physical_apply": true,
+        "dry_run_requires_authorization": false,
+        "restore_proof_canary_requires_authorization": false,
+        "refs_only_state_index_only_requires_authorization": false,
+        "planned_retention_projection_requires_authorization": false,
+        "must_bind": [
+          "operation",
+          "maintenance_surface",
+          "workspace_root_or_quest_root",
+          "outcome",
+          "authorization_ref"
+        ],
+        "accepted_operations": [
+          "workspace_storage_apply",
+          "quest_runtime_storage_apply"
+        ],
+        "accepted_maintenance_surfaces": [
+          "workspace_runtime_storage_maintenance",
+          "quest_runtime_storage_maintenance"
+        ],
+        "missing_or_invalid_authorization_status": "blocked_opl_runtime_storage_maintenance_authorization_required",
+        "typed_blocker": "opl_runtime_storage_maintenance_authorization_required",
+        "applies_to_operations": [
+          "workspace_storage_apply",
+          "quest_runtime_storage_backend_apply",
+          "runtime_oversized_jsonl_slimming_apply",
+          "restore_proof_compaction_apply",
+          "archive_retention_apply",
+          "report_retention_apply",
+          "semantic_process_retention_apply",
+          "git_temp_garbage_delete_apply",
+          "workspace_root_git_reinitialize_apply",
+          "workspace_root_git_retirement_apply",
+          "delete_safe_cache_apply"
+        ]
+      },
+      "allowed_without_opl_authorization": [
+        "workspace_storage_audit_dry_run",
+        "restore_proof_canary_source_retained",
+        "refs_only_state_index_only_projection",
+        "archive_retention_plan",
+        "report_retention_plan",
+        "attempt_evidence_capsule_plan",
+        "semantic_process_retention_plan"
+      ],
+      "forbidden_claims": [
+        "mas_owned_generic_runtime",
+        "mas_owned_generic_runtime_storage_shell",
+        "mas_owned_generic_runtime_lifecycle_cleanup_policy",
+        "mas_owned_restore_retention_owner",
+        "mas_owned_queue",
+        "mas_owned_attempt_ledger",
+        "runtime_storage_apply_as_runtime_ready",
+        "runtime_storage_apply_as_paper_progress",
+        "runtime_storage_apply_as_provider_admission",
+        "runtime_storage_apply_as_publication_ready"
+      ],
+      "retirement_gate": {
+        "replacement_parity_required": true,
+        "live_opl_storage_policy_takeover_required": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "tombstone_or_provenance_required": true,
+        "completion_claim_requires_live_owner_or_opl_readback": true
+      },
+      "verified_by": [
+        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_basics.py::test_workspace_storage_apply_without_opl_authorization_blocks_before_physical_cleanup",
+        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_compaction_git.py::test_quest_runtime_storage_physical_path_without_opl_authorization_blocks_before_backend",
+        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_compaction_git.py::test_quest_runtime_storage_authorization_scope_mismatch_blocks_physical_apply",
+        "tests/test_runtime_storage_maintenance_cases/test_archive_report_retention.py::test_archive_retention_moves_verified_archive_body_to_cold_object",
+        "tests/test_runtime_storage_maintenance_cases/test_archive_report_retention.py::test_report_retention_bundles_old_timestamped_reports_and_keeps_latest",
+        "tests/test_runtime_storage_maintenance_cases/test_attempt_evidence_capsule.py::test_attempt_evidence_capsule_plan_writes_manifest_without_mutating_raw",
+        "tests/test_runtime_storage_root_git_retirement.py::test_audit_workspace_storage_git_only_retires_workspace_root_git_with_restore_bundle",
+        "tests/test_cli_cases/runtime_storage_commands.py::test_runtime_maintain_storage_command_dispatches_controller",
+        "tests/test_cli_cases/runtime_storage_commands.py::test_runtime_storage_audit_command_dispatches_controller"
+      ]
     }
   ],
   "version": "mas-runtime-surface-retirement-inventory.v1"

@@ -15,6 +15,7 @@ def register_runtime_storage_parsers(subparsers: argparse._SubParsersAction) -> 
     _add_storage_cleanup_options(maintain_parser)
     _add_restore_proof_compaction_options(maintain_parser)
     _add_runtime_retention_options(maintain_parser, include_cold_store_root=True)
+    maintain_parser.add_argument("--opl-maintenance-authorization")
     maintain_parser.set_defaults(_command_parser=maintain_parser)
 
     audit_parser = subparsers.add_parser("workspace-storage-audit")
@@ -23,6 +24,7 @@ def register_runtime_storage_parsers(subparsers: argparse._SubParsersAction) -> 
     audit_parser.add_argument("--all-studies", action="store_true")
     audit_parser.add_argument("--stopped-only", action="store_true")
     audit_parser.add_argument("--apply", action="store_true")
+    audit_parser.add_argument("--opl-maintenance-authorization")
     audit_parser.add_argument("--git-only", action="store_true")
     audit_parser.add_argument("--reinitialize-empty-workspace-git", action="store_true")
     audit_parser.add_argument("--retire-workspace-root-git", action="store_true")
@@ -43,12 +45,14 @@ def handle_runtime_storage_command(
         retention_kwargs = _runtime_retention_kwargs(args, parser=parser)
         profile = load_profile(args.profile)
         common_kwargs = _storage_maintenance_kwargs(args)
+        authorization = _load_opl_maintenance_authorization(getattr(args, "opl_maintenance_authorization", None))
         if args.quest_root:
             result = runtime_storage_maintenance.maintain_quest_runtime_storage(
                 profile=profile,
                 quest_root=Path(args.quest_root),
                 **common_kwargs,
                 **retention_kwargs,
+                opl_maintenance_authorization=authorization,
             )
         else:
             result = runtime_storage_maintenance.maintain_runtime_storage(
@@ -57,6 +61,7 @@ def handle_runtime_storage_command(
                 study_root=None,
                 **common_kwargs,
                 **retention_kwargs,
+                opl_maintenance_authorization=authorization,
             )
         _print_json(result)
         return 0
@@ -72,6 +77,9 @@ def handle_runtime_storage_command(
             all_studies=bool(args.all_studies),
             stopped_only=bool(args.stopped_only),
             apply=bool(args.apply),
+            opl_maintenance_authorization=_load_opl_maintenance_authorization(
+                getattr(args, "opl_maintenance_authorization", None)
+            ),
             git_only=bool(args.git_only),
             reinitialize_empty_workspace_git=bool(args.reinitialize_empty_workspace_git),
             retire_workspace_root_git=bool(args.retire_workspace_root_git),
@@ -87,6 +95,15 @@ def handle_runtime_storage_command(
 def _command_parser(args: argparse.Namespace, fallback: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = getattr(args, "_command_parser", None)
     return parser if isinstance(parser, argparse.ArgumentParser) else fallback
+
+
+def _load_opl_maintenance_authorization(path: str | None) -> dict[str, object] | None:
+    if not path:
+        return None
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise SystemExit("--opl-maintenance-authorization must point to a JSON object")
+    return payload
 
 
 def _add_profile_and_storage_selector_options(parser: argparse.ArgumentParser) -> None:

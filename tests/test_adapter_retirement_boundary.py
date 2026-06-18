@@ -315,6 +315,16 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "live_every_active_caller_soak_required": True,
         "missing_authorization_outcome": "opl_execution_authorization_required_typed_blocker",
         "provider_attempt_or_lease_required_when_blocked": False,
+        "running_provider_attempt_selector_boundary": {
+            "selector": "scan_route_currentness.live_provider_attempt_owner_route_from_scan_payload",
+            "running_provider_attempt_without_opl_proof_can_select_route": False,
+            "accepted_proofs": [
+                "trusted_opl_execution_authorization",
+                "exact_provider_hosted_stage_attempt",
+                "bound_opl_domain_progress_transition_runtime_readback",
+            ],
+            "missing_proof_outcome": "no_current_owner_route_selection",
+        },
     }
     assert owner_dispatch["execution_authorization_coverage"] == {
         "coverage_status": "repo_fail_closed_all_supported_actions_live_readback_tail_open",
@@ -353,9 +363,9 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "mas_owned_attempt_ledger" in runtime_health["forbidden_claims"]
 
     obligation_actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
-    assert obligation_actuator["current_disposition"] == "opl_recovery_obligation_readback_consumer"
+    assert obligation_actuator["current_disposition"] == "obligation_readback_projection_consumer"
     assert obligation_actuator["retained_mas_role"] == (
-        "consume_only_obligation_outcome_projection_and_fail_closed_typed_blocker"
+        "consume_only_obligation_outcome_projection_and_mas_typed_blocker_authority_result"
     )
     assert obligation_actuator["validator_role"] == (
         "accepted_owner_answer_or_opl_readback_shape_validator"
@@ -383,10 +393,99 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "local_allowed_outcome_table_role": (
             "contract_bound_result_shape_validation_not_supervisor_decision_engine"
         ),
+        "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
+        "actuator_can_write_private_blocker_surface": False,
+    }
+    assert obligation_actuator["active_caller_boundary"] == {
+        "active_caller_effect": "consume_only_readback_projection_with_success_proof_gated_postcondition",
+        "active_caller_retains_runtime_authority": False,
+        "active_caller_retains_surface": True,
+        "completion_claim_requires_live_owner_or_opl_readback": True,
+        "physical_delete_requires": [
+            "opl_recovery_obligation_store_active_caller",
+            "opl_supervisor_decision_engine_active_caller",
+            "no_active_caller_scan",
+            "replacement_parity_ref",
+            "owner_retirement_decision_ref",
+            "tombstone_or_provenance_ref",
+        ],
+        "request_projection_only_can_satisfy_success": False,
     }
     assert "mas_owned_recovery_obligation_store" in obligation_actuator["forbidden_claims"]
     assert "mas_owned_supervisor_decision_engine" in obligation_actuator["forbidden_claims"]
     assert "mas_policy_request_projection_as_success_outcome" in obligation_actuator["forbidden_claims"]
+    assert obligation_actuator["can_write_fail_closed_typed_control_blocker"] is False
+    assert obligation_actuator["actuator_can_write_private_blocker_surface"] is False
+
+    runtime_storage = surfaces["runtime_storage_maintenance"]
+    assert runtime_storage["generic_runtime_owner"] == "one-person-lab"
+    assert runtime_storage["mas_owner_claim_allowed"] is False
+    assert runtime_storage["compatibility_alias_allowed"] is False
+    assert (
+        runtime_storage["current_disposition"]
+        == "opl_authorized_storage_maintenance_callable_adapter_live_takeover_tail_open"
+    )
+    assert runtime_storage["authority_boundary"] == {
+        "can_create_opl_command": False,
+        "can_create_opl_event": False,
+        "can_create_opl_outbox": False,
+        "can_create_opl_stage_run": False,
+        "can_claim_runtime_currentness": False,
+        "can_claim_paper_progress": False,
+        "can_authorize_generic_cleanup_policy": False,
+        "can_authorize_artifact_mutation": False,
+        "can_authorize_publication_ready": False,
+        "can_write_domain_truth": False,
+        "can_write_publication_eval": False,
+        "can_write_controller_decision": False,
+        "stores_body": False,
+        "dry_run_projection_only": True,
+        "mutates_runtime_storage_payload_only_when_opl_authorized": True,
+    }
+    assert runtime_storage["apply_gate"] == {
+        "required_authorization_surface": "opl_runtime_storage_maintenance_authorization",
+        "proof_surface": "opl_runtime_storage_maintenance_authorization_proof",
+        "required_for_workspace_apply": True,
+        "required_for_direct_quest_physical_apply": True,
+        "dry_run_requires_authorization": False,
+        "restore_proof_canary_requires_authorization": False,
+        "refs_only_state_index_only_requires_authorization": False,
+        "planned_retention_projection_requires_authorization": False,
+        "must_bind": [
+            "operation",
+            "maintenance_surface",
+            "workspace_root_or_quest_root",
+            "outcome",
+            "authorization_ref",
+        ],
+        "accepted_operations": [
+            "workspace_storage_apply",
+            "quest_runtime_storage_apply",
+        ],
+        "accepted_maintenance_surfaces": [
+            "workspace_runtime_storage_maintenance",
+            "quest_runtime_storage_maintenance",
+        ],
+        "missing_or_invalid_authorization_status": (
+            "blocked_opl_runtime_storage_maintenance_authorization_required"
+        ),
+        "typed_blocker": "opl_runtime_storage_maintenance_authorization_required",
+        "applies_to_operations": [
+            "workspace_storage_apply",
+            "quest_runtime_storage_backend_apply",
+            "runtime_oversized_jsonl_slimming_apply",
+            "restore_proof_compaction_apply",
+            "archive_retention_apply",
+            "report_retention_apply",
+            "semantic_process_retention_apply",
+            "git_temp_garbage_delete_apply",
+            "workspace_root_git_reinitialize_apply",
+            "workspace_root_git_retirement_apply",
+            "delete_safe_cache_apply",
+        ],
+    }
+    assert "mas_owned_generic_runtime" in runtime_storage["forbidden_claims"]
+    assert "runtime_storage_apply_as_paper_progress" in runtime_storage["forbidden_claims"]
 
 
 def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -> None:

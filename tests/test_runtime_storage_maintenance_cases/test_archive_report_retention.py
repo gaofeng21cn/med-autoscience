@@ -9,7 +9,10 @@ import time
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile
-from tests.test_runtime_storage_maintenance_cases.runtime_storage_maintenance_helpers import _write_quest
+from tests.test_runtime_storage_maintenance_cases.runtime_storage_maintenance_helpers import (
+    _opl_quest_storage_authorization,
+    _write_quest,
+)
 
 
 def _write_restore_archive_triplet(quest_root: Path, *, quest_id: str, archive_id: str, body: bytes) -> Path:
@@ -101,6 +104,7 @@ def test_archive_retention_moves_verified_archive_body_to_cold_object(tmp_path: 
         archive_retention=True,
         archive_retention_apply=True,
         archive_retention_min_mb=0,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     retention = applied["archive_retention"]
@@ -151,6 +155,7 @@ def test_report_retention_bundles_old_timestamped_reports_and_keeps_latest(tmp_p
         report_retention_apply=True,
         report_retention_keep_recent_days=1,
         report_retention_daily_samples=0,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     retention = applied["report_retention"]
@@ -176,6 +181,7 @@ def test_retention_apply_is_blocked_when_live_runtime_blocks_storage_maintenance
         archive_retention_apply=True,
         report_retention=True,
         report_retention_apply=True,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     assert result["status"] == "blocked_live_runtime"

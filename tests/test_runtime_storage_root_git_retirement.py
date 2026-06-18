@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile
+from tests.test_runtime_storage_maintenance_cases.runtime_storage_maintenance_helpers import (
+    _opl_storage_authorization,
+)
 
 
 def test_audit_workspace_storage_git_only_retires_workspace_root_git_with_restore_bundle(tmp_path: Path) -> None:
@@ -28,6 +31,7 @@ def test_audit_workspace_storage_git_only_retires_workspace_root_git_with_restor
         apply=True,
         git_only=True,
         retire_workspace_root_git=True,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     git_report = result["categories"]["git"]
@@ -73,6 +77,7 @@ def test_audit_workspace_storage_git_only_archives_stashes_during_workspace_root
         apply=True,
         git_only=True,
         retire_workspace_root_git=True,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     retirement = result["categories"]["git"]["workspace_root_git_retirement_result"]
@@ -102,6 +107,7 @@ def test_audit_workspace_storage_git_only_blocks_workspace_root_git_retirement_w
         apply=True,
         git_only=True,
         retire_workspace_root_git=True,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     retirement = result["categories"]["git"]["workspace_root_git_retirement_result"]

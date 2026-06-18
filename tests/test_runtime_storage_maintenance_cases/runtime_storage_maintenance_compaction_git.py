@@ -27,6 +27,7 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_co
         all_studies=False,
         apply=True,
         restore_proof_compaction=True,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     study_report = result["categories"]["runtime"]["studies"][0]
@@ -98,6 +99,7 @@ def test_audit_workspace_storage_restore_proof_compaction_blocks_non_cold_runtim
         all_studies=False,
         apply=True,
         restore_proof_compaction=True,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     study_report = result["categories"]["runtime"]["studies"][0]
@@ -132,6 +134,7 @@ def test_audit_workspace_storage_restore_proof_compaction_can_include_parked_con
         apply=True,
         restore_proof_compaction=True,
         include_parked_controller_stop=True,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     study_report = result["categories"]["runtime"]["studies"][0]
@@ -165,6 +168,7 @@ def test_audit_workspace_storage_restore_proof_compaction_can_include_operator_c
         apply=True,
         restore_proof_compaction=True,
         include_operator_confirmed_parked_active=True,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     study_report = result["categories"]["runtime"]["studies"][0]
@@ -201,6 +205,7 @@ def test_audit_workspace_storage_restore_proof_compaction_shards_codex_homes(
         restore_proof_compaction=True,
         include_operator_confirmed_parked_active=True,
         restore_proof_buckets=("codex_homes",),
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     study_report = result["categories"]["runtime"]["studies"][0]
@@ -279,6 +284,7 @@ def test_audit_workspace_storage_restore_proof_compaction_can_explicitly_compact
         restore_proof_compaction=True,
         include_parked_controller_stop=True,
         restore_proof_buckets=("cold_archive",),
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     study_report = result["categories"]["runtime"]["studies"][0]
@@ -321,6 +327,7 @@ def test_audit_workspace_storage_restore_proof_compaction_verifies_hardlinked_pa
         apply=True,
         restore_proof_compaction=True,
         restore_proof_buckets=("worktrees",),
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     study_report = result["categories"]["runtime"]["studies"][0]
@@ -352,6 +359,7 @@ def test_maintain_quest_runtime_storage_compacts_legacy_unbound_quest(
         restore_proof_compaction=True,
         restore_proof_buckets=("runs",),
         include_parked_controller_stop=True,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     compaction = result["restore_proof_compaction"]
@@ -391,6 +399,7 @@ def test_maintain_quest_runtime_storage_slims_sharded_codex_home_report(
         restore_proof_compaction=True,
         restore_proof_buckets=("codex_homes",),
         include_operator_confirmed_parked_active=True,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     compaction = result["restore_proof_compaction"]
@@ -416,6 +425,71 @@ def test_maintain_quest_runtime_storage_slims_sharded_codex_home_report(
     assert result["domain_authority_archive_ref_index"]["indexed_results_inlined"] is False
     assert "indexed_results" not in result["domain_authority_archive_ref_index"]
     assert len(json.dumps(result, ensure_ascii=False)) < 30_000
+
+
+def test_quest_runtime_storage_physical_path_without_opl_authorization_blocks_before_backend(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    quest_module = importlib.import_module(
+        "med_autoscience.controllers.runtime_storage_maintenance_parts.quest_root_maintenance"
+    )
+    profile = make_profile(tmp_path)
+    quest_root = profile.runtime_root / "legacy-unowned-physical"
+    _write_quest(quest_root, quest_id="legacy-unowned-physical", status="stopped")
+    payload = quest_root / ".ds" / "runs" / "run-001" / "stdout.jsonl"
+    payload.parent.mkdir(parents=True, exist_ok=True)
+    payload.write_text("physical payload\n", encoding="utf-8")
+
+    def fail_backend(**_: object) -> None:
+        raise AssertionError("legacy backend must not run without OPL authorization")
+
+    def fail_slimming(**_: object) -> None:
+        raise AssertionError("JSONL slimming must not run without OPL authorization")
+
+    monkeypatch.setattr(module.backend_maintenance, "run_quest_storage_maintenance", fail_backend)
+    monkeypatch.setattr(quest_module, "slim_oversized_jsonl_files", fail_slimming)
+
+    result = module.maintain_quest_runtime_storage(
+        profile=profile,
+        quest_root=quest_root,
+    )
+
+    assert result["status"] == "blocked_opl_runtime_storage_maintenance_authorization_required"
+    assert result["typed_blocker"] == "opl_runtime_storage_maintenance_authorization_required"
+    assert result["opl_maintenance_authorization"]["required_for_apply"] is True
+    assert result["opl_maintenance_authorization"]["can_create_opl_outbox"] is False
+    assert "maintenance" not in result
+    assert "jsonl_slimming" not in result
+    assert payload.is_file()
+
+
+def test_quest_runtime_storage_authorization_scope_mismatch_blocks_physical_apply(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    quest_root = profile.runtime_root / "legacy-quest"
+    other_quest_root = profile.runtime_root / "other-quest"
+    _write_quest(quest_root, quest_id="legacy-quest", status="paused")
+    payload = quest_root / ".ds" / "runs" / "run-001" / "stdout.jsonl"
+    payload.parent.mkdir(parents=True, exist_ok=True)
+    payload.write_text("legacy payload\n" * 4096, encoding="utf-8")
+
+    result = module.maintain_quest_runtime_storage(
+        profile=profile,
+        quest_root=quest_root,
+        restore_proof_compaction=True,
+        restore_proof_buckets=("runs",),
+        include_parked_controller_stop=True,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, other_quest_root),
+    )
+
+    assert result["status"] == "blocked_opl_runtime_storage_maintenance_authorization_required"
+    assert result["blockers"][0]["reason"] == "quest_root_mismatch"
+    assert result["opl_maintenance_authorization"]["status"] == "invalid"
+    assert payload.is_file()
 
 
 def test_maintain_quest_runtime_storage_materializes_runtime_state_surface(
@@ -469,6 +543,7 @@ def test_maintain_quest_runtime_storage_compacts_codex_homes_in_limited_shards(
         restore_proof_buckets=("codex_homes",),
         restore_proof_max_shards=2,
         include_operator_confirmed_parked_active=True,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     first_compaction = first["restore_proof_compaction"]
@@ -487,6 +562,7 @@ def test_maintain_quest_runtime_storage_compacts_codex_homes_in_limited_shards(
         restore_proof_buckets=("codex_homes",),
         restore_proof_max_shards=2,
         include_operator_confirmed_parked_active=True,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     second_compaction = second["restore_proof_compaction"]
@@ -512,6 +588,7 @@ def test_maintain_quest_runtime_storage_prunes_empty_codex_home_children(
         restore_proof_compaction=True,
         restore_proof_buckets=("codex_homes",),
         include_parked_controller_stop=True,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     compaction = result["restore_proof_compaction"]
@@ -542,6 +619,7 @@ def test_maintain_quest_runtime_storage_compacts_runs_in_limited_shards(
         restore_proof_buckets=("runs",),
         restore_proof_max_shards=2,
         include_parked_controller_stop=True,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     first_compaction = first["restore_proof_compaction"]
@@ -562,6 +640,7 @@ def test_maintain_quest_runtime_storage_compacts_runs_in_limited_shards(
         restore_proof_buckets=("runs",),
         restore_proof_max_shards=2,
         include_parked_controller_stop=True,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     second_compaction = second["restore_proof_compaction"]
@@ -595,6 +674,7 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_symlink_witho
         all_studies=False,
         apply=True,
         restore_proof_compaction=True,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     study_report = result["categories"]["runtime"]["studies"][0]
@@ -640,7 +720,7 @@ def test_audit_workspace_storage_apply_does_not_count_offline_dataset_candidates
         supersedes_versions=["v1"],
     )
 
-    result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True)
+    result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True, opl_maintenance_authorization=_opl_storage_authorization(profile))
 
     assert result["categories"]["dataset"]["estimated_release_bytes"] > 0
     assert result["summary"]["dataset_archive_offline_candidate_bytes"] > 0
@@ -669,6 +749,7 @@ def test_audit_workspace_storage_git_only_apply_removes_stale_git_temp_garbage(t
         apply=True,
         git_only=True,
         older_than_seconds=3600,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     assert result["mode"] == "apply"
@@ -697,6 +778,7 @@ def test_audit_workspace_storage_git_only_apply_keeps_fresh_git_temp_garbage(tmp
         apply=True,
         git_only=True,
         older_than_seconds=3600,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     git_report = result["categories"]["git"]
@@ -722,6 +804,7 @@ def test_audit_workspace_storage_git_only_apply_blocks_when_git_lock_exists(tmp_
         apply=True,
         git_only=True,
         older_than_seconds=3600,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     git_report = result["categories"]["git"]
@@ -763,7 +846,7 @@ def test_audit_workspace_storage_git_only_reinitializes_only_when_explicitly_all
     large_object.parent.mkdir(parents=True, exist_ok=True)
     large_object.write_bytes(b"x" * 2048)
 
-    dry_run_result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True, git_only=True)
+    dry_run_result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True, git_only=True, opl_maintenance_authorization=_opl_storage_authorization(profile))
     dry_run_git = dry_run_result["categories"]["git"]
     assert dry_run_git["empty_repo_reinitialize_result"] is None
     assert large_object.exists()
@@ -774,6 +857,7 @@ def test_audit_workspace_storage_git_only_reinitializes_only_when_explicitly_all
         apply=True,
         git_only=True,
         reinitialize_empty_workspace_git=True,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     git_report = apply_result["categories"]["git"]
@@ -802,6 +886,7 @@ def test_audit_workspace_storage_git_only_refuses_reinitialize_when_commits_exis
         apply=True,
         git_only=True,
         reinitialize_empty_workspace_git=True,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     git_report = result["categories"]["git"]

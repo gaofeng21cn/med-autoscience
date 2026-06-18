@@ -62,6 +62,7 @@ def maintain_runtime_storage(
     semantic_retention_max_raw_bytes: int = 1024 * 1024,
     semantic_retention_keep_failed_raw: bool = True,
     semantic_retention_max_files: int | None = None,
+    opl_maintenance_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, study_payload = study_runtime_resolution._resolve_study(
         profile=profile,
@@ -118,6 +119,7 @@ def maintain_runtime_storage(
         semantic_retention_max_raw_bytes=semantic_retention_max_raw_bytes,
         semantic_retention_keep_failed_raw=semantic_retention_keep_failed_raw,
         semantic_retention_max_files=semantic_retention_max_files,
+        opl_maintenance_authorization=opl_maintenance_authorization,
     )
     result["schema_version"] = SCHEMA_VERSION
     result["study_id"] = resolved_study_id

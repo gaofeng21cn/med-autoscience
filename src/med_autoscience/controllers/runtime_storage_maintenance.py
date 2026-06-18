@@ -14,6 +14,11 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts import git_ga
 from med_autoscience.controllers.runtime_storage_maintenance_parts.authority_boundary import (
     storage_refs_only_adapter_boundary,
 )
+from med_autoscience.controllers.runtime_storage_maintenance_parts.maintenance_authorization import (
+    AUTHORIZATION_BLOCKER_STATUS as _STORAGE_AUTHORIZATION_BLOCKER_STATUS,
+    AUTHORIZATION_TYPED_BLOCKER as _STORAGE_AUTHORIZATION_TYPED_BLOCKER,
+    opl_storage_maintenance_authorization_result,
+)
 from med_autoscience.controllers.runtime_storage_maintenance_parts.quest_root_maintenance import (
     maintain_quest_runtime_storage,
 )
@@ -44,6 +49,8 @@ _TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ"
 _LIVE_RUNTIME_STATUSES = frozenset({"running", "active"})
 _TERMINAL_RUNTIME_STATUSES = frozenset({"completed", "failed", "stopped", "terminated"})
 _PRIMARY_BUCKETS = ("bash_exec", "codex_homes", "runs", "codex_history", "worktrees")
+_WORKSPACE_STORAGE_MAINTENANCE_SURFACE = "workspace_runtime_storage_maintenance"
+_WORKSPACE_STORAGE_MAINTENANCE_OPERATION = "workspace_storage_apply"
 
 
 def _utc_now() -> str:
@@ -456,9 +463,29 @@ def audit_workspace_storage(
     semantic_retention_max_raw_bytes: int = 1024 * 1024,
     semantic_retention_keep_failed_raw: bool = True,
     semantic_retention_max_files: int | None = None,
+    opl_maintenance_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     workspace_root = profile.workspace_root.expanduser().resolve()
+    authorization_proof, authorization_blocker = opl_storage_maintenance_authorization_result(
+        apply=apply,
+        authorization=opl_maintenance_authorization,
+        workspace_root=workspace_root,
+        operation=_WORKSPACE_STORAGE_MAINTENANCE_OPERATION,
+        maintenance_surface=_WORKSPACE_STORAGE_MAINTENANCE_SURFACE,
+    )
+    if authorization_blocker is not None:
+        return _blocked_workspace_storage_audit_report(
+            profile=profile,
+            workspace_root=workspace_root,
+            recorded_at=recorded_at,
+            study_id=study_id,
+            all_studies=all_studies,
+            stopped_only=stopped_only,
+            git_only=git_only,
+            opl_maintenance_authorization=authorization_proof,
+            authorization_blocker=authorization_blocker,
+        )
     selected_restore_proof_buckets = _restore_proof_buckets(restore_proof_buckets)
     selected_roots = [] if git_only else _selected_study_roots(profile=profile, study_id=study_id, all_studies=all_studies)
     study_reports: list[dict[str, Any]] = []
@@ -573,6 +600,7 @@ def audit_workspace_storage(
                     semantic_retention_max_raw_bytes=semantic_retention_max_raw_bytes,
                     semantic_retention_keep_failed_raw=semantic_retention_keep_failed_raw,
                     semantic_retention_max_files=semantic_retention_max_files,
+                    opl_maintenance_authorization=opl_maintenance_authorization,
                 )
                 workspace_archive_index = _record_workspace_archive_ref(
                     workspace_root=workspace_root,
@@ -689,6 +717,7 @@ def audit_workspace_storage(
         "storage_refs_only_adapter_boundary": storage_refs_only_adapter_boundary(
             report_mode="workspace_storage_audit",
         ),
+        "opl_maintenance_authorization": authorization_proof,
         "selection": {
             "study_id": study_id,
             "all_studies": all_studies,
@@ -765,6 +794,93 @@ def audit_workspace_storage(
     _write_json(report_path, report)
     _write_json(latest_path, report)
     return report
+
+
+def _blocked_workspace_storage_audit_report(
+    *,
+    profile: WorkspaceProfile,
+    workspace_root: Path,
+    recorded_at: str,
+    study_id: str | None,
+    all_studies: bool,
+    stopped_only: bool,
+    git_only: bool,
+    opl_maintenance_authorization: Mapping[str, Any],
+    authorization_blocker: Mapping[str, Any],
+) -> dict[str, Any]:
+    report_path = _timestamped_workspace_storage_report_path(workspace_root, recorded_at)
+    latest_path = _latest_workspace_storage_report_path(workspace_root)
+    report: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": "workspace_storage_audit",
+        "recorded_at": recorded_at,
+        "profile_name": profile.name,
+        "workspace_root": str(workspace_root),
+        "mode": "apply",
+        "status": _STORAGE_AUTHORIZATION_BLOCKER_STATUS,
+        "typed_blocker": _STORAGE_AUTHORIZATION_TYPED_BLOCKER,
+        "stable_blocker": True,
+        "owner": "one-person-lab",
+        "mas_role": "maintenance_callable_adapter",
+        "storage_refs_only_adapter_boundary": storage_refs_only_adapter_boundary(
+            report_mode="workspace_storage_audit",
+        ),
+        "opl_maintenance_authorization": dict(opl_maintenance_authorization),
+        "blockers": [dict(authorization_blocker)],
+        "selection": {
+            "study_id": study_id,
+            "all_studies": all_studies,
+            "stopped_only": stopped_only,
+            "git_only": git_only,
+        },
+        "summary": {
+            "study_count": 0,
+            "estimated_release_bytes": 0,
+            "actual_release_bytes": 0,
+            "runtime_total_bytes": 0,
+            "runtime_estimated_release_bytes": 0,
+            "runtime_actual_release_bytes": 0,
+            "dataset_total_bytes": 0,
+            "dataset_archive_offline_candidate_bytes": 0,
+            "cache_delete_safe_bytes": 0,
+            "cache_actual_release_bytes": 0,
+            "git_actual_release_bytes": 0,
+            "study_artifact_total_bytes": 0,
+        },
+        "categories": {
+            "runtime": _blocked_storage_category(category="runtime", workspace_root=workspace_root),
+            "dataset": _blocked_storage_category(category="dataset", workspace_root=workspace_root),
+            "git": _blocked_storage_category(category="git", workspace_root=workspace_root),
+            "cache": _blocked_storage_category(category="cache", workspace_root=workspace_root),
+            "study_artifact": _blocked_storage_category(category="study_artifact", workspace_root=workspace_root),
+        },
+        "report_path": str(report_path),
+        "latest_report_path": str(latest_path),
+    }
+    _write_json(report_path, report)
+    _write_json(latest_path, report)
+    return report
+
+
+def _blocked_storage_category(*, category: str, workspace_root: Path) -> dict[str, Any]:
+    return {
+        "category": category,
+        "workspace_root": str(workspace_root),
+        "bytes": 0,
+        "total_bytes": 0,
+        "candidate_action": "blocked-opl-runtime-storage-maintenance-authorization-required",
+        "estimated_release_bytes": 0,
+        "actual_release_bytes": 0,
+        "blockers": [_STORAGE_AUTHORIZATION_TYPED_BLOCKER],
+    }
+
+
+def _timestamped_workspace_storage_report_path(workspace_root: Path, recorded_at: str) -> Path:
+    return workspace_root / "storage_audit" / f"{_artifact_slug(recorded_at)}.json"
+
+
+def _latest_workspace_storage_report_path(workspace_root: Path) -> Path:
+    return workspace_root / "storage_audit" / "latest.json"
 
 
 def _record_workspace_archive_ref(

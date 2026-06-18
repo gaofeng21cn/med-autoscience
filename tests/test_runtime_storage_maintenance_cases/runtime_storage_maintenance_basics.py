@@ -21,6 +21,7 @@ def test_maintain_runtime_storage_runs_backend_and_writes_audit_report(tmp_path:
         profile=profile,
         study_id=study_id,
         study_root=None,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     assert result["status"] == "maintained"
@@ -60,6 +61,7 @@ def test_maintain_runtime_storage_blocks_live_runtime_without_override(tmp_path:
         profile=profile,
         study_id=study_id,
         study_root=None,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     assert result["status"] == "blocked_live_runtime"
@@ -162,7 +164,7 @@ def test_workspace_storage_audit_report_retention_keeps_latest_and_timestamped_h
     assert first_report_path.name != "latest.json"
     assert json.loads(first_latest_path.read_text(encoding="utf-8"))["report_path"] == str(first_report_path)
 
-    second = module.audit_workspace_storage(profile=profile, all_studies=True, apply=True)
+    second = module.audit_workspace_storage(profile=profile, all_studies=True, apply=True, opl_maintenance_authorization=_opl_storage_authorization(profile))
     second_report_path = Path(second["report_path"])
     latest_payload = json.loads(first_latest_path.read_text(encoding="utf-8"))
 
@@ -191,7 +193,12 @@ def test_maintain_runtime_storage_report_retention_keeps_latest_and_timestamped_
     _write_study(study_root, study_id=study_id, quest_id=study_id)
     _write_quest(quest_root, quest_id=study_id, status="stopped")
 
-    result = module.maintain_runtime_storage(profile=profile, study_id=study_id, study_root=None)
+    result = module.maintain_runtime_storage(
+        profile=profile,
+        study_id=study_id,
+        study_root=None,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
+    )
 
     report_path = Path(result["report_path"])
     latest_report_path = Path(result["latest_report_path"])
@@ -248,7 +255,7 @@ def test_audit_workspace_storage_apply_runs_stopped_studies_and_blocks_live_runt
     _write_quest(profile.runtime_root / live_study_id, quest_id=live_study_id, status="running", active_run_id="run-live")
     _write_quest(profile.runtime_root / stopped_study_id, quest_id=stopped_study_id, status="stopped")
 
-    result = module.audit_workspace_storage(profile=profile, all_studies=True, apply=True)
+    result = module.audit_workspace_storage(profile=profile, all_studies=True, apply=True, opl_maintenance_authorization=_opl_storage_authorization(profile))
 
     runtime_studies = result["categories"]["runtime"]["studies"]
     live_report = next(item for item in runtime_studies if item["study_id"] == live_study_id)
@@ -274,7 +281,7 @@ def test_audit_workspace_storage_apply_deletes_rebuildable_cache_candidates(tmp_
     ds_store.write_text("finder\n", encoding="utf-8")
     expected_deleted_bytes = cache_file.stat().st_size + pyc_file.stat().st_size + ds_store.stat().st_size
 
-    result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True)
+    result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True, opl_maintenance_authorization=_opl_storage_authorization(profile))
 
     cache_report = result["categories"]["cache"]
     assert cache_report["estimated_release_bytes"] == expected_deleted_bytes
@@ -289,6 +296,31 @@ def test_audit_workspace_storage_apply_deletes_rebuildable_cache_candidates(tmp_
     assert not (profile.workspace_root / ".pytest_cache").exists()
     assert not pycache_dir.exists()
     assert not ds_store.exists()
+
+
+def test_workspace_storage_apply_without_opl_authorization_blocks_before_physical_cleanup(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    cache_dir = profile.workspace_root / ".pytest_cache" / "v"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_file = cache_dir / "cache.bin"
+    cache_file.write_text("cache payload\n", encoding="utf-8")
+
+    result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True)
+
+    assert result["status"] == "blocked_opl_runtime_storage_maintenance_authorization_required"
+    assert result["typed_blocker"] == "opl_runtime_storage_maintenance_authorization_required"
+    assert result["opl_maintenance_authorization"]["status"] == "missing"
+    assert result["opl_maintenance_authorization"]["can_create_opl_command"] is False
+    assert result["opl_maintenance_authorization"]["can_claim_runtime_currentness"] is False
+    assert result["categories"]["cache"]["candidate_action"] == (
+        "blocked-opl-runtime-storage-maintenance-authorization-required"
+    )
+    assert result["categories"]["cache"]["actual_release_bytes"] == 0
+    assert result["summary"]["cache_actual_release_bytes"] == 0
+    assert cache_file.is_file()
 
 
 def test_audit_workspace_storage_study_id_scopes_cache_candidates_to_selected_study(tmp_path: Path) -> None:
@@ -321,7 +353,7 @@ def test_audit_workspace_storage_study_id_scopes_cache_candidates_to_selected_st
     assert live_quest_cache.exists()
     assert workspace_cache.exists()
 
-    result = module.audit_workspace_storage(profile=profile, study_id=selected_study_id, all_studies=False, apply=True)
+    result = module.audit_workspace_storage(profile=profile, study_id=selected_study_id, all_studies=False, apply=True, opl_maintenance_authorization=_opl_storage_authorization(profile))
 
     cache_report = result["categories"]["cache"]
     apply_deleted_paths = {Path(path) for path in cache_report["apply_result"]["deleted_paths"]}
@@ -347,7 +379,7 @@ def test_audit_workspace_storage_git_only_does_not_scan_cache(
 
     monkeypatch.setattr(module, "_delete_safe_candidates", fail_cache_scan)
 
-    result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True, git_only=True)
+    result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True, git_only=True, opl_maintenance_authorization=_opl_storage_authorization(profile))
 
     assert result["categories"]["cache"]["candidate_action"] == "skipped-git_only"
     assert result["summary"]["cache_actual_release_bytes"] == 0
@@ -364,7 +396,7 @@ def test_audit_workspace_storage_apply_uses_actual_runtime_release_for_estimate(
     run_log.parent.mkdir(parents=True, exist_ok=True)
     run_log.write_text('{"line":"stdout"}\n', encoding="utf-8")
 
-    result = module.audit_workspace_storage(profile=profile, all_studies=True, apply=True)
+    result = module.audit_workspace_storage(profile=profile, all_studies=True, apply=True, opl_maintenance_authorization=_opl_storage_authorization(profile))
 
     runtime_category = result["categories"]["runtime"]
     study_report = runtime_category["studies"][0]

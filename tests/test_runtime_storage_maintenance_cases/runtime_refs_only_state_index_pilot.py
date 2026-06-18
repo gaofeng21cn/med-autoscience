@@ -390,6 +390,7 @@ def test_maintain_runtime_storage_can_write_refs_only_state_index_pilot_summary(
         study_id=study_id,
         study_root=None,
         refs_only_state_index_pilot=True,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     assert result["status"] == "maintained"
@@ -459,6 +460,7 @@ def test_refs_only_state_index_pilot_runs_when_legacy_backend_is_unavailable(tmp
         include_worktrees=False,
         dedupe_worktree_min_mb=None,
         slim_jsonl_threshold_mb=None,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     assert result["status"] == "maintained"

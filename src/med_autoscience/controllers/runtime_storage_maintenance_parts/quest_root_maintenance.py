@@ -18,6 +18,11 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.attempt_evide
 from med_autoscience.controllers.runtime_storage_maintenance_parts.authority_boundary import (
     storage_refs_only_adapter_boundary,
 )
+from med_autoscience.controllers.runtime_storage_maintenance_parts.maintenance_authorization import (
+    AUTHORIZATION_BLOCKER_STATUS,
+    AUTHORIZATION_TYPED_BLOCKER,
+    opl_storage_maintenance_authorization_result,
+)
 from med_autoscience.controllers.runtime_storage_maintenance_parts.jsonl_slimming import (
     slim_oversized_jsonl_files,
 )
@@ -37,6 +42,8 @@ SCHEMA_VERSION = 1
 _TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ"
 _LIVE_RUNTIME_STATUSES = frozenset({"running", "active"})
 _PRIMARY_BUCKETS = ("bash_exec", "codex_homes", "runs", "codex_history", "worktrees")
+_QUEST_RUNTIME_MAINTENANCE_OPERATION = "quest_runtime_storage_apply"
+_QUEST_RUNTIME_MAINTENANCE_SURFACE = "quest_runtime_storage_maintenance"
 
 
 def maintain_quest_runtime_storage(
@@ -78,6 +85,7 @@ def maintain_quest_runtime_storage(
     semantic_retention_max_raw_bytes: int = 1024 * 1024,
     semantic_retention_keep_failed_raw: bool = True,
     semantic_retention_max_files: int | None = None,
+    opl_maintenance_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     selected_restore_proof_buckets = _restore_proof_buckets(restore_proof_buckets)
@@ -122,6 +130,49 @@ def maintain_quest_runtime_storage(
             report_mode="orphan_quest_runtime_storage_maintenance",
         ),
     }
+    authorization_required = _quest_runtime_storage_apply_requires_authorization(
+        restore_proof_compaction=restore_proof_compaction,
+        restore_proof_canary=restore_proof_canary,
+        refs_only_state_index_only=refs_only_state_index_only,
+        archive_retention=archive_retention,
+        archive_retention_apply=archive_retention_apply,
+        report_retention=report_retention,
+        report_retention_apply=report_retention_apply,
+        attempt_evidence_capsules=attempt_evidence_capsules,
+        semantic_process_retention=semantic_process_retention,
+        semantic_process_retention_apply=semantic_process_retention_apply,
+    )
+    authorization_proof, authorization_blocker = opl_storage_maintenance_authorization_result(
+        apply=authorization_required,
+        authorization=opl_maintenance_authorization,
+        operation=_QUEST_RUNTIME_MAINTENANCE_OPERATION,
+        maintenance_surface=_QUEST_RUNTIME_MAINTENANCE_SURFACE,
+        workspace_root=profile.workspace_root,
+        quest_root=resolved_quest_root,
+    )
+    result["opl_maintenance_authorization"] = authorization_proof
+    if authorization_blocker is not None:
+        result.update(
+            {
+                "status": AUTHORIZATION_BLOCKER_STATUS,
+                "typed_blocker": AUTHORIZATION_TYPED_BLOCKER,
+                "stable_blocker": True,
+                "owner": "one-person-lab",
+                "mas_role": "maintenance_callable_adapter",
+                "summary": "OPL runtime storage maintenance authorization is required before MAS can apply physical runtime storage maintenance.",
+                "blockers": [authorization_blocker],
+            }
+        )
+        result["quest_runtime_after"] = result["quest_runtime_before"] = _quest_runtime_snapshot(resolved_quest_root)
+        result["size_before"] = _size_summary_skipped(resolved_quest_root, reason=AUTHORIZATION_TYPED_BLOCKER)
+        result["size_after"] = result["size_before"]
+        report_path = _quest_runtime_maintenance_report_path(resolved_quest_root, recorded_at)
+        latest_report_path = _quest_runtime_maintenance_latest_path(resolved_quest_root)
+        result["report_path"] = str(report_path)
+        result["latest_report_path"] = str(latest_report_path)
+        _write_json(report_path, result)
+        _write_json(latest_report_path, result)
+        return result
     lightweight_buckets = selected_restore_proof_buckets if restore_proof_compaction else ()
     result["runtime_state_materialization"] = quest_state.materialize_runtime_state_surface(
         resolved_quest_root,
@@ -180,6 +231,18 @@ def maintain_quest_runtime_storage(
     ):
         result["status"] = "blocked_live_runtime"
         result["summary"] = "quest 当前仍在 live runtime，storage maintenance 需要先停车或显式放行。"
+    elif _quest_runtime_storage_plan_only_request(
+        archive_retention=archive_retention,
+        archive_retention_apply=archive_retention_apply,
+        report_retention=report_retention,
+        report_retention_apply=report_retention_apply,
+        attempt_evidence_capsules=attempt_evidence_capsules,
+        semantic_process_retention=semantic_process_retention,
+        semantic_process_retention_apply=semantic_process_retention_apply,
+    ):
+        result["status"] = "maintained"
+        result["summary"] = "quest runtime storage refs/projection plan 已完成；legacy backend physical maintenance 已跳过。"
+        result["legacy_backend_status"] = "skipped_by_plan_only_projection"
     else:
         _apply_backend_maintenance(
             result=result,
@@ -262,6 +325,51 @@ def maintain_quest_runtime_storage(
     _write_json(report_path, result)
     _write_json(latest_report_path, result)
     return result
+
+
+def _quest_runtime_storage_apply_requires_authorization(
+    *,
+    restore_proof_compaction: bool,
+    restore_proof_canary: bool,
+    refs_only_state_index_only: bool,
+    archive_retention: bool,
+    archive_retention_apply: bool,
+    report_retention: bool,
+    report_retention_apply: bool,
+    attempt_evidence_capsules: bool,
+    semantic_process_retention: bool,
+    semantic_process_retention_apply: bool,
+) -> bool:
+    if restore_proof_compaction or archive_retention_apply or report_retention_apply or semantic_process_retention_apply:
+        return True
+    if restore_proof_canary or refs_only_state_index_only:
+        return False
+    if _quest_runtime_storage_plan_only_request(
+        archive_retention=archive_retention,
+        archive_retention_apply=archive_retention_apply,
+        report_retention=report_retention,
+        report_retention_apply=report_retention_apply,
+        attempt_evidence_capsules=attempt_evidence_capsules,
+        semantic_process_retention=semantic_process_retention,
+        semantic_process_retention_apply=semantic_process_retention_apply,
+    ):
+        return False
+    return True
+
+
+def _quest_runtime_storage_plan_only_request(
+    *,
+    archive_retention: bool,
+    archive_retention_apply: bool,
+    report_retention: bool,
+    report_retention_apply: bool,
+    attempt_evidence_capsules: bool,
+    semantic_process_retention: bool,
+    semantic_process_retention_apply: bool,
+) -> bool:
+    if archive_retention_apply or report_retention_apply or semantic_process_retention_apply:
+        return False
+    return archive_retention or report_retention or attempt_evidence_capsules or semantic_process_retention
 
 
 def _apply_restore_proof_compaction(

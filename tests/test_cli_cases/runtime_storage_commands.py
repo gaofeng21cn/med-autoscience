@@ -54,6 +54,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         semantic_retention_max_raw_bytes: int,
         semantic_retention_keep_failed_raw: bool,
         semantic_retention_max_files: int | None,
+        opl_maintenance_authorization: dict[str, object] | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -93,9 +94,20 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         called["semantic_retention_max_raw_bytes"] = semantic_retention_max_raw_bytes
         called["semantic_retention_keep_failed_raw"] = semantic_retention_keep_failed_raw
         called["semantic_retention_max_files"] = semantic_retention_max_files
+        called["opl_maintenance_authorization"] = opl_maintenance_authorization
         return {"status": "maintained", "quest_id": "quest-001"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "maintain_runtime_storage", fake_maintain_runtime_storage)
+    authorization_payload = {
+        "surface_kind": "opl_runtime_storage_maintenance_authorization",
+        "operation": "quest_runtime_storage_apply",
+        "maintenance_surface": "quest_runtime_storage_maintenance",
+        "workspace_root": "/Users/gaofeng/workspace/Yang/NF-PitNET",
+        "outcome": "authorized",
+        "authorization_ref": "opl-runtime-storage-maintenance:nfpitnet:quest-001",
+    }
+    authorization_path = tmp_path / "opl-storage-authorization.json"
+    authorization_path.write_text(json.dumps(authorization_payload, ensure_ascii=False), encoding="utf-8")
 
     exit_code = cli.main(
         [
@@ -105,6 +117,8 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
             str(profile_path),
             "--study-id",
             "001-risk",
+            "--opl-maintenance-authorization",
+            str(authorization_path),
             "--no-worktrees",
             "--older-than-hours",
             "12",
@@ -190,6 +204,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
     assert called["semantic_retention_max_raw_bytes"] == 8192
     assert called["semantic_retention_keep_failed_raw"] is True
     assert called["semantic_retention_max_files"] == 9
+    assert called["opl_maintenance_authorization"] == authorization_payload
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -243,6 +258,7 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         semantic_retention_max_raw_bytes: int,
         semantic_retention_keep_failed_raw: bool,
         semantic_retention_max_files: int | None,
+        opl_maintenance_authorization: dict[str, object] | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["quest_root"] = quest_root
@@ -271,6 +287,7 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         called["semantic_retention_max_raw_bytes"] = semantic_retention_max_raw_bytes
         called["semantic_retention_keep_failed_raw"] = semantic_retention_keep_failed_raw
         called["semantic_retention_max_files"] = semantic_retention_max_files
+        called["opl_maintenance_authorization"] = opl_maintenance_authorization
         return {"status": "maintained", "quest_id": "legacy-quest"}
 
     monkeypatch.setattr(
@@ -380,6 +397,7 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
         semantic_retention_max_raw_bytes: int,
         semantic_retention_keep_failed_raw: bool,
         semantic_retention_max_files: int | None,
+        opl_maintenance_authorization: dict[str, object] | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["quest_root"] = quest_root
@@ -407,6 +425,7 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
         called["semantic_retention_max_raw_bytes"] = semantic_retention_max_raw_bytes
         called["semantic_retention_keep_failed_raw"] = semantic_retention_keep_failed_raw
         called["semantic_retention_max_files"] = semantic_retention_max_files
+        called["opl_maintenance_authorization"] = opl_maintenance_authorization
         return {"status": "maintained", "quest_id": "legacy-quest"}
 
     monkeypatch.setattr(
@@ -535,6 +554,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         semantic_retention_max_raw_bytes: int,
         semantic_retention_keep_failed_raw: bool,
         semantic_retention_max_files: int | None,
+        opl_maintenance_authorization: dict[str, object] | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -579,9 +599,20 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["semantic_retention_max_raw_bytes"] = semantic_retention_max_raw_bytes
         called["semantic_retention_keep_failed_raw"] = semantic_retention_keep_failed_raw
         called["semantic_retention_max_files"] = semantic_retention_max_files
+        called["opl_maintenance_authorization"] = opl_maintenance_authorization
         return {"mode": "apply", "latest_report_path": "storage_audit/latest.json"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
+    authorization_payload = {
+        "surface_kind": "opl_runtime_storage_maintenance_authorization",
+        "operation": "workspace_storage_apply",
+        "maintenance_surface": "workspace_runtime_storage_maintenance",
+        "workspace_root": "/Users/gaofeng/workspace/Yang/NF-PitNET",
+        "outcome": "authorized",
+        "authorization_ref": "opl-runtime-storage-maintenance:nfpitnet:workspace",
+    }
+    authorization_path = tmp_path / "opl-storage-audit-authorization.json"
+    authorization_path.write_text(json.dumps(authorization_payload, ensure_ascii=False), encoding="utf-8")
 
     exit_code = cli.main(
         [
@@ -591,6 +622,8 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
             str(profile_path),
             "--git-only",
             "--apply",
+            "--opl-maintenance-authorization",
+            str(authorization_path),
             "--reinitialize-empty-workspace-git",
             "--no-worktrees",
             "--older-than-hours",
@@ -681,6 +714,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["semantic_retention_max_raw_bytes"] == 2048
     assert called["semantic_retention_keep_failed_raw"] is True
     assert called["semantic_retention_max_files"] == 11
+    assert called["opl_maintenance_authorization"] == authorization_payload
     assert json.loads(captured.out)["latest_report_path"] == "storage_audit/latest.json"
 
 
@@ -739,6 +773,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         semantic_retention_max_raw_bytes: int,
         semantic_retention_keep_failed_raw: bool,
         semantic_retention_max_files: int | None,
+        opl_maintenance_authorization: dict[str, object] | None,
     ) -> dict[str, object]:
         called["study_id"] = study_id
         called["apply"] = apply
@@ -768,6 +803,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         called["semantic_retention_max_raw_bytes"] = semantic_retention_max_raw_bytes
         called["semantic_retention_keep_failed_raw"] = semantic_retention_keep_failed_raw
         called["semantic_retention_max_files"] = semantic_retention_max_files
+        called["opl_maintenance_authorization"] = opl_maintenance_authorization
         return {"mode": "apply" if apply else "dry-run", "restore_proof_compaction": restore_proof_compaction}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
@@ -823,6 +859,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         "semantic_retention_max_raw_bytes": 1024 * 1024,
         "semantic_retention_keep_failed_raw": True,
         "semantic_retention_max_files": None,
+        "opl_maintenance_authorization": None,
     }
     assert json.loads(captured.out)["restore_proof_compaction"] is True
 

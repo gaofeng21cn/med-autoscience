@@ -8,6 +8,8 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.quest_root_ma
 )
 
 from tests.test_runtime_storage_maintenance_cases.runtime_storage_maintenance_helpers import (
+    _opl_quest_storage_authorization,
+    _opl_storage_authorization,
     _write_quest,
     _write_study,
     make_profile,
@@ -88,6 +90,7 @@ def test_semantic_process_retention_apply_migrates_success_attempt_and_keeps_fai
         semantic_retention_max_raw_bytes=128,
         semantic_retention_keep_failed_raw=True,
         slim_jsonl_threshold_mb=None,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     retention = result["semantic_process_retention"]
@@ -140,6 +143,7 @@ def test_semantic_process_retention_apply_migrates_legacy_codex_homes_bucket(tmp
         semantic_process_retention=True,
         semantic_process_retention_apply=True,
         slim_jsonl_threshold_mb=None,
+        opl_maintenance_authorization=_opl_quest_storage_authorization(profile, quest_root),
     )
 
     home_retention = result["legacy_codex_homes_retention"]
@@ -188,6 +192,7 @@ def test_workspace_storage_audit_semantic_retention_stopped_only_migrates_comple
         semantic_retention_max_log_bytes=16,
         semantic_retention_max_raw_bytes=32,
         slim_jsonl_threshold_mb=None,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     runtime_studies = result["categories"]["runtime"]["studies"]
@@ -244,6 +249,7 @@ def test_workspace_storage_audit_semantic_retention_study_id_migrates_manual_sel
         semantic_retention_max_log_bytes=16,
         semantic_retention_max_raw_bytes=32,
         slim_jsonl_threshold_mb=None,
+        opl_maintenance_authorization=_opl_storage_authorization(profile),
     )
 
     runtime_studies = result["categories"]["runtime"]["studies"]

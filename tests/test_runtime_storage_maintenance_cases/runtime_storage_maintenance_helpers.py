@@ -147,6 +147,42 @@ def _write_dataset_release(
     return release_root
 
 
+def _opl_storage_authorization(profile, *, operation: str = "workspace_storage_apply") -> dict[str, object]:
+    return {
+        "surface_kind": "opl_runtime_storage_maintenance_authorization",
+        "operation": operation,
+        "maintenance_surface": "workspace_runtime_storage_maintenance",
+        "workspace_root": str(profile.workspace_root.resolve()),
+        "outcome": "authorized",
+        "authorization_ref": f"opl-runtime-storage-maintenance:{profile.name}:{operation}",
+        "owner": "one-person-lab",
+        "stage_run_id": f"stage-run:{profile.name}:storage-maintenance",
+        "event_ref": f"opl-event:{profile.name}:storage-maintenance",
+        "outbox_ref": f"opl-outbox:{profile.name}:storage-maintenance",
+    }
+
+
+def _opl_quest_storage_authorization(
+    profile,
+    quest_root: Path,
+    *,
+    operation: str = "quest_runtime_storage_apply",
+) -> dict[str, object]:
+    return {
+        "surface_kind": "opl_runtime_storage_maintenance_authorization",
+        "operation": operation,
+        "maintenance_surface": "quest_runtime_storage_maintenance",
+        "workspace_root": str(profile.workspace_root.resolve()),
+        "quest_root": str(Path(quest_root).resolve()),
+        "outcome": "authorized",
+        "authorization_ref": f"opl-runtime-storage-maintenance:{profile.name}:{Path(quest_root).name}:{operation}",
+        "owner": "one-person-lab",
+        "stage_run_id": f"stage-run:{profile.name}:{Path(quest_root).name}:storage-maintenance",
+        "event_ref": f"opl-event:{profile.name}:{Path(quest_root).name}:storage-maintenance",
+        "outbox_ref": f"opl-outbox:{profile.name}:{Path(quest_root).name}:storage-maintenance",
+    }
+
+
 __all__ = [
     "importlib",
     "json",
@@ -161,4 +197,6 @@ __all__ = [
     "_write_study",
     "_write_quest",
     "_write_dataset_release",
+    "_opl_storage_authorization",
+    "_opl_quest_storage_authorization",
 ]

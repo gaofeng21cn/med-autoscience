@@ -395,13 +395,14 @@
     {
       "phase_id": "lane_7_legacy_retirement",
       "status": "partial",
-      "completion_percent": 66,
+      "completion_percent": 68,
       "evidence": [
         "Runtime-health local append API is retired and inventory tracks remaining surfaces.",
         "domain_owner_action_dispatch repo tests cover fail-closed typed blockers for missing proof across every supported action, trusted OPL authorization, bound transition readback, and exact provider-hosted StageRun authorization.",
-        "Top-level request_tasks alias is physically removed from materializer output, with replacement nested diagnostic refs and retirement inventory updated; remaining carriers still need live/no-active-caller closeout."
+        "Top-level request_tasks alias is physically removed from materializer output, with replacement nested diagnostic refs and retirement inventory updated; remaining carriers still need live/no-active-caller closeout.",
+        "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention projections remain authorization-free and non-progress claims."
       ],
-      "open_gap": "Remaining private runtime residue needs live every-active-caller soak, no-active-caller, tombstone, or physical deletion evidence."
+      "open_gap": "Remaining private runtime residue still needs live OPL takeover/no-active-caller/tombstone evidence for physical deletion; storage maintenance is now an OPL-authorized MAS callable adapter, not a MAS-owned runtime storage shell."
     },
     {
       "phase_id": "lane_8_live_paper_acceptance",
@@ -437,7 +438,7 @@
     {
       "gate_id": "no_private_runtime_residue_as_authority",
       "status": "open",
-      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller. Current repo evidence proves domain_authority_refs_index active callers emit refs-only OPL StateIndex source-adapter proofs by default, do not persist MAS SQLite unless explicitly opted in, and cannot authorize runtime/progress; domain_health_diagnostic_obligation_actuator is consume-only with success-proof-gated postconditions and fail-closed typed blockers; runtime_lifecycle_payload_retention apply paths are OPL-authorized maintenance callable adapters and fail closed without bound OPL maintenance authorization proof. Physical deletion still requires live OPL takeover, no-active-caller or owner-retirement evidence, and tombstone/provenance."
+      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller. Current repo evidence proves domain_authority_refs_index active callers emit refs-only OPL StateIndex source-adapter proofs by default, do not persist MAS SQLite unless explicitly opted in, and cannot authorize runtime/progress; domain_health_diagnostic_obligation_actuator is consume-only with success-proof-gated postconditions and fail-closed typed blockers; runtime_lifecycle_payload_retention apply paths are OPL-authorized maintenance callable adapters and fail closed without bound OPL maintenance authorization proof; runtime_storage_maintenance workspace apply and direct quest physical apply now fail closed without bound opl_runtime_storage_maintenance_authorization proof while dry-run, source-retained restore-proof canary, refs-only index-only, and planned retention/capsule projections remain non-authority. Physical deletion still requires live OPL takeover, no-active-caller or owner-retirement evidence, and tombstone/provenance."
     }
   ],
   "forbidden_completion_interpretations": [
@@ -667,21 +668,28 @@
         "tests/study_progress_cases/current_executable_owner_action_cases/paper_recovery_successor_cases.py::test_paper_recovery_successor_survives_stale_repair_progress_during_fixed_point",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_lifecycle_payload_retention",
         "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_payload_retention_apply_requires_opl_authorization",
-        "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_sqlite_sidecar_repair_apply_requires_opl_authorization"
+        "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_sqlite_sidecar_repair_apply_requires_opl_authorization",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_storage_maintenance",
+        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_basics.py::test_workspace_storage_apply_without_opl_authorization_blocks_before_physical_cleanup",
+        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_compaction_git.py::test_quest_runtime_storage_physical_path_without_opl_authorization_blocks_before_backend",
+        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_compaction_git.py::test_quest_runtime_storage_authorization_scope_mismatch_blocks_physical_apply"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_caller_physical_delete_ref",
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
         "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
         "legacy_default_executor_carrier_physical_delete_ref",
-        "runtime_lifecycle_payload_retention_live_opl_cleanup_policy_takeover_or_no_active_caller_physical_delete_ref"
+        "runtime_lifecycle_payload_retention_live_opl_cleanup_policy_takeover_or_no_active_caller_physical_delete_ref",
+        "runtime_storage_maintenance_live_opl_storage_policy_takeover_or_no_active_caller_physical_delete_ref"
       ],
       "false_completion_boundary": [
         "inventory_entry_updated",
         "current_disposition_demoted_without_no_active_caller",
         "legacy_carrier_retained_as_provenance",
         "focused_tests_green",
-        "line_budget_advisory_only"
+        "line_budget_advisory_only",
+        "storage_authorization_gate_as_live_opl_takeover",
+        "runtime_storage_apply_as_paper_progress"
       ]
     },
     {
