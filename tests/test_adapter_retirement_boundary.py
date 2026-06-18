@@ -311,6 +311,9 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "live_readback_required_before_retirement": True,
         "live_tail": "live_every_active_caller_soak_or_no_active_caller_proof",
     }
+    assert "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py" in owner_dispatch[
+        "verified_by"
+    ]
     assert "mas_local_dispatch_authority" in owner_dispatch["forbidden_claims"]
     assert "closeout_binding_as_execution_authorization" in owner_dispatch["forbidden_claims"]
     assert "legacy_caller_exists" not in owner_dispatch["retention_reason"]

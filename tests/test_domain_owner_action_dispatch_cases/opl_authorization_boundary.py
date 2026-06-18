@@ -59,10 +59,15 @@ def _trusted_authorization(**overrides: object) -> dict[str, object]:
     return payload
 
 
-def _readback(*, work_unit_id: str = "write_delta", request_key: str = "request-a") -> dict[str, object]:
+def _readback(
+    *,
+    work_unit_id: str = "write_delta",
+    work_unit_fingerprint: str = "fingerprint-a",
+    request_key: str = "request-a",
+) -> dict[str, object]:
     return opl_transition_readback(
         "study-a",
-        action_fingerprint="fingerprint-a",
+        action_fingerprint=work_unit_fingerprint,
         work_unit_id=work_unit_id,
         route_identity_key=request_key,
         attempt_idempotency_key=request_key,
@@ -124,6 +129,7 @@ def test_owner_dispatch_rejects_unbound_domain_progress_transition_readback() ->
         },
         opl_domain_progress_transition_result=_readback(
             work_unit_id="stale_delta",
+            work_unit_fingerprint="stale-fingerprint",
             request_key="stale-request",
         ),
     )

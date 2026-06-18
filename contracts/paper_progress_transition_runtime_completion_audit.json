@@ -283,7 +283,7 @@
       "evidence": [
         "MAS runtime-health local append API is retired.",
         "Runtime surface inventory tracks remaining private surface tails.",
-        "domain_owner_action_dispatch has repo-level coverage for missing OPL proof fail-closed, trusted OPL authorization, bound DomainProgressTransitionRuntime readback, and provider-hosted exact StageRun authorization."
+        "domain_owner_action_dispatch has repo-level coverage for missing OPL proof fail-closed across every supported action, trusted OPL authorization, bound DomainProgressTransitionRuntime readback, and provider-hosted exact StageRun authorization."
       ],
       "open_gap": "Remaining carriers, selector/materializer authority, live dispatcher soak, physical delete gates, and no-active-caller scans still require closeout evidence."
     },
@@ -369,7 +369,7 @@
       "completion_percent": 64,
       "evidence": [
         "Runtime-health local append API is retired and inventory tracks remaining surfaces.",
-        "domain_owner_action_dispatch repo tests cover trusted OPL authorization, bound transition readback, exact provider-hosted StageRun authorization, and fail-closed typed blockers when proof is absent or stale."
+        "domain_owner_action_dispatch repo tests cover fail-closed typed blockers for missing proof across every supported action, trusted OPL authorization, bound transition readback, and exact provider-hosted StageRun authorization."
       ],
       "open_gap": "Remaining private runtime residue needs live every-active-caller soak, no-active-caller, tombstone, or physical deletion evidence."
     },
@@ -610,6 +610,7 @@
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_fails_closed_without_opl_authorization_or_bound_readback",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_accepts_trusted_opl_execution_authorization_only",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_accepts_bound_domain_progress_transition_readback_only",
+        "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_rejects_unbound_domain_progress_transition_readback",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_provider_hosted_exact_stage_attempt_authorizes_only_matching_stage_packet"
       ],
       "missing_evidence_tails": [

@@ -187,6 +187,10 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "tests/test_domain_owner_action_dispatch_contract.py::"
         "test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action"
     ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::"
+        "test_owner_dispatch_accepts_bound_domain_progress_transition_readback_only"
+    ) in physical_gate["observed_refs"]
     assert "inventory_entry_updated" in physical_gate["false_completion_boundary"]
 
 
