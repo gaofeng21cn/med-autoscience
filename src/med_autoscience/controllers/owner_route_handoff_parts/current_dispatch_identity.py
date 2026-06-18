@@ -348,8 +348,9 @@ def _current_owner_action_dispatch_identity(
         )
     if fingerprint is None:
         return {}
+    source = _text(current_owner_action.get("source")) or "current_executable_owner_action"
     identity = {
-        "source": _text(current_owner_action.get("source")) or "current_executable_owner_action",
+        "source": source,
         "action_type": action_type,
         "action_ids": action_ids,
         "work_unit_id": work_unit_id,
@@ -360,6 +361,8 @@ def _current_owner_action_dispatch_identity(
         work_unit_fingerprint=fingerprint,
         source=basis,
     )
+    if source is not None:
+        currentness_basis["source"] = source
     if currentness_basis:
         identity["owner_route_currentness_basis"] = currentness_basis
     return identity
@@ -423,6 +426,8 @@ def _current_owner_action_route_for_dispatch(
         source_refs["source_eval_id"] = source_eval_id
     source_refs["owner_route_currentness_basis"] = basis
     if source := _text(current_owner_action.get("source")):
+        basis["source"] = source
+        source_refs["owner_route_currentness_basis"] = basis
         source_refs["current_owner_action_source"] = source
     owner_route["source_refs"] = source_refs
     owner_route["owner_reason"] = current_work_unit_id
@@ -541,7 +546,7 @@ def _merge_equivalent_current_owner_action_identity(
         work_unit["action_ids"] = action_ids
     current_basis = dict(_mapping(work_unit.get("owner_route_currentness_basis")))
     owner_action_basis = _mapping(owner_action.get("owner_route_currentness_basis"))
-    for key in ("truth_epoch", "runtime_health_epoch", "source_eval_id"):
+    for key in ("truth_epoch", "runtime_health_epoch", "source_eval_id", "source"):
         if not _text(current_basis.get(key)) and (value := _text(owner_action_basis.get(key))):
             current_basis[key] = value
     if work_unit_id is not None:

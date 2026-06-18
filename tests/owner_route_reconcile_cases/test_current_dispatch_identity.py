@@ -336,4 +336,5 @@ def test_current_owner_action_identity_overlays_stale_same_action_dispatch_work_
         "truth_epoch": "truth-event-current",
         "runtime_health_epoch": "runtime-health-current",
         "source_eval_id": "publication-eval::current",
+        "source": "publication_eval.recommended_actions.readiness_blocker_repair",
     }

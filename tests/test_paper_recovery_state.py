@@ -96,7 +96,7 @@ def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     assert state["suppressed_surfaces"] == ["current_executable_owner_action"]
 
 
-def test_terminal_typed_blocker_owns_recovery_over_stale_progress_first_owner_receipt() -> None:
+def test_terminal_selector_residue_yields_successor_over_stale_progress_first_owner_receipt() -> None:
     state = _module().build_paper_recovery_state(
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -128,6 +128,7 @@ def test_terminal_typed_blocker_owns_recovery_over_stale_progress_first_owner_re
             },
             "current_executable_owner_action": {
                 "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
                 "status": "ready",
                 "source": "paper_recovery_state.next_safe_action.successor_owner_action",
                 "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
@@ -137,6 +138,12 @@ def test_terminal_typed_blocker_owns_recovery_over_stale_progress_first_owner_re
                 "work_unit_id": "medical_prose_write_repair",
                 "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
                 "action_fingerprint": "publication-blockers::0915410f804b3697",
+                "owner_receipt_required": True,
+                "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+                "paper_recovery_successor": {
+                    "phase": "owner_action_ready",
+                    "source_next_safe_action_kind": "materialize_successor_owner_action",
+                },
             },
             "progress_first_monitoring_summary": {
                 "current_work_unit": {
@@ -170,16 +177,23 @@ def test_terminal_typed_blocker_owns_recovery_over_stale_progress_first_owner_re
         }
     )
 
-    assert state["phase"] == "domain_blocked"
+    assert state["phase"] == "owner_action_ready"
     assert state["conditions"] == [
         {
-            "condition": "current_work_unit_typed_blocker",
+            "condition": "current_owner_action_supersedes_typed_blocker",
             "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
         }
     ]
-    assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
-    assert state["next_safe_action"]["provider_admission_allowed"] is False
-    assert state["supervisor_decision"]["decision"] == "stop_with_stable_typed_blocker"
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["successor_owner_action"] == {
+        "action_type": "run_quality_repair_batch",
+        "owner": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+    }
+    assert state["supervisor_decision"]["decision"] == "materialize_recovery_action"
 
 
 def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:

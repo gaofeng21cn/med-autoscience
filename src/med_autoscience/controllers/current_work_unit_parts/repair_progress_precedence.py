@@ -15,8 +15,10 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
 REPAIR_PROGRESS_EVIDENCE_SOURCE = "repair_progress_projection.mas_owner_repair_execution_evidence"
 STALE_STAGE_PACKET_BLOCKERS = frozenset(
     {
+        "blocked:unsupported_dispatch_surface",
         "domain_owner_dispatch_zero_selected_after_materialized_current_request",
         "stage_packet_not_current_selected_dispatch",
+        "unsupported_dispatch_surface",
     }
 )
 GATE_REPLAY_BLOCKERS = frozenset({"publication_gate_replay_blocked"})

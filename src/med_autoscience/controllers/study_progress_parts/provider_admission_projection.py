@@ -141,12 +141,22 @@ def _handoff_consumed_terminal_closeout_fields(
             return None
     elif not (current_action_matches or current_work_unit_matches):
         return None
+    typed_blocker = _handoff_terminal_typed_blocker(handoff)
+    consumed_projection = dict(consumed)
+    if typed_blocker:
+        consumed_projection.setdefault("typed_blocker", dict(typed_blocker))
+        consumed_projection.setdefault(
+            "blocker_type",
+            _non_empty_text(typed_blocker.get("blocker_type"))
+            or _non_empty_text(typed_blocker.get("blocked_reason"))
+            or _non_empty_text(typed_blocker.get("blocker_id")),
+        )
     return {
         "provider_admission_pending_count": 0,
         "provider_admission_candidates": [],
         "transition_request_pending_count": 0,
         "transition_request_candidates": [],
-        "provider_admission_terminal_closeout_consumed": dict(consumed),
+        "provider_admission_terminal_closeout_consumed": consumed_projection,
     }
 
 

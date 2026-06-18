@@ -399,6 +399,42 @@ def test_owner_route_normalization_preserves_embedded_currentness_work_unit_id()
     assert route["currentness_contract"]["missing_required_fields"] == []
 
 
+def test_owner_route_currentness_basis_preserves_embedded_action_source_identity() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    basis = protocol.currentness_basis(
+        {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+            "source_refs": {
+                "owner_route_currentness_basis": {
+                    "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                    "source_fingerprint": "publication-blockers::0915410f804b3697",
+                    "action_fingerprint": "publication-blockers::0915410f804b3697",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-current",
+                }
+            },
+        }
+    )
+
+    assert basis == {
+        "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+        "source_fingerprint": "publication-blockers::0915410f804b3697",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "action_fingerprint": "publication-blockers::0915410f804b3697",
+        "truth_epoch": "truth-event-current",
+        "runtime_health_epoch": "runtime-health-current",
+    }
+
+
 def test_owner_route_protocol_normalizes_publication_eval_ref_as_source_eval_currentness() -> None:
     protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
 

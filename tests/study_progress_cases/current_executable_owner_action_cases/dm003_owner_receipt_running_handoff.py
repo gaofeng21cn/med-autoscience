@@ -386,6 +386,121 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
     assert projection["refresh_mode"] == "single_pass_projection_normalization"
 
 
+def test_current_execution_refresh_prefers_handoff_owner_receipt_over_stale_selector_blocker() -> None:
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."
+        "current_execution_surfaces"
+    )
+    receipt_ref = "artifacts/controller/repair_execution_receipts/latest.json"
+    current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "schema_version": 1,
+        "status": "owner_receipt_recorded",
+        "study_id": STUDY_ID,
+        "quest_id": STUDY_ID,
+        "owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": WRITE_WORK_UNIT,
+        "work_unit_fingerprint": WRITE_FINGERPRINT,
+        "action_fingerprint": WRITE_FINGERPRINT,
+        "acceptance_refs": [receipt_ref],
+        "required_output_contract": {
+            "owner_receipt_consumed": True,
+            "owner_receipt_ref": receipt_ref,
+            "provider_completion_is_domain_completion": False,
+            "domain_ready_authorized": False,
+        },
+        "state": {
+            "state_kind": "owner_receipt_recorded",
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "owner_receipt_ref": receipt_ref,
+            "next_safe_action_kind": "consume_owner_receipt",
+            "provider_admission_pending": False,
+        },
+        "currentness_basis": {
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "work_unit_id": WRITE_WORK_UNIT,
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+            "truth_epoch": "truth-event-000035",
+            "runtime_health_epoch": "runtime-health-event-006980",
+        },
+    }
+    handoff = {
+        "surface_kind": "opl_current_control_state_study_handoff",
+        "running_provider_attempt": False,
+        "next_owner": "one-person-lab",
+        "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+        "typed_blocker": {
+            "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+            "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+            "owner": "one-person-lab",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": WRITE_WORK_UNIT,
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+            "action_fingerprint": WRITE_FINGERPRINT,
+            "typed_blocker_ref": (
+                "artifacts/supervision/consumer/default_executor_execution/"
+                "sat_08da46bea43329723d2fbbea.closeout.json"
+            ),
+        },
+        "provider_admission_terminal_closeout_consumed": {
+            "surface_kind": "provider_admission_terminal_closeout_consumed",
+            "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": WRITE_WORK_UNIT,
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+            "action_fingerprint": WRITE_FINGERPRINT,
+            "typed_blocker_ref": (
+                "artifacts/supervision/consumer/default_executor_execution/"
+                "sat_08da46bea43329723d2fbbea.closeout.json"
+            ),
+            "owner_receipt_ref": receipt_ref,
+        },
+        "current_work_unit": current_work_unit,
+        "current_execution_envelope": {
+            "state_kind": "owner_receipt_recorded",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": WRITE_WORK_UNIT,
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+        },
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "action_queue": [],
+    }
+
+    result = surfaces.refresh_current_execution_surfaces(
+        payload={
+            "study_id": STUDY_ID,
+            "quest_id": STUDY_ID,
+            "current_stage": "queued",
+            "current_executable_owner_action": None,
+            "current_work_unit": current_work_unit,
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "schema_version": 1,
+                "study_id": STUDY_ID,
+                "quest_id": STUDY_ID,
+                "phase": "domain_blocked",
+                "next_safe_action": {
+                    "kind": "resolve_typed_blocker",
+                    "owner": "one-person-lab",
+                    "provider_admission_allowed": False,
+                },
+            },
+        },
+        status={"study_id": STUDY_ID, "quest_id": STUDY_ID},
+        handoff=handoff,
+        runtime_health_snapshot={"runtime_health_epoch": "runtime-health-event-006980"},
+    )
+
+    assert result["current_executable_owner_action"] is None
+    assert result["current_work_unit"]["status"] == "owner_receipt_recorded"
+    assert result["current_work_unit"]["state"]["owner_receipt_ref"] == receipt_ref
+    assert result["current_execution_envelope"]["state_kind"] == "owner_receipt_recorded"
+    assert "typed_blocker" not in result["current_execution_envelope"]
+
+
 def test_paper_recovery_refresh_rebuilds_stale_successor_under_terminal_typed_blocker(
     tmp_path: Path,
 ) -> None:
@@ -550,17 +665,29 @@ def test_paper_recovery_refresh_rebuilds_stale_successor_under_terminal_typed_bl
         build_paper_recovery_state=recovery_state.build_paper_recovery_state,
     )
 
-    assert result["current_executable_owner_action"] is None
-    assert result["current_work_unit"]["status"] == "typed_blocker"
-    assert result["paper_recovery_state"]["phase"] == "domain_blocked"
+    assert result["current_executable_owner_action"] is not None
+    assert result["current_executable_owner_action"]["source"] == (
+        "paper_recovery_state.next_safe_action.successor_owner_action"
+    )
+    assert result["current_executable_owner_action"]["next_owner"] == "write"
+    assert result["current_executable_owner_action"]["action_type"] == "run_quality_repair_batch"
+    assert result["current_executable_owner_action"]["work_unit_id"] == WRITE_WORK_UNIT
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+    assert result["current_work_unit"]["owner"] == "write"
+    assert result["current_work_unit"]["state"]["source"] == (
+        "paper_recovery_state.next_safe_action.successor_owner_action"
+    )
+    assert result["paper_recovery_state"]["phase"] == "owner_action_ready"
     assert result["paper_recovery_state"]["conditions"] == [
         {
-            "condition": "current_work_unit_typed_blocker",
+            "condition": "current_owner_action_supersedes_typed_blocker",
             "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
         }
     ]
-    assert result["paper_recovery_state"]["next_safe_action"]["kind"] == "resolve_typed_blocker"
-    assert result["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is False
+    assert result["paper_recovery_state"]["next_safe_action"]["kind"] == (
+        "materialize_successor_owner_action"
+    )
+    assert result["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is True
 
 
 def test_paper_recovery_refresh_consumes_handoff_terminal_blocker_over_owner_receipt(
@@ -669,6 +796,20 @@ def test_paper_recovery_refresh_consumes_handoff_terminal_blocker_over_owner_rec
                 "identity_match": True,
             },
         },
+        "gate_clearing_batch_followthrough": {
+            "surface_kind": "gate_clearing_batch_followthrough",
+            "gate_replay_status": "blocked",
+            "latest_record_path": "artifacts/controller/gate_clearing_batch/latest.json",
+            "work_unit_id": WRITE_WORK_UNIT,
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+            "work_unit_currentness": {
+                "current_actionability_status": "actionable",
+                "lacks_specific_blocker_object": False,
+                "current_publication_work_unit_id": WRITE_WORK_UNIT,
+                "current_work_unit_fingerprint": WRITE_FINGERPRINT,
+            },
+            "current_publication_work_unit": {"unit_id": WRITE_WORK_UNIT, "lane": "write"},
+        },
     }
 
     result = refresh_module.normalize_paper_recovery_execution_projection(
@@ -767,18 +908,25 @@ def test_paper_recovery_refresh_consumes_handoff_terminal_blocker_over_owner_rec
         build_paper_recovery_state=recovery_state.build_paper_recovery_state,
     )
 
-    assert result["current_executable_owner_action"] is None
-    assert result["current_work_unit"]["status"] == "typed_blocker"
-    assert result["current_work_unit"]["state"]["source"] == "terminal_closeout_typed_blocker"
-    assert result["paper_recovery_state"]["phase"] == "domain_blocked"
+    assert result["current_executable_owner_action"] is not None
+    assert result["current_executable_owner_action"]["source"] == (
+        "paper_recovery_state.next_safe_action.successor_owner_action"
+    )
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+    assert result["current_work_unit"]["state"]["source"] == (
+        "paper_recovery_state.next_safe_action.successor_owner_action"
+    )
+    assert result["paper_recovery_state"]["phase"] == "owner_action_ready"
     assert result["paper_recovery_state"]["conditions"] == [
         {
-            "condition": "current_work_unit_typed_blocker",
+            "condition": "current_owner_action_supersedes_typed_blocker",
             "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
         }
     ]
-    assert result["paper_recovery_state"]["next_safe_action"]["kind"] == "resolve_typed_blocker"
-    assert result["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is False
+    assert result["paper_recovery_state"]["next_safe_action"]["kind"] == (
+        "materialize_successor_owner_action"
+    )
+    assert result["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is True
 
 
 def test_current_execution_refresh_keeps_handoff_owner_receipt_over_stale_closeout() -> None:

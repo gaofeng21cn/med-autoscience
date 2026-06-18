@@ -12,6 +12,10 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.current_work_unit_parts.repair_progress_precedence import (
     gate_replay_action_supersedes_stage_packet_blocker,
 )
+from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
+    action_supersedes_terminal_selector_residue,
+    paper_recovery_successor_supersedes_terminal_selector_residue,
+)
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
 )
@@ -45,6 +49,7 @@ from .current_executable_owner_action_parts.gate_followthrough import (
 from .current_executable_owner_action_parts import gate_replay_identity
 from .current_executable_owner_action_parts.non_advancing_terminal_closeout import (
     canonical_current_work_unit_has_non_advancing_apply,
+    canonical_current_work_unit_terminal_typed_blocker,
     without_same_identity_non_advancing_apply,
     without_same_identity_terminal_typed_blocker,
 )
@@ -98,6 +103,16 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         payload,
         _from_domain_transition(payload),
     )
+    if _paper_recovery_successor_supersedes_terminal_selector_residue(
+        payload=payload,
+        paper_recovery_action=paper_recovery_action,
+    ):
+        return paper_recovery_action
+    if _action_supersedes_terminal_selector_residue(
+        payload=payload,
+        action=gate_followthrough_action,
+    ):
+        return gate_followthrough_action
     if _repair_progress_consumes_paper_recovery_successor(
         repair_progress_action=repair_progress_action,
         paper_recovery_action=paper_recovery_action,
@@ -357,6 +372,43 @@ def _repair_progress_consumes_paper_recovery_successor(
     if followthrough_fingerprint != paper_fingerprint:
         return False
     return True
+
+
+def _paper_recovery_successor_supersedes_terminal_selector_residue(
+    *,
+    payload: Mapping[str, Any],
+    paper_recovery_action: Mapping[str, Any] | None,
+) -> bool:
+    return _action_supersedes_terminal_selector_residue(
+        payload=payload,
+        action=paper_recovery_action,
+        paper_recovery_only=True,
+    )
+
+
+def _action_supersedes_terminal_selector_residue(
+    *,
+    payload: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+    paper_recovery_only: bool = False,
+) -> bool:
+    candidate = _mapping_copy(action)
+    if not candidate:
+        return False
+    blocker = canonical_current_work_unit_terminal_typed_blocker(payload)
+    if not blocker:
+        return False
+    if paper_recovery_only:
+        return paper_recovery_successor_supersedes_terminal_selector_residue(
+            action=candidate,
+            blocker=blocker,
+            progress=payload,
+        )
+    return action_supersedes_terminal_selector_residue(
+        action=candidate,
+        blocker=blocker,
+        progress=payload,
+    )
 
 
 def _repair_progress_supersedes_terminal_stop_loss(

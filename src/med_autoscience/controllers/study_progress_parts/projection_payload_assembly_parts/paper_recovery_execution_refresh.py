@@ -4,7 +4,14 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 from ..current_executable_owner_action_parts.non_advancing_terminal_closeout import (
+    canonical_current_work_unit_terminal_typed_blocker,
     without_same_identity_terminal_typed_blocker,
+)
+from ...current_work_unit_parts.paper_recovery_successor import (
+    PAPER_RECOVERY_SUCCESSOR_DELTA_KIND,
+    PAPER_RECOVERY_SUCCESSOR_SOURCE,
+    action_supersedes_terminal_selector_residue,
+    paper_recovery_successor_supersedes_terminal_selector_residue,
 )
 from ..shared import _mapping_copy
 
@@ -88,7 +95,11 @@ def normalize_paper_recovery_execution_projection(
     if "provider_admission_blocked_by_supervisor_decision" not in final_provider_fields:
         refreshed = _without_stale_provider_supervisor_block(refreshed)
     refreshed = sync_progress_first_owner_action_admission(refreshed)
-    refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
+    refreshed["paper_recovery_state"] = _build_recovery_state_unless_successor_current(
+        refreshed,
+        build_paper_recovery_state=build_paper_recovery_state,
+        build_current_executable_owner_action=build_current_executable_owner_action,
+    )
     refreshed = _with_recovery_supervisor_decision(refreshed)
     final_current_action = build_current_executable_owner_action(refreshed)
     if final_current_action != _mapping_copy(refreshed.get("current_executable_owner_action")):
@@ -107,7 +118,11 @@ def normalize_paper_recovery_execution_projection(
         if "provider_admission_blocked_by_supervisor_decision" not in final_provider_fields:
             refreshed = _without_stale_provider_supervisor_block(refreshed)
         refreshed = sync_progress_first_owner_action_admission(refreshed)
-        refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
+        refreshed["paper_recovery_state"] = _build_recovery_state_unless_successor_current(
+            refreshed,
+            build_paper_recovery_state=build_paper_recovery_state,
+            build_current_executable_owner_action=build_current_executable_owner_action,
+        )
         refreshed = _with_recovery_supervisor_decision(refreshed)
     refreshed["paper_recovery_execution_projection"] = {
         "surface_kind": "paper_recovery_execution_projection",
@@ -161,6 +176,12 @@ def _build_recovery_state_unless_successor_current(
 ) -> dict[str, Any]:
     recovery = _mapping_copy(payload.get("paper_recovery_state"))
     current_action = build_current_executable_owner_action(payload)
+    if _recovery_successor_supersedes_terminal_selector_residue(
+        payload,
+        recovery=recovery,
+        current_action=current_action,
+    ):
+        return build_paper_recovery_state(_payload_with_terminal_selector_residue_blocker(payload))
     if (
         _paper_recovery_successor_state_current(recovery)
         and _action_source(current_action) in {None, "paper_recovery_state.next_safe_action.successor_owner_action"}
@@ -207,7 +228,107 @@ def _terminal_typed_blocker_supersedes_recovery_successor(
     successor = _mapping_copy(next_safe_action.get("successor_owner_action"))
     if not successor:
         return False
+    blocker = canonical_current_work_unit_terminal_typed_blocker(payload)
+    if blocker and paper_recovery_successor_supersedes_terminal_selector_residue(
+        action=_successor_as_paper_recovery_action(recovery),
+        blocker=blocker,
+        progress=payload,
+    ):
+        return False
     return without_same_identity_terminal_typed_blocker(payload, successor) is None
+
+
+def _recovery_successor_supersedes_terminal_selector_residue(
+    payload: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+    current_action: Mapping[str, Any] | None,
+) -> bool:
+    blocker = _terminal_selector_residue_blocker(payload)
+    if not blocker:
+        return False
+    action = _mapping_copy(current_action) or _successor_as_paper_recovery_action(recovery)
+    return action_supersedes_terminal_selector_residue(
+        action=action,
+        blocker=blocker,
+        progress=payload,
+    )
+
+
+def _terminal_selector_residue_blocker(payload: Mapping[str, Any]) -> dict[str, Any]:
+    blocker = canonical_current_work_unit_terminal_typed_blocker(payload)
+    if blocker:
+        return blocker
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _text(current_work_unit.get("status")) == "owner_receipt_recorded":
+        return {}
+    consumed = _mapping_copy(payload.get("provider_admission_terminal_closeout_consumed"))
+    return _mapping_copy(consumed.get("typed_blocker"))
+
+
+def _payload_with_terminal_selector_residue_blocker(payload: Mapping[str, Any]) -> dict[str, Any]:
+    blocker = _terminal_selector_residue_blocker(payload)
+    if not blocker:
+        return dict(payload)
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    state = {
+        "state_kind": "typed_blocker",
+        "source": "terminal_closeout_typed_blocker",
+        "typed_blocker": dict(blocker),
+    }
+    selector_work_unit = {
+        **current_work_unit,
+        "status": "typed_blocker",
+        "owner": _text(blocker.get("owner")) or _text(current_work_unit.get("owner")),
+        "action_type": _text(blocker.get("action_type")) or _text(current_work_unit.get("action_type")),
+        "work_unit_id": _text(blocker.get("work_unit_id")) or _text(current_work_unit.get("work_unit_id")),
+        "work_unit_fingerprint": _text(blocker.get("work_unit_fingerprint"))
+        or _text(current_work_unit.get("work_unit_fingerprint")),
+        "action_fingerprint": _text(blocker.get("action_fingerprint"))
+        or _text(current_work_unit.get("action_fingerprint")),
+        "state": state,
+    }
+    return {
+        **dict(payload),
+        "current_work_unit": {
+            key: value
+            for key, value in selector_work_unit.items()
+            if value not in (None, "", [], {})
+        },
+    }
+
+
+def _successor_as_paper_recovery_action(recovery: Mapping[str, Any]) -> dict[str, Any]:
+    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
+    successor = _mapping_copy(next_safe_action.get("successor_owner_action"))
+    fingerprint = _text(successor.get("work_unit_fingerprint")) or _text(
+        successor.get("action_fingerprint")
+    )
+    owner = (
+        _text(successor.get("owner"))
+        or _text(successor.get("next_owner"))
+        or _text(next_safe_action.get("owner"))
+    )
+    return {
+        key: value
+        for key, value in {
+            **successor,
+            "source": PAPER_RECOVERY_SUCCESSOR_SOURCE,
+            "source_surface": _text(successor.get("source_surface")),
+            "next_owner": owner,
+            "owner": owner,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "owner_receipt_required": True,
+            "required_delta_kind": PAPER_RECOVERY_SUCCESSOR_DELTA_KIND,
+            "paper_recovery_successor": {
+                "phase": _text(recovery.get("phase")),
+                "source_next_safe_action_kind": _text(next_safe_action.get("kind")),
+                "source_surface": _text(successor.get("source_surface")),
+            },
+        }.items()
+        if value not in (None, "", [], {})
+    }
 
 
 def _projection_metadata_value(

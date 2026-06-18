@@ -159,12 +159,22 @@ def currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
             or route.get("source_eval_id")
             or route.get("publication_eval_id")
             or embedded_basis.get("source_eval_id"),
+            "source": source_refs.get("current_owner_action_source")
+            or source_refs.get("source")
+            or route.get("source")
+            or embedded_basis.get("source"),
+            "source_fingerprint": route.get("source_fingerprint")
+            or source_refs.get("source_fingerprint")
+            or embedded_basis.get("source_fingerprint"),
             "work_unit_id": source_refs.get("work_unit_id")
             or route.get("work_unit_id")
             or embedded_basis.get("work_unit_id"),
             "work_unit_fingerprint": route.get("work_unit_fingerprint")
             or source_refs.get("work_unit_fingerprint")
             or embedded_basis.get("work_unit_fingerprint"),
+            "action_fingerprint": route.get("action_fingerprint")
+            or source_refs.get("action_fingerprint")
+            or embedded_basis.get("action_fingerprint"),
             "truth_epoch": route.get("truth_epoch")
             or source_refs.get("study_truth_epoch")
             or embedded_basis.get("truth_epoch"),

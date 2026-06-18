@@ -7,6 +7,9 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_non_advancing_
     terminal_non_advancing_apply_identity,
     terminal_stage_non_advancing_apply,
 )
+from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
+    action_supersedes_terminal_selector_residue,
+)
 from med_autoscience.controllers.study_progress_parts.shared import (
     _mapping_copy,
     _non_empty_text,
@@ -43,6 +46,12 @@ def without_same_identity_terminal_typed_blocker(
     if not blocker:
         return candidate
     if not _same_work_unit_identity(left=blocker, right=candidate):
+        return candidate
+    if action_supersedes_terminal_selector_residue(
+        action=candidate,
+        blocker=blocker,
+        progress=payload,
+    ):
         return candidate
     return None
 
