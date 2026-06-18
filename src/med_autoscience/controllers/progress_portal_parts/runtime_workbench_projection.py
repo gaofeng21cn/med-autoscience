@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .progress_first_operator import build_progress_first_operator_projection
+from .owner_delta_summary import workbench_next_action_projection as _workbench_next_action_projection
 from .runtime_workbench_sections import build_paper_route_lens, paper_route_lens_summary
 from .runtime_workbench_sections.common import (
     dedupe_refs as _dedupe_refs,
@@ -139,6 +140,13 @@ def _workbench_study_row(
         row.get("runtime_health_status"),
         row.get("supervisor_tick_status"),
     )
+    next_action_projection = _workbench_next_action_projection(
+        row.get("current_owner_delta"),
+        row.get("next_system_action"),
+        row.get("operator_focus"),
+        row.get("user_next"),
+        row.get("next_action_summary"),
+    )
     result = {
         "study_id": study_id,
         "display_title": _non_empty_text(row.get("display_title")) or _non_empty_text(row.get("title")) or study_id,
@@ -148,18 +156,13 @@ def _workbench_study_row(
             row.get("current_stage"),
             row.get("paper_stage"),
         ) or "unknown",
-        "user_next": _first_non_empty_text(row.get("user_next"), row.get("next_system_action"), row.get("operator_focus")),
         "current_stage": _non_empty_text(row.get("current_stage")),
         "active_run_id": active_run_id,
         "worker_state": worker_state,
         "last_seen_at": _first_non_empty_text(row.get("last_seen_at"), freshness["latest_event_at"]),
         "freshness": freshness,
         "blocker_summary": _first_non_empty_text(row.get("blocker_summary"), row.get("progress_freshness_summary")),
-        "next_action_summary": _first_non_empty_text(row.get("next_action_summary"), row.get("next_system_action"), row.get("operator_focus")),
-        "next_action_summary_role": "read_only_drilldown_summary",
-        "next_action_summary_is_controller_action": False,
-        "next_action_summary_can_generate_action": False,
-        "next_action_summary_requires_opl_current_control_readback": True,
+        **next_action_projection,
         "source_refs": fallback_source_refs[:12],
         "links_role": "read_only_drilldown_refs",
         "links_can_execute": False,
@@ -208,11 +211,16 @@ def _selected_workbench_study(
     progress_first = build_progress_first_operator_projection(progress)
     stage_artifact_index = _stage_artifact_index_projection(progress)
     stage_operating_layer = _stage_operating_layer_projection(progress)
+    current_owner_delta = _mapping(study_workbench.get("current_owner_delta"))
+    next_action_projection = _workbench_next_action_projection(
+        current_owner_delta,
+        user_visible.get("next_system_action"),
+        user_visible.get("user_next"),
+    )
     return {
         "study_id": study_id,
         "display_title": study_id,
         "macro_state": _first_non_empty_text(user_visible.get("state_label"), user_visible.get("writer_state")) or "unknown",
-        "user_next": _non_empty_text(user_visible.get("user_next")) or _non_empty_text(user_visible.get("next_system_action")),
         "current_stage": _non_empty_text(user_visible.get("current_stage")),
         "active_run_id": active_run_id,
         "worker_state": _first_non_empty_text(
@@ -222,11 +230,7 @@ def _selected_workbench_study(
         "last_seen_at": _first_non_empty_text(freshness.get("latest_event_at")),
         "freshness": dict(freshness),
         "blocker_summary": "; ".join(_string_list(user_visible.get("current_blockers"))) or None,
-        "next_action_summary": _non_empty_text(user_visible.get("next_system_action")),
-        "next_action_summary_role": "read_only_drilldown_summary",
-        "next_action_summary_is_controller_action": False,
-        "next_action_summary_can_generate_action": False,
-        "next_action_summary_requires_opl_current_control_readback": True,
+        **next_action_projection,
         "source_refs": source_refs[:12],
         "links_role": "read_only_drilldown_refs",
         "links_can_execute": False,
@@ -983,11 +987,7 @@ def _opl_active_run_id(
     )
 
 
-def _workbench_terminal_projection(
-    *,
-    study_id: str,
-    active_run_id: str | None,
-) -> dict[str, Any]:
+def _workbench_terminal_projection(*, study_id: str, active_run_id: str | None) -> dict[str, Any]:
     return {
         "mode": "external_control_plane_required",
         "reason": "terminal_and_log_projection_owned_by_opl_current_control_state",

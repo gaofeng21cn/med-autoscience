@@ -275,9 +275,11 @@
       "correct_owner": "OPL Console plus MAS domain projection",
       "target": "Workbench/Portal display current owner, accepted answer shape, and evidence refs without becoming a second truth source.",
       "status": "partial",
-      "completion_percent": 55,
+      "completion_percent": 62,
       "evidence": [
-        "Projection metadata and runtime inventory identify non-authority display surfaces."
+        "Projection metadata and runtime inventory identify non-authority display surfaces.",
+        "Progress Portal top-level study.next_system_action, study workbench overview next_system_action, runtime workbench user_next, runtime workbench next_action_summary, workspace dashboard focus, and materialized workspace-row fallback now use read-only current_owner_delta summaries instead of legacy user_visible/cockpit next_system_action or legacy operator focus.",
+        "Legacy next_system_action and operator focus values are retained only under diagnostic_legacy_projection_input payloads with can_generate_action=false and must_not_be_used_as_next_action_authority=true."
       ],
       "open_gap": "Workbench/Portal still need event-driven rebuild proof from OPL transition event plus MAS policy result."
     },

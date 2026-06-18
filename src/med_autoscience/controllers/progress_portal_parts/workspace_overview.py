@@ -5,6 +5,7 @@ from html import escape
 from urllib.parse import quote
 from typing import Any
 
+from .owner_delta_summary import legacy_next_action_diagnostic, owner_delta_read_only_summary
 from .status_display import display_text, status_chip, status_label
 
 
@@ -107,6 +108,11 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
         supervisor_state = _mapping(runtime_health.get("supervisor_state"))
         intervention_lane = _mapping(item.get("intervention_lane"))
         operator_status_card = _mapping(item.get("operator_status_card"))
+        owner_delta_summary = owner_delta_read_only_summary(
+            _mapping(item.get("current_owner_delta"))
+            or _mapping(user_visible.get("current_owner_delta"))
+            or _mapping(item.get("stage_run_current_owner_delta"))
+        )
         active_run_id = (
             _non_empty_text(monitoring.get("active_run_id"))
             or _non_empty_text(opl_control.get("active_run_id"))
@@ -121,12 +127,7 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
             _non_empty_text(monitoring.get("supervisor_tick_status"))
             or _non_empty_text(supervisor_state.get("status"))
         )
-        operator_focus = (
-            _non_empty_text(intervention_lane.get("title"))
-            or _non_empty_text(operator_status_card.get("user_visible_verdict"))
-            or _non_empty_text(item.get("next_system_action"))
-            or _non_empty_text(user_visible.get("next_system_action"))
-        )
+        operator_focus = _non_empty_text(owner_delta_summary.get("summary"))
         result.append(
             {
                 "study_id": study_id,
@@ -149,8 +150,15 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
                 "progress_freshness_status": _non_empty_text(progress_freshness.get("status")),
                 "progress_freshness_summary": _non_empty_text(progress_freshness.get("summary")),
                 "operator_focus": operator_focus,
-                "next_system_action": _non_empty_text(item.get("next_system_action"))
-                or _non_empty_text(user_visible.get("next_system_action")),
+                "owner_delta_summary": owner_delta_summary,
+                "legacy_operator_focus_diagnostic": legacy_next_action_diagnostic(
+                    intervention_lane.get("title"),
+                    operator_status_card.get("user_visible_verdict"),
+                ),
+                "legacy_next_system_action_diagnostic": legacy_next_action_diagnostic(
+                    item.get("next_system_action"),
+                    user_visible.get("next_system_action"),
+                ),
                 "paper_route_lens": _mapping(item.get("paper_route_lens")),
             }
         )
@@ -184,7 +192,7 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
             status_chip(item.get("supervisor_tick_status") or "unknown"),
             status_chip(item.get("progress_freshness_status") or "unknown"),
             escape(display_text(item.get("paper_stage") or item.get("current_stage"), empty_text="未提供")),
-            escape(display_text(item.get("operator_focus") or item.get("next_system_action"), empty_text="未提供", preserve_known_token=False)),
+            escape(display_text(item.get("operator_focus"), empty_text="未提供", preserve_known_token=False)),
         )
         rows.append(
             "<tr"
@@ -307,7 +315,7 @@ def _study_item(item: Mapping[str, Any]) -> str:
         else ""
     )
     action = display_text(
-        item.get("operator_focus") or item.get("next_system_action"),
+        item.get("operator_focus"),
         empty_text="当前没有明确下一步投影。",
         preserve_known_token=False,
     )

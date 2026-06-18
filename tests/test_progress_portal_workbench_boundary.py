@@ -82,6 +82,24 @@ def test_study_workbench_next_system_action_is_read_only_owner_delta_summary() -
     assert default_read["authority"]["projection_only"] is True
     assert default_read["authority"]["can_generate_action"] is False
     assert default_read["authority"]["can_authorize_provider_admission"] is False
+    owner_delta_summary = payload["owner_delta_summary"]
+    assert owner_delta_summary["role"] == "read_only_owner_delta_summary"
+    assert owner_delta_summary["summary"] == (
+        "owner=ai_reviewer; action_type=run_quality_repair_batch; "
+        "required_delta=owner_receipt_or_typed_blocker; work_unit_id=quality-repair-001; "
+        "typed_blocker_ref=studies/001-risk/artifacts/owner/typed_blocker.json"
+    )
+    assert owner_delta_summary["can_generate_action"] is False
+    assert owner_delta_summary["can_authorize_provider_admission"] is False
+    assert payload["overview"]["next_system_action"] == owner_delta_summary["summary"]
+    legacy = payload["overview"]["legacy_next_system_action_diagnostic"]
+    assert legacy["role"] == "diagnostic_legacy_projection_input"
+    assert legacy["values"] == [
+        "补充 subgroup 分析并更新 review ledger。",
+        "legacy cockpit action summary",
+    ]
+    assert legacy["can_generate_action"] is False
+    assert legacy["must_not_be_used_as_next_action_authority"] is True
 
     boundary = payload["overview_action_boundary"]
     assert payload["overview"]["next_system_action_boundary"] == boundary
@@ -151,6 +169,17 @@ def test_runtime_workbench_projection_actions_and_summaries_remain_read_only_ref
     assert projection["authority"]["operator_intent_refs_are_inert"] is True
 
     assert selected["next_action_summary_role"] == "read_only_drilldown_summary"
+    assert selected["user_next_role"] == "read_only_owner_delta_summary"
+    assert selected["owner_delta_summary"]["role"] == "read_only_owner_delta_summary"
+    assert selected["next_action_summary"] == selected["owner_delta_summary"]["summary"]
+    assert selected["legacy_next_action_diagnostic"]["values"] == [
+        "补充 subgroup 分析并更新 review ledger。",
+        "wait",
+    ]
+    assert "补充 subgroup 分析并更新 review ledger。" not in {
+        selected["user_next"],
+        selected["next_action_summary"],
+    }
     assert selected["next_action_summary_is_controller_action"] is False
     assert selected["next_action_summary_can_generate_action"] is False
     assert selected["next_action_summary_requires_opl_current_control_readback"] is True
@@ -210,6 +239,8 @@ def test_retirement_inventory_tracks_workbench_read_only_action_projection() -> 
             "can_authorize_worker_attempt": False,
             "can_open_runtime_endpoint": False,
             "can_transport_operator_action": False,
+            "legacy_operator_focus_role": "diagnostic_legacy_projection_input",
+            "legacy_next_system_action_role": "diagnostic_legacy_projection_input",
             "operator_intent_refs_are_inert": True,
             "requires_opl_current_control_readback": True,
             "must_not_be_used_as_provider_admission": True,

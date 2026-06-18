@@ -15,6 +15,10 @@ from .progress_first_operator import (
     build_progress_first_operator_projection,
     render_progress_first_operator_section,
 )
+from .owner_delta_summary import (
+    legacy_next_action_diagnostic as _legacy_next_action_diagnostic,
+    owner_delta_read_only_summary as _owner_delta_read_only_summary,
+)
 from .source_refs import source_ref_allowed, source_refs
 from .stage_review import build_stage_review_index, render_stage_review_section
 from .status_display import display_text
@@ -90,6 +94,7 @@ def build_study_workbench_payload(
         study_root=_first_text(resolved_progress.get("study_root"), _mapping(resolved_progress.get("refs")).get("study_root")),
     )
     current_owner_delta = _current_owner_delta_projection(resolved_progress)
+    owner_delta_summary = _owner_delta_read_only_summary(current_owner_delta)
     progress_first = build_progress_first_operator_projection(resolved_progress)
     path_stage = {
         "current_stage": _first_text(user_visible.get("current_stage"), cockpit_study.get("current_stage")),
@@ -127,7 +132,9 @@ def build_study_workbench_payload(
             user_visible.get("state_summary"),
             cockpit_study.get("state_summary"),
         ),
-        "next_system_action": _first_text(
+        "owner_delta_summary": owner_delta_summary,
+        "next_system_action": owner_delta_summary["summary"],
+        "legacy_next_system_action_diagnostic": _legacy_next_action_diagnostic(
             user_visible.get("next_system_action"),
             cockpit_study.get("next_system_action"),
         ),
@@ -197,6 +204,7 @@ def build_study_workbench_payload(
         "stage_knowledge": stage_knowledge,
         "stage_review_index": stage_review_index,
         "current_owner_delta": current_owner_delta,
+        "owner_delta_summary": owner_delta_summary,
         "progress_first": progress_first,
         "path_stage": path_stage,
         "runtime": runtime_projection,

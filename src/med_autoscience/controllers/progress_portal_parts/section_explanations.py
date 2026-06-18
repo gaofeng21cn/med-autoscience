@@ -39,10 +39,10 @@ def progress_section_explanations(
         ),
         _item(
             "下一步",
-            "study_progress.user_visible_projection.next_system_action",
-            "说明系统下一步准备做什么，以及是否需要医生/PI 判断。",
-            "下一步动作加 human gate 投影。",
-            "如果没有明确动作，应显示需要重新生成 canonical progress projection。",
+            "study_progress.current_owner_delta",
+            "展示 OPL/current_owner_delta 派生的只读下一步摘要，以及是否需要医生/PI 判断。",
+            "owner、action type、required delta、work unit 和 human gate 投影；legacy next_system_action 只作为 diagnostic input。",
+            "如果没有 current_owner_delta，应显示等待 OPL/current_owner_delta readback。",
         ),
         _item(
             "OPL 控制面交接",

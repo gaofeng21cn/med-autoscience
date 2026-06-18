@@ -174,6 +174,9 @@ def _ensure_workspace_has_selected_study(workspace_payload: dict[str, Any], deta
     study_id = _non_empty_text(detail_study.get("study_id"))
     if study_id is None:
         return
+    detail_workbench = _mapping(detail_payload.get("study_workbench"))
+    detail_overview = _mapping(detail_workbench.get("overview"))
+    owner_delta_summary = _mapping(detail_workbench.get("owner_delta_summary"))
     workspace = _mapping(workspace_payload.get("workspace"))
     studies = _mapping_list(workspace.get("studies"))
     if any(_non_empty_text(item.get("study_id")) == study_id for item in studies):
@@ -190,8 +193,9 @@ def _ensure_workspace_has_selected_study(workspace_payload: dict[str, Any], deta
             "runtime_health_status": _mapping(detail_study.get("supervision")).get("health_status"),
             "supervisor_tick_status": _mapping(detail_study.get("supervision")).get("supervisor_tick_status"),
             "progress_freshness_status": _mapping(detail_payload.get("freshness")).get("status"),
-            "operator_focus": detail_study.get("next_system_action"),
-            "next_system_action": detail_study.get("next_system_action"),
+            "operator_focus": owner_delta_summary.get("summary"),
+            "current_owner_delta": detail_workbench.get("current_owner_delta"),
+            "legacy_next_system_action_diagnostic": detail_overview.get("legacy_next_system_action_diagnostic"),
             "portal_href": study_detail_href(study_id),
         }
     )
@@ -375,10 +379,11 @@ def _progress_from_workspace_study_row(study: Mapping[str, Any]) -> dict[str, An
     state_summary = _non_empty_text(study.get("state_summary")) or "该论文线缺少 canonical study-progress projection。"
     current_stage = _non_empty_text(study.get("current_stage"))
     paper_stage = _non_empty_text(study.get("paper_stage"))
+    owner_delta_summary = _mapping(study.get("owner_delta_summary"))
+    legacy_next_action = _mapping(study.get("legacy_next_system_action_diagnostic"))
     next_system_action = (
-        _non_empty_text(study.get("next_system_action"))
-        or _non_empty_text(study.get("operator_focus"))
-        or "刷新 canonical study-progress projection。"
+        _non_empty_text(owner_delta_summary.get("summary"))
+        or "等待 OPL/current_owner_delta readback 生成只读下一步摘要。"
     )
     current_blockers = _string_list(study.get("current_blockers"))
     return {
@@ -393,6 +398,8 @@ def _progress_from_workspace_study_row(study: Mapping[str, Any]) -> dict[str, An
             "current_stage": current_stage,
             "paper_stage": paper_stage,
             "next_system_action": next_system_action,
+            "next_system_action_role": "read_only_owner_delta_summary",
+            "legacy_next_system_action_diagnostic": legacy_next_action,
             "current_blockers": current_blockers,
             "needs_user_decision": False,
         },

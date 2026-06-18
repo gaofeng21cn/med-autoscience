@@ -23,11 +23,11 @@ def workspace_next_step_paragraphs(studies: list[dict[str, Any]]) -> list[str]:
     if not studies:
         return ["先确认 workspace profile 和 studies root。"]
     focus = [
-        f"{item.get('study_id')}: {item.get('operator_focus') or item.get('next_system_action')}"
+        f"{item.get('study_id')}: {item.get('operator_focus')}"
         for item in studies
-        if item.get("operator_focus") or item.get("next_system_action")
+        if item.get("operator_focus")
     ]
-    return focus[:4] or ["当前没有 workspace 级下一步投影。"]
+    return focus[:4] or ["当前没有 OPL/current_owner_delta backed workspace 下一步摘要。"]
 
 
 def workspace_quality_paragraphs(studies: list[dict[str, Any]]) -> list[str]:

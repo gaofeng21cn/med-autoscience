@@ -22,6 +22,10 @@ from med_autoscience.controllers.progress_portal_parts.progress_first_operator i
 from med_autoscience.controllers.progress_portal_parts.html import (
     render_progress_portal_html as render_progress_portal_html_part,
 )
+from med_autoscience.controllers.progress_portal_parts.owner_delta_summary import (
+    legacy_next_action_diagnostic,
+    owner_delta_read_only_summary,
+)
 from med_autoscience.controllers.progress_portal_parts.payload_helpers import (
     _conditions,
     _delivery_summary,
@@ -166,6 +170,11 @@ def build_progress_portal_payload(
         if resolved_page_scope == "study"
         else {}
     )
+    owner_delta_summary = owner_delta_read_only_summary(_mapping(study_workbench.get("current_owner_delta")))
+    legacy_next_action = legacy_next_action_diagnostic(
+        user_visible.get("next_system_action"),
+        user_visible.get("user_next"),
+    )
     has_workspace_studies = bool(workspace_study_rows)
     has_workspace_alerts = bool(workspace_alerts["visible_items"])
     has_diagnostics = bool(workspace_alerts["suppressed_items"])
@@ -247,7 +256,11 @@ def build_progress_portal_payload(
             "paper_stage": _field(user_visible, "paper_stage"),
             "paper_stage_summary": _field(user_visible, "paper_stage_summary"),
             "current_blockers": _list_field(user_visible, "current_blockers"),
-            "next_system_action": _field(user_visible, "next_system_action", "等待 MAS 重新生成 canonical progress projection。"),
+            "owner_delta_summary": owner_delta_summary,
+            "next_system_action": owner_delta_summary["summary"]
+            or "等待 OPL/current_owner_delta readback 生成只读下一步摘要。",
+            "next_system_action_role": "read_only_owner_delta_summary",
+            "legacy_next_system_action_diagnostic": legacy_next_action,
             "needs_user_decision": bool(user_visible.get("needs_user_decision")),
             "decision_trace": _body_free_trace(user_visible.get("decision_trace")),
             "decision_trace_refs": _list_field(user_visible, "decision_trace_refs"),

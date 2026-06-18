@@ -35,7 +35,17 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
     assert payload["workspace"]["profile_name"] == "diabetes"
     assert payload["study"]["study_id"] == "001-risk"
     assert payload["study"]["state_label"] == "质量修复/复审中"
-    assert payload["study"]["next_system_action"] == "补充 subgroup 分析并更新 review ledger。"
+    assert payload["study"]["next_system_action_role"] == "read_only_owner_delta_summary"
+    assert payload["study"]["next_system_action"] == (
+        "owner=ai_reviewer; action_type=run_quality_repair_batch; "
+        "required_delta=owner_receipt_or_typed_blocker; work_unit_id=quality-repair-001; "
+        "typed_blocker_ref=studies/001-risk/artifacts/owner/typed_blocker.json"
+    )
+    assert payload["study"]["legacy_next_system_action_diagnostic"]["values"] == [
+        "补充 subgroup 分析并更新 review ledger。",
+        "wait",
+    ]
+    assert payload["study"]["legacy_next_system_action_diagnostic"]["can_generate_action"] is False
     assert payload["freshness"]["status"] == "stale"
     assert payload["conditions"]["stale"] == ["progress_freshness"]
     assert "domain_route_tick" not in payload["conditions"]["missing"]
@@ -241,6 +251,11 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
                         "status": "stale",
                         "summary": "live worker 已超过 meaningful artifact delta 活动窗口，必须先恢复产物增量或写出平台修复终态。",
                     },
+                    "current_owner_delta": {
+                        "owner": "runtime_supervisor",
+                        "action_type": "resolve_activity_timeout",
+                        "work_unit_id": "dm002-activity-timeout",
+                    },
                     "intervention_lane": {"title": "优先处理 activity timeout"},
                 },
                 {
@@ -288,10 +303,21 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
     assert dm002["runtime_health_status"] == "recovering"
     assert dm002["supervisor_tick_status"] == "stale"
     assert dm002["paper_stage"] == "analysis-campaign"
-    assert dm002["operator_focus"] == "优先处理 activity timeout"
+    assert dm002["operator_focus"] == (
+        "owner=runtime_supervisor; action_type=resolve_activity_timeout; "
+        "work_unit_id=dm002-activity-timeout"
+    )
+    assert dm002["legacy_operator_focus_diagnostic"]["values"] == [
+        "优先处理 activity timeout",
+    ]
+    assert dm002["legacy_next_system_action_diagnostic"]["values"] == []
     dpcc003 = studies[2]
     assert dpcc003["active_run_id"] == "mas-run-003"
     assert dpcc003["paper_stage"] == "write"
+    assert dpcc003["operator_focus"] is None
+    assert dpcc003["legacy_next_system_action_diagnostic"]["values"] == [
+        "观察自动运行推进。",
+    ]
 
 
 def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_workspace_studies() -> None:

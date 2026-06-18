@@ -20,6 +20,11 @@ def test_progress_portal_html_renders_human_first_workspace_dashboard_without_lo
                     "paper_stage": "write",
                     "monitoring": {"health_status": "await_explicit_resume", "supervisor_tick_status": "fresh"},
                     "progress_freshness": {"status": "fresh"},
+                    "current_owner_delta": {
+                        "owner": "ai_reviewer",
+                        "action_type": "close_quality_blocker",
+                        "work_unit_id": "dm001-close-quality",
+                    },
                     "next_system_action": "优先收口同线质量硬阻塞",
                 },
                 {
@@ -33,6 +38,11 @@ def test_progress_portal_html_renders_human_first_workspace_dashboard_without_lo
                         "supervisor_tick_status": "fresh",
                     },
                     "progress_freshness": {"status": "fresh"},
+                    "current_owner_delta": {
+                        "owner": "paper_writer",
+                        "action_type": "write_limited_supplement",
+                        "work_unit_id": "dm002-limited-supplement",
+                    },
                     "next_system_action": "优先完成有限补充分析",
                 },
             ],
@@ -58,6 +68,10 @@ def test_progress_portal_html_renders_human_first_workspace_dashboard_without_lo
     assert 'href="studies/001-dm-cvd-mortality-risk/index.html"' in html
     assert "打开详情" in html
     assert "OPL current_control_state" in html
+    assert "owner=ai_reviewer; action_type=close_quality_blocker" in html
+    assert "owner=paper_writer; action_type=write_limited_supplement" in html
+    assert "优先收口同线质量硬阻塞" not in html
+    assert "优先完成有限补充分析" not in html
     assert "运行控制台" not in html
     assert "Live Console" not in html
     assert "medautosci runtime live-console --profile &lt;profile&gt; --serve" not in html
