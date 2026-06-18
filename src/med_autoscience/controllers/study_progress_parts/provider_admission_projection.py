@@ -132,14 +132,14 @@ def _handoff_consumed_terminal_closeout_fields(
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
     recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    current_action_matches = bool(current_action and _same_action_identity(current_action, consumed))
+    current_work_unit_matches = _same_action_identity(current_work_unit, consumed)
     if current_action and _request_only_owner_action_surface(current_action) and (
         paper_recovery_consumed_owner_receipt_successor(recovery)
     ):
-        return None
-    if not (
-        (current_action and _same_action_identity(current_action, consumed))
-        or _same_action_identity(current_work_unit, consumed)
-    ):
+        if not current_action_matches:
+            return None
+    elif not (current_action_matches or current_work_unit_matches):
         return None
     return {
         "provider_admission_pending_count": 0,

@@ -637,7 +637,7 @@ def test_provider_admission_projection_materialize_recovery_action_requires_live
     assert "opl_domain_progress_transition_result" not in candidate
 
 
-def test_provider_admission_projection_keeps_consumed_owner_receipt_successor_under_terminal_closeout(
+def test_provider_admission_projection_consumes_same_identity_owner_receipt_successor_terminal_closeout(
     tmp_path,
 ) -> None:
     module = importlib.import_module(
@@ -758,10 +758,12 @@ def test_provider_admission_projection_keeps_consumed_owner_receipt_successor_un
 
     assert fields["provider_admission_pending_count"] == 0
     assert fields["provider_admission_candidates"] == []
-    assert fields["transition_request_pending_count"] == 1
-    candidate = fields["transition_request_candidates"][0]
-    assert candidate["status"] == "transition_request_pending"
-    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+    assert fields["transition_request_pending_count"] == 0
+    assert fields["transition_request_candidates"] == []
+    consumed = fields["provider_admission_terminal_closeout_consumed"]
+    assert consumed["stage_attempt_id"] == "sat_f22f2e9d25d336fa2a2a4306"
+    assert consumed["work_unit_id"] == work_unit_id
+    assert consumed["work_unit_fingerprint"] == fingerprint
 
 
 def test_provider_admission_projection_keeps_handoff_live_readback_for_successor_after_owner_receipt(
