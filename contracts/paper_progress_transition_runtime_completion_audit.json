@@ -426,7 +426,7 @@
     {
       "gate_id": "no_private_runtime_residue_as_authority",
       "status": "open",
-      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller. Current repo evidence proves domain_authority_refs_index active callers emit refs-only OPL StateIndex source-adapter proofs by default, do not persist MAS SQLite unless explicitly opted in, and cannot authorize runtime/progress; domain_health_diagnostic_obligation_actuator is consume-only/fail-closed. Physical deletion still requires live OPL takeover, no-active-caller or owner-retirement evidence, and tombstone/provenance."
+      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller. Current repo evidence proves domain_authority_refs_index active callers emit refs-only OPL StateIndex source-adapter proofs by default, do not persist MAS SQLite unless explicitly opted in, and cannot authorize runtime/progress; domain_health_diagnostic_obligation_actuator is consume-only with success-proof-gated postconditions and fail-closed typed blockers. Physical deletion still requires live OPL takeover, no-active-caller or owner-retirement evidence, and tombstone/provenance."
     }
   ],
   "forbidden_completion_interpretations": [

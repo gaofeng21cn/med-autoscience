@@ -327,6 +327,22 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         "request_projection_outcome_source_family": "mas_policy_request_projection",
         "request_projection_is_success_outcome": False,
         "success_requires_opl_foundation_readback_boundary": True,
+        "success_proof_required_for_postcondition_ok": True,
+        "success_proof_surface_kind": "dhd_apply_success_proof",
+        "success_proof_forbidden_when_request_projection_only": True,
+        "success_proof_required_fields": [
+            "surface_kind",
+            "success_outcome_source_family",
+            "opl_foundation_readback_boundary",
+            "consume_only_readback_boundary",
+            "request_projection_only=false",
+            "request_projection_is_success_outcome=false",
+            "supervisor_disallowed_outcome_is_success=false",
+            "mas_can_store_recovery_obligation=false",
+            "mas_can_run_supervisor_decision_engine=false",
+            "mas_can_run_fixed_point_runtime=false",
+            "mas_can_replay_obligation=false",
+        ],
         "opl_foundation_readback_boundary_required_fields": [
             "surface_kind",
             "source_family",
@@ -337,8 +353,16 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
             "mas_can_store_recovery_obligation=false",
             "mas_can_run_supervisor_decision_engine=false",
             "mas_policy_request_projection_can_satisfy_success=false",
+            "mas_can_run_fixed_point_runtime=false",
+            "mas_can_replay_obligation=false",
+            "readback_result_validator_boundary",
         ],
         "supervisor_disallowed_outcome_is_success": False,
+        "readback_result_validator_boundary_required": True,
+        "readback_result_validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
+        "local_allowed_outcome_table_role": (
+            "contract_bound_result_shape_validation_not_supervisor_decision_engine"
+        ),
     }
     assert readback["consume_only_readback_boundary"] == {
         "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
@@ -370,6 +394,22 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         "success_requires_opl_foundation_readback_boundary": True,
         "request_projection_is_success_outcome": False,
         "supervisor_disallowed_outcome_is_success": False,
+        "readback_result_validator_boundary": {
+            "surface_kind": "obligation_actuator_readback_result_shape_validator",
+            "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
+            "local_allowed_outcome_table_role": (
+                "contract_bound_result_shape_validation_not_supervisor_decision_engine"
+            ),
+            "opl_recovery_obligation_store_owner": "one-person-lab",
+            "opl_supervisor_decision_engine_owner": "one-person-lab",
+            "mas_can_choose_supervisor_decision": False,
+            "mas_can_run_supervisor_decision_engine": False,
+            "mas_can_store_recovery_obligation": False,
+            "mas_can_replay_obligation": False,
+            "mas_can_create_opl_command_event_or_outbox": False,
+            "mas_can_generate_human_gate_resume_token": False,
+            "request_projection_only_can_satisfy_success": False,
+        },
     }
     opl_readback = readback["opl_transition_readback_contract"]
     assert opl_readback["surface_kind"] == "opl_domain_progress_transition_result"

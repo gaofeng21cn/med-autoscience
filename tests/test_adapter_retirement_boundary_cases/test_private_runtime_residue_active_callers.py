@@ -131,8 +131,18 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
 
     actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
     assert actuator["active_caller_migrated"] is False
+    assert actuator["validator_role"] == "accepted_owner_answer_or_opl_readback_shape_validator"
+    assert actuator["local_allowed_outcome_table_role"] == (
+        "contract_bound_result_shape_validation_not_supervisor_decision_engine"
+    )
+    assert actuator["mas_can_choose_supervisor_decision"] is False
+    assert actuator["mas_can_mutate_recovery_obligation_store"] is False
+    assert actuator["mas_can_run_supervisor_decision_engine"] is False
+    assert actuator["mas_can_create_opl_command_event_or_outbox"] is False
     assert actuator["active_caller_boundary"] == {
-        "active_caller_effect": "consume_only_readback_projection_and_fail_closed_postcondition",
+        "active_caller_effect": (
+            "consume_only_readback_projection_with_success_proof_gated_postcondition"
+        ),
         "active_caller_retains_runtime_authority": False,
         "active_caller_retains_surface": True,
         "completion_claim_requires_live_owner_or_opl_readback": True,
@@ -147,13 +157,21 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "request_projection_only_can_satisfy_success": False,
     }
     assert actuator["obligation_readback_boundary"] == {
+        "request_projection_is_success_outcome": False,
+        "success_proof_required_for_postcondition_ok": True,
+        "success_proof_surface_kind": "dhd_apply_success_proof",
+        "success_proof_forbidden_when_request_projection_only": True,
         "success_outcome_source_families": [
             "opl_runtime_readback",
             "mas_owner_answer_readback",
             "mas_domain_authority_readback",
         ],
-        "request_projection_is_success_outcome": False,
         "supervisor_disallowed_outcome_is_success": False,
+        "readback_result_validator_boundary_required": True,
+        "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
+        "local_allowed_outcome_table_role": (
+            "contract_bound_result_shape_validation_not_supervisor_decision_engine"
+        ),
     }
     assert actuator["transition_request_pending_can_close_physical_tail"] is False
     assert actuator["retirement_gate"]["owner_retirement_decision_required"] is True

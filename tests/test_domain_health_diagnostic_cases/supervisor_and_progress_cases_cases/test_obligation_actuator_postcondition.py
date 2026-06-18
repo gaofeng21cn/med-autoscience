@@ -1085,12 +1085,24 @@ def _assert_exactly_one_dhd_apply_outcome(
     assert foundation["mas_can_store_recovery_obligation"] is False
     assert foundation["mas_can_run_supervisor_decision_engine"] is False
     assert foundation["mas_policy_request_projection_can_satisfy_success"] is False
+    validator_boundary = foundation["readback_result_validator_boundary"]
+    assert validator_boundary["validator_role"] == (
+        "accepted_owner_answer_or_opl_readback_shape_validator"
+    )
+    assert validator_boundary["local_allowed_outcome_table_role"] == (
+        "contract_bound_result_shape_validation_not_supervisor_decision_engine"
+    )
+    assert validator_boundary["mas_can_choose_supervisor_decision"] is False
+    assert validator_boundary["mas_can_run_supervisor_decision_engine"] is False
+    assert validator_boundary["mas_can_store_recovery_obligation"] is False
+    assert validator_boundary["mas_can_create_opl_command_event_or_outbox"] is False
     assert outcome["success_requires_opl_foundation_readback_boundary"] is True
     if expected_kind == "transition_request_pending":
         assert source_family == "mas_policy_request_projection"
         assert outcome["request_projection_only"] is True
         assert outcome["postcondition_ok"] is False
         assert "success_outcome_source_family" not in outcome
+        assert "dhd_apply_success_proof" not in outcome
         assert foundation["success_source_family_required"] is False
         assert "success_source_family" not in foundation
     else:
@@ -1100,9 +1112,61 @@ def _assert_exactly_one_dhd_apply_outcome(
             "mas_domain_authority_readback",
         }
         assert outcome["success_outcome_source_family"] == source_family
+        success_proof = outcome["dhd_apply_success_proof"]
+        assert success_proof["surface_kind"] == "dhd_apply_success_proof"
+        assert success_proof["success_outcome_source_family"] == source_family
+        assert success_proof["opl_foundation_readback_boundary"] == foundation
+        assert success_proof["consume_only_readback_boundary"] == outcome[
+            "consume_only_readback_boundary"
+        ]
+        assert success_proof["request_projection_only"] is False
+        assert success_proof["request_projection_is_success_outcome"] is False
+        assert success_proof["supervisor_disallowed_outcome_is_success"] is False
+        assert success_proof["mas_can_store_recovery_obligation"] is False
+        assert success_proof["mas_can_run_supervisor_decision_engine"] is False
+        assert success_proof["mas_can_run_fixed_point_runtime"] is False
+        assert success_proof["mas_can_replay_obligation"] is False
+        assert success_proof["opl_foundation_readback_boundary"][
+            "readback_result_validator_boundary"
+        ] == validator_boundary
         assert foundation["success_source_family"] == source_family
         assert foundation["success_source_family_required"] is True
         assert outcome.get("request_projection_only") is not True
+
+
+def test_obligation_actuator_readback_validator_is_not_supervisor_decision_engine() -> None:
+    validator = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts."
+        "obligation_actuator_parts.readback_result_validator"
+    )
+
+    boundary = validator.readback_result_validator_boundary()
+    assert boundary["validator_role"] == "accepted_owner_answer_or_opl_readback_shape_validator"
+    assert boundary["local_allowed_outcome_table_role"] == (
+        "contract_bound_result_shape_validation_not_supervisor_decision_engine"
+    )
+    assert boundary["mas_can_choose_supervisor_decision"] is False
+    assert boundary["mas_can_run_supervisor_decision_engine"] is False
+    assert boundary["mas_can_store_recovery_obligation"] is False
+    assert boundary["mas_can_replay_obligation"] is False
+    assert boundary["mas_can_create_opl_command_event_or_outbox"] is False
+    assert boundary["mas_can_generate_human_gate_resume_token"] is False
+
+    assert validator.allowed_outcomes_for_policy_label("consume_terminal_closeout") == {
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+    }
+    assert "owner_receipt_ref" not in validator.allowed_outcomes_for_policy_label(
+        "execute_current_owner_delta"
+    )
+    request_foundation = validator.opl_foundation_readback_boundary(
+        source_family="mas_policy_request_projection"
+    )
+    assert request_foundation["success_source_family_required"] is False
+    assert validator.outcome_has_required_foundation_readback(
+        source_family="mas_policy_request_projection",
+        opl_foundation=request_foundation,
+    ) is False
 
 
 def test_obligation_actuator_transition_request_is_projection_not_success(
@@ -1186,6 +1250,7 @@ def test_obligation_actuator_transition_request_is_projection_not_success(
     assert postcondition["ok"] is False
     assert postcondition["outcome_source_family"] == "mas_policy_request_projection"
     assert postcondition["request_projection_only"] is True
+    assert postcondition["dhd_apply_success_proof"] == {}
     assert postcondition["success_requires_opl_foundation_readback_boundary"] is True
     foundation = postcondition["opl_foundation_readback_boundary"]
     assert foundation["source_family"] == "mas_policy_request_projection"
@@ -1260,6 +1325,7 @@ def test_obligation_actuator_disallowed_supervisor_outcome_fails_postcondition(
     assert outcome["paper_autonomy_supervisor_outcome_allowed"] is False
     assert outcome["postcondition_ok"] is False
     assert "success_outcome_source_family" not in outcome
+    assert "dhd_apply_success_proof" not in outcome
     assert outcome["success_requires_opl_foundation_readback_boundary"] is True
     assert outcome["opl_foundation_readback_boundary"]["success_source_family"] == (
         "mas_owner_answer_readback"
@@ -1268,4 +1334,5 @@ def test_obligation_actuator_disallowed_supervisor_outcome_fails_postcondition(
     postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
     assert postcondition["ok"] is False
     assert postcondition["paper_autonomy_supervisor_outcome_allowed"] is False
+    assert postcondition["dhd_apply_success_proof"] == {}
     assert postcondition["consume_only_readback_boundary"] == outcome["consume_only_readback_boundary"]

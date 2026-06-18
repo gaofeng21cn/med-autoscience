@@ -17,87 +17,22 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup i
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.readback_result_validator import (
+    ACCEPTED_OBLIGATION_OUTCOME_KINDS,
+    ACTUATOR_AUTHORITY_BOUNDARY,
+    MAS_TRANSITION_REQUEST_SURFACE,
+    OPL_TRANSITION_RUNTIME_KIND,
+    OPL_TRANSITION_RUNTIME_OWNER,
+    SUCCESS_OUTCOME_SOURCE_FAMILIES,
+    allowed_outcomes_for_policy_label,
+    consume_only_readback_boundary,
+    opl_foundation_readback_boundary,
+    outcome_has_required_foundation_readback,
+    outcome_source_family,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
-OPL_TRANSITION_RUNTIME_OWNER = "one-person-lab"
-OPL_TRANSITION_RUNTIME_KIND = "DomainProgressTransitionRuntime"
-MAS_TRANSITION_REQUEST_SURFACE = "mas_domain_progress_transition_request"
-SOURCE_OF_TRUTH_CHAIN = (
-    "DomainIntent",
-    "OPL Command/Event/Outbox/StageRun",
-    "MAS OwnerAnswer",
-    "Derived Projection",
-)
-SUCCESS_OUTCOME_SOURCE_FAMILIES = (
-    "opl_runtime_readback",
-    "mas_owner_answer_readback",
-    "mas_domain_authority_readback",
-)
-OPL_FOUNDATION_CONSUMED_SURFACES = (
-    "RecoveryObligationStore",
-    "SupervisorDecisionEngine",
-    "HumanGateTransport",
-    "StageRunIdentityPacket",
-)
-CONSUME_ONLY_READBACK_BOUNDARY = {
-    "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
-    "consumer": "med-autoscience.domain-health-diagnostic.apply",
-    "opl_runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
-    "opl_recovery_obligation_store_owner": OPL_TRANSITION_RUNTIME_OWNER,
-    "opl_supervisor_decision_engine_owner": OPL_TRANSITION_RUNTIME_OWNER,
-    "opl_human_gate_transport_owner": OPL_TRANSITION_RUNTIME_OWNER,
-    "opl_stage_run_owner": OPL_TRANSITION_RUNTIME_OWNER,
-    "consumed_opl_foundation_surfaces": list(OPL_FOUNDATION_CONSUMED_SURFACES),
-    "mas_role": "policy_and_authority_readback_consumer",
-    "mas_can_store_recovery_obligation": False,
-    "mas_can_run_supervisor_decision_engine": False,
-    "mas_can_run_fixed_point_runtime": False,
-    "mas_can_replay_obligation": False,
-    "mas_can_persist_obligation_store": False,
-    "mas_can_generate_human_gate_resume_token": False,
-    "mas_can_authorize_provider_admission": False,
-    "success_requires_source_family": list(SUCCESS_OUTCOME_SOURCE_FAMILIES),
-    "success_requires_opl_foundation_readback_boundary": True,
-    "request_projection_is_success_outcome": False,
-    "supervisor_disallowed_outcome_is_success": False,
-}
-ACTUATOR_AUTHORITY_BOUNDARY = {
-    "surface_kind": "mas_obligation_outcome_projection_authority_boundary",
-    "authority": "med_autoscience.paper_progress_policy_adapter",
-    "authority_role": "paper_policy_and_owner_answer_readback_only",
-    "adapter_kind": "mas_policy_adapter",
-    "projection_role": "derived_obligation_outcome_readback_projection",
-    "source_of_truth_chain": list(SOURCE_OF_TRUTH_CHAIN),
-    "opl_transition_runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
-    "opl_transition_runtime_kind": OPL_TRANSITION_RUNTIME_KIND,
-    "opl_recovery_obligation_store_owner": OPL_TRANSITION_RUNTIME_OWNER,
-    "opl_human_gate_transport_owner": OPL_TRANSITION_RUNTIME_OWNER,
-    "opl_stage_run_owner": OPL_TRANSITION_RUNTIME_OWNER,
-    "accepts_opl_recovery_obligation_store_readback": True,
-    "accepts_opl_human_gate_transport_readback": True,
-    "accepts_opl_stage_run_readback": True,
-    "accepts_mas_policy_result": True,
-    "accepts_mas_owner_answer_result": True,
-    "can_authorize_provider_admission": False,
-    "can_own_generic_event_log_or_outbox": False,
-    "can_create_opl_command_event_or_outbox": False,
-    "can_store_recovery_obligation": False,
-    "can_run_fixed_point_runtime": False,
-    "can_run_supervisor_decision_engine": False,
-    "can_write_opl_current_control_state": False,
-    "can_apply_non_advancing_transition": False,
-    "can_replay_obligation": False,
-    "can_persist_obligation_store": False,
-    "provider_admission_requires_opl_runtime_result": True,
-    "provider_admission_readback_requires_opl_event_or_outbox": True,
-    "can_execute_mas_owner_callable": False,
-    "can_write_fail_closed_typed_control_blocker": True,
-    "success_outcome_source_families": list(SUCCESS_OUTCOME_SOURCE_FAMILIES),
-    "request_projection_outcome_source_family": "mas_policy_request_projection",
-    "request_projection_is_success_outcome": False,
-    "success_requires_opl_foundation_readback_boundary": True,
-    "consume_only_readback_boundary": dict(CONSUME_ONLY_READBACK_BOUNDARY),
-}
+_OBLIGATION_ACTUATOR_ALLOWED_OUTCOMES = list(ACCEPTED_OBLIGATION_OUTCOME_KINDS)
 
 
 def _mas_owner_answer_readbacks(*, report: dict[str, Any]) -> list[dict[str, Any]]:
@@ -208,55 +143,6 @@ def apply_managed_study_obligation_actuator(
             "consume_only_readback_boundary": _consume_only_readback_boundary(),
         }
     return owner_callable_actions
-
-
-_OBLIGATION_ACTUATOR_ALLOWED_OUTCOMES = [
-    "transition_request_pending",
-    "provider_admission_pending",
-    "running_provider_attempt",
-    "owner_receipt_ref",
-    "typed_blocker_ref",
-    "human_gate_ref",
-    "route_back_evidence_ref",
-]
-
-_SUPERVISOR_DECISION_ALLOWED_OUTCOMES = {
-    "execute_current_owner_delta": {
-        "transition_request_pending",
-        "provider_admission_pending",
-        "running_provider_attempt",
-        "typed_blocker_ref",
-        "human_gate_ref",
-        "route_back_evidence_ref",
-    },
-    "consume_terminal_closeout": {
-        "owner_receipt_ref",
-        "typed_blocker_ref",
-    },
-    "materialize_recovery_action": {
-        "transition_request_pending",
-        "provider_admission_pending",
-        "running_provider_attempt",
-        "owner_receipt_ref",
-        "typed_blocker_ref",
-        "human_gate_ref",
-        "route_back_evidence_ref",
-    },
-    "wait_for_owner_with_resume_token": {
-        "human_gate_ref",
-        "typed_blocker_ref",
-        "route_back_evidence_ref",
-    },
-    "stop_with_stable_typed_blocker": {
-        "typed_blocker_ref",
-        "human_gate_ref",
-        "route_back_evidence_ref",
-    },
-    "stop_with_owner_receipt": {
-        "owner_receipt_ref",
-        "typed_blocker_ref",
-    },
-}
 
 
 def _recovery_requires_obligation_actuator(recovery: Mapping[str, Any]) -> bool:
@@ -867,18 +753,20 @@ def _obligation_outcome(
         obligation=obligation,
     )
     obligation_identity = _paper_autonomy_obligation_identity(action=action, obligation=obligation)
-    allowed_decision_outcomes = _allowed_decision_outcomes(decision_kind)
+    allowed_decision_outcomes = allowed_outcomes_for_policy_label(decision_kind)
     outcome_allowed = outcome_kind in allowed_decision_outcomes
-    source_family = _outcome_source_family(outcome_kind)
-    opl_foundation = _opl_foundation_readback_boundary(source_family=source_family)
+    source_family = outcome_source_family(outcome_kind)
+    opl_foundation = opl_foundation_readback_boundary(source_family=source_family)
+    success_proof = _dhd_apply_success_proof(
+        source_family=source_family,
+        opl_foundation=opl_foundation,
+        outcome_allowed=outcome_allowed,
+    )
     effective_postcondition_ok = (
         postcondition_ok
         and outcome_allowed
         and source_family != "mas_policy_request_projection"
-        and _outcome_has_required_foundation_readback(
-            source_family=source_family,
-            opl_foundation=opl_foundation,
-        )
+        and bool(success_proof)
     )
     decision_id = _paper_autonomy_supervisor_decision_id(
         action=action,
@@ -897,6 +785,7 @@ def _obligation_outcome(
         "postcondition_ok": effective_postcondition_ok,
         "outcome_source_family": source_family,
         "opl_foundation_readback_boundary": opl_foundation,
+        "dhd_apply_success_proof": success_proof if effective_postcondition_ok else None,
         "success_requires_opl_foundation_readback_boundary": True,
         "success_outcome_source_family": (
             source_family
@@ -929,52 +818,49 @@ def _obligation_outcome(
     return _clean_payload(payload)
 
 
-def _outcome_source_family(outcome_kind: str) -> str:
-    if outcome_kind in {"provider_admission_pending", "running_provider_attempt"}:
-        return "opl_runtime_readback"
-    if outcome_kind == "owner_receipt_ref":
-        return "mas_owner_answer_readback"
-    if outcome_kind in {"typed_blocker_ref", "human_gate_ref", "route_back_evidence_ref"}:
-        return "mas_domain_authority_readback"
-    if outcome_kind == "transition_request_pending":
-        return "mas_policy_request_projection"
-    return "unknown"
-
-
 def _consume_only_readback_boundary() -> dict[str, Any]:
-    return dict(CONSUME_ONLY_READBACK_BOUNDARY)
+    return consume_only_readback_boundary()
 
 
-def _opl_foundation_readback_boundary(*, source_family: str) -> dict[str, Any]:
-    return {
-        "surface_kind": "opl_foundation_readback_boundary",
-        "source_family": source_family,
-        "opl_runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
-        "opl_transition_runtime_kind": OPL_TRANSITION_RUNTIME_KIND,
-        "consumed_opl_foundation_surfaces": list(OPL_FOUNDATION_CONSUMED_SURFACES),
-        "mas_role": "consume_only_projection",
-        "mas_can_store_recovery_obligation": False,
-        "mas_can_run_supervisor_decision_engine": False,
-        "mas_can_run_fixed_point_runtime": False,
-        "mas_can_replay_obligation": False,
-        "mas_policy_request_projection_can_satisfy_success": False,
-        "success_source_family": (
-            source_family if source_family in SUCCESS_OUTCOME_SOURCE_FAMILIES else None
-        ),
-        "success_source_family_required": source_family in SUCCESS_OUTCOME_SOURCE_FAMILIES,
-    }
-
-
-def _outcome_has_required_foundation_readback(
+def _dhd_apply_success_proof(
     *,
     source_family: str,
     opl_foundation: Mapping[str, Any],
-) -> bool:
-    if source_family not in SUCCESS_OUTCOME_SOURCE_FAMILIES:
-        return False
-    if _non_empty_text(opl_foundation.get("surface_kind")) != "opl_foundation_readback_boundary":
-        return False
-    return _non_empty_text(opl_foundation.get("success_source_family")) == source_family
+    outcome_allowed: bool,
+) -> dict[str, Any]:
+    if not outcome_allowed:
+        return {}
+    if not outcome_has_required_foundation_readback(
+        source_family=source_family,
+        opl_foundation=opl_foundation,
+    ):
+        return {}
+    consume_only = _consume_only_readback_boundary()
+    return _clean_payload(
+        {
+            "surface_kind": "dhd_apply_success_proof",
+            "success_outcome_source_family": source_family,
+            "opl_foundation_readback_boundary": dict(opl_foundation),
+            "consume_only_readback_boundary": consume_only,
+            "request_projection_only": False,
+            "request_projection_is_success_outcome": consume_only.get(
+                "request_projection_is_success_outcome"
+            ),
+            "supervisor_disallowed_outcome_is_success": consume_only.get(
+                "supervisor_disallowed_outcome_is_success"
+            ),
+            "mas_can_store_recovery_obligation": consume_only.get(
+                "mas_can_store_recovery_obligation"
+            ),
+            "mas_can_run_supervisor_decision_engine": consume_only.get(
+                "mas_can_run_supervisor_decision_engine"
+            ),
+            "mas_can_run_fixed_point_runtime": consume_only.get(
+                "mas_can_run_fixed_point_runtime"
+            ),
+            "mas_can_replay_obligation": consume_only.get("mas_can_replay_obligation"),
+        }
+    )
 
 
 def _action_supervisor_decision(action: Mapping[str, Any]) -> dict[str, Any]:
@@ -1086,12 +972,6 @@ def _paper_autonomy_obligation_identity(
     )
 
 
-def _allowed_decision_outcomes(decision_kind: str | None) -> set[str]:
-    if decision_kind in _SUPERVISOR_DECISION_ALLOWED_OUTCOMES:
-        return set(_SUPERVISOR_DECISION_ALLOWED_OUTCOMES[decision_kind])
-    return set(_OBLIGATION_ACTUATOR_ALLOWED_OUTCOMES)
-
-
 def _obligation_outcome_ref(outcome: Mapping[str, Any]) -> str | None:
     outcome_kind = _non_empty_text(outcome.get("outcome_kind"))
     if outcome_kind is None:
@@ -1104,6 +984,7 @@ def _obligation_outcome_ref(outcome: Mapping[str, Any]) -> str | None:
 
 def _postcondition_from_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
     outcome_kind = _non_empty_text(outcome.get("outcome_kind"))
+    success_proof = _clean_payload(_mapping(outcome.get("dhd_apply_success_proof")))
     return {
         "surface_kind": "dhd_apply_obligation_postcondition",
         "schema_version": 1,
@@ -1132,6 +1013,7 @@ def _postcondition_from_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
         "success_outcome_source_family": _non_empty_text(
             outcome.get("success_outcome_source_family")
         ),
+        "dhd_apply_success_proof": success_proof,
         "request_projection_only": outcome.get("request_projection_only") is True,
         "paper_autonomy_obligation_ref": _non_empty_text(
             outcome.get("paper_autonomy_obligation_ref")
