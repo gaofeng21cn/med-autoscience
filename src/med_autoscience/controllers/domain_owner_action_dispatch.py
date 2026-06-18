@@ -1031,7 +1031,11 @@ def _persist_study_executions(
 ) -> list[str]:
     latest_path = _execution_latest_path(profile, study_id)
     history_path = _execution_history_path(profile, study_id)
-    previous_payload = _execution_latest_payload(profile, study_id)
+    previous_payload = _execution_latest_payload(
+        profile,
+        study_id,
+        allow_legacy_fallback=True,
+    )
     execution_ledger = _merged_execution_ledger(
         previous_payload=previous_payload,
         study_executions=study_executions,
