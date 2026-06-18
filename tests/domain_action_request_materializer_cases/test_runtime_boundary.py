@@ -112,7 +112,7 @@ def test_default_executor_dispatch_materializes_runtime_completion_as_transport_
         / "return_to_ai_reviewer_workflow.json"
     )
     assert not dispatch_path.exists()
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     envelope = dispatch["owner_route_attempt_envelope"]
     assert dispatch["surface"] == "mas_domain_progress_transition_request_projection"
     assert dispatch["legacy_surface"] == "default_executor_dispatch_request"

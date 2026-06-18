@@ -124,20 +124,20 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert dispatch["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
-    assert dispatch["prompt_contract"]["owner_callable_command"].endswith("--build-production-trace")
-    assert dispatch["prompt_contract"]["owner_callable_payload_ref"].endswith(
+    assert dispatch["prompt_contract_ref"]["owner_callable_command"].endswith("--build-production-trace")
+    assert dispatch["prompt_contract_ref"]["owner_callable_payload_ref"].endswith(
         "record_production_payloads/return_to_ai_reviewer_workflow_payload.json"
     )
-    prompt_forbidden_surfaces = set(dispatch["prompt_contract"]["forbidden_surfaces"])
+    prompt_forbidden_surfaces = set(dispatch["prompt_contract_ref"]["forbidden_surfaces"])
     for surface in owner_forbidden_surfaces:
         assert surface in prompt_forbidden_surfaces
     assert dispatch_contract.prompt_contract_error(
-        dispatch["prompt_contract"],
+        dispatch["prompt_contract_ref"],
         forbidden_surfaces=module.FORBIDDEN_SURFACES,
     ) is None
     assert dispatch["source_action"]["record_only_surface"] is True
@@ -155,7 +155,7 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
         / "return_to_ai_reviewer_workflow.json"
     )
     assert not persisted_path.exists()
-    assert set(dispatch["prompt_contract"]["forbidden_surfaces"]) == prompt_forbidden_surfaces
+    assert set(dispatch["prompt_contract_ref"]["forbidden_surfaces"]) == prompt_forbidden_surfaces
     assert dispatch["surface"] == "mas_domain_progress_transition_request_projection"
     assert dispatch["mas_creates_owner_callable_carrier"] is False
     assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
@@ -297,7 +297,7 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "repeat_suppressed"
     assert dispatch["repeat_suppressed"] is True
     assert dispatch["blocked_reason"] == "repeat_suppressed"

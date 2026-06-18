@@ -256,7 +256,7 @@ def test_materialize_domain_action_requests_routes_bound_stage_native_write_afte
 
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "run_quality_repair_batch"
     assert dispatch["next_executable_owner"] == "write"
     source_action = dispatch["source_action"]
@@ -362,10 +362,10 @@ def test_materialize_domain_action_requests_routes_stage_native_write_when_curre
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
         "run_quality_repair_batch"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "write"
     source_action = dispatch["source_action"]
     assert source_action["authority"] == "stage_native_workspace_next_action"
@@ -482,7 +482,7 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
     assert result["apply_writes_disabled_reason"] == (
         "opl_domain_progress_transition_runtime_owns_durable_carrier"
     )
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     persisted_dispatch_path = (
         profile.workspace_root
         / "studies"

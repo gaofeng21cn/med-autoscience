@@ -89,7 +89,7 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     route = dispatch["owner_route"]
     basis = route["currentness_contract"]["basis"]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
@@ -100,8 +100,8 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
     assert dispatch["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
-    assert dispatch["prompt_contract"]["owner_callable_command"].endswith("--build-production-trace")
-    assert dispatch["prompt_contract"]["owner_callable_payload_ref"].endswith(
+    assert dispatch["prompt_contract_ref"]["owner_callable_command"].endswith("--build-production-trace")
+    assert dispatch["prompt_contract_ref"]["owner_callable_payload_ref"].endswith(
         "record_production_payloads/return_to_ai_reviewer_workflow_payload.json"
     )
     assert dispatch["source_action"]["record_only_surface"] is True

@@ -99,6 +99,26 @@ def owner_route_values(
         owner_route.get("runtime_health_epoch"),
         truth_epoch,
     )
+    route_identity_key = _first_strong_text(
+        current_action.get("route_identity_key"),
+        current_work_unit.get("route_identity_key"),
+        current_work_unit_basis.get("route_identity_key"),
+        ticket.get("route_identity_key"),
+        ticket_work_unit.get("route_identity_key"),
+        route_basis.get("route_identity_key"),
+        route_refs.get("route_identity_key"),
+        owner_route.get("route_identity_key"),
+    )
+    attempt_idempotency_key = _first_strong_text(
+        current_action.get("attempt_idempotency_key"),
+        current_work_unit.get("attempt_idempotency_key"),
+        current_work_unit_basis.get("attempt_idempotency_key"),
+        ticket.get("attempt_idempotency_key"),
+        ticket_work_unit.get("attempt_idempotency_key"),
+        route_basis.get("attempt_idempotency_key"),
+        route_refs.get("attempt_idempotency_key"),
+        owner_route.get("attempt_idempotency_key"),
+    )
     source_ref = _text(current_action.get("source_ref")) or _text(ticket.get("source_ref"))
     values = {
         "truth_epoch": truth_epoch,
@@ -106,6 +126,8 @@ def owner_route_values(
         "source_fingerprint": source_fingerprint,
         "work_unit_fingerprint": work_unit_fingerprint,
         "source_eval_id": source_eval_id,
+        "route_identity_key": route_identity_key,
+        "attempt_idempotency_key": attempt_idempotency_key,
         "source_ref": source_ref,
         "work_unit_id": work_unit_id,
         "action_type": action_type,

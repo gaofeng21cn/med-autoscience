@@ -126,7 +126,7 @@ def test_materialize_domain_action_requests_keeps_current_prose_routeback_dispat
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["repeat_suppressed"] is False
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
@@ -199,7 +199,7 @@ def test_materialize_domain_action_requests_honors_consumed_transition_owner_act
 
     assert result["ignored_actions"] == []
     assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["action_type"] == "run_gate_clearing_batch"
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
@@ -213,7 +213,7 @@ def test_materialize_domain_action_requests_honors_consumed_transition_owner_act
     assert route["source_refs"]["work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     )
-    assert dispatch["prompt_contract"]["owner_route"]["source_refs"]["work_unit_id"] == (
+    assert dispatch["prompt_contract_ref"]["owner_route"]["source_refs"]["work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     )
 
@@ -342,7 +342,7 @@ def test_materialize_domain_action_requests_prefers_fresh_progress_action_when_t
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
     request = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
     assert request["request_owner"] == "ai_reviewer"
     assert request["reason"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
@@ -439,7 +439,7 @@ def test_materialize_domain_action_requests_prefers_current_ai_reviewer_queue_ov
     )
 
     assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["source_action"]["authority"] == "observability_only"
@@ -571,7 +571,7 @@ def test_materialize_domain_action_requests_prefers_canonical_current_work_unit_
     )
 
     assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["action_fingerprint"] == current_fingerprint
@@ -681,7 +681,7 @@ def test_materialize_domain_action_requests_keeps_repair_progress_recheck_queue_
     )
 
     assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["source_action"]["reason"] == "ai_reviewer_record_stale_after_current_inputs"
@@ -875,7 +875,7 @@ def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_ref
         / "return_to_ai_reviewer_workflow.json"
     )
     assert not dispatch_path.exists()
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     expected_refs = [str(manuscript_path.resolve()), str(review_manuscript_path.resolve())]
     assert result["request_tasks"][0]["dispatch_status"] == "transition_request_pending"
     assert request["request_lifecycle"]["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"

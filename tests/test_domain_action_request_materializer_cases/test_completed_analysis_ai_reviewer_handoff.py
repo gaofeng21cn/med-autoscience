@@ -129,7 +129,7 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
     task = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "ai_reviewer"
     assert task["owner_route_current"] is True
@@ -164,7 +164,7 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
     assert task["handoff_packet"]["provider_admission_requires_opl_runtime_result"] is True
     assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
     assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
-    assert dispatch["prompt_contract"]["request_packet_ref"] == (
+    assert dispatch["prompt_contract_ref"]["request_packet_ref"] == (
         "artifacts/supervision/requests/ai_reviewer/latest.json"
     )
     assert dispatch["provider_admission_pending"] is False
@@ -240,7 +240,7 @@ def test_materialize_domain_transition_ai_reviewer_re_eval_handoff(
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
     task = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "ai_reviewer"
     assert task["owner_route_current"] is True
@@ -357,7 +357,7 @@ def test_current_write_domain_transition_supersedes_stale_ai_reviewer_queue(
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
     task = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert task["action_type"] == "run_quality_repair_batch"
     assert task["request_owner"] == "write"
     assert dispatch["action_type"] == "run_quality_repair_batch"
@@ -555,7 +555,7 @@ def test_consumed_ai_reviewer_transition_uses_current_owner_route_basis_for_disp
     )
 
     assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
@@ -662,12 +662,12 @@ def test_action_queue_dispatch_inherits_complete_owner_route_currentness_basis(
     )
 
     assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
     for key, value in expected_basis.items():
         assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"][key] == value
-        assert dispatch["prompt_contract"]["owner_route_currentness_basis"][key] == value
+        assert dispatch["prompt_contract_ref"]["owner_route_currentness_basis"][key] == value
         assert dispatch["owner_route_attempt_envelope"]["owner_route_currentness_basis"][key] == value
     assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
     assert dispatch["provider_admission_pending"] is False

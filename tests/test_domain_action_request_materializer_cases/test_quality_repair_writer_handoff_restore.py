@@ -205,16 +205,16 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["medical_claim_authoring_allowed"] is True
-    assert "paper/draft.md" in dispatch["prompt_contract"]["allowed_write_surfaces"]
-    assert dispatch["prompt_contract"]["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
-    assert "grep -R" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_command_patterns"]
-    assert "runtime/**/codex_homes/**" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_path_globs"]
+    assert "paper/draft.md" in dispatch["prompt_contract_ref"]["allowed_write_surfaces"]
+    assert dispatch["prompt_contract_ref"]["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
+    assert "grep -R" in dispatch["prompt_contract_ref"]["search_boundaries"]["forbidden_command_patterns"]
+    assert "runtime/**/codex_homes/**" in dispatch["prompt_contract_ref"]["search_boundaries"]["forbidden_path_globs"]
     assert dispatch["refs"]["dispatch_path"] == str(dispatch_path)
     assert dispatch["owner_route"]["source_refs"]["bridged_from_idempotency_key"] == current_route["idempotency_key"]
     assert dispatch["provider_admission_pending"] is False
@@ -392,15 +392,15 @@ def test_materialize_domain_action_requests_restores_writer_handoff_when_current
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
     assert dispatch["owner_route"]["idempotency_key"] == writer_route["idempotency_key"]
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["medical_claim_authoring_allowed"] is True
-    assert "paper/draft.md" in dispatch["prompt_contract"]["allowed_write_surfaces"]
-    assert dispatch["prompt_contract"]["medical_claim_authoring_allowed"] is True
+    assert "paper/draft.md" in dispatch["prompt_contract_ref"]["allowed_write_surfaces"]
+    assert dispatch["prompt_contract_ref"]["medical_claim_authoring_allowed"] is True
     assert dispatch["provider_admission_pending"] is False
     assert dispatch["provider_admission_requires_opl_runtime_result"] is True
     assert dispatch["mas_dispatch_authority"] is False
@@ -506,14 +506,14 @@ def test_materialize_domain_action_requests_builds_writer_handoff_from_current_s
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["medical_claim_authoring_allowed"] is True
-    assert dispatch["prompt_contract"]["medical_claim_authoring_allowed"] is True
-    assert dispatch["prompt_contract"]["allowed_write_surfaces"] == [
+    assert dispatch["prompt_contract_ref"]["medical_claim_authoring_allowed"] is True
+    assert dispatch["prompt_contract_ref"]["allowed_write_surfaces"] == [
         "paper/draft.md",
         "paper/build/review_manuscript.md",
         "paper/claim_evidence_map.json",

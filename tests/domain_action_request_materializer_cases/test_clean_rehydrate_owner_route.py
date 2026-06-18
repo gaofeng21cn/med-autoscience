@@ -94,7 +94,7 @@ def test_materialize_domain_action_requests_routes_clean_canonical_rehydrate_to_
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     packet_path = (
         study_root
         / "artifacts"
@@ -118,7 +118,7 @@ def test_materialize_domain_action_requests_routes_clean_canonical_rehydrate_to_
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["required_output_surface"] == "paper/medical_manuscript_blueprint_source.json"
-    assert dispatch["prompt_contract"]["request_packet_ref"] == (
+    assert dispatch["prompt_contract_ref"]["request_packet_ref"] == (
         "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
     )
     assert not packet_path.exists()
@@ -188,7 +188,7 @@ def test_materialize_domain_action_requests_routes_hard_methodology_handoff_to_a
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     packet_path = (
         study_root
         / "artifacts"
@@ -210,10 +210,10 @@ def test_materialize_domain_action_requests_routes_hard_methodology_handoff_to_a
     assert task["request_packet_ref"] == "artifacts/supervision/requests/analysis_harmonization/latest.json"
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "analysis_harmonization_owner"
-    assert dispatch["prompt_contract"]["request_packet_ref"] == (
+    assert dispatch["prompt_contract_ref"]["request_packet_ref"] == (
         "artifacts/supervision/requests/analysis_harmonization/latest.json"
     )
-    assert dispatch["prompt_contract"]["quality_gate_relaxation_allowed"] is False
+    assert dispatch["prompt_contract_ref"]["quality_gate_relaxation_allowed"] is False
     assert not packet_path.exists()
     assert not dispatch_path.exists()
     assert not (study_root / "paper").exists()
@@ -282,7 +282,7 @@ def test_materialize_domain_action_requests_routes_model_provenance_handoff_to_s
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     packet_path = (
         study_root
         / "artifacts"
@@ -304,10 +304,10 @@ def test_materialize_domain_action_requests_routes_model_provenance_handoff_to_s
     assert task["request_packet_ref"] == "artifacts/supervision/requests/source_provenance/latest.json"
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "source_provenance_owner"
-    assert dispatch["prompt_contract"]["request_packet_ref"] == (
+    assert dispatch["prompt_contract_ref"]["request_packet_ref"] == (
         "artifacts/supervision/requests/source_provenance/latest.json"
     )
-    assert dispatch["prompt_contract"]["quality_gate_relaxation_allowed"] is False
+    assert dispatch["prompt_contract_ref"]["quality_gate_relaxation_allowed"] is False
     assert not packet_path.exists()
     assert not dispatch_path.exists()
     assert not (study_root / "paper").exists()
@@ -380,7 +380,7 @@ def test_materialize_domain_action_requests_routes_methodology_reframe_to_decisi
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     packet_path = (
         study_root
         / "artifacts"
@@ -402,8 +402,8 @@ def test_materialize_domain_action_requests_routes_methodology_reframe_to_decisi
     assert task["request_packet_ref"] == "artifacts/supervision/requests/decision/latest.json"
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "decision"
-    assert dispatch["prompt_contract"]["request_packet_ref"] == "artifacts/supervision/requests/decision/latest.json"
-    assert dispatch["prompt_contract"]["quality_gate_relaxation_allowed"] is False
+    assert dispatch["prompt_contract_ref"]["request_packet_ref"] == "artifacts/supervision/requests/decision/latest.json"
+    assert dispatch["prompt_contract_ref"]["quality_gate_relaxation_allowed"] is False
     assert not packet_path.exists()
     assert not dispatch_path.exists()
     assert not (study_root / "paper").exists()
@@ -486,7 +486,7 @@ def test_materialize_domain_action_requests_prefers_current_study_queue_over_sta
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert result["domain_progress_transition_request_count"] == 1
     assert dispatch["action_type"] == "canonical_paper_inputs_rehydrate_required"
     assert dispatch["next_executable_owner"] == "write"

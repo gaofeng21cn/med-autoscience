@@ -134,10 +134,10 @@ def test_materialize_domain_action_requests_prefers_fresh_progress_ticket_over_s
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
         "run_gate_clearing_batch"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "finalize"
     assert dispatch["owner_route"]["allowed_actions"] == ["run_gate_clearing_batch"]
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
@@ -261,10 +261,10 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
         "run_gate_clearing_batch"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
     assert dispatch["source_action"]["controller_work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
@@ -357,7 +357,7 @@ def test_materialize_domain_action_requests_blocks_stage_native_write_when_fresh
         apply=False,
     )
 
-    assert result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"] == []
+    assert result["domain_progress_transition_requests"] == []
     assert any(
         item["action_type"] == "current_execution_envelope_typed_blocker"
         and item["reason"] == "unsupported_action_type"
@@ -477,10 +477,10 @@ def test_materialize_domain_action_requests_routes_consumed_write_closeout_to_ai
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
         "return_to_ai_reviewer_workflow"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
@@ -680,10 +680,10 @@ def test_materialize_domain_action_requests_prefers_fresh_readiness_action_over_
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
         "complete_medical_paper_readiness_surface"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["surface_key"] == "authoring_runtime_authorization"
     assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
@@ -730,6 +730,8 @@ def test_materialize_domain_action_requests_routes_publication_eval_recommended_
     )
     publication_eval_id = f"publication-eval::{study_id}::2026-06-14T08:02:57+00:00"
     fingerprint = "publication-blockers::0915410f804b3697"
+    route_identity_key = f"provider-admission::{study_id}::{fingerprint}"
+    attempt_idempotency_key = f"attempt::{study_id}::{fingerprint}"
 
     def read_progress(**_: object) -> dict[str, object]:
         return {
@@ -749,6 +751,8 @@ def test_materialize_domain_action_requests_routes_publication_eval_recommended_
                     "work_unit_fingerprint": fingerprint,
                     "truth_epoch": "truth-event-000035-39f0b8e96689a623",
                     "runtime_health_epoch": "runtime-health-event-006839-87fcfd5b5277d89f",
+                    "route_identity_key": route_identity_key,
+                    "attempt_idempotency_key": attempt_idempotency_key,
                 },
             },
             "current_execution_envelope": {
@@ -790,12 +794,16 @@ def test_materialize_domain_action_requests_routes_publication_eval_recommended_
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
         "run_quality_repair_batch"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["study_id"] == study_id
     assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["route_identity_key"] == route_identity_key
+    assert dispatch["attempt_idempotency_key"] == attempt_idempotency_key
+    assert dispatch["currentness_basis"]["route_identity_key"] == route_identity_key
+    assert dispatch["currentness_basis"]["attempt_idempotency_key"] == attempt_idempotency_key
     assert dispatch["owner_route"]["work_unit_fingerprint"] == fingerprint
     assert dispatch["owner_route"]["source_fingerprint"] == publication_eval_id
     assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"] == {
@@ -940,7 +948,6 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
         apply=True,
     )
 
-    dispatches = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]
     assert result["target_runtime_owner"] == "one-person-lab"
     assert result["canonical_transition_request_surface"] == "domain_progress_transition_requests"
     assert "owner_callable_adapter_list_deprecated" not in result
@@ -954,12 +961,19 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert legacy_diagnostics["counts_authority"] is False
     assert legacy_diagnostics["readiness_authority"] is False
     assert legacy_diagnostics["can_create_success_outcome"] is False
-    assert legacy_diagnostics["legacy_payload_scope"] == "diagnostics_only"
+    assert legacy_diagnostics["body_authority"] is False
+    assert legacy_diagnostics["body_projection"] is False
+    assert legacy_diagnostics["legacy_payload_scope"] == "identity_refs_only"
     assert legacy_diagnostics["legacy_dispatch_count"] == 2
     assert legacy_diagnostics["legacy_ready_count"] == 0
     assert legacy_diagnostics["legacy_blocked_count"] == 1
     assert legacy_diagnostics["legacy_transition_request_pending_count"] == 1
-    assert len(legacy_diagnostics["legacy_dispatches"]) == 2
+    assert legacy_diagnostics["legacy_dispatch_body_omitted"] is True
+    assert len(legacy_diagnostics["legacy_dispatch_refs"]) == 2
+    assert legacy_diagnostics["legacy_dispatches"] == legacy_diagnostics["legacy_dispatch_refs"]
+    assert "source_action" not in legacy_diagnostics["legacy_dispatches"][0]
+    assert "owner_route" not in legacy_diagnostics["legacy_dispatches"][0]
+    assert "prompt_contract" not in legacy_diagnostics["legacy_dispatches"][0]
     transition_requests = result["domain_progress_transition_requests"]
     assert [item["action_type"] for item in transition_requests] == [
         "current_package_freshness_required",
@@ -1012,33 +1026,26 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert result["apply_writes_disabled_reason"] == (
         "opl_domain_progress_transition_runtime_owns_durable_carrier"
     )
-    assert result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"] == dispatches
-    assert [item["action_type"] for item in dispatches] == [
-        "current_package_freshness_required",
-        "return_to_ai_reviewer_workflow",
-    ]
-    assert dispatches[0]["dispatch_status"] == "transition_request_pending"
-    assert dispatches[0]["owner_callable_adapter_diagnostic_only"] is True
-    assert dispatches[0]["owner_callable_adapter_readiness_authority"] is False
-    assert dispatches[0]["owner_callable_adapter_can_create_success_outcome"] is False
-    assert dispatches[0]["adapter_kind"] == "opl_authorized_owner_callable_adapter"
-    assert dispatches[0]["target_runtime_owner"] == "one-person-lab"
-    assert dispatches[0]["mas_dispatch_authority"] is False
-    assert dispatches[0]["mas_creates_opl_outbox"] is False
-    assert dispatches[0]["mas_creates_opl_event"] is False
-    assert dispatches[0]["mas_creates_opl_stage_run"] is False
-    assert dispatches[0]["dispatch_ready_for_execution_authority"] is False
-    assert dispatches[0]["provider_admission_pending"] is False
-    assert dispatches[0]["provider_admission_requires_opl_runtime_result"] is True
-    assert dispatches[0]["opl_transition_runtime_postcondition"] == transition_postcondition
-    assert dispatches[0]["authority_boundary"]["can_create_success_outcome"] is False
-    assert dispatches[0]["authority_boundary"]["can_select_next_action"] is False
-    assert dispatches[0]["mas_local_dispatch_carrier_persistence"] == "forbidden"
-    assert dispatches[0]["blocked_reason"] == "opl_execution_authorization_required"
-    assert dispatches[0]["domain_intent"]["target_runtime_transition"] == "OPL Command/Event/Outbox/StageRun"
-    assert dispatches[0]["owner_callable_adapter_contract"]["execution_authority_owner"] == "one-person-lab"
-    assert dispatches[1]["dispatch_status"] == "blocked"
-    assert dispatches[1]["blocked_reason"] == "owner_route_next_owner_mismatch"
+    assert transition_requests[0]["owner_callable_adapter_diagnostic_only"] is True
+    assert transition_requests[0]["owner_callable_adapter_readiness_authority"] is False
+    assert transition_requests[0]["owner_callable_adapter_can_create_success_outcome"] is False
+    assert transition_requests[0]["target_runtime_owner"] == "one-person-lab"
+    assert transition_requests[0]["mas_dispatch_authority"] is False
+    assert transition_requests[0]["mas_creates_opl_outbox"] is False
+    assert transition_requests[0]["mas_creates_opl_event"] is False
+    assert transition_requests[0]["mas_creates_opl_stage_run"] is False
+    assert transition_requests[0]["dispatch_ready_for_execution_authority"] is False
+    assert transition_requests[0]["provider_admission_pending"] is False
+    assert transition_requests[0]["provider_admission_requires_opl_runtime_result"] is True
+    assert transition_requests[0]["opl_transition_runtime_postcondition"] == transition_postcondition
+    assert transition_requests[0]["authority_boundary"]["can_create_success_outcome"] is False
+    assert transition_requests[0]["authority_boundary"]["can_select_next_action"] is False
+    assert transition_requests[0]["mas_local_dispatch_carrier_persistence"] == "forbidden"
+    assert transition_requests[0]["blocked_reason"] == "opl_execution_authorization_required"
+    assert transition_requests[0]["domain_intent"]["target_runtime_transition"] == "OPL Command/Event/Outbox/StageRun"
+    assert transition_requests[0]["owner_callable_adapter_contract"]["execution_authority_owner"] == "one-person-lab"
+    assert transition_requests[1]["dispatch_status"] == "blocked"
+    assert transition_requests[1]["blocked_reason"] == "owner_route_next_owner_mismatch"
     dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapters"
     assert not (dispatch_dir / "current_package_freshness_required.json").exists()
     assert not (dispatch_dir / "return_to_ai_reviewer_workflow.json").exists()

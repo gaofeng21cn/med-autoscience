@@ -106,14 +106,14 @@ def test_materializer_selects_identity_different_current_owner_action_over_prior
     assert result["request_tasks"][0]["authority"] == (
         "gate_clearing_batch_followthrough.actionable_current_work_unit"
     )
-    assert result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]["dispatch_status"] == "dry_run"
+    assert result["domain_progress_transition_requests"][0]["dispatch_status"] == "dry_run"
     assert result["request_tasks"][0]["handoff_packet"]["work_unit_id"] == "analysis_claim_evidence_repair"
     assert (
-        result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]["source_action"]["work_unit_id"]
+        result["domain_progress_transition_requests"][0]["source_action"]["work_unit_id"]
         == "analysis_claim_evidence_repair"
     )
     assert (
-        result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]["action_fingerprint"]
+        result["domain_progress_transition_requests"][0]["action_fingerprint"]
         == "publication-blockers::497d1260db522f01"
     )
 
@@ -240,7 +240,7 @@ def test_materializer_selects_owner_gate_route_back_followthrough_over_typed_blo
         "provider_admission_allowed": False,
         "provider_admission_requires_opl_runtime_result": True,
     }
-    assert result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]["action_fingerprint"] == fingerprint
+    assert result["domain_progress_transition_requests"][0]["action_fingerprint"] == fingerprint
     assert {
         item["action_type"]: item["reason"]
         for item in result["ignored_actions"]

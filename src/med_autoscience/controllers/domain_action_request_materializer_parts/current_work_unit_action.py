@@ -37,10 +37,22 @@ def canonical_current_work_unit_action(study: Mapping[str, Any]) -> dict[str, An
     action_type = _canonical_action_type(source=source, current_action=current_action)
     if action_type not in SUPPORTED_ACTION_TYPES:
         return None
+    source_currentness_basis = _mapping(source.get("currentness_basis"))
     owner_route = owner_route_part.ensure_owner_route_v2(
         _mapping(source.get("owner_route"))
         or _mapping(current_action.get("owner_route"))
         or _mapping(study.get("owner_route"))
+        or _owner_route_from_currentness_basis(
+            source=source,
+            current_action=current_action,
+            basis=source_currentness_basis,
+            study_id=study_id,
+            action_type=action_type,
+        )
+    )
+    owner_route = _with_source_currentness_basis(
+        owner_route,
+        basis=source_currentness_basis,
     )
     source_refs = _mapping(owner_route.get("source_refs"))
     currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
@@ -142,6 +154,87 @@ def canonical_current_work_unit_action(study: Mapping[str, Any]) -> dict[str, An
         },
     }
     return {key: value for key, value in action.items() if value is not None}
+
+
+def _owner_route_from_currentness_basis(
+    *,
+    source: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+    basis: Mapping[str, Any],
+    study_id: str,
+    action_type: str,
+) -> dict[str, Any]:
+    currentness_basis = {
+        key: value for key, value in dict(basis).items() if _text(value) is not None
+    }
+    if not currentness_basis:
+        return {}
+    owner = (
+        _text(source.get("next_owner"))
+        or _text(source.get("owner"))
+        or _text(current_action.get("next_owner"))
+        or _text(current_action.get("owner"))
+        or request_owner_for_action_type(action_type)
+    )
+    source_eval_id = (
+        _text(current_action.get("source_eval_id"))
+        or _text(current_action.get("publication_eval_id"))
+        or _text(source.get("source_eval_id"))
+        or _text(source.get("publication_eval_id"))
+        or _text(currentness_basis.get("source_eval_id"))
+    )
+    source_fingerprint = (
+        _text(current_action.get("source_fingerprint"))
+        or _text(source.get("source_fingerprint"))
+        or source_eval_id
+    )
+    source_refs = {
+        "owner_route_currentness_basis": currentness_basis,
+        "source_eval_id": source_eval_id,
+        "work_unit_id": _text(currentness_basis.get("work_unit_id")),
+        "work_unit_fingerprint": _text(currentness_basis.get("work_unit_fingerprint")),
+        "runtime_health_epoch": _text(currentness_basis.get("runtime_health_epoch")),
+    }
+    return {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": _text(source.get("quest_id")) or _text(current_action.get("quest_id")),
+        "truth_epoch": _text(currentness_basis.get("truth_epoch")),
+        "runtime_health_epoch": _text(currentness_basis.get("runtime_health_epoch")),
+        "source_fingerprint": source_fingerprint,
+        "work_unit_fingerprint": _text(currentness_basis.get("work_unit_fingerprint")),
+        "next_owner": owner,
+        "owner_reason": _text(source.get("reason")) or _text(current_action.get("reason")),
+        "allowed_actions": [action_type],
+        "source_refs": {
+            key: value for key, value in source_refs.items() if value is not None
+        },
+    }
+
+
+def _with_source_currentness_basis(
+    owner_route: Mapping[str, Any],
+    *,
+    basis: Mapping[str, Any],
+) -> dict[str, Any]:
+    currentness_basis = {
+        key: value for key, value in dict(basis).items() if _text(value) is not None
+    }
+    route = dict(owner_route)
+    if not route or not currentness_basis:
+        return route
+    source_refs = dict(_mapping(route.get("source_refs")))
+    existing_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    source_refs["owner_route_currentness_basis"] = {
+        **existing_basis,
+        **currentness_basis,
+    }
+    for key in ("work_unit_id", "work_unit_fingerprint", "runtime_health_epoch"):
+        if _text(source_refs.get(key)) is None and _text(currentness_basis.get(key)) is not None:
+            source_refs[key] = currentness_basis[key]
+    route["source_refs"] = source_refs
+    return route
 
 
 def _canonical_action_type(*, source: Mapping[str, Any], current_action: Mapping[str, Any]) -> str | None:

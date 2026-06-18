@@ -628,14 +628,26 @@ def test_transition_request_counts_are_canonical_not_legacy_adapter_counts() -> 
     assert diagnostics["counts_authority"] is False
     assert diagnostics["readiness_authority"] is False
     assert diagnostics["can_create_success_outcome"] is False
-    assert diagnostics["legacy_payload_scope"] == "diagnostics_only"
+    assert diagnostics["body_authority"] is False
+    assert diagnostics["body_projection"] is False
+    assert diagnostics["legacy_payload_scope"] == "identity_refs_only"
     assert diagnostics["legacy_dispatch_count"] == 1
     assert diagnostics["legacy_ready_count"] == 1
     assert diagnostics["legacy_blocked_count"] == 0
     assert diagnostics["legacy_transition_request_pending_count"] == 0
     assert diagnostics["legacy_dispatches"] == [
-        {"dispatch_status": "ready", "action_type": "legacy_ready"}
+        {
+            "diagnostic_ref_only": True,
+            "payload_body_omitted": True,
+            "action_type": "legacy_ready",
+            "dispatch_status": "ready",
+        }
     ]
+    assert diagnostics["legacy_dispatch_refs"] == diagnostics["legacy_dispatches"]
+    assert diagnostics["legacy_dispatch_body_omitted"] is True
+    assert "source_action" not in diagnostics["legacy_dispatches"][0]
+    assert "owner_route" not in diagnostics["legacy_dispatches"][0]
+    assert "prompt_contract" not in diagnostics["legacy_dispatches"][0]
 
 
 def test_owner_callable_projection_requires_canonical_transition_request_surface() -> None:
@@ -723,6 +735,102 @@ def test_owner_callable_projection_requires_canonical_transition_request_surface
     assert "owner_callable_adapter_list_diagnostic_only" not in projected
     assert "owner_callable_adapter_count" not in projected
     assert "owner_callable_adapters" not in projected
+
+
+def test_materializer_canonical_projection_preserves_strong_identity_without_legacy_body() -> None:
+    transition_request_projection = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.transition_request_projection"
+    )
+    projection = importlib.import_module("med_autoscience.controllers.owner_callable_adapter_projection")
+
+    dispatch = {
+        "study_id": "study-1",
+        "quest_id": "quest-1",
+        "action_type": "run_quality_repair_batch",
+        "dispatch_status": "transition_request_pending",
+        "refs": {
+            "dispatch_path": "studies/study-1/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+            "route_identity_key": "route::from-refs",
+            "attempt_idempotency_key": "attempt::from-refs",
+        },
+        "owner_route": {
+            "next_owner": "write",
+            "work_unit_fingerprint": "fingerprint-from-route",
+            "route_identity_key": "route::from-owner-route",
+            "attempt_idempotency_key": "attempt::from-owner-route",
+            "source_refs": {
+                "work_unit_id": "work-unit-from-route-refs",
+                "work_unit_fingerprint": "fingerprint-from-route-refs",
+                "owner_route_currentness_basis": {
+                    "truth_epoch": "truth-1",
+                    "runtime_health_epoch": "runtime-1",
+                    "work_unit_id": "work-unit-from-currentness",
+                    "work_unit_fingerprint": "fingerprint-from-currentness",
+                    "route_identity_key": "route::from-currentness",
+                    "attempt_idempotency_key": "attempt::from-currentness",
+                },
+            },
+        },
+        "prompt_contract": {
+            "study_id": "study-1",
+            "quest_id": "quest-1",
+            "action_type": "run_quality_repair_batch",
+            "next_executable_owner": "write",
+            "owner_route_currentness_basis": {
+                "truth_epoch": "truth-1",
+                "runtime_health_epoch": "runtime-1",
+            },
+            "opl_domain_progress_transition_request": {
+                "surface_kind": "mas_domain_progress_transition_request",
+                "target_runtime_owner": "one-person-lab",
+                "study_id": "study-1",
+                "quest_id": "quest-1",
+                "action_type": "run_quality_repair_batch",
+                "route_identity_key": "route::from-request",
+                "attempt_idempotency_key": "attempt::from-request",
+            },
+        },
+        "source_action": {
+            "work_unit_id": "work-unit-from-source-action",
+            "work_unit_fingerprint": "fingerprint-from-source-action",
+        },
+    }
+
+    requests = transition_request_projection.domain_progress_transition_request_projection([dispatch])
+
+    assert len(requests) == 1
+    request = requests[0]
+    assert request["surface"] == "mas_domain_progress_transition_request_projection"
+    assert request["route_identity_key"] == "route::from-request"
+    assert request["attempt_idempotency_key"] == "attempt::from-request"
+    assert request["work_unit_id"] == "work-unit-from-source-action"
+    assert request["work_unit_fingerprint"] == "fingerprint-from-source-action"
+    assert request["currentness_basis"] == {
+        "truth_epoch": "truth-1",
+        "runtime_health_epoch": "runtime-1",
+        "work_unit_id": "work-unit-from-source-action",
+        "work_unit_fingerprint": "fingerprint-from-source-action",
+        "route_identity_key": "route::from-currentness",
+        "attempt_idempotency_key": "attempt::from-currentness",
+    }
+    assert request["provider_admission_pending"] is False
+    assert request["provider_admission_requires_opl_runtime_result"] is True
+    assert request["mas_creates_opl_outbox"] is False
+    assert request["mas_creates_opl_event"] is False
+    assert request["mas_creates_opl_stage_run"] is False
+
+    diagnostics = projection.legacy_owner_callable_adapter_diagnostics(
+        {"owner_callable_adapters": [dispatch]}
+    )
+    assert diagnostics["legacy_dispatch_body_omitted"] is True
+    assert diagnostics["legacy_dispatches"] == diagnostics["legacy_dispatch_refs"]
+    legacy_ref = diagnostics["legacy_dispatches"][0]
+    assert legacy_ref["diagnostic_ref_only"] is True
+    assert legacy_ref["payload_body_omitted"] is True
+    assert "owner_route" not in legacy_ref
+    assert "prompt_contract" not in legacy_ref
+    assert "source_action" not in legacy_ref
+    assert "opl_domain_progress_transition_request" not in legacy_ref
 
 
 def test_dhd_same_tick_admission_consumes_only_canonical_transition_requests(tmp_path: Path) -> None:

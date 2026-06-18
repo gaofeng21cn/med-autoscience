@@ -799,6 +799,8 @@ def _fresh_progress_owner_route(
     source_fingerprint = route_values["source_fingerprint"]
     work_unit_fingerprint = route_values["work_unit_fingerprint"]
     source_ref = route_values.get("source_ref") or "unknown"
+    route_identity_key = route_values.get("route_identity_key")
+    attempt_idempotency_key = route_values.get("attempt_idempotency_key")
     owner_reason = _text(current_action.get("reason")) or work_unit_id
     currentness_basis = {
         key: value
@@ -808,6 +810,8 @@ def _fresh_progress_owner_route(
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "source_eval_id": route_values.get("source_eval_id"),
+            "route_identity_key": route_identity_key,
+            "attempt_idempotency_key": attempt_idempotency_key,
         }.items()
         if value is not None
     }
@@ -823,6 +827,8 @@ def _fresh_progress_owner_route(
         "trace_id": f"owner-route-trace::{study_id}::{action_type}",
         "route_epoch": truth_epoch,
         "source_fingerprint": source_fingerprint,
+        "route_identity_key": route_identity_key,
+        "attempt_idempotency_key": attempt_idempotency_key,
         "current_owner": "mas_controller",
         "next_owner": owner,
         "owner_reason": owner_reason,
@@ -834,6 +840,8 @@ def _fresh_progress_owner_route(
             "work_unit_fingerprint": work_unit_fingerprint,
             "source_surface": "study_progress.current_owner_ticket",
             "source_ref": source_ref,
+            "route_identity_key": route_identity_key,
+            "attempt_idempotency_key": attempt_idempotency_key,
             "owner_route_currentness_basis": currentness_basis,
         },
         "idempotency_key": (

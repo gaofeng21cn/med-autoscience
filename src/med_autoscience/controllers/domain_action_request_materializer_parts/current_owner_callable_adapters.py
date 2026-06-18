@@ -12,6 +12,7 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
 
 CurrentActions = Callable[..., tuple[list[dict[str, Any]] | None, list[dict[str, Any]]]]
 DefaultDispatch = Callable[..., dict[str, Any]]
+TransitionRequestProjection = Callable[[list[dict[str, Any]]], list[dict[str, Any]]]
 ReadJsonObject = Callable[[object], dict[str, Any] | None]
 ResolveStudyIds = Callable[[Mapping[str, Any], Iterable[str]], tuple[str, ...]]
 ScanPath = Callable[[WorkspaceProfile], object]
@@ -31,6 +32,7 @@ def current_owner_callable_adapters(
     resolve_study_ids_from_scan: ResolveStudyIds,
     selected_actions: CurrentActions,
     default_executor_dispatch: DefaultDispatch,
+    domain_progress_transition_request_projection: TransitionRequestProjection,
     owner_from_action: Callable[[Mapping[str, Any], str], str],
     required_output_surface: Callable[[Mapping[str, Any], str], str],
     text: Callable[[object], str | None],
@@ -76,6 +78,7 @@ def current_owner_callable_adapters(
         )
         for action in selected_request_actions
     ]
+    transition_requests = domain_progress_transition_request_projection(dispatches)
     return with_owner_callable_adapter_projection({
         "surface": "domain_action_request_materializer.current_owner_callable_adapters",
         "schema_version": 1,
@@ -108,6 +111,23 @@ def current_owner_callable_adapters(
         "owner_callable_adapter_count": len(dispatches),
         "ready_owner_callable_adapter_count": _dispatch_status_count(dispatches, "ready", text=text),
         "blocked_owner_callable_adapter_count": _dispatch_status_count(dispatches, "blocked", text=text),
+        "domain_progress_transition_request_count": len(transition_requests),
+        "ready_domain_progress_transition_request_count": _dispatch_status_count(
+            transition_requests,
+            "ready",
+            text=text,
+        ),
+        "blocked_domain_progress_transition_request_count": _dispatch_status_count(
+            transition_requests,
+            "blocked",
+            text=text,
+        ),
+        "transition_request_pending_domain_progress_transition_request_count": _dispatch_status_count(
+            transition_requests,
+            "transition_request_pending",
+            text=text,
+        ),
+        "domain_progress_transition_requests": transition_requests,
         "owner_callable_adapters": dispatches,
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in dispatches),
     })

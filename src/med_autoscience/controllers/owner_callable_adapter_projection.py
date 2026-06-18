@@ -57,6 +57,7 @@ def legacy_owner_callable_adapter_status_count(payload: Mapping[str, Any], statu
 
 def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dict[str, Any]:
     adapters = owner_callable_adapters(payload)
+    legacy_dispatch_refs = [_legacy_owner_callable_adapter_ref(item) for item in adapters]
     return {
         "surface": "legacy_owner_callable_adapter_diagnostics",
         "canonical_transition_request_surface": "domain_progress_transition_requests",
@@ -64,6 +65,8 @@ def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dic
         "counts_authority": False,
         "readiness_authority": False,
         "can_create_success_outcome": False,
+        "body_authority": False,
+        "body_projection": False,
         "legacy_dispatch_count": len(adapters),
         "legacy_ready_count": _status_count(adapters, "ready"),
         "legacy_blocked_count": _status_count(adapters, "blocked"),
@@ -71,8 +74,20 @@ def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dic
             adapters,
             "transition_request_pending",
         ),
-        "legacy_payload_scope": "diagnostics_only",
-        "legacy_dispatches": adapters,
+        "legacy_payload_scope": "identity_refs_only",
+        "legacy_dispatch_refs": legacy_dispatch_refs,
+        "legacy_dispatches": legacy_dispatch_refs,
+        "legacy_dispatch_body_omitted": True,
+        "omitted_body_fields": [
+            "authority_boundary",
+            "domain_intent",
+            "handoff_packet",
+            "opl_domain_progress_transition_request",
+            "owner_route",
+            "prompt_contract",
+            "source_action",
+            "stage_transition_authority_boundary",
+        ],
     }
 
 
@@ -130,6 +145,40 @@ def _normalized_transition_request_record(value: Mapping[str, Any]) -> dict[str,
 
 def _status_count(adapters: list[dict[str, Any]], status: str) -> int:
     return sum(_text(item.get("dispatch_status")) == status for item in adapters)
+
+
+def _legacy_owner_callable_adapter_ref(adapter: Mapping[str, Any]) -> dict[str, Any]:
+    refs = _mapping(adapter.get("refs"))
+    source_action = _mapping(adapter.get("source_action"))
+    identity = {
+        "diagnostic_ref_only": True,
+        "payload_body_omitted": True,
+        "study_id": _text(adapter.get("study_id")),
+        "quest_id": _text(adapter.get("quest_id")),
+        "action_type": _text(adapter.get("action_type")),
+        "next_executable_owner": _text(adapter.get("next_executable_owner")),
+        "work_unit_id": (
+            _text(adapter.get("work_unit_id"))
+            or _text(adapter.get("next_work_unit"))
+            or _text(source_action.get("work_unit_id"))
+        ),
+        "work_unit_fingerprint": (
+            _text(adapter.get("work_unit_fingerprint"))
+            or _text(adapter.get("action_fingerprint"))
+            or _text(source_action.get("work_unit_fingerprint"))
+        ),
+        "action_fingerprint": (
+            _text(adapter.get("action_fingerprint"))
+            or _text(adapter.get("work_unit_fingerprint"))
+        ),
+        "dispatch_status": _text(adapter.get("dispatch_status")),
+        "blocked_reason": _text(adapter.get("blocked_reason")),
+        "target_runtime_owner": _text(adapter.get("target_runtime_owner")),
+        "dispatch_ref": _text(adapter.get("dispatch_path")) or _text(refs.get("dispatch_path")),
+        "stage_packet_ref": _text(adapter.get("stage_packet_ref")) or _text(refs.get("stage_packet_ref")),
+        "stage_packet_refs": adapter.get("stage_packet_refs") or refs.get("stage_packet_refs"),
+    }
+    return {key: value for key, value in identity.items() if value is not None}
 
 
 def _mapping(value: object) -> dict[str, Any]:

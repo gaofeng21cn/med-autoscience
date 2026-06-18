@@ -215,7 +215,7 @@ def test_dm002_20260529_current_positive_ai_reviewer_archive_replays_gate_withou
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     request = result["request_tasks"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "run_gate_clearing_batch"

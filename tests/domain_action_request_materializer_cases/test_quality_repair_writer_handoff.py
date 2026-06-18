@@ -150,22 +150,22 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     written_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
     transition_request = _assert_transition_request_projection(dispatch)
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["medical_claim_authoring_allowed"] is True
-    assert dispatch["prompt_contract"]["medical_claim_authoring_allowed"] is True
-    assert dispatch["prompt_contract"]["allowed_write_surfaces"] == [
+    assert dispatch["prompt_contract_ref"]["medical_claim_authoring_allowed"] is True
+    assert dispatch["prompt_contract_ref"]["allowed_write_surfaces"] == [
         "paper/draft.md",
         "paper/build/review_manuscript.md",
         "paper/claim_evidence_map.json",
         "paper/evidence_ledger.json",
         "paper/review/**",
     ]
-    assert dispatch["prompt_contract"]["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
-    assert "grep -R" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_command_patterns"]
-    assert "runtime/.ds/**" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_path_globs"]
+    assert dispatch["prompt_contract_ref"]["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
+    assert "grep -R" in dispatch["prompt_contract_ref"]["search_boundaries"]["forbidden_command_patterns"]
+    assert "runtime/.ds/**" in dispatch["prompt_contract_ref"]["search_boundaries"]["forbidden_path_globs"]
     assert dispatch["source_action"]["surface"] == "quality_repair_batch"
     assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
     assert transition_request["dispatch_ref"] == str(dispatch_path)
@@ -279,8 +279,8 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
-    prompt_contract = dispatch["prompt_contract"]
+    dispatch = result["domain_progress_transition_requests"][0]
+    prompt_contract = dispatch["prompt_contract_ref"]
     dispatch_path = (
         study_root
         / "artifacts"
@@ -475,8 +475,8 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
-    prompt_contract = dispatch["prompt_contract"]
+    dispatch = result["domain_progress_transition_requests"][0]
+    prompt_contract = dispatch["prompt_contract_ref"]
     source_refs = dispatch["owner_route"]["source_refs"]
     dispatch_path = (
         study_root
@@ -690,10 +690,10 @@ def test_materialize_prefers_current_writer_handoff_over_consumed_reviewer_trans
         apply=True,
     )
 
-    assert [dispatch["action_type"] for dispatch in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [dispatch["action_type"] for dispatch in result["domain_progress_transition_requests"]] == [
         "run_quality_repair_batch"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["source_refs"]["source_eval_id"] == source_eval_id
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id

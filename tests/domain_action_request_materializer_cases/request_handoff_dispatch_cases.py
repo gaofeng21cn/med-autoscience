@@ -408,7 +408,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_owner_callable_ad
         apply=True,
     )
 
-    dispatches = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]
+    dispatches = result["domain_progress_transition_requests"]
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
@@ -424,11 +424,11 @@ def test_materialize_domain_action_requests_mixed_queue_writes_owner_callable_ad
     assert dispatches[0]["next_executable_owner"] == "publication_gate"
     assert dispatches[1]["next_executable_owner"] == "ai_reviewer"
     assert dispatches[0]["default_model_policy"] == "inherit_current_codex_configuration"
-    assert set(module.FORBIDDEN_SURFACES).issubset(dispatches[1]["prompt_contract"]["forbidden_surfaces"])
-    assert "artifacts/publication_eval/latest.json" in dispatches[1]["prompt_contract"]["forbidden_surfaces"]
-    assert "artifacts/controller_decisions/latest.json" in dispatches[1]["prompt_contract"]["forbidden_surfaces"]
-    assert "publication_eval/latest.json" in dispatches[1]["prompt_contract"]["required_output_surface"]
-    assert dispatches[1]["prompt_contract"]["manual_study_patch_allowed"] is False
+    assert set(module.FORBIDDEN_SURFACES).issubset(dispatches[1]["prompt_contract_ref"]["forbidden_surfaces"])
+    assert "artifacts/publication_eval/latest.json" in dispatches[1]["prompt_contract_ref"]["forbidden_surfaces"]
+    assert "artifacts/controller_decisions/latest.json" in dispatches[1]["prompt_contract_ref"]["forbidden_surfaces"]
+    assert "publication_eval/latest.json" in dispatches[1]["prompt_contract_ref"]["required_output_surface"]
+    assert dispatches[1]["prompt_contract_ref"]["manual_study_patch_allowed"] is False
     assert dispatches[0]["dispatch_status"] == "blocked"
     assert dispatches[0]["blocked_reason"] == "owner_route_next_owner_mismatch"
     assert dispatches[1]["dispatch_status"] == "blocked"
@@ -551,7 +551,7 @@ def test_materialize_domain_action_requests_does_not_repeat_suppress_pending_ai_
         apply=True,
     )
 
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["repeat_suppressed"] is False
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"

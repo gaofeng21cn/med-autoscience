@@ -528,7 +528,7 @@ def test_materializer_allows_explicit_readiness_current_action_to_block_stale_do
 
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "complete_medical_paper_readiness_surface"
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["source_action"]["authority"] == "mas_owner_surface"
@@ -727,7 +727,7 @@ def test_materializer_dispatches_fresh_progress_ticket_with_strong_currentness_i
 
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["action_type"] == "run_gate_clearing_batch"
     assert dispatch["owner_route"]["source_fingerprint"] == "sha256:current-gate-replay-source"
     assert dispatch["owner_route"]["work_unit_fingerprint"] == "sha256:current-gate-replay-work-unit"

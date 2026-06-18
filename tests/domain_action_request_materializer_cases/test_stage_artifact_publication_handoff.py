@@ -195,15 +195,15 @@ def test_materialize_domain_action_requests_dispatches_stage_artifact_publicatio
         apply=True,
     )
 
-    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
         "publication_handoff_owner_gate"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "publication_gate_owner"
     assert dispatch["owner_route"]["next_owner"] == "publication_gate_owner"
     assert dispatch["owner_route"]["allowed_actions"] == ["publication_handoff_owner_gate"]
-    assert dispatch["prompt_contract"]["request_packet_ref"] == (
+    assert dispatch["prompt_contract_ref"]["request_packet_ref"] == (
         "artifacts/supervision/requests/publication_handoff_owner_gate/latest.json"
     )
     request_path = (
@@ -317,7 +317,7 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     request_ref = "artifacts/supervision/requests/medical_paper_readiness/latest.json"
     request_path = study_root / request_ref
     persisted_dispatch_path = (
@@ -351,14 +351,14 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     assert dispatch["operator_payload_present"] is True
     assert dispatch["operator_payload"]["provider_payloads"][2]["provider"] == "semantic_scholar"
     assert dispatch["operator_payload_ref"] == request_ref
-    assert dispatch["prompt_contract"]["surface_key"] == "literature_provider_runtime"
-    assert dispatch["prompt_contract"]["readiness_surface_identity"] == task["readiness_surface_identity"]
-    assert dispatch["prompt_contract"]["operator_payload_present"] is True
-    assert dispatch["prompt_contract"]["operator_payload"]["payload_source"] == (
+    assert dispatch["prompt_contract_ref"]["surface_key"] == "literature_provider_runtime"
+    assert dispatch["prompt_contract_ref"]["readiness_surface_identity"] == task["readiness_surface_identity"]
+    assert dispatch["prompt_contract_ref"]["operator_payload_present"] is True
+    assert dispatch["prompt_contract_ref"]["operator_payload"]["payload_source"] == (
         "medical_paper_readiness_owner_payload_authoring"
     )
-    assert dispatch["prompt_contract"]["operator_payload_ref"] == request_ref
-    assert dispatch["prompt_contract"]["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
+    assert dispatch["prompt_contract_ref"]["operator_payload_ref"] == request_ref
+    assert dispatch["prompt_contract_ref"]["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
     assert not persisted_dispatch_path.exists()
 
 
@@ -499,10 +499,10 @@ def test_materialize_prefers_stage_readiness_followup_over_stale_control_next_ac
         apply=True,
     )
 
-    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
         "complete_medical_paper_readiness_surface"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["surface_key"] == "literature_provider_runtime"
@@ -661,10 +661,10 @@ def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_wi
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
         "complete_medical_paper_readiness_surface"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     source_action = dispatch["source_action"]
     assert source_action["authority"] == "mas_owner_surface"
@@ -804,10 +804,10 @@ def test_materialize_prefers_readiness_blocker_derived_repair_over_old_readiness
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
+    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
         "run_quality_repair_batch"
     ]
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["source_action"]["next_work_unit"] == "readiness_blocker_publication_repair"
     assert dispatch["source_action"]["readiness_blocker_followup_superseded"] == (

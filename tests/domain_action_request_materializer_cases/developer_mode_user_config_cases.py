@@ -262,7 +262,7 @@ def test_blocked_current_work_unit_dispatch_exposes_supervisor_gate(
 
     assert result["apply_allowed"] is False
     assert result["blocked_domain_progress_transition_request_count"] == 1
-    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "blocked"
     assert dispatch["blocked_reason"] == "developer_apply_safe_required"
     assert dispatch["execution_gate"] == {

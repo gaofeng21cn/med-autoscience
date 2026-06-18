@@ -39,6 +39,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     persistence,
     publication_owner_materialization,
     supervisor_request_packets,
+    transition_request_projection,
     writer_handoff_preservation,
 )
 from med_autoscience.controllers import medical_paper_readiness_payload_authoring
@@ -1215,106 +1216,6 @@ def _dispatch_status_count(dispatches: list[dict[str, Any]], status: str) -> int
     return sum(_text(dispatch.get("dispatch_status")) == status for dispatch in dispatches)
 
 
-def _domain_progress_transition_request_projection(dispatches: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    records: list[dict[str, Any]] = []
-    for dispatch in dispatches:
-        record = _domain_progress_transition_request_record(dispatch)
-        if record:
-            records.append(record)
-    for record in records:
-        record["projection_source"] = "domain_action_request_materializer"
-        record["legacy_owner_callable_adapter_readback"] = False
-        record["domain_intent_producer"] = "med_autoscience.paper_progress_policy_adapter"
-        record["durable_carrier_owner"] = TARGET_RUNTIME_OWNER
-        record["opl_transition_runtime_required_for_durable_carrier"] = True
-        _apply_transition_projection_boundary(record)
-    return records
-
-
-def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> dict[str, Any]:
-    request = _mapping(dispatch.get("opl_domain_progress_transition_request")) or _mapping(
-        _mapping(dispatch.get("prompt_contract")).get("opl_domain_progress_transition_request")
-    )
-    record = {
-        **_transition_request_identity_fields(dispatch),
-        "surface": "mas_domain_progress_transition_request_projection",
-        "legacy_owner_callable_adapter_readback": False,
-        "legacy_owner_callable_adapter_missing_opl_request": not bool(request),
-        "opl_domain_progress_transition_request": request or None,
-        "domain_intent": _mapping(dispatch.get("domain_intent")) or None,
-        "authority_boundary": _mapping(dispatch.get("authority_boundary")) or None,
-        "stage_transition_authority_boundary": _mapping(dispatch.get("stage_transition_authority_boundary"))
-        or None,
-        "refs": _mapping(dispatch.get("refs")) or None,
-        "source_action": _mapping(dispatch.get("source_action")) or None,
-        "owner_route": _mapping(dispatch.get("owner_route")) or None,
-        "prompt_contract_ref": _mapping(dispatch.get("prompt_contract")) or None,
-        "progress_first_closeout_admission": _mapping(dispatch.get("progress_first_closeout_admission"))
-        or None,
-        "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
-        "provider_completion_is_domain_completion": False,
-        "mas_dispatch_authority": False,
-        "mas_creates_owner_callable_carrier": False,
-        "mas_creates_opl_outbox": False,
-        "mas_creates_opl_event": False,
-        "mas_creates_opl_stage_run": False,
-        "target_runtime_owner": _text(dispatch.get("target_runtime_owner")) or TARGET_RUNTIME_OWNER,
-        "dispatch_status": _text(dispatch.get("dispatch_status")) or "transition_request_pending",
-        "blocked_reason": _text(dispatch.get("blocked_reason")),
-    }
-    _apply_transition_projection_boundary(record)
-    if not any(
-        record.get(key)
-        for key in (
-            "study_id",
-            "action_type",
-            "work_unit_id",
-            "work_unit_fingerprint",
-            "dispatch_path",
-        )
-    ):
-        return {}
-    return {key: value for key, value in record.items() if value is not None}
-
-
-def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
-    refs = _mapping(payload.get("refs"))
-    source_action = _mapping(payload.get("source_action"))
-    request = _mapping(payload.get("opl_domain_progress_transition_request"))
-    return {
-        key: value
-        for key, value in {
-            "study_id": _text(payload.get("study_id")) or _text(request.get("study_id")),
-            "quest_id": _text(payload.get("quest_id")) or _text(request.get("quest_id")),
-            "action_type": _text(payload.get("action_type")) or _text(request.get("action_type")),
-            "work_unit_id": (
-                _text(payload.get("work_unit_id"))
-                or _text(payload.get("next_work_unit"))
-                or _text(source_action.get("work_unit_id"))
-                or _text(request.get("work_unit_id"))
-            ),
-            "work_unit_fingerprint": (
-                _text(payload.get("work_unit_fingerprint"))
-                or _text(payload.get("action_fingerprint"))
-                or _text(source_action.get("work_unit_fingerprint"))
-                or _text(request.get("work_unit_fingerprint"))
-            ),
-            "action_fingerprint": _text(payload.get("action_fingerprint"))
-            or _text(payload.get("work_unit_fingerprint")),
-            "next_executable_owner": _text(payload.get("next_executable_owner"))
-            or _text(request.get("next_owner")),
-            "required_output_surface": _text(payload.get("required_output_surface"))
-            or _text(request.get("required_output_surface")),
-            "dispatch_authority": _text(payload.get("dispatch_authority"))
-            or _text(request.get("dispatch_authority")),
-            "dispatch_path": _text(payload.get("dispatch_path")) or _text(refs.get("dispatch_path")),
-            "stage_packet_ref": _text(payload.get("stage_packet_ref")) or _text(refs.get("stage_packet_ref")),
-            "stage_packet_refs": payload.get("stage_packet_refs") or refs.get("stage_packet_refs"),
-        }.items()
-        if value is not None
-    }
-
 
 def current_owner_callable_adapters(
     *,
@@ -1339,6 +1240,7 @@ def current_owner_callable_adapters(
         default_executor_dispatch=lambda **kwargs: _with_transition_request_projection(
             _default_executor_dispatch(**kwargs)
         ),
+        domain_progress_transition_request_projection=transition_request_projection.domain_progress_transition_request_projection,
         owner_from_action=_owner_from_action,
         required_output_surface=_required_output_surface,
         text=_text,
@@ -1414,7 +1316,7 @@ def materialize_domain_action_requests(
         request_tasks=request_tasks,
         owner_callable_adapters=owner_callable_adapters,
     )
-    transition_requests = _domain_progress_transition_request_projection(owner_callable_adapters)
+    transition_requests = transition_request_projection.domain_progress_transition_request_projection(owner_callable_adapters)
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
     ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
