@@ -407,6 +407,180 @@ def test_materialize_recovery_action_gate_requires_bound_opl_readback() -> None:
     }
 
 
+def test_projection_consumes_identity_bound_opl_supervisor_decision_readback() -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    obligation_id = (
+        f"paper-recovery::{study_id}::run_quality_repair_batch::{work_unit_id}::{fingerprint}"
+    )
+    current_identity = {
+        "stage_run_id": "stage-run-dm003",
+        "route_identity_key": "provider-admission::dm003::medical-prose",
+        "attempt_idempotency_key": "provider-admission::dm003::medical-prose",
+        "selected_dispatch_ref": "dispatch-ref:dm003",
+        "stage_packet_ref": "stage-packet:dm003",
+        "stage_packet_refs": ["stage-packet:dm003"],
+        "provider_attempt_ref": "provider-attempt:dm003",
+        "attempt_lease_ref": "lease:dm003",
+        "workflow_ref": "workflow:dm003",
+        "source_fingerprint": "source:dm003",
+        "truth_epoch": "truth::current",
+        "runtime_health_epoch": "runtime::current",
+        "work_unit_fingerprint": fingerprint,
+    }
+    opl_readback = {
+        "surface_kind": "opl_paper_autonomy_supervisor_decision_readback",
+        "obligation_id": obligation_id,
+        "decision_id": f"{obligation_id}|execute_current_owner_delta|stage-run-dm003",
+        "decision_kind": "execute_current_owner_delta",
+        "status": "decision_ready_for_identity_bound_transition",
+        "domain_truth_owner": "med-autoscience",
+        "substrate_owner": "one-person-lab",
+        "current_identity": current_identity,
+        "transition_ref": "transition:dm003",
+        "provider_admission_identity_ref": "provider-admission:dm003",
+        "current_owner_delta_ref": "owner-delta:dm003",
+        "terminal_closeout_ref": None,
+        "recovery_action_ref": None,
+        "no_progress_or_inconsistency_ref": None,
+        "human_gate_ref": None,
+        "resume_token": None,
+        "typed_blocker_ref": None,
+        "owner_receipt_ref": None,
+        "budget_or_missing_evidence_ref": None,
+        "evidence_refs": ["provider-admission:dm003", "stage-run-dm003"],
+        "observability_refs": ["trace:dm003"],
+        "authority_boundary": {
+            "read_model_can_execute": False,
+            "observability_can_close_owner_answer": False,
+            "opl_can_write_mas_truth": False,
+            "opl_can_create_domain_owner_receipt": False,
+            "opl_can_create_domain_typed_blocker": False,
+            "provider_completion_is_domain_ready": False,
+        },
+    }
+    paper_recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "admission_pending",
+        "study_id": study_id,
+        "current_authority": {
+            "owner": "one-person-lab",
+            "obligation": {
+                "recovery_obligation_id": obligation_id,
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+        "supervisor_decision": {
+            "decision": "opl_supervisor_decision_readback_required",
+            "requires_opl_supervisor_decision_engine_readback": True,
+        },
+    }
+
+    decision = supervisor_decision_for_projection(
+        {
+            "study_id": study_id,
+            "current_work_unit": _executable_work_unit(
+                study_id=study_id,
+                owner="one-person-lab",
+                fingerprint=fingerprint,
+            ),
+            "opl_paper_autonomy_supervisor_decision_readback": opl_readback,
+        },
+        paper_recovery_state=paper_recovery_state,
+    )
+
+    assert decision["surface_kind"] == "paper_progress_policy_result_projection"
+    assert decision["decision"] == "execute_current_owner_delta"
+    assert decision["decision_authority"] is False
+    assert decision["opl_supervisor_decision_engine_readback_consumed"] is True
+    assert decision["requires_opl_supervisor_decision_engine_readback"] is False
+    assert decision["mas_can_run_supervisor_decision_engine"] is False
+    assert decision["mas_can_store_recovery_obligation"] is False
+    assert decision["identity_match"] is True
+    assert decision["missing_evidence_refs"] == []
+    assert decision["paper_autonomy_obligation"]["route_identity_key"] == (
+        "provider-admission::dm003::medical-prose"
+    )
+    assert decision["paper_autonomy_obligation"]["attempt_idempotency_key"] == (
+        "provider-admission::dm003::medical-prose"
+    )
+
+    gate = provider_admission_supervisor_gate(
+        {"study_id": study_id},
+        paper_recovery_state=paper_recovery_state | {"supervisor_decision": decision},
+    )
+
+    assert gate["blocked"] is False
+    assert gate["admission_allowed"] is True
+
+
+def test_stale_opl_supervisor_decision_readback_remains_readback_required() -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    paper_recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "admission_pending",
+        "study_id": study_id,
+        "current_authority": {
+            "owner": "one-person-lab",
+            "obligation": {
+                "recovery_obligation_id": (
+                    "paper-recovery::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "run_quality_repair_batch::medical_prose_write_repair::"
+                    "publication-blockers::0915410f804b3697"
+                ),
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+    }
+
+    decision = supervisor_decision_for_projection(
+        {
+            "study_id": study_id,
+            "opl_paper_autonomy_supervisor_decision_readback": {
+                "surface_kind": "opl_paper_autonomy_supervisor_decision_readback",
+                "obligation_id": "paper-recovery::stale",
+                "decision_id": "stale-decision",
+                "decision_kind": "execute_current_owner_delta",
+                "status": "decision_ready_for_identity_bound_transition",
+                "domain_truth_owner": "med-autoscience",
+                "substrate_owner": "one-person-lab",
+                "current_identity": {
+                    "stage_run_id": "stage-run-stale",
+                    "route_identity_key": "provider-admission::stale",
+                    "attempt_idempotency_key": "provider-admission::stale",
+                    "selected_dispatch_ref": "dispatch-ref:stale",
+                    "stage_packet_ref": "stage-packet:stale",
+                    "stage_packet_refs": ["stage-packet:stale"],
+                    "provider_attempt_ref": "provider-attempt:stale",
+                    "attempt_lease_ref": "lease:stale",
+                    "workflow_ref": "workflow:stale",
+                    "source_fingerprint": "source:stale",
+                    "truth_epoch": "truth::stale",
+                    "runtime_health_epoch": "runtime::stale",
+                    "work_unit_fingerprint": "publication-blockers::stale",
+                },
+            },
+        },
+        paper_recovery_state=paper_recovery_state,
+    )
+
+    assert decision["decision"] == "opl_supervisor_decision_readback_required"
+    assert decision["requires_opl_supervisor_decision_engine_readback"] is True
+    assert decision["provider_admission_pending"] is False
+
+
 def test_admission_pending_without_identity_bound_provider_admission_materializes_recovery_not_idle() -> None:
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",

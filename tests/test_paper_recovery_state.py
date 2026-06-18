@@ -140,6 +140,72 @@ def test_paper_recovery_state_consumes_explicit_policy_projection_without_rebuil
     assert state["supervisor_decision"]["mas_can_run_supervisor_decision_engine"] is False
 
 
+def test_paper_recovery_state_consumes_opl_supervisor_decision_readback() -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    obligation_id = (
+        f"paper-recovery::{study_id}::run_quality_repair_batch::{work_unit_id}::{fingerprint}"
+    )
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": study_id,
+            "current_work_unit": _executable_work_unit(
+                study_id=study_id,
+                owner="one-person-lab",
+                fingerprint=fingerprint,
+            ),
+            "opl_paper_autonomy_supervisor_decision_readback": {
+                "surface_kind": "opl_paper_autonomy_supervisor_decision_readback",
+                "obligation_id": obligation_id,
+                "decision_id": f"{obligation_id}|execute_current_owner_delta|stage-run-dm003",
+                "decision_kind": "execute_current_owner_delta",
+                "status": "decision_ready_for_identity_bound_transition",
+                "domain_truth_owner": "med-autoscience",
+                "substrate_owner": "one-person-lab",
+                "current_identity": {
+                    "stage_run_id": "stage-run-dm003",
+                    "route_identity_key": "provider-admission::dm003::medical-prose",
+                    "attempt_idempotency_key": "provider-admission::dm003::medical-prose",
+                    "selected_dispatch_ref": "dispatch-ref:dm003",
+                    "stage_packet_ref": "stage-packet:dm003",
+                    "stage_packet_refs": ["stage-packet:dm003"],
+                    "provider_attempt_ref": "provider-attempt:dm003",
+                    "attempt_lease_ref": "lease:dm003",
+                    "workflow_ref": "workflow:dm003",
+                    "source_fingerprint": "source:dm003",
+                    "truth_epoch": "truth::current",
+                    "runtime_health_epoch": "runtime::current",
+                    "work_unit_fingerprint": fingerprint,
+                },
+                "transition_ref": "transition:dm003",
+                "provider_admission_identity_ref": "provider-admission:dm003",
+                "current_owner_delta_ref": "owner-delta:dm003",
+                "evidence_refs": ["provider-admission:dm003", "stage-run-dm003"],
+                "authority_boundary": {
+                    "read_model_can_execute": False,
+                    "observability_can_close_owner_answer": False,
+                    "opl_can_write_mas_truth": False,
+                    "opl_can_create_domain_owner_receipt": False,
+                    "opl_can_create_domain_typed_blocker": False,
+                    "provider_completion_is_domain_ready": False,
+                },
+            },
+        }
+    )
+
+    decision = state["supervisor_decision"]
+    assert decision["decision"] == "execute_current_owner_delta"
+    assert decision["decision_authority"] is False
+    assert decision["opl_supervisor_decision_engine_readback_consumed"] is True
+    assert decision["requires_opl_supervisor_decision_engine_readback"] is False
+    assert decision["mas_can_run_supervisor_decision_engine"] is False
+    assert decision["mas_can_store_recovery_obligation"] is False
+    assert state["phase"] == "owner_action_ready"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+
+
 def test_terminal_selector_residue_yields_successor_over_stale_progress_first_owner_receipt() -> None:
     state = _module().build_paper_recovery_state(
         {

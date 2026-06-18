@@ -43,6 +43,26 @@ _STAGE_RUN_EVIDENCE_MARKERS = (
     "workflow",
 )
 _OPL_TRANSITION_READBACK_SOURCE = "opl_domain_progress_transition_runtime_live_readback"
+_OPL_SUPERVISOR_DECISION_READBACK_SURFACE = (
+    "opl_paper_autonomy_supervisor_decision_readback"
+)
+_OPL_SUPERVISOR_DECISION_READBACK_FIELDS = (
+    "obligation_id",
+    "decision_id",
+    "decision_kind",
+    "status",
+    "domain_truth_owner",
+    "substrate_owner",
+    "current_identity",
+)
+_OPL_SUPERVISOR_DECISION_AUTHORITY_BOUNDARY = {
+    "read_model_can_execute": False,
+    "observability_can_close_owner_answer": False,
+    "opl_can_write_mas_truth": False,
+    "opl_can_create_domain_owner_receipt": False,
+    "opl_can_create_domain_typed_blocker": False,
+    "provider_completion_is_domain_ready": False,
+}
 
 
 def supervisor_decision_for_projection(
@@ -399,18 +419,246 @@ def _explicit_supervisor_decision(
     paper_recovery_state: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     recovery = _mapping(paper_recovery_state) or _mapping(payload.get("paper_recovery_state"))
+    fallback_readback_required: dict[str, Any] = {}
     for candidate in (
         payload.get("paper_progress_policy_result_projection"),
         payload.get("paper_autonomy_supervisor_decision"),
         payload.get("supervisor_decision"),
+    ):
+        decision = _mapping(candidate)
+        if decision:
+            if _text(decision.get("decision")) == READBACK_REQUIRED_DECISION:
+                fallback_readback_required = decision
+                continue
+            return decision
+    opl_readback = _matching_opl_supervisor_decision_readback(payload, recovery=recovery)
+    if opl_readback:
+        return _projection_from_opl_supervisor_decision_readback(
+            opl_readback,
+            payload=payload,
+            recovery=recovery,
+        )
+    if fallback_readback_required:
+        return fallback_readback_required
+    for candidate in (
         recovery.get("paper_progress_policy_result_projection"),
         recovery.get("supervisor_decision"),
         recovery.get("paper_autonomy_supervisor_decision"),
     ):
         decision = _mapping(candidate)
         if decision:
+            if _text(decision.get("decision")) == READBACK_REQUIRED_DECISION and opl_readback:
+                continue
             return decision
     return {}
+
+
+def _matching_opl_supervisor_decision_readback(
+    payload: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+) -> dict[str, Any]:
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    for candidate in _opl_supervisor_decision_readback_candidates(payload, recovery=recovery):
+        readback = _mapping(candidate)
+        if _opl_supervisor_decision_readback_matches_obligation(readback, obligation=obligation):
+            return readback
+    return {}
+
+
+def _opl_supervisor_decision_readback_candidates(
+    payload: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+) -> list[Mapping[str, Any]]:
+    candidates: list[Mapping[str, Any]] = []
+    for value in (
+        payload.get("opl_paper_autonomy_supervisor_decision_readback"),
+        payload.get("opl_supervisor_decision_engine_readback"),
+        payload.get("supervisor_decision_readback"),
+        recovery.get("opl_paper_autonomy_supervisor_decision_readback"),
+        recovery.get("opl_supervisor_decision_engine_readback"),
+        recovery.get("supervisor_decision_readback"),
+    ):
+        if isinstance(value, Mapping):
+            candidates.append(value)
+    for field in (
+        "opl_paper_autonomy_supervisor_decision_readbacks",
+        "opl_supervisor_decision_engine_readbacks",
+        "supervisor_decision_readbacks",
+    ):
+        value = payload.get(field) or recovery.get(field)
+        if isinstance(value, list | tuple):
+            candidates.extend(item for item in value if isinstance(item, Mapping))
+    return candidates
+
+
+def _opl_supervisor_decision_readback_matches_obligation(
+    readback: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> bool:
+    if _text(readback.get("surface_kind")) != _OPL_SUPERVISOR_DECISION_READBACK_SURFACE:
+        return False
+    if any(_text(readback.get(field)) is None for field in _OPL_SUPERVISOR_DECISION_READBACK_FIELDS):
+        return False
+    if _text(readback.get("status")) != "decision_ready_for_identity_bound_transition":
+        return False
+    if _text(readback.get("domain_truth_owner")) != "med-autoscience":
+        return False
+    if _text(readback.get("substrate_owner")) != "one-person-lab":
+        return False
+    boundary = _mapping(readback.get("authority_boundary"))
+    if any(boundary.get(key) is not value for key, value in _OPL_SUPERVISOR_DECISION_AUTHORITY_BOUNDARY.items()):
+        return False
+    current_identity = _mapping(readback.get("current_identity"))
+    if not _text(current_identity.get("route_identity_key")):
+        return False
+    if not _text(current_identity.get("attempt_idempotency_key")):
+        return False
+    if not _text(current_identity.get("stage_run_id")):
+        return False
+    obligation_id = _text(obligation.get("recovery_obligation_id"))
+    if obligation_id is not None and _text(readback.get("obligation_id")) != obligation_id:
+        return False
+    fingerprint = _text(obligation.get("work_unit_fingerprint"))
+    if fingerprint is not None and _text(current_identity.get("work_unit_fingerprint")) != fingerprint:
+        return False
+    return True
+
+
+def _projection_from_opl_supervisor_decision_readback(
+    readback: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+    recovery: Mapping[str, Any],
+) -> dict[str, Any]:
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    current_identity = _mapping(readback.get("current_identity"))
+    decision_kind = _text(readback.get("decision_kind"))
+    evidence_refs = _dedupe_text(
+        [
+            _text(readback.get("provider_admission_identity_ref")),
+            _text(readback.get("current_owner_delta_ref")),
+            _text(readback.get("terminal_closeout_ref")),
+            _text(readback.get("recovery_action_ref")),
+            _text(readback.get("no_progress_or_inconsistency_ref")),
+            _text(readback.get("human_gate_ref")),
+            _text(readback.get("typed_blocker_ref")),
+            _text(readback.get("owner_receipt_ref")),
+            _text(readback.get("budget_or_missing_evidence_ref")),
+            _text(current_identity.get("stage_run_id")),
+            _text(current_identity.get("selected_dispatch_ref")),
+            _text(current_identity.get("stage_packet_ref")),
+            *_text_items(current_identity.get("stage_packet_refs")),
+            _text(current_identity.get("provider_attempt_ref")),
+            _text(current_identity.get("attempt_lease_ref")),
+            _text(current_identity.get("workflow_ref")),
+            *_text_items(readback.get("evidence_refs")),
+        ]
+    )
+    paper_obligation = _clean_mapping(
+        {
+            "recovery_obligation_id": _text(readback.get("obligation_id")),
+            "study_id": _first_text(
+                obligation.get("study_id"),
+                recovery.get("study_id"),
+                payload.get("study_id"),
+            ),
+            "quest_id": _first_text(
+                obligation.get("quest_id"),
+                recovery.get("quest_id"),
+                payload.get("quest_id"),
+            ),
+            "stage_id": _first_text(obligation.get("stage_id"), "publication_supervision"),
+            "owner": _first_text(obligation.get("owner"), recovery.get("current_owner")),
+            "action_type": obligation.get("action_type"),
+            "work_unit_id": obligation.get("work_unit_id"),
+            "work_unit_fingerprint": _first_text(
+                obligation.get("work_unit_fingerprint"),
+                current_identity.get("work_unit_fingerprint"),
+            ),
+            "route_identity_key": current_identity.get("route_identity_key"),
+            "attempt_idempotency_key": current_identity.get("attempt_idempotency_key"),
+            "stage_run_id": current_identity.get("stage_run_id"),
+        }
+    )
+    return _clean_mapping(
+        {
+            "surface_kind": "paper_progress_policy_result_projection",
+            "projection_role": "mas_paper_progress_policy_result_projection",
+            "policy_result_role": "mas_paper_progress_policy_result_projection",
+            "decision": decision_kind,
+            "decision_authority": False,
+            "legacy_decision_surface_kind": "paper_autonomy_supervisor_decision",
+            "legacy_decision_field_role": "policy_recommendation_label",
+            "legacy_decision_field_is_authority": False,
+            "decision_field_deprecated": True,
+            "read_model_can_build_supervisor_decision": False,
+            "requires_explicit_supervisor_decision_projection": False,
+            "requires_opl_supervisor_decision_engine_readback": False,
+            "opl_supervisor_decision_engine_readback_consumed": True,
+            "opl_supervisor_decision_readback_ref": _text(readback.get("decision_id")),
+            "supervisor_decision_engine_owner": "one-person-lab",
+            "recovery_obligation_store_owner": "one-person-lab",
+            "mas_can_run_supervisor_decision_engine": False,
+            "mas_can_store_recovery_obligation": False,
+            "mas_can_create_opl_command_event_or_outbox": False,
+            "mas_can_authorize_provider_admission": False,
+            "provider_admission_pending": decision_kind == EXECUTE_DECISION,
+            "request_projection_only": False,
+            "paper_progress_classification": "none_until_mas_owner_result",
+            "platform_repair_classification": "opl_supervisor_decision_readback_consumed",
+            "next_owner": "OPL Framework" if decision_kind == EXECUTE_DECISION else "MedAutoScience",
+            "next_safe_action": {
+                "kind": "admit_or_resume_stage_run"
+                if decision_kind == EXECUTE_DECISION
+                else "consume_opl_supervisor_decision_readback",
+                "provider_admission_allowed": decision_kind == EXECUTE_DECISION,
+            },
+            "identity_match": True,
+            "missing_evidence_refs": [],
+            "evidence_refs": evidence_refs,
+            "observability_refs": _text_items(readback.get("observability_refs")),
+            "paper_autonomy_obligation": paper_obligation,
+            "paper_autonomy_obligation_identity": {
+                key: paper_obligation[key]
+                for key in (
+                    "study_id",
+                    "quest_id",
+                    "stage_id",
+                    "action_type",
+                    "work_unit_id",
+                    "work_unit_fingerprint",
+                    "route_identity_key",
+                    "attempt_idempotency_key",
+                )
+                if key in paper_obligation
+            },
+            "authority_boundary": {
+                "adapter_kind": "mas_policy_adapter",
+                "decision_authority": False,
+                "read_model_can_create_decision": False,
+                "supervisor_decision_engine_owner": "one-person-lab",
+                "recovery_obligation_store_owner": "one-person-lab",
+                "can_run_supervisor_decision_engine": False,
+                "can_store_recovery_obligation": False,
+                "can_create_opl_command_event_or_outbox": False,
+                "can_authorize_provider_admission": False,
+                "opl_supervisor_decision_readback_consumed": True,
+            },
+        },
+        keep_empty_keys={"evidence_refs", "missing_evidence_refs", "observability_refs"},
+    )
+
+
+def _dedupe_text(values: list[str | None]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        text = _text(value)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
 
 
 def _has_marker(values: list[str], markers: tuple[str, ...]) -> bool:
