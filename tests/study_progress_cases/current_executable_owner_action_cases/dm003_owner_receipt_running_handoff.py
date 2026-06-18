@@ -644,6 +644,23 @@ def test_paper_recovery_refresh_rebuilds_stale_successor_under_terminal_typed_bl
             },
             "current_publication_work_unit": {"unit_id": WRITE_WORK_UNIT, "lane": "write"},
         },
+        "repair_progress_projection": {
+            "surface_kind": "repair_progress_projection",
+            "source": "mas_owner_repair_execution_evidence",
+            "paper_delta_observed": True,
+            "accepted_owner_receipt": True,
+            "status": "progress_delta_observed",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+            "action_fingerprint": WRITE_FINGERPRINT,
+            "source_eval_id": "publication-eval::003::post-write-repair",
+            "repair_execution_evidence_ref": (
+                "artifacts/controller/repair_execution_evidence/latest.json"
+            ),
+            "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+            "gate_replay_done": True,
+            "ai_reviewer_recheck_done": True,
+        },
     }
 
     result = refresh_module.normalize_paper_recovery_execution_projection(

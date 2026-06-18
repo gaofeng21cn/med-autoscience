@@ -13,6 +13,10 @@ from ...current_work_unit_parts.paper_recovery_successor import (
     action_supersedes_terminal_selector_residue,
     paper_recovery_successor_supersedes_terminal_selector_residue,
 )
+from ..current_executable_owner_action_parts.paper_recovery import (
+    owner_action_from_paper_recovery_state,
+    paper_recovery_successor_action_ready,
+)
 from ..shared import _mapping_copy
 
 
@@ -36,7 +40,11 @@ def normalize_paper_recovery_execution_projection(
         build_current_executable_owner_action=build_current_executable_owner_action,
     )
     updated = _with_recovery_supervisor_decision(updated)
-    recovery_current_action = build_current_executable_owner_action(updated)
+    recovery_current_action = _current_action_for_recovery_refresh(
+        updated,
+        handoff=handoff,
+        build_current_executable_owner_action=build_current_executable_owner_action,
+    )
     refreshed = refresh_current_execution_surfaces(
         payload={**updated, "current_executable_owner_action": recovery_current_action},
         status=status,
@@ -50,7 +58,11 @@ def normalize_paper_recovery_execution_projection(
     )
     refreshed = _with_recovery_supervisor_decision(refreshed)
     refreshed = _without_stale_provider_supervisor_block(refreshed)
-    normalized_current_action = build_current_executable_owner_action(refreshed)
+    normalized_current_action = _current_action_for_recovery_refresh(
+        refreshed,
+        handoff=handoff,
+        build_current_executable_owner_action=build_current_executable_owner_action,
+    )
     refreshed = refresh_current_execution_surfaces(
         payload={**refreshed, "current_executable_owner_action": normalized_current_action},
         status=status,
@@ -79,7 +91,11 @@ def normalize_paper_recovery_execution_projection(
     refreshed = _with_recovery_supervisor_decision(refreshed)
     if "provider_admission_blocked_by_supervisor_decision" not in provider_fields:
         refreshed = _without_stale_provider_supervisor_block(refreshed)
-    final_current_action = build_current_executable_owner_action(refreshed)
+    final_current_action = _current_action_for_recovery_refresh(
+        refreshed,
+        handoff=handoff,
+        build_current_executable_owner_action=build_current_executable_owner_action,
+    )
     refreshed = refresh_current_execution_surfaces(
         payload={**refreshed, "current_executable_owner_action": final_current_action},
         status=status,
@@ -101,7 +117,11 @@ def normalize_paper_recovery_execution_projection(
         build_current_executable_owner_action=build_current_executable_owner_action,
     )
     refreshed = _with_recovery_supervisor_decision(refreshed)
-    final_current_action = build_current_executable_owner_action(refreshed)
+    final_current_action = _current_action_for_recovery_refresh(
+        refreshed,
+        handoff=handoff,
+        build_current_executable_owner_action=build_current_executable_owner_action,
+    )
     if final_current_action != _mapping_copy(refreshed.get("current_executable_owner_action")):
         refreshed = refresh_current_execution_surfaces(
             payload={**refreshed, "current_executable_owner_action": final_current_action},
@@ -147,6 +167,72 @@ def normalize_paper_recovery_execution_projection(
         "derived_signature": _refresh_signature(refreshed),
     }
     return refreshed
+
+
+def _current_action_for_recovery_refresh(
+    payload: Mapping[str, Any],
+    *,
+    handoff: Mapping[str, Any],
+    build_current_executable_owner_action: Callable[[Mapping[str, Any]], dict[str, Any] | None],
+) -> dict[str, Any] | None:
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if (
+        _handoff_current_work_unit_is_owner_receipt(handoff)
+        and paper_recovery_successor_action_ready(current_action)
+        and _same_handoff_receipt_identity(current_action, handoff)
+    ):
+        return current_action
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    decision = _mapping_copy(recovery.get("supervisor_decision"))
+    if (
+        _handoff_current_work_unit_is_owner_receipt(handoff)
+        and _paper_recovery_successor_state_current(recovery)
+        and decision.get("identity_match") is True
+    ):
+        recovery_action = owner_action_from_paper_recovery_state(
+            payload,
+            surface_kind="current_executable_owner_action",
+        )
+        if paper_recovery_successor_action_ready(recovery_action):
+            return recovery_action
+    return build_current_executable_owner_action(payload)
+
+
+def _handoff_current_work_unit_is_owner_receipt(handoff: Mapping[str, Any]) -> bool:
+    current = _mapping_copy(handoff.get("current_work_unit"))
+    if _text(current.get("status")) != "owner_receipt_recorded":
+        return False
+    state = _mapping_copy(current.get("state"))
+    if _text(state.get("state_kind")) != "owner_receipt_recorded":
+        return False
+    contract = _mapping_copy(current.get("required_output_contract"))
+    return _text(state.get("owner_receipt_ref")) is not None or _text(
+        contract.get("owner_receipt_ref")
+    ) is not None
+
+
+def _same_handoff_receipt_identity(
+    action: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> bool:
+    current = _mapping_copy(handoff.get("current_work_unit"))
+    action_type = _text(action.get("action_type"))
+    current_action_type = _text(current.get("action_type"))
+    if action_type is None or current_action_type is None or action_type != current_action_type:
+        return False
+    work_unit = _text(action.get("work_unit_id"))
+    current_work_unit = _text(current.get("work_unit_id"))
+    if work_unit is None or current_work_unit is None or work_unit != current_work_unit:
+        return False
+    fingerprint = _text(action.get("work_unit_fingerprint")) or _text(action.get("action_fingerprint"))
+    current_fingerprint = _text(current.get("work_unit_fingerprint")) or _text(
+        current.get("action_fingerprint")
+    )
+    return (
+        fingerprint is not None
+        and current_fingerprint is not None
+        and fingerprint == current_fingerprint
+    )
 
 
 def _with_recovery_supervisor_decision(payload: dict[str, Any]) -> dict[str, Any]:
