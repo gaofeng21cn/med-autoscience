@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import json
 
 from tests.provider_admission_current_control_helpers import opl_transition_readback
 
@@ -181,19 +180,11 @@ def test_complete_command_event_outbox_log_is_not_rebuilt_by_mas_consumer() -> N
         },
     ]
 
-    readback = module.opl_transition_readback_from_log_entries(
-        entries,
-        idempotency_key=idempotency_key,
-        study_id=STUDY_ID,
-        work_unit_id=WORK_UNIT_ID,
-        work_unit_fingerprint=FINGERPRINT,
-    )
-
-    assert readback == {}
-    assert module.valid_opl_transition_readback(readback) is False
+    for entry in entries:
+        assert module.candidate_opl_transition_readback(entry) == {}
 
 
-def test_mas_consumer_extracts_only_prebuilt_opl_live_readback_entries() -> None:
+def test_mas_consumer_rejects_prebuilt_opl_live_readback_in_log_entries() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
     )
@@ -217,73 +208,20 @@ def test_mas_consumer_extracts_only_prebuilt_opl_live_readback_entries() -> None
         },
     ]
 
-    readback = module.opl_transition_readback_from_log_entries(
-        entries,
-        idempotency_key=idempotency_key,
-        study_id=STUDY_ID,
-        work_unit_id=WORK_UNIT_ID,
-        work_unit_fingerprint=FINGERPRINT,
-    )
+    for entry in entries:
+        assert module.candidate_opl_transition_readback(entry) == {}
 
-    assert readback == trusted
-    assert module.valid_opl_transition_readback(readback) is True
+    assert module.candidate_opl_transition_readback(
+        {"opl_domain_progress_transition_runtime_live_readback": trusted}
+    ) == trusted
 
 
-def test_mas_consumer_extracts_prebuilt_opl_runtime_result_without_rebuilding_fragments(
-    tmp_path,
-) -> None:
+def test_mas_consumer_no_longer_exposes_command_event_log_extractors() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
     )
-    idempotency_key = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
-    trusted = _live_readback()
-    runtime_result = {
-        "surface_kind": "opl_domain_progress_transition_runtime_result",
-        "runtime_id": "opl_domain_progress_transition_runtime",
-        "transactional_outbox": {"committed_together": True},
-        "read_model_readback": trusted["read_model_readback"],
-        "opl_domain_progress_transition_runtime_live_readback": trusted,
-    }
-    log_path = tmp_path / "command_event_log.jsonl"
-    log_path.write_text(
-        "\n".join(
-            [
-                json.dumps(
-                    {
-                        "surface_kind": "opl_domain_progress_transition_log_entry",
-                        "runtime_id": "opl_domain_progress_transition_runtime",
-                        "entry_kind": "event",
-                        "idempotency_key": idempotency_key,
-                        "payload": runtime_result,
-                    }
-                ),
-                json.dumps(
-                    {
-                        "surface_kind": "opl_domain_progress_transition_log_entry",
-                        "runtime_id": "opl_domain_progress_transition_runtime",
-                        "entry_kind": "outbox_item",
-                        "idempotency_key": idempotency_key,
-                        "payload": {
-                            "transition_event_id": trusted["identity"]["latest_event_id"],
-                        },
-                    }
-                ),
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    readback = module.opl_transition_readback_from_log_file(
-        log_path,
-        idempotency_key=idempotency_key,
-        study_id=STUDY_ID,
-        work_unit_id=WORK_UNIT_ID,
-        work_unit_fingerprint=FINGERPRINT,
-    )
-
-    assert readback == trusted
-    assert module.valid_opl_transition_readback(readback) is True
+    assert not hasattr(module, "opl_transition_readback_from_log_entries")
+    assert not hasattr(module, "opl_transition_readback_from_log_file")
 
 
 def test_mas_consumer_does_not_trust_generic_result_container() -> None:
@@ -293,18 +231,12 @@ def test_mas_consumer_does_not_trust_generic_result_container() -> None:
     idempotency_key = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
     trusted = _live_readback()
 
-    readback = module.opl_transition_readback_from_log_entries(
-        [
-            {
-                "entry_kind": "generic_result",
-                "idempotency_key": idempotency_key,
-                "payload": {"result": trusted},
-            }
-        ],
-        idempotency_key=idempotency_key,
-        study_id=STUDY_ID,
-        work_unit_id=WORK_UNIT_ID,
-        work_unit_fingerprint=FINGERPRINT,
+    readback = module.candidate_opl_transition_readback(
+        {
+            "entry_kind": "generic_result",
+            "idempotency_key": idempotency_key,
+            "payload": {"result": trusted},
+        }
     )
 
     assert readback == {}

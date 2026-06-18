@@ -14,6 +14,7 @@
   "current_status": {
     "replay_suite_status": "expanded_beyond_first_slice",
     "live_evidence_surface_status": "read_only_acceptance_boundary_recorded",
+    "mas_command_event_log_extractor_status": "retired_public_surface",
     "live_paper_progress_claim_allowed": false,
     "dhd_dirty_lane_written": false,
     "yang_workspace_runtime_artifacts_written": false
@@ -175,7 +176,8 @@
     "refs_only_ledger",
     "active_run_id_present_without_same_identity_running_proof",
     "provider_completion_without_mas_owner_acceptance",
-    "recorded_only_owner_receipt_without_consumption_or_next_delta"
+    "recorded_only_owner_receipt_without_consumption_or_next_delta",
+    "command_event_log_readback_extraction"
   ],
   "remaining_evidence_tails": [
     "OPL outbox and StageRun identity live readback for the same transition request",

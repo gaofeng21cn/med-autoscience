@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
-from pathlib import Path
 from typing import Any
 
 OPL_TRANSITION_RUNTIME_OWNER = "one-person-lab"
@@ -193,64 +191,6 @@ def candidate_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str,
     return {}
 
 
-def opl_transition_readback_from_log_entries(
-    entries: list[Mapping[str, Any]] | tuple[Mapping[str, Any], ...],
-    *,
-    idempotency_key: str,
-    study_id: str,
-    work_unit_id: str,
-    work_unit_fingerprint: str,
-) -> dict[str, Any]:
-    for entry in reversed(entries):
-        if not isinstance(entry, Mapping):
-            continue
-        if not _entry_matches_idempotency_key(entry, idempotency_key):
-            continue
-        for value in (entry, _mapping(entry.get("payload"))):
-            readback = _prebuilt_opl_transition_readback(value)
-            if readback and _readback_matches_expected_identity(
-                readback,
-                idempotency_key=idempotency_key,
-                study_id=study_id,
-                work_unit_id=work_unit_id,
-                work_unit_fingerprint=work_unit_fingerprint,
-            ):
-                return readback
-    return {}
-
-
-def opl_transition_readback_from_log_file(
-    log_path: Path,
-    *,
-    idempotency_key: str,
-    study_id: str,
-    work_unit_id: str,
-    work_unit_fingerprint: str,
-) -> dict[str, Any]:
-    try:
-        raw = log_path.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        return {}
-    entries: list[Mapping[str, Any]] = []
-    for line in raw.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            continue
-        try:
-            parsed = json.loads(stripped)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(parsed, Mapping):
-            entries.append(parsed)
-    return opl_transition_readback_from_log_entries(
-        entries,
-        idempotency_key=idempotency_key,
-        study_id=study_id,
-        work_unit_id=work_unit_id,
-        work_unit_fingerprint=work_unit_fingerprint,
-    )
-
-
 def has_opl_transition_readback(candidate: Mapping[str, Any]) -> bool:
     return bool(candidate_opl_transition_readback(candidate))
 
@@ -297,41 +237,6 @@ def _is_opl_transition_runtime_container(payload: Mapping[str, Any]) -> bool:
     )
 
 
-def _entry_matches_idempotency_key(entry: Mapping[str, Any], idempotency_key: str) -> bool:
-    payload = _mapping(entry.get("payload"))
-    return idempotency_key in {
-        _text(entry.get("idempotency_key")),
-        _text(payload.get("idempotency_key")),
-        _text(_mapping(payload.get("command")).get("idempotency_key")),
-        _text(_mapping(payload.get("idempotency_readback")).get("idempotency_key")),
-    }
-
-
-def _readback_matches_expected_identity(
-    readback: Mapping[str, Any],
-    *,
-    idempotency_key: str,
-    study_id: str,
-    work_unit_id: str,
-    work_unit_fingerprint: str,
-) -> bool:
-    identity = _mapping(readback.get("identity"))
-    aggregate = _mapping(identity.get("aggregate_identity"))
-    stage_run = _mapping(identity.get("stage_run_identity"))
-    candidate_keys = {
-        _text(identity.get("idempotency_key")),
-        _text(stage_run.get("route_identity_key")),
-        _text(stage_run.get("attempt_idempotency_key")),
-        _text(_mapping(readback.get("idempotency_readback")).get("idempotency_key")),
-    }
-    return (
-        _text(aggregate.get("study_id")) == study_id
-        and _text(aggregate.get("work_unit_id")) == work_unit_id
-        and _text(aggregate.get("work_unit_fingerprint")) == work_unit_fingerprint
-        and idempotency_key in candidate_keys
-    )
-
-
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
@@ -349,8 +254,6 @@ __all__ = [
     "OPL_TRANSITION_RESULT_SURFACE",
     "candidate_opl_transition_readback",
     "has_opl_transition_readback",
-    "opl_transition_readback_from_log_file",
-    "opl_transition_readback_from_log_entries",
     "required_opl_transition_readback_shape",
     "valid_opl_transition_readback",
 ]
