@@ -24,7 +24,7 @@ def paper_recovery_consumed_owner_receipt_successor(
     ) is None:
         return False
     decision = _mapping_copy(recovery.get("supervisor_decision"))
-    if decision.get("identity_match") is not True:
+    if decision.get("identity_match") is False:
         return False
     return any(
         _non_empty_text(_mapping_copy(item).get("condition"))

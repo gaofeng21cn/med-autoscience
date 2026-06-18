@@ -1062,7 +1062,9 @@ def _paper_recovery_successor_action_for_owner_receipt_handoff(
         return {}
     recovery = _mapping_copy(payload.get("paper_recovery_state"))
     decision = _mapping_copy(recovery.get("supervisor_decision"))
-    if decision.get("identity_match") is not True:
+    if decision.get("identity_match") is not True and not paper_recovery_consumed_owner_receipt_successor(
+        recovery
+    ):
         return {}
     successor_action = build_current_executable_owner_action(payload)
     if not paper_recovery_successor_action_ready(successor_action):

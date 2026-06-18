@@ -7,6 +7,9 @@ from med_autoscience.controllers.study_progress_parts.shared import (
     _mapping_copy,
     _non_empty_text,
 )
+from med_autoscience.controllers.study_progress_parts.owner_receipt_successor import (
+    paper_recovery_consumed_owner_receipt_successor,
+)
 from med_autoscience.runtime_control.owner_route_attempt_protocol import normalize_currentness_sources
 
 
@@ -23,10 +26,11 @@ def owner_action_from_paper_recovery_state(
     if _non_empty_text(recovery.get("phase")) != "owner_action_ready":
         return None
     decision = _mapping_copy(recovery.get("supervisor_decision"))
-    if _non_empty_text(decision.get("decision")) not in {
+    decision_label = _non_empty_text(decision.get("decision"))
+    if decision_label not in {
         None,
         "materialize_recovery_action",
-    }:
+    } and not paper_recovery_consumed_owner_receipt_successor(recovery):
         return None
     next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
     if _non_empty_text(next_safe_action.get("kind")) != "materialize_successor_owner_action":
