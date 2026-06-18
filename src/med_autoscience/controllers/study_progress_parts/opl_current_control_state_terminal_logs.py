@@ -256,6 +256,16 @@ def _terminal_stage_log_from_closeout(
                 "stage_attempt_id": _non_empty_text(closeout.get("stage_attempt_id")),
                 "stage_id": _non_empty_text(closeout.get("stage_id")),
                 "action_type": _non_empty_text(closeout.get("action_type")),
+                "work_unit_id": _non_empty_text(closeout.get("work_unit_id"))
+                or _non_empty_text(closeout.get("next_work_unit")),
+                "work_unit_fingerprint": _non_empty_text(closeout.get("work_unit_fingerprint")),
+                "action_fingerprint": _non_empty_text(closeout.get("action_fingerprint"))
+                or _non_empty_text(closeout.get("work_unit_fingerprint")),
+                "route_identity_key": _non_empty_text(closeout.get("route_identity_key")),
+                "attempt_idempotency_key": _non_empty_text(closeout.get("attempt_idempotency_key")),
+                "idempotency_key": _non_empty_text(closeout.get("idempotency_key")),
+                "stage_packet_ref": _non_empty_text(closeout.get("stage_packet_ref")),
+                "stage_packet_refs": _string_list(closeout.get("stage_packet_refs")),
                 "status": _non_empty_text(closeout.get("status")),
                 "route_outcome": _non_empty_text(closeout.get("route_outcome")),
                 "owner_receipt_ref": _non_empty_text(closeout.get("owner_receipt_ref")),

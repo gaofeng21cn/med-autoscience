@@ -909,7 +909,12 @@ def _terminal_closeout_matches_action_bound_identity(
     ):
         return True
     terminal_idempotency_key = _non_empty_text(terminal.get("idempotency_key"))
-    return terminal_idempotency_key is not None and terminal_idempotency_key in _action_idempotency_keys(action)
+    if terminal_idempotency_key is not None and terminal_idempotency_key in _action_idempotency_keys(action):
+        return True
+    terminal_stage_packet_refs = _stage_packet_refs(terminal)
+    if terminal_stage_packet_refs and terminal_stage_packet_refs.intersection(_stage_packet_refs(action)):
+        return True
+    return _terminal_closeout_action_identity_matches_candidate(terminal=terminal, action=action)
 
 
 def _action_stage_run_ids(action: Mapping[str, Any]) -> set[str]:
@@ -986,6 +991,50 @@ def _action_idempotency_keys(action: Mapping[str, Any]) -> set[str]:
         )
         if value is not None
     }
+
+
+def _stage_packet_refs(payload: Mapping[str, Any]) -> set[str]:
+    refs: set[str] = set()
+    for key in ("stage_packet_ref", "stage_packet_path", "dispatch_ref", "dispatch_path"):
+        if text := _non_empty_text(payload.get(key)):
+            refs.add(text)
+    for key in ("stage_packet_refs", "checkpoint_refs"):
+        refs.update(_string_list(payload.get(key)))
+    identity = _observability_mapping(payload.get("provider_admission_identity"))
+    for key in ("stage_packet_ref", "stage_packet_path", "dispatch_ref", "dispatch_path"):
+        if text := _non_empty_text(identity.get(key)):
+            refs.add(text)
+    for key in ("stage_packet_refs", "checkpoint_refs"):
+        refs.update(_string_list(identity.get(key)))
+    return refs
+
+
+def _terminal_closeout_action_identity_matches_candidate(
+    *,
+    terminal: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    terminal_action_type = _non_empty_text(terminal.get("action_type"))
+    action_type = _non_empty_text(action.get("action_type"))
+    if terminal_action_type is None or action_type is None or terminal_action_type != action_type:
+        return False
+    terminal_work_unit = _work_unit_identity(terminal.get("work_unit_id")) or _work_unit_identity(
+        terminal.get("next_work_unit")
+    )
+    action_work_unit = _work_unit_identity(action.get("work_unit_id")) or _work_unit_identity(
+        action.get("next_work_unit")
+    )
+    if terminal_work_unit is None or action_work_unit is None or terminal_work_unit != action_work_unit:
+        return False
+    terminal_fingerprint = _non_empty_text(terminal.get("work_unit_fingerprint")) or _non_empty_text(
+        terminal.get("action_fingerprint")
+    )
+    action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(
+        action.get("action_fingerprint")
+    )
+    if terminal_fingerprint is None or action_fingerprint is None:
+        return False
+    return terminal_fingerprint == action_fingerprint
 
 
 def _terminal_closeout_owner_answer_blocker(
