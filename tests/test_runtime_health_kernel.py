@@ -96,11 +96,19 @@ def test_runtime_health_lifecycle_event_is_diagnostic_when_opl_proof_backed(tmp_
 
     assert event["payload"]["opl_lifecycle_proof_ref"] == "opl-stage-attempt://runtime-health-test-1"
     assert event["payload"]["lifecycle_authority_owner"] == "one-person-lab"
+    assert event["payload"]["diagnostic_only"] is True
     assert event["payload"]["mas_runtime_health_event_role"] == "diagnostic_observation"
+    assert event["payload"]["lifecycle_authority"] is False
     assert event["payload"]["attempt_lifecycle_authority"] is False
     assert event["payload"]["retry_or_dead_letter_authority"] is False
     assert event["payload"]["worker_residency_authority"] is False
+    assert event["payload"]["attempt_ledger_authority"] is False
+    assert event["payload"]["provider_admission_authority"] is False
+    assert event["payload"]["readiness_authority"] is False
+    assert event["payload"]["runtime_currentness_authority"] is False
+    assert event["payload"]["transient_lifecycle_observation"] is False
     _assert_observability_readback_boundary(event["payload"]["opl_observability_readback_boundary"])
+    _assert_attempt_ledger_authority_boundary(event["payload"]["attempt_ledger_authority_boundary"])
 
 
 def test_runtime_health_strict_live_requires_worker_and_active_run_id(tmp_path: Path) -> None:
@@ -213,6 +221,29 @@ def test_runtime_health_treats_opl_provider_attempt_as_live_worker_signal(tmp_pa
     assert snapshot["allowed_controller_actions"] == ["read_runtime_status", "open_monitoring_entry"]
     assert snapshot["allowed_controller_action_hints"] != snapshot["allowed_controller_actions"]
     assert snapshot["allowed_controller_action_hints_are_authority"] is False
+    legacy_contract = snapshot["legacy_runtime_health_field_contract"]
+    assert legacy_contract["surface_kind"] == "runtime_health_legacy_field_compatibility_contract"
+    assert legacy_contract["compatibility_only"] is True
+    assert legacy_contract["diagnostic_only"] is True
+    assert legacy_contract["authority"] is False
+    assert legacy_contract["runtime_currentness_authority"] is False
+    assert legacy_contract["lifecycle_authority"] is False
+    assert legacy_contract["readiness_authority"] is False
+    assert legacy_contract["provider_admission_authority"] is False
+    assert legacy_contract["runtime_action_hint"] == snapshot["canonical_runtime_action"]
+    assert legacy_contract["attempt_state_hint"] == snapshot["attempt_state"]
+    assert legacy_contract["retry_budget_remaining_hint"] == snapshot["retry_budget_remaining"]
+    assert legacy_contract["worker_liveness_state_hint"] == snapshot["worker_liveness_state"]
+    assert legacy_contract["field_authority"] == {
+        "canonical_runtime_action": False,
+        "attempt_state": False,
+        "retry_budget_remaining": False,
+        "worker_liveness_state": False,
+        "allowed_controller_actions": False,
+    }
+    assert legacy_contract["replacement_namespace"] == "diagnostic_hints"
+    _assert_observability_readback_boundary(legacy_contract["opl_observability_readback_boundary"])
+    _assert_attempt_ledger_authority_boundary(legacy_contract["attempt_ledger_authority_boundary"])
     assert snapshot["opl_observability_readback_required"] is True
     assert snapshot["opl_observability_readback_owner"] == "one-person-lab"
     assert snapshot["opl_liveness_attempt_and_retry_authority_owner"] == "one-person-lab"

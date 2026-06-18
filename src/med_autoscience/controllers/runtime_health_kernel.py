@@ -298,10 +298,18 @@ def _runtime_health_event_payload_with_authority_boundary(
     normalized["opl_lifecycle_proof_ref"] = proof_ref
     normalized["lifecycle_authority_owner"] = "one-person-lab"
     normalized["opl_observability_readback_boundary"] = dict(OPL_OBSERVABILITY_READBACK_BOUNDARY)
+    normalized["attempt_ledger_authority_boundary"] = dict(ATTEMPT_LEDGER_AUTHORITY_BOUNDARY)
+    normalized["diagnostic_only"] = True
     normalized["mas_runtime_health_event_role"] = "diagnostic_observation"
+    normalized["lifecycle_authority"] = False
     normalized["attempt_lifecycle_authority"] = False
     normalized["retry_or_dead_letter_authority"] = False
     normalized["worker_residency_authority"] = False
+    normalized["attempt_ledger_authority"] = False
+    normalized["provider_admission_authority"] = False
+    normalized["readiness_authority"] = False
+    normalized["runtime_currentness_authority"] = False
+    normalized["transient_lifecycle_observation"] = False
     return normalized
 
 
@@ -728,6 +736,39 @@ def _diagnostic_hints(
     }
 
 
+def _legacy_runtime_health_field_contract(
+    *,
+    canonical_runtime_action: str,
+    attempt_state: str,
+    retry_budget_remaining: int,
+    worker_liveness_state: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "runtime_health_legacy_field_compatibility_contract",
+        "compatibility_only": True,
+        "diagnostic_only": True,
+        "authority": False,
+        "runtime_currentness_authority": False,
+        "lifecycle_authority": False,
+        "readiness_authority": False,
+        "provider_admission_authority": False,
+        "runtime_action_hint": canonical_runtime_action,
+        "attempt_state_hint": attempt_state,
+        "retry_budget_remaining_hint": retry_budget_remaining,
+        "worker_liveness_state_hint": dict(worker_liveness_state),
+        "field_authority": {
+            "canonical_runtime_action": False,
+            "attempt_state": False,
+            "retry_budget_remaining": False,
+            "worker_liveness_state": False,
+            "allowed_controller_actions": False,
+        },
+        "replacement_namespace": "diagnostic_hints",
+        "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
+        "attempt_ledger_authority_boundary": dict(ATTEMPT_LEDGER_AUTHORITY_BOUNDARY),
+    }
+
+
 def _projection_metadata(
     *,
     dominant_event: Mapping[str, Any] | None,
@@ -903,6 +944,12 @@ def _snapshot_from_events(
             attempt_state=attempt_state,
             retry_budget_remaining=retry_budget_remaining,
             allowed_controller_action_hints=allowed_controller_action_hints,
+        ),
+        "legacy_runtime_health_field_contract": _legacy_runtime_health_field_contract(
+            canonical_runtime_action=canonical_runtime_action,
+            attempt_state=attempt_state,
+            retry_budget_remaining=retry_budget_remaining,
+            worker_liveness_state=worker_state,
         ),
         "runtime_action_hint": canonical_runtime_action,
         "runtime_action_hint_is_authority": False,
