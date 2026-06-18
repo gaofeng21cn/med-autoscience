@@ -88,6 +88,27 @@ def normalize_paper_recovery_execution_projection(
     if "provider_admission_blocked_by_supervisor_decision" not in final_provider_fields:
         refreshed = _without_stale_provider_supervisor_block(refreshed)
     refreshed = sync_progress_first_owner_action_admission(refreshed)
+    refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
+    refreshed = _with_recovery_supervisor_decision(refreshed)
+    final_current_action = build_current_executable_owner_action(refreshed)
+    if final_current_action != _mapping_copy(refreshed.get("current_executable_owner_action")):
+        refreshed = refresh_current_execution_surfaces(
+            payload={**refreshed, "current_executable_owner_action": final_current_action},
+            status=status,
+            handoff=handoff,
+            runtime_health_snapshot=runtime_health_snapshot,
+        )
+        final_provider_fields = provider_admission_projection_fields(
+            payload=refreshed,
+            handoff=handoff,
+            study_root=study_root,
+        )
+        refreshed.update(final_provider_fields)
+        if "provider_admission_blocked_by_supervisor_decision" not in final_provider_fields:
+            refreshed = _without_stale_provider_supervisor_block(refreshed)
+        refreshed = sync_progress_first_owner_action_admission(refreshed)
+        refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
+        refreshed = _with_recovery_supervisor_decision(refreshed)
     refreshed["paper_recovery_execution_projection"] = {
         "surface_kind": "paper_recovery_execution_projection",
         "schema_version": 1,

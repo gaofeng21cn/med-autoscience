@@ -563,6 +563,173 @@ def test_paper_recovery_refresh_rebuilds_stale_successor_under_terminal_typed_bl
     assert result["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is False
 
 
+def test_paper_recovery_refresh_rebuilds_successor_after_handoff_terminal_blocker(
+    tmp_path: Path,
+) -> None:
+    refresh_module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."
+        "paper_recovery_execution_refresh"
+    )
+    action_module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."
+        "current_execution_surfaces"
+    )
+    provider_projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    payload_sync = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.payload_sync"
+    )
+    recovery_state = importlib.import_module("med_autoscience.controllers.paper_recovery_state")
+    closeout_ref = (
+        "artifacts/supervision/consumer/default_executor_execution/"
+        "sat_08da46bea43329723d2fbbea.closeout.json"
+    )
+    typed_blocker = {
+        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+        "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+        "owner": "one-person-lab",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": WRITE_WORK_UNIT,
+        "work_unit_fingerprint": WRITE_FINGERPRINT,
+        "action_fingerprint": WRITE_FINGERPRINT,
+        "typed_blocker_ref": closeout_ref,
+        "source_ref": closeout_ref,
+        "latest_owner_answer_kind": "typed_blocker",
+        "latest_owner_answer_ref": closeout_ref,
+        "terminal_closeout_outcome": "typed_blocker",
+    }
+    payload = {
+        "study_id": STUDY_ID,
+        "quest_id": STUDY_ID,
+        "current_stage": "publication_supervision",
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "schema_version": 1,
+            "status": "owner_receipt_recorded",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": WRITE_WORK_UNIT,
+            "work_unit_fingerprint": WRITE_FINGERPRINT,
+            "action_fingerprint": WRITE_FINGERPRINT,
+            "acceptance_refs": ["artifacts/controller/repair_execution_receipts/latest.json"],
+            "state": {
+                "state_kind": "owner_receipt_recorded",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "next_safe_action_kind": "consume_owner_receipt",
+                "provider_admission_pending": False,
+            },
+        },
+        "current_execution_envelope": {
+            "state_kind": "owner_receipt_recorded",
+            "owner": "write",
+        },
+        "current_executable_owner_action": None,
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "schema_version": 1,
+            "study_id": STUDY_ID,
+            "quest_id": STUDY_ID,
+            "phase": "owner_action_ready",
+            "current_authority": {
+                "owner": "write",
+                "authority": "med-autoscience",
+                "obligation": {
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": WRITE_WORK_UNIT,
+                    "work_unit_fingerprint": WRITE_FINGERPRINT,
+                },
+            },
+            "conditions": [
+                {
+                    "condition": "consumed_owner_receipt_routeback_successor",
+                    "source_condition": "current_work_unit_owner_receipt_recorded",
+                }
+            ],
+            "next_safe_action": {
+                "kind": "materialize_successor_owner_action",
+                "owner": "write",
+                "provider_admission_allowed": True,
+                "successor_owner_action": {
+                    "action_type": "run_quality_repair_batch",
+                    "owner": "write",
+                    "work_unit_id": WRITE_WORK_UNIT,
+                    "work_unit_fingerprint": WRITE_FINGERPRINT,
+                    "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                    "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+            },
+            "supervisor_decision": {
+                "decision": "materialize_recovery_action",
+                "identity_match": True,
+            },
+        },
+    }
+
+    result = refresh_module.normalize_paper_recovery_execution_projection(
+        payload=payload,
+        status={},
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "running_provider_attempt": False,
+            "next_owner": "one-person-lab",
+            "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+            "typed_blocker": typed_blocker,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": WRITE_WORK_UNIT,
+                "work_unit_fingerprint": WRITE_FINGERPRINT,
+                "action_fingerprint": WRITE_FINGERPRINT,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "source": "terminal_closeout_typed_blocker",
+                    "typed_blocker": typed_blocker,
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "one-person-lab",
+                "typed_blocker": typed_blocker,
+            },
+        },
+        runtime_health_snapshot={},
+        study_root=tmp_path / "studies" / STUDY_ID,
+        build_current_executable_owner_action=(
+            action_module.build_current_executable_owner_action
+        ),
+        refresh_current_execution_surfaces=surfaces.refresh_current_execution_surfaces,
+        provider_admission_projection_fields=(
+            provider_projection.provider_admission_projection_fields
+        ),
+        sync_progress_first_owner_action_admission=(
+            payload_sync.sync_progress_first_owner_action_admission
+        ),
+        build_paper_recovery_state=recovery_state.build_paper_recovery_state,
+    )
+
+    assert result["current_executable_owner_action"] is None
+    assert result["current_work_unit"]["status"] == "typed_blocker"
+    assert result["current_work_unit"]["state"]["source"] == "terminal_closeout_typed_blocker"
+    assert result["paper_recovery_state"]["phase"] == "domain_blocked"
+    assert result["paper_recovery_state"]["conditions"] == [
+        {
+            "condition": "current_work_unit_typed_blocker",
+            "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+        }
+    ]
+    assert result["paper_recovery_state"]["next_safe_action"]["kind"] == "resolve_typed_blocker"
+    assert result["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is False
+
+
 def test_current_execution_refresh_keeps_handoff_owner_receipt_over_stale_closeout() -> None:
     surfaces = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."
