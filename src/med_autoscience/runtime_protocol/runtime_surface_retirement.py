@@ -50,6 +50,9 @@ FORBIDDEN_TRUE_AUTHORITY_FLAGS = frozenset(
         "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result",
         "dispatch_ref_stage_packet_identity_recovery_is_authority",
         "latest_wire_surface_is_stage_run_abi",
+        "polluted_source_payload_can_authorize_provider_admission",
+        "polluted_source_payload_can_create_opl_event_outbox_or_stage_run",
+        "polluted_source_payload_can_satisfy_opl_readback",
     }
 )
 
@@ -338,6 +341,49 @@ def _validate_legacy_default_executor_carrier(
             violations.append(_violation(surface_id, "legacy_carrier_abi_not_transition_request_pending_only"))
     else:
         violations.append(_violation(surface_id, "missing_legacy_stage_run_abi_provenance_boundary"))
+
+    contamination_boundary = surface.get("legacy_source_contamination_boundary")
+    if isinstance(contamination_boundary, Mapping):
+        if contamination_boundary.get("source_dispatch_claims_are_diagnostic_only") is not True:
+            violations.append(_violation(surface_id, "legacy_source_claims_not_diagnostic_only"))
+        expected_claim_fields = {
+            "source_dispatch_claimed_mas_authority_field": "source_dispatch_claimed_mas_authority",
+            "source_dispatch_claimed_opl_write_field": "source_dispatch_claimed_opl_write",
+            "source_dispatch_claimed_provider_admission_pending_field": (
+                "source_dispatch_claimed_provider_admission_pending"
+            ),
+        }
+        for key, expected in expected_claim_fields.items():
+            if contamination_boundary.get(key) != expected:
+                violations.append(_violation(surface_id, f"legacy_source_claim_field_mismatch:{key}"))
+        for key in (
+            "receipt_projection_must_force_authority_flags_false",
+            "receipt_projection_must_force_provider_admission_pending_false",
+            "owner_callable_adapter_boundary_must_force_authority_false",
+        ):
+            if contamination_boundary.get(key) is not True:
+                violations.append(_violation(surface_id, f"legacy_source_boundary_missing_force_false:{key}"))
+        for key in (
+            "polluted_source_payload_can_authorize_provider_admission",
+            "polluted_source_payload_can_create_opl_event_outbox_or_stage_run",
+            "polluted_source_payload_can_satisfy_opl_readback",
+        ):
+            if contamination_boundary.get(key, False) is not False:
+                violations.append(_violation(surface_id, f"legacy_source_boundary_forbidden:{key}"))
+        forbidden_source_claims = contamination_boundary.get("forbidden_source_claims")
+        required_source_claims = {
+            "mas_dispatch_authority",
+            "mas_creates_opl_outbox",
+            "mas_creates_opl_event",
+            "mas_creates_opl_stage_run",
+            "provider_admission_pending",
+        }
+        if not isinstance(forbidden_source_claims, list) or not required_source_claims.issubset(
+            {str(item) for item in forbidden_source_claims}
+        ):
+            violations.append(_violation(surface_id, "legacy_source_boundary_missing_forbidden_source_claims"))
+    else:
+        violations.append(_violation(surface_id, "missing_legacy_source_contamination_boundary"))
 
     gate = surface.get("retirement_gate")
     if isinstance(gate, Mapping):

@@ -234,6 +234,25 @@
         "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
         "transition_request_status": "transition_request_pending"
       },
+      "legacy_source_contamination_boundary": {
+        "source_dispatch_claims_are_diagnostic_only": true,
+        "source_dispatch_claimed_mas_authority_field": "source_dispatch_claimed_mas_authority",
+        "source_dispatch_claimed_opl_write_field": "source_dispatch_claimed_opl_write",
+        "source_dispatch_claimed_provider_admission_pending_field": "source_dispatch_claimed_provider_admission_pending",
+        "receipt_projection_must_force_authority_flags_false": true,
+        "receipt_projection_must_force_provider_admission_pending_false": true,
+        "owner_callable_adapter_boundary_must_force_authority_false": true,
+        "polluted_source_payload_can_authorize_provider_admission": false,
+        "polluted_source_payload_can_create_opl_event_outbox_or_stage_run": false,
+        "polluted_source_payload_can_satisfy_opl_readback": false,
+        "forbidden_source_claims": [
+          "mas_dispatch_authority",
+          "mas_creates_opl_outbox",
+          "mas_creates_opl_event",
+          "mas_creates_opl_stage_run",
+          "provider_admission_pending"
+        ]
+      },
       "active_caller_boundary": {
         "active_caller_effect": "opl_domain_progress_transition_runtime_intake_only",
         "active_caller_retains_authority": false,

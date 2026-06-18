@@ -359,6 +359,28 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["default_executor_dispatch_request"]["allowed_effect"] == (
         "opl_domain_progress_transition_runtime_intake_only"
     )
+    legacy_carrier_inventory = inventory_surfaces["default_executor_dispatch_request"]
+    assert legacy_carrier_inventory["legacy_source_contamination_boundary"] == {
+        "source_dispatch_claims_are_diagnostic_only": True,
+        "source_dispatch_claimed_mas_authority_field": "source_dispatch_claimed_mas_authority",
+        "source_dispatch_claimed_opl_write_field": "source_dispatch_claimed_opl_write",
+        "source_dispatch_claimed_provider_admission_pending_field": (
+            "source_dispatch_claimed_provider_admission_pending"
+        ),
+        "receipt_projection_must_force_authority_flags_false": True,
+        "receipt_projection_must_force_provider_admission_pending_false": True,
+        "owner_callable_adapter_boundary_must_force_authority_false": True,
+        "polluted_source_payload_can_authorize_provider_admission": False,
+        "polluted_source_payload_can_create_opl_event_outbox_or_stage_run": False,
+        "polluted_source_payload_can_satisfy_opl_readback": False,
+        "forbidden_source_claims": [
+            "mas_dispatch_authority",
+            "mas_creates_opl_outbox",
+            "mas_creates_opl_event",
+            "mas_creates_opl_stage_run",
+            "provider_admission_pending",
+        ],
+    }
     assert open_surfaces["domain_health_diagnostic_obligation_actuator"]["authority_status"] == (
         "consume_only_readback_projection_live_tail_open"
     )
@@ -552,6 +574,15 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     legacy_carrier["legacy_stage_run_abi_provenance_boundary"][
         "requires_opl_domain_progress_transition_runtime_intake"
     ] = False
+    legacy_carrier["legacy_source_contamination_boundary"][
+        "source_dispatch_claims_are_diagnostic_only"
+    ] = False
+    legacy_carrier["legacy_source_contamination_boundary"][
+        "polluted_source_payload_can_authorize_provider_admission"
+    ] = True
+    legacy_carrier["legacy_source_contamination_boundary"]["forbidden_source_claims"].remove(
+        "provider_admission_pending"
+    )
 
     carrier_violations = retirement.validate_runtime_surface_retirement_inventory(
         carrier_bad_inventory
@@ -569,6 +600,24 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "default_executor_dispatch_request",
             "legacy_carrier_missing_opl_runtime_intake_requirement",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "legacy_source_claims_not_diagnostic_only",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "truthy_authority_flag:legacy_source_contamination_boundary."
+            "polluted_source_payload_can_authorize_provider_admission",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "legacy_source_boundary_forbidden:"
+            "polluted_source_payload_can_authorize_provider_admission",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "legacy_source_boundary_missing_forbidden_source_claims",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in carrier_violations}
 
