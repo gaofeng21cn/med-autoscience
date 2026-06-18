@@ -4,12 +4,17 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 cd "${repo_root}"
 
-verify_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-verify.XXXXXX")"
-cleanup_verify_tmp_root() {
-  rm -rf "${verify_tmp_root}"
-}
-trap cleanup_verify_tmp_root EXIT
-export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"
+if [[ -z "${CI:-}" && -z "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" && -z "${MAS_CLEAN_RUNNER_REUSE_ENV:-}" ]]; then
+  export MAS_CLEAN_RUNNER_REUSE_ENV=1
+fi
+if [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" != "1" && -z "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then
+  verify_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-verify.XXXXXX")"
+  cleanup_verify_tmp_root() {
+    rm -rf "${verify_tmp_root}"
+  }
+  trap cleanup_verify_tmp_root EXIT
+  export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"
+fi
 clean_python_runner="${MAS_CLEAN_PYTHON_RUNNER:-scripts/run-python-clean.sh}"
 
 run_sanity_checks() {

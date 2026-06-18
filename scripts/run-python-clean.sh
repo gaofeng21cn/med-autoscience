@@ -5,17 +5,18 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(cd "${script_dir}/.." && pwd -P)"
 cd "${repo_root}"
 
+stable_cache_root="${MAS_CLEAN_RUNNER_CACHE_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/med-autoscience/clean-runner}"
 cleanup_tmp_root=0
 reuse_env_enabled=0
-if [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" == "1" ]]; then
+if [[ -n "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then
+  tmp_root="${MAS_CLEAN_RUNNER_TMP_ROOT}"
+elif [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" == "1" ]]; then
   reuse_env_enabled=1
   if [[ -n "${MAS_CLEAN_RUNNER_REUSE_ROOT:-}" ]]; then
     tmp_root="${MAS_CLEAN_RUNNER_REUSE_ROOT}"
   else
     tmp_root="${XDG_CACHE_HOME:-${HOME}/.cache}/med-autoscience/clean-runner"
   fi
-elif [[ -n "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then
-  tmp_root="${MAS_CLEAN_RUNNER_TMP_ROOT}"
 else
   tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-python-run.XXXXXX")"
   cleanup_tmp_root=1
@@ -117,8 +118,12 @@ fi
 
 if [[ "${reuse_env_enabled}" == "1" ]]; then
   default_uv_cache_dir="${tmp_root}/uv-cache"
+elif [[ -n "${MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR:-}" ]]; then
+  default_uv_cache_dir="${MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR}"
+elif [[ "${MAS_CLEAN_RUNNER_ISOLATE_UV_CACHE:-0}" == "1" ]]; then
+  default_uv_cache_dir="${tmp_root}/uv-cache"
 else
-  default_uv_cache_dir="${MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR:-${tmp_root}/uv-cache}"
+  default_uv_cache_dir="${stable_cache_root}/uv-cache"
 fi
 if path_is_inside_checkout "${default_uv_cache_dir}"; then
   echo "run-python-clean.sh: default uv cache must be outside the checkout: ${default_uv_cache_dir}" >&2

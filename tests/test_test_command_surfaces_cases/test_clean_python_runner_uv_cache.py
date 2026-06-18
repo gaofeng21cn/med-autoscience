@@ -57,7 +57,7 @@ def test_clean_python_runner_preserves_external_uv_cache_only_when_requested(tmp
 
 def test_clean_python_runner_routes_uv_cache_to_runner_tmp_by_default(tmp_path: Path) -> None:
     runner_tmp, fake_venv = _runner_tmp_with_fake_venv(tmp_path)
-    persistent_cache = tmp_path / "persistent-uv-cache"
+    stable_cache_root = tmp_path / "stable-clean-runner"
     sync_log = tmp_path / "uv-sync.log"
     fake_uv = tmp_path / "uv"
     fake_uv.write_text(
@@ -79,7 +79,7 @@ def test_clean_python_runner_routes_uv_cache_to_runner_tmp_by_default(tmp_path: 
         env=_clean_runner_env(
             PATH=f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
             MAS_CLEAN_RUNNER_SKIP_SYNC="1",
-            MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR=str(persistent_cache),
+            MAS_CLEAN_RUNNER_CACHE_ROOT=str(stable_cache_root),
             MAS_CLEAN_RUNNER_TMP_ROOT=str(runner_tmp),
             MAS_TEST_SYNC_LOG=str(sync_log),
             UV_PROJECT_ENVIRONMENT=str(fake_venv),
@@ -91,7 +91,7 @@ def test_clean_python_runner_routes_uv_cache_to_runner_tmp_by_default(tmp_path: 
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "runner-ok"
-    expected_uv_cache = persistent_cache
+    expected_uv_cache = stable_cache_root / "uv-cache"
     assert sync_log.read_text(encoding="utf-8").splitlines() == [
         str(expected_uv_cache),
         (
@@ -102,6 +102,47 @@ def test_clean_python_runner_routes_uv_cache_to_runner_tmp_by_default(tmp_path: 
     assert expected_uv_cache.is_dir()
     assert (runner_tmp / "egg-info").is_dir()
     assert not (runner_tmp / "uv-cache").exists()
+
+
+def test_clean_python_runner_can_isolate_uv_cache_for_cold_runs(tmp_path: Path) -> None:
+    runner_tmp, fake_venv = _runner_tmp_with_fake_venv(tmp_path)
+    stable_cache_root = tmp_path / "stable-clean-runner"
+    sync_log = tmp_path / "uv-sync.log"
+    fake_uv = tmp_path / "uv"
+    fake_uv.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"${UV_CACHE_DIR}\" >> \"${MAS_TEST_SYNC_LOG}\"\n"
+        "printf '%s\\n' \"$*\" >> \"${MAS_TEST_SYNC_LOG}\"\n",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+
+    result = subprocess.run(
+        [
+            str(REPO_ROOT / "scripts/run-python-clean.sh"),
+            "-c",
+            "print('runner-ok')",
+        ],
+        cwd=REPO_ROOT,
+        env=_clean_runner_env(
+            PATH=f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
+            MAS_CLEAN_RUNNER_CACHE_ROOT=str(stable_cache_root),
+            MAS_CLEAN_RUNNER_ISOLATE_UV_CACHE="1",
+            MAS_CLEAN_RUNNER_SKIP_SYNC="1",
+            MAS_CLEAN_RUNNER_TMP_ROOT=str(runner_tmp),
+            MAS_TEST_SYNC_LOG=str(sync_log),
+            UV_PROJECT_ENVIRONMENT=str(fake_venv),
+        ),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "runner-ok"
+    assert sync_log.read_text(encoding="utf-8").splitlines()[0] == str(runner_tmp / "uv-cache")
+    assert not (stable_cache_root / "uv-cache").exists()
 
 
 def test_clean_python_runner_rejects_checkout_local_default_uv_cache(tmp_path: Path) -> None:

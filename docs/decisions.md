@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-18：本地 clean verification 默认复用 checkout 外缓存
+
+- 决策：`scripts/run-pytest-clean.sh` 与本地 `scripts/verify.sh` 默认启用 checkout 外 clean-runner reuse env；`scripts/run-python-clean.sh` 的 short-lived 调用也默认把 `UV_CACHE_DIR` 指向 checkout 外稳定 cache root。可复用对象只能位于 checkout 外，包含 venv、uv cache、pycache、egg-info 与 sync marker，且必须继续拒绝 checkout 内 `.venv`、`.uv-cache`、`__pycache__`、`.pytest_cache` 或 `*.egg-info`。
+- 决策：CI 和诊断隔离仍可显式使用 `MAS_CLEAN_RUNNER_TMP_ROOT` 或 `MAS_CLEAN_RUNNER_REUSE_ENV=0` 隔离 runner root；需要连 uv cache 也完全冷启动时，再显式设置 `MAS_CLEAN_RUNNER_ISOLATE_UV_CACHE=1`。这些开关只改变验证工具链缓存策略，不改变 runtime/currentness/readiness 证据口径。
+- 理由：此前 `verify.sh` 每次强制 `mktemp` 并在退出时删除 runner root，`run-python-clean.sh` 默认又把 uv cache 放在该临时 root 下，导致每次 focused verification 都像冷启动下载/初始化。把高频本地验证收口到 checkout 外 clean cache，可以保留工作区零副产物边界，同时降低重复下载和 sync 成本。
+- 影响：这是本地验证效率与工程卫生修复，不执行 live DHD apply、hydrate、tick、redrive、provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。测试通过只能证明验证入口缓存行为，不证明 MAS/OPL runtime ready、paper progress 或 publication-ready。
+
 ## 2026-06-18：physical source morphology scan 只关闭 repo-backed scan proof
 
 - 决策：`contracts/functional_privatization_audit.json#/physical_source_morphology_scan` 成为 MAS standard Agent physical source morphology 的 repo-backed scan proof。它记录 active private generic residue、repo-local wrapper tail、default caller、runtime package residue、functional structure gap 和 classification gap 均为 0，并把 `physical_source_morphology_scan_beyond_classification_zero_ref` 从 completion evidence ledger 的 missing tail 中移除。

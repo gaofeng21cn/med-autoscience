@@ -381,19 +381,27 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
 
     assert 'repo_root="$(git rev-parse --show-toplevel)"' in verify_script
     assert 'cd "${repo_root}"' in verify_script
+    assert 'export MAS_CLEAN_RUNNER_REUSE_ENV=1' in verify_script
+    assert 'if [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" != "1" && -z "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then' in verify_script
     assert 'verify_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-verify.XXXXXX")"' in verify_script
     assert 'export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"' in verify_script
+    pytest_runner_script = _read("scripts/run-pytest-clean.sh")
+    assert 'export MAS_CLEAN_RUNNER_REUSE_ENV=1' in pytest_runner_script
+    assert '-z "${CI:-}"' in pytest_runner_script
     runner_script = _read("scripts/run-python-clean.sh")
     assert 'script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"' in runner_script
     assert 'repo_root="$(cd "${script_dir}/.." && pwd -P)"' in runner_script
     assert 'repo_root="$(git rev-parse --show-toplevel)"' not in runner_script
-    assert 'if [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" == "1" ]]; then' in runner_script
+    assert 'stable_cache_root="${MAS_CLEAN_RUNNER_CACHE_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/med-autoscience/clean-runner}"' in runner_script
+    assert 'if [[ -n "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then' in runner_script
+    assert 'elif [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" == "1" ]]; then' in runner_script
     assert 'tmp_root="${MAS_CLEAN_RUNNER_REUSE_ROOT}"' in runner_script
     assert 'echo "run-python-clean.sh: reuse root must be outside the checkout: ${tmp_root}" >&2' in runner_script
     assert 'if path_is_inside_checkout "${UV_PROJECT_ENVIRONMENT:-}"; then' in runner_script
     assert 'if path_is_inside_checkout "${PYTHONPYCACHEPREFIX:-}"; then' in runner_script
     assert 'if [[ "${MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE:-0}" != "1" ]] || path_is_inside_checkout "${UV_CACHE_DIR:-}"; then' in runner_script
-    assert 'default_uv_cache_dir="${MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR:-${tmp_root}/uv-cache}"' in runner_script
+    assert 'elif [[ "${MAS_CLEAN_RUNNER_ISOLATE_UV_CACHE:-0}" == "1" ]]; then' in runner_script
+    assert 'default_uv_cache_dir="${stable_cache_root}/uv-cache"' in runner_script
     assert 'if path_is_inside_checkout "${default_uv_cache_dir}"; then' in runner_script
     assert 'export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"' in runner_script
     assert 'export UV_CACHE_DIR="${UV_CACHE_DIR:-${default_uv_cache_dir}}"' in runner_script
@@ -537,6 +545,7 @@ def test_clean_python_runner_rejects_checkout_local_python_artifact_env(tmp_path
     checkout_local_venv = REPO_ROOT / ".mas-clean-runner-sentinel-venv"
     checkout_local_pycache = REPO_ROOT / ".mas-clean-runner-sentinel-pycache"
     checkout_local_uv_cache = REPO_ROOT / ".mas-clean-runner-sentinel-uv-cache"
+    stable_cache_root = tmp_path / "stable-clean-runner"
 
     result = subprocess.run(
         [
@@ -552,6 +561,7 @@ def test_clean_python_runner_rejects_checkout_local_python_artifact_env(tmp_path
         ],
         cwd=REPO_ROOT,
         env=_clean_runner_env(
+            MAS_CLEAN_RUNNER_CACHE_ROOT=str(stable_cache_root),
             MAS_CLEAN_RUNNER_SKIP_SYNC="1",
             MAS_CLEAN_RUNNER_TMP_ROOT=str(runner_tmp),
             UV_PROJECT_ENVIRONMENT=str(checkout_local_venv),
@@ -568,7 +578,7 @@ def test_clean_python_runner_rejects_checkout_local_python_artifact_env(tmp_path
     assert lines == [
         str(fake_venv),
         str(runner_tmp / "pycache"),
-        str(runner_tmp / "uv-cache"),
+        str(stable_cache_root / "uv-cache"),
         str(runner_tmp / "pycache"),
     ]
     assert not checkout_local_venv.exists()
