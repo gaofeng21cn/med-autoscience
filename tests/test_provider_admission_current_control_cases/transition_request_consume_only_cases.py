@@ -170,6 +170,13 @@ def test_provider_admission_current_control_consumes_opl_readback_inside_provide
     assert action["opl_domain_progress_transition_live_readback"]["surface_kind"] == (
         "opl_domain_progress_transition_runtime_live_readback"
     )
+    readback_identity = action["opl_domain_progress_transition_live_readback"]["identity"]
+    assert action["opl_domain_progress_transition_request"]["idempotency_key"] == (
+        readback_identity["idempotency_key"]
+    )
+    assert result["provider_admission_candidates"][0]["opl_domain_progress_transition_request"][
+        "idempotency_key"
+    ] == readback_identity["idempotency_key"]
 
 
 def test_provider_admission_current_control_keeps_same_tick_materialized_recovery_request_consume_only(

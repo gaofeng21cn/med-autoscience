@@ -27,6 +27,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
+    provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_request import (
     candidate_with_opl_transition_request as _candidate_with_opl_transition_request,
@@ -123,7 +124,7 @@ def materialize_provider_admission_current_control_state(
         for candidate in projection_candidates
         if _candidate_key(candidate) in pending_candidate_keys
         or (
-            candidate_opl_transition_readback(candidate)
+            provider_admission_opl_transition_readback(candidate)
             and _candidate_key(candidate) not in transition_request_candidate_keys
         )
     ]

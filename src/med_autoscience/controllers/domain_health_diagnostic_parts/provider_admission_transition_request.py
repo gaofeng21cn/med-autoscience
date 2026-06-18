@@ -4,7 +4,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers import paper_progress_policy_adapter
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
-    candidate_opl_transition_readback,
+    provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
     mapping as _mapping,
@@ -19,7 +19,7 @@ def candidate_with_opl_transition_request(
     current_action_source: str | None = None,
 ) -> dict[str, Any]:
     payload = dict(candidate)
-    has_readback = bool(candidate_opl_transition_readback(payload))
+    trusted_provider_readback = provider_admission_opl_transition_readback(payload)
     policy_result = _mapping(payload.get("paper_progress_policy_result"))
     transition_request = _mapping(payload.get("opl_domain_progress_transition_request")) or _mapping(
         policy_result.get("opl_domain_progress_transition_request")
@@ -39,10 +39,18 @@ def candidate_with_opl_transition_request(
             source=source,
         )
         transition_request = _mapping(policy_result.get("opl_domain_progress_transition_request"))
+    transition_request = _transition_request_bound_to_provider_readback(
+        transition_request,
+        readback=trusted_provider_readback,
+    )
     if policy_result:
-        payload["paper_progress_policy_result"] = dict(policy_result)
+        policy_payload = dict(policy_result)
+        if transition_request:
+            policy_payload["opl_domain_progress_transition_request"] = dict(transition_request)
+        payload["paper_progress_policy_result"] = policy_payload
     if transition_request:
         payload["opl_domain_progress_transition_request"] = dict(transition_request)
+    has_readback = bool(provider_admission_opl_transition_readback(payload))
     payload["projection_metadata"] = _projection_metadata(
         transition_request=transition_request,
         policy_result=policy_result,
@@ -86,7 +94,7 @@ def _candidate_current_work_unit(candidate: Mapping[str, Any]) -> dict[str, Any]
 
 
 def _candidate_provider_admission_recovery(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    if candidate_opl_transition_readback(candidate):
+    if provider_admission_opl_transition_readback(candidate):
         return {
             key: value
             for key, value in {
@@ -116,6 +124,53 @@ def _candidate_provider_admission_recovery(candidate: Mapping[str, Any]) -> dict
         }.items()
         if value not in (None, "", [], {})
     }
+
+
+def _transition_request_bound_to_provider_readback(
+    transition_request: Mapping[str, Any],
+    *,
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    request = dict(transition_request)
+    if not request or not readback:
+        return request
+    identity = _mapping(readback.get("identity"))
+    aggregate_identity = _mapping(identity.get("aggregate_identity"))
+    causality = _mapping(readback.get("causality"))
+    stage_run_identity = _mapping(identity.get("stage_run_identity"))
+    readback_idempotency_key = _non_empty_text(identity.get("idempotency_key"))
+    if readback_idempotency_key is not None:
+        request["idempotency_key"] = readback_idempotency_key
+    if aggregate_identity:
+        request["aggregate_identity"] = {
+            **_mapping(request.get("aggregate_identity")),
+            **{
+                key: value
+                for key, value in {
+                    "aggregate_kind": _non_empty_text(aggregate_identity.get("aggregate_kind")),
+                    "aggregate_id": _non_empty_text(aggregate_identity.get("aggregate_id")),
+                    "study_id": _non_empty_text(aggregate_identity.get("study_id")),
+                    "work_unit_id": _non_empty_text(aggregate_identity.get("work_unit_id")),
+                    "work_unit_fingerprint": _non_empty_text(
+                        aggregate_identity.get("work_unit_fingerprint")
+                    ),
+                }.items()
+                if value is not None
+            },
+        }
+        for key in ("study_id", "work_unit_id", "work_unit_fingerprint"):
+            value = _non_empty_text(aggregate_identity.get(key))
+            if value is not None:
+                request[key] = value
+    source_generation = _non_empty_text(causality.get("source_generation")) or _non_empty_text(
+        stage_run_identity.get("source_generation")
+    )
+    expected_version = _non_empty_text(causality.get("expected_version"))
+    if source_generation is not None:
+        request["source_generation"] = source_generation
+    if expected_version is not None:
+        request["expected_version"] = expected_version
+    return request
 
 
 def _candidate_current_action(
