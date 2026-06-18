@@ -243,6 +243,23 @@ def current_actions_for_studies(
                 if action != fresh_progress_action
             )
             continue
+        if _fresh_progress_is_terminal_current_execution_envelope_barrier(fresh_progress_action):
+            per_study_actions.append(fresh_progress_action)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_current_work_unit_owner_receipt")
+                for action in [
+                    *([canonical_current_action] if canonical_current_action is not None else []),
+                    *([readiness_followup] if readiness_followup is not None else []),
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
+                    *top_level_study_actions,
+                    *transition_actions,
+                    *current_route_queue_actions,
+                    *per_study_queue_actions,
+                ]
+                if action != fresh_progress_action
+            )
+            continue
         if fresh_progress_action is not None and not _mapping(study_payload.get("current_work_unit")):
             canonical_current_action = None
         stage_native_derives_from_readiness_answer = (
@@ -794,6 +811,14 @@ def _fresh_progress_is_hard_current_execution_envelope_barrier(action: Mapping[s
     return _fresh_progress_is_current_execution_envelope_barrier(action) and _text(
         action.get("reason")
     ) == OPL_EXECUTION_AUTHORIZATION_BLOCKER
+
+
+def _fresh_progress_is_terminal_current_execution_envelope_barrier(
+    action: Mapping[str, Any] | None,
+) -> bool:
+    return _fresh_progress_is_current_execution_envelope_barrier(action) and _text(
+        action.get("reason")
+    ) == "current_owner_receipt_recorded"
 
 
 def _requires_manuscript_story_surface_delta(value: object) -> bool:

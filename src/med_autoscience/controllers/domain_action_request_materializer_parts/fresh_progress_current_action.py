@@ -211,9 +211,16 @@ def _fresh_progress_currentness_barrier(
     study_id: str,
     progress: Mapping[str, Any],
     explicit_readiness_action: ExplicitReadinessAction,
-) -> dict[str, Any] | None:
+    ) -> dict[str, Any] | None:
     envelope = _mapping(progress.get("current_execution_envelope"))
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    if state_kind == "owner_receipt_recorded":
+        return _owner_receipt_recorded_barrier(
+            study_id=study_id,
+            progress=progress,
+            envelope=envelope,
+            state_kind=state_kind,
+        )
     if state_kind not in {"typed_blocker", "parked", "running_provider_attempt"}:
         return None
     current_action = _mapping(progress.get("current_executable_owner_action"))
@@ -304,6 +311,56 @@ def _typed_blocker_barrier(
     }
 
 
+def _owner_receipt_recorded_barrier(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+    envelope: Mapping[str, Any],
+    state_kind: str,
+) -> dict[str, Any] | None:
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    current_work_unit_state = _mapping(current_work_unit.get("state"))
+    if _text(current_work_unit.get("status")) not in {None, "owner_receipt_recorded"}:
+        return None
+    if _text(current_work_unit_state.get("state_kind")) not in {None, "owner_receipt_recorded"}:
+        return None
+    owner_receipt_ref = _owner_receipt_ref(envelope) or _owner_receipt_ref(current_work_unit)
+    if owner_receipt_ref is None:
+        return None
+    currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
+    owner = (
+        _text(envelope.get("owner"))
+        or _text(current_work_unit.get("owner"))
+        or "MedAutoScience"
+    )
+    return {
+        "study_id": study_id,
+        "quest_id": _text(progress.get("quest_id")),
+        "action_type": f"current_execution_envelope_{state_kind}",
+        "action_id": f"study-progress-current-execution-envelope::{study_id}::{state_kind}",
+        "reason": "current_owner_receipt_recorded",
+        "owner": owner,
+        "request_owner": owner,
+        "recommended_owner": owner,
+        "authority": "study_progress.current_execution_envelope",
+        "source_surface": "study_progress.current_execution_envelope",
+        "source_ref": owner_receipt_ref,
+        "work_unit_id": _text(current_work_unit.get("work_unit_id"))
+        or _text(currentness_basis.get("work_unit_id")),
+        "work_unit_fingerprint": _text(current_work_unit.get("work_unit_fingerprint"))
+        or _text(current_work_unit.get("action_fingerprint"))
+        or _text(currentness_basis.get("work_unit_fingerprint")),
+        "owner_receipt_ref": owner_receipt_ref,
+        "current_work_unit_status": _text(current_work_unit.get("status")),
+        "current_work_unit_state_kind": _text(current_work_unit_state.get("state_kind")),
+        "current_work_unit_id": _text(current_work_unit.get("work_unit_id")),
+        "current_work_unit_fingerprint": _text(current_work_unit.get("work_unit_fingerprint")),
+        "current_work_unit_stale_queue_or_handoff_can_override": current_work_unit_state.get(
+            "stale_queue_or_handoff_can_override"
+        ),
+    }
+
+
 def _fresh_progress_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | None:
     blocker = _mapping(envelope.get("typed_blocker"))
     return (
@@ -311,6 +368,18 @@ def _fresh_progress_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | N
         or _text(blocker.get("blocker_type"))
         or _text(blocker.get("reason"))
         or _text(blocker.get("blocked_reason"))
+    )
+
+
+def _owner_receipt_ref(surface: Mapping[str, Any]) -> str | None:
+    state = _mapping(surface.get("state"))
+    binding = _mapping(surface.get("owner_answer_binding")) or _mapping(
+        state.get("owner_answer_binding")
+    )
+    return (
+        _text(surface.get("owner_receipt_ref"))
+        or _text(state.get("owner_receipt_ref"))
+        or _text(binding.get("owner_receipt_ref"))
     )
 
 
