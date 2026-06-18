@@ -572,6 +572,83 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         ),
     } <= {(item["surface_id"], item["reason"]) for item in carrier_violations}
 
+    runtime_health_bad_inventory = json.loads(json.dumps(inventory))
+    runtime_health = next(
+        surface
+        for surface in runtime_health_bad_inventory["surfaces"]
+        if surface["surface_id"] == "runtime_health_kernel"
+    )
+    runtime_health["local_event_log_append_from_status_payload"] = True
+    runtime_health["active_caller_boundary"]["active_caller_retains_runtime_authority"] = True
+    runtime_health["active_caller_boundary"][
+        "runtime_health_epoch_is_currentness_authority"
+    ] = True
+    runtime_health["active_caller_boundary"][
+        "canonical_runtime_action_is_next_action_authority"
+    ] = True
+    runtime_health["active_caller_boundary"]["attempt_liveness_owner"] = "med-autoscience"
+    runtime_health["diagnostic_projection_boundary"]["can_authorize_provider_admission"] = True
+    runtime_health["diagnostic_projection_boundary"]["can_claim_paper_progress"] = True
+    runtime_health["diagnostic_projection_boundary"][
+        "canonical_runtime_action_is_diagnostic_hint"
+    ] = False
+    runtime_health["retirement_gate"][
+        "runtime_health_live_opl_observability_readback_required"
+    ] = False
+
+    runtime_health_violations = retirement.validate_runtime_surface_retirement_inventory(
+        runtime_health_bad_inventory
+    )
+
+    assert {
+        (
+            "runtime_health_kernel",
+            "runtime_health_status_payload_can_append_event_log",
+        ),
+        (
+            "runtime_health_kernel",
+            (
+                "truthy_authority_flag:active_caller_boundary."
+                "active_caller_retains_runtime_authority"
+            ),
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_active_boundary_forbidden:active_caller_retains_runtime_authority",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_active_boundary_forbidden:runtime_health_epoch_is_currentness_authority",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_active_boundary_forbidden:canonical_runtime_action_is_next_action_authority",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_attempt_liveness_owner_not_opl",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_projection_forbidden:can_authorize_provider_admission",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_projection_forbidden:can_claim_paper_progress",
+        ),
+        (
+            "runtime_health_kernel",
+            (
+                "runtime_health_missing_diagnostic_hint_boundary:"
+                "canonical_runtime_action_is_diagnostic_hint"
+            ),
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_missing_live_opl_observability_gate",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in runtime_health_violations}
+
 
 def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_tail_open() -> None:
     inventory = json.loads(

@@ -474,6 +474,16 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "runtime_health_kernel.append_runtime_health_event",
         "runtime_health_kernel_parts.event_log.append_runtime_health_event",
     ]
+    assert runtime_health["active_caller_boundary"]["active_caller_effect"] == (
+        "body_free_runtime_health_diagnostic_projection"
+    )
+    assert runtime_health["diagnostic_projection_boundary"]["authority"] is False
+    assert runtime_health["diagnostic_projection_boundary"][
+        "canonical_runtime_action_is_diagnostic_hint"
+    ] is True
+    assert runtime_health["retirement_gate"][
+        "runtime_health_live_opl_observability_readback_required"
+    ] is True
     assert "tests/test_adapter_retirement_boundary.py" in runtime_health["verified_by"]
     assert "mas_owned_attempt_ledger" in runtime_health["forbidden_claims"]
 

@@ -951,11 +951,73 @@
       "local_event_log_append_from_status_payload": false,
       "mas_local_event_append_api_retired": true,
       "mas_owner_claim_allowed": false,
+      "active_caller_boundary": {
+        "active_caller_effect": "body_free_runtime_health_diagnostic_projection",
+        "active_caller_retains_authority": false,
+        "active_caller_retains_runtime_authority": false,
+        "active_caller_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "local_event_log_append_allowed": false,
+        "runtime_health_epoch_is_currentness_authority": false,
+        "canonical_runtime_action_is_next_action_authority": false,
+        "attempt_liveness_owner": "one-person-lab",
+        "retry_dead_letter_owner": "one-person-lab",
+        "worker_residency_owner": "one-person-lab",
+        "provider_liveness_owner": "one-person-lab",
+        "read_only_actions": [
+          "read_runtime_status",
+          "open_monitoring_entry"
+        ],
+        "physical_delete_requires": [
+          "opl_observability_live_readback",
+          "opl_route_reconciler_live_readback",
+          "no_active_diagnostic_projection_caller_scan",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ]
+      },
+      "diagnostic_projection_boundary": {
+        "projection_role": "mas_runtime_health_diagnostic_publisher",
+        "authority": false,
+        "stores_body": false,
+        "stores_domain_truth": false,
+        "started_worker": false,
+        "outbox_record": false,
+        "can_claim_runtime_currentness": false,
+        "can_generate_next_action_authority": false,
+        "can_authorize_provider_admission": false,
+        "can_claim_paper_progress": false,
+        "can_create_opl_command": false,
+        "can_create_opl_event": false,
+        "can_create_opl_outbox": false,
+        "can_create_opl_stage_run": false,
+        "projection_metadata_required": [
+          "authority",
+          "derived_from_event_id",
+          "observed_generation",
+          "lag_status",
+          "fixed_point_runtime_owner"
+        ],
+        "allowed_actions_are_diagnostic_hints": true,
+        "canonical_runtime_action_is_diagnostic_hint": true,
+        "retry_budget_is_diagnostic_hint": true,
+        "attempt_state_is_diagnostic_hint": true,
+        "provider_readiness_is_diagnostic_hint": true
+      },
       "read_only_actions": [
         "read_runtime_status",
         "open_monitoring_entry"
       ],
       "replacement_surface": "OPL Observability / StageRun / DomainProgressTransitionRuntime readback plus MAS owner answer projection",
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "no_forbidden_write_proof_required": true,
+        "replacement_parity_required": true,
+        "runtime_health_live_opl_observability_readback_required": true,
+        "tombstone_or_provenance_required": true
+      },
       "retained_mas_role": "body_free_runtime_health_diagnostic_projection",
       "retired_code_symbols": [
         "runtime_health_kernel.append_runtime_health_event",
