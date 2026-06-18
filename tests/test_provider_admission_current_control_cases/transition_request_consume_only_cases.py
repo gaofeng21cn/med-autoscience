@@ -25,6 +25,17 @@ def test_provider_admission_current_control_treats_mas_request_without_opl_readb
         study_id,
         action_fingerprint=action_fingerprint,
     )
+    candidate.update(
+        {
+            "event_id": "bare-event-fragment",
+            "outbox_item_id": "bare-outbox-fragment",
+            "stage_run_identity": {
+                "stage_run_id": "bare-stage-run-fragment",
+                "route_identity_key": candidate["route_identity_key"],
+                "attempt_idempotency_key": candidate["attempt_idempotency_key"],
+            },
+        }
+    )
 
     result = module.materialize_provider_admission_current_control_state(
         profile=profile,
@@ -79,6 +90,8 @@ def test_provider_admission_current_control_treats_mas_request_without_opl_readb
     assert decision["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
     assert decision["anti_loop_classification"] == "non_advancing_apply_required"
     assert decision["evidence"]["required_runtime"] == "DomainProgressTransitionRuntime"
+    assert decision["evidence"]["candidate_has_opl_transition_readback"] is False
+    assert "opl_transition_event_consumption" not in decision["evidence"]
     assert (
         decision["evidence"]["required_readback_surface_kind"]
         == "opl_domain_progress_transition_runtime_live_readback"

@@ -195,7 +195,7 @@
     "OPL outbox and StageRun identity live readback for the same transition request",
     "fresh live StageRun identity and transaction consistency readback from OPL for current DM002/DM003 transition requests",
     "DHD apply exactly-one live outcome when explicitly delegated",
-    "provider admission arbiter fully consuming OPL transition events",
+    "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
     "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family"
   ],
   "verification_refs": [

@@ -95,7 +95,10 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
     assert {
         "OPL outbox and StageRun identity live readback for the same transition request",
         "DHD apply exactly-one live outcome when explicitly delegated",
-        "provider admission arbiter fully consuming OPL transition events",
+        (
+            "fresh live OPL event/outbox/StageRun consumption readback reaches provider "
+            "admission arbiter for current DM002/DM003 transition identity"
+        ),
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
         (
             "domain_authority_refs_index live OPL StateIndexKernel takeover or "
@@ -262,6 +265,49 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert "active_caller_exists_as_retention_reason" in physical_gate["false_completion_boundary"]
     assert "read_only_projection_as_execution_authority" in physical_gate["false_completion_boundary"]
     assert "storage_authorization_gate_as_live_opl_takeover" in physical_gate["false_completion_boundary"]
+
+
+def test_transition_runtime_completion_audit_records_provider_admission_repo_consumption_without_live_claim() -> None:
+    audit = _audit()
+    gates = {gate["gate_id"]: gate for gate in audit["gate_evidence_status"]}
+    lane = gates["lane_3_opl_substrate_hardening_live_consumption"]
+    required = {item["gate_id"]: item for item in audit["required_before_goal_complete"]}
+
+    assert lane["status"] == "evidence_required"
+    assert {
+        (
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/"
+            "provider_admission_current_control_arbiter.py::"
+            "_provider_admission_readback_consumption_evidence"
+        ),
+        (
+            "tests/test_provider_admission_current_control_arbiter.py::"
+            "test_provider_admission_current_control_records_retained_pending_arbiter_decision"
+            "#opl_transition_event_consumption"
+        ),
+        (
+            "tests/test_provider_admission_current_control_cases/"
+            "transition_request_consume_only_cases.py::"
+            "test_provider_admission_current_control_treats_mas_request_without_opl_readback_as_non_advancing"
+            "#bare_event_outbox_stage_run_fragment_rejected"
+        ),
+    } <= set(lane["observed_refs"])
+    assert (
+        "provider admission arbiter fully consuming OPL transition events"
+        not in lane["missing_evidence_tails"]
+    )
+    assert {
+        (
+            "fresh live OPL event/outbox/StageRun consumption readback reaches provider "
+            "admission arbiter for current DM002/DM003 transition identity"
+        ),
+        "DHD apply exactly-one live outcome when explicitly delegated",
+        "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
+    } <= set(lane["missing_evidence_tails"])
+    provider_gate = required["provider_admission_event_consumption"]
+    assert provider_gate["status"] == "open"
+    assert "live DM002/DM003" in provider_gate["repo_side_evidence"]
+    assert audit["completion_claim_allowed"] is False
 
 
 def test_transition_runtime_completion_audit_records_fresh_opl_repo_evidence_without_live_claim() -> None:

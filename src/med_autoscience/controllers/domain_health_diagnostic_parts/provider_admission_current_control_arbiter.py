@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers import (
+    opl_domain_progress_transition_contract as transition_contract,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
     provider_attempt_matches_identity,
@@ -204,7 +207,7 @@ def _stage_route_arbiter_decisions(
                 candidate,
                 decision="pending_provider_admission",
                 effect="retain_provider_admission_pending",
-                evidence={},
+                evidence=_provider_admission_readback_consumption_evidence(candidate),
             )
         )
     return decisions
@@ -307,6 +310,70 @@ def _stage_route_arbiter_summary(
         "decision_counts": decision_counts,
         "ordinary_planning_root": "current_owner_delta",
         "authority_boundary": dict(ARBITER_AUTHORITY_BOUNDARY),
+    }
+
+
+def _provider_admission_readback_consumption_evidence(
+    candidate: Mapping[str, Any],
+) -> dict[str, Any]:
+    readback = provider_admission_opl_transition_readback(candidate)
+    if not readback:
+        return {}
+    consumption = _opl_transition_event_consumption(readback)
+    if not consumption:
+        return {}
+    return {
+        "status": "opl_transition_consumed",
+        "opl_transition_event_consumption": consumption,
+    }
+
+
+def _opl_transition_event_consumption(readback: Mapping[str, Any]) -> dict[str, Any]:
+    identity = _mapping(readback.get("identity"))
+    causality = _mapping(readback.get("causality"))
+    latest_transaction = _mapping(readback.get("latest_transaction_readback"))
+    stage_identity = _mapping(identity.get("stage_run_identity"))
+
+    event_id = _non_empty_text(identity.get("latest_event_id"))
+    outbox_item_id = _non_empty_text(identity.get("latest_outbox_item_id"))
+    transaction_id = _non_empty_text(identity.get("latest_transaction_id"))
+    if not (
+        event_id
+        and outbox_item_id
+        and transaction_id
+        and event_id == _non_empty_text(causality.get("event_id"))
+        and event_id == _non_empty_text(latest_transaction.get("event_id"))
+        and outbox_item_id == _non_empty_text(causality.get("outbox_item_id"))
+        and outbox_item_id == _non_empty_text(latest_transaction.get("outbox_item_id"))
+        and transaction_id == _non_empty_text(causality.get("transaction_id"))
+        and transaction_id == _non_empty_text(latest_transaction.get("transaction_id"))
+    ):
+        return {}
+    return {
+        "surface_kind": "mas_opl_transition_event_consumption",
+        "status": "opl_transition_consumed",
+        "runtime_owner": transition_contract.RUNTIME_OWNER,
+        "runtime_kind": transition_contract.RUNTIME_KIND,
+        "readback_surface_kind": transition_contract.LIVE_READBACK_SURFACE,
+        "event_id": event_id,
+        "outbox_item_id": outbox_item_id,
+        "transaction_id": transaction_id,
+        "stage_run_id": _non_empty_text(stage_identity.get("stage_run_id")),
+        "stage_run_identity_ref": _non_empty_text(
+            stage_identity.get("stage_run_identity_ref")
+        ),
+        "route_identity_key": _non_empty_text(stage_identity.get("route_identity_key")),
+        "attempt_idempotency_key": _non_empty_text(
+            stage_identity.get("attempt_idempotency_key")
+        ),
+        "request_idempotency_key": _non_empty_text(identity.get("idempotency_key")),
+        "same_transaction_event_and_outbox": True,
+        "transaction_complete": True,
+        "mas_can_authorize_provider_admission": False,
+        "mas_can_create_opl_event": False,
+        "mas_can_create_opl_outbox_record": False,
+        "mas_can_create_opl_stage_run": False,
+        "event_or_outbox_fragment_is_provider_admission_authority": False,
     }
 
 

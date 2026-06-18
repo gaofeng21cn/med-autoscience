@@ -95,6 +95,43 @@ def test_provider_admission_current_control_records_retained_pending_arbiter_dec
     assert decision["action_type"] == "return_to_ai_reviewer_workflow"
     assert decision["work_unit_id"] == work_unit_id
     assert decision["work_unit_fingerprint"] == action_fingerprint
+    assert decision["evidence_status"] == "opl_transition_consumed"
+    consumption = decision["evidence"]["opl_transition_event_consumption"]
+    readback = candidate["opl_domain_progress_transition_live_readback"]
+    identity = readback["identity"]
+    causality = readback["causality"]
+    latest_transaction = readback["latest_transaction_readback"]
+    stage_identity = identity["stage_run_identity"]
+    assert consumption["surface_kind"] == "mas_opl_transition_event_consumption"
+    assert consumption["status"] == "opl_transition_consumed"
+    assert consumption["runtime_owner"] == "one-person-lab"
+    assert consumption["runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert consumption["readback_surface_kind"] == (
+        "opl_domain_progress_transition_runtime_live_readback"
+    )
+    assert consumption["event_id"] == identity["latest_event_id"]
+    assert consumption["event_id"] == causality["event_id"]
+    assert consumption["event_id"] == latest_transaction["event_id"]
+    assert consumption["outbox_item_id"] == identity["latest_outbox_item_id"]
+    assert consumption["outbox_item_id"] == causality["outbox_item_id"]
+    assert consumption["outbox_item_id"] == latest_transaction["outbox_item_id"]
+    assert consumption["transaction_id"] == identity["latest_transaction_id"]
+    assert consumption["transaction_id"] == causality["transaction_id"]
+    assert consumption["transaction_id"] == latest_transaction["transaction_id"]
+    assert consumption["stage_run_id"] == stage_identity["stage_run_id"]
+    assert consumption["route_identity_key"] == stage_identity["route_identity_key"]
+    assert (
+        consumption["attempt_idempotency_key"]
+        == stage_identity["attempt_idempotency_key"]
+    )
+    assert consumption["request_idempotency_key"] == identity["idempotency_key"]
+    assert consumption["same_transaction_event_and_outbox"] is True
+    assert consumption["transaction_complete"] is True
+    assert consumption["mas_can_authorize_provider_admission"] is False
+    assert consumption["mas_can_create_opl_event"] is False
+    assert consumption["mas_can_create_opl_outbox_record"] is False
+    assert consumption["mas_can_create_opl_stage_run"] is False
+    assert consumption["event_or_outbox_fragment_is_provider_admission_authority"] is False
 
 
 def test_provider_admission_current_control_suppresses_candidate_blocked_by_paper_recovery_state(
