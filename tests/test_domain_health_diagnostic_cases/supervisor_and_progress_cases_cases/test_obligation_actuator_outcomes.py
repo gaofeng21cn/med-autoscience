@@ -3,6 +3,7 @@ from __future__ import annotations
 from tests.test_domain_health_diagnostic_cases import shared as _shared
 from tests.test_domain_health_diagnostic_cases.supervisor_and_progress_cases_cases.test_obligation_actuator_postcondition import (
     _assert_exactly_one_dhd_apply_outcome,
+    _assert_obligation_typed_blocker_authority_result,
 )
 from tests.provider_admission_current_control_helpers import opl_transition_readback
 
@@ -387,6 +388,10 @@ def test_domain_health_diagnostic_apply_projects_transition_request_when_provide
     assert blocker["surface_kind"] == "mas_domain_typed_blocker"
     assert blocker["owner_answer_shape"] == "typed_blocker_ref"
     assert blocker["mas_authority_result_shape"] == "typed_blocker_ref"
+    _assert_obligation_typed_blocker_authority_result(
+        study_root=study_root,
+        outcome=outcome,
+    )
     assert blocker["private_actuator_surface_retired"] is True
     assert blocker["actuator_private_write_authority"] is False
     assert blocker["source"] == "domain_health_diagnostic.obligation_readback_projection"
@@ -567,6 +572,10 @@ def test_domain_health_diagnostic_apply_does_not_accept_provider_admission_witho
     assert outcome["typed_control_blocker"]["owner_answer_shape"] == "typed_blocker_ref"
     assert outcome["typed_control_blocker"]["mas_authority_result_shape"] == (
         "typed_blocker_ref"
+    )
+    _assert_obligation_typed_blocker_authority_result(
+        study_root=study_root,
+        outcome=outcome,
     )
     assert outcome["typed_control_blocker"]["private_actuator_surface_retired"] is True
     assert outcome["typed_control_blocker"]["actuator_private_write_authority"] is False

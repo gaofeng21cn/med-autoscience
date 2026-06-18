@@ -691,6 +691,25 @@
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
       "no_forbidden_write_proof_surface": "artifacts/mas_authority/typed_blockers/domain_health_diagnostic_obligation/latest.json",
+      "mas_typed_blocker_authority_result_adapter": "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.mas_domain_typed_blocker_authority_result",
+      "typed_blocker_authority_result_adapter_surface": "mas_domain_typed_blocker_authority_result_adapter",
+      "typed_blocker_authority_result_adapter_boundary": {
+        "actuator_private_write_authority": false,
+        "adapter_role": "persist_mas_domain_typed_blocker_authority_result",
+        "authority_owner": "med-autoscience",
+        "authority_result_surface": "mas_domain_typed_blocker",
+        "can_authorize_provider_admission": false,
+        "can_claim_paper_progress": false,
+        "can_create_opl_command": false,
+        "can_create_opl_event": false,
+        "can_create_opl_outbox": false,
+        "can_create_opl_stage_run": false,
+        "can_run_supervisor_decision_engine": false,
+        "can_store_recovery_obligation": false,
+        "can_write_controller_decision": false,
+        "can_write_publication_eval": false,
+        "surface_kind": "mas_domain_typed_blocker_authority_result_boundary"
+      },
       "study_progress_supervisor_projection_boundary": {
         "surface": "study_progress_parts.paper_autonomy_supervisor_decision.supervisor_decision_for_projection",
         "explicit_projection_required": true,
@@ -768,6 +787,7 @@
       "validator_module": "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.readback_result_validator",
       "can_write_fail_closed_typed_control_blocker": false,
       "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
+      "actuator_direct_filesystem_write_retired": true,
       "actuator_can_write_private_blocker_surface": false
     },
     {

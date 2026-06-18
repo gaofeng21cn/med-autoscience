@@ -400,6 +400,30 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
         "actuator_can_write_private_blocker_surface": False,
     }
+    assert obligation_actuator["mas_typed_blocker_authority_result_adapter"] == (
+        "med_autoscience.controllers.domain_health_diagnostic_parts."
+        "obligation_actuator_parts.mas_domain_typed_blocker_authority_result"
+    )
+    assert obligation_actuator["typed_blocker_authority_result_adapter_surface"] == (
+        "mas_domain_typed_blocker_authority_result_adapter"
+    )
+    assert obligation_actuator["typed_blocker_authority_result_adapter_boundary"] == {
+        "actuator_private_write_authority": False,
+        "adapter_role": "persist_mas_domain_typed_blocker_authority_result",
+        "authority_owner": "med-autoscience",
+        "authority_result_surface": "mas_domain_typed_blocker",
+        "can_authorize_provider_admission": False,
+        "can_claim_paper_progress": False,
+        "can_create_opl_command": False,
+        "can_create_opl_event": False,
+        "can_create_opl_outbox": False,
+        "can_create_opl_stage_run": False,
+        "can_run_supervisor_decision_engine": False,
+        "can_store_recovery_obligation": False,
+        "can_write_controller_decision": False,
+        "can_write_publication_eval": False,
+        "surface_kind": "mas_domain_typed_blocker_authority_result_boundary",
+    }
     assert obligation_actuator["active_caller_boundary"] == {
         "active_caller_effect": "consume_only_readback_projection_with_success_proof_gated_postcondition",
         "active_caller_retains_runtime_authority": False,
@@ -419,6 +443,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "mas_owned_supervisor_decision_engine" in obligation_actuator["forbidden_claims"]
     assert "mas_policy_request_projection_as_success_outcome" in obligation_actuator["forbidden_claims"]
     assert obligation_actuator["can_write_fail_closed_typed_control_blocker"] is False
+    assert obligation_actuator["actuator_direct_filesystem_write_retired"] is True
     assert obligation_actuator["actuator_can_write_private_blocker_surface"] is False
 
     runtime_storage = surfaces["runtime_storage_maintenance"]

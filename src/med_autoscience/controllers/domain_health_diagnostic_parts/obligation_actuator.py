@@ -17,6 +17,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup i
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts import (
+    mas_domain_typed_blocker_authority_result,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.readback_result_validator import (
     ACCEPTED_OBLIGATION_OUTCOME_KINDS,
     ACTUATOR_AUTHORITY_BOUNDARY,
@@ -556,30 +559,34 @@ def _fail_closed_obligation_outcome(
         reason=reason,
         phase=phase,
     )
-    blocker_path = (
-        study_root
-        / "artifacts"
-        / "mas_authority"
-        / "typed_blockers"
-        / "domain_health_diagnostic_obligation"
-        / "latest.json"
+    authority_result = (
+        mas_domain_typed_blocker_authority_result.persist_obligation_typed_blocker(
+            study_root=study_root,
+            payload=payload,
+        )
     )
-    blocker_path.parent.mkdir(parents=True, exist_ok=True)
-    blocker_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    history_path = blocker_path.parent / "history.jsonl"
-    with history_path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
-    typed_blocker_ref = str(blocker_path)
+    typed_blocker_ref = _non_empty_text(authority_result.get("typed_blocker_ref"))
+    typed_blocker_payload = _mapping(authority_result.get("payload")) or payload
+    authority_result_boundary = _mapping(authority_result.get("authority_boundary"))
     return _obligation_outcome(
         action=action,
         outcome_kind="typed_blocker_ref",
         outcome_ref=typed_blocker_ref,
         phase=phase,
-        details={"typed_control_blocker": payload},
-        typed_control_blocker={**payload, "typed_blocker_ref": typed_blocker_ref},
+        details={
+            "typed_control_blocker": typed_blocker_payload,
+            "authority_result_adapter": authority_result.get("surface_kind"),
+            "authority_result_ref": typed_blocker_ref,
+            "authority_result_boundary": authority_result_boundary,
+            "authority_result_history_ref": authority_result.get("history_ref"),
+        },
+        typed_control_blocker={
+            **typed_blocker_payload,
+            "typed_blocker_ref": typed_blocker_ref,
+            "authority_result_ref": typed_blocker_ref,
+            "authority_result_adapter": authority_result.get("surface_kind"),
+            "authority_result_boundary": authority_result_boundary,
+        },
         postcondition_ok=False,
     )
 

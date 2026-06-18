@@ -720,6 +720,10 @@ def test_domain_health_diagnostic_apply_continues_same_tick_for_owner_receipt_co
     assert blocker["surface_kind"] == "mas_domain_typed_blocker"
     assert blocker["owner_answer_shape"] == "typed_blocker_ref"
     assert blocker["mas_authority_result_shape"] == "typed_blocker_ref"
+    _assert_obligation_typed_blocker_authority_result(
+        study_root=study_root,
+        outcome=typed_blocker_outcomes[0],
+    )
     assert blocker["private_actuator_surface_retired"] is True
     assert blocker["actuator_private_write_authority"] is False
     assert blocker["source"] == "domain_health_diagnostic.obligation_readback_projection"
@@ -1062,6 +1066,10 @@ def test_domain_health_diagnostic_apply_fails_closed_when_ready_action_has_no_cl
     assert blocker["surface_kind"] == "mas_domain_typed_blocker"
     assert blocker["owner_answer_shape"] == "typed_blocker_ref"
     assert blocker["mas_authority_result_shape"] == "typed_blocker_ref"
+    _assert_obligation_typed_blocker_authority_result(
+        study_root=study_root,
+        outcome=outcome,
+    )
     assert blocker["private_actuator_surface_retired"] is True
     assert blocker["actuator_private_write_authority"] is False
     assert blocker["source"] == "domain_health_diagnostic.obligation_readback_projection"
@@ -1160,6 +1168,71 @@ def _assert_exactly_one_dhd_apply_outcome(
         assert foundation["success_source_family"] == source_family
         assert foundation["success_source_family_required"] is True
         assert outcome.get("request_projection_only") is not True
+
+
+def _assert_obligation_typed_blocker_authority_result(
+    *,
+    study_root: Path,
+    outcome: dict[str, object],
+) -> None:
+    blocker = outcome["typed_control_blocker"]
+    typed_blocker_ref = blocker["typed_blocker_ref"]
+    latest_path = (
+        study_root
+        / "artifacts"
+        / "mas_authority"
+        / "typed_blockers"
+        / "domain_health_diagnostic_obligation"
+        / "latest.json"
+    )
+    history_path = latest_path.parent / "history.jsonl"
+    latest = json.loads(latest_path.read_text(encoding="utf-8"))
+    history = [
+        json.loads(line)
+        for line in history_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+    assert typed_blocker_ref == str(latest_path)
+    assert outcome["typed_blocker_ref"] == typed_blocker_ref
+    assert outcome["details"]["authority_result_ref"] == typed_blocker_ref
+    assert outcome["details"]["authority_result_adapter"] == (
+        "mas_domain_typed_blocker_authority_result_adapter"
+    )
+    assert blocker["authority_result_ref"] == typed_blocker_ref
+    assert blocker["authority_result_adapter"] == (
+        "mas_domain_typed_blocker_authority_result_adapter"
+    )
+    assert blocker["authority_owner"] == "med-autoscience"
+    assert blocker["authority_result_surface"] == "mas_domain_typed_blocker"
+    assert blocker["actuator_private_write_authority"] is False
+    assert blocker["authority_result_boundary"] == outcome["details"][
+        "authority_result_boundary"
+    ]
+    assert blocker["authority_result_boundary"] == {
+        "surface_kind": "mas_domain_typed_blocker_authority_result_boundary",
+        "authority_owner": "med-autoscience",
+        "authority_result_surface": "mas_domain_typed_blocker",
+        "adapter_role": "persist_mas_domain_typed_blocker_authority_result",
+        "actuator_private_write_authority": False,
+        "can_create_opl_command": False,
+        "can_create_opl_event": False,
+        "can_create_opl_outbox": False,
+        "can_create_opl_stage_run": False,
+        "can_store_recovery_obligation": False,
+        "can_run_supervisor_decision_engine": False,
+        "can_authorize_provider_admission": False,
+        "can_claim_paper_progress": False,
+        "can_write_publication_eval": False,
+        "can_write_controller_decision": False,
+    }
+    assert latest["typed_blocker_ref"] == typed_blocker_ref
+    assert latest["authority_result_ref"] == typed_blocker_ref
+    assert latest["authority_result_adapter"] == blocker["authority_result_adapter"]
+    assert latest["authority_owner"] == "med-autoscience"
+    assert latest["authority_result_boundary"] == blocker["authority_result_boundary"]
+    assert latest["actuator_private_write_authority"] is False
+    assert history[-1] == latest
 
 
 def test_obligation_actuator_readback_validator_is_not_supervisor_decision_engine() -> None:

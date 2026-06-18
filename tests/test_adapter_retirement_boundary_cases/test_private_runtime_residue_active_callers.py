@@ -177,8 +177,33 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
         "actuator_can_write_private_blocker_surface": False,
     }
+    assert actuator["mas_typed_blocker_authority_result_adapter"] == (
+        "med_autoscience.controllers.domain_health_diagnostic_parts."
+        "obligation_actuator_parts.mas_domain_typed_blocker_authority_result"
+    )
+    assert actuator["typed_blocker_authority_result_adapter_surface"] == (
+        "mas_domain_typed_blocker_authority_result_adapter"
+    )
+    assert actuator["typed_blocker_authority_result_adapter_boundary"] == {
+        "actuator_private_write_authority": False,
+        "adapter_role": "persist_mas_domain_typed_blocker_authority_result",
+        "authority_owner": "med-autoscience",
+        "authority_result_surface": "mas_domain_typed_blocker",
+        "can_authorize_provider_admission": False,
+        "can_claim_paper_progress": False,
+        "can_create_opl_command": False,
+        "can_create_opl_event": False,
+        "can_create_opl_outbox": False,
+        "can_create_opl_stage_run": False,
+        "can_run_supervisor_decision_engine": False,
+        "can_store_recovery_obligation": False,
+        "can_write_controller_decision": False,
+        "can_write_publication_eval": False,
+        "surface_kind": "mas_domain_typed_blocker_authority_result_boundary",
+    }
     assert actuator["can_write_fail_closed_typed_control_blocker"] is False
     assert actuator["fail_closed_typed_blocker_surface"] == "mas_domain_typed_blocker"
+    assert actuator["actuator_direct_filesystem_write_retired"] is True
     assert actuator["actuator_can_write_private_blocker_surface"] is False
     assert actuator["transition_request_pending_can_close_physical_tail"] is False
     assert actuator["retirement_gate"]["owner_retirement_decision_required"] is True
