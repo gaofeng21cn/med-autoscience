@@ -284,3 +284,90 @@ def test_provider_admission_current_control_keeps_same_tick_materialized_recover
     assert result["action_queue"][0]["provider_admission_pending"] is False
     assert result["action_queue"][0]["provider_attempt_or_lease_required"] is False
     assert result["action_queue"][0]["provider_admission_requires_opl_runtime_result"] is True
+
+
+def test_dry_run_transition_request_is_not_promoted_by_unconsumed_closeout_guard(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    action_fingerprint = "publication-blockers::0915410f804b3697"
+    candidate = {
+        **_provider_candidate(profile, study_id, action_fingerprint=action_fingerprint),
+        "source": "opl_current_control_state.study_current_executable_owner_action",
+        "status": "transition_request_pending",
+        "dispatch_status": "transition_request_pending",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "next_executable_owner": "write",
+        "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+        "provider_admission_pending": False,
+        "provider_attempt_or_lease_required": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "same_tick_materialized_provider_admission": True,
+        "same_tick_materialization_source": "dry_run_preview",
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-18T00:30:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "running_provider_attempt": False,
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": action_fingerprint,
+                    "action_fingerprint": action_fingerprint,
+                },
+                "accepted_closeout_evidence": [
+                    {
+                        "surface_kind": "stage_attempt_closeout_packet",
+                        "status": "blocked",
+                        "stage_closeout_status": "blocked",
+                        "blocked_reason": "paper_progress_stall_fingerprint_stale",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": action_fingerprint,
+                        "action_fingerprint": action_fingerprint,
+                        "stage_attempt_id": "sat-inferred-closeout",
+                        "identity_binding_status": "inferred_from_current_work_unit",
+                    }
+                ],
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    assert len(result["transition_request_candidates"]) == 1
+    assert result["stage_route_arbiter"]["pending_count"] == 0
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "opl_transition_readback_required": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "opl_transition_readback_required"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["evidence_status"] == "NonAdvancingApply"
+    assert decision["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
+    action = result["action_queue"][0]
+    assert action["status"] == "transition_request_pending"
+    assert action["provider_admission_pending"] is False
+    assert action["provider_attempt_or_lease_required"] is False
+    assert action["provider_admission_requires_opl_runtime_result"] is True

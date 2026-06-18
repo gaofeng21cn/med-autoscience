@@ -79,8 +79,9 @@ def _stage_route_arbiter_decisions(
                 )
             )
             continue
+        readback_required = _opl_transition_readback_required_evidence(candidate)
         accepted_closeout = _matching_accepted_closeout(scanned_study, identity=candidate)
-        if accepted_closeout:
+        if accepted_closeout and not _dry_run_request_only_transition_request_candidate(candidate):
             decisions.append(
                 _arbiter_decision(
                     candidate,
@@ -164,12 +165,11 @@ def _stage_route_arbiter_decisions(
                 )
             )
             continue
-        readback_required = _opl_transition_readback_required_evidence(candidate)
         if readback_required:
             if _unconsumed_closeout_blocks_weak_identity_suppression(
                 scanned_study,
                 identity=candidate,
-            ):
+            ) and not _dry_run_request_only_transition_request_candidate(candidate):
                 decisions.append(
                     _arbiter_decision(
                         candidate,
@@ -698,6 +698,14 @@ def _request_only_transition_request_candidate(candidate: Mapping[str, Any]) -> 
     return _non_empty_text(candidate.get("status")) == "transition_request_pending" or _non_empty_text(
         candidate.get("dispatch_status")
     ) == "transition_request_pending"
+
+
+def _dry_run_request_only_transition_request_candidate(candidate: Mapping[str, Any]) -> bool:
+    return (
+        _request_only_transition_request_candidate(candidate)
+        and candidate.get("same_tick_materialized_provider_admission") is True
+        and _non_empty_text(candidate.get("same_tick_materialization_source")) == "dry_run_preview"
+    )
 
 
 def _candidate_requires_strong_current_control_identity(candidate: Mapping[str, Any]) -> bool:
