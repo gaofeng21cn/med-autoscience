@@ -13,6 +13,7 @@ from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
+    provider_admission_opl_transition_readback,
 )
 from med_autoscience.runtime_protocol import quest_state
 
@@ -248,7 +249,7 @@ def _provider_admission_candidates_with_opl_readback(
     return [
         dict(candidate)
         for candidate in candidates
-        if candidate_opl_transition_readback(candidate)
+        if provider_admission_opl_transition_readback(candidate)
     ]
 
 
@@ -270,9 +271,9 @@ def _transition_request_candidates_without_opl_readback(
     candidates: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     return [
-        dict(candidate)
+        _transition_request_candidate_without_provider_readback(candidate)
         for candidate in candidates
-        if not candidate_opl_transition_readback(candidate)
+        if not provider_admission_opl_transition_readback(candidate)
     ]
 
 
@@ -302,13 +303,25 @@ def _candidate_with_opl_runtime_readback(
     runtime_root: Path,
 ) -> dict[str, Any]:
     payload = dict(candidate)
-    inline_readback = candidate_opl_transition_readback(payload)
+    inline_readback = provider_admission_opl_transition_readback(payload)
     if inline_readback:
         payload["opl_transition_readback_source"] = _opl_transition_readback_source(inline_readback)
         payload["status"] = "provider_admission_pending"
         payload["provider_admission_pending"] = True
         payload["provider_attempt_or_lease_required"] = True
         payload["provider_admission_requires_opl_runtime_result"] = False
+    return payload
+
+
+def _transition_request_candidate_without_provider_readback(
+    candidate: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(candidate)
+    payload["status"] = "transition_request_pending"
+    payload["provider_admission_pending"] = False
+    payload["provider_attempt_or_lease_required"] = False
+    payload["provider_admission_requires_opl_runtime_result"] = True
+    payload.pop("opl_transition_readback_source", None)
     return payload
 
 

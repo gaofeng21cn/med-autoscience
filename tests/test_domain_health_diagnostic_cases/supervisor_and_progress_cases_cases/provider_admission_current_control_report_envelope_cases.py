@@ -676,6 +676,56 @@ def test_runtime_report_consumes_transition_request_when_opl_readback_present(tm
     assert result["managed_study_opl_transition_request_candidates"] == []
 
 
+def test_runtime_report_rejects_mismatched_opl_readback_admission(tmp_path) -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::current"
+    stale_fingerprint = "publication-blockers::stale"
+    candidate = provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_fingerprint=fingerprint,
+    )
+    candidate["opl_domain_progress_transition_live_readback"] = opl_transition_readback(
+        study_id,
+        action_fingerprint=stale_fingerprint,
+        work_unit_id=str(candidate["work_unit_id"]),
+    )
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[candidate],
+        managed_study_progress_currentness={},
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    assert result["provider_admission_pending_count"] == 0
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    [request] = result["managed_study_opl_transition_request_candidates"]
+    assert request["study_id"] == candidate["study_id"]
+    assert request["work_unit_id"] == candidate["work_unit_id"]
+    assert request["status"] == "transition_request_pending"
+    assert request["provider_admission_pending"] is False
+    assert request["provider_attempt_or_lease_required"] is False
+    assert request["provider_admission_requires_opl_runtime_result"] is True
+    assert "opl_transition_readback_source" not in request
+
+
 def test_runtime_report_keeps_direct_transition_request_pending_with_only_opl_log(tmp_path) -> None:
     report_aggregation = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
