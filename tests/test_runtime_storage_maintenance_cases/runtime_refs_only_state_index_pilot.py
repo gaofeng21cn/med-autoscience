@@ -258,7 +258,7 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
         "live_takeover_required_before_physical_delete": True,
         "no_active_caller_required_before_physical_delete": True,
         "tombstone_or_provenance_required_before_physical_delete": True,
-        "completion_claim_requires_live_opl_readback_or_no_active_authority_caller": True,
+        "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
         "mas_projection_cannot_replace": [
             "opl_state_index_kernel_readback",
             "opl_lifecycle_index",

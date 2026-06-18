@@ -134,7 +134,7 @@
         "required_opl_readback_ref": "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py#opl_state_index_kernel_readback_requirement",
         "active_caller_retains_surface": true,
         "active_caller_retains_authority": false,
-        "completion_claim_requires_live_opl_readback_or_no_active_authority_caller": true
+        "completion_claim_requires_live_opl_readback_or_no_active_caller": true
       },
       "replacement_surface": "OPL StateIndexKernel / Vault refs readback plus MAS authority receipt functions",
       "retained_mas_role": "refs_only_domain_authority_receipt_locator_index",

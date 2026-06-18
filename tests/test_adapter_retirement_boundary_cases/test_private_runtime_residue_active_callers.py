@@ -70,7 +70,7 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "active_caller_retains_authority": False,
         "active_caller_retains_surface": True,
         "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
-        "completion_claim_requires_live_opl_readback_or_no_active_authority_caller": True,
+        "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
         "live_takeover_required_before_physical_delete": True,
         "mas_projection_cannot_replace": [
             "opl_state_index_kernel_readback",
