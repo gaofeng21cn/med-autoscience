@@ -282,9 +282,10 @@
       "completion_percent": 64,
       "evidence": [
         "MAS runtime-health local append API is retired.",
-        "Runtime surface inventory tracks remaining private surface tails."
+        "Runtime surface inventory tracks remaining private surface tails.",
+        "domain_owner_action_dispatch has repo-level coverage for missing OPL proof fail-closed, trusted OPL authorization, bound DomainProgressTransitionRuntime readback, and provider-hosted exact StageRun authorization."
       ],
-      "open_gap": "Remaining carriers, selector/materializer authority, and no-active-caller scans still require closeout evidence."
+      "open_gap": "Remaining carriers, selector/materializer authority, live dispatcher soak, physical delete gates, and no-active-caller scans still require closeout evidence."
     },
     {
       "feature_id": "live_dm002_dm003_acceptance",
@@ -367,9 +368,10 @@
       "status": "partial",
       "completion_percent": 64,
       "evidence": [
-        "Runtime-health local append API is retired and inventory tracks remaining surfaces."
+        "Runtime-health local append API is retired and inventory tracks remaining surfaces.",
+        "domain_owner_action_dispatch repo tests cover trusted OPL authorization, bound transition readback, exact provider-hosted StageRun authorization, and fail-closed typed blockers when proof is absent or stale."
       ],
-      "open_gap": "Remaining private runtime residue needs no-active-caller, tombstone, or physical deletion evidence."
+      "open_gap": "Remaining private runtime residue needs live every-active-caller soak, no-active-caller, tombstone, or physical deletion evidence."
     },
     {
       "phase_id": "lane_8_live_paper_acceptance",
@@ -604,12 +606,16 @@
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_health_kernel",
         "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
-        "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action"
+        "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
+        "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_fails_closed_without_opl_authorization_or_bound_readback",
+        "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_accepts_trusted_opl_execution_authorization_only",
+        "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_accepts_bound_domain_progress_transition_readback_only",
+        "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_provider_hosted_exact_stage_attempt_authorizes_only_matching_stage_packet"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_opl_state_index_kernel_takeover_or_no_active_caller_ref",
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
-        "domain_owner_action_dispatch_same_identity_live_opl_authorization_or_stage_run_readback_for_every_active_caller_ref",
+        "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
         "legacy_default_executor_carrier_physical_delete_ref"
       ],
       "false_completion_boundary": [
@@ -680,7 +686,7 @@
     "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
     "domain_authority_refs_index OPL StateIndexKernel takeover or no-active-caller proof",
     "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
-    "domain_owner_action_dispatch same-identity live OPL authorization or StageRun readback for every active caller",
+    "domain_owner_action_dispatch live every-active-caller soak or no-active-caller proof",
     "legacy default-executor carrier physical delete proof"
   ],
   "non_claims": {

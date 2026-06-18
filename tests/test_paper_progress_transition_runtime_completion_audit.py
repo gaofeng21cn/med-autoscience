@@ -99,7 +99,7 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
         "domain_authority_refs_index OPL StateIndexKernel takeover or no-active-caller proof",
         "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
-        "domain_owner_action_dispatch same-identity live OPL authorization or StageRun readback for every active caller",
+        "domain_owner_action_dispatch live every-active-caller soak or no-active-caller proof",
     } <= open_tails
 
 
@@ -180,7 +180,7 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert {
         "domain_authority_refs_index_opl_state_index_kernel_takeover_or_no_active_caller_ref",
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
-        "domain_owner_action_dispatch_same_identity_live_opl_authorization_or_stage_run_readback_for_every_active_caller_ref",
+        "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
         "legacy_default_executor_carrier_physical_delete_ref",
     } <= set(physical_gate["missing_evidence_tails"])
     assert (

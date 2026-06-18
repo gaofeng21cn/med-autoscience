@@ -278,6 +278,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert owner_dispatch["retirement_gate"] == {
         "active_caller_alone_retains_surface": False,
         "completion_claim_requires_live_owner_or_opl_readback": True,
+        "live_every_active_caller_soak_required": True,
         "no_active_caller_required_before_physical_delete": True,
         "no_forbidden_write_proof_required": True,
         "replacement_parity_required": True,
@@ -291,6 +292,8 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "bound_opl_domain_progress_transition_runtime_readback",
         ],
         "closeout_binding_authorizes_execution": False,
+        "repo_level_authorization_coverage_complete": True,
+        "live_every_active_caller_soak_required": True,
         "missing_authorization_outcome": "opl_execution_authorization_required_typed_blocker",
         "provider_attempt_or_lease_required_when_blocked": False,
     }
@@ -306,7 +309,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "request_projection_without_opl_proof_outcome": "opl_execution_authorization_required",
         "repo_covered_action_families": sorted(SUPPORTED_ACTION_TYPES),
         "live_readback_required_before_retirement": True,
-        "live_tail": "same_identity_opl_execution_authorization_or_stage_run_readback_for_every_active_caller",
+        "live_tail": "live_every_active_caller_soak_or_no_active_caller_proof",
     }
     assert "mas_local_dispatch_authority" in owner_dispatch["forbidden_claims"]
     assert "closeout_binding_as_execution_authorization" in owner_dispatch["forbidden_claims"]
