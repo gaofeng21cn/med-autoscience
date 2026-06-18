@@ -50,6 +50,23 @@ OPL_OBSERVABILITY_READBACK_BOUNDARY = {
     "retry_budget_is_diagnostic_hint": True,
     "attempt_state_is_diagnostic_hint": True,
 }
+ATTEMPT_LEDGER_AUTHORITY_BOUNDARY = {
+    "surface_kind": "opl_attempt_ledger_authority_boundary",
+    "runtime_owner": "one-person-lab",
+    "opl_owned_surfaces": [
+        "StageRun",
+        "attempt_ledger",
+        "attempt_liveness",
+        "retry_dead_letter",
+        "observability_transport",
+    ],
+    "mas_role": "read_only_diagnostic_publisher",
+    "attempt_count_is_authority": False,
+    "failed_attempt_count_is_authority": False,
+    "retry_budget_remaining_is_authority": False,
+    "transient_lifecycle_observations_are_attempt_ledger": False,
+    "suppressed_transient_lifecycle_events_can_advance_attempt_ledger": False,
+}
 
 RUNTIME_HEALTH_EVENT_TYPES = frozenset(
     {
@@ -154,6 +171,10 @@ RUNTIME_HEALTH_AUTHORITY_BOUNDARY = {
     "retry_budget_is_lifecycle_authority": False,
     "worker_liveness_is_residency_authority": False,
     "can_authorize_running_progress": False,
+    "attempt_count_is_lifecycle_authority": False,
+    "failed_attempt_count_is_lifecycle_authority": False,
+    "transient_lifecycle_observations_are_attempt_ledger": False,
+    "attempt_ledger_authority_boundary": dict(ATTEMPT_LEDGER_AUTHORITY_BOUNDARY),
 }
 
 
@@ -658,6 +679,8 @@ def _diagnostic_hint_contract(
         "canonical_runtime_action_hint": canonical_runtime_action,
         "attempt_state_hint": attempt_state,
         "retry_budget_remaining_hint": retry_budget_remaining,
+        "attempt_count_hint_is_lifecycle_authority": False,
+        "failed_attempt_count_hint_is_lifecycle_authority": False,
         "canonical_runtime_action_is_authority": False,
         "allowed_controller_action_hints_are_authority": False,
         "runtime_liveness_hint_is_authority": False,
@@ -671,6 +694,37 @@ def _diagnostic_hint_contract(
         "opl_observability_readback_required": True,
         "opl_current_control_or_stage_run_readback_required": True,
         "mas_private_attempt_loop_forbidden": True,
+        "attempt_ledger_authority_boundary": dict(ATTEMPT_LEDGER_AUTHORITY_BOUNDARY),
+    }
+
+
+def _diagnostic_hints(
+    *,
+    canonical_runtime_action: str,
+    attempt_state: str,
+    retry_budget_remaining: int,
+    allowed_controller_action_hints: Iterable[str],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "runtime_health_diagnostic_hints",
+        "diagnostic_only": True,
+        "authority": False,
+        "readiness_authority": False,
+        "runtime_currentness_authority": False,
+        "lifecycle_authority": False,
+        "runtime_action_hint": canonical_runtime_action,
+        "attempt_state_hint": attempt_state,
+        "retry_budget_remaining_hint": retry_budget_remaining,
+        "allowed_controller_action_hints": list(allowed_controller_action_hints),
+        "field_authority": {
+            "runtime_action_hint": False,
+            "attempt_state_hint": False,
+            "retry_budget_remaining_hint": False,
+            "allowed_controller_action_hints": False,
+            "worker_liveness_state": False,
+        },
+        "attempt_ledger_authority_boundary": dict(ATTEMPT_LEDGER_AUTHORITY_BOUNDARY),
+        "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
     }
 
 
@@ -796,6 +850,8 @@ def _snapshot_from_events(
         "source_of_truth_chain": list(SOURCE_OF_TRUTH_CHAIN),
         "authority_boundary": dict(RUNTIME_HEALTH_AUTHORITY_BOUNDARY),
         "surface_role": "mas_runtime_health_read_only_diagnostic_projection",
+        "status_projection_role": "diagnostic_only",
+        "diagnostic_only": True,
         "projection_only": True,
         "read_only_diagnostic_projection": True,
         "body_free_diagnostic_projection": True,
@@ -826,6 +882,13 @@ def _snapshot_from_events(
         "session_ref": _text(runtime_payload.get("session_ref")),
         "attempt_state": attempt_state,
         "attempt_count": attempt_count,
+        "attempt_count_hint": attempt_count,
+        "attempt_count_is_lifecycle_authority": False,
+        "failed_attempt_count_hint": failed_attempts,
+        "failed_attempt_count_is_lifecycle_authority": False,
+        "attempt_ledger_authority": False,
+        "attempt_ledger_authority_boundary": dict(ATTEMPT_LEDGER_AUTHORITY_BOUNDARY),
+        "transient_lifecycle_observations_are_attempt_ledger": False,
         "run_attempt_phase": _text(runtime_payload.get("run_attempt_phase")) or attempt_state,
         "failure_reason": failure_reason,
         "backoff_until": _text(runtime_payload.get("backoff_until")),
@@ -834,6 +897,12 @@ def _snapshot_from_events(
             canonical_runtime_action=canonical_runtime_action,
             attempt_state=attempt_state,
             retry_budget_remaining=retry_budget_remaining,
+        ),
+        "diagnostic_hints": _diagnostic_hints(
+            canonical_runtime_action=canonical_runtime_action,
+            attempt_state=attempt_state,
+            retry_budget_remaining=retry_budget_remaining,
+            allowed_controller_action_hints=allowed_controller_action_hints,
         ),
         "runtime_action_hint": canonical_runtime_action,
         "runtime_action_hint_is_authority": False,
@@ -917,6 +986,8 @@ def derive_runtime_health_snapshot_from_status_payload(
         schema_version=SCHEMA_VERSION,
         recovery_decisions=_RECOVERY_DECISIONS,
         volatile_supervisor_keys=_VOLATILE_SUPERVISOR_KEYS,
+        opl_observability_readback_boundary=OPL_OBSERVABILITY_READBACK_BOUNDARY,
+        attempt_ledger_authority_boundary=ATTEMPT_LEDGER_AUTHORITY_BOUNDARY,
         study_id=study_id,
         quest_id=quest_id,
         status_payload=status_payload,
@@ -965,6 +1036,8 @@ def reconcile_runtime_health_snapshot_from_status_payload(
         schema_version=SCHEMA_VERSION,
         recovery_decisions=_RECOVERY_DECISIONS,
         volatile_supervisor_keys=_VOLATILE_SUPERVISOR_KEYS,
+        opl_observability_readback_boundary=OPL_OBSERVABILITY_READBACK_BOUNDARY,
+        attempt_ledger_authority_boundary=ATTEMPT_LEDGER_AUTHORITY_BOUNDARY,
         study_id=study_id,
         quest_id=quest_id,
         status_payload=status_payload,
@@ -977,6 +1050,38 @@ def reconcile_runtime_health_snapshot_from_status_payload(
         stable_runtime_audit=_stable_runtime_audit,
         stable_runtime_liveness_audit=_stable_runtime_liveness_audit,
     )
+    suppressed_transient_event_types = [
+        str(event.get("event_type") or "").strip()
+        for event in transient_events
+        if str(event.get("event_type") or "").strip()
+    ]
+    suppressed_lifecycle_event_types = [
+        event_type
+        for event_type in suppressed_transient_event_types
+        if event_type in _OPL_LIFECYCLE_EVENT_TYPES
+    ]
+    suppressed_lifecycle_event_boundaries = [
+        {
+            "event_type": str(event.get("event_type") or "").strip(),
+            "mas_runtime_health_event_role": _text(_event_payload(event).get("mas_runtime_health_event_role")),
+            "diagnostic_only": _bool(_event_payload(event).get("diagnostic_only")),
+            "attempt_lifecycle_authority": _bool(_event_payload(event).get("attempt_lifecycle_authority")),
+            "retry_or_dead_letter_authority": _bool(_event_payload(event).get("retry_or_dead_letter_authority")),
+            "worker_residency_authority": _bool(_event_payload(event).get("worker_residency_authority")),
+            "attempt_ledger_authority": _bool(_event_payload(event).get("attempt_ledger_authority")),
+            "provider_admission_authority": _bool(_event_payload(event).get("provider_admission_authority")),
+            "readiness_authority": _bool(_event_payload(event).get("readiness_authority")),
+            "runtime_currentness_authority": _bool(_event_payload(event).get("runtime_currentness_authority")),
+            "opl_observability_readback_boundary": _mapping(
+                _event_payload(event).get("opl_observability_readback_boundary")
+            ),
+            "attempt_ledger_authority_boundary": _mapping(
+                _event_payload(event).get("attempt_ledger_authority_boundary")
+            ),
+        }
+        for event in transient_events
+        if str(event.get("event_type") or "").strip() in _OPL_LIFECYCLE_EVENT_TYPES
+    ]
     snapshot = derive_runtime_health_snapshot_from_status_payload(
         study_root=study_root,
         study_id=study_id,
@@ -990,11 +1095,13 @@ def reconcile_runtime_health_snapshot_from_status_payload(
     snapshot["local_runtime_liveness_authority"] = False
     snapshot["suppressed_local_runtime_event_persistence"] = True
     snapshot["suppressed_transient_event_count"] = len(transient_events)
-    snapshot["suppressed_transient_event_types"] = [
-        str(event.get("event_type") or "").strip()
-        for event in transient_events
-        if str(event.get("event_type") or "").strip()
-    ]
+    snapshot["suppressed_transient_event_types"] = suppressed_transient_event_types
+    snapshot["suppressed_lifecycle_event_types"] = suppressed_lifecycle_event_types
+    snapshot["suppressed_lifecycle_event_boundaries"] = suppressed_lifecycle_event_boundaries
+    snapshot["suppressed_lifecycle_events_are_attempt_ledger"] = False
+    snapshot["attempt_count_includes_suppressed_lifecycle_observations"] = bool(suppressed_lifecycle_event_types)
+    snapshot["attempt_count_is_lifecycle_authority"] = False
+    snapshot["retry_budget_remaining_is_lifecycle_authority"] = False
     snapshot_path = runtime_health_snapshot_path(study_root=study_root)
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     snapshot_path.write_text(
@@ -1008,6 +1115,8 @@ def reconcile_runtime_health_snapshot_from_status_payload(
         "projection_only": True,
         "read_only_diagnostic_projection": True,
         "body_free_diagnostic_projection": True,
+        "diagnostic_only": True,
+        "status_projection_role": "diagnostic_only",
         "runtime_liveness_authority": False,
         "reconcile_authority": False,
         "attempt_lifecycle_authority": False,
@@ -1023,10 +1132,14 @@ def reconcile_runtime_health_snapshot_from_status_payload(
         "appended_event_ids": [],
         "suppressed_local_runtime_event_persistence": True,
         "suppressed_transient_event_count": len(transient_events),
-        "suppressed_transient_event_types": [
-            str(event.get("event_type") or "").strip()
-            for event in transient_events
-            if str(event.get("event_type") or "").strip()
-        ],
+        "suppressed_transient_event_types": suppressed_transient_event_types,
+        "suppressed_lifecycle_event_types": suppressed_lifecycle_event_types,
+        "suppressed_lifecycle_event_boundaries": suppressed_lifecycle_event_boundaries,
+        "suppressed_lifecycle_events_are_attempt_ledger": False,
+        "attempt_count_includes_suppressed_lifecycle_observations": bool(suppressed_lifecycle_event_types),
+        "attempt_count_is_lifecycle_authority": False,
+        "failed_attempt_count_is_lifecycle_authority": False,
+        "retry_budget_remaining_is_lifecycle_authority": False,
+        "attempt_ledger_authority_boundary": dict(ATTEMPT_LEDGER_AUTHORITY_BOUNDARY),
         "snapshot": snapshot,
     }

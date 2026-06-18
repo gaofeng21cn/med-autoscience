@@ -14,7 +14,10 @@ from med_autoscience.cli_public_surface import (
 )
 from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.json_payload import json_safe
-from med_autoscience.lazy_module_proxy import LazyModuleProxy as _LazyModuleProxy
+from med_autoscience.lazy_module_proxy import (
+    LazyModuleProxy as _LazyModuleProxy,
+    lazy_controller_module as _lazy_controller_module,
+)
 from med_autoscience.medical_prose_review_request import materialize_ai_medical_prose_review_from_response
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile
@@ -107,11 +110,11 @@ agent_lab_medical_manuscript_quality = _LazyModuleProxy(
 paper_autonomy_stability_evidence = _LazyModuleProxy(lambda: _load_controller("paper_autonomy_stability_evidence"))
 paper_story_repair_executor = _LazyModuleProxy(lambda: _load_controller("paper_story_repair_executor"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
-runtime_health_kernel = _LazyModuleProxy(lambda: _load_controller("runtime_health_kernel"))
+runtime_health_kernel = _lazy_controller_module("runtime_health_kernel")
 runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
 figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
-gate_clearing_batch = _LazyModuleProxy(lambda: _load_controller("gate_clearing_batch"))
+gate_clearing_batch = _lazy_controller_module("gate_clearing_batch")
 journal_package_controller = _LazyModuleProxy(lambda: _load_controller("journal_package"))
 journal_requirements_controller = _LazyModuleProxy(lambda: _load_controller("journal_requirements"))
 journal_shortlist_controller = _LazyModuleProxy(lambda: _load_controller("journal_shortlist"))
@@ -130,17 +133,17 @@ portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfol
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 publication_aftercare = _LazyModuleProxy(lambda: _load_controller("publication_aftercare"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
-quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
+quality_repair_batch = _lazy_controller_module("quality_repair_batch")
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
 domain_health_diagnostic = _LazyModuleProxy(lambda: _load_controller("domain_health_diagnostic"))
-owner_route_handoff = _LazyModuleProxy(lambda: _load_controller("owner_route_handoff"))
+owner_route_handoff = _lazy_controller_module("owner_route_handoff")
 stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
 publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"))
 real_paper_autonomy_soak_inventory = _LazyModuleProxy(lambda: _load_controller("real_paper_autonomy_soak_inventory"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
-study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
+study_progress = _lazy_controller_module("study_progress")
 study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
-domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
+domain_status_projection = _lazy_controller_module("domain_status_projection")
 study_state_matrix = _LazyModuleProxy(lambda: _load_controller("study_state_matrix"))
 study_interventions = _LazyModuleProxy(lambda: _load_controller("study_interventions"))
 study_truth_kernel = _LazyModuleProxy(lambda: _load_controller("study_truth_kernel"))

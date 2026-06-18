@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import types
+
 from . import shared as _shared
 
 globals().update({
@@ -7,6 +9,33 @@ globals().update({
     for name, value in vars(_shared).items()
     if not name.startswith('__')
 })
+
+
+def test_cli_runtime_facing_controller_proxies_are_named_currentness_surfaces(monkeypatch) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    proxy_targets = {
+        "domain_status_projection": "domain_status_projection",
+        "study_progress": "study_progress",
+        "owner_route_handoff": "owner_route_handoff",
+        "gate_clearing_batch": "gate_clearing_batch",
+        "quality_repair_batch": "quality_repair_batch",
+        "runtime_health_kernel": "runtime_health_kernel",
+    }
+
+    for attr_name, module_basename in proxy_targets.items():
+        module_name = f"med_autoscience.controllers.{module_basename}"
+        proxy = getattr(cli, attr_name)
+        assert object.__getattribute__(proxy, "_module_name") == module_name
+
+        first_module = types.ModuleType(module_name)
+        first_module.currentness_marker = f"{module_basename}:first"
+        second_module = types.ModuleType(module_name)
+        second_module.currentness_marker = f"{module_basename}:second"
+
+        monkeypatch.setitem(sys.modules, module_name, first_module)
+        assert proxy.currentness_marker == f"{module_basename}:first"
+        monkeypatch.setitem(sys.modules, module_name, second_module)
+        assert proxy.currentness_marker == f"{module_basename}:second"
 
 
 def test_removed_provider_specific_aris_sidecar_commands_are_rejected(capsys) -> None:

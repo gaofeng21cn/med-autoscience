@@ -53,6 +53,8 @@ def status_payload_runtime_health_events(
     schema_version: int,
     recovery_decisions: Iterable[str],
     volatile_supervisor_keys: frozenset[str],
+    opl_observability_readback_boundary: Mapping[str, Any],
+    attempt_ledger_authority_boundary: Mapping[str, Any],
     study_id: str,
     quest_id: str,
     status_payload: Mapping[str, Any],
@@ -144,20 +146,20 @@ def status_payload_runtime_health_events(
                     study_id=study_id,
                     quest_id=quest_id,
                     event_type="attempt_released",
-                    payload={
-                        "release_reason": "provider_recovered_after_runtime_retry_exhaustion",
-                        "decision": text(status_payload.get("decision")),
-                        "reason": text(status_payload.get("reason")),
-                        "previous_budget_scope": "terminal_runtime_recovery",
-                        "provider_ready": True,
-                        "worker_ready": True,
-                        "managed_worker_source_current": True,
-                        "opl_lifecycle_proof_ref": lifecycle_proof_ref,
-                        "lifecycle_authority_owner": "one-person-lab",
-                        "mas_runtime_health_event_role": "diagnostic_observation",
-                        "attempt_lifecycle_authority": False,
-                        "retry_or_dead_letter_authority": False,
-                    },
+                    payload=_with_lifecycle_boundary(
+                        {
+                            "release_reason": "provider_recovered_after_runtime_retry_exhaustion",
+                            "decision": text(status_payload.get("decision")),
+                            "reason": text(status_payload.get("reason")),
+                            "previous_budget_scope": "terminal_runtime_recovery",
+                            "provider_ready": True,
+                            "worker_ready": True,
+                            "managed_worker_source_current": True,
+                        },
+                        lifecycle_proof_ref=lifecycle_proof_ref,
+                        opl_observability_readback_boundary=opl_observability_readback_boundary,
+                        attempt_ledger_authority_boundary=attempt_ledger_authority_boundary,
+                    ),
                     recorded_at=recorded_at,
                     sequence=sequence,
                     event_source_signature=event_source_signature,
@@ -166,7 +168,12 @@ def status_payload_runtime_health_events(
 
     launch_payload = launch_report_event_payload(status_payload, read_json=read_json, mapping=mapping, text=text)
     if launch_payload and lifecycle_proof_ref is not None:
-        launch_payload = _with_lifecycle_boundary(launch_payload, lifecycle_proof_ref=lifecycle_proof_ref)
+        launch_payload = _with_lifecycle_boundary(
+            launch_payload,
+            lifecycle_proof_ref=lifecycle_proof_ref,
+            opl_observability_readback_boundary=opl_observability_readback_boundary,
+            attempt_ledger_authority_boundary=attempt_ledger_authority_boundary,
+        )
         sequence += 1
         events.append(
             transient_event(
@@ -192,17 +199,17 @@ def status_payload_runtime_health_events(
                     study_id=study_id,
                     quest_id=quest_id,
                     event_type="attempt_released",
-                    payload={
-                        "release_reason": "explicit_relaunch_stopped",
-                        "decision": decision,
-                        "reason": text(status_payload.get("reason")),
-                        "previous_budget_scope": "terminal_runtime_recovery",
-                        "opl_lifecycle_proof_ref": lifecycle_proof_ref,
-                        "lifecycle_authority_owner": "one-person-lab",
-                        "mas_runtime_health_event_role": "diagnostic_observation",
-                        "attempt_lifecycle_authority": False,
-                        "retry_or_dead_letter_authority": False,
-                    },
+                    payload=_with_lifecycle_boundary(
+                        {
+                            "release_reason": "explicit_relaunch_stopped",
+                            "decision": decision,
+                            "reason": text(status_payload.get("reason")),
+                            "previous_budget_scope": "terminal_runtime_recovery",
+                        },
+                        lifecycle_proof_ref=lifecycle_proof_ref,
+                        opl_observability_readback_boundary=opl_observability_readback_boundary,
+                        attempt_ledger_authority_boundary=attempt_ledger_authority_boundary,
+                    ),
                     recorded_at=recorded_at,
                     sequence=sequence,
                     event_source_signature=event_source_signature,
@@ -215,17 +222,17 @@ def status_payload_runtime_health_events(
                 study_id=study_id,
                 quest_id=quest_id,
                 event_type=event_type,
-                payload={
-                    "attempt_state": "requested",
-                    "decision": decision,
-                    "reason": text(status_payload.get("reason")),
-                    "active_run_id": facts.active_run_id if facts.strict_live else None,
-                    "opl_lifecycle_proof_ref": lifecycle_proof_ref,
-                    "lifecycle_authority_owner": "one-person-lab",
-                    "mas_runtime_health_event_role": "diagnostic_observation",
-                    "attempt_lifecycle_authority": False,
-                    "retry_or_dead_letter_authority": False,
-                },
+                payload=_with_lifecycle_boundary(
+                    {
+                        "attempt_state": "requested",
+                        "decision": decision,
+                        "reason": text(status_payload.get("reason")),
+                        "active_run_id": facts.active_run_id if facts.strict_live else None,
+                    },
+                    lifecycle_proof_ref=lifecycle_proof_ref,
+                    opl_observability_readback_boundary=opl_observability_readback_boundary,
+                    attempt_ledger_authority_boundary=attempt_ledger_authority_boundary,
+                ),
                 recorded_at=recorded_at,
                 sequence=sequence,
                 event_source_signature=event_source_signature,
@@ -238,14 +245,26 @@ def _with_lifecycle_boundary(
     payload: Mapping[str, Any],
     *,
     lifecycle_proof_ref: str,
+    opl_observability_readback_boundary: Mapping[str, Any],
+    attempt_ledger_authority_boundary: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
         **dict(payload),
         "opl_lifecycle_proof_ref": lifecycle_proof_ref,
         "lifecycle_authority_owner": "one-person-lab",
+        "opl_observability_readback_boundary": dict(opl_observability_readback_boundary),
+        "attempt_ledger_authority_boundary": dict(attempt_ledger_authority_boundary),
+        "diagnostic_only": True,
         "mas_runtime_health_event_role": "diagnostic_observation",
+        "lifecycle_authority": False,
         "attempt_lifecycle_authority": False,
         "retry_or_dead_letter_authority": False,
+        "worker_residency_authority": False,
+        "attempt_ledger_authority": False,
+        "provider_admission_authority": False,
+        "readiness_authority": False,
+        "runtime_currentness_authority": False,
+        "transient_lifecycle_observation": True,
     }
 
 

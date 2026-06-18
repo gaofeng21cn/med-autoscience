@@ -43,6 +43,24 @@ def _assert_observability_readback_boundary(boundary: dict[str, object]) -> None
     assert boundary["attempt_state_is_diagnostic_hint"] is True
 
 
+def _assert_attempt_ledger_authority_boundary(boundary: dict[str, object]) -> None:
+    assert boundary["surface_kind"] == "opl_attempt_ledger_authority_boundary"
+    assert boundary["runtime_owner"] == "one-person-lab"
+    assert boundary["opl_owned_surfaces"] == [
+        "StageRun",
+        "attempt_ledger",
+        "attempt_liveness",
+        "retry_dead_letter",
+        "observability_transport",
+    ]
+    assert boundary["mas_role"] == "read_only_diagnostic_publisher"
+    assert boundary["attempt_count_is_authority"] is False
+    assert boundary["failed_attempt_count_is_authority"] is False
+    assert boundary["retry_budget_remaining_is_authority"] is False
+    assert boundary["transient_lifecycle_observations_are_attempt_ledger"] is False
+    assert boundary["suppressed_transient_lifecycle_events_can_advance_attempt_ledger"] is False
+
+
 def test_runtime_health_rejects_lifecycle_event_without_opl_proof(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
@@ -238,6 +256,12 @@ def test_runtime_health_attempt_retry_and_action_fields_are_diagnostic_hints(tmp
     assert snapshot["attempt_state_hint"] == snapshot["attempt_state"]
     assert snapshot["retry_budget_remaining_hint"] == snapshot["retry_budget_remaining"]
     assert snapshot["attempt_state_hint_is_lifecycle_authority"] is False
+    assert snapshot["attempt_count_hint"] == snapshot["attempt_count"]
+    assert snapshot["attempt_count_is_lifecycle_authority"] is False
+    assert snapshot["failed_attempt_count_hint"] == 0
+    assert snapshot["failed_attempt_count_is_lifecycle_authority"] is False
+    assert snapshot["attempt_ledger_authority"] is False
+    _assert_attempt_ledger_authority_boundary(snapshot["attempt_ledger_authority_boundary"])
     assert snapshot["retry_budget_remaining_hint_is_lifecycle_authority"] is False
     assert snapshot["canonical_runtime_action_is_authority"] is False
     assert snapshot["provider_admission_authority"] is False
@@ -250,6 +274,26 @@ def test_runtime_health_attempt_retry_and_action_fields_are_diagnostic_hints(tmp
     assert snapshot["can_authorize_running_progress"] is False
     assert snapshot["can_create_worker_attempt"] is False
     assert snapshot["can_retry_or_dead_letter"] is False
+    assert snapshot["diagnostic_only"] is True
+    assert snapshot["status_projection_role"] == "diagnostic_only"
+    diagnostic_hints = snapshot["diagnostic_hints"]
+    assert diagnostic_hints["surface_kind"] == "runtime_health_diagnostic_hints"
+    assert diagnostic_hints["diagnostic_only"] is True
+    assert diagnostic_hints["authority"] is False
+    assert diagnostic_hints["readiness_authority"] is False
+    assert diagnostic_hints["runtime_currentness_authority"] is False
+    assert diagnostic_hints["lifecycle_authority"] is False
+    assert diagnostic_hints["runtime_action_hint"] == snapshot["canonical_runtime_action"]
+    assert diagnostic_hints["attempt_state_hint"] == snapshot["attempt_state"]
+    assert diagnostic_hints["retry_budget_remaining_hint"] == snapshot["retry_budget_remaining"]
+    assert diagnostic_hints["allowed_controller_action_hints"] == snapshot["allowed_controller_action_hints"]
+    assert diagnostic_hints["field_authority"] == {
+        "runtime_action_hint": False,
+        "attempt_state_hint": False,
+        "retry_budget_remaining_hint": False,
+        "allowed_controller_action_hints": False,
+        "worker_liveness_state": False,
+    }
 
 
 def test_runtime_health_missing_live_session_recovers_with_stale_run_as_last_known(tmp_path: Path) -> None:
@@ -1177,9 +1221,38 @@ def test_runtime_health_reconcile_suppresses_opl_proof_backed_lifecycle_event_pe
     assert first["suppressed_local_runtime_event_persistence"] is True
     assert first["suppressed_transient_event_count"] == 3
     assert "recover_attempt" in first["suppressed_transient_event_types"]
+    assert first["suppressed_lifecycle_event_types"] == ["recover_attempt"]
+    assert first["suppressed_lifecycle_event_boundaries"][0]["event_type"] == "recover_attempt"
+    assert first["suppressed_lifecycle_event_boundaries"][0]["mas_runtime_health_event_role"] == (
+        "diagnostic_observation"
+    )
+    assert first["suppressed_lifecycle_event_boundaries"][0]["diagnostic_only"] is True
+    assert first["suppressed_lifecycle_event_boundaries"][0]["attempt_lifecycle_authority"] is False
+    assert first["suppressed_lifecycle_event_boundaries"][0]["retry_or_dead_letter_authority"] is False
+    assert first["suppressed_lifecycle_event_boundaries"][0]["worker_residency_authority"] is False
+    assert first["suppressed_lifecycle_event_boundaries"][0]["attempt_ledger_authority"] is False
+    assert first["suppressed_lifecycle_event_boundaries"][0]["provider_admission_authority"] is False
+    assert first["suppressed_lifecycle_event_boundaries"][0]["readiness_authority"] is False
+    assert first["suppressed_lifecycle_event_boundaries"][0]["runtime_currentness_authority"] is False
+    _assert_observability_readback_boundary(
+        first["suppressed_lifecycle_event_boundaries"][0]["opl_observability_readback_boundary"]
+    )
+    _assert_attempt_ledger_authority_boundary(
+        first["suppressed_lifecycle_event_boundaries"][0]["attempt_ledger_authority_boundary"]
+    )
+    assert first["suppressed_lifecycle_events_are_attempt_ledger"] is False
+    assert first["attempt_count_includes_suppressed_lifecycle_observations"] is True
+    assert first["attempt_count_is_lifecycle_authority"] is False
+    assert first["retry_budget_remaining_is_lifecycle_authority"] is False
+    _assert_attempt_ledger_authority_boundary(first["attempt_ledger_authority_boundary"])
     _assert_observability_readback_boundary(first["opl_observability_readback_boundary"])
     _assert_observability_readback_boundary(first["snapshot"]["opl_observability_readback_boundary"])
+    _assert_attempt_ledger_authority_boundary(first["snapshot"]["attempt_ledger_authority_boundary"])
     assert module.read_runtime_health_events(study_root=study_root) == []
     assert second["appended_event_count"] == 0
     assert second["suppressed_local_runtime_event_persistence"] is True
     assert second["snapshot"]["attempt_count"] == 1
+    assert second["snapshot"]["attempt_count_hint"] == 1
+    assert second["snapshot"]["attempt_count_is_lifecycle_authority"] is False
+    assert second["snapshot"]["attempt_ledger_authority"] is False
+    assert second["snapshot"]["suppressed_lifecycle_events_are_attempt_ledger"] is False
