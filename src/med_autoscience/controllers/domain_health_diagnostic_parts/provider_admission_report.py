@@ -1013,6 +1013,9 @@ def _merge_provider_admission_candidates(
 def _provider_admission_candidate_merge_key(
     candidate: Mapping[str, Any],
 ) -> tuple[str | None, str | None, str | None, str | None]:
+    opl_readback_key = _provider_admission_opl_transition_readback_merge_key(candidate)
+    if opl_readback_key is not None:
+        return opl_readback_key
     fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
         candidate.get("action_fingerprint")
     )
@@ -1027,6 +1030,52 @@ def _provider_admission_candidate_merge_key(
         _non_empty_text(candidate.get("action_type")),
         _non_empty_text(candidate.get("work_unit_id")),
         stable_ref,
+    )
+
+
+def _provider_admission_opl_transition_readback_merge_key(
+    candidate: Mapping[str, Any],
+) -> tuple[str | None, str | None, str | None, str | None] | None:
+    readback = candidate_opl_transition_readback(candidate)
+    if not readback:
+        return None
+    identity = _mapping(readback.get("identity"))
+    aggregate = _mapping(identity.get("aggregate_identity"))
+    stage_run = _mapping(identity.get("stage_run_identity"))
+    stage_run_id = (
+        _non_empty_text(stage_run.get("stage_run_id"))
+        or _non_empty_text(stage_run.get("route_identity_key"))
+        or _non_empty_text(stage_run.get("attempt_idempotency_key"))
+    )
+    event_id = _non_empty_text(identity.get("latest_event_id"))
+    outbox_item_id = _non_empty_text(identity.get("latest_outbox_item_id"))
+    transaction_id = _non_empty_text(identity.get("latest_transaction_id"))
+    if not all((stage_run_id, event_id, outbox_item_id, transaction_id)):
+        return None
+    aggregate_study_id = _non_empty_text(aggregate.get("study_id")) or _non_empty_text(
+        candidate.get("study_id")
+    )
+    aggregate_work_unit_id = _non_empty_text(aggregate.get("work_unit_id")) or _non_empty_text(
+        candidate.get("work_unit_id")
+    )
+    aggregate_fingerprint = _non_empty_text(aggregate.get("work_unit_fingerprint")) or _non_empty_text(
+        candidate.get("work_unit_fingerprint")
+    ) or _non_empty_text(candidate.get("action_fingerprint"))
+    return (
+        aggregate_study_id,
+        "opl-runtime-readback",
+        aggregate_work_unit_id,
+        "::".join(
+            item
+            for item in (
+                aggregate_fingerprint,
+                stage_run_id,
+                event_id,
+                outbox_item_id,
+                transaction_id,
+            )
+            if item is not None
+        ),
     )
 
 
