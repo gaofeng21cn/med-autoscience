@@ -64,11 +64,29 @@ def assert_opl_follow_through_and_external_practice_mapping(
         "matching_source_eval_id_when_present",
     ]
     assert provider_identity["dispatch_ref_can_replace_stage_packet_ref"] is False
-    dispatch_ref_exception = provider_identity["dispatch_ref_stage_packet_authority_exception"]
+    dispatch_ref_exception = provider_identity[
+        "dispatch_ref_stage_packet_identity_recovery_exception"
+    ]
+    legacy_dispatch_ref_exception = provider_identity[
+        "dispatch_ref_stage_packet_authority_exception"
+    ]
+    assert legacy_dispatch_ref_exception["deprecated_alias_for"] == (
+        "dispatch_ref_stage_packet_identity_recovery_exception"
+    )
     assert dispatch_ref_exception["default_policy"] == (
         "dispatch_ref_cannot_replace_stage_packet_ref"
     )
     assert dispatch_ref_exception["scope"] == "stage_run_identity_enrichment_only"
+    assert dispatch_ref_exception["stage_packet_authority"] is False
+    assert dispatch_ref_exception["provider_admission_authority"] is False
+    assert dispatch_ref_exception["execution_authority"] is False
+    assert dispatch_ref_exception["queue_authority"] is False
+    assert dispatch_ref_exception["attempt_lifecycle_authority"] is False
+    assert legacy_dispatch_ref_exception["stage_packet_authority"] is False
+    assert legacy_dispatch_ref_exception["provider_admission_authority"] is False
+    assert legacy_dispatch_ref_exception["execution_authority"] is False
+    assert legacy_dispatch_ref_exception["queue_authority"] is False
+    assert legacy_dispatch_ref_exception["attempt_lifecycle_authority"] is False
     assert dispatch_ref_exception["allowed_execution_sources"] == [
         "owner_callable_adapter_receipt",
         "default_executor_execution"
@@ -87,11 +105,18 @@ def assert_opl_follow_through_and_external_practice_mapping(
         "owner_route_current_not_false",
         "existing_source_refs_preserved_for_default_executor_execution",
     ]
+    assert dispatch_ref_exception["allowed_effects"] == [
+        "recover_stage_packet_ref_from_same_default_executor_carrier_dispatch_ref"
+    ]
     assert {
         "general_dispatch_ref_to_stage_packet_ref_synthesis",
         "queue_residue_stage_packet_backfill",
         "candidate_root_closeout_identity_backfill",
         "stale_owner_route_current_false_admission",
+        "provider_admission_authority_grant",
+        "execution_authority_grant",
+        "queue_authority_grant",
+        "attempt_lifecycle_authority_grant",
     } <= set(dispatch_ref_exception["forbidden_effects"])
     strong_current_owner_delta = provider_identity[
         "strong_current_owner_delta_stage_packet_exemption"

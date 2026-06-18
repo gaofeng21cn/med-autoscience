@@ -35,7 +35,7 @@ def test_default_executor_execution_dispatch_ref_opt_in_recovers_stage_packet_id
             "owner_route_current": True,
         },
         study_root=study_root,
-        allow_dispatch_ref_stage_packet_authority=True,
+        allow_dispatch_ref_stage_packet_identity_recovery=True,
     )
 
     expected_ref = (
@@ -49,10 +49,11 @@ def test_default_executor_execution_dispatch_ref_opt_in_recovers_stage_packet_id
     assert candidate["source_refs"]["stage_packet_refs"] == ["preserved-stage-packet"]
     assert candidate.get("provider_admission_authority") is not True
     assert candidate.get("execution_authority") is not True
+    assert candidate.get("queue_authority") is not True
     assert candidate.get("attempt_lifecycle_authority") is not True
 
 
-def test_dispatch_ref_stage_packet_authority_requires_explicit_opt_in() -> None:
+def test_dispatch_ref_stage_packet_identity_recovery_requires_explicit_opt_in() -> None:
     candidate = candidate_with_stage_run_admission_identity(
         {
             "source": "default_executor_execution",
@@ -71,7 +72,7 @@ def test_dispatch_ref_stage_packet_authority_requires_explicit_opt_in() -> None:
     assert "stage_packet_refs" not in candidate
 
 
-def test_dispatch_ref_stage_packet_authority_rejects_stale_owner_route() -> None:
+def test_dispatch_ref_stage_packet_identity_recovery_rejects_stale_owner_route() -> None:
     candidate = candidate_with_stage_run_admission_identity(
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",

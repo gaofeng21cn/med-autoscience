@@ -235,9 +235,14 @@
       "fingerprintless_stop_loss_closeout_match": "requires_same_source_eval_truth_or_runtime_health_epoch",
       "action_id_role": "action_family_only_not_route_or_attempt_identity",
       "dispatch_ref_can_replace_stage_packet_ref": false,
-      "dispatch_ref_stage_packet_authority_exception": {
+      "dispatch_ref_stage_packet_identity_recovery_exception": {
         "default_policy": "dispatch_ref_cannot_replace_stage_packet_ref",
         "scope": "stage_run_identity_enrichment_only",
+        "stage_packet_authority": false,
+        "provider_admission_authority": false,
+        "execution_authority": false,
+        "queue_authority": false,
+        "attempt_lifecycle_authority": false,
         "allowed_execution_sources": [
           "owner_callable_adapter_receipt",
           "default_executor_execution"
@@ -256,12 +261,27 @@
           "owner_route_current_not_false",
           "existing_source_refs_preserved_for_default_executor_execution"
         ],
+        "allowed_effects": [
+          "recover_stage_packet_ref_from_same_default_executor_carrier_dispatch_ref"
+        ],
         "forbidden_effects": [
           "general_dispatch_ref_to_stage_packet_ref_synthesis",
           "queue_residue_stage_packet_backfill",
           "candidate_root_closeout_identity_backfill",
-          "stale_owner_route_current_false_admission"
+          "stale_owner_route_current_false_admission",
+          "provider_admission_authority_grant",
+          "execution_authority_grant",
+          "queue_authority_grant",
+          "attempt_lifecycle_authority_grant"
         ]
+      },
+      "dispatch_ref_stage_packet_authority_exception": {
+        "deprecated_alias_for": "dispatch_ref_stage_packet_identity_recovery_exception",
+        "stage_packet_authority": false,
+        "provider_admission_authority": false,
+        "execution_authority": false,
+        "queue_authority": false,
+        "attempt_lifecycle_authority": false
       },
       "strong_current_owner_delta_stage_packet_exemption": {
         "scope": "fresh_current_owner_delta_direct_owner_action_only",

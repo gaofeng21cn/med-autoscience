@@ -326,7 +326,7 @@ def provider_admission_candidate_from_current_control_action(
             dispatch_payload=_mapping(dispatch_payload),
             dispatch_path=dispatch_path,
             study_root=study_root,
-            allow_dispatch_ref_stage_packet_authority=True,
+            allow_dispatch_ref_stage_packet_identity_recovery=True,
         )
     )
 
@@ -492,7 +492,7 @@ def provider_admission_candidate_from_execution(
         _candidate_with_stage_run_admission_identity(
             _candidate_with_paper_progress_policy_result(candidate, execution=execution),
             execution=execution,
-            allow_dispatch_ref_stage_packet_authority=True,
+            allow_dispatch_ref_stage_packet_identity_recovery=True,
         )
     )
 

@@ -18,9 +18,15 @@ def candidate_with_stage_run_admission_identity(
     dispatch_payload: Mapping[str, Any] | None = None,
     dispatch_path: Path | None = None,
     study_root: Path | None = None,
-    allow_dispatch_ref_stage_packet_authority: bool = False,
+    allow_dispatch_ref_stage_packet_identity_recovery: bool = False,
+    allow_dispatch_ref_stage_packet_authority: bool | None = None,
 ) -> dict[str, Any]:
     payload = dict(candidate)
+    if allow_dispatch_ref_stage_packet_authority is not None:
+        allow_dispatch_ref_stage_packet_identity_recovery = (
+            allow_dispatch_ref_stage_packet_identity_recovery
+            or allow_dispatch_ref_stage_packet_authority
+        )
     dispatch_payload = _mapping(dispatch_payload) or _mapping(execution)
     owner_route = _mapping(execution.get("owner_route")) or _mapping(dispatch_payload.get("owner_route"))
     source_refs = _mapping(owner_route.get("source_refs"))
@@ -48,11 +54,11 @@ def candidate_with_stage_run_admission_identity(
     )
     if (
         stage_packet_ref is None
-        and allow_dispatch_ref_stage_packet_authority
-        and _dispatch_ref_is_stage_packet_authority(
-        payload=payload,
-        execution=execution,
-        dispatch_payload=dispatch_payload,
+        and allow_dispatch_ref_stage_packet_identity_recovery
+        and _dispatch_ref_can_recover_stage_packet_identity(
+            payload=payload,
+            execution=execution,
+            dispatch_payload=dispatch_payload,
         )
     ):
         stage_packet_ref = dispatch_ref
@@ -183,7 +189,7 @@ def _preserve_existing_source_refs(payload: Mapping[str, Any]) -> bool:
     return _non_empty_text(payload.get("source")) in {"owner_callable_adapter_receipt", "default_executor_execution"}
 
 
-def _dispatch_ref_is_stage_packet_authority(
+def _dispatch_ref_can_recover_stage_packet_identity(
     *,
     payload: Mapping[str, Any],
     execution: Mapping[str, Any],
