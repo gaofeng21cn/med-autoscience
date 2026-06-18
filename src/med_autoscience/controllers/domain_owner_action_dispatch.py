@@ -64,6 +64,31 @@ _merged_execution_ledger = execution_io.merged_execution_ledger
 _read_json_object = execution_io.read_json_object
 _study_root = execution_io.study_root
 _write_json = execution_io.write_json
+_OPL_OWNER_CALLABLE_ADAPTER_READBACK_REQUIREMENT = {
+    "surface_kind": "opl_owner_callable_adapter_readback_requirement",
+    "required_owner_surface": "one-person-lab DomainProgressTransitionRuntime / StageRun",
+    "mas_surface_role": "owner_callable_adapter_and_authority_result_validator",
+    "mas_can_satisfy_readback": False,
+    "required_readback_shape": {
+        "identity": True,
+        "causality": True,
+        "authority_boundary": True,
+        "exactly_one_outcome": True,
+        "projection_metadata": True,
+        "event_id": True,
+        "outbox_item_id": True,
+        "stage_run_identity": True,
+    },
+    "mas_receipt_projection_cannot_replace": [
+        "opl_command",
+        "opl_event",
+        "opl_transactional_outbox",
+        "opl_stage_run",
+        "opl_provider_admission",
+        "opl_attempt_lease",
+        "opl_fixed_point_reconcile",
+    ],
+}
 
 
 def _utc_now() -> str:
@@ -77,6 +102,13 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _opl_owner_callable_adapter_readback_requirement() -> dict[str, Any]:
+    return {
+        key: dict(value) if isinstance(value, Mapping) else list(value) if isinstance(value, list) else value
+        for key, value in _OPL_OWNER_CALLABLE_ADAPTER_READBACK_REQUIREMENT.items()
+    }
 
 
 def _text_items(value: object) -> list[str]:
@@ -264,6 +296,8 @@ def _owner_callable_adapter_boundary() -> dict[str, Any]:
         "can_authorize_provider_admission": False,
         "can_create_provider_attempt": False,
         "can_generate_next_action": False,
+        "can_satisfy_opl_readback": False,
+        "opl_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
         "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
         "replacement_owner_surface": "OPL DomainProgressTransitionRuntime / StageRun",
     }
@@ -712,6 +746,7 @@ def _opl_execution_authorization_block_fields() -> dict[str, Any]:
         "provider_completion_is_domain_completion": False,
         "provider_attempt_or_lease_required": False,
         "opl_transition_runtime_required": True,
+        "opl_owner_callable_adapter_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
         "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
     }
 
@@ -883,8 +918,11 @@ def _dispatch_execution_payload(
         ),
         "owner_callable_requires_opl_authorization": dispatch.get("owner_callable_requires_opl_authorization") is True
         or prompt_contract.get("owner_callable_requires_opl_authorization") is True,
-        "provider_admission_pending": dispatch.get("provider_admission_pending") is True
-        or prompt_contract.get("provider_admission_pending") is True,
+        "source_dispatch_claimed_provider_admission_pending": (
+            dispatch.get("provider_admission_pending") is True
+            or prompt_contract.get("provider_admission_pending") is True
+        ),
+        "provider_admission_pending": False,
         "mas_private_attempt_loop_forbidden": dispatch.get("mas_private_attempt_loop_forbidden") is True
         or prompt_contract.get("mas_private_attempt_loop_forbidden") is True,
         "projection_authority": False,
@@ -895,6 +933,7 @@ def _dispatch_execution_payload(
         "retry_or_dead_letter_authority": False,
         "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
         "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
+        "opl_owner_callable_adapter_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
         "generated_at": generated_at,
         "study_id": study_id,
         "quest_id": _text(dispatch.get("quest_id")),
@@ -1015,6 +1054,7 @@ def _persist_study_executions(
         "target_runtime_owner": "one-person-lab",
         "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
         "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
+        "opl_owner_callable_adapter_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
         "executions": study_executions,
         "execution_ledger": execution_ledger,
         "ledger_execution_count": len(execution_ledger),
@@ -1137,6 +1177,7 @@ def dispatch_domain_owner_actions(
         "mas_creates_opl_event": False,
         "mas_creates_opl_stage_run": False,
         "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
+        "opl_owner_callable_adapter_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
         "requested_studies": list(resolved_study_ids),
         "requested_action_types": list(resolved_action_types),
         "execution_count": len(executions),

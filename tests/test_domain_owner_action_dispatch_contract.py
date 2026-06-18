@@ -127,6 +127,8 @@ def test_dispatch_receipt_projection_never_exports_mas_private_authority_claims(
         mas_creates_opl_outbox=True,
         mas_creates_opl_event=True,
         mas_creates_opl_stage_run=True,
+        provider_admission_pending=True,
+        prompt_contract={"provider_admission_pending": True},
     )
 
     payload = domain_owner_action_dispatch._dispatch_execution_payload(
@@ -169,9 +171,37 @@ def test_dispatch_receipt_projection_never_exports_mas_private_authority_claims(
     assert payload["mas_creates_opl_stage_run"] is False
     assert payload["source_dispatch_claimed_mas_authority"] is True
     assert payload["source_dispatch_claimed_opl_write"] is True
+    assert payload["source_dispatch_claimed_provider_admission_pending"] is True
+    assert payload["provider_admission_pending"] is False
     assert payload["owner_callable_adapter_boundary"]["mas_dispatch_authority"] is False
+    assert payload["owner_callable_adapter_boundary"]["can_satisfy_opl_readback"] is False
     assert payload["execution_ledger_authority"] is False
     assert payload["attempt_lifecycle_authority"] is False
+    readback_requirement = payload["opl_owner_callable_adapter_readback_requirement"]
+    assert readback_requirement["surface_kind"] == "opl_owner_callable_adapter_readback_requirement"
+    assert readback_requirement["required_owner_surface"] == "one-person-lab DomainProgressTransitionRuntime / StageRun"
+    assert readback_requirement["mas_surface_role"] == "owner_callable_adapter_and_authority_result_validator"
+    assert readback_requirement["mas_can_satisfy_readback"] is False
+    assert readback_requirement["required_readback_shape"] == {
+        "identity": True,
+        "causality": True,
+        "authority_boundary": True,
+        "exactly_one_outcome": True,
+        "projection_metadata": True,
+        "event_id": True,
+        "outbox_item_id": True,
+        "stage_run_identity": True,
+    }
+    assert readback_requirement["mas_receipt_projection_cannot_replace"] == [
+        "opl_command",
+        "opl_event",
+        "opl_transactional_outbox",
+        "opl_stage_run",
+        "opl_provider_admission",
+        "opl_attempt_lease",
+        "opl_fixed_point_reconcile",
+    ]
+    assert payload["owner_callable_adapter_boundary"]["opl_readback_requirement"] == readback_requirement
 
 
 def test_closeout_binding_does_not_authorize_owner_callable_execution() -> None:
