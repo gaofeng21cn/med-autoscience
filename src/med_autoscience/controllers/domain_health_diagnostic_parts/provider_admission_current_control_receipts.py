@@ -75,6 +75,18 @@ def accepted_closeout_matches_candidate_identity(
         if _receipt_declares_currentness_basis(receipt):
             return not _source_currentness_precludes_consumption(receipt, identity=identity)
         return True
+    if (
+        action_and_work_unit_match
+        and receipt_fingerprint == expected_fingerprint
+        and _receipt_is_owner_receipt_recorded_closeout(
+            receipt,
+            statuses=receipt_statuses(receipt),
+        )
+    ):
+        return _owner_receipt_recorded_closeout_matches_current_identity(
+            receipt,
+            identity=identity,
+        )
     if _source_currentness_precludes_consumption(receipt, identity=identity):
         return False
     if provider_attempt_matches_identity(receipt, identity=identity):
@@ -129,6 +141,8 @@ def receipt_is_accepted_closeout(receipt: Mapping[str, Any]) -> bool:
     if _receipt_is_record_only_owner_refs_closeout(receipt, statuses=statuses):
         return True
     if _receipt_is_executed_owner_refs_closeout(receipt, statuses=statuses):
+        return True
+    if _receipt_is_owner_receipt_recorded_closeout(receipt, statuses=statuses):
         return True
     if receipt_surface_kind(receipt) in {
         "stage_attempt_closeout_packet",
@@ -201,6 +215,14 @@ def _receipt_has_current_admission_consumption_authority(
         statuses=receipt_statuses(receipt),
     ):
         return True
+    if _receipt_is_owner_receipt_recorded_closeout(
+        receipt,
+        statuses=receipt_statuses(receipt),
+    ):
+        return _owner_receipt_recorded_closeout_matches_current_identity(
+            receipt,
+            identity=identity,
+        )
     if _receipt_route_identity_matches(receipt, identity=identity):
         return True
     return _source_currentness_matches(receipt, identity=identity)
@@ -278,6 +300,35 @@ def _receipt_is_executed_owner_refs_closeout(
     if receipt_has_opl_execution_authorization_blocker(receipt):
         return False
     return _receipt_has_current_owner_ref(receipt)
+
+
+def _receipt_is_owner_receipt_recorded_closeout(
+    receipt: Mapping[str, Any],
+    *,
+    statuses: set[str | None],
+) -> bool:
+    if receipt_surface_kind(receipt) not in {
+        "stage_attempt_closeout_packet",
+        "domain_stage_closeout_packet",
+    }:
+        return False
+    if "owner_receipt_recorded" not in statuses:
+        return False
+    if receipt_has_opl_execution_authorization_blocker(receipt):
+        return False
+    return _receipt_has_current_owner_ref(receipt)
+
+
+def _owner_receipt_recorded_closeout_matches_current_identity(
+    receipt: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    if _receipt_route_identity_matches(receipt, identity=identity):
+        return True
+    if _stage_packet_identity_matches(receipt, identity=identity):
+        return True
+    return _source_currentness_matches(receipt, identity=identity)
 
 
 def _receipt_had_no_raw_fingerprint(receipt: Mapping[str, Any]) -> bool:
@@ -444,6 +495,24 @@ def _stage_packet_identity_conflicts(
     if not receipt_refs:
         return False
     return not any(
+        _refs_equivalent(receipt_ref, identity_ref)
+        for receipt_ref in receipt_refs
+        for identity_ref in identity_refs
+    )
+
+
+def _stage_packet_identity_matches(
+    receipt: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    identity_refs = _stage_packet_refs(identity)
+    if not identity_refs:
+        return False
+    receipt_refs = _stage_packet_refs(receipt)
+    if not receipt_refs:
+        return False
+    return any(
         _refs_equivalent(receipt_ref, identity_ref)
         for receipt_ref in receipt_refs
         for identity_ref in identity_refs

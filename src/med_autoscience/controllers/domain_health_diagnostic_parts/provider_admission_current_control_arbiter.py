@@ -1150,15 +1150,24 @@ def _unconsumed_closeout_blocks_weak_identity_suppression(
     *,
     identity: Mapping[str, Any],
 ) -> bool:
-    for receipt in _accepted_closeout_receipts(study):
-        if not current_control_receipts.receipt_is_accepted_closeout(receipt):
-            continue
-        if _receipt_has_provider_admission_authorization_blocker(receipt):
-            continue
+    receipts = [
+        receipt
+        for receipt in _accepted_closeout_receipts(study)
+        if current_control_receipts.receipt_is_accepted_closeout(receipt)
+        and not _receipt_has_provider_admission_authorization_blocker(receipt)
+    ]
+    for receipt in receipts:
         if current_control_receipts.accepted_closeout_matches_candidate_identity(
             receipt,
             identity=identity,
         ):
+            return False
+        if _exact_owner_refs_closeout_matches_candidate(receipt, identity=identity):
+            return False
+    for receipt in receipts:
+        if not current_control_receipts.receipt_is_accepted_closeout(receipt):
+            continue
+        if _receipt_has_provider_admission_authorization_blocker(receipt):
             continue
         if _closeout_core_identity_matches_candidate(receipt, identity=identity):
             return True
