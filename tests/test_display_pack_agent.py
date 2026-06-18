@@ -63,6 +63,7 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
     }
     assert payload["authority_boundary"]["can_mutate_data_or_statistics"] is False
     assert payload["authority_boundary"]["can_authorize_publication_readiness"] is False
+    assert payload["expected_receipt_refs"]["figure_render_receipt"] == "paper/figure_render_receipt.json"
 
 
 def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request() -> None:
@@ -246,6 +247,8 @@ def test_display_pack_render_returns_agent_receipt_around_scaffold_render(tmp_pa
     assert (paper_root / "build" / "display_pack_publication_manifest.json").is_file()
     assert (paper_root / "build" / "display_pack_lock.json").is_file()
     assert (paper_root / "figure_visual_audit_receipt.json").is_file()
+    assert (paper_root / "figure_render_receipt.json").is_file()
+    assert payload["receipt_refs"]["figure_render_receipt"] == "paper/figure_render_receipt.json"
 
 
 def test_cli_display_pack_agent_plan_loads_figure_request_json(capsys) -> None:

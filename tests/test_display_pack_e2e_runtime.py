@@ -398,6 +398,7 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle
     from med_autoscience.publication_figure_quality_contract import (
         collect_publication_figure_quality_refs,
+        load_figure_render_receipt,
         load_figure_visual_audit_receipt,
     )
 
@@ -453,6 +454,20 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     assert visual_receipt["inspected_artifacts"][0]["artifact_sha256"] == figure["rendered_artifacts"]["png_sha256"]
     assert visual_receipt["final_status"] == "clear"
 
+    render_receipt = load_figure_render_receipt(paper_root / "figure_render_receipt.json")
+    render_figure = render_receipt["figures"][0]
+    assert render_figure["figure_id"] == "F1"
+    assert render_figure["selected_backend"] == "python"
+    assert render_figure["backend_exclusivity_proof"]["cross_backend_visual_fallback_used"] is False
+    assert render_figure["backend_exclusivity_proof"]["observed_renderer_family"] == "python"
+    assert set(render_figure["export_formats"]) == {"png", "pdf"}
+    assert render_figure["editable_text_required"] is True
+    assert render_figure["source_data_refs"] == ["paper/data/frozen/primary_curve.json"]
+    assert render_figure["source_data_digests"]["paper/data/frozen/primary_curve.json"] == "data-digest-primary"
+    assert render_figure["statistics_refs"] == ["analysis/statistics/auc_primary"]
+    assert render_figure["visual_qa_ref"] == "paper/figure_visual_audit_receipt.json"
+    assert render_receipt["authority_boundary"]["can_authorize_publication_readiness"] is False
+
     lifecycle = load_figure_polish_lifecycle(paper_root / "figure_polish_lifecycle.json")
     assert [event["state"] for event in lifecycle["events"]] == [
         "draft_rendered",
@@ -470,7 +485,9 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     assert refs["publication_style_profile"]["sha256"] == style_lock["sha256"]
     assert refs["figure_style_reference_bundle"]["status"] == "present"
     assert refs["figure_visual_audit_receipt"]["status"] == "present"
+    assert refs["figure_render_receipt"]["status"] == "present"
     assert refs["figure_polish_lifecycle"]["status"] == "present"
+    assert result["publication_figure_quality_refs"]["figure_render_receipt"]["status"] == "present"
 
 
 def test_cli_publication_display_pack_e2e_emits_manifest_json(tmp_path: Path, capsys) -> None:

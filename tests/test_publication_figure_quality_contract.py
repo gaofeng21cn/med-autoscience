@@ -197,6 +197,109 @@ def test_load_ai_illustration_receipt_rejects_claim_bearing_candidates(tmp_path:
         load_ai_illustration_receipt(path)
 
 
+def test_load_figure_render_receipt_requires_backend_export_and_source_boundaries(tmp_path: Path) -> None:
+    from med_autoscience.publication_figure_quality_contract import load_figure_render_receipt
+
+    path = tmp_path / "figure_render_receipt.json"
+    _write_json(
+        path,
+        {
+            "schema_version": 1,
+            "receipt_id": "render-receipt-20260618",
+            "source_project": "nature-skills",
+            "source_commit": "1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
+                    "selected_backend": "python",
+                    "execution_mode": "python_plugin",
+                    "backend_exclusivity_proof": {
+                        "selected_backend": "python",
+                        "observed_renderer_family": "python",
+                        "cross_backend_visual_fallback_used": False,
+                        "non_selected_backend_rendered_artifacts": [],
+                    },
+                    "export_formats": ["png", "pdf"],
+                    "editable_text_required": True,
+                    "editable_text_check_ref": "paper/figures/generated/F1.pdf",
+                    "source_data_refs": ["paper/data/frozen/primary_curve.json"],
+                    "source_data_digests": {"paper/data/frozen/primary_curve.json": "data-digest-primary"},
+                    "statistics_refs": ["analysis/statistics/auc_primary"],
+                    "rendered_artifact_refs": ["paper/figures/generated/F1.png", "paper/figures/generated/F1.pdf"],
+                    "visual_qa_ref": "paper/figure_visual_audit_receipt.json",
+                    "authority_boundary": {
+                        "can_authorize_publication_readiness": False,
+                        "can_authorize_quality_verdict": False,
+                        "can_mutate_data_or_statistics": False,
+                    },
+                }
+            ],
+            "authority_boundary": {
+                "can_authorize_publication_readiness": False,
+                "can_authorize_quality_verdict": False,
+                "can_mutate_data_or_statistics": False,
+            },
+        },
+    )
+
+    payload = load_figure_render_receipt(path)
+
+    figure = payload["figures"][0]
+    assert figure["selected_backend"] == "python"
+    assert figure["backend_exclusivity_proof"]["cross_backend_visual_fallback_used"] is False
+    assert figure["export_formats"] == ["png", "pdf"]
+    assert figure["authority_boundary"]["can_authorize_publication_readiness"] is False
+
+
+def test_load_figure_render_receipt_rejects_cross_backend_fallback(tmp_path: Path) -> None:
+    from med_autoscience.publication_figure_quality_contract import load_figure_render_receipt
+
+    path = tmp_path / "figure_render_receipt.json"
+    _write_json(
+        path,
+        {
+            "schema_version": 1,
+            "receipt_id": "bad-render-receipt",
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
+                    "selected_backend": "python",
+                    "execution_mode": "python_plugin",
+                    "backend_exclusivity_proof": {
+                        "selected_backend": "python",
+                        "observed_renderer_family": "r_ggplot2",
+                        "cross_backend_visual_fallback_used": True,
+                        "non_selected_backend_rendered_artifacts": ["paper/figures/generated/F1.preview.png"],
+                    },
+                    "export_formats": ["png", "pdf"],
+                    "editable_text_required": True,
+                    "editable_text_check_ref": "paper/figures/generated/F1.pdf",
+                    "source_data_refs": ["paper/data/frozen/primary_curve.json"],
+                    "source_data_digests": {"paper/data/frozen/primary_curve.json": "data-digest-primary"},
+                    "statistics_refs": ["analysis/statistics/auc_primary"],
+                    "rendered_artifact_refs": ["paper/figures/generated/F1.png", "paper/figures/generated/F1.pdf"],
+                    "visual_qa_ref": "paper/figure_visual_audit_receipt.json",
+                    "authority_boundary": {
+                        "can_authorize_publication_readiness": False,
+                        "can_authorize_quality_verdict": False,
+                        "can_mutate_data_or_statistics": False,
+                    },
+                }
+            ],
+            "authority_boundary": {
+                "can_authorize_publication_readiness": False,
+                "can_authorize_quality_verdict": False,
+                "can_mutate_data_or_statistics": False,
+            },
+        },
+    )
+
+    with pytest.raises(ValueError, match="cross_backend_visual_fallback_used"):
+        load_figure_render_receipt(path)
+
+
 def test_collect_publication_figure_quality_refs_reports_present_and_missing_surfaces(tmp_path: Path) -> None:
     from med_autoscience.publication_figure_quality_contract import collect_publication_figure_quality_refs
 
@@ -221,12 +324,14 @@ def test_collect_publication_figure_quality_refs_reports_present_and_missing_sur
 
     assert refs["figure_intent"]["path"] == "paper/figure_intent.json"
     assert refs["figure_intent"]["status"] == "present"
+    assert refs["figure_render_receipt"]["status"] == "missing"
     assert refs["figure_style_reference_bundle"]["status"] == "missing"
 
 
 def test_root_contract_indexes_publication_figure_quality_surfaces() -> None:
     from med_autoscience.publication_figure_quality_contract import (
         AI_ILLUSTRATION_RECEIPT_BASENAME,
+        FIGURE_RENDER_RECEIPT_BASENAME,
         FIGURE_POLISH_LIFECYCLE_BASENAME,
         FIGURE_INTENT_BASENAME,
         FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME,
@@ -249,6 +354,7 @@ def test_root_contract_indexes_publication_figure_quality_surfaces() -> None:
         contract["paper_surfaces"]["figure_visual_audit_receipt"]["path"]
         == f"paper/{FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME}"
     )
+    assert contract["paper_surfaces"]["figure_render_receipt"]["path"] == f"paper/{FIGURE_RENDER_RECEIPT_BASENAME}"
     assert (
         contract["paper_surfaces"]["figure_polish_lifecycle"]["path"]
         == f"paper/{FIGURE_POLISH_LIFECYCLE_BASENAME}"

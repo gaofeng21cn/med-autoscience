@@ -25,6 +25,10 @@ from med_autoscience.medical_figure_spec_contract import (
     load_medical_figure_spec,
     load_medical_figure_specs,
 )
+from med_autoscience.display_pack_e2e_runtime_parts.figure_render_receipt import (
+    FIGURE_RENDER_RECEIPT_REF,
+    write_figure_render_receipt,
+)
 from med_autoscience.publication_display_contract import (
     load_display_overrides,
     load_publication_style_profile,
@@ -533,6 +537,7 @@ def _render_figure(
         "figure_kind": figure_spec["figure_kind"],
         "renderer_family": template_manifest.renderer_family,
         "execution_mode": template_manifest.execution_mode,
+        "required_exports": list(template_manifest.required_exports),
         "claim_ref": intent_figure["claim_ref"],
         "data_ref": intent_figure["data_ref"],
         "data_digest": data_digest,
@@ -778,6 +783,12 @@ def materialize_display_pack_publication_manifest(
         figure_entries=figure_entries,
         visual_audit_review=visual_audit_review,
     )
+    render_receipt = write_figure_render_receipt(
+        paper_root=normalized_paper_root,
+        figure_entries=figure_entries,
+        timestamp_factory=_utc_now,
+        write_json=_write_json,
+    )
     lifecycle = _write_figure_polish_lifecycle(
         paper_root=normalized_paper_root,
         figure_entries=figure_entries,
@@ -828,6 +839,11 @@ def materialize_display_pack_publication_manifest(
             "ref": FIGURE_VISUAL_AUDIT_RECEIPT_REF,
             "final_status": audit_receipt["final_status"],
             "finding_count": len(audit_receipt["findings"]),
+        },
+        "figure_render_receipt": {
+            "path": str(normalized_paper_root / "figure_render_receipt.json"),
+            "ref": FIGURE_RENDER_RECEIPT_REF,
+            "figure_count": len(render_receipt["figures"]),
         },
         "display_artifact_manifests": [
             {key: value for key, value in item.items() if key != "payload"}

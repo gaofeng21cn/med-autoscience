@@ -33,6 +33,19 @@ def test_external_learning_adoption_closure_separates_contracts_from_worker_land
     assert frameworks["evo_scientist_evoskills"]["closure_status"] == (
         "sidecar_execution_slot_landed"
     )
+    assert frameworks["nature_skills"]["closure_status"] == "owner_surface_landed"
+    assert "scientific_capability_registry_descriptor_refs" in frameworks[
+        "nature_skills"
+    ]["owner_surface"]
+    assert "descriptor/current-owner input refs" in frameworks["nature_skills"][
+        "worker_or_executor_landing"
+    ]
+    assert "not registered in SIDECAR_WORKER_REGISTRY" in frameworks["nature_skills"][
+        "worker_or_executor_landing"
+    ]
+    assert "nature_figure_display_contract_refs" in frameworks["nature_skills"][
+        "next_landing_path"
+    ]
     for framework_id in (
         "academic_research_skills",
         "autosci_omegawiki",
@@ -51,6 +64,7 @@ def test_external_learning_adoption_closure_separates_contracts_from_worker_land
         assert framework["friction_policy"]["can_block_current_owner_action"] is False
         assert framework["authority_boundary"]["can_write_publication_eval"] is False
         assert framework["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert "nature_skills" not in module.SIDECAR_WORKER_REGISTRY
 
 
 def test_external_learning_sidecar_apply_writes_only_refs_only_advisory_result(tmp_path: Path) -> None:

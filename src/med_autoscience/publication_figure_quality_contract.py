@@ -14,6 +14,7 @@ MEDICAL_FIGURE_SPECS_BASENAME = "figure_specs.json"
 PUBLICATION_STYLE_PROFILE_BASENAME = "publication_style_profile.json"
 FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME = "figure_style_reference_bundle.json"
 FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME = "figure_visual_audit_receipt.json"
+FIGURE_RENDER_RECEIPT_BASENAME = "figure_render_receipt.json"
 FIGURE_POLISH_LIFECYCLE_BASENAME = "figure_polish_lifecycle.json"
 AI_ILLUSTRATION_RECEIPT_BASENAME = "ai_illustration_receipt.json"
 
@@ -42,6 +43,8 @@ VALID_PROMOTION_DECISIONS = frozenset(
 )
 VALID_VISUAL_AUDIT_FINAL_STATUS = frozenset(("clear", "findings_open", "blocked"))
 VALID_ILLUSTRATION_ACCEPTANCE = frozenset(("ai_recommended", "human_accepted", "human_rejected"))
+VALID_RENDER_BACKENDS = frozenset(("python", "r_ggplot2", "html_svg"))
+VALID_RENDER_EXECUTION_MODES = frozenset(("python_plugin", "subprocess"))
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:
@@ -291,6 +294,145 @@ def load_ai_illustration_receipt(path: Path) -> dict[str, Any]:
     return {**payload, "receipt_id": receipt_id, "illustrations": normalized_illustrations}
 
 
+def _require_false(item: dict[str, Any], field_name: str, *, context: str) -> None:
+    if item.get(field_name) is not False:
+        raise ValueError(f"{context}.{field_name} must be false")
+
+
+def _require_authority_boundary(item: dict[str, Any], *, context: str) -> dict[str, Any]:
+    value = item.get("authority_boundary")
+    if not isinstance(value, dict):
+        raise ValueError(f"{context}.authority_boundary must be a JSON object")
+    normalized = dict(value)
+    for field_name in (
+        "can_authorize_publication_readiness",
+        "can_authorize_quality_verdict",
+        "can_mutate_data_or_statistics",
+    ):
+        _require_false(normalized, field_name, context=f"{context}.authority_boundary")
+    return normalized
+
+
+def _require_text_mapping(item: dict[str, Any], field_name: str, *, context: str) -> dict[str, str]:
+    value = item.get(field_name)
+    if not isinstance(value, dict) or not value:
+        raise ValueError(f"{context}.{field_name} must be a non-empty object")
+    normalized: dict[str, str] = {}
+    for key, entry in value.items():
+        key_text = str(key or "").strip()
+        entry_text = str(entry or "").strip()
+        if not key_text or not entry_text:
+            raise ValueError(f"{context}.{field_name} must map non-empty strings")
+        normalized[key_text] = entry_text
+    return normalized
+
+
+def _normalize_backend(value: str, *, context: str) -> str:
+    normalized = value.strip()
+    if normalized not in VALID_RENDER_BACKENDS:
+        raise ValueError(f"{context} must be one of {sorted(VALID_RENDER_BACKENDS)!r}")
+    return normalized
+
+
+def load_figure_render_receipt(path: Path) -> dict[str, Any]:
+    payload = _read_json_object(path)
+    _require_schema_version(payload, contract_name="figure_render_receipt")
+    receipt_id = _require_non_empty_string(payload, "receipt_id", context="figure_render_receipt")
+    figures = _require_object_list(payload, "figures", contract_name="figure_render_receipt")
+    normalized_figures: list[dict[str, Any]] = []
+    for index, item in enumerate(figures):
+        context = f"figure_render_receipt.figures[{index}]"
+        selected_backend = _normalize_backend(
+            _require_non_empty_string(item, "selected_backend", context=context),
+            context=f"{context}.selected_backend",
+        )
+        execution_mode = _require_non_empty_string(item, "execution_mode", context=context)
+        if execution_mode not in VALID_RENDER_EXECUTION_MODES:
+            raise ValueError(f"{context}.execution_mode must be one of {sorted(VALID_RENDER_EXECUTION_MODES)!r}")
+        exclusivity = item.get("backend_exclusivity_proof")
+        if not isinstance(exclusivity, dict):
+            raise ValueError(f"{context}.backend_exclusivity_proof must be a JSON object")
+        normalized_exclusivity = dict(exclusivity)
+        exclusivity_selected_backend = _normalize_backend(
+            _require_non_empty_string(
+                normalized_exclusivity,
+                "selected_backend",
+                context=f"{context}.backend_exclusivity_proof",
+            ),
+            context=f"{context}.backend_exclusivity_proof.selected_backend",
+        )
+        observed_renderer_family = _normalize_backend(
+            _require_non_empty_string(
+                normalized_exclusivity,
+                "observed_renderer_family",
+                context=f"{context}.backend_exclusivity_proof",
+            ),
+            context=f"{context}.backend_exclusivity_proof.observed_renderer_family",
+        )
+        if exclusivity_selected_backend != selected_backend:
+            raise ValueError(f"{context}.backend_exclusivity_proof.selected_backend must match selected_backend")
+        _require_false(
+            normalized_exclusivity,
+            "cross_backend_visual_fallback_used",
+            context=f"{context}.backend_exclusivity_proof",
+        )
+        non_selected = _optional_string_list(
+            normalized_exclusivity,
+            "non_selected_backend_rendered_artifacts",
+            context=f"{context}.backend_exclusivity_proof",
+        )
+        if non_selected:
+            raise ValueError(
+                f"{context}.backend_exclusivity_proof.non_selected_backend_rendered_artifacts must be empty"
+            )
+        if observed_renderer_family != selected_backend:
+            raise ValueError(f"{context}.backend_exclusivity_proof.observed_renderer_family must match selected_backend")
+        source_data_refs = _require_string_list(item, "source_data_refs", context=context)
+        source_data_digests = _require_text_mapping(item, "source_data_digests", context=context)
+        missing_digest_refs = [ref for ref in source_data_refs if ref not in source_data_digests]
+        if missing_digest_refs:
+            raise ValueError(f"{context}.source_data_digests missing source data ref `{missing_digest_refs[0]}`")
+        editable_text_required = item.get("editable_text_required")
+        if editable_text_required is not True:
+            raise ValueError(f"{context}.editable_text_required must be true")
+        normalized_figures.append(
+            {
+                **item,
+                "figure_id": _require_non_empty_string(item, "figure_id", context=context),
+                "template_id": _require_non_empty_string(item, "template_id", context=context),
+                "selected_backend": selected_backend,
+                "execution_mode": execution_mode,
+                "backend_exclusivity_proof": {
+                    **normalized_exclusivity,
+                    "selected_backend": selected_backend,
+                    "observed_renderer_family": observed_renderer_family,
+                    "cross_backend_visual_fallback_used": False,
+                    "non_selected_backend_rendered_artifacts": [],
+                },
+                "export_formats": _require_string_list(item, "export_formats", context=context),
+                "editable_text_required": True,
+                "editable_text_check_ref": _require_non_empty_string(item, "editable_text_check_ref", context=context),
+                "source_data_refs": source_data_refs,
+                "source_data_digests": source_data_digests,
+                "statistics_refs": _require_string_list(item, "statistics_refs", context=context),
+                "rendered_artifact_refs": _require_string_list(item, "rendered_artifact_refs", context=context),
+                "visual_qa_ref": _require_non_empty_string(item, "visual_qa_ref", context=context),
+                "authority_boundary": _require_authority_boundary(item, context=context),
+            }
+        )
+    _ensure_unique(
+        [str(item["figure_id"]) for item in normalized_figures],
+        field_name="figures[].figure_id",
+        contract_name="figure_render_receipt",
+    )
+    return {
+        **payload,
+        "receipt_id": receipt_id,
+        "figures": normalized_figures,
+        "authority_boundary": _require_authority_boundary(payload, context="figure_render_receipt"),
+    }
+
+
 def _load_medical_figure_spec(path: Path) -> dict[str, Any]:
     from med_autoscience.medical_figure_spec_contract import load_medical_figure_spec
 
@@ -370,6 +512,11 @@ def collect_publication_figure_quality_refs(*, paper_root: Path) -> dict[str, di
             paper_root=resolved_paper_root,
             basename=FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME,
             loader=load_figure_visual_audit_receipt,
+        ),
+        "figure_render_receipt": _surface_ref(
+            paper_root=resolved_paper_root,
+            basename=FIGURE_RENDER_RECEIPT_BASENAME,
+            loader=load_figure_render_receipt,
         ),
         "figure_polish_lifecycle": _surface_ref(
             paper_root=resolved_paper_root,

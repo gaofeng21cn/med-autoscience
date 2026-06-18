@@ -104,6 +104,47 @@ def test_display_pack_lock_payload_includes_figure_quality_refs(tmp_path: Path) 
         },
     )
     _write_json(
+        paper_root / "figure_render_receipt.json",
+        {
+            "schema_version": 1,
+            "receipt_id": "render-receipt-20260618",
+            "source_project": "nature-skills",
+            "source_commit": "1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
+                    "selected_backend": "r_ggplot2",
+                    "execution_mode": "python_plugin",
+                    "backend_exclusivity_proof": {
+                        "selected_backend": "r_ggplot2",
+                        "observed_renderer_family": "r_ggplot2",
+                        "cross_backend_visual_fallback_used": False,
+                        "non_selected_backend_rendered_artifacts": [],
+                    },
+                    "export_formats": ["png", "pdf"],
+                    "editable_text_required": True,
+                    "editable_text_check_ref": "paper/figures/generated/F1.pdf",
+                    "source_data_refs": ["paper/data/frozen/primary.json"],
+                    "source_data_digests": {"paper/data/frozen/primary.json": "data-digest"},
+                    "statistics_refs": ["analysis/statistics/auc_primary"],
+                    "rendered_artifact_refs": ["paper/figures/generated/F1.png", "paper/figures/generated/F1.pdf"],
+                    "visual_qa_ref": "paper/figure_visual_audit_receipt.json",
+                    "authority_boundary": {
+                        "can_authorize_publication_readiness": False,
+                        "can_authorize_quality_verdict": False,
+                        "can_mutate_data_or_statistics": False,
+                    },
+                }
+            ],
+            "authority_boundary": {
+                "can_authorize_publication_readiness": False,
+                "can_authorize_quality_verdict": False,
+                "can_mutate_data_or_statistics": False,
+            },
+        },
+    )
+    _write_json(
         paper_root / "figure_spec.json",
         {
             "schema_version": 1,
@@ -154,5 +195,6 @@ def test_display_pack_lock_payload_includes_figure_quality_refs(tmp_path: Path) 
     assert refs["figure_intent"]["status"] == "present"
     assert refs["medical_figure_spec"]["status"] == "present"
     assert refs["figure_visual_audit_receipt"]["status"] == "present"
+    assert refs["figure_render_receipt"]["status"] == "present"
     assert refs["figure_polish_lifecycle"]["status"] == "present"
     assert refs["ai_illustration_receipt"]["status"] == "missing"

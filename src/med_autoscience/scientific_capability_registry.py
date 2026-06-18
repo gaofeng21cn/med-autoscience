@@ -47,6 +47,59 @@ _STANDARD_AGENT_FALSE_COMPLETION_BLOCKERS = (
     "hosted_consumption_packet_without_live_owner_answer",
     "domain_local_selector_or_always_on_sidecar",
 )
+NATURE_SKILLS_SOURCE_HEAD = "1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547"
+NATURE_FIGURE_CONTRACT_REFS = (
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-figure/SKILL.md"
+    ),
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-figure/manifest.yaml"
+    ),
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-figure/references/figure-contract.md"
+    ),
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-figure/references/qa-contract.md"
+    ),
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-figure/references/backend-selection.md"
+    ),
+)
+NATURE_FIGURE_CURRENT_DELTA_TRIGGER_TERMS = (
+    "figure",
+    "display",
+    "plotting",
+    "stable plotting need",
+    "stable_plotting_need",
+)
+_CURRENT_DELTA_DECLARATION_KEYS = {
+    "action_type",
+    "action_id",
+    "artifact_kind",
+    "artifact_need",
+    "capability_families",
+    "capability_family",
+    "declared_need",
+    "declared_needs",
+    "display_need",
+    "figure_need",
+    "intent",
+    "manifest_need",
+    "need",
+    "output_kind",
+    "requested_refs",
+    "requested_surface",
+    "route_required_ref_families",
+    "route_required_ref_family",
+    "router_need",
+    "stable_plotting_need",
+    "target_surface",
+}
 
 
 def build_scientific_capability_registry() -> dict[str, Any]:
@@ -100,6 +153,7 @@ def resolve_scientific_capabilities(
             capability,
             action_type=action_type,
             requested_families=requested_families,
+            current_owner_delta=delta,
         )
     ]
     return {
@@ -157,13 +211,20 @@ def invoke_scientific_capability(
         ),
     }
     if capability["invocation_kind"] == "descriptor_only_current_owner_input_refs":
-        invocation["status"] = "descriptor_only"
-        invocation["result"] = {
-            "capability_ref": capability["capability_ref"],
-            "next_step": capability["invocation_kind"],
-            "opl_capability_invocation_request": runtime_request,
-            "mas_local_capability_actuator": False,
-        }
+        invocation.update(
+            {
+                "status": "descriptor_only",
+                "request_only": False,
+                "descriptor_only": True,
+                "opl_capability_runtime_required": False,
+                "external_runner_invocation_allowed": False,
+                "result": _descriptor_only_projection(
+                    capability=capability,
+                    current_owner_delta=delta,
+                    runtime_request=runtime_request,
+                ),
+            }
+        )
     return invocation
 
 
@@ -281,6 +342,27 @@ def _capabilities() -> list[dict[str, Any]]:
             role="hypothesis_portfolio_tournament_meta_review_refs_only_affordance",
         ),
         _capability(
+            capability_id="nature_figure_display_contract_refs",
+            capability_family="figure_display_contract_refs",
+            source_frameworks=[
+                f"Yuan1z0825/nature-skills@{NATURE_SKILLS_SOURCE_HEAD}",
+                "Nature Figure skill",
+            ],
+            action_triggers=[
+                "display_pack_orchestrate",
+                "display_pack_figure_plan",
+                "display_pack_preflight",
+                "display_pack_render",
+                "artifact_display_surface_materialization_required",
+            ],
+            current_delta_trigger_terms=list(NATURE_FIGURE_CURRENT_DELTA_TRIGGER_TERMS),
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface="descriptor_only:nature_figure_display_contract_refs",
+            output_refs=list(NATURE_FIGURE_CONTRACT_REFS),
+            contract_refs=list(NATURE_FIGURE_CONTRACT_REFS),
+            role="nature_skills_figure_display_router_manifest_and_stable_plotting_refs",
+        ),
+        _capability(
             capability_id="display_pack_visual_capability",
             capability_family="display_pack",
             source_frameworks=["MAS Display Pack"],
@@ -344,8 +426,10 @@ def _capability(
     callable_surface: str,
     output_refs: list[str],
     role: str,
+    current_delta_trigger_terms: list[str] | None = None,
+    contract_refs: list[str] | None = None,
 ) -> dict[str, Any]:
-    return {
+    payload: dict[str, Any] = {
         "capability_id": capability_id,
         "capability_family": capability_family,
         "source_frameworks": source_frameworks,
@@ -363,6 +447,14 @@ def _capability(
         "external_runtime_dependency": False,
         "authority_boundary": _authority_boundary(),
     }
+    if current_delta_trigger_terms:
+        payload["current_delta_trigger_terms"] = list(current_delta_trigger_terms)
+    if contract_refs:
+        payload["contract_refs"] = list(contract_refs)
+    if invocation_kind == "descriptor_only_current_owner_input_refs":
+        payload["descriptor_only"] = True
+        payload["external_runner_invocation_allowed"] = False
+    return payload
 
 
 def _resolution_candidate(
@@ -385,6 +477,12 @@ def _resolution_candidate(
         "body_included": False,
         "can_block_current_owner_action": False,
         "requires_explicit_invoke": True,
+        "descriptor_only": bool(capability.get("descriptor_only")),
+        "external_runner_invocation_allowed": bool(
+            capability.get("external_runner_invocation_allowed", False)
+        ),
+        "contract_refs": list(capability.get("contract_refs") or []),
+        "readback": _capability_readback(capability),
         "authority_boundary": _authority_boundary(),
     }
 
@@ -394,12 +492,18 @@ def _capability_matches(
     *,
     action_type: str,
     requested_families: set[str],
+    current_owner_delta: Mapping[str, Any],
 ) -> bool:
     family = _text(capability.get("capability_family"))
     if family in requested_families or _text(capability.get("capability_id")) in requested_families:
         return True
     triggers = set(_text_list(capability.get("action_triggers")))
-    return "*" in triggers or action_type in triggers
+    if "*" in triggers or action_type in triggers:
+        return True
+    return _current_delta_declares_terms(
+        current_owner_delta,
+        terms=_text_list(capability.get("current_delta_trigger_terms")),
+    )
 
 
 def _trigger_reason(
@@ -417,7 +521,62 @@ def _trigger_reason(
         return "current_delta_requested_capability_id"
     if action_type in set(_text_list(capability.get("action_triggers"))):
         return "action_type_trigger"
+    if _current_delta_declares_terms(
+        current_owner_delta,
+        terms=_text_list(capability.get("current_delta_trigger_terms")),
+    ):
+        return "current_delta_declared_figure_display_need"
     return "default_jit_affordance"
+
+
+def _capability_readback(capability: Mapping[str, Any]) -> dict[str, Any]:
+    descriptor_only = (
+        capability["invocation_kind"] == "descriptor_only_current_owner_input_refs"
+    )
+    return {
+        "surface_kind": "mas_scientific_capability_readback",
+        "capability_id": capability["capability_id"],
+        "invocation_kind": capability["invocation_kind"],
+        "descriptor_only": descriptor_only,
+        "refs_only": True,
+        "request_only": not descriptor_only,
+        "can_execute_external_runner": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_quality_verdict": False,
+        "contract_refs": list(capability.get("contract_refs") or []),
+    }
+
+
+def _current_delta_declares_terms(
+    current_owner_delta: Mapping[str, Any],
+    *,
+    terms: list[str],
+) -> bool:
+    if not terms:
+        return False
+    haystack = " ".join(_current_delta_declaration_texts(current_owner_delta)).lower()
+    return any(term.lower() in haystack for term in terms)
+
+
+def _current_delta_declaration_texts(value: object) -> list[str]:
+    if isinstance(value, Mapping):
+        texts: list[str] = []
+        for key, item in value.items():
+            if key in _CURRENT_DELTA_DECLARATION_KEYS or str(key).endswith(
+                ("_ref", "_refs", "_need", "_needs", "_kind", "_surface")
+            ):
+                texts.append(str(key))
+                texts.extend(_current_delta_declaration_texts(item))
+            elif isinstance(item, Mapping):
+                texts.extend(_current_delta_declaration_texts(item))
+        return texts
+    if isinstance(value, (list, tuple, set)):
+        texts = []
+        for item in value:
+            texts.extend(_current_delta_declaration_texts(item))
+        return texts
+    text = _text(value)
+    return [text] if text else []
 
 
 def _capability_by_id(capability_id: str) -> dict[str, Any]:
@@ -502,6 +661,37 @@ def _capability_request_projection(
         "output_refs": list(capability.get("output_refs") or []),
         "opl_capability_invocation_request": dict(runtime_request),
         "mas_local_capability_actuator": False,
+        "mainline_waits_for_capability": False,
+        "can_block_current_owner_action": False,
+        "authority_boundary": _authority_boundary(),
+    }
+
+
+def _descriptor_only_projection(
+    *,
+    capability: Mapping[str, Any],
+    current_owner_delta: Mapping[str, Any],
+    runtime_request: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_scientific_capability_descriptor_only_projection",
+        "schema_version": SCHEMA_VERSION,
+        "status": "descriptor_only",
+        "capability_ref": capability["capability_ref"],
+        "capability_id": capability["capability_id"],
+        "capability_family": capability["capability_family"],
+        "invocation_kind": capability["invocation_kind"],
+        "refs_only": True,
+        "descriptor_only": True,
+        "request_only": False,
+        "body_included": False,
+        "current_owner_delta_identity": _current_owner_summary(current_owner_delta),
+        "output_refs": list(capability.get("output_refs") or []),
+        "contract_refs": list(capability.get("contract_refs") or []),
+        "readback": _capability_readback(capability),
+        "opl_capability_invocation_request": dict(runtime_request),
+        "mas_local_capability_actuator": False,
+        "external_runner_invocation_allowed": False,
         "mainline_waits_for_capability": False,
         "can_block_current_owner_action": False,
         "authority_boundary": _authority_boundary(),

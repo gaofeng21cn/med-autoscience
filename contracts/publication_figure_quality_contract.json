@@ -2,7 +2,7 @@
   "schema_version": 1,
   "contract_id": "publication_figure_quality_contract.v1",
   "owner": "MedAutoScience",
-  "purpose": "Paper-level figure quality surfaces for Display Pack v2: figure intent, declarative medical figure specs, style references, visual audit receipts, AI/VLM polish lifecycle, and AI illustration receipts.",
+  "purpose": "Paper-level figure quality surfaces for Display Pack v2: figure intent, declarative medical figure specs, style references, backend-exclusive render receipts, visual audit receipts, AI/VLM polish lifecycle, and AI illustration receipts.",
   "machine_boundary": "The enforceable validators live in med_autoscience.publication_figure_quality_contract. This JSON file indexes the stable surface names, paths, consumers, and authority boundaries for other agents and contract readers.",
   "source_module": "src/med_autoscience/publication_figure_quality_contract.py",
   "paper_surfaces": {
@@ -45,6 +45,15 @@
       "allowed_audit_modes": ["vlm_visual_verification", "human_visual_review", "hybrid_visual_review"],
       "allowed_promotion_decisions": ["paper_local_only", "promote_to_contract", "promote_to_qc", "promote_to_golden_regression", "needs_human_decision"],
       "authority_boundary": "Records review of real rendered artifacts and routes concrete findings. It is quality evidence, not a publication verdict or artifact authority."
+    },
+    "figure_render_receipt": {
+      "path": "paper/figure_render_receipt.json",
+      "loader": "med_autoscience.publication_figure_quality_contract:load_figure_render_receipt",
+      "required_top_level": ["schema_version", "receipt_id", "figures", "authority_boundary"],
+      "required_entry_fields": ["figure_id", "template_id", "selected_backend", "execution_mode", "backend_exclusivity_proof", "export_formats", "editable_text_required", "editable_text_check_ref", "source_data_refs", "source_data_digests", "statistics_refs", "rendered_artifact_refs", "visual_qa_ref", "authority_boundary"],
+      "backend_exclusivity_boundary": "selected_backend and observed_renderer_family must match; cross_backend_visual_fallback_used must be false; non_selected_backend_rendered_artifacts must be empty.",
+      "nature_skills_pattern": "Clean-room adoption of nature-figure backend-exclusive export QA. The receipt records renderer execution evidence only; it is not a vendor runner, display authority, publication verdict, or quality verdict.",
+      "authority_boundary": "Render execution evidence only. It cannot authorize publication readiness, mutate data/statistics, replace visual audit, or carry artifact authority."
     },
     "figure_polish_lifecycle": {
       "path": "paper/figure_polish_lifecycle.json",

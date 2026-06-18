@@ -54,6 +54,7 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
         "evo_scientist_progress_sidecar",
         "light_external_skill_content_advisory",
         "co_scientist_current_owner_affordance",
+        "nature_figure_display_contract_refs",
         "display_pack_visual_capability",
     } <= capability_ids
 
@@ -70,6 +71,112 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
     )
     assert all(item["refs_only"] is True for item in selected.values())
     assert all(item["can_block_current_owner_action"] is False for item in selected.values())
+
+
+def test_scientific_capability_registry_resolves_nature_figure_display_refs_only_descriptor(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+    current_owner_delta = {
+        "action_type": "prepare_manuscript_visual_package",
+        "action_id": "display-delta-001",
+        "owner": "display",
+        "work_unit_id": "figure-display-router",
+        "work_unit_fingerprint": "sha256:display-router",
+        "declared_needs": [
+            "figure router refs",
+            "display manifest refs",
+            "stable plotting need",
+        ],
+    }
+
+    resolution = module.resolve_scientific_capabilities(
+        current_owner_delta=current_owner_delta,
+    )
+    selected = {
+        item["capability_id"]: item
+        for item in resolution["selected_capabilities"]
+    }
+    candidate = selected["nature_figure_display_contract_refs"]
+
+    assert candidate["capability_family"] == "figure_display_contract_refs"
+    assert candidate["invocation_kind"] == "descriptor_only_current_owner_input_refs"
+    assert candidate["trigger_reason"] == "current_delta_declared_figure_display_need"
+    assert candidate["refs_only"] is True
+    assert candidate["descriptor_only"] is True
+    assert candidate["external_runner_invocation_allowed"] is False
+    assert candidate["can_block_current_owner_action"] is False
+    assert candidate["authority_boundary"]["can_write_publication_eval"] is False
+    assert candidate["authority_boundary"]["can_authorize_quality_verdict"] is False
+    assert {
+        "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/SKILL.md",
+        "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/manifest.yaml",
+        "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/figure-contract.md",
+        "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/qa-contract.md",
+        "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/backend-selection.md",
+    } == set(candidate["contract_refs"])
+    assert candidate["readback"] == {
+        "surface_kind": "mas_scientific_capability_readback",
+        "capability_id": "nature_figure_display_contract_refs",
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "descriptor_only": True,
+        "refs_only": True,
+        "request_only": False,
+        "can_execute_external_runner": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_quality_verdict": False,
+        "contract_refs": candidate["contract_refs"],
+    }
+
+    invocation = module.invoke_scientific_capability(
+        capability_id="nature_figure_display_contract_refs",
+        study_root=study_root,
+        current_owner_delta=current_owner_delta,
+        apply=True,
+    )
+
+    assert invocation["surface_kind"] == "mas_scientific_capability_invocation"
+    assert invocation["status"] == "descriptor_only"
+    assert invocation["refs_only"] is True
+    assert invocation["request_only"] is False
+    assert invocation["descriptor_only"] is True
+    assert invocation["mas_local_capability_actuator"] is False
+    assert invocation["external_runner_invocation_allowed"] is False
+    assert invocation["opl_capability_runtime_required"] is False
+    assert invocation["authority_boundary"]["can_write_publication_eval"] is False
+    assert invocation["authority_boundary"]["can_authorize_publication_readiness"] is False
+    assert invocation["authority_boundary"]["can_authorize_quality_verdict"] is False
+    assert invocation["result"]["surface_kind"] == (
+        "mas_scientific_capability_descriptor_only_projection"
+    )
+    assert invocation["result"]["contract_refs"] == candidate["contract_refs"]
+    assert invocation["result"]["readback"]["can_execute_external_runner"] is False
+    request = invocation["opl_capability_invocation_request"]
+    assert request["mas_can_run_capability_actuator"] is False
+    assert request["expected_output_refs"] == candidate["contract_refs"]
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+
+def test_scientific_capability_registry_does_not_treat_generic_manifest_as_nature_figure_need() -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+
+    resolution = module.resolve_scientific_capabilities(
+        current_owner_delta={
+            "action_type": "prepare_manifest_router",
+            "declared_needs": ["router refs", "manifest refs"],
+            "work_unit_id": "generic-router-manifest",
+        },
+    )
+
+    selected_ids = {
+        item["capability_id"]
+        for item in resolution["selected_capabilities"]
+    }
+    assert "nature_figure_display_contract_refs" not in selected_ids
 
 
 def test_scientific_capability_registry_invokes_external_learning_as_opl_request_only(
@@ -470,3 +577,60 @@ def test_scientific_capability_registry_cli_modes_emit_json(tmp_path: Path, caps
     assert invoke_payload["status"] == "opl_capability_request_pending"
     assert invoke_payload["mas_local_capability_actuator"] is False
     assert not (study_root / "artifacts/advisory/external_learning_sidecar/latest.json").exists()
+
+    exit_code = cli.main(
+        [
+            "scientific-capability-registry",
+            "--mode",
+            "resolve",
+            "--current-owner-delta-json",
+            json.dumps(
+                {
+                    "action_type": "prepare_manuscript_visual_package",
+                    "declared_needs": ["figure router", "display manifest"],
+                }
+            ),
+        ]
+    )
+    assert exit_code == 0
+    nature_resolve_payload = json.loads(capsys.readouterr().out)
+    nature_selected = {
+        item["capability_id"]: item
+        for item in nature_resolve_payload["selected_capabilities"]
+    }
+    assert nature_selected["nature_figure_display_contract_refs"]["readback"][
+        "descriptor_only"
+    ] is True
+    assert nature_selected["nature_figure_display_contract_refs"]["readback"][
+        "can_execute_external_runner"
+    ] is False
+
+    exit_code = cli.main(
+        [
+            "scientific-capability-registry",
+            "--mode",
+            "invoke",
+            "--capability-id",
+            "nature_figure_display_contract_refs",
+            "--study-root",
+            str(study_root),
+            "--current-owner-delta-json",
+            json.dumps(
+                {
+                    "action_type": "prepare_manuscript_visual_package",
+                    "declared_needs": ["stable plotting need"],
+                }
+            ),
+            "--apply",
+        ]
+    )
+    assert exit_code == 0
+    nature_invoke_payload = json.loads(capsys.readouterr().out)
+    assert nature_invoke_payload["status"] == "descriptor_only"
+    assert nature_invoke_payload["request_only"] is False
+    assert nature_invoke_payload["result"]["readback"]["descriptor_only"] is True
+    assert nature_invoke_payload["result"]["readback"][
+        "can_authorize_publication_readiness"
+    ] is False
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()

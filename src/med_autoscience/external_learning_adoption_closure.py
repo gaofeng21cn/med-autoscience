@@ -107,24 +107,44 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
             source_refs=[
                 "docs/references/mainline/nature_skills_learning_intake.md",
                 "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+                "med_autoscience.scientific_capability_registry.build_scientific_capability_registry",
+                "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/SKILL.md",
+                "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/figure-contract.md",
+                "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/qa-contract.md",
             ],
             absorbed_pattern_ids=[
                 "reviewer_response_edge_case_contract",
                 "restricted_access_fair_metadata_contract",
                 "strict_citation_scope_and_export_contract",
                 "figure_backend_export_qa_contract",
+                "figure_contract_router_and_backend_gate_refs",
+                "figure_display_manifest_and_stable_plotting_refs",
                 "manuscript_argument_failure_mode",
                 "paper_reader_source_map",
                 "pptx_asset_manifest_package_qa",
             ],
-            local_execution_state="stage_quality_pack_prompt_and_tests_landed",
+            local_execution_state="stage_quality_pack_and_scientific_capability_descriptor_refs_landed",
             closure_status="owner_surface_landed",
-            owner_surface="stage_quality_pack_contract_and_ai_reviewer_quality_gate",
-            worker_or_executor_landing="AI reviewer and stage owner actions consume quality-pack refs; no external skill runner is required",
+            owner_surface=(
+                "stage_quality_pack_contract_ai_reviewer_quality_gate_and_"
+                "scientific_capability_registry_descriptor_refs"
+            ),
+            worker_or_executor_landing=(
+                "Nature-skills figure/display learning is exposed only as "
+                "scientific_capability_registry descriptor/current-owner input refs; "
+                "it is not registered in SIDECAR_WORKER_REGISTRY, cannot run the "
+                "external skill runner, and cannot write publication eval, controller "
+                "decisions, display runtime artifacts, paper body, or package bodies"
+            ),
             missing_landing_work=[
                 "continue live paper-line evidence tail with owner receipts and artifact refs",
+                "owner-selected display work units must still consume refs and return owner receipt or typed blocker before any progress claim",
             ],
-            next_landing_path="add missing ref family to quality pack or owner request only when current route needs it",
+            next_landing_path=(
+                "resolve nature_figure_display_contract_refs from current_owner_delta "
+                "when figure/display/router/manifest or stable plotting refs are needed; "
+                "keep it refs-only instead of adding a Nature-skills sidecar worker"
+            ),
         ),
         _framework_from_projection(
             framework_id="academic_research_skills",

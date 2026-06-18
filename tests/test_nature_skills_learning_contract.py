@@ -1,10 +1,38 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from med_autoscience.stage_quality_contract import (
     JOURNAL_FAMILY_QUALITY_PACK_IDS,
     STRONG_PROMOTION_EVIDENCE_KINDS,
     build_stage_quality_pack_contract,
 )
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+NATURE_SKILLS_ADOPTION_CONTRACT = (
+    REPO_ROOT / "contracts/nature_skills_learning_adoption.json"
+)
+UPSTREAM_HEAD_2026_06_18 = "1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547"
+
+
+def _load_nature_skills_adoption_contract() -> dict[str, object]:
+    parsed = json.loads(NATURE_SKILLS_ADOPTION_CONTRACT.read_text(encoding="utf-8"))
+    assert isinstance(parsed, dict)
+    return parsed
+
+
+def _adoptions_by_pattern(payload: dict[str, object]) -> dict[str, dict[str, object]]:
+    adoptions = payload["adoptions"]
+    assert isinstance(adoptions, list)
+    result: dict[str, dict[str, object]] = {}
+    for adoption in adoptions:
+        assert isinstance(adoption, dict)
+        pattern_id = adoption["pattern_id"]
+        assert isinstance(pattern_id, str)
+        result[pattern_id] = adoption
+    return result
 
 
 def test_nature_skills_learning_packs_are_not_authority_surfaces() -> None:
@@ -330,3 +358,123 @@ def test_academic_search_source_pack_records_preflight_fallback_and_id_conversio
     )
     assert search_pack["may_authorize_quality_verdict"] is False
     assert search_pack["may_authorize_publication_readiness"] is False
+
+
+def test_nature_router_manifest_learning_records_fresh_upstream_commit_and_pattern() -> None:
+    payload = _load_nature_skills_adoption_contract()
+    source = payload["source"]
+    adoption = _adoptions_by_pattern(payload)["router_manifest_static_dynamic_split"]
+
+    assert isinstance(source, dict)
+    assert source["project"] == "Yuan1z0825/nature-skills"
+    assert source["observed_head"] == UPSTREAM_HEAD_2026_06_18
+    assert source["observed_date"] == "2026-06-18"
+    assert set(source["evidence_commands"]) == {
+        "git ls-remote https://github.com/Yuan1z0825/nature-skills.git HEAD refs/heads/main",
+        "git rev-parse HEAD after shallow clone",
+    }
+
+    assert {
+        "short_router",
+        "declarative_manifest",
+        "always_load_core",
+        "axis_specific_static_fragments",
+        "on_demand_references",
+        "explicit_loading_gates",
+    } <= set(payload["learned_patterns"])
+
+    assert adoption["classification"] == "adopt_template"
+    assert adoption["landing_status"] == "contract_projection_landed"
+    assert {
+        "stage_quality_pack_contract",
+        "stage_prompt_authoring_surface",
+        "quality_pack_descriptor",
+        "display_pack_descriptor",
+        "product_entry_generated_descriptor",
+    } <= set(adoption["owner_surfaces"])
+    assert {
+        "generated_manifest_loader_gap",
+        "vendor_runner_rejected",
+        "worker_not_landed_gap",
+    } <= set(adoption["gap_status"])
+    assert {
+        "vendor_runner_dependency",
+        "default_skill_source",
+        "second_selector",
+        "always_on_advisory_scan",
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "mas_truth_write_authority",
+    } <= set(adoption["forbidden_authority"])
+
+
+def test_nature_skills_learning_contract_keeps_global_forbidden_authority() -> None:
+    payload = _load_nature_skills_adoption_contract()
+
+    assert payload["contract_id"] == "nature_skills_learning_adoption.v1"
+    assert payload["machine_boundary"]
+    assert {
+        "vendor_runner_dependency",
+        "default_skill_source",
+        "second_selector",
+        "always_on_advisory_scan",
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "mas_truth_write_authority",
+    } <= set(payload["global_forbidden_authority"])
+
+
+def test_router_manifest_pattern_maps_to_existing_quality_pack_descriptor_boundaries() -> None:
+    contract = build_stage_quality_pack_contract()
+    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+    extension_contracts = {
+        pack_id: {
+            extension["contract_id"]: extension
+            for extension in packs[pack_id].get("extension_contracts", [])
+        }
+        for pack_id in JOURNAL_FAMILY_QUALITY_PACK_IDS
+    }
+
+    assert {
+        "paper_type",
+        "section_role",
+        "reader_question_sequence",
+        "writing_failure_mode",
+    } <= set(
+        extension_contracts["manuscript_argument_pack"][
+            "prose_polish_claim_boundary_contract"
+        ]["required_fields"]
+    )
+    assert {
+        "selected_backend",
+        "backend_exclusivity_proof",
+        "visual_qa_ref",
+    } <= set(
+        extension_contracts["figure_evidence_contract_pack"][
+            "figure_backend_export_qa_contract"
+        ]["required_fields"]
+    )
+    assert {
+        "source_map_ref",
+        "page_and_block_anchors",
+        "source_grounded_followup_refs",
+    } <= set(
+        extension_contracts["paper_reader_grounding_pack"][
+            "full_paper_reader_source_map_contract"
+        ]["required_fields"]
+    )
+    assert {
+        "presentation_logic",
+        "evidence_spine",
+        "asset_manifest_ref",
+        "pptx_reopen_or_package_qa_ref",
+    } <= set(
+        extension_contracts["paper_presentation_pack"][
+            "pptx_asset_manifest_and_package_qa_contract"
+        ]["required_fields"]
+    )
+
+    for contracts in extension_contracts.values():
+        for extension in contracts.values():
+            assert extension["may_authorize_publication_readiness"] is False
+            assert extension["may_authorize_quality_verdict"] is False
