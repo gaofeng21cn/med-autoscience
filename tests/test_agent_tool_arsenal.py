@@ -38,6 +38,22 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     assert arsenal["authority_boundary"]["mas_selector_authority"] is False
     assert arsenal["authority_boundary"]["mas_tool_invocation_runtime_authority"] is False
     assert arsenal["authority_boundary"]["missing_refs_trigger_mutating_invocation"] is False
+    assert arsenal["authority_boundary"]["hosted_opl_capability_runtime_required"] is True
+    assert arsenal["authority_boundary"]["mas_resolve_mode_is_selector_authority"] is False
+    assert arsenal["authority_boundary"]["mas_plan_mode_is_invocation_authority"] is False
+    assert arsenal["authority_boundary"]["resolve_or_plan_can_invoke_tool"] is False
+    assert arsenal["authority_boundary"]["resolve_or_plan_can_write_domain_truth"] is False
+    assert (
+        arsenal["authority_boundary"]["resolve_or_plan_can_authorize_provider_admission"]
+        is False
+    )
+    readback = arsenal["authority_boundary"]["opl_capability_runtime_readback_requirement"]
+    assert readback["requirement_id"] == "opl_capability_runtime_hosted_readback"
+    assert readback["runtime_owner"] == "one-person-lab"
+    assert readback["required_for_modes"] == ["resolve", "plan", "hosted_consumption"]
+    assert readback["mas_readback_consumer_only"] is True
+    assert readback["missing_readback_blocks_mutating_invocation"] is True
+    assert readback["missing_readback_can_authorize_provider_admission"] is False
     assert arsenal["authority_boundary"]["capability_plan_can_write_domain_truth"] is False
     assert arsenal["authority_boundary"]["capability_plan_can_authorize_publication_quality"] is False
     assert arsenal["agent_execution_index"]["authority_boundary"]["selection_runtime_owner"] == "one-person-lab"
@@ -191,6 +207,9 @@ def test_agent_tool_arsenal_resolver_keeps_candidates_when_refs_are_missing() ->
     assert resolution["authority_boundary"]["selection_runtime_owner"] == "one-person-lab"
     assert resolution["authority_boundary"]["capability_runtime_owner"] == "one-person-lab"
     assert resolution["authority_boundary"]["mas_selector_authority"] is False
+    assert resolution["authority_boundary"]["mas_resolve_mode_is_selector_authority"] is False
+    assert resolution["authority_boundary"]["resolve_or_plan_can_invoke_tool"] is False
+    assert resolution["authority_boundary"]["resolve_or_plan_can_write_domain_truth"] is False
     assert resolution["authority_boundary"]["missing_refs_trigger_mutating_invocation"] is False
 
     candidates = {item["action_id"]: item for item in resolution["candidate_tools"]}
@@ -209,6 +228,8 @@ def test_agent_tool_arsenal_resolver_keeps_candidates_when_refs_are_missing() ->
     assert display["authority_boundary"]["selection_runtime_owner"] == "one-person-lab"
     assert display["authority_boundary"]["capability_runtime_owner"] == "one-person-lab"
     assert display["authority_boundary"]["mas_selector_authority"] is False
+    assert display["authority_boundary"]["hosted_opl_capability_runtime_required"] is True
+    assert display["authority_boundary"]["resolve_or_plan_can_invoke_tool"] is False
     assert display["authority_boundary"]["missing_refs_trigger_mutating_invocation"] is False
 
 
@@ -331,6 +352,12 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert plan["authority_boundary"]["capability_runtime_kind"] == "OPL Capability Runtime"
     assert plan["authority_boundary"]["mas_selector_authority"] is False
     assert plan["authority_boundary"]["mas_tool_invocation_runtime_authority"] is False
+    assert plan["authority_boundary"]["mas_plan_mode_is_invocation_authority"] is False
+    assert plan["authority_boundary"]["resolve_or_plan_can_invoke_tool"] is False
+    assert (
+        plan["authority_boundary"]["resolve_or_plan_can_replace_owner_receipt_or_typed_blocker"]
+        is False
+    )
     assert plan["authority_boundary"]["missing_refs_trigger_mutating_invocation"] is False
     assert plan["authority_boundary"]["capability_plan_can_write_domain_truth"] is False
     assert plan["authority_boundary"]["capability_plan_can_authorize_publication_quality"] is False
