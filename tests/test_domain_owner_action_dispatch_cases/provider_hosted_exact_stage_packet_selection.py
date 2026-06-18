@@ -626,6 +626,171 @@ def test_provider_hosted_projection_without_carrier_refs_binds_canonical_stage_p
     assert execution["opl_execution_authorization_present"] is True
 
 
+def test_provider_hosted_projection_with_stale_carrier_identity_binds_exact_stage_packet(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    stale_projection_fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    dispatch_root = (
+        profile.studies_root
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+    )
+    latest_path = dispatch_root / f"{action_type}.json"
+    immutable_path = dispatch_root / "immutable" / action_type / "33abc53e0c18295f5fa03738.json"
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": fingerprint,
+        "runtime_health_epoch": fingerprint,
+        "route_epoch": fingerprint,
+        "current_owner": "MedAutoScience",
+        "next_owner": "write",
+        "owner_reason": work_unit_id,
+        "allowed_actions": [action_type],
+        "source_fingerprint": fingerprint,
+        "work_unit_fingerprint": fingerprint,
+        "source_refs": {
+            "owner_route_currentness_basis": {
+                "truth_epoch": fingerprint,
+                "runtime_health_epoch": fingerprint,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+        },
+        "idempotency_key": f"paper-recovery::{study_id}::{action_type}::{fingerprint}",
+    }
+    dispatch = {
+        "surface": "default_executor_dispatch_request",
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": action_type,
+        "action_id": f"paper-recovery-successor::{study_id}::{action_type}::{work_unit_id}",
+        "dispatch_status": "ready",
+        "dispatch_authority": "quality_repair_batch_writer_handoff",
+        "next_executable_owner": "write",
+        "required_output_surface": (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        "executor_kind": "codex_cli_default",
+        "chat_completion_only_executor_forbidden": True,
+        "target_runtime_owner": "one-person-lab",
+        "mas_dispatch_authority": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "repeat_suppression_key": fingerprint,
+        "idempotency_key": owner_route["idempotency_key"],
+        "owner_route": owner_route,
+        "prompt_contract": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "next_executable_owner": "write",
+            "owner_route": owner_route,
+            "prompt_budget": {"max_prompt_tokens": 6000},
+            "compact_evidence_packet_ref": (
+                f"studies/{study_id}/artifacts/supervision/compact_evidence_packets/{action_type}.json"
+            ),
+            "do_not_repeat": True,
+            "repeat_suppression_key": fingerprint,
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+            "allowed_write_surfaces": [
+                "paper/draft.md",
+                "paper/build/review_manuscript.md",
+                "paper/claim_evidence_map.json",
+                "paper/evidence_ledger.json",
+                "paper/review/**",
+            ],
+            "forbidden_surfaces": [
+                "paper/**",
+                "manuscript/**",
+                "current_package/**",
+                "paper/current_package/**",
+                "manuscript/current_package/**",
+                "src/med_autoscience/platform/**",
+                "artifacts/publication_eval/latest.json",
+                "artifacts/controller_decisions/latest.json",
+            ],
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "manual_study_patch_allowed": False,
+            "medical_claim_authoring_allowed": False,
+        },
+        "refs": {
+            "dispatch_path": str(latest_path),
+            "immutable_dispatch_path": str(immutable_path),
+            "stage_packet_path": str(immutable_path),
+        },
+    }
+    _write_json(latest_path, dispatch)
+    _write_json(immutable_path, dispatch)
+    _bind_provider_hosted_stage_packet(
+        monkeypatch,
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=f"stage-packet:{immutable_path.as_posix()}",
+        dispatch_path=immutable_path,
+    )
+    monkeypatch.setattr(
+        domain_owner_action_dispatch.action_execution,
+        "quest_root_from_status",
+        lambda profile, study_id: profile.runtime_root / study_id,
+    )
+    stale_projection = _transition_request_projection(
+        {
+            **dispatch,
+            "work_unit_fingerprint": stale_projection_fingerprint,
+            "action_fingerprint": stale_projection_fingerprint,
+            "source_fingerprint": stale_projection_fingerprint,
+        }
+    )
+
+    execution = domain_owner_action_dispatch._execute_dispatch(
+        profile=profile,
+        study_id=study_id,
+        dispatch_payload=stale_projection,
+        developer_mode_payload={"mode": "developer_apply_safe", "safe_actions_enabled": True},
+        apply=False,
+        scan_payload={"studies": [{"study_id": study_id}]},
+        fresh_progress={
+            "study_id": study_id,
+            "current_work_unit": {
+                "status": "typed_blocker",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+    )
+
+    assert execution["dispatch_contract_valid"] is True
+    assert execution["dispatch_contract_blocked_reason"] is None
+    assert execution["execution_status"] == "dry_run"
+    assert execution["dispatch_status"] == "ready"
+    assert execution["opl_execution_authorization_present"] is True
+    assert execution["owner_route"]["source_refs"]["work_unit_fingerprint"] == fingerprint
+
+
 def test_transition_projection_without_exact_stage_packet_remains_non_executable(
     tmp_path: Path,
 ) -> None:

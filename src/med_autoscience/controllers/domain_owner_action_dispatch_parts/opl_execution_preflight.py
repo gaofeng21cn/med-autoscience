@@ -356,8 +356,11 @@ def _canonical_stage_packet_matches(
         dispatch=packet,
     ):
         return False
+    exact_stage_packet_scope = _env_work_unit_exact_stage_packet_scope(stage_packet_ref)
     carrier_work_unit_id = _dispatch_work_unit_id(carrier)
     if (
+        not exact_stage_packet_scope
+        and
         carrier_work_unit_id is not None
         and packet_work_unit_id is not None
         and carrier_work_unit_id != packet_work_unit_id
@@ -366,6 +369,8 @@ def _canonical_stage_packet_matches(
     carrier_fingerprint = _dispatch_work_unit_fingerprint(carrier)
     packet_fingerprint = _dispatch_work_unit_fingerprint(packet)
     if (
+        not exact_stage_packet_scope
+        and
         carrier_fingerprint is not None
         and packet_fingerprint is not None
         and carrier_fingerprint != packet_fingerprint
@@ -378,6 +383,11 @@ def _canonical_stage_packet_matches(
     if carrier_action_type is not None and _text(packet.get("action_type")) != carrier_action_type:
         return False
     return True
+
+
+def _env_work_unit_exact_stage_packet_scope(stage_packet_ref: str) -> bool:
+    scope_ref = _stage_packet_scope_ref(_env_text("OPL_WORK_UNIT_ID") or "")
+    return scope_ref is not None and _refs_match(stage_packet_ref, scope_ref)
 
 
 def _normalize_ref(value: object) -> str | None:
