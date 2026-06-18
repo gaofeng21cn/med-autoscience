@@ -176,8 +176,17 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "opl_recovery_obligation_readback_consumer"
     )
     assert surfaces["domain_authority_refs_index"]["current_disposition"] == (
-        "repo_replacement_parity_proven_live_state_index_takeover_tail_open"
+        "source_adapter_emitted_live_state_index_takeover_tail_open"
     )
+    assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
+        "active_caller_effect"
+    ] == "source_adapter_emitted_no_default_sqlite_persistence"
+    assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
+        "default_sqlite_persistence"
+    ] is False
+    assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
+        "sqlite_persistence_requires_explicit_opt_in"
+    ] is True
     assert surfaces["domain_authority_refs_index"]["active_caller_migrated"] is False
     assert surfaces["domain_authority_refs_index"]["retirement_gate"][
         "repo_replacement_parity_proven"
