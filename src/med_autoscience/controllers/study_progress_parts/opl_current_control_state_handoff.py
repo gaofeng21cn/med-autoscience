@@ -11,6 +11,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
     OPL_RUNTIME_TERMINAL_BLOCKERS,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback,
+)
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
     default_executor_execution_candidates,
 )
@@ -665,6 +668,8 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
             for item in provider_admission_candidates
             if _terminal_closeout_matches_handoff_action(terminal=terminal, action=item)
         ]
+        if provider_admission_candidates and not matching_provider_admissions:
+            return projection
         updated["provider_admission_pending_count"] = 0
         updated["provider_admission_candidates"] = []
         updated["transition_request_pending_count"] = 0
@@ -841,6 +846,8 @@ def _terminal_closeout_matches_handoff_action(
     terminal: Mapping[str, Any],
     action: Mapping[str, Any],
 ) -> bool:
+    if _action_requires_identity_bound_terminal_closeout(action):
+        return _terminal_closeout_matches_action_bound_identity(terminal=terminal, action=action)
     terminal_attempt_id = _non_empty_text(terminal.get("stage_attempt_id"))
     action_attempt_id = _non_empty_text(action.get("stage_attempt_id")) or _non_empty_text(
         action.get("active_stage_attempt_id")
@@ -860,6 +867,125 @@ def _terminal_closeout_matches_handoff_action(
     if terminal_work_unit and action_work_unit:
         return terminal_work_unit == action_work_unit
     return terminal_action_type is not None and terminal_action_type == action_type
+
+
+def _action_requires_identity_bound_terminal_closeout(action: Mapping[str, Any]) -> bool:
+    if candidate_opl_transition_readback(action):
+        return True
+    if _non_empty_text(action.get("status")) != "provider_admission_pending":
+        return False
+    identity = _observability_mapping(action.get("provider_admission_identity"))
+    if not identity:
+        return False
+    return any(
+        _non_empty_text(source.get(key)) is not None
+        for source in (action, identity)
+        for key in (
+            "stage_run_id",
+            "stage_attempt_id",
+            "active_stage_attempt_id",
+            "route_identity_key",
+            "attempt_idempotency_key",
+            "idempotency_key",
+        )
+    )
+
+
+def _terminal_closeout_matches_action_bound_identity(
+    *,
+    terminal: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    terminal_stage_attempt_id = _non_empty_text(terminal.get("stage_attempt_id"))
+    if terminal_stage_attempt_id is not None and terminal_stage_attempt_id in _action_stage_run_ids(action):
+        return True
+    terminal_route_identity_key = _non_empty_text(terminal.get("route_identity_key"))
+    if terminal_route_identity_key is not None and terminal_route_identity_key in _action_route_identity_keys(action):
+        return True
+    terminal_attempt_idempotency_key = _non_empty_text(terminal.get("attempt_idempotency_key"))
+    if (
+        terminal_attempt_idempotency_key is not None
+        and terminal_attempt_idempotency_key in _action_attempt_idempotency_keys(action)
+    ):
+        return True
+    terminal_idempotency_key = _non_empty_text(terminal.get("idempotency_key"))
+    return terminal_idempotency_key is not None and terminal_idempotency_key in _action_idempotency_keys(action)
+
+
+def _action_stage_run_ids(action: Mapping[str, Any]) -> set[str]:
+    readback = candidate_opl_transition_readback(action)
+    stage_run_identity = _observability_mapping(
+        _observability_mapping(readback.get("identity")).get("stage_run_identity")
+    )
+    identity = _observability_mapping(action.get("provider_admission_identity"))
+    return {
+        value
+        for value in (
+            _non_empty_text(action.get("stage_run_id")),
+            _non_empty_text(action.get("stage_attempt_id")),
+            _non_empty_text(action.get("active_stage_attempt_id")),
+            _non_empty_text(identity.get("stage_run_id")),
+            _non_empty_text(identity.get("stage_attempt_id")),
+            _non_empty_text(identity.get("active_stage_attempt_id")),
+            _non_empty_text(stage_run_identity.get("stage_run_id")),
+        )
+        if value is not None
+    }
+
+
+def _action_route_identity_keys(action: Mapping[str, Any]) -> set[str]:
+    readback = candidate_opl_transition_readback(action)
+    stage_run_identity = _observability_mapping(
+        _observability_mapping(readback.get("identity")).get("stage_run_identity")
+    )
+    identity = _observability_mapping(action.get("provider_admission_identity"))
+    return {
+        value
+        for value in (
+            _non_empty_text(action.get("route_identity_key")),
+            _non_empty_text(identity.get("route_identity_key")),
+            _non_empty_text(stage_run_identity.get("route_identity_key")),
+        )
+        if value is not None
+    }
+
+
+def _action_attempt_idempotency_keys(action: Mapping[str, Any]) -> set[str]:
+    readback = candidate_opl_transition_readback(action)
+    stage_run_identity = _observability_mapping(
+        _observability_mapping(readback.get("identity")).get("stage_run_identity")
+    )
+    identity = _observability_mapping(action.get("provider_admission_identity"))
+    return {
+        value
+        for value in (
+            _non_empty_text(action.get("attempt_idempotency_key")),
+            _non_empty_text(identity.get("attempt_idempotency_key")),
+            _non_empty_text(stage_run_identity.get("attempt_idempotency_key")),
+        )
+        if value is not None
+    }
+
+
+def _action_idempotency_keys(action: Mapping[str, Any]) -> set[str]:
+    readback = candidate_opl_transition_readback(action)
+    readback_identity = _observability_mapping(readback.get("identity"))
+    idempotency_readback = _observability_mapping(readback.get("idempotency_readback"))
+    identity = _observability_mapping(action.get("provider_admission_identity"))
+    return {
+        value
+        for value in (
+            _non_empty_text(action.get("idempotency_key")),
+            _non_empty_text(action.get("route_identity_key")),
+            _non_empty_text(action.get("attempt_idempotency_key")),
+            _non_empty_text(identity.get("idempotency_key")),
+            _non_empty_text(identity.get("route_identity_key")),
+            _non_empty_text(identity.get("attempt_idempotency_key")),
+            _non_empty_text(readback_identity.get("idempotency_key")),
+            _non_empty_text(idempotency_readback.get("idempotency_key")),
+        )
+        if value is not None
+    }
 
 
 def _terminal_closeout_owner_answer_blocker(

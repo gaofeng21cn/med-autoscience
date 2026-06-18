@@ -4,6 +4,7 @@ import importlib
 import json
 
 from tests.study_runtime_test_helpers import make_profile
+from tests.provider_admission_current_control_helpers import opl_transition_readback
 from tests.mcp_opl_current_control_state_handoff_cases.rendering import (
     test_mcp_compacts_and_renders_latest_terminal_stage_log,
     test_mcp_compacts_and_renders_opl_current_control_state_handoff_dashboard,
@@ -222,6 +223,123 @@ def test_study_progress_opl_current_control_state_handoff_consumes_provider_admi
     assert projection["latest_terminal_stage_log"]["owner_receipt_ref"] == (
         "studies/001-risk/artifacts/controller/repair_execution_receipts/latest.json"
     )
+
+
+def test_study_progress_opl_current_control_state_handoff_preserves_runtime_backed_admission_when_closeout_identity_is_not_bound(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    fingerprint = "publication-blockers::abc"
+    work_unit_id = "medical_prose_write_repair"
+    idempotency_key = f"paper-policy-request:{fingerprint}"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    readback = opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=idempotency_key,
+        attempt_idempotency_key=idempotency_key,
+        request_idempotency_key=idempotency_key,
+        stage_run_id=f"stage-run:{study_id}:{work_unit_id}",
+    )
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-18T04:00:00+00:00",
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "status": "provider_admission_pending",
+                    "study_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "route_identity_key": idempotency_key,
+                    "attempt_idempotency_key": idempotency_key,
+                    "provider_admission_schema_source": "transition_request_pending_task",
+                    "opl_domain_progress_transition_runtime_live_readback": readback,
+                    "provider_admission_identity": {
+                        "status": "provider_admission_pending",
+                        "study_id": study_id,
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "route_identity_key": idempotency_key,
+                        "attempt_idempotency_key": idempotency_key,
+                        "opl_domain_progress_transition_runtime_live_readback": readback,
+                    },
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "provider_admission_pending_count": 1,
+                    "transition_request_pending_count": 0,
+                    "provider_admission_candidates": [
+                        {
+                            "status": "provider_admission_pending",
+                            "study_id": study_id,
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                            "route_identity_key": idempotency_key,
+                            "attempt_idempotency_key": idempotency_key,
+                            "provider_admission_schema_source": "transition_request_pending_task",
+                            "opl_domain_progress_transition_runtime_live_readback": readback,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    closeout_path = (
+        profile.studies_root
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "stale-terminal.closeout.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "generated_at": "2026-06-17T23:13:46Z",
+            "study_id": study_id,
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_attempt_id": "stale-terminal",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "status": "closed_with_domain_owner_refs",
+            "owner_receipt_ref": f"studies/{study_id}/artifacts/controller/old_receipt.json",
+            "paper_stage_log": {
+                "stage_name": "run_quality_repair_batch",
+                "problem_summary": "A stale closeout belongs to an older provider attempt.",
+                "stage_goal": "Produce owner-authorized repair evidence.",
+                "stage_work_done": ["Recorded an older repair receipt."],
+                "paper_work_done": ["Recorded an older repair receipt."],
+                "changed_stage_surfaces": [
+                    f"studies/{study_id}/artifacts/controller/old_receipt.json"
+                ],
+                "changed_paper_surfaces": [],
+                "progress_delta_classification": "platform_repair",
+                "outcome": "owner_receipt_recorded",
+                "remaining_blockers": [],
+            },
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id=study_id)
+
+    assert projection["provider_admission_pending_count"] == 1
+    assert len(projection["provider_admission_candidates"]) == 1
+    assert "provider_admission_terminal_closeout_consumed" not in projection
+    assert projection["provider_admission_candidates"][0]["attempt_idempotency_key"] == idempotency_key
 
 
 def test_study_progress_opl_current_control_state_handoff_projects_latest_terminal_stage_log(tmp_path) -> None:

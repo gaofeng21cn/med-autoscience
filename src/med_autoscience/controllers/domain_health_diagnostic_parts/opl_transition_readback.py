@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -156,11 +157,14 @@ def _valid_live_projection_metadata(metadata: Mapping[str, Any]) -> bool:
 
 def candidate_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str, Any]:
     for value in (
+        candidate,
         candidate.get("opl_domain_progress_transition_live_readback"),
         candidate.get("opl_domain_progress_transition_runtime_live_readback"),
         candidate.get("opl_domain_progress_transition_result"),
         candidate.get("opl_domain_progress_runtime_result"),
         candidate.get("opl_runtime_result"),
+        candidate.get("domain_progress_transition_runtime"),
+        candidate.get("domain_progress_transition_runtime_result"),
         _mapping(candidate.get("provider_admission_identity")).get(
             "opl_domain_progress_transition_live_readback"
         ),
@@ -171,14 +175,21 @@ def candidate_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str,
             "opl_domain_progress_transition_result"
         ),
         _mapping(candidate.get("provider_admission_identity")).get("opl_runtime_result"),
+        _mapping(candidate.get("provider_admission_identity")).get(
+            "domain_progress_transition_runtime"
+        ),
         _mapping(candidate.get("paper_progress_policy_result")).get("opl_runtime_result"),
+        _mapping(candidate.get("paper_progress_policy_result")).get(
+            "domain_progress_transition_runtime"
+        ),
         _mapping(candidate.get("state")).get("opl_domain_progress_transition_result"),
         _mapping(candidate.get("state")).get("opl_domain_progress_transition_live_readback"),
         _mapping(candidate.get("state")).get("opl_runtime_result"),
+        _mapping(candidate.get("state")).get("domain_progress_transition_runtime"),
     ):
-        result = _mapping(value)
-        if valid_opl_transition_readback(result):
-            return dict(result)
+        result = _prebuilt_opl_transition_readback(value)
+        if result:
+            return result
     return {}
 
 
@@ -190,6 +201,21 @@ def opl_transition_readback_from_log_entries(
     work_unit_id: str,
     work_unit_fingerprint: str,
 ) -> dict[str, Any]:
+    for entry in reversed(entries):
+        if not isinstance(entry, Mapping):
+            continue
+        if not _entry_matches_idempotency_key(entry, idempotency_key):
+            continue
+        for value in (entry, _mapping(entry.get("payload"))):
+            readback = _prebuilt_opl_transition_readback(value)
+            if readback and _readback_matches_expected_identity(
+                readback,
+                idempotency_key=idempotency_key,
+                study_id=study_id,
+                work_unit_id=work_unit_id,
+                work_unit_fingerprint=work_unit_fingerprint,
+            ):
+                return readback
     return {}
 
 
@@ -201,11 +227,109 @@ def opl_transition_readback_from_log_file(
     work_unit_id: str,
     work_unit_fingerprint: str,
 ) -> dict[str, Any]:
-    return {}
+    try:
+        raw = log_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return {}
+    entries: list[Mapping[str, Any]] = []
+    for line in raw.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            parsed = json.loads(stripped)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, Mapping):
+            entries.append(parsed)
+    return opl_transition_readback_from_log_entries(
+        entries,
+        idempotency_key=idempotency_key,
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+    )
 
 
 def has_opl_transition_readback(candidate: Mapping[str, Any]) -> bool:
     return bool(candidate_opl_transition_readback(candidate))
+
+
+def _prebuilt_opl_transition_readback(value: object) -> dict[str, Any]:
+    payload = _mapping(value)
+    if not payload:
+        return {}
+    if valid_opl_transition_readback(payload):
+        return dict(payload)
+    for key in (
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_domain_progress_transition_live_readback",
+        "opl_runtime_live_readback",
+    ):
+        readback = _mapping(payload.get(key))
+        if valid_opl_transition_readback(readback):
+            return dict(readback)
+    for key in (
+        "domain_progress_transition_runtime",
+        "domain_progress_transition_runtime_result",
+        "opl_domain_progress_transition_runtime_result",
+        "opl_domain_progress_transition_result",
+    ):
+        readback = _prebuilt_opl_transition_readback(payload.get(key))
+        if readback:
+            return readback
+    if _is_opl_transition_runtime_container(payload):
+        readback = _prebuilt_opl_transition_readback(payload.get("result"))
+        if readback:
+            return readback
+    return {}
+
+
+def _is_opl_transition_runtime_container(payload: Mapping[str, Any]) -> bool:
+    return (
+        _text(payload.get("surface_kind"))
+        in {
+            "opl_domain_progress_transition_runtime_result",
+            "domain_progress_transition_runtime_result",
+        }
+        or _text(payload.get("runtime_id")) == "opl_domain_progress_transition_runtime"
+        or _text(payload.get("runtime_kind")) == OPL_TRANSITION_RUNTIME_KIND
+    )
+
+
+def _entry_matches_idempotency_key(entry: Mapping[str, Any], idempotency_key: str) -> bool:
+    payload = _mapping(entry.get("payload"))
+    return idempotency_key in {
+        _text(entry.get("idempotency_key")),
+        _text(payload.get("idempotency_key")),
+        _text(_mapping(payload.get("command")).get("idempotency_key")),
+        _text(_mapping(payload.get("idempotency_readback")).get("idempotency_key")),
+    }
+
+
+def _readback_matches_expected_identity(
+    readback: Mapping[str, Any],
+    *,
+    idempotency_key: str,
+    study_id: str,
+    work_unit_id: str,
+    work_unit_fingerprint: str,
+) -> bool:
+    identity = _mapping(readback.get("identity"))
+    aggregate = _mapping(identity.get("aggregate_identity"))
+    stage_run = _mapping(identity.get("stage_run_identity"))
+    candidate_keys = {
+        _text(identity.get("idempotency_key")),
+        _text(stage_run.get("route_identity_key")),
+        _text(stage_run.get("attempt_idempotency_key")),
+        _text(_mapping(readback.get("idempotency_readback")).get("idempotency_key")),
+    }
+    return (
+        _text(aggregate.get("study_id")) == study_id
+        and _text(aggregate.get("work_unit_id")) == work_unit_id
+        and _text(aggregate.get("work_unit_fingerprint")) == work_unit_fingerprint
+        and idempotency_key in candidate_keys
+    )
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
