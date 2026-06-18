@@ -34,9 +34,16 @@ CLOSEOUT_SURFACES = frozenset(
 )
 
 
-def default_executor_execution_candidates(*, study_root: Path) -> list[tuple[Mapping[str, Any], str]]:
+def default_executor_execution_candidates(
+    *,
+    study_root: Path,
+    allow_legacy_fallback: bool = False,
+) -> list[tuple[Mapping[str, Any], str]]:
     resolved_study_root = Path(study_root).expanduser().resolve()
-    receipt, receipt_ref = _latest_execution_receipt(resolved_study_root)
+    receipt, receipt_ref = _latest_execution_receipt(
+        resolved_study_root,
+        allow_legacy_fallback=allow_legacy_fallback,
+    )
     candidates: list[tuple[Mapping[str, Any], str]] = []
     if _accepted_execution_receipt(receipt):
         candidates.extend(
@@ -159,7 +166,7 @@ def _execution_from_receipt(execution: Mapping[str, Any]) -> dict[str, Any]:
 def _latest_execution_receipt(
     study_root: Path,
     *,
-    allow_legacy_fallback: bool = True,
+    allow_legacy_fallback: bool = False,
 ) -> tuple[dict[str, Any] | None, Path]:
     canonical = _read_json_object(study_root / EXECUTION_REF)
     if canonical is not None:

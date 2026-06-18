@@ -32,11 +32,15 @@ def default_executor_execution_followthrough_receipt_consumption(
     study_root: Path,
     owner_route: Mapping[str, Any],
     actions: Iterable[Mapping[str, Any]],
+    allow_legacy_fallback: bool = False,
 ) -> dict[str, Any]:
     current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
     if current_action_types != {"current_package_freshness_required"}:
         return {}
-    for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
+    for execution, receipt_ref in default_executor_execution_candidates(
+        study_root=study_root,
+        allow_legacy_fallback=allow_legacy_fallback,
+    ):
         action_type = _text(execution.get("action_type"))
         owner_result = _mapping(execution.get("owner_result"))
         repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))

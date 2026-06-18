@@ -215,16 +215,16 @@ def test_default_executor_consumes_executed_gate_replay_ledger_blocker(
         },
     }
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_adapter_receipt",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": study_id,

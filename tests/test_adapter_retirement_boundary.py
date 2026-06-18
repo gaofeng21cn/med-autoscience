@@ -266,11 +266,16 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "current_provider_handoff_export_reads_legacy_wire": False,
         "current_recovery_action_reads_legacy_wire": False,
         "default_execution_latest_payload_reads_legacy_wire_by_default": False,
+        "default_executor_execution_candidates_reads_legacy_wire_by_default": False,
+        "default_executor_receipt_consumption_reads_legacy_wire_by_default": False,
+        "default_executor_nonconsumable_closeout_reads_legacy_wire_by_default": False,
         "canonical_missing_outcome": "no_current_owner_callable_receipt",
         "legacy_wire_role": "history_replay_and_provenance_only",
     }
     assert execution_latest["history_replay_boundary"] == {
-        "default_executor_execution_candidates_reads_legacy_wire": True,
+        "default_executor_execution_candidates_requires_allow_legacy_fallback": True,
+        "default_executor_receipt_consumption_requires_allow_legacy_fallback": True,
+        "default_executor_nonconsumable_closeout_requires_allow_legacy_fallback": True,
         "execution_latest_payload_requires_allow_legacy_fallback": True,
         "legacy_latest_payload_helper_requires_allow_legacy_fallback": True,
         "can_authorize_provider_admission": False,
@@ -602,6 +607,7 @@ def test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_l
 
     assert payload is None
     assert receipt_ref == "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
+    assert candidates.default_executor_execution_candidates(study_root=study_root) == []
 
     payload, receipt_ref = candidates.latest_owner_callable_adapter_receipt_payload(
         study_root=study_root,
@@ -614,6 +620,13 @@ def test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_l
     assert payload["executions"][0]["legacy_wire_surface"] == "default_executor_dispatch_execution"
     assert payload["execution_ledger_authority"] is False
     assert payload["attempt_lifecycle_authority"] is False
+    replay_candidates = candidates.default_executor_execution_candidates(
+        study_root=study_root,
+        allow_legacy_fallback=True,
+    )
+    assert len(replay_candidates) == 1
+    assert replay_candidates[0][0]["action_type"] == "legacy_action"
+    assert replay_candidates[0][1] == "artifacts/supervision/consumer/default_executor_execution/latest.json"
 
 
 def test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in(
@@ -967,6 +980,78 @@ def test_legacy_latest_readers_consume_canonical_owner_callable_receipt_first(tm
         == "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint"
     )
     assert rehydrate["surface"] == "owner_callable_adapter_receipt"
+
+
+def test_dhd_legacy_execution_fallback_is_refs_only_stage_run_intake(tmp_path) -> None:
+    diagnostic = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    study_root = tmp_path / "studies" / "study-1"
+    legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json"
+    legacy_path.parent.mkdir(parents=True)
+    legacy_path.write_text(
+        json.dumps(
+            {
+                "surface": "default_executor_dispatch_execution_study_latest",
+                "executions": [
+                    {
+                        "surface": "default_executor_dispatch_execution",
+                        "study_id": "study-1",
+                        "quest_id": "study-1",
+                        "execution_status": "handoff_ready",
+                        "provider_attempt_or_lease_required": True,
+                        "owner_callable_surface": "opl_default_executor.stage_attempt",
+                        "owner_route_current": True,
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": "fingerprint-legacy",
+                        "action_fingerprint": "fingerprint-legacy",
+                        "dispatch_path": (
+                            "artifacts/supervision/consumer/default_executor_dispatches/"
+                            "immutable/run_quality_repair_batch/fingerprint-legacy.json"
+                        ),
+                        "dispatch_ref": (
+                            "artifacts/supervision/consumer/default_executor_dispatches/"
+                            "immutable/run_quality_repair_batch/fingerprint-legacy.json"
+                        ),
+                        "owner_route": {
+                            "source_refs": {
+                                "work_unit_id": "medical_prose_write_repair",
+                                "work_unit_fingerprint": "fingerprint-legacy",
+                                "owner_route_currentness_basis": {
+                                    "work_unit_id": "medical_prose_write_repair",
+                                    "work_unit_fingerprint": "fingerprint-legacy",
+                                },
+                            }
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    [candidate] = diagnostic._legacy_execution_provider_admission_candidates(
+        study_root=study_root,
+        status_payload={
+            "study_id": "study-1",
+            "current_executable_owner_action": {
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "fingerprint-legacy",
+            },
+        },
+    )
+
+    assert candidate["source"] == "legacy_default_executor_refs_only_stage_run_intake"
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["dispatch_status"] == "transition_request_pending"
+    assert candidate["provider_admission_pending"] is False
+    assert candidate["provider_attempt_or_lease_required"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+    assert candidate["opl_transition_runtime_required"] is True
+    assert candidate["legacy_wire_current_reader"] is False
+    assert candidate["legacy_wire_can_authorize_provider_admission"] is False
+    assert candidate["authority_boundary"]["legacy_wire_can_authorize_provider_admission"] is False
+    assert candidate["authority_boundary"]["can_mark_provider_attempt_running"] is False
 
 
 def test_materializer_local_carrier_persistence_api_is_physically_retired() -> None:

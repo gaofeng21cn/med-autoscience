@@ -270,3 +270,37 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         ("domain_authority_refs_index", "active_caller_retains_authority"),
         ("domain_authority_refs_index", "active_caller_alone_can_retain_surface"),
     } <= {(item["surface_id"], item["reason"]) for item in violations}
+
+    legacy_bad_inventory = json.loads(json.dumps(inventory))
+    legacy_latest = next(
+        surface
+        for surface in legacy_bad_inventory["surfaces"]
+        if surface["surface_id"] == "default_executor_execution_latest_wire_projection"
+    )
+    legacy_latest["legacy_wire_default_reader_fallback_allowed"] = True
+    legacy_latest["current_reader_boundary"][
+        "default_executor_execution_candidates_reads_legacy_wire_by_default"
+    ] = True
+    legacy_latest["history_replay_boundary"].pop(
+        "default_executor_receipt_consumption_requires_allow_legacy_fallback"
+    )
+
+    legacy_violations = retirement.validate_runtime_surface_retirement_inventory(legacy_bad_inventory)
+
+    assert {
+        ("default_executor_execution_latest_wire_projection", "legacy_default_reader_fallback_allowed"),
+        (
+            "default_executor_execution_latest_wire_projection",
+            (
+                "current_reader_legacy_fallback:"
+                "default_executor_execution_candidates_reads_legacy_wire_by_default"
+            ),
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            (
+                "history_replay_missing_explicit_opt_in:"
+                "default_executor_receipt_consumption_requires_allow_legacy_fallback"
+            ),
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in legacy_violations}

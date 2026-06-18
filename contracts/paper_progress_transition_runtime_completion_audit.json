@@ -300,20 +300,20 @@
       "correct_owner": "MAS/OPL",
       "target": "Delete or tombstone MAS private kernel, alias, selector/materializer authority, and local runtime-like surfaces.",
       "status": "partial",
-      "completion_percent": 74,
+      "completion_percent": 76,
       "evidence": [
         "MAS runtime-health local append API is retired.",
         "Runtime surface inventory tracks remaining private surface tails.",
         "domain_owner_action_dispatch has repo-level coverage for missing OPL proof fail-closed across every supported action, trusted OPL authorization, bound DomainProgressTransitionRuntime readback, and provider-hosted exact StageRun authorization.",
         "domain_owner_action_dispatch now consumes the same helper-defined DomainProgressTransitionRuntime provider-admission identity binding as provider admission; readbacks missing explicit route_identity_key or attempt_idempotency_key fail closed as missing OPL authorization.",
-        "Legacy default_executor_execution/latest.json fallback is no longer consumed by current provider admission, provider handoff export, or clean-migration recovery readers; legacy latest requires explicit history/replay opt-in.",
+        "Legacy default_executor_execution/latest.json fallback is no longer consumed by current provider admission, provider handoff export, clean-migration recovery readers, default_executor_execution_candidates, default_executor_execution_receipt_consumption, or default_executor_execution_nonconsumable_closeout; legacy latest requires explicit history/replay opt-in.",
         "domain_authority_refs_index active callers now route through opl_state_index_source_adapter and emit OPL StateIndex source-adapter proofs by default; db_path no longer implies MAS SQLite persistence, active callers do not receive a persist_sqlite parameter, and legacy SQLite writes require explicit opt-in for replay/local inspection.",
         "domain_action_request_materializer no longer emits top-level request_tasks; request task refs are nested under legacy_request_task_diagnostics.legacy_request_task_refs with diagnostic_ref_only/body_authority=false and tests assert the alias is absent.",
         "runtime_lifecycle_payload_retention apply and sqlite sidecar repair now require OPL runtime lifecycle maintenance authorization proof bound to operation, maintenance surface, db_path, authorized outcome, and authorization_ref; missing proof returns stable typed blocker shape and does not mutate SQLite/cold objects/sidecars.",
         "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention/capsule projections remain non-authority.",
         "runtime_surface_retirement_no_authority_audit derives repo-wide no-authority status from the retirement inventory and classifies runtime lifecycle/storage maintenance as OPL-authorized adapters, not MAS private runtime authority."
       ],
-      "open_gap": "Remaining live dispatcher soak/no-active-caller proof, DHD obligation actuator physical retirement, domain_authority_refs_index live OPL StateIndexKernel takeover or no-active-replay/local-inspection-caller physical delete proof, OPL cleanup/retention policy live takeover for runtime lifecycle payload retention, OPL storage policy live takeover for runtime_storage_maintenance, and full legacy carrier physical delete evidence still require closeout; request_tasks alias retirement plus runtime_lifecycle/runtime_storage apply gating are repo-level authority-boundary cleanup, not OPL live takeover or physical retirement of every legacy carrier."
+      "open_gap": "Remaining live dispatcher soak/no-active-caller proof, DHD obligation actuator physical retirement, domain_authority_refs_index live OPL StateIndexKernel takeover or no-active-replay/local-inspection-caller physical delete proof, OPL cleanup/retention policy live takeover for runtime lifecycle payload retention, OPL storage policy live takeover for runtime_storage_maintenance, and full legacy carrier physical delete evidence still require closeout; default legacy latest fallback retirement, request_tasks alias retirement, runtime_lifecycle/runtime_storage apply gating, and runtime-surface no-authority guards are repo-level authority-boundary cleanup, not OPL live takeover or physical retirement of every legacy carrier."
     },
     {
       "feature_id": "live_dm002_dm003_acceptance",
@@ -408,10 +408,11 @@
         "domain_owner_action_dispatch repo tests cover fail-closed typed blockers for missing proof across every supported action, trusted OPL authorization, bound transition readback, and exact provider-hosted StageRun authorization.",
         "domain_owner_action_dispatch no longer accepts its own weak readback binding; tests cover missing explicit route/attempt identity fail-closed through the shared OPL transition ABI helper.",
         "Top-level request_tasks alias is physically removed from materializer output, with replacement nested diagnostic refs and retirement inventory updated; remaining carriers still need live/no-active-caller closeout.",
+        "Legacy default_executor_execution/latest.json is no longer a default current receipt reader for default_executor_execution_candidates, default_executor_execution_receipt_consumption, or default_executor_execution_nonconsumable_closeout; tests migrate current fixtures to canonical owner_callable_adapter_receipts/latest.json and keep legacy fallback explicit for history/provenance only.",
         "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention projections remain authorization-free and non-progress claims.",
         "runtime_surface_retirement_no_authority_audit now derives a repo-wide no-authority guard from the retirement inventory, proving open active callers are refs-only, consume-only, read-only, or OPL-authorized adapters rather than MAS private runtime authority."
       ],
-      "open_gap": "Remaining private runtime residue still needs live OPL takeover/no-active-caller/tombstone evidence for physical deletion; storage maintenance is now an OPL-authorized MAS callable adapter, not a MAS-owned runtime storage shell."
+      "open_gap": "Remaining private runtime residue still needs live OPL takeover/no-active-caller/tombstone evidence for physical deletion; legacy latest fallback retirement proves current readers are canonical-only by default but does not physically delete legacy carrier/provenance paths; storage maintenance is now an OPL-authorized MAS callable adapter, not a MAS-owned runtime storage shell."
     },
     {
       "phase_id": "lane_8_live_paper_acceptance",
@@ -448,7 +449,7 @@
     {
       "gate_id": "no_private_runtime_residue_as_authority",
       "status": "open",
-      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller. Current repo evidence proves domain_authority_refs_index active callers are migrated to opl_state_index_source_adapter, emit refs-only OPL StateIndex source-adapter proofs by default, do not persist MAS SQLite unless explicitly opted in through the legacy helper, and cannot authorize runtime/progress; domain_health_diagnostic_obligation_actuator is consume-only with success-proof-gated postconditions, while fail-closed typed blockers are persisted by the explicit mas_domain_typed_blocker_authority_result_adapter and carry a no-OPL-command/event/outbox/StageRun authority boundary instead of actuator-private write authority; domain_owner_action_dispatch is only an OPL-authorized owner callable adapter; runtime_lifecycle_payload_retention apply paths are OPL-authorized maintenance callable adapters and fail closed without bound OPL maintenance authorization proof; runtime_storage_maintenance workspace apply and direct quest physical apply now fail closed without bound opl_runtime_storage_maintenance_authorization proof while dry-run, source-retained restore-proof canary, refs-only index-only, and planned retention/capsule projections remain non-authority. src/med_autoscience/runtime_protocol/runtime_surface_retirement.py#runtime_surface_retirement_no_authority_audit derives this no-authority guard from the inventory and keeps completion_claim_allowed=false. Physical deletion still requires live OPL takeover, no-active-caller or owner-retirement evidence, and tombstone/provenance."
+      "required_evidence": "Remaining MAS private runtime-like surfaces must be physically retired, tombstoned, or proven diagnostic/provenance-only with no active authority caller. Current repo evidence proves domain_authority_refs_index active callers are migrated to opl_state_index_source_adapter, emit refs-only OPL StateIndex source-adapter proofs by default, do not persist MAS SQLite unless explicitly opted in through the legacy helper, and cannot authorize runtime/progress; domain_health_diagnostic_obligation_actuator is consume-only with success-proof-gated postconditions, while fail-closed typed blockers are persisted by the explicit mas_domain_typed_blocker_authority_result_adapter and carry a no-OPL-command/event/outbox/StageRun authority boundary instead of actuator-private write authority; default_executor_execution/latest.json is canonical-off by default for candidates, receipt consumption and nonconsumable closeout, and DHD legacy fallback is refs-only OPL StageRun ABI intake with provider_admission_pending=false; domain_owner_action_dispatch is only an OPL-authorized owner callable adapter; legacy default_executor_execution/latest.json is no longer consumed by current receipt candidate/consumption/nonconsumable-closeout readers unless allow_legacy_fallback is explicitly enabled for history/provenance replay; runtime_lifecycle_payload_retention apply paths are OPL-authorized maintenance callable adapters and fail closed without bound OPL maintenance authorization proof; runtime_storage_maintenance workspace apply and direct quest physical apply now fail closed without bound opl_runtime_storage_maintenance_authorization proof while dry-run, source-retained restore-proof canary, refs-only index-only, and planned retention/capsule projections remain non-authority. src/med_autoscience/runtime_protocol/runtime_surface_retirement.py#runtime_surface_retirement_no_authority_audit derives this no-authority guard from the inventory and keeps completion_claim_allowed=false. Physical deletion still requires live OPL takeover, no-active-caller or owner-retirement evidence, and tombstone/provenance."
     }
   ],
   "forbidden_completion_interpretations": [
@@ -702,7 +703,10 @@
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_storage_maintenance",
         "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_basics.py::test_workspace_storage_apply_without_opl_authorization_blocks_before_physical_cleanup",
         "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_compaction_git.py::test_quest_runtime_storage_physical_path_without_opl_authorization_blocks_before_backend",
-        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_compaction_git.py::test_quest_runtime_storage_authorization_scope_mismatch_blocks_physical_apply"
+        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_compaction_git.py::test_quest_runtime_storage_authorization_scope_mismatch_blocks_physical_apply",
+        "tests/test_adapter_retirement_boundary.py::test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy#default_candidates_canonical_only",
+        "tests/test_adapter_retirement_boundary.py::test_dhd_legacy_execution_fallback_is_refs_only_stage_run_intake",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_latest_default_fallback_violation"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
@@ -719,7 +723,8 @@
         "focused_tests_green",
         "line_budget_advisory_only",
         "storage_authorization_gate_as_live_opl_takeover",
-        "runtime_storage_apply_as_paper_progress"
+        "runtime_storage_apply_as_paper_progress",
+        "legacy_latest_default_fallback_reenabled"
       ]
     },
     {

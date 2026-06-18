@@ -506,10 +506,15 @@
         "current_recovery_action_reads_legacy_wire": false,
         "canonical_missing_outcome": "no_current_owner_callable_receipt",
         "legacy_wire_role": "history_replay_and_provenance_only",
-        "default_execution_latest_payload_reads_legacy_wire_by_default": false
+        "default_execution_latest_payload_reads_legacy_wire_by_default": false,
+        "default_executor_execution_candidates_reads_legacy_wire_by_default": false,
+        "default_executor_receipt_consumption_reads_legacy_wire_by_default": false,
+        "default_executor_nonconsumable_closeout_reads_legacy_wire_by_default": false
       },
       "history_replay_boundary": {
-        "default_executor_execution_candidates_reads_legacy_wire": true,
+        "default_executor_execution_candidates_requires_allow_legacy_fallback": true,
+        "default_executor_receipt_consumption_requires_allow_legacy_fallback": true,
+        "default_executor_nonconsumable_closeout_requires_allow_legacy_fallback": true,
         "legacy_latest_payload_helper_requires_allow_legacy_fallback": true,
         "can_authorize_provider_admission": false,
         "can_generate_current_handoff": false,
@@ -520,7 +525,11 @@
         "tests/test_adapter_retirement_boundary.py::test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy",
         "tests/test_adapter_retirement_boundary.py::test_current_owner_callable_readers_do_not_consume_legacy_latest_wire",
         "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in",
-        "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance"
+        "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance",
+        "tests/owner_route_reconcile_cases/test_default_executor_receipt_consumption.py::test_scan_consumes_executed_default_executor_receipt_for_current_write_route",
+        "tests/owner_route_reconcile_cases/test_default_executor_receipt_recovery.py::test_default_executor_receipt_consumes_prior_execution_from_ledger_after_later_action",
+        "tests/owner_route_reconcile_cases/test_default_executor_receipt_recovery.py::test_default_executor_closeout_with_recovered_stage_packet_currentness_redrives",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
       ],
       "legacy_wire_default_reader_fallback_allowed": false,
       "legacy_wire_history_merge_requires_explicit_opt_in": true

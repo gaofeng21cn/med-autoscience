@@ -318,11 +318,47 @@ def _legacy_execution_provider_admission_candidates(
         return []
     if not isinstance(payload, Mapping):
         return []
-    return provider_admission_candidates_from_execution_payload(
+    candidates = provider_admission_candidates_from_execution_payload(
         payload,
         execution_ref=str(LEGACY_EXECUTION_REF),
         status_payload=status_payload,
     )
+    return [
+        _legacy_refs_only_stage_run_intake_candidate(candidate)
+        for candidate in candidates
+    ]
+
+
+def _legacy_refs_only_stage_run_intake_candidate(
+    candidate: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(candidate)
+    authority_boundary = dict(_mapping_payload(payload.get("authority_boundary")))
+    authority_boundary.update(
+        {
+            "authority": "legacy_default_executor_refs_only_stage_run_intake",
+            "stage_authority_role": "legacy_refs_only_opl_stage_run_abi_input",
+            "can_mark_provider_attempt_running": False,
+            "provider_completion_is_domain_completion": False,
+            "legacy_wire_can_authorize_provider_admission": False,
+        }
+    )
+    payload.update(
+        {
+            "source": "legacy_default_executor_refs_only_stage_run_intake",
+            "legacy_wire_role": "opl_stage_run_abi_and_provenance_input_only",
+            "legacy_wire_current_reader": False,
+            "legacy_wire_can_authorize_provider_admission": False,
+            "provider_admission_pending": False,
+            "provider_attempt_or_lease_required": False,
+            "provider_admission_requires_opl_runtime_result": True,
+            "opl_transition_runtime_required": True,
+            "status": "transition_request_pending",
+            "dispatch_status": "transition_request_pending",
+            "authority_boundary": authority_boundary,
+        }
+    )
+    return payload
 
 
 def _progress_projection_for_diagnostic(**kwargs: Any) -> dict[str, Any]:
@@ -362,7 +398,6 @@ def _request_opl_stage_attempt(
             provider_admission_candidates = persisted_provider_admission_candidates(
                 study_root=Path(study_root),
                 status_payload=candidate_status_payload,
-                allow_legacy_fallback=True,
             )
         if not provider_admission_candidates:
             provider_admission_candidates = _legacy_execution_provider_admission_candidates(
@@ -373,7 +408,6 @@ def _request_opl_stage_attempt(
         provider_admission_candidates = persisted_provider_admission_candidates(
             study_root=Path(study_root),
             status_payload=candidate_status_payload,
-            allow_legacy_fallback=True,
         )
         if not provider_admission_candidates:
             provider_admission_candidates = _current_control_provider_admission_candidates(

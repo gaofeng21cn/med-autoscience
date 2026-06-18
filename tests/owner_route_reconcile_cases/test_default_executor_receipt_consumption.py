@@ -149,16 +149,16 @@ def test_scan_consumes_executed_default_executor_receipt_for_current_write_route
     queued_action = before_receipt["studies"][0]["action_queue"][0]
     consumed_owner_route = queued_action["owner_route"]
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_adapter_receipt",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": quest_id,
@@ -258,18 +258,18 @@ def test_default_executor_consumed_receipt_identity_prevents_same_current_contro
         work_unit_id=work_unit_id,
         work_unit_fingerprint=work_unit_fingerprint,
     )
-    closeout_ref = "artifacts/supervision/consumer/default_executor_execution/latest.json"
+    closeout_ref = "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_adapter_receipt",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": quest_id,
@@ -300,7 +300,7 @@ def test_default_executor_consumed_receipt_identity_prevents_same_current_contro
         },
     )
 
-    closeout_ref = "artifacts/supervision/consumer/default_executor_execution/latest.json"
+    closeout_ref = "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
     candidates = default_executor_execution_candidates(study_root=study_root)
     candidate = next(
         execution

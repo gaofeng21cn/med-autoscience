@@ -80,16 +80,16 @@ def test_default_executor_receipt_consumes_prior_execution_from_ledger_after_lat
         },
     }
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": "002-dm-china-us-mortality-attribution",
             "executed_count": 1,
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_adapter_receipt",
                     "schema_version": 1,
                     "study_id": "002-dm-china-us-mortality-attribution",
                     "quest_id": "002-dm-china-us-mortality-attribution",
@@ -104,7 +104,7 @@ def test_default_executor_receipt_consumes_prior_execution_from_ledger_after_lat
             ],
             "execution_ledger": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_adapter_receipt",
                     "schema_version": 1,
                     "study_id": "002-dm-china-us-mortality-attribution",
                     "quest_id": "002-dm-china-us-mortality-attribution",
@@ -137,7 +137,7 @@ def test_default_executor_receipt_consumes_prior_execution_from_ledger_after_lat
 
     assert receipt["status"] == "consumed"
     assert receipt["execution_id"] == "execution::dm002::run_quality_repair_batch::methods-reporting"
-    assert receipt["receipt_ref"] == "artifacts/supervision/consumer/default_executor_execution/latest.json#execution_ledger"
+    assert receipt["receipt_ref"] == "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json#execution_ledger"
 
 
 def test_default_executor_closeout_with_recovered_stage_packet_currentness_redrives(
@@ -150,14 +150,14 @@ def test_default_executor_closeout_with_recovered_stage_packet_currentness_redri
         "consumer/default_executor_dispatches/immutable/run_quality_repair_batch/current.json"
     )
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": "002-dm-china-us-mortality-attribution",
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_adapter_receipt",
                     "schema_version": 1,
                     "study_id": "002-dm-china-us-mortality-attribution",
                     "quest_id": "002-dm-china-us-mortality-attribution",

@@ -103,6 +103,8 @@ def validate_runtime_surface_retirement_inventory(
             violations.append(_violation(surface_id, "missing_provider_completion_forbidden_claim"))
         for flag_path in _truthy_authority_flags(surface):
             violations.append(_violation(surface_id, f"truthy_authority_flag:{flag_path}"))
+        if surface_id == "default_executor_execution_latest_wire_projection":
+            violations.extend(_validate_legacy_latest_wire(surface_id, surface))
         if surface.get("current_disposition") != "physically_retired":
             violations.extend(_validate_open_surface(surface_id, surface))
     return violations
@@ -143,6 +145,50 @@ def _validate_open_surface(
             violations.append(_violation(surface_id, "apply_gate_missing_typed_blocker"))
     if "legacy_caller_exists" in str(surface.get("retention_reason", "")):
         violations.append(_violation(surface_id, "legacy_caller_used_as_retention_reason"))
+    return violations
+
+
+def _validate_legacy_latest_wire(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    if surface.get("legacy_wire_default_reader_fallback_allowed") is not False:
+        violations.append(_violation(surface_id, "legacy_default_reader_fallback_allowed"))
+    if surface.get("legacy_wire_current_reader_fallback_allowed") is not False:
+        violations.append(_violation(surface_id, "legacy_current_reader_fallback_allowed"))
+    if surface.get("legacy_wire_history_replay_fallback_requires_explicit_opt_in") is not True:
+        violations.append(_violation(surface_id, "legacy_history_replay_not_explicit_opt_in"))
+    if surface.get("legacy_wire_history_merge_requires_explicit_opt_in") is not True:
+        violations.append(_violation(surface_id, "legacy_history_merge_not_explicit_opt_in"))
+    current_boundary = surface.get("current_reader_boundary")
+    if isinstance(current_boundary, Mapping):
+        for key in (
+            "current_provider_admission_reads_legacy_wire",
+            "current_provider_handoff_export_reads_legacy_wire",
+            "current_recovery_action_reads_legacy_wire",
+            "default_execution_latest_payload_reads_legacy_wire_by_default",
+            "default_executor_execution_candidates_reads_legacy_wire_by_default",
+            "default_executor_receipt_consumption_reads_legacy_wire_by_default",
+            "default_executor_nonconsumable_closeout_reads_legacy_wire_by_default",
+        ):
+            if current_boundary.get(key, False) is not False:
+                violations.append(_violation(surface_id, f"current_reader_legacy_fallback:{key}"))
+    else:
+        violations.append(_violation(surface_id, "missing_current_reader_boundary"))
+    replay_boundary = surface.get("history_replay_boundary")
+    if isinstance(replay_boundary, Mapping):
+        for key in (
+            "default_executor_execution_candidates_requires_allow_legacy_fallback",
+            "default_executor_receipt_consumption_requires_allow_legacy_fallback",
+            "default_executor_nonconsumable_closeout_requires_allow_legacy_fallback",
+            "execution_latest_payload_requires_allow_legacy_fallback",
+            "legacy_latest_payload_helper_requires_allow_legacy_fallback",
+        ):
+            if replay_boundary.get(key) is not True:
+                violations.append(_violation(surface_id, f"history_replay_missing_explicit_opt_in:{key}"))
+    else:
+        violations.append(_violation(surface_id, "missing_history_replay_boundary"))
     return violations
 
 

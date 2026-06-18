@@ -70,7 +70,7 @@ def test_controller_followthrough_action_mapper_accepts_structured_controller_ac
 
 def _nonconsumable_execution(*, study_root: Path, owner_route: dict, execution_id: str) -> dict:
     return {
-        "surface": "default_executor_dispatch_execution",
+        "surface": "owner_callable_adapter_receipt",
         "schema_version": 1,
         "study_id": study_root.name,
         "quest_id": study_root.name,
@@ -100,9 +100,9 @@ def _nonconsumable_execution(*, study_root: Path, owner_route: dict, execution_i
 
 def _write_repeated_nonconsumable_execution(study_root: Path, owner_route: dict) -> None:
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_root.name,
             "executions": [],
