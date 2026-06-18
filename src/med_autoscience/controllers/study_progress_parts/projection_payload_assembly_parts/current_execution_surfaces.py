@@ -28,6 +28,9 @@ from ..current_executable_owner_action import build_current_executable_owner_act
 from ..current_executable_owner_action_parts.paper_recovery import (
     paper_recovery_successor_action_ready,
 )
+from ..owner_receipt_successor import (
+    paper_recovery_consumed_owner_receipt_successor,
+)
 from ..shared import _mapping_copy, _non_empty_text
 
 
@@ -873,14 +876,16 @@ def _paper_recovery_successor_action_for_owner_receipt_handoff(
 ) -> dict[str, Any]:
     if not _handoff_current_work_unit_is_owner_receipt(handoff):
         return {}
-    if _provider_admission_terminal_closeout_consumed_current_work_unit(handoff):
-        return {}
     recovery = _mapping_copy(payload.get("paper_recovery_state"))
     decision = _mapping_copy(recovery.get("supervisor_decision"))
     if decision.get("identity_match") is not True:
         return {}
     successor_action = build_current_executable_owner_action(payload)
     if not paper_recovery_successor_action_ready(successor_action):
+        return {}
+    if _provider_admission_terminal_closeout_consumed_current_work_unit(
+        handoff
+    ) and not paper_recovery_consumed_owner_receipt_successor(recovery):
         return {}
     return dict(successor_action)
 

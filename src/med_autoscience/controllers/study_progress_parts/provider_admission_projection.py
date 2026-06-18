@@ -11,6 +11,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_r
 from med_autoscience.controllers.current_work_unit import action_supersedes_typed_blocker
 
 from .owner_action_admission import provider_attempt_proof_for_current_action
+from .owner_receipt_successor import paper_recovery_consumed_owner_receipt_successor
 from .paper_autonomy_supervisor_decision import (
     provider_admission_supervisor_gate,
     supervisor_block_projection,
@@ -130,6 +131,11 @@ def _handoff_consumed_terminal_closeout_fields(
         return None
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    if current_action and _request_only_owner_action_surface(current_action) and (
+        paper_recovery_consumed_owner_receipt_successor(recovery)
+    ):
+        return None
     if not (
         (current_action and _same_action_identity(current_action, consumed))
         or _same_action_identity(current_work_unit, consumed)
@@ -154,6 +160,15 @@ def _request_only_owner_action_candidate(candidate: Mapping[str, Any]) -> bool:
         or _non_empty_text(source_refs.get("mas_owner_action_source"))
         or _non_empty_text(basis.get("mas_owner_action_source"))
         or _non_empty_text(basis.get("source"))
+    )
+    return source in _REQUEST_ONLY_OWNER_ACTION_SOURCES
+
+
+def _request_only_owner_action_surface(action: Mapping[str, Any]) -> bool:
+    source = (
+        _non_empty_text(action.get("source"))
+        or _non_empty_text(action.get("source_surface"))
+        or _non_empty_text(_mapping_copy(action.get("owner_route_currentness_basis")).get("source"))
     )
     return source in _REQUEST_ONLY_OWNER_ACTION_SOURCES
 
