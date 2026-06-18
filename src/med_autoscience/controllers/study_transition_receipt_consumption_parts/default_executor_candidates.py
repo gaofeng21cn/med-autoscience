@@ -10,6 +10,7 @@ from med_autoscience.controllers.default_executor_closeout_contract import (
 )
 from med_autoscience.controllers.domain_owner_action_dispatch_parts.execution_surfaces import (
     ACCEPTED_EXECUTION_LATEST_SURFACES,
+    LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
     LEGACY_EXECUTION_SURFACE,
     OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
     OWNER_CALLABLE_RECEIPT_SURFACE,
@@ -165,7 +166,18 @@ def _latest_execution_receipt(
         return canonical, EXECUTION_REF
     if not allow_legacy_fallback:
         return None, EXECUTION_REF
-    return _read_json_object(study_root / LEGACY_EXECUTION_REF), LEGACY_EXECUTION_REF
+    legacy = _read_json_object(study_root / LEGACY_EXECUTION_REF)
+    if legacy is not None and not _text(legacy.get("surface")):
+        legacy = {
+            **legacy,
+            "surface": LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
+            "legacy_wire_surface": LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
+            "canonical_surface": OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
+            "projection_authority": False,
+            "attempt_lifecycle_authority": False,
+            "queue_authority": False,
+        }
+    return legacy, LEGACY_EXECUTION_REF
 
 
 def _accepted_execution_receipt(receipt: Mapping[str, Any] | None) -> bool:

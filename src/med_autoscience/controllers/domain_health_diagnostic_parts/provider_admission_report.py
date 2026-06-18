@@ -42,7 +42,9 @@ from med_autoscience.controllers.owner_route_reconcile_parts import supervision_
 from med_autoscience.controllers.owner_route_handoff_parts.accepted_owner_gate_route_back import (
     accepted_owner_gate_route_back_action as _accepted_owner_gate_route_back_action,
 )
-from med_autoscience.controllers.owner_callable_adapter_projection import domain_progress_transition_requests
+from med_autoscience.controllers.owner_callable_adapter_projection import (
+    domain_progress_transition_requests,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -66,6 +68,7 @@ def materialize_report_provider_admission_current_control_state(
         terminal_materialize = _mapping(supervisor_tick.get("materialize"))
         if terminal_materialize:
             candidates = _provider_admission_candidates_from_same_tick_materialize(
+                profile=profile,
                 materialize_result=terminal_materialize,
                 fallback_candidates=candidates,
                 progress_currentness=progress_currentness,
@@ -76,6 +79,7 @@ def materialize_report_provider_admission_current_control_state(
         candidates = _merge_provider_admission_candidates(
             candidates,
             _provider_admission_candidates_from_same_tick_materialize(
+                profile=profile,
                 materialize_result=preview_materialize,
                 fallback_candidates=candidates,
                 progress_currentness=progress_currentness,
@@ -1192,6 +1196,7 @@ def _scanned_study_ids_without_provider_admission(
 
 def _provider_admission_candidates_from_same_tick_materialize(
     *,
+    profile: WorkspaceProfile,
     materialize_result: Mapping[str, Any],
     fallback_candidates: list[dict[str, Any]],
     progress_currentness: Mapping[str, Any] | None = None,
@@ -1203,7 +1208,7 @@ def _provider_admission_candidates_from_same_tick_materialize(
     }
     current_action_by_study = _same_tick_progress_current_actions(progress_currentness)
     candidates: list[dict[str, Any]] = []
-    for dispatch in domain_progress_transition_requests(materialize_result):
+    for dispatch in _same_tick_materialized_transition_dispatches(materialize_result):
         if not isinstance(dispatch, Mapping):
             continue
         if _non_empty_text(dispatch.get("dispatch_status")) not in {"ready", "transition_request_pending"}:
@@ -1226,13 +1231,26 @@ def _provider_admission_candidates_from_same_tick_materialize(
         )
         if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
             stage_packet_refs.append(stage_packet_ref)
+        stage_packet_ref = _workspace_relative_ref(
+            stage_packet_ref,
+            workspace_root=profile.workspace_root,
+        )
+        stage_packet_refs = [
+            ref
+            for ref in (
+                _workspace_relative_ref(item, workspace_root=profile.workspace_root)
+                for item in stage_packet_refs
+            )
+            if ref is not None
+        ]
+        if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
+            stage_packet_refs.insert(0, stage_packet_ref)
         candidate = {
             **base,
             "surface": "opl_provider_admission_candidate",
             "schema_version": 1,
             "status": "transition_request_pending",
-            "dispatch_status": _non_empty_text(dispatch.get("dispatch_status"))
-            or _non_empty_text(base.get("dispatch_status")),
+            "dispatch_status": "transition_request_pending",
             "source": _non_empty_text(base.get("source")) or "same_tick_materialized_dispatch",
             "study_id": study_id,
             "quest_id": _non_empty_text(dispatch.get("quest_id")) or _non_empty_text(base.get("quest_id")),
@@ -1335,6 +1353,25 @@ def _candidate_with_current_action_identity(
             or _non_empty_text(current_basis.get("source_eval_id")),
         }
     return payload
+
+
+def _same_tick_materialized_transition_dispatches(
+    materialize_result: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    return domain_progress_transition_requests(materialize_result)
+
+
+def _workspace_relative_ref(value: str | None, *, workspace_root: Path) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    path = Path(text)
+    if not path.is_absolute():
+        return text
+    try:
+        return path.resolve().relative_to(workspace_root).as_posix()
+    except (OSError, ValueError):
+        return text
 
 
 def _same_tick_materialized_currentness_basis(

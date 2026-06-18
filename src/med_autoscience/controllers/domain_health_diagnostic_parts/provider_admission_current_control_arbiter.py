@@ -115,15 +115,19 @@ def _stage_route_arbiter_decisions(
             identity=candidate,
         )
         if paper_recovery_block:
-            decisions.append(
-                _arbiter_decision(
-                    candidate,
-                    decision="paper_recovery_state_blocks_provider_admission",
-                    effect="suppress_provider_admission_pending",
-                    evidence=paper_recovery_block,
+            if not _request_only_transition_can_bypass_paper_recovery_block(
+                candidate,
+                block=paper_recovery_block,
+            ):
+                decisions.append(
+                    _arbiter_decision(
+                        candidate,
+                        decision="paper_recovery_state_blocks_provider_admission",
+                        effect="suppress_provider_admission_pending",
+                        evidence=paper_recovery_block,
+                    )
                 )
-            )
-            continue
+                continue
         weak_identity = (
             _current_control_weak_provider_admission_identity(candidate)
             if _candidate_requires_strong_current_control_identity(candidate)
@@ -686,8 +690,9 @@ def _candidates_not_covered_by_live_attempt(
             identity=candidate,
         )
         if paper_recovery_block:
-            if not request_only_transition or _paper_recovery_block_is_hard_blocker(
-                paper_recovery_block
+            if not _request_only_transition_can_bypass_paper_recovery_block(
+                candidate,
+                block=paper_recovery_block,
             ):
                 continue
         weak_identity = _current_control_weak_provider_admission_identity(candidate)
@@ -724,6 +729,26 @@ def _paper_recovery_block_is_hard_blocker(block: Mapping[str, Any]) -> bool:
         return True
     next_safe_action = _mapping(block.get("next_safe_action"))
     return _non_empty_text(next_safe_action.get("kind")) == "resolve_typed_blocker"
+
+
+def _request_only_transition_can_bypass_paper_recovery_block(
+    candidate: Mapping[str, Any],
+    *,
+    block: Mapping[str, Any],
+) -> bool:
+    if not _request_only_transition_request_candidate(candidate):
+        return False
+    if _paper_recovery_block_is_hard_blocker(block):
+        return False
+    next_safe_action = _mapping(block.get("next_safe_action"))
+    if _non_empty_text(next_safe_action.get("kind")) == "materialize_successor_owner_action":
+        successor = _mapping(next_safe_action.get("successor_owner_action"))
+        return bool(successor) and _identity_matches(successor, identity=candidate)
+    return _provider_admission_candidate_materializes_recovery_action(
+        candidate,
+        recovery=block,
+        supervisor_decision=_mapping(block.get("supervisor_decision")),
+    )
 
 
 def _request_only_transition_can_bypass_current_typed_blocker(

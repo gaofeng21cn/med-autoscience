@@ -439,13 +439,17 @@ def _current_obligation_provider_admission_candidates(
     current_control_state: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
+    current_control_study = _current_control_study(
+        current_control_state,
+        study_id=_non_empty_text(action.get("study_id")),
+    )
     for source in (
         action.get("provider_admission_candidates"),
+        action.get("transition_request_candidates"),
         current_control_state.get("provider_admission_candidates"),
-        _current_control_study(
-            current_control_state,
-            study_id=_non_empty_text(action.get("study_id")),
-        ).get("provider_admission_candidates"),
+        current_control_state.get("transition_request_candidates"),
+        current_control_study.get("provider_admission_candidates"),
+        current_control_study.get("transition_request_candidates"),
     ):
         for candidate in source or []:
             if (
@@ -453,7 +457,9 @@ def _current_obligation_provider_admission_candidates(
                 and _candidate_matches_action_obligation(candidate, action)
                 and _candidate_has_mas_transition_request(candidate)
             ):
-                candidates.append(dict(candidate))
+                candidate_payload = dict(candidate)
+                if candidate_payload not in candidates:
+                    candidates.append(candidate_payload)
     return candidates
 
 

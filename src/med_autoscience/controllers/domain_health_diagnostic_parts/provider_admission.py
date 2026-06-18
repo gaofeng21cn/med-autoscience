@@ -98,8 +98,12 @@ def persisted_provider_admission_candidates(
     *,
     study_root: Path,
     status_payload: Mapping[str, Any] | None = None,
+    allow_legacy_fallback: bool = False,
 ) -> list[dict[str, Any]]:
-    payload, execution_ref = latest_owner_callable_adapter_receipt_payload(study_root=study_root)
+    payload, execution_ref = latest_owner_callable_adapter_receipt_payload(
+        study_root=study_root,
+        allow_legacy_fallback=allow_legacy_fallback,
+    )
     if payload is None:
         return []
     return provider_admission_candidates_from_execution_payload(

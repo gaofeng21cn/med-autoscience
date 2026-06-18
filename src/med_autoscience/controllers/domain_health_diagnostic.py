@@ -80,8 +80,12 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.developer_superv
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
     current_control_provider_admission_candidates,
+    _current_action_identity_has_provider_currentness,
     persisted_provider_admission_candidates,
     provider_admission_candidates_from_execution_payload,
+)
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_actions import (
+    _current_action_identity,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report import (
     materialize_report_provider_admission_current_control_state as _materialize_report_provider_admission_current_control_state_impl,
@@ -232,19 +236,27 @@ def _status_payload_with_fresh_progress_currentness(
         return payload
     if not isinstance(progress, Mapping):
         return payload
-    refreshed = False
-    for key in (
-        "current_work_unit",
-        "current_execution_envelope",
-        "current_executable_owner_action",
-        "current_owner_ticket",
+    fresh_currentness_payload = {
+        key: dict(value)
+        for key in (
+            "current_work_unit",
+            "current_execution_envelope",
+            "current_executable_owner_action",
+            "current_owner_ticket",
+        )
+        if isinstance((value := progress.get(key)), Mapping) and value
+    }
+    if not fresh_currentness_payload:
+        return payload
+    if (
+        not _status_payload_has_actionable_provider_currentness(fresh_currentness_payload)
+        and _status_payload_has_actionable_provider_currentness(payload)
     ):
-        if key not in progress:
-            continue
-        value = progress.get(key)
-        if isinstance(value, Mapping) and value:
-            payload[key] = dict(value)
-            refreshed = True
+        return payload
+    refreshed = False
+    for key, value in fresh_currentness_payload.items():
+        payload[key] = dict(value)
+        refreshed = True
     if refreshed and (generated_at := _non_empty_text(progress.get("generated_at"))) is not None:
         payload["study_progress_generated_at"] = generated_at
     return payload
@@ -255,6 +267,9 @@ def _mapping_payload(value: object) -> Mapping[str, Any]:
 
 
 def _status_payload_has_actionable_provider_currentness(status_payload: Mapping[str, Any]) -> bool:
+    current_identity = _current_action_identity(status_payload)
+    if current_identity and _current_action_identity_has_provider_currentness(current_identity):
+        return True
     current_work_unit = _mapping_payload(status_payload.get("current_work_unit"))
     envelope = _mapping_payload(status_payload.get("current_execution_envelope"))
     state_kind = _non_empty_text(envelope.get("state_kind")) or _non_empty_text(
@@ -347,6 +362,7 @@ def _request_opl_stage_attempt(
             provider_admission_candidates = persisted_provider_admission_candidates(
                 study_root=Path(study_root),
                 status_payload=candidate_status_payload,
+                allow_legacy_fallback=True,
             )
         if not provider_admission_candidates:
             provider_admission_candidates = _legacy_execution_provider_admission_candidates(
@@ -356,7 +372,8 @@ def _request_opl_stage_attempt(
     else:
         provider_admission_candidates = persisted_provider_admission_candidates(
             study_root=Path(study_root),
-            status_payload=status_payload,
+            status_payload=candidate_status_payload,
+            allow_legacy_fallback=True,
         )
         if not provider_admission_candidates:
             provider_admission_candidates = _current_control_provider_admission_candidates(
