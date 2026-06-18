@@ -275,6 +275,106 @@ def test_owner_receipt_recorded_replay_requires_non_advancing_apply_when_readbac
     )
 
 
+def test_terminal_owner_receipt_closeout_consumes_transition_request_projection_residue() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+    )
+    apply_terminal_closeout = getattr(module, "_apply_matching_terminal_closeout_to_handoff")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    route_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    stage_attempt_id = "sat_f22f2e9d25d336fa2a2a4306"
+    stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
+    )
+    owner_receipt_ref = f"studies/{study_id}/artifacts/controller/repair_execution_receipts/latest.json"
+    transition_candidate = {
+        "status": "transition_request_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+        "provider_admission_requires_opl_runtime_result": True,
+        "provider_completion_is_domain_completion": False,
+    }
+
+    consumed = apply_terminal_closeout(
+        {
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "authority": "observability_only",
+            "study_id": study_id,
+            "running_provider_attempt": False,
+            "active_run_id": "opl-stage-attempt://stale-transition-request",
+            "active_stage_attempt_id": stage_attempt_id,
+            "active_workflow_id": "wf-stale-transition-request",
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 1,
+            "transition_request_candidates": [transition_candidate],
+            "latest_terminal_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "stage_attempt_id": stage_attempt_id,
+                "status": "closed",
+                "execution_status": "owner_receipt_recorded",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "route_identity_key": route_key,
+                "attempt_idempotency_key": route_key,
+                "stage_packet_ref": stage_packet_ref,
+                "stage_packet_refs": [stage_packet_ref],
+                "owner_receipt_ref": owner_receipt_ref,
+                "paper_stage_log": {
+                    "outcome": "closed_with_existing_mas_owner_receipt_ref",
+                    "progress_delta_classification": "platform_repair",
+                    "changed_paper_surfaces": [],
+                    "next_forced_delta": {
+                        "required_delta_kind": "consume_existing_owner_receipt_or_route_to_next_owner",
+                        "work_unit_id": work_unit,
+                        "owner_action": {
+                            "next_owner": "MedAutoScience",
+                            "action_type": "consume_owner_receipt",
+                            "work_unit_id": work_unit,
+                        },
+                    },
+                },
+            },
+        }
+    )
+
+    assert consumed["provider_admission_pending_count"] == 0
+    assert consumed["provider_admission_candidates"] == []
+    assert consumed["transition_request_pending_count"] == 0
+    assert consumed["transition_request_candidates"] == []
+    assert consumed["running_provider_attempt"] is False
+    assert consumed["runtime_owner"] is None
+    assert consumed["provider_attempt_owner"] is None
+    assert consumed["queue_owner"] is None
+    assert consumed["active_run_id"] is None
+    marker = consumed["provider_admission_terminal_closeout_consumed"]
+    assert marker["stage_attempt_id"] == stage_attempt_id
+    assert marker["work_unit_id"] == work_unit
+    assert marker["work_unit_fingerprint"] == fingerprint
+    assert marker["owner_receipt_ref"] == owner_receipt_ref
+    assert marker["authority_boundary"] == {
+        "projection_only": True,
+        "runtime_owner": "one-person-lab",
+        "domain_truth_owner": "med-autoscience",
+        "can_authorize_provider_admission": False,
+        "can_start_provider_attempt": False,
+        "provider_completion_is_domain_completion": False,
+    }
+
+
 def test_closeout_stagerun_identity_split_replay_converges_to_one_stable_typed_blocker() -> None:
     study_id = "002-dm-china-us-mortality-attribution"
     current_work_unit_id = "analysis_claim_evidence_repair"
@@ -646,9 +746,11 @@ def test_paper_progress_replay_live_evidence_status_contract_keeps_live_acceptan
     assert "DHD_dry_run" in forbidden
     assert "provider_admission_pending_count=0" in forbidden
     assert "focused_tests_passed" in forbidden
+    assert "stale_transition_request_after_terminal_owner_receipt_closeout_as_pending_progress" in forbidden
     assert contract["current_status"]["live_paper_progress_claim_allowed"] is False
     replay_trace_ids = {item["trace_id"] for item in contract["replay_coverage"]}
     assert "closeout_stagerun_identity_split" in replay_trace_ids
+    assert "terminal_owner_receipt_closeout_transition_request_residue" in replay_trace_ids
     assert contract["projection_metadata_completion_gate"]["required_fields"] == [
         "authority",
         "derived_from_event_id",

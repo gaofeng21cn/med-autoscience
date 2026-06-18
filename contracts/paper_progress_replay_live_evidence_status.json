@@ -42,6 +42,13 @@
       "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_owner_receipt_recorded_replay_requires_non_advancing_apply_when_readback_does_not_move"
     },
     {
+      "trace_id": "terminal_owner_receipt_closeout_transition_request_residue",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "ConsumeTerminalOwnerReceiptCloseout",
+      "required_postcondition": "transition_request_projection_consumed_and_owner_receipt_ref",
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_terminal_owner_receipt_closeout_consumes_transition_request_projection_residue"
+    },
+    {
       "trace_id": "closeout_stagerun_identity_split",
       "status": "covered_by_focused_test",
       "accepted_transition": "RecordTypedBlocker",
@@ -177,6 +184,7 @@
     "active_run_id_present_without_same_identity_running_proof",
     "provider_completion_without_mas_owner_acceptance",
     "recorded_only_owner_receipt_without_consumption_or_next_delta",
+    "stale_transition_request_after_terminal_owner_receipt_closeout_as_pending_progress",
     "command_event_log_readback_extraction"
   ],
   "remaining_evidence_tails": [
