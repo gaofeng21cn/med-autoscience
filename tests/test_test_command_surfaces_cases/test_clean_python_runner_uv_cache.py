@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -145,6 +146,75 @@ def test_clean_python_runner_can_isolate_uv_cache_for_cold_runs(tmp_path: Path) 
     assert not (stable_cache_root / "uv-cache").exists()
 
 
+def test_clean_python_runner_defaults_to_external_reuse_env_locally(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    sync_log = tmp_path / "uv-sync.log"
+    host_python = repr(sys.executable)
+    fake_uv = fake_bin / "uv"
+    fake_uv.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"${UV_PROJECT_ENVIRONMENT}\" >> \"${MAS_TEST_SYNC_LOG}\"\n"
+        "printf '%s\\n' \"${UV_CACHE_DIR}\" >> \"${MAS_TEST_SYNC_LOG}\"\n"
+        "printf '%s\\n' \"$*\" >> \"${MAS_TEST_SYNC_LOG}\"\n"
+        "mkdir -p \"${UV_PROJECT_ENVIRONMENT}/bin\"\n"
+        "cat >\"${UV_PROJECT_ENVIRONMENT}/bin/python\" <<'PY'\n"
+        "#!/usr/bin/env python3\n"
+        "import os\n"
+        "import sys\n"
+        f"os.execv({host_python}, [{host_python}, *sys.argv[1:]])\n"
+        "PY\n"
+        "chmod +x \"${UV_PROJECT_ENVIRONMENT}/bin/python\"\n",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+    xdg_cache_home = tmp_path / "xdg-cache"
+    expected_reuse_root = xdg_cache_home / "med-autoscience" / "clean-runner"
+
+    script = (
+        "import json, os; "
+        "print(json.dumps({"
+        "'venv': os.environ['UV_PROJECT_ENVIRONMENT'], "
+        "'cache': os.environ['UV_CACHE_DIR'], "
+        "'pycache': os.environ['PYTHONPYCACHEPREFIX']"
+        "}, sort_keys=True))"
+    )
+    command = [str(REPO_ROOT / "scripts/run-python-clean.sh"), "-c", script]
+    env = _clean_runner_env(
+        CI="",
+        PATH=f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        MAS_CLEAN_RUNNER_TMP_ROOT="",
+        MAS_TEST_SYNC_LOG=str(sync_log),
+        XDG_CACHE_HOME=str(xdg_cache_home),
+        UV_CACHE_DIR="",
+        UV_PROJECT_ENVIRONMENT="",
+        PYTHONPYCACHEPREFIX="",
+    )
+
+    first = subprocess.run(command, cwd=REPO_ROOT, env=env, check=False, capture_output=True, text=True)
+    second = subprocess.run(command, cwd=REPO_ROOT, env=env, check=False, capture_output=True, text=True)
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    first_env = json.loads(first.stdout)
+    second_env = json.loads(second.stdout)
+    assert first_env == second_env
+    assert Path(first_env["venv"]).is_relative_to(expected_reuse_root)
+    assert Path(first_env["cache"]).is_relative_to(expected_reuse_root)
+    assert Path(first_env["pycache"]).is_relative_to(expected_reuse_root)
+    assert not Path(first_env["venv"]).is_relative_to(REPO_ROOT)
+    assert not Path(first_env["cache"]).is_relative_to(REPO_ROOT)
+    assert sync_log.read_text(encoding="utf-8").splitlines() == [
+        str(expected_reuse_root / "venv"),
+        str(expected_reuse_root / "uv-cache"),
+        (
+            "sync --frozen --group dev --no-install-project --inexact "
+            f"-C--global-option=egg_info -C--global-option=--egg-base={expected_reuse_root / 'egg-info'}"
+        ),
+    ]
+
+
 def test_clean_python_runner_rejects_checkout_local_default_uv_cache(tmp_path: Path) -> None:
     runner_tmp, fake_venv = _runner_tmp_with_fake_venv(tmp_path)
     checkout_local_default_cache = REPO_ROOT / ".mas-clean-runner-default-uv-cache"
@@ -243,6 +313,7 @@ def test_clean_python_runner_removes_auto_tmp_root_after_success(tmp_path: Path)
         cwd=REPO_ROOT,
         env=_clean_runner_env(
             PATH=f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
+            MAS_CLEAN_RUNNER_REUSE_ENV="0",
             MAS_CLEAN_RUNNER_SKIP_SYNC="0",
             MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR=str(persistent_cache),
             MAS_CLEAN_RUNNER_TMP_ROOT="",

@@ -8,6 +8,9 @@ cd "${repo_root}"
 stable_cache_root="${MAS_CLEAN_RUNNER_CACHE_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/med-autoscience/clean-runner}"
 cleanup_tmp_root=0
 reuse_env_enabled=0
+if [[ -z "${CI:-}" && -z "${MAS_CLEAN_RUNNER_REUSE_ENV:-}" && -z "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then
+  export MAS_CLEAN_RUNNER_REUSE_ENV=1
+fi
 if [[ -n "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then
   tmp_root="${MAS_CLEAN_RUNNER_TMP_ROOT}"
 elif [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" == "1" ]]; then

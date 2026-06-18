@@ -393,6 +393,8 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'repo_root="$(cd "${script_dir}/.." && pwd -P)"' in runner_script
     assert 'repo_root="$(git rev-parse --show-toplevel)"' not in runner_script
     assert 'stable_cache_root="${MAS_CLEAN_RUNNER_CACHE_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/med-autoscience/clean-runner}"' in runner_script
+    assert 'if [[ -z "${CI:-}" && -z "${MAS_CLEAN_RUNNER_REUSE_ENV:-}" && -z "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then' in runner_script
+    assert 'export MAS_CLEAN_RUNNER_REUSE_ENV=1' in runner_script
     assert 'if [[ -n "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then' in runner_script
     assert 'elif [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" == "1" ]]; then' in runner_script
     assert 'tmp_root="${MAS_CLEAN_RUNNER_REUSE_ROOT}"' in runner_script
