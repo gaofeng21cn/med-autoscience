@@ -133,6 +133,16 @@ def _current_control_currentness_fields(matching: Mapping[str, Any]) -> dict[str
             for item in matching.get("provider_admission_candidates") or []
             if isinstance(item, Mapping)
         ]
+    if "transition_request_pending_count" in matching:
+        projection["transition_request_pending_count"] = int(
+            matching.get("transition_request_pending_count") or 0
+        )
+    if "transition_request_candidates" in matching:
+        projection["transition_request_candidates"] = [
+            dict(item)
+            for item in matching.get("transition_request_candidates") or []
+            if isinstance(item, Mapping)
+        ]
     return projection
 
 

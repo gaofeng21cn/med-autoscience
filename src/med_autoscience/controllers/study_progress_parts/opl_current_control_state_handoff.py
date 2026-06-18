@@ -657,18 +657,24 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
         runtime_health["runtime_liveness_status"] = "terminal"
         runtime_health["health_status"] = "terminal"
         updated["runtime_health"] = runtime_health
-    if int(updated.get("provider_admission_pending_count") or 0) > 0:
-        provider_admission_candidates = [
-            dict(item)
-            for item in updated.get("provider_admission_candidates") or []
-            if isinstance(item, Mapping)
-        ]
-        matching_provider_admissions = [
-            item
-            for item in provider_admission_candidates
-            if _terminal_closeout_matches_handoff_action(terminal=terminal, action=item)
-        ]
-        if provider_admission_candidates and not matching_provider_admissions:
+    provider_admission_pending = int(updated.get("provider_admission_pending_count") or 0) > 0
+    transition_request_pending = int(updated.get("transition_request_pending_count") or 0) > 0
+    if provider_admission_pending or transition_request_pending:
+        provider_admission_candidates = _handoff_candidate_list(updated.get("provider_admission_candidates"))
+        transition_request_candidates = _handoff_candidate_list(updated.get("transition_request_candidates"))
+        matching_provider_admissions = _terminal_matching_handoff_candidates(
+            terminal=terminal,
+            candidates=provider_admission_candidates,
+        )
+        matching_transition_requests = _terminal_matching_handoff_candidates(
+            terminal=terminal,
+            candidates=transition_request_candidates,
+        )
+        if (
+            (provider_admission_candidates or transition_request_candidates)
+            and not matching_provider_admissions
+            and not matching_transition_requests
+        ):
             return projection
         updated["provider_admission_pending_count"] = 0
         updated["provider_admission_candidates"] = []
@@ -676,9 +682,29 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
         updated["transition_request_candidates"] = []
         updated["provider_admission_terminal_closeout_consumed"] = _provider_admission_terminal_closeout_consumed(
             terminal=terminal,
-            matching_provider_admission=matching_provider_admissions[0] if matching_provider_admissions else None,
+            matching_provider_admission=matching_provider_admissions[0]
+            if matching_provider_admissions
+            else matching_transition_requests[0]
+            if matching_transition_requests
+            else None,
         )
     return _apply_terminal_closeout_owner_answer_gate(updated)
+
+
+def _handoff_candidate_list(value: object) -> list[dict[str, Any]]:
+    return [dict(item) for item in value or [] if isinstance(item, Mapping)]
+
+
+def _terminal_matching_handoff_candidates(
+    *,
+    terminal: Mapping[str, Any],
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        item
+        for item in candidates
+        if _terminal_closeout_matches_handoff_action(terminal=terminal, action=item)
+    ]
 
 
 def _provider_admission_terminal_closeout_consumed(
@@ -872,14 +898,19 @@ def _terminal_closeout_matches_handoff_action(
 def _action_requires_identity_bound_terminal_closeout(action: Mapping[str, Any]) -> bool:
     if candidate_opl_transition_readback(action):
         return True
-    if _non_empty_text(action.get("status")) != "provider_admission_pending":
+    if _non_empty_text(action.get("status")) not in {
+        "provider_admission_pending",
+        "transition_request_pending",
+    }:
         return False
     identity = _observability_mapping(action.get("provider_admission_identity"))
     if not identity:
-        return False
+        identity_sources = (action,)
+    else:
+        identity_sources = (action, identity)
     return any(
         _non_empty_text(source.get(key)) is not None
-        for source in (action, identity)
+        for source in identity_sources
         for key in (
             "stage_run_id",
             "stage_attempt_id",
@@ -887,8 +918,12 @@ def _action_requires_identity_bound_terminal_closeout(action: Mapping[str, Any])
             "route_identity_key",
             "attempt_idempotency_key",
             "idempotency_key",
+            "stage_packet_ref",
+            "stage_packet_path",
+            "dispatch_ref",
+            "dispatch_path",
         )
-    )
+    ) or bool(_stage_packet_refs(action))
 
 
 def _terminal_closeout_matches_action_bound_identity(
@@ -1252,12 +1287,35 @@ def _handoff_has_matching_terminal_closeout(handoff: Mapping[str, Any]) -> bool:
         return False
     if active_attempt_id is None and terminal_attempt_id is None:
         return False
+    if active_attempt_id is None and not _handoff_has_terminal_matching_pending_candidate(
+        handoff=handoff,
+        terminal=terminal,
+    ):
+        return False
     status = _non_empty_text(terminal.get("status"))
     if status in TERMINAL_STAGE_LOG_STATUSES:
         return True
     return (
         _non_empty_text(terminal.get("source_path")) is not None
         and _non_empty_text(terminal.get("record_path")) is not None
+    )
+
+
+def _handoff_has_terminal_matching_pending_candidate(
+    *,
+    handoff: Mapping[str, Any],
+    terminal: Mapping[str, Any],
+) -> bool:
+    candidates = [
+        *_handoff_candidate_list(handoff.get("provider_admission_candidates")),
+        *_handoff_candidate_list(handoff.get("transition_request_candidates")),
+    ]
+    return bool(
+        candidates
+        and _terminal_matching_handoff_candidates(
+            terminal=terminal,
+            candidates=candidates,
+        )
     )
 
 
