@@ -107,7 +107,17 @@ def materialize_provider_admission_current_control_state(
         if _candidate_key(candidate) in pending_candidate_keys
         and _candidate_key(candidate) not in unresolved_keys
     ]
-    projection_candidates = [*unresolved_candidates, *retained_pending_candidates]
+    retained_transition_request_candidates = [
+        _candidate_with_transition_request_pending_state(candidate)
+        for candidate in candidates
+        if _candidate_key(candidate) in transition_request_candidate_keys
+        and _candidate_key(candidate) not in unresolved_keys
+    ]
+    projection_candidates = [
+        *unresolved_candidates,
+        *retained_pending_candidates,
+        *retained_transition_request_candidates,
+    ]
     pending_candidates = [
         candidate
         for candidate in projection_candidates
@@ -257,6 +267,16 @@ def _candidate_key(candidate: Mapping[str, Any]) -> tuple[str | None, ...]:
         _non_empty_text(candidate.get("work_unit_fingerprint"))
         or _non_empty_text(candidate.get("action_fingerprint")),
     )
+
+
+def _candidate_with_transition_request_pending_state(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(candidate)
+    payload["provider_admission_pending"] = False
+    payload["provider_admission_requires_opl_runtime_result"] = True
+    payload["provider_attempt_or_lease_required"] = False
+    payload["status"] = "transition_request_pending"
+    payload["dispatch_status"] = "transition_request_pending"
+    return payload
 
 
 def _payload_with_consumed_closeout_typed_blockers(payload: dict[str, Any]) -> dict[str, Any]:
