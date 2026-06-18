@@ -18,6 +18,36 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     surfaces = {surface["surface_id"]: surface for surface in inventory["surfaces"]}
 
     refs_surface = surfaces["domain_authority_refs_index"]
+    legacy_helper_scan = {
+        "status": "active_replay_or_local_inspection_callers_present_tail_open",
+        "no_active_replay_or_local_inspection_caller_proven": False,
+        "physical_delete_allowed": False,
+        "required_before_physical_delete": (
+            "domain_authority_refs_index_live_state_index_takeover_or_"
+            "no_active_replay_local_inspection_caller_physical_delete_ref"
+        ),
+        "active_callers": [
+            (
+                "paper_progress_transition_refs.record_paper_progress_transition_ref::"
+                "persist_authority_refs_index_explicit_opt_in"
+            ),
+            "opl_domain_pack.family_adoption.build_opl_family_adoption_surface::inspect_authority_refs_index",
+            "opl_domain_pack.family_adoption.build_product_entry_adoption_projection::sqlite_refs_index_ref",
+            "opl_domain_pack.adoption_ref_payload.payload_from_authority_refs::legacy_sqlite_payload_projection",
+        ],
+        "allowed_consumption": [
+            "explicit_history_replay",
+            "explicit_local_refs_inspection",
+            "opl_family_adoption_projection",
+            "tombstone_provenance",
+        ],
+        "forbidden_completion_claims": [
+            "legacy_helper_active_scan_as_physical_delete",
+            "legacy_helper_active_callers_as_no_active_caller",
+            "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
+            "explicit_replay_opt_in_as_live_opl_readback",
+        ],
+    }
     assert refs_surface["active_caller_migrated"] is True
     assert refs_surface["current_disposition"] == (
         "active_callers_migrated_to_opl_state_index_source_adapter_live_takeover_tail_open"
@@ -65,6 +95,8 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "completion_claim_requires_live_owner_or_opl_readback": True,
         "no_active_caller_required_before_physical_delete": True,
         "no_active_authority_caller_proven": True,
+        "no_active_replay_or_local_inspection_caller_proven": False,
+        "physical_delete_allowed": False,
         "repo_replacement_parity_proven": True,
         "replacement_parity_required": True,
         "tombstone_or_provenance_required": True,
@@ -93,6 +125,7 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         ),
         "sqlite_persistence_requires_explicit_opt_in": True,
         "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only",
+        "legacy_helper_active_caller_scan": legacy_helper_scan,
     }
     assert "mas_owned_state_index_kernel" in refs_surface["forbidden_claims"]
 
@@ -166,6 +199,7 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     assert bridge["replacement_owner_surface"] == inventory_bridge["replacement_owner_surface"]
     assert bridge["required_opl_readback_ref"] == inventory_bridge["required_opl_readback_ref"]
     assert bridge["mas_projection_cannot_replace"] == inventory_bridge["mas_projection_cannot_replace"]
+    assert bridge["legacy_helper_active_caller_scan"] == legacy_helper_scan
     assert (
         bridge["legacy_domain_authority_refs_index_role"]
         == refs_surface["active_caller_boundary"]["legacy_domain_authority_refs_index_role"]
@@ -290,12 +324,34 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert "active_caller_exists_as_retention_reason" in audit["forbidden_completion_interpretations"]
     assert "maintenance_apply_gate_as_paper_progress" in audit["forbidden_completion_interpretations"]
 
+    inventory_surfaces = {surface["surface_id"]: surface for surface in inventory["surfaces"]}
+    legacy_helper_scan = inventory_surfaces["domain_authority_refs_index"][
+        "opl_state_index_takeover_bridge"
+    ]["legacy_helper_active_caller_scan"]
     open_surfaces = {surface["surface_id"]: surface for surface in audit["open_surfaces"]}
     assert open_surfaces["domain_authority_refs_index"]["authority_status"] == (
         "active_callers_migrated_opl_state_index_source_adapter_live_tail_open"
     )
     assert open_surfaces["domain_authority_refs_index"]["allowed_effect"] == (
         "opl_state_index_source_adapter_emitted_no_sqlite_persistence"
+    )
+    assert (
+        open_surfaces["domain_authority_refs_index"][
+            "domain_authority_refs_no_active_replay_local_inspection_caller_proven"
+        ]
+        is False
+    )
+    assert (
+        open_surfaces["domain_authority_refs_index"][
+            "domain_authority_refs_physical_delete_allowed"
+        ]
+        is False
+    )
+    assert (
+        open_surfaces["domain_authority_refs_index"][
+            "domain_authority_refs_legacy_helper_active_caller_count"
+        ]
+        == len(legacy_helper_scan["active_callers"])
     )
     assert open_surfaces["default_executor_dispatch_request"]["authority_status"] == (
         "legacy_default_executor_carrier_opl_stage_run_abi_provenance_only"
@@ -342,6 +398,16 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     refs_surface["active_caller_boundary"]["active_caller_retains_authority"] = True
     refs_surface["retirement_gate"]["active_caller_alone_retains_surface"] = True
     refs_surface["authority_boundary"]["can_authorize_provider_admission"] = True
+    refs_surface["opl_state_index_takeover_bridge"]["legacy_helper_active_caller_scan"][
+        "no_active_replay_or_local_inspection_caller_proven"
+    ] = True
+    refs_surface["opl_state_index_takeover_bridge"]["legacy_helper_active_caller_scan"][
+        "physical_delete_allowed"
+    ] = True
+    refs_surface["retirement_gate"][
+        "no_active_replay_or_local_inspection_caller_proven"
+    ] = True
+    refs_surface["retirement_gate"]["physical_delete_allowed"] = True
 
     violations = retirement.validate_runtime_surface_retirement_inventory(bad_inventory)
 
@@ -350,6 +416,26 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         ("domain_authority_refs_index", "truthy_authority_flag:authority_boundary.can_authorize_provider_admission"),
         ("domain_authority_refs_index", "active_caller_retains_authority"),
         ("domain_authority_refs_index", "active_caller_alone_can_retain_surface"),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_active_tail_must_not_claim_no_active_replay_local_inspection_callers",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_active_replay_local_inspection_callers_block_physical_delete",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_no_active_claim_contradicts_active_replay_local_inspection_callers",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_retirement_gate_must_not_claim_no_active_replay_local_inspection_callers",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_retirement_gate_must_not_allow_physical_delete",
+        ),
     } <= {(item["surface_id"], item["reason"]) for item in violations}
 
     legacy_bad_inventory = json.loads(json.dumps(inventory))
@@ -485,3 +571,100 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
             "legacy_carrier_missing_opl_runtime_intake_requirement",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in carrier_violations}
+
+
+def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_tail_open() -> None:
+    inventory = json.loads(
+        (REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+    surface = {
+        item["surface_id"]: item for item in inventory["surfaces"]
+    }["domain_authority_refs_index"]
+    scan = surface["opl_state_index_takeover_bridge"]["legacy_helper_active_caller_scan"]
+
+    assert scan["status"] == "active_replay_or_local_inspection_callers_present_tail_open"
+    assert scan["no_active_replay_or_local_inspection_caller_proven"] is False
+    assert scan["physical_delete_allowed"] is False
+    assert (
+        scan["required_before_physical_delete"]
+        == (
+            "domain_authority_refs_index_live_state_index_takeover_or_"
+            "no_active_replay_local_inspection_caller_physical_delete_ref"
+        )
+    )
+    assert {
+        (
+            "paper_progress_transition_refs.record_paper_progress_transition_ref::"
+            "persist_authority_refs_index_explicit_opt_in"
+        ),
+        "opl_domain_pack.family_adoption.build_opl_family_adoption_surface::inspect_authority_refs_index",
+        "opl_domain_pack.family_adoption.build_product_entry_adoption_projection::sqlite_refs_index_ref",
+        "opl_domain_pack.adoption_ref_payload.payload_from_authority_refs::legacy_sqlite_payload_projection",
+    } <= set(scan["active_callers"])
+    assert "explicit_history_replay" in scan["allowed_consumption"]
+    assert "explicit_local_refs_inspection" in scan["allowed_consumption"]
+    assert "legacy_helper_active_scan_as_physical_delete" in scan[
+        "forbidden_completion_claims"
+    ]
+
+    audit = retirement.audit_runtime_surface_retirement_inventory(inventory)
+    audited_surface = {
+        item["surface_id"]: item for item in audit["open_surfaces"]
+    }["domain_authority_refs_index"]
+
+    assert (
+        audited_surface[
+            "domain_authority_refs_no_active_replay_local_inspection_caller_proven"
+        ]
+        is False
+    )
+    assert audited_surface["domain_authority_refs_physical_delete_allowed"] is False
+    assert audited_surface["domain_authority_refs_legacy_helper_active_caller_count"] == len(
+        scan["active_callers"]
+    )
+    assert audited_surface["physical_delete_gate_open"] is True
+    assert audit["completion_claim_allowed"] is False
+
+    bad_inventory = json.loads(json.dumps(inventory))
+    bad_surface = {
+        item["surface_id"]: item for item in bad_inventory["surfaces"]
+    }["domain_authority_refs_index"]
+    bad_scan = bad_surface["opl_state_index_takeover_bridge"][
+        "legacy_helper_active_caller_scan"
+    ]
+    bad_scan["no_active_replay_or_local_inspection_caller_proven"] = True
+    bad_scan["physical_delete_allowed"] = True
+    bad_surface["retirement_gate"][
+        "no_active_replay_or_local_inspection_caller_proven"
+    ] = True
+    bad_surface["retirement_gate"]["physical_delete_allowed"] = True
+
+    violations = retirement.validate_runtime_surface_retirement_inventory(bad_inventory)
+
+    assert {
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_active_tail_must_not_claim_no_active_replay_local_inspection_callers",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_active_replay_local_inspection_callers_block_physical_delete",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_no_active_claim_contradicts_active_replay_local_inspection_callers",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_retirement_gate_must_not_claim_no_active_replay_local_inspection_callers",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_retirement_gate_must_not_allow_physical_delete",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in violations}

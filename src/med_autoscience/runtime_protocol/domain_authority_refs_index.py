@@ -139,6 +139,36 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
             "no_active_caller_required_before_physical_delete": True,
             "tombstone_or_provenance_required_before_physical_delete": True,
             "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
+            "legacy_helper_active_caller_scan": {
+                "status": "active_replay_or_local_inspection_callers_present_tail_open",
+                "no_active_replay_or_local_inspection_caller_proven": False,
+                "physical_delete_allowed": False,
+                "required_before_physical_delete": (
+                    "domain_authority_refs_index_live_state_index_takeover_or_"
+                    "no_active_replay_local_inspection_caller_physical_delete_ref"
+                ),
+                "active_callers": [
+                    (
+                        "paper_progress_transition_refs.record_paper_progress_transition_ref::"
+                        "persist_authority_refs_index_explicit_opt_in"
+                    ),
+                    "opl_domain_pack.family_adoption.build_opl_family_adoption_surface::inspect_authority_refs_index",
+                    "opl_domain_pack.family_adoption.build_product_entry_adoption_projection::sqlite_refs_index_ref",
+                    "opl_domain_pack.adoption_ref_payload.payload_from_authority_refs::legacy_sqlite_payload_projection",
+                ],
+                "allowed_consumption": [
+                    "explicit_history_replay",
+                    "explicit_local_refs_inspection",
+                    "opl_family_adoption_projection",
+                    "tombstone_provenance",
+                ],
+                "forbidden_completion_claims": [
+                    "legacy_helper_active_scan_as_physical_delete",
+                    "legacy_helper_active_callers_as_no_active_caller",
+                    "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
+                    "explicit_replay_opt_in_as_live_opl_readback",
+                ],
+            },
             "mas_projection_cannot_replace": [
                 "opl_state_index_kernel_readback",
                 "opl_lifecycle_index",

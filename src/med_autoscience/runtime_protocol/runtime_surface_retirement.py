@@ -116,6 +116,8 @@ def validate_runtime_surface_retirement_inventory(
         if surface_id == "default_executor_execution_latest_wire_projection":
             violations.extend(_validate_legacy_latest_wire(surface_id, surface))
             violations.extend(_validate_legacy_stage_run_abi(surface_id, surface))
+        if surface_id == "domain_authority_refs_index":
+            violations.extend(_validate_domain_authority_refs_index(surface_id, surface))
         if surface.get("current_disposition") != "physically_retired":
             violations.extend(_validate_open_surface(surface_id, surface))
     return violations
@@ -346,10 +348,100 @@ def _validate_legacy_default_executor_carrier(
     return violations
 
 
+def _validate_domain_authority_refs_index(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    bridge = surface.get("opl_state_index_takeover_bridge")
+    if not isinstance(bridge, Mapping):
+        return [_violation(surface_id, "missing_opl_state_index_takeover_bridge")]
+    scan = bridge.get("legacy_helper_active_caller_scan")
+    if not isinstance(scan, Mapping):
+        return [_violation(surface_id, "domain_authority_refs_legacy_helper_scan_missing")]
+
+    active_callers = scan.get("active_callers")
+    active_caller_list = active_callers if isinstance(active_callers, list) else []
+    no_active_proven = scan.get("no_active_replay_or_local_inspection_caller_proven")
+    physical_delete_allowed = scan.get("physical_delete_allowed")
+    status = _text(scan.get("status"))
+    if status == "active_replay_or_local_inspection_callers_present_tail_open":
+        if not active_caller_list:
+            violations.append(_violation(surface_id, "domain_authority_refs_legacy_helper_scan_empty"))
+        if no_active_proven is not False:
+            violations.append(
+                _violation(
+                    surface_id,
+                    "domain_authority_refs_active_tail_must_not_claim_no_active_replay_local_inspection_callers",
+                )
+            )
+        if physical_delete_allowed is not False:
+            violations.append(
+                _violation(
+                    surface_id,
+                    "domain_authority_refs_active_replay_local_inspection_callers_block_physical_delete",
+                )
+            )
+    if active_caller_list and no_active_proven is True:
+        violations.append(
+            _violation(
+                surface_id,
+                "domain_authority_refs_no_active_claim_contradicts_active_replay_local_inspection_callers",
+            )
+        )
+    if active_caller_list and physical_delete_allowed is not False:
+        violations.append(
+            _violation(
+                surface_id,
+                "domain_authority_refs_active_replay_local_inspection_callers_block_physical_delete",
+            )
+        )
+    allowed_consumption = scan.get("allowed_consumption")
+    if not isinstance(allowed_consumption, list) or "explicit_history_replay" not in allowed_consumption:
+        violations.append(_violation(surface_id, "domain_authority_refs_legacy_helper_scan_missing_allowed_consumption"))
+    forbidden_claims = scan.get("forbidden_completion_claims")
+    if (
+        not isinstance(forbidden_claims, list)
+        or "legacy_helper_active_scan_as_physical_delete" not in forbidden_claims
+    ):
+        violations.append(_violation(surface_id, "domain_authority_refs_legacy_helper_scan_missing_false_completion_guard"))
+    if (
+        _text(scan.get("required_before_physical_delete"))
+        != "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref"
+    ):
+        violations.append(_violation(surface_id, "domain_authority_refs_legacy_helper_scan_missing_physical_delete_ref"))
+
+    gate = surface.get("retirement_gate")
+    if isinstance(gate, Mapping):
+        if gate.get("no_active_replay_or_local_inspection_caller_proven") is not False:
+            violations.append(
+                _violation(
+                    surface_id,
+                    "domain_authority_refs_retirement_gate_must_not_claim_no_active_replay_local_inspection_callers",
+                )
+            )
+        if gate.get("physical_delete_allowed") is not False:
+            violations.append(
+                _violation(
+                    surface_id,
+                    "domain_authority_refs_retirement_gate_must_not_allow_physical_delete",
+                )
+            )
+    else:
+        violations.append(_violation(surface_id, "missing_domain_authority_refs_retirement_gate"))
+    return violations
+
+
 def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     active_boundary = surface.get("active_caller_boundary")
     apply_gate = surface.get("apply_gate")
     retirement_gate = surface.get("retirement_gate")
+    state_index_bridge = surface.get("opl_state_index_takeover_bridge")
+    state_index_scan = (
+        state_index_bridge.get("legacy_helper_active_caller_scan")
+        if isinstance(state_index_bridge, Mapping)
+        else None
+    )
     legacy_stage_run_boundary = surface.get("legacy_stage_run_abi_boundary")
     legacy_stage_run_scan = (
         legacy_stage_run_boundary.get("active_stage_run_abi_caller_scan")
@@ -409,6 +501,22 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             len(legacy_stage_run_scan.get("active_callers"))
             if isinstance(legacy_stage_run_scan, Mapping)
             and isinstance(legacy_stage_run_scan.get("active_callers"), list)
+            else None
+        ),
+        "domain_authority_refs_no_active_replay_local_inspection_caller_proven": (
+            state_index_scan.get("no_active_replay_or_local_inspection_caller_proven")
+            if isinstance(state_index_scan, Mapping)
+            else None
+        ),
+        "domain_authority_refs_physical_delete_allowed": (
+            state_index_scan.get("physical_delete_allowed")
+            if isinstance(state_index_scan, Mapping)
+            else None
+        ),
+        "domain_authority_refs_legacy_helper_active_caller_count": (
+            len(state_index_scan.get("active_callers"))
+            if isinstance(state_index_scan, Mapping)
+            and isinstance(state_index_scan.get("active_callers"), list)
             else None
         ),
         "retirement_gate": dict(retirement_gate) if isinstance(retirement_gate, Mapping) else None,
