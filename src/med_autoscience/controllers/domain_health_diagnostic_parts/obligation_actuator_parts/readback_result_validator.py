@@ -28,6 +28,7 @@ OPL_FOUNDATION_CONSUMED_SURFACES = (
     "HumanGateTransport",
     "StageRunIdentityPacket",
 )
+CONSUMED_READBACK_IDENTITY_SURFACE = "consumed_obligation_readback_identity"
 ACCEPTED_OBLIGATION_OUTCOME_KINDS = (
     "transition_request_pending",
     "provider_admission_pending",
@@ -89,6 +90,8 @@ VALIDATOR_AUTHORITY_BOUNDARY = {
     "mas_can_create_opl_command_event_or_outbox": False,
     "mas_can_generate_human_gate_resume_token": False,
     "request_projection_only_can_satisfy_success": False,
+    "postcondition_success_requires_consumed_readback_identity": True,
+    "consumed_readback_identity_surface_kind": CONSUMED_READBACK_IDENTITY_SURFACE,
 }
 CONSUME_ONLY_READBACK_BOUNDARY = {
     "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
@@ -111,6 +114,8 @@ CONSUME_ONLY_READBACK_BOUNDARY = {
     "success_requires_opl_foundation_readback_boundary": True,
     "request_projection_is_success_outcome": False,
     "supervisor_disallowed_outcome_is_success": False,
+    "postcondition_success_requires_consumed_readback_identity": True,
+    "consumed_readback_identity_surface_kind": CONSUMED_READBACK_IDENTITY_SURFACE,
     "readback_result_validator_boundary": dict(VALIDATOR_AUTHORITY_BOUNDARY),
 }
 ACTUATOR_AUTHORITY_BOUNDARY = {
@@ -151,6 +156,8 @@ ACTUATOR_AUTHORITY_BOUNDARY = {
     "request_projection_outcome_source_family": REQUEST_PROJECTION_SOURCE_FAMILY,
     "request_projection_is_success_outcome": False,
     "success_requires_opl_foundation_readback_boundary": True,
+    "postcondition_success_requires_consumed_readback_identity": True,
+    "consumed_readback_identity_surface_kind": CONSUMED_READBACK_IDENTITY_SURFACE,
     "readback_result_validator_boundary": dict(VALIDATOR_AUTHORITY_BOUNDARY),
     "consume_only_readback_boundary": dict(CONSUME_ONLY_READBACK_BOUNDARY),
 }
@@ -222,3 +229,38 @@ def outcome_has_required_foundation_readback(
     if validator_boundary.get("mas_can_choose_supervisor_decision") is not False:
         return False
     return _non_empty_text(opl_foundation.get("success_source_family")) == source_family
+
+
+def outcome_has_required_consumed_readback_identity(
+    *,
+    source_family: str,
+    outcome_kind: str,
+    consumed_readback_identity: Mapping[str, Any],
+) -> bool:
+    identity = dict(consumed_readback_identity)
+    if _non_empty_text(identity.get("surface_kind")) != CONSUMED_READBACK_IDENTITY_SURFACE:
+        return False
+    if _non_empty_text(identity.get("source_family")) != source_family:
+        return False
+    if _non_empty_text(identity.get("outcome_kind")) != outcome_kind:
+        return False
+    if _non_empty_text(identity.get("outcome_ref")) is None:
+        return False
+    if source_family == "opl_runtime_readback":
+        if _non_empty_text(identity.get("runtime_owner")) != OPL_TRANSITION_RUNTIME_OWNER:
+            return False
+        if _non_empty_text(identity.get("runtime_kind")) != OPL_TRANSITION_RUNTIME_KIND:
+            return False
+        if outcome_kind == "provider_admission_pending":
+            return all(
+                _non_empty_text(identity.get(key)) is not None
+                for key in ("event_id", "outbox_item_id", "transaction_id", "stage_run_id")
+            )
+        if outcome_kind == "running_provider_attempt":
+            return _non_empty_text(identity.get("stage_run_id")) is not None
+        return False
+    if source_family == "mas_owner_answer_readback":
+        return _non_empty_text(identity.get("owner_answer_ref")) is not None
+    if source_family == "mas_domain_authority_readback":
+        return _non_empty_text(identity.get("domain_authority_ref")) is not None
+    return False

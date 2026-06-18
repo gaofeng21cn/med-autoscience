@@ -275,6 +275,16 @@ def test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as
 
     outcome = report["managed_study_obligation_actuator_outcomes"][0]
     _assert_exactly_one_dhd_apply_outcome(outcome, "provider_admission_pending")
+    consumed_identity = outcome["consumed_obligation_readback_identity"]
+    assert consumed_identity == outcome["dhd_apply_success_proof"][
+        "consumed_obligation_readback_identity"
+    ]
+    assert consumed_identity["runtime_owner"] == "one-person-lab"
+    assert consumed_identity["runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert consumed_identity["event_id"].startswith("opl-domain-progress-event::")
+    assert consumed_identity["outbox_item_id"].startswith("opl-domain-progress-outbox::")
+    assert consumed_identity["transaction_id"].startswith("opl-domain-progress-transaction::")
+    assert consumed_identity["stage_run_id"] == "sat_003_write"
     assert outcome["details"]["opl_runtime_result"]["event_id"].startswith(
         "opl-domain-progress-event::"
     )
@@ -373,6 +383,8 @@ def test_domain_health_diagnostic_apply_projects_transition_request_when_provide
 
     outcome = report["managed_study_obligation_actuator_outcomes"][0]
     _assert_exactly_one_dhd_apply_outcome(outcome, "transition_request_pending")
+    assert "consumed_obligation_readback_identity" not in outcome
+    assert "dhd_apply_success_proof" not in outcome
     assert outcome["transition_request_pending"] == (
         f"provider-admission::{study_id}::medical_prose_write_repair"
     )

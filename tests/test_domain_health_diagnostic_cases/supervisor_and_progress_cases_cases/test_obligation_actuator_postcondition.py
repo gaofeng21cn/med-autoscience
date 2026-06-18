@@ -1127,11 +1127,13 @@ def _assert_exactly_one_dhd_apply_outcome(
     assert validator_boundary["mas_can_store_recovery_obligation"] is False
     assert validator_boundary["mas_can_create_opl_command_event_or_outbox"] is False
     assert outcome["success_requires_opl_foundation_readback_boundary"] is True
+    assert outcome["success_requires_consumed_readback_identity"] is True
     if expected_kind == "transition_request_pending":
         assert source_family == "mas_policy_request_projection"
         assert outcome["request_projection_only"] is True
         assert outcome["postcondition_ok"] is False
         assert "success_outcome_source_family" not in outcome
+        assert "consumed_obligation_readback_identity" not in outcome
         assert "dhd_apply_success_proof" not in outcome
         assert foundation["success_source_family_required"] is False
         assert "success_source_family" not in foundation
@@ -1148,10 +1150,16 @@ def _assert_exactly_one_dhd_apply_outcome(
             assert foundation["success_source_family_required"] is True
             return
         assert outcome["success_outcome_source_family"] == source_family
+        consumed_identity = outcome["consumed_obligation_readback_identity"]
+        assert consumed_identity["surface_kind"] == "consumed_obligation_readback_identity"
+        assert consumed_identity["source_family"] == source_family
+        assert consumed_identity["outcome_kind"] == expected_kind
+        assert consumed_identity["outcome_ref"] == outcome[expected_kind]
         success_proof = outcome["dhd_apply_success_proof"]
         assert success_proof["surface_kind"] == "dhd_apply_success_proof"
         assert success_proof["success_outcome_source_family"] == source_family
         assert success_proof["opl_foundation_readback_boundary"] == foundation
+        assert success_proof["consumed_obligation_readback_identity"] == consumed_identity
         assert success_proof["consume_only_readback_boundary"] == outcome[
             "consume_only_readback_boundary"
         ]
@@ -1252,6 +1260,10 @@ def test_obligation_actuator_readback_validator_is_not_supervisor_decision_engin
     assert boundary["mas_can_replay_obligation"] is False
     assert boundary["mas_can_create_opl_command_event_or_outbox"] is False
     assert boundary["mas_can_generate_human_gate_resume_token"] is False
+    assert boundary["postcondition_success_requires_consumed_readback_identity"] is True
+    assert boundary["consumed_readback_identity_surface_kind"] == (
+        "consumed_obligation_readback_identity"
+    )
 
     assert validator.allowed_outcomes_for_policy_label("consume_terminal_closeout") == {
         "owner_receipt_ref",

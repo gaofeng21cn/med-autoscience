@@ -220,6 +220,8 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "request_projection_is_success_outcome": False,
         "success_proof_required_for_postcondition_ok": True,
         "success_proof_surface_kind": "dhd_apply_success_proof",
+        "success_proof_requires_consumed_readback_identity": True,
+        "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
         "success_proof_forbidden_when_request_projection_only": True,
         "success_outcome_source_families": [
             "opl_runtime_readback",

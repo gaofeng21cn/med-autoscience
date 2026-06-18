@@ -23,6 +23,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actua
 from med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.readback_result_validator import (
     ACCEPTED_OBLIGATION_OUTCOME_KINDS,
     ACTUATOR_AUTHORITY_BOUNDARY,
+    CONSUMED_READBACK_IDENTITY_SURFACE,
     MAS_TRANSITION_REQUEST_SURFACE,
     OPL_TRANSITION_RUNTIME_KIND,
     OPL_TRANSITION_RUNTIME_OWNER,
@@ -30,6 +31,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actua
     allowed_outcomes_for_policy_label,
     consume_only_readback_boundary,
     opl_foundation_readback_boundary,
+    outcome_has_required_consumed_readback_identity,
     outcome_has_required_foundation_readback,
     outcome_source_family,
 )
@@ -776,9 +778,18 @@ def _obligation_outcome(
     outcome_allowed = outcome_kind in allowed_decision_outcomes
     source_family = outcome_source_family(outcome_kind)
     opl_foundation = opl_foundation_readback_boundary(source_family=source_family)
+    outcome_ref_text = _non_empty_text(outcome_ref)
+    consumed_readback_identity = _consumed_obligation_readback_identity(
+        source_family=source_family,
+        outcome_kind=outcome_kind,
+        outcome_ref=outcome_ref_text,
+        details=_mapping(details),
+    )
     success_proof = _dhd_apply_success_proof(
+        outcome_kind=outcome_kind,
         source_family=source_family,
         opl_foundation=opl_foundation,
+        consumed_readback_identity=consumed_readback_identity,
         outcome_allowed=outcome_allowed,
     )
     effective_postcondition_ok = (
@@ -806,11 +817,15 @@ def _obligation_outcome(
         "opl_foundation_readback_boundary": opl_foundation,
         "dhd_apply_success_proof": success_proof if effective_postcondition_ok else None,
         "success_requires_opl_foundation_readback_boundary": True,
+        "success_requires_consumed_readback_identity": True,
         "success_outcome_source_family": (
             source_family
             if effective_postcondition_ok
             and source_family in SUCCESS_OUTCOME_SOURCE_FAMILIES
             else None
+        ),
+        "consumed_obligation_readback_identity": (
+            consumed_readback_identity if effective_postcondition_ok else None
         ),
         "request_projection_only": source_family == "mas_policy_request_projection",
         "paper_autonomy_supervisor_decision_id": decision_id,
@@ -879,14 +894,90 @@ def _normalized_opl_runtime_readback(readback: Mapping[str, Any]) -> dict[str, A
     return _clean_payload(result)
 
 
+def _consumed_obligation_readback_identity(
+    *,
+    source_family: str,
+    outcome_kind: str,
+    outcome_ref: str | None,
+    details: Mapping[str, Any],
+) -> dict[str, Any]:
+    identity: dict[str, Any] = {
+        "surface_kind": CONSUMED_READBACK_IDENTITY_SURFACE,
+        "source_family": source_family,
+        "outcome_kind": outcome_kind,
+        "outcome_ref": outcome_ref,
+    }
+    if source_family == "opl_runtime_readback":
+        if outcome_kind == "provider_admission_pending":
+            runtime_result = _mapping(details.get("opl_runtime_result"))
+            runtime_refs = _mapping(runtime_result.get("canonical_runtime_refs"))
+            identity.update(
+                {
+                    "runtime_owner": _first_text(
+                        runtime_result.get("runtime_owner"),
+                        OPL_TRANSITION_RUNTIME_OWNER,
+                    ),
+                    "runtime_kind": _first_text(
+                        runtime_result.get("runtime_kind"),
+                        OPL_TRANSITION_RUNTIME_KIND,
+                    ),
+                    "event_id": _first_text(
+                        runtime_refs.get("event_id"),
+                        runtime_result.get("event_id"),
+                    ),
+                    "outbox_item_id": _first_text(
+                        runtime_refs.get("outbox_item_id"),
+                        runtime_result.get("outbox_item_id"),
+                    ),
+                    "transaction_id": _first_text(
+                        runtime_refs.get("transaction_id"),
+                        runtime_result.get("transaction_id"),
+                    ),
+                    "stage_run_id": _first_text(
+                        runtime_refs.get("stage_run_id"),
+                        runtime_result.get("stage_run_id"),
+                    ),
+                }
+            )
+        elif outcome_kind == "running_provider_attempt":
+            running = _mapping(details.get("opl_running_provider_attempt"))
+            identity.update(
+                {
+                    "runtime_owner": _first_text(
+                        running.get("runtime_owner"),
+                        running.get("provider_attempt_owner"),
+                        OPL_TRANSITION_RUNTIME_OWNER,
+                    ),
+                    "runtime_kind": _first_text(
+                        running.get("runtime_kind"),
+                        OPL_TRANSITION_RUNTIME_KIND,
+                    ),
+                    "stage_run_id": _first_text(
+                        outcome_ref,
+                        running.get("active_stage_attempt_id"),
+                        running.get("active_run_id"),
+                        running.get("active_workflow_id"),
+                        _mapping(running.get("stage_run_identity")).get("stage_run_id"),
+                    ),
+                }
+            )
+    elif source_family == "mas_owner_answer_readback":
+        identity["owner_answer_ref"] = outcome_ref
+    elif source_family == "mas_domain_authority_readback":
+        identity["domain_authority_ref"] = outcome_ref
+    return _clean_payload(identity)
+
+
 def _consume_only_readback_boundary() -> dict[str, Any]:
     return consume_only_readback_boundary()
 
 
 def _dhd_apply_success_proof(
     *,
+    outcome_kind: str,
     source_family: str,
     opl_foundation: Mapping[str, Any],
+    consumed_readback_identity: Mapping[str, Any],
     outcome_allowed: bool,
 ) -> dict[str, Any]:
     if not outcome_allowed:
@@ -896,12 +987,19 @@ def _dhd_apply_success_proof(
         opl_foundation=opl_foundation,
     ):
         return {}
+    if not outcome_has_required_consumed_readback_identity(
+        source_family=source_family,
+        outcome_kind=outcome_kind,
+        consumed_readback_identity=consumed_readback_identity,
+    ):
+        return {}
     consume_only = _consume_only_readback_boundary()
     return _clean_payload(
         {
             "surface_kind": "dhd_apply_success_proof",
             "success_outcome_source_family": source_family,
             "opl_foundation_readback_boundary": dict(opl_foundation),
+            "consumed_obligation_readback_identity": dict(consumed_readback_identity),
             "consume_only_readback_boundary": consume_only,
             "request_projection_only": False,
             "request_projection_is_success_outcome": consume_only.get(
@@ -1071,8 +1169,14 @@ def _postcondition_from_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
         "success_requires_opl_foundation_readback_boundary": (
             outcome.get("success_requires_opl_foundation_readback_boundary") is True
         ),
+        "success_requires_consumed_readback_identity": (
+            outcome.get("success_requires_consumed_readback_identity") is True
+        ),
         "success_outcome_source_family": _non_empty_text(
             outcome.get("success_outcome_source_family")
+        ),
+        "consumed_obligation_readback_identity": _clean_payload(
+            _mapping(outcome.get("consumed_obligation_readback_identity"))
         ),
         "dhd_apply_success_proof": success_proof,
         "request_projection_only": outcome.get("request_projection_only") is True,

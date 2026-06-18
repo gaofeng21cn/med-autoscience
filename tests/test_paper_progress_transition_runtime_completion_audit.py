@@ -291,6 +291,17 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
     ) in physical_gate["observed_refs"]
     assert (
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
+        "test_obligation_actuator_postcondition.py::_assert_exactly_one_dhd_apply_outcome#"
+        "consumed_obligation_readback_identity"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
+        "test_obligation_actuator_outcomes.py::"
+        "test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as_closed_outcome#"
+        "consumed_obligation_readback_identity"
+    ) in physical_gate["observed_refs"]
+    assert (
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
         "default_executor_dispatch_request#legacy_stage_run_abi_provenance_boundary"
     ) in physical_gate["observed_refs"]

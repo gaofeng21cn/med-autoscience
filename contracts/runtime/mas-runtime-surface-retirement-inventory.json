@@ -814,6 +814,8 @@
         "request_projection_is_success_outcome": false,
         "success_proof_required_for_postcondition_ok": true,
         "success_proof_surface_kind": "dhd_apply_success_proof",
+        "success_proof_requires_consumed_readback_identity": true,
+        "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
         "success_proof_forbidden_when_request_projection_only": true,
         "success_outcome_source_families": [
           "opl_runtime_readback",
@@ -845,6 +847,7 @@
       "verified_by": [
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py::test_obligation_actuator_transition_request_is_projection_not_success",
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py::test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as_closed_outcome",
         "tests/test_paper_autonomy_supervisor.py::test_projection_helper_does_not_build_supervisor_decision_without_explicit_readback",
         "tests/test_paper_recovery_state.py::test_typed_blocker_owns_recovery_even_when_residual_action_exists",
         "tests/test_paper_recovery_state.py::test_paper_recovery_state_consumes_explicit_policy_projection_without_rebuilding",

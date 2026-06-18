@@ -466,6 +466,8 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         ],
         "success_proof_required_for_postcondition_ok": True,
         "success_proof_surface_kind": "dhd_apply_success_proof",
+        "success_proof_requires_consumed_readback_identity": True,
+        "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
         "success_proof_forbidden_when_request_projection_only": True,
         "supervisor_disallowed_outcome_is_success": False,
         "readback_result_validator_boundary_required": True,
