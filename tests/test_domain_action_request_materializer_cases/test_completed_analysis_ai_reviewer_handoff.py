@@ -19,6 +19,17 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _legacy_request_task_refs(result: dict[str, object]) -> list[dict[str, object]]:
+    diagnostics = result["legacy_request_task_diagnostics"]
+    assert isinstance(diagnostics, dict)
+    assert "request_tasks" not in result
+    return [
+        dict(item)
+        for item in diagnostics.get("legacy_request_task_refs") or []
+        if isinstance(item, dict)
+    ]
+
+
 def _owner_route(
     *,
     study_id: str,
@@ -128,7 +139,7 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
 
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
-    task = result["request_tasks"][0]
+    task = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "ai_reviewer"
@@ -158,15 +169,20 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert not packet_path.exists()
     assert not dispatch_path.exists()
-    assert task["handoff_packet"]["request_owner"] == "ai_reviewer"
-    assert task["handoff_packet"]["required_output_surface"] == "artifacts/publication_eval/latest.json"
-    assert task["handoff_packet"]["dispatch_status"] == "transition_request_pending"
-    assert task["handoff_packet"]["provider_admission_requires_opl_runtime_result"] is True
+    assert task["handoff_packet_body_omitted"] is True
+    assert "handoff_packet" not in task
     assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
     assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
+    expected_output_surface = (
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    )
+    assert dispatch["required_output_surface"] == expected_output_surface
     assert dispatch["prompt_contract_ref"]["request_packet_ref"] == (
         "artifacts/supervision/requests/ai_reviewer/latest.json"
     )
+    assert dispatch["prompt_contract_ref"]["required_output_surface"] == expected_output_surface
+    assert dispatch["prompt_contract_ref"]["dispatch_status"] == "transition_request_pending"
+    assert dispatch["prompt_contract_ref"]["provider_admission_requires_opl_runtime_result"] is True
     assert dispatch["provider_admission_pending"] is False
     assert dispatch["provider_admission_requires_opl_runtime_result"] is True
     assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
@@ -239,7 +255,7 @@ def test_materialize_domain_transition_ai_reviewer_re_eval_handoff(
 
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
-    task = result["request_tasks"][0]
+    task = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "ai_reviewer"
@@ -356,7 +372,7 @@ def test_current_write_domain_transition_supersedes_stale_ai_reviewer_queue(
 
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
-    task = result["request_tasks"][0]
+    task = _legacy_request_task_refs(result)[0]
     dispatch = result["domain_progress_transition_requests"][0]
     assert task["action_type"] == "run_quality_repair_batch"
     assert task["request_owner"] == "write"

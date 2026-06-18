@@ -12,6 +12,17 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _legacy_request_task_refs(result: dict[str, object]) -> list[dict[str, object]]:
+    diagnostics = result["legacy_request_task_diagnostics"]
+    assert isinstance(diagnostics, dict)
+    assert "request_tasks" not in result
+    return [
+        dict(item)
+        for item in diagnostics.get("legacy_request_task_refs") or []
+        if isinstance(item, dict)
+    ]
+
+
 def test_effective_current_context_prefers_valid_current_ai_reviewer_record_over_stale_latest() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_first_current_context")
 
@@ -211,9 +222,10 @@ def test_domain_action_materializer_blocks_new_default_executor_task_until_runni
     assert dispatch["blocked_reason"] == "closeout_required_before_new_default_executor_task"
     assert dispatch["progress_first_closeout_admission"]["export_new_default_executor_task"] is False
     assert dispatch["progress_first_closeout_admission"]["typed_blocker"]["work_unit_id"] == "publishability_repair_sprint"
-    assert result["request_tasks"][0]["surface"] == "supervisor_request_handoff_task_ref"
-    assert result["request_tasks"][0]["handoff_packet_body_omitted"] is True
-    assert "handoff_packet" not in result["request_tasks"][0]
+    [request_task] = _legacy_request_task_refs(result)
+    assert request_task["surface"] == "supervisor_request_handoff_task_ref"
+    assert request_task["handoff_packet_body_omitted"] is True
+    assert "handoff_packet" not in request_task
     assert result["written_files"] == []
     assert result["apply_writes_disabled_reason"] == "opl_domain_progress_transition_runtime_owns_durable_carrier"
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"

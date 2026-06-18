@@ -50,7 +50,10 @@ def legacy_request_task_diagnostics(
         "legacy_request_task_refs": refs,
         "legacy_request_task_body_omitted": True,
         "legacy_alias_field": "request_tasks",
-        "legacy_alias_retirement_gate": "no_active_caller_before_physical_delete",
+        "legacy_alias_present": False,
+        "legacy_alias_retired": True,
+        "legacy_alias_retirement": "top_level_request_tasks_removed",
+        "replacement_surface": "legacy_request_task_diagnostics.legacy_request_task_refs",
         "omitted_body_fields": [
             "handoff_packet",
             "owner_route",

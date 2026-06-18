@@ -812,6 +812,7 @@ def test_materialize_domain_action_requests_routes_publication_eval_recommended_
         "work_unit_id": "medical_prose_write_repair",
         "work_unit_fingerprint": fingerprint,
         "source_eval_id": publication_eval_id,
+        "source_fingerprint": publication_eval_id,
     }
     assert any(
         item["reason"] == "superseded_by_fresh_study_progress_current_owner_ticket"

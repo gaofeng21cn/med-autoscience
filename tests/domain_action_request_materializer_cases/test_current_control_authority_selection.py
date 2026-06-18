@@ -734,6 +734,7 @@ def test_materializer_dispatches_fresh_progress_ticket_with_strong_currentness_i
     assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"] == {
         "truth_epoch": "truth-event-current",
         "runtime_health_epoch": "runtime-health-current",
+        "source_fingerprint": "sha256:current-gate-replay-source",
         "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
         "work_unit_fingerprint": "sha256:current-gate-replay-work-unit",
     }

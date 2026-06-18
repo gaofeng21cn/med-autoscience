@@ -29,9 +29,9 @@ def legacy_request_task_refs(result: dict[str, object]) -> list[dict[str, object
     assert diagnostics["can_create_success_outcome"] is False
     assert diagnostics["body_authority"] is False
     assert diagnostics["legacy_payload_scope"] == "identity_refs_only"
-    assert diagnostics["legacy_request_task_refs"] == result["request_tasks"]
-    assert result["request_tasks_are_legacy_diagnostic_alias"] is True
-    assert result["request_tasks_legacy_alias_for"] == (
+    assert "request_tasks" not in result
+    assert result["request_tasks_alias_retired"] is True
+    assert result["request_tasks_replacement"] == (
         "legacy_request_task_diagnostics.legacy_request_task_refs"
     )
     return diagnostics["legacy_request_task_refs"]

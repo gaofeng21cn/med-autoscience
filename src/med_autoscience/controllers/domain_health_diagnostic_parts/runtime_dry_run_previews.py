@@ -114,7 +114,7 @@ def _attach_materialization_preview_to_managed_actions(
     actions = report.get("managed_study_actions")
     if not isinstance(actions, list):
         return
-    request_tasks_by_study = _items_by_study(preview.get("request_tasks"))
+    request_tasks_by_study = _items_by_study(_legacy_request_task_refs(preview))
     legacy_adapters_by_study = _items_by_study(preview.get("owner_callable_adapters"))
     transition_requests_by_study = _items_by_study(domain_progress_transition_requests(preview))
     for index, action in enumerate(actions):
@@ -154,10 +154,18 @@ def _attach_materialization_preview_to_managed_actions(
                 for item in transition_requests
             ),
             "legacy_owner_callable_adapter_count": len(legacy_adapters),
-            "request_tasks": request_tasks,
+            "legacy_request_task_refs": request_tasks,
             "domain_progress_transition_requests": transition_requests,
         }
         actions[index] = updated
+
+
+def _legacy_request_task_refs(preview: Mapping[str, Any]) -> list[dict[str, Any]]:
+    diagnostics = _mapping(preview.get("legacy_request_task_diagnostics"))
+    refs = diagnostics.get("legacy_request_task_refs")
+    if isinstance(refs, list):
+        return [dict(item) for item in refs if isinstance(item, Mapping)]
+    return []
 
 
 def _sync_transition_request_preview_to_report(

@@ -105,8 +105,9 @@ def test_materialize_domain_action_requests_writes_quality_repair_request_to_can
         / "consumer"
         / "run_quality_repair_batch.json"
     )
-    assert result["request_tasks_are_legacy_diagnostic_alias"] is True
-    assert result["request_tasks_legacy_alias_for"] == (
+    assert "request_tasks" not in result
+    assert result["request_tasks_alias_retired"] is True
+    assert result["request_tasks_replacement"] == (
         "legacy_request_task_diagnostics.legacy_request_task_refs"
     )
     assert result["request_task_counts_authority"] is False
@@ -119,7 +120,6 @@ def test_materialize_domain_action_requests_writes_quality_repair_request_to_can
     assert legacy_request_tasks["diagnostic_only"] is True
     assert legacy_request_tasks["counts_authority"] is False
     assert legacy_request_tasks["readiness_authority"] is False
-    assert legacy_request_tasks["legacy_request_task_refs"] == result["request_tasks"]
     task = legacy_request_tasks["legacy_request_task_refs"][0]
     assert task["dispatch_status"] == "transition_request_pending"
     assert task["blocked_reason"] == "opl_execution_authorization_required"

@@ -322,10 +322,13 @@ def _resolve_study_ids(
         for action in _sequence(source.get("action_queue")):
             if isinstance(action, Mapping) and (study_id := _text(action.get("study_id"))) is not None:
                 resolved.append(study_id)
-    for key in ("request_tasks", "owner_callable_adapters"):
-        for item in _sequence(consumed.get(key)):
-            if isinstance(item, Mapping) and (study_id := _text(item.get("study_id"))) is not None:
-                resolved.append(study_id)
+    request_task_diagnostics = _mapping(consumed.get("legacy_request_task_diagnostics"))
+    for item in _sequence(request_task_diagnostics.get("legacy_request_task_refs")):
+        if isinstance(item, Mapping) and (study_id := _text(item.get("study_id"))) is not None:
+            resolved.append(study_id)
+    for item in _sequence(consumed.get("owner_callable_adapters")):
+        if isinstance(item, Mapping) and (study_id := _text(item.get("study_id"))) is not None:
+            resolved.append(study_id)
     for execution in _sequence(executed.get("executions")):
         if isinstance(execution, Mapping) and (study_id := _text(execution.get("study_id"))) is not None:
             resolved.append(study_id)

@@ -123,7 +123,13 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
     monkeypatch.setattr(
         module.domain_action_request_materializer,
         "materialize_domain_action_requests",
-        lambda **_: {"surface": "domain_action_request_materializer", "request_tasks": []},
+        lambda **_: {
+            "surface": "domain_action_request_materializer",
+            "legacy_request_task_diagnostics": {
+                "surface": "legacy_request_task_diagnostics",
+                "legacy_request_task_refs": [],
+            },
+        },
     )
     monkeypatch.setattr(
         module.domain_owner_action_dispatch,
@@ -241,7 +247,13 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
     monkeypatch.setattr(
         module.domain_action_request_materializer,
         "materialize_domain_action_requests",
-        lambda **_: {"surface": "domain_action_request_materializer", "request_tasks": []},
+        lambda **_: {
+            "surface": "domain_action_request_materializer",
+            "legacy_request_task_diagnostics": {
+                "surface": "legacy_request_task_diagnostics",
+                "legacy_request_task_refs": [],
+            },
+        },
     )
     monkeypatch.setattr(
         module.domain_owner_action_dispatch,

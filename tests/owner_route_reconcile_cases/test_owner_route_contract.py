@@ -12,6 +12,17 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _legacy_request_task_refs(result: dict[str, object]) -> list[dict[str, object]]:
+    diagnostics = result["legacy_request_task_diagnostics"]
+    assert isinstance(diagnostics, dict)
+    assert "request_tasks" not in result
+    return [
+        dict(item)
+        for item in diagnostics.get("legacy_request_task_refs") or []
+        if isinstance(item, dict)
+    ]
+
+
 def _specificity_targets(study_root: Path) -> list[dict[str, str]]:
     return [
         {
@@ -548,7 +559,7 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
     )
 
     dispatch = result["domain_progress_transition_requests"][0]
-    packet = result["request_tasks"][0]
+    packet = _legacy_request_task_refs(result)[0]
     assert dispatch["owner_route"]["schema_version"] == 2
     assert dispatch["owner_route"]["truth_epoch"] == owner_route["route_epoch"]
     assert dispatch["owner_route"]["work_unit_fingerprint"] == owner_route["source_fingerprint"]
