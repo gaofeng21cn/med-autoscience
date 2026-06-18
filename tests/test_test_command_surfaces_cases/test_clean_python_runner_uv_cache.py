@@ -215,6 +215,63 @@ def test_clean_python_runner_defaults_to_external_reuse_env_locally(tmp_path: Pa
     ]
 
 
+def test_clean_python_runner_reuse_marker_is_independent_of_checkout_path(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    sync_log = tmp_path / "uv-sync.log"
+    host_python = repr(sys.executable)
+    fake_uv = fake_bin / "uv"
+    fake_uv.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$PWD\" >> \"${MAS_TEST_SYNC_LOG}\"\n"
+        "mkdir -p \"${UV_PROJECT_ENVIRONMENT}/bin\"\n"
+        "cat >\"${UV_PROJECT_ENVIRONMENT}/bin/python\" <<'PY'\n"
+        "#!/usr/bin/env python3\n"
+        "import os\n"
+        "import sys\n"
+        f"os.execv({host_python}, [{host_python}, *sys.argv[1:]])\n"
+        "PY\n"
+        "chmod +x \"${UV_PROJECT_ENVIRONMENT}/bin/python\"\n",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+    reuse_root = tmp_path / "shared-clean-runner"
+    command = ["scripts/run-python-clean.sh", "-c", "print('runner-ok')"]
+    env = _clean_runner_env(
+        CI="",
+        PATH=f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        MAS_CLEAN_RUNNER_REUSE_ENV="1",
+        MAS_CLEAN_RUNNER_REUSE_ROOT=str(reuse_root),
+        MAS_TEST_SYNC_LOG=str(sync_log),
+        PYTHONPATH="",
+    )
+    checkouts: list[Path] = []
+    for name in ("checkout-a", "checkout-b"):
+        checkout = tmp_path / name
+        (checkout / "scripts").mkdir(parents=True)
+        (checkout / "scripts" / "run-python-clean.sh").write_text(
+            (REPO_ROOT / "scripts" / "run-python-clean.sh").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+        (checkout / "scripts" / "run-python-clean.sh").chmod(0o755)
+        for filename in ("pyproject.toml", "uv.lock"):
+            (checkout / filename).write_text(
+                (REPO_ROOT / filename).read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+        checkouts.append(checkout)
+
+    first = subprocess.run(command, cwd=checkouts[0], env=env, check=False, capture_output=True, text=True)
+    second = subprocess.run(command, cwd=checkouts[1], env=env, check=False, capture_output=True, text=True)
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    assert first.stdout.strip() == "runner-ok"
+    assert second.stdout.strip() == "runner-ok"
+    assert sync_log.read_text(encoding="utf-8").splitlines() == [str(checkouts[0])]
+
+
 def test_clean_python_runner_rejects_checkout_local_default_uv_cache(tmp_path: Path) -> None:
     runner_tmp, fake_venv = _runner_tmp_with_fake_venv(tmp_path)
     checkout_local_default_cache = REPO_ROOT / ".mas-clean-runner-default-uv-cache"

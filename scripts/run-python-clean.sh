@@ -218,10 +218,10 @@ clean_runner_sync_fingerprint() {
   {
     printf 'analysis_extra=%s\n' "${analysis_state}"
     if [[ -f "${repo_root}/pyproject.toml" ]]; then
-      shasum -a 256 "${repo_root}/pyproject.toml"
+      printf 'pyproject.toml=%s\n' "$(shasum -a 256 "${repo_root}/pyproject.toml" | awk '{print $1}')"
     fi
     if [[ -f "${repo_root}/uv.lock" ]]; then
-      shasum -a 256 "${repo_root}/uv.lock"
+      printf 'uv.lock=%s\n' "$(shasum -a 256 "${repo_root}/uv.lock" | awk '{print $1}')"
     fi
   } | shasum -a 256 | awk '{print $1}'
 }

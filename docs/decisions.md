@@ -8,6 +8,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 ## 2026-06-18：本地 clean verification 默认复用 checkout 外缓存
 
 - 决策：`scripts/run-pytest-clean.sh`、本地 `scripts/verify.sh` 与本地直接调用的 `scripts/run-python-clean.sh` 默认启用 checkout 外 clean-runner reuse env。可复用对象只能位于 checkout 外，包含 venv、uv cache、pycache、egg-info 与 sync marker，且必须继续拒绝 checkout 内 `.venv`、`.uv-cache`、`__pycache__`、`.pytest_cache` 或 `*.egg-info`。
+- 决策：clean-runner sync marker 的 fingerprint 只包含 `analysis_extra` 状态、`pyproject.toml` 内容 hash 与 `uv.lock` 内容 hash，不包含 checkout 绝对路径。多个隔离 worktree 在依赖内容一致时必须复用同一个 checkout-external venv / uv cache / sync marker，避免每条 lane 首次验证都重新 `uv sync` 或重装 git dependency。
 - 决策：CI 和诊断隔离仍可显式使用 `MAS_CLEAN_RUNNER_TMP_ROOT` 或 `MAS_CLEAN_RUNNER_REUSE_ENV=0` 隔离 runner root；需要连 uv cache 也完全冷启动时，再显式设置 `MAS_CLEAN_RUNNER_ISOLATE_UV_CACHE=1`。这些开关只改变验证工具链缓存策略，不改变 runtime/currentness/readiness 证据口径。
 - 理由：此前 `verify.sh` / `run-pytest-clean.sh` 已收口到本地 checkout 外复用，但直接跑 `run-python-clean.sh` 仍会在未显式配置时 `mktemp` 一个新 venv 并在退出时删除，导致许多 focused CLI / script 验证反复经历下载、sync 和初始化。把高频本地验证收口到 checkout 外 clean cache，可以保留工作区零副产物边界，同时降低重复下载和 sync 成本。
 - 影响：这是本地验证效率与工程卫生修复，不执行 live DHD apply、hydrate、tick、redrive、provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。测试通过只能证明验证入口缓存行为，不证明 MAS/OPL runtime ready、paper progress 或 publication-ready。
