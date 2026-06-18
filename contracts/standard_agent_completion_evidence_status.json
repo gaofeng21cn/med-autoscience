@@ -122,11 +122,14 @@
         "contracts/stage_route_reconcile_contract.json#/runtime_supervision_operator_policy",
         "tests/test_stage_route_reconcile_contract.py",
         "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#supervision-consumer-default-executor-execution-sat_67e10efde628859185249aa0-closeout-typed-blocker",
-        "workspace:Yang/DM-CVD-Mortality-Risk#DHD-apply-2026-06-15T15:08:10Z/DM002-typed_blocker_ref-postcondition_ok"
+        "workspace:Yang/DM-CVD-Mortality-Risk#DHD-apply-2026-06-15T15:08:10Z/DM002-typed_blocker_ref-postcondition_ok",
+        "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#contracts/opl-framework/stage-route-scheduler-contract.json#/stage_route_arbiter_substrate_contract",
+        "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#contracts/opl-framework/standard-agent-landing-evidence-status.json#/gate_statuses/stage_route_arbiter_and_stop_loss",
+        "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#tests/src/stage-route-scheduler-arbiter-substrate-contract.test.ts",
+        "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#tests/src/family-runtime-stage-run-currentness-identity.test.ts",
+        "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#tests/src/standard-agent-landing-acceptance-contract.test.ts"
       ],
-      "missing_evidence_tails": [
-        "OPL_stage_route_arbiter_substrate_contract_current_verification_ref"
-      ],
+      "missing_evidence_tails": [],
       "false_completion_boundary": [
         "same_action_label_match",
         "record_ref_alone",

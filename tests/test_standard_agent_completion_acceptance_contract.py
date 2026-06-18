@@ -268,6 +268,48 @@ def test_standard_agent_completion_evidence_ledger_records_opl_family_negative_c
     assert ledger["completion_claim_allowed"] is False
 
 
+def test_standard_agent_completion_evidence_ledger_records_opl_stage_route_current_verification_without_completion_claim() -> None:
+    ledger = _ledger()
+    gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
+    stage_route = gates["stage_route_and_stop_loss_have_single_arbiter"]
+
+    opl_sha = "cca17b60401151b83f6195c6f315cbe055209c57"
+    expected_refs = {
+        (
+            f"external_repo:one-person-lab@{opl_sha}#"
+            "contracts/opl-framework/stage-route-scheduler-contract.json#/"
+            "stage_route_arbiter_substrate_contract"
+        ),
+        (
+            f"external_repo:one-person-lab@{opl_sha}#"
+            "contracts/opl-framework/standard-agent-landing-evidence-status.json#/"
+            "gate_statuses/stage_route_arbiter_and_stop_loss"
+        ),
+        (
+            f"external_repo:one-person-lab@{opl_sha}#"
+            "tests/src/stage-route-scheduler-arbiter-substrate-contract.test.ts"
+        ),
+        (
+            f"external_repo:one-person-lab@{opl_sha}#"
+            "tests/src/family-runtime-stage-run-currentness-identity.test.ts"
+        ),
+        (
+            f"external_repo:one-person-lab@{opl_sha}#"
+            "tests/src/standard-agent-landing-acceptance-contract.test.ts"
+        ),
+    }
+
+    assert stage_route["status"] == "satisfied_with_repo_evidence"
+    assert expected_refs <= set(stage_route["observed_refs"])
+    assert (
+        "OPL_stage_route_arbiter_substrate_contract_current_verification_ref"
+        not in stage_route["missing_evidence_tails"]
+    )
+    assert stage_route["missing_evidence_tails"] == []
+    assert ledger["overall_status"] == "evidence_tail_open_not_complete"
+    assert ledger["completion_claim_allowed"] is False
+
+
 def test_standard_agent_completion_evidence_ledger_records_physical_source_morphology_scan_without_completion_claim() -> None:
     ledger = _ledger()
     gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
