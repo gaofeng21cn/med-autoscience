@@ -11,6 +11,7 @@ from tests.test_current_work_unit_cases.shared import _assert_contract_shape, _m
 from tests.test_current_work_unit_cases.terminal_authorization_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.terminal_closeout_currentness_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.terminal_closeout_identity_cases import *  # noqa: F403,F401
+from tests.test_current_work_unit_cases.terminal_non_advancing_apply_cases import *  # noqa: F403,F401
 
 
 def test_current_work_unit_projection_metadata_demotes_transition_authority() -> None:

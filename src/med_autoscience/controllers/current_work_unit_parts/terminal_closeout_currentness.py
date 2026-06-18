@@ -11,6 +11,10 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
     work_unit_fingerprint,
     work_unit_id,
 )
+from med_autoscience.controllers.current_work_unit_parts.terminal_non_advancing_apply import (
+    terminal_non_advancing_apply_fields,
+    terminal_stage_non_advancing_apply,
+)
 from med_autoscience.runtime_control.owner_route_attempt_protocol import owner_reason_contract
 
 
@@ -43,6 +47,7 @@ OPL_RUNTIME_TERMINAL_BLOCKERS = frozenset(
     {
         "domain_closeout_provided_incomplete_user_stage_log",
         "medical_prose_review_request_rehydrate_required",
+        "non_advancing_apply",
         "stage_packet_not_current_selected_dispatch",
         "typed_closeout_packet_required",
     }
@@ -136,6 +141,11 @@ def terminal_closeout_blocker_for_action(
             "progress_delta_classification": text(terminal.get("progress_delta_classification"))
             or text(paper_stage_log.get("progress_delta_classification")),
             **_terminal_gate_replay_fields(terminal, mapping=mapping, text=text, text_items=text_items),
+            **terminal_non_advancing_apply_fields(
+                terminal,
+                mapping=mapping,
+                text=text,
+            ),
         }.items()
         if value not in (None, "", [], {})
     }
@@ -362,6 +372,11 @@ def _terminal_stage_blocks_action(
     outcome = text(terminal.get("outcome"))
     classification = text(terminal.get("progress_delta_classification"))
     typed_blocker = mapping(terminal.get("typed_blocker"))
+    non_advancing_apply = terminal_stage_non_advancing_apply(
+        terminal,
+        mapping=mapping,
+        text=text,
+    )
     explicit_blocker = _terminal_stage_has_explicit_blocker(
         terminal,
         typed_blocker=typed_blocker,
@@ -373,6 +388,7 @@ def _terminal_stage_blocks_action(
         and outcome not in TERMINAL_ACTION_BLOCKING_STATUSES
         and not typed_blocker
         and not (classification == "typed_blocker" and explicit_blocker)
+        and not non_advancing_apply
     ):
         return False
     if (
@@ -380,6 +396,7 @@ def _terminal_stage_blocks_action(
         and status not in TERMINAL_ACTION_BLOCKING_STATUSES
         and outcome not in TERMINAL_ACTION_BLOCKING_STATUSES
         and not explicit_blocker
+        and not non_advancing_apply
     ):
         return False
     expected_action = action_type(action)
@@ -626,6 +643,8 @@ def _terminal_stage_blocker_reason(
 ) -> str:
     if _terminal_gate_replay_blocked(terminal, mapping=mapping, text=text):
         return "publication_gate_replay_blocked"
+    if terminal_stage_non_advancing_apply(terminal, mapping=mapping, text=text):
+        return "non_advancing_apply"
     typed_blocker = mapping(terminal.get("typed_blocker"))
     paper_stage_log = mapping(terminal.get("paper_stage_log"))
     paper_next_forced_delta = mapping(paper_stage_log.get("next_forced_delta"))

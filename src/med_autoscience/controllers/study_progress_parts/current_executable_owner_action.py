@@ -43,6 +43,10 @@ from .current_executable_owner_action_parts.gate_followthrough import (
     owner_action_from_gate_followthrough_current_work_unit,
 )
 from .current_executable_owner_action_parts import gate_replay_identity
+from .current_executable_owner_action_parts.non_advancing_terminal_closeout import (
+    canonical_current_work_unit_has_non_advancing_apply,
+    without_same_identity_non_advancing_apply,
+)
 from .current_executable_owner_action_parts.paper_recovery import (
     owner_action_from_paper_recovery_state,
     paper_recovery_successor_action_ready,
@@ -77,10 +81,22 @@ GATE_REPLAY_WORK_UNITS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS | frozenset({READ
 
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    repair_progress_action = _from_repair_progress_projection(payload)
-    gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
-    paper_recovery_action = _from_paper_recovery_state(payload)
-    domain_transition_action = _from_domain_transition(payload)
+    repair_progress_action = without_same_identity_non_advancing_apply(
+        payload,
+        _from_repair_progress_projection(payload),
+    )
+    gate_followthrough_action = without_same_identity_non_advancing_apply(
+        payload,
+        _from_gate_followthrough_current_work_unit(payload),
+    )
+    paper_recovery_action = without_same_identity_non_advancing_apply(
+        payload,
+        _from_paper_recovery_state(payload),
+    )
+    domain_transition_action = without_same_identity_non_advancing_apply(
+        payload,
+        _from_domain_transition(payload),
+    )
     if _repair_progress_consumes_paper_recovery_successor(
         repair_progress_action=repair_progress_action,
         paper_recovery_action=paper_recovery_action,
@@ -254,6 +270,8 @@ def _canonical_current_work_unit_has_terminal_stop_loss(
         blocker={**typed_blocker, **closeout_like},
     ):
         return False
+    if canonical_current_work_unit_has_non_advancing_apply(payload):
+        return True
     return is_anti_loop_stop_loss_closeout(closeout_like)
 
 
