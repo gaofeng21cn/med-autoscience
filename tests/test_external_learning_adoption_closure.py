@@ -37,15 +37,41 @@ def test_external_learning_adoption_closure_separates_contracts_from_worker_land
     assert "scientific_capability_registry_descriptor_refs" in frameworks[
         "nature_skills"
     ]["owner_surface"]
+    assert "paper_mainline_readback_surfaces" in frameworks[
+        "nature_skills"
+    ]["owner_surface"]
     assert "descriptor/current-owner input refs" in frameworks["nature_skills"][
+        "worker_or_executor_landing"
+    ]
+    assert "section/source-map readback" in frameworks["nature_skills"][
+        "worker_or_executor_landing"
+    ]
+    assert "claim-citation support matrix" in frameworks["nature_skills"][
+        "worker_or_executor_landing"
+    ]
+    assert "reviewer repair action projection" in frameworks["nature_skills"][
         "worker_or_executor_landing"
     ]
     assert "not registered in SIDECAR_WORKER_REGISTRY" in frameworks["nature_skills"][
         "worker_or_executor_landing"
     ]
+    assert "nature_paper_section_source_map_readback" in frameworks["nature_skills"][
+        "next_landing_path"
+    ]
+    assert "nature_claim_citation_support_matrix" in frameworks["nature_skills"][
+        "next_landing_path"
+    ]
+    assert "nature_reviewer_repair_action_projection" in frameworks["nature_skills"][
+        "next_landing_path"
+    ]
     assert "nature_figure_display_contract_refs" in frameworks["nature_skills"][
         "next_landing_path"
     ]
+    assert {
+        "paper_section_source_map_readback",
+        "claim_citation_support_matrix",
+        "reviewer_repair_action_projection",
+    } <= set(frameworks["nature_skills"]["absorbed_pattern_ids"])
     for framework_id in (
         "academic_research_skills",
         "autosci_omegawiki",

@@ -199,9 +199,36 @@
           "invocation_kind": "descriptor_only_current_owner_input_refs",
           "refs_only": true,
           "requires_explicit_invoke": true
+        },
+        {
+          "can_block_current_owner_action": false,
+          "candidate_ref": "scientific-capability:nature_paper_section_source_map_readback:run_quality_repair_batch",
+          "capability_family": "paper_mainline_section_source_map",
+          "capability_id": "nature_paper_section_source_map_readback",
+          "invocation_kind": "descriptor_only_current_owner_input_refs",
+          "refs_only": true,
+          "requires_explicit_invoke": true
+        },
+        {
+          "can_block_current_owner_action": false,
+          "candidate_ref": "scientific-capability:nature_claim_citation_support_matrix:run_quality_repair_batch",
+          "capability_family": "claim_citation_support_matrix",
+          "capability_id": "nature_claim_citation_support_matrix",
+          "invocation_kind": "descriptor_only_current_owner_input_refs",
+          "refs_only": true,
+          "requires_explicit_invoke": true
+        },
+        {
+          "can_block_current_owner_action": false,
+          "candidate_ref": "scientific-capability:nature_reviewer_repair_action_projection:run_quality_repair_batch",
+          "capability_family": "reviewer_repair_action_projection",
+          "capability_id": "nature_reviewer_repair_action_projection",
+          "invocation_kind": "descriptor_only_current_owner_input_refs",
+          "refs_only": true,
+          "requires_explicit_invoke": true
         }
       ],
-      "selected_count": 4,
+      "selected_count": 7,
       "status": "resolved"
     },
     "status": "ready_for_hosted_consumption",

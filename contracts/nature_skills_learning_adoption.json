@@ -19,6 +19,7 @@
       "skills/nature-academic-search/SKILL.md",
       "skills/nature-citation/SKILL.md",
       "skills/nature-response/SKILL.md",
+      "skills/nature-reviewer/SKILL.md",
       "skills/nature-figure/SKILL.md",
       "skills/nature-figure/manifest.yaml",
       "skills/nature-figure/references/figure-contract.md",
@@ -34,7 +35,10 @@
     "axis_specific_static_fragments",
     "on_demand_references",
     "explicit_loading_gates",
-    "backend_exclusive_render_export_receipt"
+    "backend_exclusive_render_export_receipt",
+    "section_contract_draft_source_map_readback",
+    "claim_evidence_citation_support_matrix",
+    "reviewer_comment_typed_repair_action_projection"
   ],
   "adoptions": [
     {
@@ -116,6 +120,90 @@
       ],
       "forbidden_authority": [
         "external_runner_execution",
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "mas_truth_write_authority"
+      ]
+    },
+    {
+      "pattern_id": "paper_mainline_section_source_map_readback",
+      "classification": "adopt_contract",
+      "landing_status": "owner_surface_landed",
+      "owner_surfaces": [
+        "paper_mainline_section_source_map",
+        "scientific_capability_registry",
+        "external_learning_adoption_closure"
+      ],
+      "consumable_surfaces": [
+        "med_autoscience.paper_mainline_section_source_map.build_paper_section_source_map_readback",
+        "med_autoscience.scientific_capability_registry.resolve_scientific_capabilities",
+        "med_autoscience.scientific_capability_registry.invoke_scientific_capability",
+        "med_autoscience.external_learning_adoption_closure.build_external_learning_adoption_closure"
+      ],
+      "gap_status": [
+        "refs_only",
+        "readback_only",
+        "live_paper_line_owner_receipt_tail_pending"
+      ],
+      "forbidden_authority": [
+        "paper_body_mutation",
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "mas_truth_write_authority"
+      ]
+    },
+    {
+      "pattern_id": "paper_mainline_claim_citation_support_matrix",
+      "classification": "adopt_contract",
+      "landing_status": "owner_surface_landed",
+      "owner_surfaces": [
+        "paper_mainline_claim_support",
+        "scientific_capability_registry",
+        "external_learning_adoption_closure"
+      ],
+      "consumable_surfaces": [
+        "med_autoscience.paper_mainline_claim_support.build_claim_citation_support_matrix",
+        "med_autoscience.scientific_capability_registry.resolve_scientific_capabilities",
+        "med_autoscience.scientific_capability_registry.invoke_scientific_capability",
+        "med_autoscience.external_learning_adoption_closure.build_external_learning_adoption_closure"
+      ],
+      "gap_status": [
+        "refs_only",
+        "readback_only",
+        "external_search_runner_rejected",
+        "live_paper_line_owner_receipt_tail_pending"
+      ],
+      "forbidden_authority": [
+        "external_search_execution",
+        "paper_body_mutation",
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "mas_truth_write_authority"
+      ]
+    },
+    {
+      "pattern_id": "paper_mainline_reviewer_repair_action_projection",
+      "classification": "adopt_contract",
+      "landing_status": "owner_surface_landed",
+      "owner_surfaces": [
+        "paper_mainline_reviewer_repair",
+        "scientific_capability_registry",
+        "external_learning_adoption_closure"
+      ],
+      "consumable_surfaces": [
+        "med_autoscience.paper_mainline_reviewer_repair.build_reviewer_repair_action_projection",
+        "med_autoscience.scientific_capability_registry.resolve_scientific_capabilities",
+        "med_autoscience.scientific_capability_registry.invoke_scientific_capability",
+        "med_autoscience.external_learning_adoption_closure.build_external_learning_adoption_closure"
+      ],
+      "gap_status": [
+        "refs_only",
+        "action_candidate_only",
+        "live_paper_line_owner_receipt_tail_pending"
+      ],
+      "forbidden_authority": [
+        "paper_body_mutation",
+        "quality_gate_close_authority",
         "publication_readiness_authority",
         "quality_verdict_authority",
         "mas_truth_write_authority"

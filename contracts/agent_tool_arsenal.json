@@ -8494,6 +8494,7 @@
           "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/qa-contract.md",
           "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/backend-selection.md"
         ],
+        "current_delta_trigger_reason": "current_delta_declared_figure_display_need",
         "current_delta_trigger_terms": [
           "figure",
           "display",
@@ -8519,6 +8520,180 @@
         "source_frameworks": [
           "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
           "Nature Figure skill"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "draft_manuscript_section",
+          "run_quality_repair_batch",
+          "return_to_ai_reviewer_workflow"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "med_autoscience.paper_mainline_section_source_map.build_paper_section_source_map_readback",
+        "capability_family": "paper_mainline_section_source_map",
+        "capability_id": "nature_paper_section_source_map_readback",
+        "capability_ref": "scientific-capability:nature_paper_section_source_map_readback",
+        "contract_refs": [
+          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-writing/SKILL.md",
+          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-polishing/SKILL.md",
+          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-reader/SKILL.md",
+          "med_autoscience.paper_mainline_section_source_map.build_paper_section_source_map_readback"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_paper_mainline_section_need",
+        "current_delta_trigger_terms": [
+          "paper mainline",
+          "section source map",
+          "section_contract",
+          "draft_block_refs",
+          "claim_refs",
+          "evidence_refs",
+          "source_map_refs",
+          "reviewer_repair_refs"
+        ],
+        "descriptor_only": true,
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "readback:mas_paper_section_source_map_readback"
+        ],
+        "refs_only": true,
+        "role": "section_contract_draft_block_source_map_reviewer_repair_refs_readback",
+        "source_frameworks": [
+          "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+          "Nature Writing / Polishing / Reader skills"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "draft_manuscript_section",
+          "run_quality_repair_batch",
+          "return_to_ai_reviewer_workflow"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "med_autoscience.paper_mainline_claim_support.build_claim_citation_support_matrix",
+        "capability_family": "claim_citation_support_matrix",
+        "capability_id": "nature_claim_citation_support_matrix",
+        "capability_ref": "scientific-capability:nature_claim_citation_support_matrix",
+        "contract_refs": [
+          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-academic-search/SKILL.md",
+          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-citation/SKILL.md",
+          "med_autoscience.paper_mainline_claim_support.build_claim_citation_support_matrix"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_claim_support_need",
+        "current_delta_trigger_terms": [
+          "claim citation support",
+          "claim_support",
+          "claim_support_matrix",
+          "citation_refs",
+          "support_grade",
+          "source_tier"
+        ],
+        "descriptor_only": true,
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "readback:mas_claim_citation_support_matrix"
+        ],
+        "refs_only": true,
+        "role": "claim_evidence_citation_support_grade_refs_only_matrix",
+        "source_frameworks": [
+          "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+          "Nature Academic Search / Citation skills"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "run_quality_repair_batch",
+          "return_to_ai_reviewer_workflow",
+          "run_gate_clearing_batch"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "med_autoscience.paper_mainline_reviewer_repair.build_reviewer_repair_action_projection",
+        "capability_family": "reviewer_repair_action_projection",
+        "capability_id": "nature_reviewer_repair_action_projection",
+        "capability_ref": "scientific-capability:nature_reviewer_repair_action_projection",
+        "contract_refs": [
+          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-response/SKILL.md",
+          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-reviewer/SKILL.md",
+          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-reader/SKILL.md",
+          "med_autoscience.paper_mainline_reviewer_repair.build_reviewer_repair_action_projection"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_reviewer_repair_need",
+        "current_delta_trigger_terms": [
+          "reviewer repair",
+          "reviewer_repair",
+          "reviewer_repair_refs",
+          "repair_action",
+          "repair_action_candidates"
+        ],
+        "descriptor_only": true,
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "readback:mas_reviewer_repair_action_projection"
+        ],
+        "refs_only": true,
+        "role": "ai_reviewer_comment_to_typed_repair_action_candidate_projection",
+        "source_frameworks": [
+          "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+          "Nature Response / Reviewer / Reader skills"
         ],
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
@@ -8565,7 +8740,7 @@
         "trigger": "current_delta_declares_or_implies_affordance_need"
       }
     ],
-    "capability_count": 7,
+    "capability_count": 10,
     "default_policy": {
       "always_on_scan": false,
       "external_runtime_dependency": false,

@@ -179,6 +179,106 @@ def test_scientific_capability_registry_does_not_treat_generic_manifest_as_natur
     assert "nature_figure_display_contract_refs" not in selected_ids
 
 
+def test_scientific_capability_registry_resolves_nature_paper_mainline_refs_only_descriptors(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+    current_owner_delta = {
+        "action_type": "paper_mainline_owner_action",
+        "action_id": "paper-mainline-001",
+        "work_unit_id": "paper-mainline",
+        "work_unit_fingerprint": "sha256:paper-mainline",
+        "paper_need": [
+            "section source map",
+            "claim citation support",
+            "reviewer repair action candidates",
+        ],
+        "requested_refs": [
+            "draft_block_refs",
+            "claim_refs",
+            "evidence_refs",
+            "source_map_refs",
+            "citation_refs",
+            "support_grade",
+            "reviewer_repair_refs",
+        ],
+    }
+
+    resolution = module.resolve_scientific_capabilities(
+        current_owner_delta=current_owner_delta,
+    )
+    selected = {
+        item["capability_id"]: item
+        for item in resolution["selected_capabilities"]
+    }
+    expected_ids = {
+        "nature_paper_section_source_map_readback": (
+            "paper_mainline_section_source_map",
+            "current_delta_declared_paper_mainline_section_need",
+            "med_autoscience.paper_mainline_section_source_map.build_paper_section_source_map_readback",
+            "readback:mas_paper_section_source_map_readback",
+        ),
+        "nature_claim_citation_support_matrix": (
+            "claim_citation_support_matrix",
+            "current_delta_declared_claim_support_need",
+            "med_autoscience.paper_mainline_claim_support.build_claim_citation_support_matrix",
+            "readback:mas_claim_citation_support_matrix",
+        ),
+        "nature_reviewer_repair_action_projection": (
+            "reviewer_repair_action_projection",
+            "current_delta_declared_reviewer_repair_need",
+            "med_autoscience.paper_mainline_reviewer_repair.build_reviewer_repair_action_projection",
+            "readback:mas_reviewer_repair_action_projection",
+        ),
+    }
+
+    assert set(expected_ids) <= set(selected)
+    for capability_id, (
+        capability_family,
+        trigger_reason,
+        callable_surface,
+        output_ref,
+    ) in expected_ids.items():
+        candidate = selected[capability_id]
+        assert candidate["capability_family"] == capability_family
+        assert candidate["trigger_reason"] == trigger_reason
+        assert candidate["callable_surface"] == callable_surface
+        assert candidate["output_refs"] == [output_ref]
+        assert candidate["invocation_kind"] == "descriptor_only_current_owner_input_refs"
+        assert candidate["refs_only"] is True
+        assert candidate["descriptor_only"] is True
+        assert candidate["external_runner_invocation_allowed"] is False
+        assert candidate["can_block_current_owner_action"] is False
+        assert candidate["readback"]["can_execute_external_runner"] is False
+        assert candidate["readback"]["can_authorize_quality_verdict"] is False
+        assert candidate["authority_boundary"]["can_write_publication_eval"] is False
+        assert candidate["authority_boundary"]["can_authorize_publication_readiness"] is False
+
+        invocation = module.invoke_scientific_capability(
+            capability_id=capability_id,
+            study_root=study_root,
+            current_owner_delta=current_owner_delta,
+            apply=True,
+        )
+        assert invocation["status"] == "descriptor_only"
+        assert invocation["refs_only"] is True
+        assert invocation["request_only"] is False
+        assert invocation["descriptor_only"] is True
+        assert invocation["external_runner_invocation_allowed"] is False
+        assert invocation["opl_capability_runtime_required"] is False
+        assert invocation["result"]["surface_kind"] == (
+            "mas_scientific_capability_descriptor_only_projection"
+        )
+        assert invocation["result"]["readback"]["can_execute_external_runner"] is False
+        assert invocation["authority_boundary"]["can_write_publication_eval"] is False
+
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+
 def test_scientific_capability_registry_invokes_external_learning_as_opl_request_only(
     tmp_path: Path,
 ) -> None:

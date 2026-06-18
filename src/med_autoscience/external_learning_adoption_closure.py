@@ -108,6 +108,15 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
                 "docs/references/mainline/nature_skills_learning_intake.md",
                 "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
                 "med_autoscience.scientific_capability_registry.build_scientific_capability_registry",
+                "med_autoscience.paper_mainline_section_source_map.build_paper_section_source_map_readback",
+                "med_autoscience.paper_mainline_claim_support.build_claim_citation_support_matrix",
+                "med_autoscience.paper_mainline_reviewer_repair.build_reviewer_repair_action_projection",
+                "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-writing/SKILL.md",
+                "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-polishing/SKILL.md",
+                "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-reader/SKILL.md",
+                "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-academic-search/SKILL.md",
+                "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-citation/SKILL.md",
+                "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-response/SKILL.md",
                 "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/SKILL.md",
                 "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/figure-contract.md",
                 "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/qa-contract.md",
@@ -121,29 +130,36 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
                 "figure_display_manifest_and_stable_plotting_refs",
                 "manuscript_argument_failure_mode",
                 "paper_reader_source_map",
+                "paper_section_source_map_readback",
+                "claim_citation_support_matrix",
+                "reviewer_repair_action_projection",
                 "pptx_asset_manifest_package_qa",
             ],
-            local_execution_state="stage_quality_pack_and_scientific_capability_descriptor_refs_landed",
+            local_execution_state="stage_quality_pack_scientific_capability_and_paper_mainline_readbacks_landed",
             closure_status="owner_surface_landed",
             owner_surface=(
                 "stage_quality_pack_contract_ai_reviewer_quality_gate_and_"
-                "scientific_capability_registry_descriptor_refs"
+                "scientific_capability_registry_descriptor_refs_and_paper_mainline_readback_surfaces"
             ),
             worker_or_executor_landing=(
-                "Nature-skills figure/display learning is exposed only as "
-                "scientific_capability_registry descriptor/current-owner input refs; "
-                "it is not registered in SIDECAR_WORKER_REGISTRY, cannot run the "
-                "external skill runner, and cannot write publication eval, controller "
-                "decisions, display runtime artifacts, paper body, or package bodies"
+                "Nature-skills paper mainline learning is exposed as MAS-owned "
+                "section/source-map readback, claim-citation support matrix, reviewer "
+                "repair action projection, and scientific_capability_registry "
+                "descriptor/current-owner input refs; it is not registered in "
+                "SIDECAR_WORKER_REGISTRY, cannot run the external skill runner, and "
+                "cannot write publication eval, controller decisions, display runtime "
+                "artifacts, paper body, or package bodies"
             ),
             missing_landing_work=[
                 "continue live paper-line evidence tail with owner receipts and artifact refs",
-                "owner-selected display work units must still consume refs and return owner receipt or typed blocker before any progress claim",
+                "owner-selected manuscript work units must still consume refs and return owner receipt or typed blocker before any paper progress claim",
             ],
             next_landing_path=(
-                "resolve nature_figure_display_contract_refs from current_owner_delta "
-                "when figure/display/router/manifest or stable plotting refs are needed; "
-                "keep it refs-only instead of adding a Nature-skills sidecar worker"
+                "resolve nature_paper_section_source_map_readback, "
+                "nature_claim_citation_support_matrix, "
+                "nature_reviewer_repair_action_projection, or "
+                "nature_figure_display_contract_refs from current_owner_delta; keep "
+                "them refs-only/readback-only instead of adding a Nature-skills sidecar worker"
             ),
         ),
         _framework_from_projection(

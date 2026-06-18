@@ -77,6 +77,72 @@ NATURE_FIGURE_CURRENT_DELTA_TRIGGER_TERMS = (
     "stable plotting need",
     "stable_plotting_need",
 )
+NATURE_PAPER_MAINLINE_SECTION_REFS = (
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-writing/SKILL.md"
+    ),
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-polishing/SKILL.md"
+    ),
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-reader/SKILL.md"
+    ),
+    "med_autoscience.paper_mainline_section_source_map.build_paper_section_source_map_readback",
+)
+NATURE_PAPER_MAINLINE_CLAIM_SUPPORT_REFS = (
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-academic-search/SKILL.md"
+    ),
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-citation/SKILL.md"
+    ),
+    "med_autoscience.paper_mainline_claim_support.build_claim_citation_support_matrix",
+)
+NATURE_PAPER_MAINLINE_REVIEWER_REPAIR_REFS = (
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-response/SKILL.md"
+    ),
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-reviewer/SKILL.md"
+    ),
+    (
+        "external:nature-skills@"
+        f"{NATURE_SKILLS_SOURCE_HEAD}:skills/nature-reader/SKILL.md"
+    ),
+    "med_autoscience.paper_mainline_reviewer_repair.build_reviewer_repair_action_projection",
+)
+NATURE_PAPER_MAINLINE_TRIGGER_TERMS = (
+    "paper mainline",
+    "section source map",
+    "section_contract",
+    "draft_block_refs",
+    "claim_refs",
+    "evidence_refs",
+    "source_map_refs",
+    "reviewer_repair_refs",
+)
+NATURE_CLAIM_SUPPORT_TRIGGER_TERMS = (
+    "claim citation support",
+    "claim_support",
+    "claim_support_matrix",
+    "citation_refs",
+    "support_grade",
+    "source_tier",
+)
+NATURE_REVIEWER_REPAIR_TRIGGER_TERMS = (
+    "reviewer repair",
+    "reviewer_repair",
+    "reviewer_repair_refs",
+    "repair_action",
+    "repair_action_candidates",
+)
 _CURRENT_DELTA_DECLARATION_KEYS = {
     "action_type",
     "action_id",
@@ -91,6 +157,7 @@ _CURRENT_DELTA_DECLARATION_KEYS = {
     "intent",
     "manifest_need",
     "need",
+    "paper_need",
     "output_kind",
     "requested_refs",
     "requested_surface",
@@ -356,11 +423,81 @@ def _capabilities() -> list[dict[str, Any]]:
                 "artifact_display_surface_materialization_required",
             ],
             current_delta_trigger_terms=list(NATURE_FIGURE_CURRENT_DELTA_TRIGGER_TERMS),
+            current_delta_trigger_reason="current_delta_declared_figure_display_need",
             invocation_kind="descriptor_only_current_owner_input_refs",
             callable_surface="descriptor_only:nature_figure_display_contract_refs",
             output_refs=list(NATURE_FIGURE_CONTRACT_REFS),
             contract_refs=list(NATURE_FIGURE_CONTRACT_REFS),
             role="nature_skills_figure_display_router_manifest_and_stable_plotting_refs",
+        ),
+        _capability(
+            capability_id="nature_paper_section_source_map_readback",
+            capability_family="paper_mainline_section_source_map",
+            source_frameworks=[
+                f"Yuan1z0825/nature-skills@{NATURE_SKILLS_SOURCE_HEAD}",
+                "Nature Writing / Polishing / Reader skills",
+            ],
+            action_triggers=[
+                "draft_manuscript_section",
+                "run_quality_repair_batch",
+                "return_to_ai_reviewer_workflow",
+            ],
+            current_delta_trigger_terms=list(NATURE_PAPER_MAINLINE_TRIGGER_TERMS),
+            current_delta_trigger_reason="current_delta_declared_paper_mainline_section_need",
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface=(
+                "med_autoscience.paper_mainline_section_source_map."
+                "build_paper_section_source_map_readback"
+            ),
+            output_refs=["readback:mas_paper_section_source_map_readback"],
+            contract_refs=list(NATURE_PAPER_MAINLINE_SECTION_REFS),
+            role="section_contract_draft_block_source_map_reviewer_repair_refs_readback",
+        ),
+        _capability(
+            capability_id="nature_claim_citation_support_matrix",
+            capability_family="claim_citation_support_matrix",
+            source_frameworks=[
+                f"Yuan1z0825/nature-skills@{NATURE_SKILLS_SOURCE_HEAD}",
+                "Nature Academic Search / Citation skills",
+            ],
+            action_triggers=[
+                "draft_manuscript_section",
+                "run_quality_repair_batch",
+                "return_to_ai_reviewer_workflow",
+            ],
+            current_delta_trigger_terms=list(NATURE_CLAIM_SUPPORT_TRIGGER_TERMS),
+            current_delta_trigger_reason="current_delta_declared_claim_support_need",
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface=(
+                "med_autoscience.paper_mainline_claim_support."
+                "build_claim_citation_support_matrix"
+            ),
+            output_refs=["readback:mas_claim_citation_support_matrix"],
+            contract_refs=list(NATURE_PAPER_MAINLINE_CLAIM_SUPPORT_REFS),
+            role="claim_evidence_citation_support_grade_refs_only_matrix",
+        ),
+        _capability(
+            capability_id="nature_reviewer_repair_action_projection",
+            capability_family="reviewer_repair_action_projection",
+            source_frameworks=[
+                f"Yuan1z0825/nature-skills@{NATURE_SKILLS_SOURCE_HEAD}",
+                "Nature Response / Reviewer / Reader skills",
+            ],
+            action_triggers=[
+                "run_quality_repair_batch",
+                "return_to_ai_reviewer_workflow",
+                "run_gate_clearing_batch",
+            ],
+            current_delta_trigger_terms=list(NATURE_REVIEWER_REPAIR_TRIGGER_TERMS),
+            current_delta_trigger_reason="current_delta_declared_reviewer_repair_need",
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface=(
+                "med_autoscience.paper_mainline_reviewer_repair."
+                "build_reviewer_repair_action_projection"
+            ),
+            output_refs=["readback:mas_reviewer_repair_action_projection"],
+            contract_refs=list(NATURE_PAPER_MAINLINE_REVIEWER_REPAIR_REFS),
+            role="ai_reviewer_comment_to_typed_repair_action_candidate_projection",
         ),
         _capability(
             capability_id="display_pack_visual_capability",
@@ -427,6 +564,7 @@ def _capability(
     output_refs: list[str],
     role: str,
     current_delta_trigger_terms: list[str] | None = None,
+    current_delta_trigger_reason: str | None = None,
     contract_refs: list[str] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
@@ -449,6 +587,8 @@ def _capability(
     }
     if current_delta_trigger_terms:
         payload["current_delta_trigger_terms"] = list(current_delta_trigger_terms)
+    if current_delta_trigger_reason:
+        payload["current_delta_trigger_reason"] = current_delta_trigger_reason
     if contract_refs:
         payload["contract_refs"] = list(contract_refs)
     if invocation_kind == "descriptor_only_current_owner_input_refs":
@@ -525,7 +665,10 @@ def _trigger_reason(
         current_owner_delta,
         terms=_text_list(capability.get("current_delta_trigger_terms")),
     ):
-        return "current_delta_declared_figure_display_need"
+        return (
+            _text(capability.get("current_delta_trigger_reason"))
+            or "current_delta_declared_capability_need"
+        )
     return "default_jit_affordance"
 
 
