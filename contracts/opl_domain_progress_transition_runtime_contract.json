@@ -107,6 +107,18 @@
       "projection_metadata_derived_from_event_id_matches_identity_latest_event_id": true,
       "latest_transaction_requires_command_event_outbox": true,
       "same_transaction_event_and_outbox": true
+    },
+    "provider_admission_identity_binding": {
+      "required_fields": [
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key"
+      ],
+      "request_identity_field": "request_idempotency_key",
+      "readback_must_match_current_transition_identity": true,
+      "stale_or_cross_identity_readback_counts_as_request_pending": true
     }
   },
   "projection_postcondition_contract": {

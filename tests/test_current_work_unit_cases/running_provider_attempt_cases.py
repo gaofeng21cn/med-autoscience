@@ -462,3 +462,50 @@ def test_current_work_unit_treats_opl_transition_readback_as_provider_admission_
     evidence = work_unit["state"]["pending_provider_admission_evidence"]
     assert evidence["execution_status"] == "handoff_ready"
     assert evidence["opl_transition_readback_present"] is True
+
+
+def test_current_work_unit_rejects_cross_identity_opl_transition_readback() -> None:
+    module = _module()
+    handoff = {
+        "execution_status": "handoff_ready",
+        "provider_attempt_or_lease_required": True,
+        "running_provider_attempt": False,
+        "provider_admission_pending_count": 1,
+        "opl_domain_progress_transition_result": opl_transition_readback(
+            "002-dm-cvd-mortality-risk",
+            action_fingerprint="provider-admission::stale::repair",
+            work_unit_id="stale_work_unit",
+            route_identity_key="provider-admission::002-dm-cvd-mortality-risk::provider-admission::stale::repair",
+            attempt_idempotency_key="provider-admission::002-dm-cvd-mortality-risk::provider-admission::stale::repair",
+            request_idempotency_key="provider-admission::002-dm::run_quality_repair_batch",
+        ),
+    }
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-cvd-mortality-risk",
+            "quest_id": "002-dm-cvd-mortality-risk",
+            "current_stage": "publication_supervision",
+        },
+        actions=[
+            {
+                "action_type": "run_quality_repair_batch",
+                "owner": "write",
+                "next_owner": "write",
+                "next_work_unit": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "authority": "mas_provider_admission_identity",
+                "action_id": "provider-admission::002-dm::run_quality_repair_batch",
+                "work_unit_fingerprint": "provider-admission::002::repair",
+                "action_fingerprint": "provider-admission::002::repair",
+            }
+        ],
+        provider_admission=handoff,
+        blocked_reason="provider_admission_current_control_state_required",
+        next_owner="write",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["state"]["provider_admission_pending"] is False
+    assert "pending_provider_admission_evidence" not in work_unit["state"]

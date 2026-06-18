@@ -537,6 +537,8 @@ def test_current_work_unit_provider_admission_pending_supersedes_stale_parked_pr
             fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
         ),
         "opl_domain_progress_transition_result": _opl_transition_result(
+            work_unit_id="publication_gate_replay",
+            fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
             stage_run_id="stage-run-publication-gate-replay"
         ),
     }

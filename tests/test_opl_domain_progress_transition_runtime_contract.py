@@ -53,6 +53,12 @@ def test_opl_domain_progress_transition_runtime_contract_matches_helper_abi() ->
     assert contract["live_readback_contract"]["transaction_consistency"] == (
         helper.live_readback_transaction_consistency()
     )
+    assert contract["live_readback_contract"]["provider_admission_identity_binding"] == {
+        "required_fields": list(helper.PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS),
+        "request_identity_field": helper.PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD,
+        "readback_must_match_current_transition_identity": True,
+        "stale_or_cross_identity_readback_counts_as_request_pending": True,
+    }
     assert contract["mas_request_contract"]["forbidden_runtime_fields"] == (
         helper.request_forbidden_runtime_fields()
     )

@@ -73,6 +73,16 @@ LIVE_READBACK_TRANSACTION_CONSISTENCY = {
     "same_transaction_event_and_outbox": True,
 }
 
+PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS = (
+    "study_id",
+    "work_unit_id",
+    "work_unit_fingerprint",
+    "route_identity_key",
+    "attempt_idempotency_key",
+)
+
+PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD = "request_idempotency_key"
+
 FORBIDDEN_MAS_REQUEST_RUNTIME_FIELDS = (
     "current_control_command",
     "current_control_command_outbox_record",
@@ -118,6 +128,12 @@ def required_readback_shape() -> dict[str, Any]:
         ),
         "latest_transaction_ref_fields": list(LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS),
         "transaction_consistency": live_readback_transaction_consistency(),
+        "provider_admission_identity_binding": {
+            "required_fields": list(PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS),
+            "request_identity_field": PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD,
+            "readback_must_match_current_transition_identity": True,
+            "stale_or_cross_identity_readback_counts_as_request_pending": True,
+        },
         "accepted_outcome_kind": PROVIDER_ADMISSION_OUTCOME,
         "deprecated_projection_fields_not_authority": [
             "opl_domain_progress_transition_result.surface_kind",
@@ -211,6 +227,8 @@ __all__ = [
     "LIVE_READBACK_SURFACE",
     "LIVE_READBACK_TRANSACTION_CONSISTENCY",
     "MAS_PROJECTION_CANNOT_REPLACE",
+    "PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS",
+    "PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD",
     "PROVIDER_ADMISSION_OUTCOME",
     "REQUIRED_READBACK_SECTIONS",
     "REQUIRED_RUNTIME_REFS",

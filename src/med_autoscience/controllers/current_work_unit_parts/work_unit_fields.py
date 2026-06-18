@@ -11,7 +11,7 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
     text as _text,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
-    has_opl_transition_readback as _has_opl_transition_readback,
+    has_provider_admission_opl_transition_readback as _has_opl_transition_readback,
 )
 
 
@@ -20,21 +20,29 @@ def route_work_unit_id(route: Mapping[str, Any]) -> str | None:
     return _work_unit_id(payload.get("work_unit_id")) or _work_unit_id(payload.get("next_work_unit"))
 
 
-def provider_admission_pending(provider_admission: Mapping[str, Any] | None) -> bool:
+def provider_admission_pending(
+    provider_admission: Mapping[str, Any] | None,
+    *,
+    identity: Mapping[str, Any] | None = None,
+) -> bool:
     payload = _mapping(provider_admission)
     if not payload:
         return False
     if payload.get("running_provider_attempt") is True:
         return False
-    return _has_opl_transition_readback(payload) or any(
-        _has_opl_transition_readback(item)
+    return _has_opl_transition_readback(_identity_bound_payload(payload, identity)) or any(
+        _has_opl_transition_readback(_identity_bound_payload(item, identity))
         for collection_key in ("provider_admission_candidates", "action_queue")
         for item in payload.get(collection_key) or []
         if isinstance(item, Mapping)
     )
 
 
-def pending_provider_admission_evidence(provider_admission: Mapping[str, Any] | None) -> dict[str, Any]:
+def pending_provider_admission_evidence(
+    provider_admission: Mapping[str, Any] | None,
+    *,
+    identity: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     payload = _mapping(provider_admission)
     return {
         "provider_admission_pending_count": payload.get("provider_admission_pending_count"),
@@ -42,9 +50,11 @@ def pending_provider_admission_evidence(provider_admission: Mapping[str, Any] | 
         "execution_status": _text(payload.get("execution_status")),
         "provider_attempt_or_lease_required": payload.get("provider_attempt_or_lease_required") is True,
         "running_provider_attempt": payload.get("running_provider_attempt") is True,
-        "opl_transition_readback_present": _has_opl_transition_readback(payload)
+        "opl_transition_readback_present": _has_opl_transition_readback(
+            _identity_bound_payload(payload, identity)
+        )
         or any(
-            _has_opl_transition_readback(item)
+            _has_opl_transition_readback(_identity_bound_payload(item, identity))
             for collection_key in ("provider_admission_candidates", "action_queue")
             for item in payload.get(collection_key) or []
             if isinstance(item, Mapping)
@@ -122,6 +132,34 @@ def _refs_from(value: Mapping[str, Any]) -> list[str]:
         if (ref := _text(value.get(key))) is not None:
             refs.append(ref)
     return refs
+
+
+def _identity_bound_payload(
+    payload: Mapping[str, Any],
+    identity: Mapping[str, Any] | None,
+) -> Mapping[str, Any]:
+    identity_payload = _mapping(identity)
+    if not identity_payload:
+        return payload
+    return {
+        **dict(payload),
+        **{
+            key: value
+            for key, value in {
+                "study_id": _text(identity_payload.get("study_id")),
+                "work_unit_id": _text(identity_payload.get("work_unit_id"))
+                or _text(identity_payload.get("next_work_unit")),
+                "work_unit_fingerprint": _text(identity_payload.get("work_unit_fingerprint"))
+                or _text(identity_payload.get("action_fingerprint")),
+                "action_fingerprint": _text(identity_payload.get("action_fingerprint"))
+                or _text(identity_payload.get("work_unit_fingerprint")),
+                "route_identity_key": _text(identity_payload.get("route_identity_key")),
+                "attempt_idempotency_key": _text(identity_payload.get("attempt_idempotency_key")),
+                "idempotency_key": _text(identity_payload.get("idempotency_key")),
+            }.items()
+            if value is not None
+        },
+    }
 
 
 __all__ = [

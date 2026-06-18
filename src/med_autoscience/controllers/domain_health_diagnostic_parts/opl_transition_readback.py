@@ -205,6 +205,19 @@ def has_opl_transition_readback(candidate: Mapping[str, Any]) -> bool:
     return bool(candidate_opl_transition_readback(candidate))
 
 
+def provider_admission_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    readback = candidate_opl_transition_readback(candidate)
+    if not readback:
+        return {}
+    if not _readback_matches_provider_admission_identity(candidate, readback):
+        return {}
+    return readback
+
+
+def has_provider_admission_opl_transition_readback(candidate: Mapping[str, Any]) -> bool:
+    return bool(provider_admission_opl_transition_readback(candidate))
+
+
 def _prebuilt_opl_transition_readback(value: object) -> dict[str, Any]:
     payload = _mapping(value)
     if not payload:
@@ -247,6 +260,96 @@ def _is_opl_transition_runtime_container(payload: Mapping[str, Any]) -> bool:
     )
 
 
+def _readback_matches_provider_admission_identity(
+    candidate: Mapping[str, Any],
+    readback: Mapping[str, Any],
+) -> bool:
+    expected = _provider_admission_identity(candidate)
+    identity = _mapping(readback.get("identity"))
+    aggregate_identity = _mapping(identity.get("aggregate_identity"))
+    stage_run_identity = _mapping(identity.get("stage_run_identity"))
+
+    comparisons = {
+        "study_id": _text(aggregate_identity.get("study_id")),
+        "work_unit_id": _text(aggregate_identity.get("work_unit_id")),
+        "work_unit_fingerprint": _text(aggregate_identity.get("work_unit_fingerprint")),
+        "route_identity_key": _text(stage_run_identity.get("route_identity_key")),
+        "attempt_idempotency_key": _text(stage_run_identity.get("attempt_idempotency_key")),
+    }
+    for key, actual in comparisons.items():
+        expected_value = _text(expected.get(key))
+        if expected_value is None or actual != expected_value:
+            return False
+
+    expected_request_key = _text(expected.get("request_idempotency_key"))
+    if expected_request_key is None or _text(identity.get("idempotency_key")) != expected_request_key:
+        return False
+    return True
+
+
+def _provider_admission_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    transition_request = _transition_request(candidate)
+    request_identity = _mapping(transition_request.get("aggregate_identity"))
+    state = _mapping(candidate.get("state"))
+    state_request = _transition_request(state)
+    state_request_identity = _mapping(state_request.get("aggregate_identity"))
+    policy = _mapping(candidate.get("paper_progress_policy_result"))
+    policy_request = _transition_request(policy)
+    policy_request_identity = _mapping(policy_request.get("aggregate_identity"))
+
+    study_id = (
+        _text(candidate.get("study_id"))
+        or _text(request_identity.get("study_id"))
+        or _text(state.get("study_id"))
+        or _text(state_request_identity.get("study_id"))
+        or _text(policy_request_identity.get("study_id"))
+    )
+    work_unit_fingerprint = (
+        _text(candidate.get("work_unit_fingerprint"))
+        or _text(candidate.get("action_fingerprint"))
+        or _text(request_identity.get("work_unit_fingerprint"))
+        or _text(state.get("work_unit_fingerprint"))
+        or _text(state.get("action_fingerprint"))
+        or _text(state_request_identity.get("work_unit_fingerprint"))
+        or _text(policy_request_identity.get("work_unit_fingerprint"))
+    )
+    route_key = _text(candidate.get("route_identity_key")) or (
+        f"provider-admission::{study_id}::{work_unit_fingerprint}"
+        if study_id is not None and work_unit_fingerprint is not None
+        else None
+    )
+    return {
+        "study_id": study_id,
+        "work_unit_id": (
+            _text(candidate.get("work_unit_id"))
+            or _text(candidate.get("next_work_unit"))
+            or _text(request_identity.get("work_unit_id"))
+            or _text(state.get("work_unit_id"))
+            or _text(state.get("next_work_unit"))
+            or _text(state_request_identity.get("work_unit_id"))
+            or _text(policy_request_identity.get("work_unit_id"))
+        ),
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": _text(candidate.get("attempt_idempotency_key")) or route_key,
+        "request_idempotency_key": (
+            _text(transition_request.get("idempotency_key"))
+            or _text(state_request.get("idempotency_key"))
+            or _text(policy_request.get("idempotency_key"))
+            or _text(candidate.get("idempotency_key"))
+            or route_key
+        ),
+    }
+
+
+def _transition_request(value: Mapping[str, Any]) -> Mapping[str, Any]:
+    request = _mapping(value.get("opl_domain_progress_transition_request"))
+    if request:
+        return request
+    policy = _mapping(value.get("paper_progress_policy_result"))
+    return _mapping(policy.get("opl_domain_progress_transition_request"))
+
+
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
@@ -267,7 +370,9 @@ __all__ = [
     "OPL_TRANSITION_RUNTIME_OWNER",
     "OPL_TRANSITION_RESULT_SURFACE",
     "candidate_opl_transition_readback",
+    "has_provider_admission_opl_transition_readback",
     "has_opl_transition_readback",
+    "provider_admission_opl_transition_readback",
     "required_opl_transition_readback_shape",
     "valid_opl_transition_readback",
 ]

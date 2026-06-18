@@ -79,14 +79,37 @@ def action_work_unit(
         or _work_unit_id(action.get("work_unit_id"))
         or action_type
     )
-    pending_provider_admission = _provider_admission_pending(provider_admission)
+    study_id = _text(progress_payload.get("study_id")) or _text(status_payload.get("study_id"))
+    work_unit_fingerprint = _work_unit_fingerprint(action, currentness_basis=currentness_basis)
+    action_fingerprint = _action_fingerprint(action, currentness_basis=currentness_basis)
+    route_identity_key = (
+        _text(action.get("route_identity_key"))
+        or (
+            f"provider-admission::{study_id}::{work_unit_fingerprint}"
+            if study_id is not None and work_unit_fingerprint is not None
+            else None
+        )
+    )
+    admission_identity = {
+        "study_id": study_id,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "route_identity_key": route_identity_key,
+        "attempt_idempotency_key": _text(action.get("attempt_idempotency_key")) or route_identity_key,
+        "idempotency_key": _text(action.get("idempotency_key")) or _text(action.get("action_id")) or route_identity_key,
+    }
+    pending_provider_admission = _provider_admission_pending(
+        provider_admission,
+        identity=admission_identity,
+    )
     return current_work_unit(
         status="executable_owner_action",
         owner=owner,
         action_type=action_type,
         work_unit_id=work_unit_id,
-        work_unit_fingerprint=_work_unit_fingerprint(action, currentness_basis=currentness_basis),
-        action_fingerprint=_action_fingerprint(action, currentness_basis=currentness_basis),
+        work_unit_fingerprint=work_unit_fingerprint,
+        action_fingerprint=action_fingerprint,
         input_refs=_input_refs(action, source_refs),
         required_output_contract=_required_output_contract(action),
         acceptance_refs=_acceptance_refs(action),
@@ -100,7 +123,8 @@ def action_work_unit(
             "latest_owner_answer_ref": _text(action.get("latest_owner_answer_ref")),
             "provider_admission_pending": pending_provider_admission,
             "pending_provider_admission_evidence": _pending_provider_admission_evidence(
-                provider_admission
+                provider_admission,
+                identity=admission_identity,
             )
             if pending_provider_admission
             else None,

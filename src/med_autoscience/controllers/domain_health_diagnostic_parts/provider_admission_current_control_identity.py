@@ -13,7 +13,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     text_items as _text_items,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
-    candidate_opl_transition_readback,
+    provider_admission_opl_transition_readback,
 )
 
 
@@ -24,7 +24,7 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
     study_id = _non_empty_text(provider_identity.get("study_id"))
     route_key = route_identity_key(provider_identity)
     attempt_key = attempt_idempotency_key(provider_identity)
-    opl_readback = candidate_opl_transition_readback(provider_identity)
+    opl_readback = provider_admission_opl_transition_readback(provider_identity)
     provider_admission_pending = bool(opl_readback)
     state_kind = "provider_admission_pending" if provider_admission_pending else "transition_request_pending"
     blocked_reason = (
@@ -110,7 +110,7 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
         transition_request = _mapping(
             paper_policy_result.get("opl_domain_progress_transition_request")
         )
-    opl_readback = candidate_opl_transition_readback(candidate)
+    opl_readback = provider_admission_opl_transition_readback(candidate)
     provider_admission_pending = bool(opl_readback)
     provider_attempt_required = provider_admission_pending
     action_status = "queued" if provider_admission_pending else "transition_request_pending"

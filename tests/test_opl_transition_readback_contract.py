@@ -88,6 +88,20 @@ def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() 
         contract.LIVE_READBACK_LATEST_TRANSACTION_REQUIRED_FLAGS
     )
     assert module.valid_opl_transition_readback(trusted) is True
+    assert (
+        module.provider_admission_opl_transition_readback(
+            {
+                "study_id": STUDY_ID,
+                "work_unit_id": WORK_UNIT_ID,
+                "work_unit_fingerprint": FINGERPRINT,
+                "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+                "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+                "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+                "opl_domain_progress_transition_live_readback": trusted,
+            }
+        )
+        == trusted
+    )
     assert module.candidate_opl_transition_readback(
         {"opl_domain_progress_transition_live_readback": trusted}
     ) == trusted
@@ -128,6 +142,53 @@ def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() 
     projection_event_mismatch = copy.deepcopy(trusted)
     projection_event_mismatch["projection_metadata"]["derived_from_event_id"] = "dpte-stale"
     assert module.valid_opl_transition_readback(projection_event_mismatch) is False
+
+
+def test_provider_admission_readback_must_match_current_transition_identity() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+    )
+    trusted = _live_readback()
+    matching_candidate = {
+        "study_id": STUDY_ID,
+        "work_unit_id": WORK_UNIT_ID,
+        "work_unit_fingerprint": FINGERPRINT,
+        "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "opl_domain_progress_transition_live_readback": trusted,
+    }
+
+    assert module.candidate_opl_transition_readback(matching_candidate) == trusted
+    assert module.provider_admission_opl_transition_readback(matching_candidate) == trusted
+    assert module.has_provider_admission_opl_transition_readback(matching_candidate) is True
+
+    missing_identity = {
+        "opl_domain_progress_transition_live_readback": trusted,
+    }
+    assert module.candidate_opl_transition_readback(missing_identity) == trusted
+    assert module.provider_admission_opl_transition_readback(missing_identity) == {}
+    assert module.has_provider_admission_opl_transition_readback(missing_identity) is False
+
+    stale_work_unit = {
+        **matching_candidate,
+        "work_unit_id": "stale-work-unit",
+    }
+    assert module.candidate_opl_transition_readback(stale_work_unit) == trusted
+    assert module.provider_admission_opl_transition_readback(stale_work_unit) == {}
+
+    stale_route = {
+        **matching_candidate,
+        "route_identity_key": "provider-admission::stale",
+        "attempt_idempotency_key": "provider-admission::stale",
+    }
+    assert module.provider_admission_opl_transition_readback(stale_route) == {}
+
+    stale_request_key = {
+        **matching_candidate,
+        "idempotency_key": "provider-admission::stale-request",
+    }
+    assert module.provider_admission_opl_transition_readback(stale_request_key) == {}
 
 
 def test_legacy_transition_result_and_bare_projection_are_not_trusted() -> None:
@@ -351,3 +412,15 @@ def test_provider_admission_requires_trusted_opl_readback_not_weak_projection() 
     assert stale_event_pending["status"] == "transition_request_pending"
     assert stale_event_pending["provider_admission_pending"] is False
     assert stale_event_pending["provider_admission_requires_opl_runtime_result"] is True
+
+    stale_identity_readback = _live_readback()
+    stale_identity_readback["identity"]["aggregate_identity"]["work_unit_id"] = "stale-work-unit"
+    stale_identity_pending = identity.provider_admission_current_control_action(
+        {
+            **candidate,
+            "opl_domain_progress_transition_result": stale_identity_readback,
+        }
+    )
+    assert stale_identity_pending["status"] == "transition_request_pending"
+    assert stale_identity_pending["provider_admission_pending"] is False
+    assert stale_identity_pending["provider_admission_requires_opl_runtime_result"] is True
