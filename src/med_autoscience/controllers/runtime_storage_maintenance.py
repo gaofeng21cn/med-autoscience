@@ -39,7 +39,7 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.dataset_reten
     superseded_release_index as _superseded_release_index,
 )
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import domain_authority_refs_index
+from med_autoscience.runtime_protocol import opl_state_index_source_adapter
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol.study_runtime import resolve_study_runtime_paths
 
@@ -896,10 +896,10 @@ def _record_workspace_archive_ref(
     if not archive_refs:
         return {}
     indexed_results = [
-        domain_authority_refs_index.record_archive_ref(
+        opl_state_index_source_adapter.emit_archive_ref_source(
             quest_root=quest_root,
             archive_ref=archive_ref,
-            db_path=domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root),
+            db_path=opl_state_index_source_adapter.workspace_authority_refs_index_path(workspace_root),
         )
         for archive_ref in archive_refs
     ]

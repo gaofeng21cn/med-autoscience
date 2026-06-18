@@ -561,7 +561,7 @@ def test_stage_artifact_materializer_backfills_stage_native_refs_without_copying
         is False
     )
 
-    assert result["stages"][0]["domain_authority_ref_index"]["status"] == "source_adapter_emitted"
+    assert result["stages"][0]["domain_authority_ref_index"]["status"] == "opl_state_index_source_adapter_emitted"
     assert result["stages"][0]["domain_authority_ref_index"]["sqlite_persisted"] is False
     assert result["stages"][0]["domain_authority_ref_index"]["opl_state_index_kernel_required"] is True
     sqlite_path = domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root)

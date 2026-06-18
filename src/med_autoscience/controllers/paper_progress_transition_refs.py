@@ -10,6 +10,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_r
     required_opl_transition_readback_shape,
 )
 from med_autoscience.runtime_protocol import domain_authority_refs_index
+from med_autoscience.runtime_protocol import opl_state_index_source_adapter
 
 
 SCHEMA_VERSION = 1
@@ -218,13 +219,22 @@ def _index_receipt(
     db_path: Path | None,
     persist_authority_refs_index: bool,
 ) -> None:
-    domain_authority_refs_index.record_paper_progress_transition_ref(
+    if persist_authority_refs_index:
+        domain_authority_refs_index.record_paper_progress_transition_ref(
+            study_root=study_root,
+            quest_root=quest_root,
+            receipt=receipt,
+            receipt_path=transition_refs_path(study_root),
+            db_path=db_path,
+            persist_sqlite=True,
+        )
+        return
+    opl_state_index_source_adapter.emit_paper_progress_transition_source(
         study_root=study_root,
         quest_root=quest_root,
         receipt=receipt,
         receipt_path=transition_refs_path(study_root),
         db_path=db_path,
-        persist_sqlite=persist_authority_refs_index,
     )
 
 

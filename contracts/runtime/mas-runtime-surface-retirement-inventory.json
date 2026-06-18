@@ -72,29 +72,30 @@
       "surface_id": "worker_lease_residency_projection"
     },
     {
-      "active_caller_migrated": false,
+      "active_caller_migrated": true,
       "active_caller_boundary": {
-        "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
+        "active_caller_effect": "opl_state_index_source_adapter_emitted_no_sqlite_persistence",
         "active_caller_retains_authority": false,
         "active_caller_retains_runtime_authority": false,
-        "active_caller_retains_surface": true,
+        "active_caller_retains_surface": false,
         "active_callers": [
-          "stage_artifact_materializer.record_stage_artifact_delta_ref",
-          "owner_route_reconcile.scan_output.record_owner_route_receipt",
-          "domain_owner_action_dispatch.record_dispatch_receipt",
-          "paper_progress_transition_refs.record_paper_progress_transition_ref",
-          "runtime_storage_maintenance.record_archive_ref"
+          "stage_artifact_materializer.opl_state_index_source_adapter.emit_stage_artifact_delta_source",
+          "owner_route_reconcile.scan_output.opl_state_index_source_adapter.emit_owner_route_receipt_source",
+          "domain_owner_action_dispatch.opl_state_index_source_adapter.emit_dispatch_receipt_source",
+          "paper_progress_transition_refs.opl_state_index_source_adapter.emit_paper_progress_transition_source",
+          "runtime_storage_maintenance.opl_state_index_source_adapter.emit_archive_ref_source"
         ],
         "completion_claim_requires_live_owner_or_opl_readback": true,
         "physical_delete_requires": [
           "opl_state_index_kernel_takeover",
-          "no_active_caller_scan",
+          "no_active_replay_or_local_inspection_caller_scan",
           "replacement_parity_ref",
           "tombstone_or_provenance_ref"
         ],
         "default_sqlite_persistence": false,
         "sqlite_persistence_requires_explicit_opt_in": true,
-        "active_caller_db_path_does_not_imply_persistence": true
+        "active_caller_db_path_does_not_imply_persistence": true,
+        "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only"
       },
       "authority_boundary": {
         "can_authorize_provider_admission": false,
@@ -111,7 +112,7 @@
         "stores_domain_truth": false
       },
       "compatibility_alias_allowed": false,
-      "current_disposition": "source_adapter_emitted_live_state_index_takeover_tail_open",
+      "current_disposition": "active_callers_migrated_to_opl_state_index_source_adapter_live_takeover_tail_open",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_generic_persistence_engine",
@@ -123,7 +124,7 @@
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
       "opl_state_index_takeover_bridge": {
-        "active_caller_status": "repo_proven_no_active_authority_caller",
+        "active_caller_status": "repo_active_callers_migrated_to_opl_state_index_source_adapter",
         "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
         "live_takeover_required_before_physical_delete": true,
         "mas_projection_cannot_replace": [
@@ -135,16 +136,17 @@
         ],
         "replacement_owner_surface": "one-person-lab StateIndexKernel",
         "required_opl_readback_ref": "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py#opl_state_index_kernel_readback_requirement",
-        "active_caller_retains_surface": true,
+        "active_caller_retains_surface": false,
         "active_caller_retains_authority": false,
         "completion_claim_requires_live_opl_readback_or_no_active_caller": true,
-        "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
+        "active_caller_effect": "opl_state_index_source_adapter_emitted_no_sqlite_persistence",
         "default_sqlite_persistence": false,
         "sqlite_persistence_requires_explicit_opt_in": true,
-        "active_caller_db_path_does_not_imply_persistence": true
+        "active_caller_db_path_does_not_imply_persistence": true,
+        "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only"
       },
       "replacement_surface": "OPL StateIndexKernel / Vault refs readback consuming emitted MAS authority receipt refs",
-      "retained_mas_role": "refs_only_domain_authority_receipt_source_adapter",
+      "retained_mas_role": "explicit_history_replay_or_local_refs_inspection_helper_only",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,

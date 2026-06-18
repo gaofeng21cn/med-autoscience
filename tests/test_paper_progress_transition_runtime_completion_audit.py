@@ -99,7 +99,7 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
         (
             "domain_authority_refs_index live OPL StateIndexKernel takeover or "
-            "no-active-caller physical delete proof after source-adapter default demotion"
+            "no-active-replay/local-inspection-caller physical delete proof after active caller source-adapter migration"
         ),
         "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
         "domain_owner_action_dispatch live every-active-caller soak or no-active-caller proof",
@@ -182,18 +182,18 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "fail_closed_typed_blocker_surface"
     ] == "mas_domain_typed_blocker"
     assert surfaces["domain_authority_refs_index"]["current_disposition"] == (
-        "source_adapter_emitted_live_state_index_takeover_tail_open"
+        "active_callers_migrated_to_opl_state_index_source_adapter_live_takeover_tail_open"
     )
     assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
         "active_caller_effect"
-    ] == "source_adapter_emitted_no_default_sqlite_persistence"
+    ] == "opl_state_index_source_adapter_emitted_no_sqlite_persistence"
     assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
         "default_sqlite_persistence"
     ] is False
     assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
         "sqlite_persistence_requires_explicit_opt_in"
     ] is True
-    assert surfaces["domain_authority_refs_index"]["active_caller_migrated"] is False
+    assert surfaces["domain_authority_refs_index"]["active_caller_migrated"] is True
     assert surfaces["domain_authority_refs_index"]["retirement_gate"][
         "repo_replacement_parity_proven"
     ] is True
@@ -214,7 +214,10 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     ] == "opl_runtime_storage_maintenance_authorization"
 
     assert {
-        "domain_authority_refs_index_live_state_index_takeover_or_no_active_caller_physical_delete_ref",
+            (
+                "domain_authority_refs_index_live_state_index_takeover_or_"
+                "no_active_replay_local_inspection_caller_physical_delete_ref"
+            ),
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
         "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
         "legacy_default_executor_carrier_opl_stagerun_abi_or_no_active_caller_physical_delete_ref",

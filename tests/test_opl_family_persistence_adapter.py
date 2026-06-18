@@ -122,9 +122,9 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert payload["persistence_policy"]["surface_kind"] == "family_persistence_policy"
     assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["owner"] == "one-person-lab"
     assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["surface_role"] == (
-        "domain_authority_refs_index"
+        "opl_state_index_source_adapter"
     )
-    assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["storage_role"] == "refs_only_domain_authority_ref_index"
+    assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["storage_role"] == "opl_state_index_source_adapter_ref"
     assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["ref"]["ref"] == (
         "runtime/artifacts/domain_authority_refs.sqlite"
     )

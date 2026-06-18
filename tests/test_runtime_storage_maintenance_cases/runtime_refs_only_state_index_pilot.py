@@ -198,6 +198,7 @@ def test_refs_only_state_index_pilot_prefers_canonical_runtime_state_surface(tmp
 
 def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(tmp_path: Path) -> None:
     refs = importlib.import_module("med_autoscience.runtime_protocol.domain_authority_refs_index")
+    source_adapter = importlib.import_module("med_autoscience.runtime_protocol.opl_state_index_source_adapter")
     profile = make_profile(tmp_path)
     study_root = profile.studies_root / "001-risk"
     quest_root = profile.runtime_root / "quest-001"
@@ -301,6 +302,29 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
     assert result["authority_boundary"]["can_authorize_provider_admission"] is False
     db_path = Path(result["db_path"])
     assert not db_path.exists()
+
+    adapter_contract = source_adapter.source_adapter_contract()
+    assert adapter_contract["sqlite_persistence_parameter_exposed"] is False
+    assert adapter_contract["sqlite_persistence_allowed"] is False
+    adapter_result = source_adapter.emit_paper_progress_transition_source(
+        study_root=study_root,
+        quest_root=quest_root,
+        receipt=receipt,
+        receipt_path=receipt_path,
+    )
+    assert adapter_result["surface_kind"] == "mas_opl_state_index_source_adapter"
+    assert adapter_result["legacy_domain_authority_refs_surface_kind"] == (
+        "mas_domain_authority_refs_index"
+    )
+    assert adapter_result["status"] == "opl_state_index_source_adapter_emitted"
+    assert adapter_result["source_adapter_role"] == (
+        "opl_state_index_source_adapter_for_domain_authority_refs"
+    )
+    assert adapter_result["sqlite_persistence_parameter_exposed"] is False
+    assert adapter_result["sqlite_persisted"] is False
+    assert adapter_result["authority_boundary"]["state_index_owner"] == "one-person-lab"
+    assert adapter_result["authority_boundary"]["mas_state_index_authority"] is False
+    assert not Path(adapter_result["db_path"]).exists()
 
     persisted = refs.record_paper_progress_transition_ref(
         study_root=study_root,

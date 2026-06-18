@@ -83,7 +83,7 @@ def test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index(
     assert receipt["can_authorize_publication_ready"] is False
 
     index_result = first_apply_payload["results"][0]["stages"][0]["domain_authority_ref_index"]
-    assert index_result["status"] == "source_adapter_emitted"
+    assert index_result["status"] == "opl_state_index_source_adapter_emitted"
     assert index_result["indexed_table"] == "stage_artifact_delta_refs"
     assert index_result["sqlite_persisted"] is False
     assert index_result["opl_state_index_kernel_required"] is True

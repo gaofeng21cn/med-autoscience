@@ -29,7 +29,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import submission_m
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
-from med_autoscience.runtime_protocol import domain_authority_refs_index
+from med_autoscience.runtime_protocol import opl_state_index_source_adapter
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
     resolve_developer_supervisor_mode,
@@ -988,7 +988,7 @@ def scan_domain_routes(
             history_path=history_path,
             generated_at=generated_at,
             resolved_study_ids=resolved_study_ids,
-            domain_authority_refs_index=domain_authority_refs_index,
+            opl_state_index_source_adapter=opl_state_index_source_adapter,
             study_root_for_id=lambda value: _study_root(profile, value),
             write_json=supervision_surfaces.write_json,
             append_json_line=supervision_surfaces.append_json_line,

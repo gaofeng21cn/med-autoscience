@@ -10,7 +10,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import paper_work_unit_lifecycle_for_action
 from med_autoscience.runtime_control import repeat_suppression
-from med_autoscience.runtime_protocol import domain_authority_refs_index
+from med_autoscience.runtime_protocol import opl_state_index_source_adapter
 
 from . import runtime_dispatch_cost, domain_status_projection, progress_first_blocker_budget
 from .owner_callable_adapter_projection import (
@@ -1085,11 +1085,11 @@ def _persist_study_executions(
     )
     for execution in study_executions:
         quest_root = profile.runtime_root / (_text(execution.get("quest_id")) or study_id)
-        execution["domain_authority_ref_index"] = domain_authority_refs_index.record_dispatch_receipt(
+        execution["domain_authority_ref_index"] = opl_state_index_source_adapter.emit_dispatch_receipt_source(
             quest_root=quest_root,
             receipt=execution,
             receipt_path=latest_path,
-            db_path=domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root),
+            db_path=opl_state_index_source_adapter.workspace_authority_refs_index_path(profile.workspace_root),
         )
     _write_json(latest_path, study_payload)
     return [str(latest_path), str(history_path)]

@@ -586,6 +586,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert "workspace_local_watch_service_wrappers" not in inventory_by_id
     assert "domain_health_diagnostic_loop_shell" not in inventory_by_id
     assert inventory_by_id["domain_authority_refs_index"]["code_paths"] == [
+        "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
         "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
         "src/med_autoscience/opl_domain_pack/",
         "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py",

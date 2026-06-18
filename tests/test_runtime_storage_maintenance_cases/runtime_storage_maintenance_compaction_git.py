@@ -56,7 +56,7 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_co
     assert sum(1 for path in (quest_root / ".ds").rglob("*") if path.is_file()) < file_count_before
 
     domain_index = study_report["apply_result"]["domain_authority_archive_ref_index"]
-    assert domain_index["status"] == "source_adapter_emitted"
+    assert domain_index["status"] == "opl_state_index_source_adapter_emitted"
     assert domain_index["sqlite_persisted"] is False
     assert domain_index["emitted_source_ref_count"] == 13
     assert domain_index["opl_state_index_kernel_required"] is True

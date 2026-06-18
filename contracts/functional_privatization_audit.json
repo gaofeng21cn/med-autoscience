@@ -577,6 +577,7 @@
         "authority_boundary": "refs_only_owner_receipt_locator_index_not_generic_runtime_owner",
         "classification": "domain_authority_refs",
         "code_paths": [
+          "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
           "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
           "src/med_autoscience/opl_domain_pack/",
           "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py"

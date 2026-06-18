@@ -18,31 +18,32 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     surfaces = {surface["surface_id"]: surface for surface in inventory["surfaces"]}
 
     refs_surface = surfaces["domain_authority_refs_index"]
-    assert refs_surface["active_caller_migrated"] is False
+    assert refs_surface["active_caller_migrated"] is True
     assert refs_surface["current_disposition"] == (
-        "source_adapter_emitted_live_state_index_takeover_tail_open"
+        "active_callers_migrated_to_opl_state_index_source_adapter_live_takeover_tail_open"
     )
     assert refs_surface["active_caller_boundary"] == {
-        "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
+        "active_caller_effect": "opl_state_index_source_adapter_emitted_no_sqlite_persistence",
         "active_caller_retains_authority": False,
         "active_caller_retains_runtime_authority": False,
-        "active_caller_retains_surface": True,
+        "active_caller_retains_surface": False,
         "active_caller_db_path_does_not_imply_persistence": True,
         "active_callers": [
-            "stage_artifact_materializer.record_stage_artifact_delta_ref",
-            "owner_route_reconcile.scan_output.record_owner_route_receipt",
-            "domain_owner_action_dispatch.record_dispatch_receipt",
-            "paper_progress_transition_refs.record_paper_progress_transition_ref",
-            "runtime_storage_maintenance.record_archive_ref",
+            "stage_artifact_materializer.opl_state_index_source_adapter.emit_stage_artifact_delta_source",
+            "owner_route_reconcile.scan_output.opl_state_index_source_adapter.emit_owner_route_receipt_source",
+            "domain_owner_action_dispatch.opl_state_index_source_adapter.emit_dispatch_receipt_source",
+            "paper_progress_transition_refs.opl_state_index_source_adapter.emit_paper_progress_transition_source",
+            "runtime_storage_maintenance.opl_state_index_source_adapter.emit_archive_ref_source",
         ],
         "completion_claim_requires_live_owner_or_opl_readback": True,
         "default_sqlite_persistence": False,
         "physical_delete_requires": [
             "opl_state_index_kernel_takeover",
-            "no_active_caller_scan",
+            "no_active_replay_or_local_inspection_caller_scan",
             "replacement_parity_ref",
             "tombstone_or_provenance_ref",
         ],
+        "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only",
         "sqlite_persistence_requires_explicit_opt_in": True,
     }
     assert refs_surface["authority_boundary"] == {
@@ -70,10 +71,10 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     }
     assert refs_surface["opl_state_index_takeover_bridge"] == {
         "active_caller_db_path_does_not_imply_persistence": True,
-        "active_caller_effect": "source_adapter_emitted_no_default_sqlite_persistence",
-        "active_caller_status": "repo_proven_no_active_authority_caller",
+        "active_caller_effect": "opl_state_index_source_adapter_emitted_no_sqlite_persistence",
+        "active_caller_status": "repo_active_callers_migrated_to_opl_state_index_source_adapter",
         "active_caller_retains_authority": False,
-        "active_caller_retains_surface": True,
+        "active_caller_retains_surface": False,
         "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
         "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
         "default_sqlite_persistence": False,
@@ -91,6 +92,7 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
             "opl_state_index_kernel_readback_requirement"
         ),
         "sqlite_persistence_requires_explicit_opt_in": True,
+        "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only",
     }
     assert "mas_owned_state_index_kernel" in refs_surface["forbidden_claims"]
 
@@ -205,10 +207,10 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
 
     open_surfaces = {surface["surface_id"]: surface for surface in audit["open_surfaces"]}
     assert open_surfaces["domain_authority_refs_index"]["authority_status"] == (
-        "refs_only_source_adapter_live_takeover_tail_open"
+        "active_callers_migrated_opl_state_index_source_adapter_live_tail_open"
     )
     assert open_surfaces["domain_authority_refs_index"]["allowed_effect"] == (
-        "source_adapter_emitted_no_default_sqlite_persistence"
+        "opl_state_index_source_adapter_emitted_no_sqlite_persistence"
     )
     assert open_surfaces["domain_health_diagnostic_obligation_actuator"]["authority_status"] == (
         "consume_only_readback_projection_live_tail_open"

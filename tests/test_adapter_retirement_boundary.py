@@ -731,7 +731,7 @@ def test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance(
     assert latest["attempt_lifecycle_authority"] is False
     assert latest["queue_authority"] is False
     assert latest["executions"][0]["domain_authority_ref_index"]["status"] == (
-        "source_adapter_emitted"
+        "opl_state_index_source_adapter_emitted"
     )
 
 

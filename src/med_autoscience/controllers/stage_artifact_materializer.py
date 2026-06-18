@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.runtime_protocol import domain_authority_refs_index
+from med_autoscience.runtime_protocol import opl_state_index_source_adapter
 
 
 SCHEMA_VERSION = 1
@@ -289,12 +289,12 @@ def _materialize_stage(
         if current_owner_delta is not None and stage_artifact_projection_ref is not None:
             _write_json(stage_root / stage_artifact_projection_ref, current_owner_delta)
         _write_json(study_root / receipt_ref, receipt)
-        index_result = domain_authority_refs_index.record_stage_artifact_delta_ref(
+        index_result = opl_state_index_source_adapter.emit_stage_artifact_delta_source(
             study_root=study_root,
             quest_root=workspace_root / "runtime" / "quests" / str(study_id),
             receipt=receipt,
             receipt_path=study_root / receipt_ref,
-            db_path=domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root),
+            db_path=opl_state_index_source_adapter.workspace_authority_refs_index_path(workspace_root),
         )
     else:
         index_result = None

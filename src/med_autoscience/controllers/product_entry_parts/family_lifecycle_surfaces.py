@@ -85,11 +85,11 @@ def _build_family_persistence_policy_surface(
     if sqlite_ref is not None:
         lifecycle_ref_indexes.append(
             _persistence_surface(
-                surface_id="domain_authority_refs_sqlite",
-                surface_role="domain_authority_refs_index",
-                storage_role="refs_only_domain_authority_ref_index",
+                surface_id="opl_state_index_source_adapter",
+                surface_role="opl_state_index_source_adapter",
+                storage_role="opl_state_index_source_adapter_ref",
                 owner="one-person-lab",
-                ref=_ref(sqlite_ref, ref_kind="workspace_locator", label="domain authority refs SQLite index"),
+                ref=_ref(sqlite_ref, ref_kind="workspace_locator", label="explicit replay/local inspection SQLite helper"),
                 rebuild_from_refs=[
                     _ref("/opl_family_persistence_lifecycle_owner_route_adoption/payload", label="adoption payload"),
                 ],

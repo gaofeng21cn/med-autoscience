@@ -217,6 +217,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "domain_authority_refs",
         "migration_class": "refs_only_domain_adapter",
         "code_paths": [
+            "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
             "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
             "src/med_autoscience/opl_domain_pack/",
             "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py",

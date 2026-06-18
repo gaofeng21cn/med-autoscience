@@ -207,7 +207,7 @@ def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal
     )
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
-    assert execution["domain_authority_ref_index"]["status"] == "source_adapter_emitted"
+    assert execution["domain_authority_ref_index"]["status"] == "opl_state_index_source_adapter_emitted"
     assert execution["domain_authority_ref_index"]["indexed_table"] == "dispatch_receipts"
     assert execution["domain_authority_ref_index"]["sqlite_persisted"] is False
     index = domain_authority_refs_index.inspect_authority_refs_index(

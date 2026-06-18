@@ -168,7 +168,7 @@ def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budge
     assert execution["anti_loop_budget"]["escalation_route"] == "publishability_repair_sprint"
 
     db_path = profile.workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
-    assert execution["domain_authority_ref_index"]["status"] == "source_adapter_emitted"
+    assert execution["domain_authority_ref_index"]["status"] == "opl_state_index_source_adapter_emitted"
     assert execution["domain_authority_ref_index"]["indexed_table"] == "dispatch_receipts"
     assert execution["domain_authority_ref_index"]["sqlite_persisted"] is False
     assert execution["domain_authority_ref_index"]["opl_state_index_kernel_required"] is True

@@ -217,6 +217,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert "workspace_local_watch_service_wrappers" not in by_id
     assert "domain_health_diagnostic_loop_shell" not in by_id
     assert by_id["domain_authority_refs_index"]["code_paths"] == [
+        "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
         "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
         "src/med_autoscience/opl_domain_pack/",
         "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py",

@@ -34,7 +34,7 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof
 )
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
-from med_autoscience.runtime_protocol import domain_authority_refs_index
+from med_autoscience.runtime_protocol import opl_state_index_source_adapter
 from med_autoscience.runtime_protocol import refs_only_state_index_pilot as refs_only_state_index_pilot_module
 
 
@@ -412,7 +412,7 @@ def _apply_restore_proof_compaction(
     archive_refs = _archive_refs_from_compaction(compaction_result)
     if archive_refs:
         indexed_results = [
-            domain_authority_refs_index.record_archive_ref(
+            opl_state_index_source_adapter.emit_archive_ref_source(
                 quest_root=quest_root,
                 archive_ref=archive_ref,
             )

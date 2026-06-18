@@ -188,7 +188,7 @@ def _authority_status(surface: Mapping[str, Any]) -> str:
     if surface_id == "domain_health_diagnostic_obligation_actuator":
         return "consume_only_readback_projection_live_tail_open"
     if surface_id == "domain_authority_refs_index":
-        return "refs_only_source_adapter_live_takeover_tail_open"
+        return "active_callers_migrated_opl_state_index_source_adapter_live_tail_open"
     if disposition.startswith("read_only"):
         return "read_only_projection_no_authority"
     if "projection" in disposition or "refs_only" in disposition:
