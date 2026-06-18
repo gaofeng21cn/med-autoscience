@@ -134,6 +134,42 @@ def build_paper_recovery_state(
 
     typed_blocker = _current_typed_blocker(current_work_unit)
     current_action = _current_executable_owner_action(progress)
+    consumed_terminal_closeout = _matching_provider_admission_terminal_closeout_consumed(
+        progress,
+        obligation=obligation,
+    )
+    if consumed_terminal_closeout is not None:
+        closeout_typed_blocker = _typed_blocker_from_closeout(
+            consumed_terminal_closeout,
+            obligation=obligation,
+        )
+        if closeout_typed_blocker:
+            blocker_reason = _typed_blocker_reason(closeout_typed_blocker)
+            owner = _typed_blocker_recovery_owner(
+                closeout_typed_blocker,
+                current_work_unit=current_work_unit,
+                obligation=obligation,
+                blocker_reason=blocker_reason,
+            )
+            return _state(
+                progress,
+                obligation=obligation,
+                phase=_typed_blocker_phase(closeout_typed_blocker),
+                conditions=[
+                    {
+                        "condition": "accepted_closeout_typed_blocker",
+                        "blocker_type": blocker_reason,
+                    }
+                ],
+                next_safe_action=_typed_blocker_next_action(
+                    closeout_typed_blocker,
+                    blocker_reason=blocker_reason,
+                    owner=owner,
+                ),
+                current_owner=owner,
+                evidence_refs=_closeout_refs(consumed_terminal_closeout),
+                diagnostic_report=diagnostic,
+            )
     owner_receipt = _owner_receipt_recorded_current_work_unit(
         current_work_unit,
         obligation=obligation,
@@ -886,12 +922,7 @@ def _matching_terminal_closeout(
     *,
     obligation: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    for key in (
-        "terminal_closeout_precedence_evidence",
-        "terminal_closeout",
-        "accepted_closeout_evidence",
-    ):
-        value = progress.get(key)
+    for value in _terminal_closeout_candidates(progress):
         if isinstance(value, list):
             for item in value:
                 candidate = _mapping(item)
@@ -902,6 +933,105 @@ def _matching_terminal_closeout(
             if candidate and _closeout_matches_obligation(candidate, obligation=obligation):
                 return dict(candidate)
     return None
+
+
+def _matching_provider_admission_terminal_closeout_consumed(
+    progress: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    candidate = _provider_admission_terminal_closeout_consumed(
+        _mapping(progress.get("opl_current_control_state_handoff"))
+    )
+    if candidate and _closeout_matches_obligation(candidate, obligation=obligation):
+        return dict(candidate)
+    return None
+
+
+def _terminal_closeout_candidates(progress: Mapping[str, Any]) -> tuple[object, ...]:
+    handoff = _mapping(progress.get("opl_current_control_state_handoff"))
+    consumed = _provider_admission_terminal_closeout_consumed(handoff)
+    return (
+        progress.get("terminal_closeout_precedence_evidence"),
+        progress.get("terminal_closeout"),
+        progress.get("accepted_closeout_evidence"),
+        consumed if consumed else None,
+    )
+
+
+def _provider_admission_terminal_closeout_consumed(
+    handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    consumed = _mapping(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        return {}
+    terminal = (
+        _mapping(consumed.get("latest_terminal_stage_log"))
+        or _mapping(handoff.get("latest_terminal_stage_log"))
+        or _mapping(handoff.get("latest_typed_default_executor_closeout"))
+    )
+    paper_stage_log = _mapping(terminal.get("paper_stage_log"))
+    typed_blocker = (
+        _mapping(consumed.get("typed_blocker"))
+        or _mapping(terminal.get("typed_blocker"))
+        or _mapping(handoff.get("typed_blocker"))
+        or _mapping(_mapping(handoff.get("latest_typed_default_executor_closeout")).get("typed_blocker"))
+    )
+    refs = _dedupe(
+        [
+            _text(consumed.get("typed_blocker_ref")),
+            _text(consumed.get("closeout_ref")),
+            _text(terminal.get("typed_blocker_ref")),
+            _text(terminal.get("closeout_ref")),
+            _text(terminal.get("source_path")),
+            _text(typed_blocker.get("typed_blocker_ref")),
+            _text(typed_blocker.get("source_ref")),
+            *_text_items(consumed.get("closeout_refs")),
+            *_text_items(terminal.get("closeout_refs")),
+            *_text_items(typed_blocker.get("closeout_refs")),
+        ]
+    )
+    return {
+        key: value
+        for key, value in {
+            **terminal,
+            **consumed,
+            "typed_blocker": typed_blocker or None,
+            "status": _text(consumed.get("status")) or _text(terminal.get("status")) or "blocked",
+            "outcome": _text(consumed.get("outcome")) or _text(terminal.get("outcome")) or _text(paper_stage_log.get("outcome")),
+            "progress_delta_classification": _text(consumed.get("progress_delta_classification"))
+            or _text(terminal.get("progress_delta_classification"))
+            or _text(paper_stage_log.get("progress_delta_classification")),
+            "blocked_reason": _first_text(
+                consumed.get("blocked_reason"),
+                consumed.get("blocker_type"),
+                typed_blocker.get("blocked_reason"),
+                typed_blocker.get("blocker_type"),
+                typed_blocker.get("reason"),
+                *_text_items(paper_stage_log.get("remaining_blockers")),
+            ),
+            "action_type": _first_text(consumed.get("action_type"), terminal.get("action_type"), typed_blocker.get("action_type")),
+            "work_unit_id": _first_text(consumed.get("work_unit_id"), terminal.get("work_unit_id"), typed_blocker.get("work_unit_id")),
+            "work_unit_fingerprint": _first_text(
+                consumed.get("work_unit_fingerprint"),
+                terminal.get("work_unit_fingerprint"),
+                typed_blocker.get("work_unit_fingerprint"),
+            ),
+            "action_fingerprint": _first_text(
+                consumed.get("action_fingerprint"),
+                terminal.get("action_fingerprint"),
+                typed_blocker.get("action_fingerprint"),
+                consumed.get("work_unit_fingerprint"),
+                terminal.get("work_unit_fingerprint"),
+                typed_blocker.get("work_unit_fingerprint"),
+            ),
+            "stage_attempt_id": _first_text(consumed.get("stage_attempt_id"), terminal.get("stage_attempt_id")),
+            "closeout_refs": refs,
+            "closeout_ref": refs[0] if refs else None,
+            "source": "opl_current_control_state_handoff.provider_admission_terminal_closeout_consumed",
+        }.items()
+        if value not in (None, "", [], {})
+    }
 
 
 def _closeout_matches_obligation(
@@ -942,9 +1072,14 @@ def _closeout_refs(closeout: Mapping[str, Any]) -> list[str]:
     refs = [
         _text(closeout.get("closeout_ref")),
         _text(closeout.get("source_path")),
+        _text(closeout.get("typed_blocker_ref")),
         *_text_items(closeout.get("closeout_refs")),
     ]
-    return list(dict.fromkeys(ref for ref in refs if ref is not None))
+    return _dedupe(refs)
+
+
+def _dedupe(values: list[str | None]) -> list[str]:
+    return list(dict.fromkeys(value for value in values if value is not None))
 
 
 def _suppressed_surfaces_for_owner_gate_decision(progress: Mapping[str, Any]) -> list[str]:

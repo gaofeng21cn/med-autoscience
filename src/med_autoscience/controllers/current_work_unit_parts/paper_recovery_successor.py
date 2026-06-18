@@ -96,6 +96,8 @@ def _action_with_gate_followthrough_currentness_supersedes_terminal_selector_res
     blocker: Mapping[str, Any],
     progress: Mapping[str, Any],
 ) -> bool:
+    if text(blocker.get("terminal_closeout_consumption_source")) == "provider_admission_terminal_closeout_consumed":
+        return False
     if _blocker_reason(blocker) not in TERMINAL_SELECTOR_RESIDUE_BLOCKERS:
         return False
     if not _same_work_unit_identity(blocker, action):

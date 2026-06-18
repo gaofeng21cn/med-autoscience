@@ -92,6 +92,18 @@ def refresh_current_execution_surfaces(
             handoff,
             current_control_executable_action=handoff_executable_action,
         )
+    terminal_typed_blocker = _consumed_terminal_typed_blocker_for_execution_refresh(
+        handoff,
+        payload=updated,
+    )
+    if terminal_typed_blocker:
+        return _with_terminal_typed_blocker_execution_surfaces(
+            payload=updated,
+            status=status,
+            handoff=handoff,
+            runtime_health_snapshot=runtime_health_snapshot,
+            typed_blocker=terminal_typed_blocker,
+        )
     handoff_owner_receipt_work_unit = _canonical_current_control_owner_receipt_work_unit(handoff)
     if handoff_owner_receipt_work_unit:
         successor_action = _paper_recovery_successor_action_for_owner_receipt_handoff(
@@ -157,18 +169,6 @@ def refresh_current_execution_surfaces(
                 },
             )
             return updated
-    terminal_typed_blocker = _consumed_terminal_typed_blocker_for_execution_refresh(
-        handoff,
-        payload=updated,
-    )
-    if terminal_typed_blocker:
-        return _with_terminal_typed_blocker_execution_surfaces(
-            payload=updated,
-            status=status,
-            handoff=handoff,
-            runtime_health_snapshot=runtime_health_snapshot,
-            typed_blocker=terminal_typed_blocker,
-        )
     paper_recovery_successor_action = _paper_recovery_successor_action(payload)
     if paper_recovery_successor_action:
         return _with_paper_recovery_successor_execution_surfaces(
@@ -686,6 +686,10 @@ def _consumed_terminal_typed_blocker_for_execution_refresh(
     typed_blocker = _canonical_typed_blocker_from_handoff(handoff)
     if not typed_blocker:
         return {}
+    typed_blocker = _with_consumed_terminal_closeout_marker(
+        typed_blocker,
+        consumed=consumed,
+    )
     progress = _mapping_copy(payload)
     if progress:
         successor_action = (
@@ -707,6 +711,27 @@ def _consumed_terminal_typed_blocker_for_execution_refresh(
     if not _identity_overlaps_without_conflict(consumed, typed_blocker):
         return {}
     return typed_blocker
+
+
+def _with_consumed_terminal_closeout_marker(
+    typed_blocker: Mapping[str, Any],
+    *,
+    consumed: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in {
+            **typed_blocker,
+            "terminal_closeout_consumption_source": "provider_admission_terminal_closeout_consumed",
+            "typed_blocker_ref": _non_empty_text(typed_blocker.get("typed_blocker_ref"))
+            or _non_empty_text(consumed.get("typed_blocker_ref")),
+            "source_ref": _non_empty_text(typed_blocker.get("source_ref"))
+            or _non_empty_text(consumed.get("typed_blocker_ref")),
+            "stage_attempt_id": _non_empty_text(typed_blocker.get("stage_attempt_id"))
+            or _non_empty_text(consumed.get("stage_attempt_id")),
+        }.items()
+        if value not in (None, "", [], {})
+    }
 
 
 def _identity_overlaps_without_conflict(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
@@ -1093,6 +1118,8 @@ def _paper_recovery_successor_allowed_for_consumed_closeout(
     handoff: Mapping[str, Any],
     payload: Mapping[str, Any],
 ) -> bool:
+    if _handoff_has_consumed_terminal_typed_blocker(handoff):
+        return False
     if paper_recovery_consumed_owner_receipt_successor(recovery):
         return True
     typed_blocker = _canonical_typed_blocker_from_handoff(handoff)
@@ -1103,6 +1130,24 @@ def _paper_recovery_successor_allowed_for_consumed_closeout(
             blocker=typed_blocker,
             progress=payload,
         )
+    )
+
+
+def _handoff_has_consumed_terminal_typed_blocker(handoff: Mapping[str, Any]) -> bool:
+    consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        return False
+    if _non_empty_text(consumed.get("typed_blocker_ref")) is not None:
+        return True
+    if _mapping_copy(consumed.get("typed_blocker")):
+        return True
+    latest = _mapping_copy(handoff.get("latest_typed_default_executor_closeout"))
+    if _non_empty_text(latest.get("status")) == "typed_blocker":
+        return True
+    terminal = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    return (
+        _non_empty_text(terminal.get("route_outcome")) == "typed_blocker"
+        or _non_empty_text(terminal.get("typed_blocker_ref")) is not None
     )
 
 

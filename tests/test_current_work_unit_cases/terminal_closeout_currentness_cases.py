@@ -203,6 +203,131 @@ def test_current_work_unit_does_not_turn_handoff_ready_terminal_log_into_typed_b
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_consumes_opl_terminal_closeout_over_same_identity_successor() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    closeout_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_execution/sat_08da46bea43329723d2fbbea.closeout.json"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_action_ready",
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "provider_admission_allowed": True,
+                    "successor_owner_action": {
+                        "action_type": "run_quality_repair_batch",
+                        "owner": "write",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                    },
+                },
+            },
+            "gate_clearing_batch_followthrough": {
+                "gate_replay_status": "blocked",
+                "latest_record_path": f"studies/{study_id}/artifacts/controller/gate_clearing_batch/latest.json",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "work_unit_currentness": {
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                    "current_publication_work_unit_id": work_unit_id,
+                    "current_work_unit_fingerprint": fingerprint,
+                },
+                "current_publication_work_unit": {"unit_id": work_unit_id, "lane": "write"},
+            },
+            "opl_current_control_state_handoff": {
+                "provider_admission_terminal_closeout_consumed": {
+                    "surface_kind": "provider_admission_terminal_closeout_consumed",
+                    "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
+                    "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "typed_blocker_ref": closeout_ref,
+                    "typed_blocker": {
+                        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                        "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "latest_owner_answer_kind": "typed_blocker",
+                        "latest_owner_answer_ref": f"{closeout_ref}#typed_blocker",
+                    },
+                    "latest_terminal_stage_log": {
+                        "status": "blocked",
+                        "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "typed_blocker_ref": closeout_ref,
+                        "paper_stage_log": {
+                            "outcome": "typed_blocker",
+                            "progress_delta_classification": "typed_blocker",
+                            "remaining_blockers": [
+                                "no_selected_dispatch_for_authorized_stage_packet",
+                            ],
+                        },
+                    },
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "next_owner": "write",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "owner_receipt_required": True,
+            "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            "paper_recovery_successor": {
+                "phase": "owner_action_ready",
+                "source_next_safe_action_kind": "materialize_successor_owner_action",
+                "provider_admission_allowed": True,
+                "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            },
+            "owner_route_currentness_basis": {
+                "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+        next_owner="write",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["source"] == "terminal_closeout_typed_blocker"
+    assert work_unit["state"]["blocker_type"] == "no_selected_dispatch_for_authorized_stage_packet"
+    assert work_unit["state"]["typed_blocker"]["latest_owner_answer_ref"] == closeout_ref
+    assert work_unit["state"]["owner_answer_binding"]["typed_blocker_ref"] == closeout_ref
+
+
 def test_current_executable_owner_action_materializes_successor_over_selector_residue() -> None:
     from med_autoscience.controllers.study_progress_parts.current_executable_owner_action import (
         build_current_executable_owner_action,

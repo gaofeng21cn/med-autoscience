@@ -386,7 +386,7 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
     assert projection["refresh_mode"] == "single_pass_projection_normalization"
 
 
-def test_current_execution_refresh_prefers_handoff_owner_receipt_over_stale_selector_blocker() -> None:
+def test_current_execution_refresh_prefers_consumed_terminal_closeout_over_handoff_owner_receipt() -> None:
     surfaces = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."
         "current_execution_surfaces"
@@ -495,10 +495,25 @@ def test_current_execution_refresh_prefers_handoff_owner_receipt_over_stale_sele
     )
 
     assert result["current_executable_owner_action"] is None
-    assert result["current_work_unit"]["status"] == "owner_receipt_recorded"
-    assert result["current_work_unit"]["state"]["owner_receipt_ref"] == receipt_ref
-    assert result["current_execution_envelope"]["state_kind"] == "owner_receipt_recorded"
-    assert "typed_blocker" not in result["current_execution_envelope"]
+    assert result["current_work_unit"]["status"] == "typed_blocker"
+    assert result["current_work_unit"]["owner"] == "one-person-lab"
+    assert result["current_work_unit"]["action_type"] == "run_quality_repair_batch"
+    assert result["current_work_unit"]["work_unit_id"] == WRITE_WORK_UNIT
+    assert result["current_work_unit"]["work_unit_fingerprint"] == WRITE_FINGERPRINT
+    state = result["current_work_unit"]["state"]
+    assert state["state_kind"] == "typed_blocker"
+    assert state["source"] == "terminal_closeout_typed_blocker"
+    assert state["typed_blocker"]["typed_blocker_ref"] == (
+        "artifacts/supervision/consumer/default_executor_execution/"
+        "sat_08da46bea43329723d2fbbea.closeout.json"
+    )
+    assert state["typed_blocker"]["terminal_closeout_consumption_source"] == (
+        "provider_admission_terminal_closeout_consumed"
+    )
+    assert result["current_execution_envelope"]["state_kind"] == "typed_blocker"
+    assert result["current_execution_envelope"]["typed_blocker"]["blocker_type"] == (
+        "no_selected_dispatch_for_authorized_stage_packet"
+    )
 
 
 def test_paper_recovery_refresh_rebuilds_stale_successor_under_terminal_typed_blocker(
@@ -925,25 +940,20 @@ def test_paper_recovery_refresh_consumes_handoff_terminal_blocker_over_owner_rec
         build_paper_recovery_state=recovery_state.build_paper_recovery_state,
     )
 
-    assert result["current_executable_owner_action"] is not None
-    assert result["current_executable_owner_action"]["source"] == (
-        "paper_recovery_state.next_safe_action.successor_owner_action"
-    )
-    assert result["current_work_unit"]["status"] == "executable_owner_action"
-    assert result["current_work_unit"]["state"]["source"] == (
-        "paper_recovery_state.next_safe_action.successor_owner_action"
-    )
-    assert result["paper_recovery_state"]["phase"] == "owner_action_ready"
+    assert result["current_executable_owner_action"] is None
+    assert result["current_work_unit"]["status"] == "typed_blocker"
+    assert result["current_work_unit"]["owner"] == "one-person-lab"
+    assert result["current_work_unit"]["state"]["source"] == "terminal_closeout_typed_blocker"
+    assert result["current_work_unit"]["state"]["typed_blocker"]["typed_blocker_ref"] == closeout_ref
+    assert result["paper_recovery_state"]["phase"] == "domain_blocked"
     assert result["paper_recovery_state"]["conditions"] == [
         {
-            "condition": "current_owner_action_supersedes_typed_blocker",
+            "condition": "accepted_closeout_typed_blocker",
             "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
         }
     ]
-    assert result["paper_recovery_state"]["next_safe_action"]["kind"] == (
-        "materialize_successor_owner_action"
-    )
-    assert result["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is True
+    assert result["paper_recovery_state"]["next_safe_action"]["kind"] == "resolve_typed_blocker"
+    assert result["paper_recovery_state"]["next_safe_action"]["provider_admission_allowed"] is False
 
 
 def test_current_execution_refresh_keeps_handoff_owner_receipt_over_stale_closeout() -> None:

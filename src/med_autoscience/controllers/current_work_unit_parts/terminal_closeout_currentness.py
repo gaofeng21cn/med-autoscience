@@ -138,6 +138,7 @@ def terminal_closeout_blocker_for_action(
             + ([source_ref] if source_ref is not None else []),
             "terminal_closeout_status": text(terminal.get("status")),
             "terminal_closeout_outcome": text(terminal.get("outcome")) or text(paper_stage_log.get("outcome")),
+            "terminal_closeout_consumption_source": text(terminal.get("terminal_closeout_consumption_source")),
             "progress_delta_classification": text(terminal.get("progress_delta_classification"))
             or text(paper_stage_log.get("progress_delta_classification")),
             **_terminal_gate_replay_fields(terminal, mapping=mapping, text=text, text_items=text_items),
@@ -350,6 +351,7 @@ def _terminal_stage_candidates(
         progress_first.get("latest_terminal_stage"),
         progress_first.get("latest_terminal_stage_log"),
         handoff.get("latest_terminal_stage_log"),
+        _provider_admission_terminal_closeout_consumed(handoff, mapping=mapping),
         progress.get("latest_terminal_stage"),
         progress.get("latest_terminal_stage_log"),
     ):
@@ -357,6 +359,84 @@ def _terminal_stage_candidates(
         if terminal:
             candidates.append(terminal)
     return tuple(candidates)
+
+
+def _provider_admission_terminal_closeout_consumed(
+    handoff: Mapping[str, Any],
+    *,
+    mapping: MappingReader,
+) -> dict[str, Any]:
+    consumed = mapping(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        return {}
+    terminal = (
+        mapping(consumed.get("latest_terminal_stage_log"))
+        or mapping(handoff.get("latest_terminal_stage_log"))
+        or mapping(handoff.get("latest_typed_default_executor_closeout"))
+    )
+    typed_blocker = (
+        mapping(consumed.get("typed_blocker"))
+        or mapping(terminal.get("typed_blocker"))
+        or mapping(handoff.get("typed_blocker"))
+        or mapping(mapping(handoff.get("latest_typed_default_executor_closeout")).get("typed_blocker"))
+    )
+    return {
+        key: value
+        for key, value in {
+            **terminal,
+            **consumed,
+            "typed_blocker": typed_blocker or None,
+            "status": consumed.get("status") or terminal.get("status") or "blocked",
+            "outcome": consumed.get("outcome") or terminal.get("outcome"),
+            "progress_delta_classification": consumed.get("progress_delta_classification")
+            or terminal.get("progress_delta_classification"),
+            "paper_stage_log": mapping(consumed.get("paper_stage_log")) or mapping(terminal.get("paper_stage_log")) or None,
+            "blocked_reason": consumed.get("blocked_reason")
+            or consumed.get("blocker_type")
+            or typed_blocker.get("blocked_reason")
+            or typed_blocker.get("blocker_type")
+            or typed_blocker.get("reason")
+            or _first_terminal_remaining_blocker(terminal, mapping=mapping),
+            "action_type": consumed.get("action_type") or terminal.get("action_type") or typed_blocker.get("action_type"),
+            "work_unit_id": consumed.get("work_unit_id") or terminal.get("work_unit_id") or typed_blocker.get("work_unit_id"),
+            "work_unit_fingerprint": consumed.get("work_unit_fingerprint")
+            or terminal.get("work_unit_fingerprint")
+            or typed_blocker.get("work_unit_fingerprint"),
+            "action_fingerprint": consumed.get("action_fingerprint")
+            or terminal.get("action_fingerprint")
+            or typed_blocker.get("action_fingerprint")
+            or consumed.get("work_unit_fingerprint")
+            or terminal.get("work_unit_fingerprint")
+            or typed_blocker.get("work_unit_fingerprint"),
+            "typed_blocker_ref": consumed.get("typed_blocker_ref") or terminal.get("typed_blocker_ref"),
+            "closeout_refs": consumed.get("closeout_refs") or terminal.get("closeout_refs"),
+            "source_path": consumed.get("source_path") or terminal.get("source_path") or consumed.get("typed_blocker_ref"),
+            "source": "opl_current_control_state_handoff.provider_admission_terminal_closeout_consumed",
+            "terminal_closeout_consumption_source": "provider_admission_terminal_closeout_consumed",
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _first_terminal_remaining_blocker(
+    terminal: Mapping[str, Any],
+    *,
+    mapping: MappingReader,
+) -> object:
+    paper_stage_log = mapping(terminal.get("paper_stage_log"))
+    def local_text(value: object) -> str | None:
+        if value is None:
+            return None
+        rendered = str(value).strip()
+        return rendered or None
+
+    for value in (
+        *_terminal_remaining_blockers(terminal, text=local_text),
+        *_terminal_remaining_blockers(paper_stage_log, text=local_text),
+    ):
+        if value:
+            return value
+    return None
 
 
 def _terminal_stage_blocks_action(

@@ -823,6 +823,8 @@ def _paper_recovery_successor_supersedes_terminal_closeout_blocker(
     blocker: Mapping[str, Any],
     progress: Mapping[str, Any],
 ) -> bool:
+    if _text(blocker.get("terminal_closeout_consumption_source")) == "provider_admission_terminal_closeout_consumed":
+        return False
     if not _paper_recovery_owner_action_ready_successor_consumes_receipt(action, progress=progress):
         return False
     if not _same_action_identity(blocker, action):

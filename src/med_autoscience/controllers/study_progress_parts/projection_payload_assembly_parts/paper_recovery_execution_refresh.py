@@ -36,6 +36,7 @@ def normalize_paper_recovery_execution_projection(
     updated = _with_recovery_supervisor_decision(dict(payload))
     updated["paper_recovery_state"] = _build_recovery_state_unless_successor_current(
         updated,
+        handoff=handoff,
         build_paper_recovery_state=build_paper_recovery_state,
         build_current_executable_owner_action=build_current_executable_owner_action,
     )
@@ -53,6 +54,7 @@ def normalize_paper_recovery_execution_projection(
     )
     refreshed["paper_recovery_state"] = _build_recovery_state_unless_successor_current(
         refreshed,
+        handoff=handoff,
         build_paper_recovery_state=build_paper_recovery_state,
         build_current_executable_owner_action=build_current_executable_owner_action,
     )
@@ -71,6 +73,7 @@ def normalize_paper_recovery_execution_projection(
     )
     refreshed["paper_recovery_state"] = _build_recovery_state_unless_successor_current(
         refreshed,
+        handoff=handoff,
         build_paper_recovery_state=build_paper_recovery_state,
         build_current_executable_owner_action=build_current_executable_owner_action,
     )
@@ -85,6 +88,7 @@ def normalize_paper_recovery_execution_projection(
     refreshed = sync_progress_first_owner_action_admission(refreshed)
     refreshed["paper_recovery_state"] = _build_recovery_state_unless_successor_current(
         refreshed,
+        handoff=handoff,
         build_paper_recovery_state=build_paper_recovery_state,
         build_current_executable_owner_action=build_current_executable_owner_action,
     )
@@ -113,6 +117,7 @@ def normalize_paper_recovery_execution_projection(
     refreshed = sync_progress_first_owner_action_admission(refreshed)
     refreshed["paper_recovery_state"] = _build_recovery_state_unless_successor_current(
         refreshed,
+        handoff=handoff,
         build_paper_recovery_state=build_paper_recovery_state,
         build_current_executable_owner_action=build_current_executable_owner_action,
     )
@@ -140,6 +145,7 @@ def normalize_paper_recovery_execution_projection(
         refreshed = sync_progress_first_owner_action_admission(refreshed)
         refreshed["paper_recovery_state"] = _build_recovery_state_unless_successor_current(
             refreshed,
+            handoff=handoff,
             build_paper_recovery_state=build_paper_recovery_state,
             build_current_executable_owner_action=build_current_executable_owner_action,
         )
@@ -257,27 +263,44 @@ def _without_stale_provider_supervisor_block(payload: dict[str, Any]) -> dict[st
 def _build_recovery_state_unless_successor_current(
     payload: Mapping[str, Any],
     *,
+    handoff: Mapping[str, Any],
     build_paper_recovery_state: Callable[[Mapping[str, Any]], dict[str, Any]],
     build_current_executable_owner_action: Callable[[Mapping[str, Any]], dict[str, Any] | None],
 ) -> dict[str, Any]:
-    recovery = _mapping_copy(payload.get("paper_recovery_state"))
-    current_action = build_current_executable_owner_action(payload)
+    recovery_payload = _payload_with_handoff(payload, handoff=handoff)
+    recovery = _mapping_copy(recovery_payload.get("paper_recovery_state"))
+    current_action = build_current_executable_owner_action(recovery_payload)
     if _recovery_successor_supersedes_terminal_selector_residue(
-        payload,
+        recovery_payload,
         recovery=recovery,
         current_action=current_action,
     ):
-        return build_paper_recovery_state(_payload_with_terminal_selector_residue_blocker(payload))
+        return build_paper_recovery_state(
+            _payload_with_terminal_selector_residue_blocker(recovery_payload)
+        )
     if (
         _paper_recovery_successor_state_current(recovery)
         and _action_source(current_action) in {None, "paper_recovery_state.next_safe_action.successor_owner_action"}
         and not _terminal_typed_blocker_supersedes_recovery_successor(
-            payload,
+            recovery_payload,
             recovery=recovery,
         )
     ):
         return recovery
-    return build_paper_recovery_state(payload)
+    return build_paper_recovery_state(recovery_payload)
+
+
+def _payload_with_handoff(
+    payload: Mapping[str, Any],
+    *,
+    handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not handoff:
+        return dict(payload)
+    return {
+        **dict(payload),
+        "opl_current_control_state_handoff": dict(handoff),
+    }
 
 
 def _action_source(action: Mapping[str, Any] | None) -> str | None:

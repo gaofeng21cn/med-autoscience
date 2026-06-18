@@ -240,6 +240,125 @@ def test_terminal_selector_residue_yields_successor_over_stale_progress_first_ow
     _assert_readback_required_supervisor_projection(state)
 
 
+def test_opl_consumed_terminal_closeout_blocks_same_identity_successor_revival() -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    closeout_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_execution/sat_08da46bea43329723d2fbbea.closeout.json"
+    )
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": _typed_blocker_work_unit(
+                study_id=study_id,
+                owner="one-person-lab",
+                action_type="run_quality_repair_batch",
+                work_unit_id=work_unit_id,
+                blocker_type="no_selected_dispatch_for_authorized_stage_packet",
+            )
+            | {
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "next_owner": "write",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "owner_receipt_required": True,
+                "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+                "paper_recovery_successor": {
+                    "phase": "owner_action_ready",
+                    "source_next_safe_action_kind": "materialize_successor_owner_action",
+                },
+            },
+            "gate_clearing_batch_followthrough": {
+                "gate_replay_status": "blocked",
+                "latest_record_path": f"studies/{study_id}/artifacts/controller/gate_clearing_batch/latest.json",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "work_unit_currentness": {
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                    "current_publication_work_unit_id": work_unit_id,
+                    "current_work_unit_fingerprint": fingerprint,
+                },
+                "current_publication_work_unit": {"unit_id": work_unit_id, "lane": "write"},
+            },
+            "opl_current_control_state_handoff": {
+                "provider_admission_terminal_closeout_consumed": {
+                    "surface_kind": "provider_admission_terminal_closeout_consumed",
+                    "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
+                    "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "typed_blocker_ref": closeout_ref,
+                    "typed_blocker": {
+                        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                        "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "latest_owner_answer_kind": "typed_blocker",
+                        "latest_owner_answer_ref": f"{closeout_ref}#typed_blocker",
+                    },
+                    "latest_terminal_stage_log": {
+                        "status": "blocked",
+                        "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "typed_blocker_ref": closeout_ref,
+                        "paper_stage_log": {
+                            "outcome": "typed_blocker",
+                            "progress_delta_classification": "typed_blocker",
+                            "remaining_blockers": [
+                                "no_selected_dispatch_for_authorized_stage_packet",
+                            ],
+                            "next_forced_delta": {
+                                "required_delta_kind": "typed_blocker_consumption_or_owner_route_selector_reconcile",
+                                "work_unit_id": work_unit_id,
+                                "owner_action": {
+                                    "next_owner": "one-person-lab",
+                                    "action_type": "run_quality_repair_batch",
+                                    "work_unit_id": work_unit_id,
+                                },
+                            },
+                        },
+                    },
+                }
+            },
+        }
+    )
+
+    assert state["phase"] == "domain_blocked"
+    assert state["conditions"] == [
+        {
+            "condition": "accepted_closeout_typed_blocker",
+            "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+        }
+    ]
+    assert state["current_authority"]["owner"] == "one-person-lab"
+    assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["evidence_refs"] == [closeout_ref]
+
+
 def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
     fingerprint = "publication-blockers::497d1260db522f01"
     state = _module().build_paper_recovery_state(

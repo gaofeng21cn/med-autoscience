@@ -25,3 +25,4 @@ from .current_executable_owner_action_cases.publication_handoff_precedence impor
 from .current_executable_owner_action_cases.ai_reviewer_recheck_routes import *  # noqa: F403,F401,E402
 from .current_executable_owner_action_cases.dm003_owner_receipt_running_handoff import *  # noqa: F403,F401,E402
 from .current_executable_owner_action_cases.non_advancing_terminal_closeout import *  # noqa: F403,F401,E402
+from .current_executable_owner_action_cases.terminal_closeout_readback_consumption import *  # noqa: F403,F401,E402
