@@ -137,28 +137,23 @@ def _stage_route_arbiter_decisions(
                 decisions.append(
                     _arbiter_decision(
                         candidate,
-                        decision="pending_provider_admission",
-                        effect="retain_provider_admission_pending",
-                        evidence={},
+                        decision="opl_transition_readback_required",
+                        effect="suppress_provider_admission_pending",
+                        evidence=_opl_transition_readback_required_evidence(
+                            candidate,
+                            weak_identity=weak_identity,
+                        ),
                     )
                 )
                 continue
             decisions.append(
                 _arbiter_decision(
                     candidate,
-                    decision=(
-                        "opl_transition_readback_required"
-                        if candidate_opl_transition_readback(candidate)
-                        else "weak_provider_admission_identity"
-                    ),
+                    decision="opl_transition_readback_required",
                     effect="suppress_provider_admission_pending",
-                    evidence=(
-                        _opl_transition_readback_required_evidence(
-                            candidate,
-                            weak_identity=weak_identity,
-                        )
-                        if candidate_opl_transition_readback(candidate)
-                        else weak_identity
+                    evidence=_opl_transition_readback_required_evidence(
+                        candidate,
+                        weak_identity=weak_identity,
                     ),
                 )
             )
@@ -185,9 +180,9 @@ def _stage_route_arbiter_decisions(
                 decisions.append(
                     _arbiter_decision(
                         candidate,
-                        decision="pending_provider_admission",
-                        effect="retain_provider_admission_pending",
-                        evidence={},
+                        decision="opl_transition_readback_required",
+                        effect="suppress_provider_admission_pending",
+                        evidence=readback_required,
                     )
                 )
                 continue
@@ -863,6 +858,13 @@ def _paper_recovery_state_blocks_provider_admission(
         supervisor_decision=supervisor_decision,
     ):
         return {}
+    if _request_only_transition_request_candidate(
+        identity
+    ) and _request_only_transition_matches_recovery_successor(
+        identity,
+        recovery=recovery,
+    ):
+        return {}
     if _non_empty_text(recovery.get("phase")) == "admission_pending" and (
         next_safe_action.get("provider_admission_requires_opl_runtime_result") is False
         or _non_empty_text(next_safe_action.get("kind")) == "admit_provider_attempt"
@@ -889,6 +891,20 @@ def _paper_recovery_state_blocks_provider_admission(
         }.items()
         if value not in (None, "", [], {})
     }
+
+
+def _request_only_transition_matches_recovery_successor(
+    identity: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(recovery.get("phase")) != "owner_action_ready":
+        return False
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if _non_empty_text(next_safe_action.get("kind")) != "materialize_successor_owner_action":
+        return False
+    successor = _mapping(next_safe_action.get("successor_owner_action"))
+    return bool(successor and _identity_matches(successor, identity=identity))
 
 
 def _provider_admission_candidate_materializes_recovery_action(

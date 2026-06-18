@@ -77,12 +77,12 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
             "developer_supervisor_same_tick": {
                 "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
-                    "owner_callable_adapters": [
+                    "domain_progress_transition_requests": [
                         {
                             "study_id": study_id,
                             "quest_id": study_id,
                             "action_type": "return_to_ai_reviewer_workflow",
-                            "dispatch_status": "ready",
+                            "dispatch_status": "transition_request_pending",
                             "dispatch_authority": "ai_reviewer_record_production_handoff",
                             "dispatch_path": str(dispatch_path),
                             "stage_packet_ref": str(dispatch_path),
@@ -125,12 +125,16 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
         ]
         is False
     )
-    assert candidate["stage_packet_ref"] == str(dispatch_path)
-    assert candidate["stage_packet_refs"] == [str(dispatch_path)]
+    expected_stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+    )
+    assert candidate["stage_packet_ref"] == expected_stage_packet_ref
+    assert candidate["stage_packet_refs"] == [expected_stage_packet_ref]
     assert action["route_identity_key"] == expected_identity
     assert action["attempt_idempotency_key"] == expected_identity
-    assert action["stage_packet_ref"] == str(dispatch_path)
-    assert action["stage_packet_refs"] == [str(dispatch_path)]
+    assert action["stage_packet_ref"] == expected_stage_packet_ref
+    assert action["stage_packet_refs"] == [expected_stage_packet_ref]
 
 
 def test_same_tick_materialized_report_candidate_carries_opl_transition_request(
@@ -184,9 +188,9 @@ def test_same_tick_materialized_report_candidate_carries_opl_transition_request(
                 "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
                     "generated_at": "2026-06-16T02:58:00+00:00",
-                    "owner_callable_adapters": [
+                    "domain_progress_transition_requests": [
                         {
-                            "dispatch_status": "ready",
+                            "dispatch_status": "transition_request_pending",
                             "study_id": study_id,
                             "quest_id": study_id,
                             "action_type": "run_quality_repair_batch",
@@ -320,12 +324,12 @@ def test_same_tick_materialized_dispatch_without_stage_packet_fails_closed(
             "developer_supervisor_same_tick": {
                 "stop_reason": "provider_handoff_written_transition_request_pending",
                 "materialize": {
-                    "owner_callable_adapters": [
+                    "domain_progress_transition_requests": [
                         {
                             "study_id": study_id,
                             "quest_id": study_id,
                             "action_type": "return_to_ai_reviewer_workflow",
-                            "dispatch_status": "ready",
+                            "dispatch_status": "transition_request_pending",
                             "dispatch_authority": "ai_reviewer_record_production_handoff",
                             "dispatch_path": str(dispatch_path),
                             "next_executable_owner": "ai_reviewer",
@@ -425,14 +429,14 @@ def test_same_tick_owner_route_apply_refreshes_report_currentness_before_provide
             "iterations": [],
             "materialize": {
                 "surface": "domain_action_request_materializer",
-                "owner_callable_adapter_count": 1,
-                "ready_owner_callable_adapter_count": 1,
-                "owner_callable_adapters": [
+                "domain_progress_transition_request_count": 1,
+                "transition_request_pending_domain_progress_transition_request_count": 1,
+                "domain_progress_transition_requests": [
                     {
                         "study_id": study_id,
                         "quest_id": study_id,
                         "action_type": "run_gate_clearing_batch",
-                        "dispatch_status": "ready",
+                        "dispatch_status": "transition_request_pending",
                         "dispatch_authority": "consumer_default_executor_dispatch",
                         "dispatch_path": str(dispatch_path),
                         "next_executable_owner": "gate_clearing_batch",
@@ -527,13 +531,17 @@ def test_same_tick_owner_route_apply_refreshes_report_currentness_before_provide
     expected_identity = f"provider-admission::{study_id}::{action_fingerprint}"
     assert candidate["route_identity_key"] == expected_identity
     assert candidate["attempt_idempotency_key"] == expected_identity
-    assert candidate["stage_packet_ref"] == str(dispatch_path)
-    assert candidate["stage_packet_refs"] == [str(dispatch_path)]
+    expected_stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/"
+        "default_executor_dispatches/run_gate_clearing_batch.json"
+    )
+    assert candidate["stage_packet_ref"] == expected_stage_packet_ref
+    assert candidate["stage_packet_refs"] == [expected_stage_packet_ref]
     action = result["provider_admission_current_control_state"]["action_queue"][0]
     assert action["route_identity_key"] == expected_identity
     assert action["attempt_idempotency_key"] == expected_identity
-    assert action["stage_packet_ref"] == str(dispatch_path)
-    assert action["stage_packet_refs"] == [str(dispatch_path)]
+    assert action["stage_packet_ref"] == expected_stage_packet_ref
+    assert action["stage_packet_refs"] == [expected_stage_packet_ref]
     assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 0
     assert result["provider_admission_current_control_state"]["transition_request_pending_count"] == 1
     assert result["action_fingerprints"] == [action_fingerprint]
@@ -629,14 +637,14 @@ def test_same_tick_recovery_successor_dispatch_survives_stale_opl_authorization_
             "iterations": [],
             "materialize": {
                 "surface": "domain_action_request_materializer",
-                "owner_callable_adapter_count": 1,
-                "ready_owner_callable_adapter_count": 1,
-                "owner_callable_adapters": [
+                "domain_progress_transition_request_count": 1,
+                "transition_request_pending_domain_progress_transition_request_count": 1,
+                "domain_progress_transition_requests": [
                     {
                         "study_id": study_id,
                         "quest_id": study_id,
                         "action_type": "run_quality_repair_batch",
-                        "dispatch_status": "ready",
+                        "dispatch_status": "transition_request_pending",
                         "dispatch_authority": "consumer_default_executor_dispatch",
                         "dispatch_path": str(dispatch_path),
                         "next_executable_owner": "write",

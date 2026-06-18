@@ -100,6 +100,7 @@ def materialize_provider_admission_current_control_state(
         _arbiter_candidate_key(decision)
         for decision in arbiter_decisions
         if _non_empty_text(decision.get("decision")) == "opl_transition_readback_required"
+        and _arbiter_decision_retains_transition_request(decision)
     }
     unresolved_keys = {_candidate_key(candidate) for candidate in unresolved_candidates}
     retained_pending_candidates = [
@@ -278,6 +279,12 @@ def _candidate_with_transition_request_pending_state(candidate: Mapping[str, Any
     payload["status"] = "transition_request_pending"
     payload["dispatch_status"] = "transition_request_pending"
     return payload
+
+
+def _arbiter_decision_retains_transition_request(decision: Mapping[str, Any]) -> bool:
+    evidence = _mapping(decision.get("evidence"))
+    weak_identity = _mapping(evidence.get("weak_provider_admission_identity"))
+    return not weak_identity
 
 
 def _payload_with_consumed_closeout_typed_blockers(payload: dict[str, Any]) -> dict[str, Any]:

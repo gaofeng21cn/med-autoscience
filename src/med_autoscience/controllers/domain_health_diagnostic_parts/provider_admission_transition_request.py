@@ -141,6 +141,7 @@ def _transition_request_bound_to_provider_readback(
     readback_idempotency_key = _non_empty_text(identity.get("idempotency_key"))
     if readback_idempotency_key is not None:
         request["idempotency_key"] = readback_idempotency_key
+        request["request_idempotency_key"] = readback_idempotency_key
     if aggregate_identity:
         request["aggregate_identity"] = {
             **_mapping(request.get("aggregate_identity")),
@@ -170,6 +171,14 @@ def _transition_request_bound_to_provider_readback(
         request["source_generation"] = source_generation
     if expected_version is not None:
         request["expected_version"] = expected_version
+    route_identity_key = _non_empty_text(stage_run_identity.get("route_identity_key"))
+    attempt_idempotency_key = _non_empty_text(
+        stage_run_identity.get("attempt_idempotency_key")
+    )
+    if route_identity_key is not None:
+        request["route_identity_key"] = route_identity_key
+    if attempt_idempotency_key is not None:
+        request["attempt_idempotency_key"] = attempt_idempotency_key
     return request
 
 

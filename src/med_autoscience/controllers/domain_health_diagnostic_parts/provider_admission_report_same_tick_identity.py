@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
@@ -27,6 +28,15 @@ def same_tick_candidate_with_stage_run_identity(candidate: Mapping[str, Any]) ->
     stage_packet_refs = same_tick_text_items(payload.get("stage_packet_refs"))
     if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
         stage_packet_refs.append(stage_packet_ref)
+    stage_packet_ref = _same_tick_workspace_relative_ref(stage_packet_ref, study_id=study_id)
+    stage_packet_refs = [
+        ref
+        for ref in (
+            _same_tick_workspace_relative_ref(item, study_id=study_id)
+            for item in stage_packet_refs
+        )
+        if ref is not None
+    ]
     for key, value in {
         "dispatch_ref": dispatch_ref,
         "stage_packet_ref": stage_packet_ref,
@@ -37,8 +47,8 @@ def same_tick_candidate_with_stage_run_identity(candidate: Mapping[str, Any]) ->
         if value is not None:
             payload[key] = value
     if stage_packet_refs:
-        payload["stage_packet_refs"] = stage_packet_refs
-        payload.setdefault("checkpoint_refs", list(stage_packet_refs))
+        payload["stage_packet_refs"] = list(dict.fromkeys(stage_packet_refs))
+        payload.setdefault("checkpoint_refs", list(payload["stage_packet_refs"]))
     source_refs = dict(_mapping(payload.get("source_refs")))
     for key, value in {
         "dispatch_ref": dispatch_ref,
@@ -49,7 +59,7 @@ def same_tick_candidate_with_stage_run_identity(candidate: Mapping[str, Any]) ->
         if value is not None:
             source_refs[key] = value
     if stage_packet_refs:
-        source_refs["stage_packet_refs"] = stage_packet_refs
+        source_refs["stage_packet_refs"] = list(dict.fromkeys(stage_packet_refs))
     if source_refs:
         payload["source_refs"] = source_refs
     return payload
@@ -69,6 +79,23 @@ def same_tick_text_items(value: object) -> list[str]:
     return result
 
 
+def _same_tick_workspace_relative_ref(value: str | None, *, study_id: str | None) -> str | None:
+    text = _non_empty_text(value)
+    if text is None or study_id is None:
+        return text
+    path = Path(text)
+    if not path.is_absolute():
+        return text
+    parts = path.parts
+    try:
+        studies_index = parts.index("studies")
+    except ValueError:
+        return text
+    if len(parts) <= studies_index + 1 or parts[studies_index + 1] != study_id:
+        return text
+    return Path(*parts[studies_index:]).as_posix()
+
+
 def same_tick_progress_current_actions(
     progress_currentness: Mapping[str, Any] | None,
 ) -> dict[str, dict[str, Any]]:
@@ -77,10 +104,11 @@ def same_tick_progress_current_actions(
         normalized_study_id = _non_empty_text(study_id)
         if normalized_study_id is None:
             continue
-        current = _mapping(_mapping(payload).get("current_executable_owner_action"))
-        if not current:
+        progress_payload = _mapping(payload)
+        current = _mapping(progress_payload.get("current_executable_owner_action"))
+        current_work_unit = _mapping(progress_payload.get("current_work_unit"))
+        if not current and not current_work_unit:
             continue
-        current_work_unit = _mapping(_mapping(payload).get("current_work_unit"))
         current_work_unit_basis = _mapping(current_work_unit.get("currentness_basis"))
         next_action = _mapping(current.get("next_action"))
         repair_precedence = _mapping(current.get("repair_progress_precedence"))
@@ -90,11 +118,19 @@ def same_tick_progress_current_actions(
             {
                 "source_eval_id": current.get("source_eval_id"),
                 "source_fingerprint": current.get("source_fingerprint"),
-                "work_unit_id": current.get("work_unit_id") or next_action.get("action_id"),
+                "work_unit_id": (
+                    current.get("work_unit_id")
+                    or current_work_unit.get("work_unit_id")
+                    or next_action.get("action_id")
+                ),
                 "work_unit_fingerprint": current.get("work_unit_fingerprint")
-                or current.get("action_fingerprint"),
+                or current.get("action_fingerprint")
+                or current_work_unit.get("work_unit_fingerprint")
+                or current_work_unit.get("action_fingerprint"),
                 "action_fingerprint": current.get("action_fingerprint")
-                or current.get("work_unit_fingerprint"),
+                or current.get("work_unit_fingerprint")
+                or current_work_unit.get("action_fingerprint")
+                or current_work_unit.get("work_unit_fingerprint"),
             },
             current_work_unit_basis,
         )
@@ -114,30 +150,30 @@ def same_tick_progress_current_actions(
         projected_action = _study_current_action_for_provider_admission(
             {
                 "study_id": normalized_study_id,
-                "quest_id": _non_empty_text(_mapping(payload).get("quest_id")) or normalized_study_id,
-                "current_executable_owner_action": dict(current),
+                "quest_id": _non_empty_text(progress_payload.get("quest_id")) or normalized_study_id,
+                **({"current_executable_owner_action": dict(current)} if current else {}),
                 **(
-                    {"current_work_unit": dict(_mapping(_mapping(payload).get("current_work_unit")))}
-                    if _mapping(_mapping(payload).get("current_work_unit"))
+                    {"current_work_unit": dict(current_work_unit)}
+                    if current_work_unit
                     else {}
                 ),
                 **(
-                    {"domain_transition": dict(_mapping(_mapping(payload).get("domain_transition")))}
-                    if _mapping(_mapping(payload).get("domain_transition"))
+                    {"domain_transition": dict(_mapping(progress_payload.get("domain_transition")))}
+                    if _mapping(progress_payload.get("domain_transition"))
                     else {}
                 ),
                 **(
                     {
                         "progress_first_monitoring_summary": dict(
-                            _mapping(_mapping(payload).get("progress_first_monitoring_summary"))
+                            _mapping(progress_payload.get("progress_first_monitoring_summary"))
                         )
                     }
-                    if _mapping(_mapping(payload).get("progress_first_monitoring_summary"))
+                    if _mapping(progress_payload.get("progress_first_monitoring_summary"))
                     else {}
                 ),
                 **(
-                    {"intervention_lane": dict(_mapping(_mapping(payload).get("intervention_lane")))}
-                    if _mapping(_mapping(payload).get("intervention_lane"))
+                    {"intervention_lane": dict(_mapping(progress_payload.get("intervention_lane")))}
+                    if _mapping(progress_payload.get("intervention_lane"))
                     else {}
                 ),
             }
@@ -151,25 +187,30 @@ def same_tick_progress_current_actions(
                     ]
                 )
             )
+        action_type = (
+            _non_empty_text(current.get("action_type"))
+            or _non_empty_text(current_work_unit.get("action_type"))
+        )
+        work_unit_id = (
+            _non_empty_text(current.get("work_unit_id"))
+            or _non_empty_text(current_work_unit.get("work_unit_id"))
+            or _non_empty_text(next_action.get("action_id"))
+        )
         current_actions[normalized_study_id] = {
-            "action_type": _non_empty_text(current.get("action_type")),
+            "action_type": action_type,
             "action_ids": list(
                 dict.fromkeys(
                     [
                         *allowed_actions,
-                        *same_tick_text_items([current.get("action_type"), next_action.get("action_id")]),
+                        *same_tick_text_items([action_type, next_action.get("action_id")]),
                     ]
                 )
             ),
-            "work_unit_id": _non_empty_text(current.get("work_unit_id"))
-            or _non_empty_text(next_action.get("action_id")),
+            "work_unit_id": work_unit_id,
             "currentness_basis": current_action_basis or None,
             "explicit_fingerprints": _same_tick_current_action_fingerprints(
                 current=current,
-                work_unit_id=(
-                    _non_empty_text(current.get("work_unit_id"))
-                    or _non_empty_text(next_action.get("action_id"))
-                ),
+                work_unit_id=work_unit_id,
                 existing_fingerprints=explicit_fingerprints,
             ),
             "source_ref": _non_empty_text(current.get("source_ref"))

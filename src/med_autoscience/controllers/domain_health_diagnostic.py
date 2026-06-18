@@ -81,6 +81,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.developer_superv
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
     current_control_provider_admission_candidates,
     persisted_provider_admission_candidates,
+    provider_admission_candidates_from_execution_payload,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report import (
     materialize_report_provider_admission_current_control_state as _materialize_report_provider_admission_current_control_state_impl,
@@ -128,6 +129,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actua
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.scopes import (
     parse_diagnostic_scope,
+)
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+    LEGACY_EXECUTION_REF,
 )
 from med_autoscience.controllers.study_progress_parts.runtime_efficiency import (
     _latest_run_telemetry_surface,
@@ -287,6 +291,25 @@ def _current_control_provider_admission_candidates(
     )
 
 
+def _legacy_execution_provider_admission_candidates(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    execution_path = Path(study_root).expanduser().resolve() / LEGACY_EXECUTION_REF
+    try:
+        payload = json.loads(execution_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return []
+    if not isinstance(payload, Mapping):
+        return []
+    return provider_admission_candidates_from_execution_payload(
+        payload,
+        execution_ref=str(LEGACY_EXECUTION_REF),
+        status_payload=status_payload,
+    )
+
+
 def _progress_projection_for_diagnostic(**kwargs: Any) -> dict[str, Any]:
     payload_kwargs = dict(kwargs)
     payload_kwargs["sync_runtime_summary"] = False
@@ -325,6 +348,11 @@ def _request_opl_stage_attempt(
                 study_root=Path(study_root),
                 status_payload=candidate_status_payload,
             )
+        if not provider_admission_candidates:
+            provider_admission_candidates = _legacy_execution_provider_admission_candidates(
+                study_root=Path(study_root),
+                status_payload=candidate_status_payload,
+            )
     else:
         provider_admission_candidates = persisted_provider_admission_candidates(
             study_root=Path(study_root),
@@ -334,6 +362,16 @@ def _request_opl_stage_attempt(
             provider_admission_candidates = _current_control_provider_admission_candidates(
                 profile=profile,
                 study_root=study_root,
+                status_payload=candidate_status_payload,
+            )
+        if not provider_admission_candidates:
+            provider_admission_candidates = _legacy_execution_provider_admission_candidates(
+                study_root=Path(study_root),
+                status_payload=status_payload,
+            )
+        if not provider_admission_candidates and candidate_status_payload != status_payload:
+            provider_admission_candidates = _legacy_execution_provider_admission_candidates(
+                study_root=Path(study_root),
                 status_payload=candidate_status_payload,
             )
     if provider_admission_candidates:

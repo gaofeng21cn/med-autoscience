@@ -752,7 +752,9 @@ def _managed_study_action_with_provider_admission_state(
         result,
         paper_recovery_state=recovery,
     )
-    if supervisor_gate.get("blocked") is True:
+    if supervisor_gate.get("blocked") is True and not _candidates_have_provider_admission_readback(
+        candidates
+    ):
         supervisor_decision = _mapping(supervisor_gate.get("supervisor_decision"))
         result["running_provider_attempt"] = False
         result["provider_admission_state"] = {
@@ -785,6 +787,12 @@ def _managed_study_action_with_provider_admission_state(
         },
     )
     return result
+
+
+def _candidates_have_provider_admission_readback(
+    candidates: list[dict[str, Any]],
+) -> bool:
+    return any(provider_admission_opl_transition_readback(candidate) for candidate in candidates)
 
 
 def _provider_admission_candidates_by_study(
