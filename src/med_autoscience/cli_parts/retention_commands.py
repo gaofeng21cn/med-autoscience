@@ -71,10 +71,16 @@ def handle_retention_command(
         return 0
 
     if args.command == "runtime-lifecycle-payload-retention":
+        opl_maintenance_authorization = _read_optional_json_object(
+            args.opl_maintenance_authorization,
+            label="--opl-maintenance-authorization",
+            parser=parser,
+        )
         if bool(args.repair_stale_sidecars):
             result = runtime_lifecycle_payload_retention.repair_runtime_lifecycle_sqlite_sidecars(
                 db_path=Path(args.db),
                 apply=bool(args.apply),
+                opl_maintenance_authorization=opl_maintenance_authorization,
             )
         else:
             if not args.cold_store_root:
@@ -87,6 +93,7 @@ def handle_retention_command(
                 max_rows=args.max_rows,
                 compact=bool(args.compact),
                 retire_cold_payloads=bool(args.retire_cold_payloads),
+                opl_maintenance_authorization=opl_maintenance_authorization,
             )
         _print_json(result)
         return 0
@@ -139,6 +146,19 @@ def handle_retention_command(
 
 def _print_json(payload: Any) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def _read_optional_json_object(path_text: object, *, label: str, parser: Any) -> dict[str, Any] | None:
+    if not path_text:
+        return None
+    path = Path(str(path_text)).expanduser()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        parser.error(f"{label} must point to a readable JSON object: {exc}")
+    if not isinstance(payload, dict):
+        parser.error(f"{label} must point to a JSON object")
+    return payload
 
 
 __all__ = ["handle_retention_command"]

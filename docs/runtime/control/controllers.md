@@ -54,6 +54,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `src/med_autoscience/controllers/study_runtime_resolution.py`
 - `src/med_autoscience/controllers/study_runtime_execution_parts/`
 - `src/med_autoscience/controllers/runtime_storage_maintenance.py`
+- `src/med_autoscience/controllers/runtime_lifecycle_payload_retention.py`
 - `src/med_autoscience/controllers/owner_route_handoff.py`
 - `src/med_autoscience/controllers/delivery_inspector.py`
 - `src/med_autoscience/controllers/submission_inspection_export.py`
@@ -81,6 +82,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `tests/test_study_runtime_execution_control_intent_cases/`
 - `tests/test_study_runtime_execution_evidence_adoption_cases/`
 - `tests/test_runtime_storage_maintenance.py`
+- `tests/test_runtime_lifecycle_payload_retention.py`
 - `tests/test_cli_cases/owner_route_handoff_command.py`
 - `tests/test_delivery_inspector.py`
 - `tests/test_delivery_visibility.py`
@@ -96,6 +98,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 当前源码形态是：
 
 - functional / structural gates 已按 standard OPL Agent source shape 关闭，controller 代码按 domain handler target、authority function、owner receipt / typed blocker producer 或 refs-only projection input 读取。
+- `runtime_lifecycle_payload_retention` 只保留为 OPL-authorized maintenance callable adapter：dry-run 可生成 body-free retention/sidecar 计划，apply 必须消费 `opl_runtime_lifecycle_maintenance_authorization` proof，并绑定 operation、maintenance surface、DB path、authorized outcome 和 authorization ref；缺 proof 时返回 `opl_runtime_lifecycle_maintenance_authorization_required` typed blocker 形状，不打开 SQLite mutation、DB compact 或 WAL/SHM 删除路径。
 - `study_runtime_execution.py`、`study_runtime_transport.py` 和旧 router transport helper 只能作为 retired provenance / migration input / tombstone 语境出现；当前测试约束它们不得重新变成 importable MAS 私有 runtime 控制面。
 - former wrapper / private runtime surface 的物理删除只在 replacement parity、MAS owner receipt 或 stable typed blocker、no-active-caller proof、no-forbidden-write proof、focused tests 与 tombstone/provenance proof 同时成立时执行，不把未授权删除门写回 active functional / structural gap。
 - `contracts/functional_privatization_audit.json#/retirement_disposition_matrix` 是 controller / wrapper / projection 退役分类读根；`contracts/private_functional_surface_policy.json#/mas_private_surface_retirement_gate_policy` 是新增或保留 private surface 的 admission gate；`contracts/runtime/mas-runtime-surface-retirement-inventory.json` 是 materializer / dispatch / runtime-like retained surface 的 runtime-facing 退役门读根。controller retained path 必须落到 OPL primitive、temporary refs projection、retained minimal authority function 或 tombstone-only；active caller、operator UI、docs reference 或测试绿不能单独保留 MAS-private runtime-like 面。Progress Portal / Workbench 中的 `next_system_action` 和 operator intent 只能作为 read-only owner-delta summary / inert refs projection，不得成为 controller action、provider admission、worker attempt、next-action authority、runtime command、endpoint 或 operator action transport；真正 action transport 只能由 OPL Workbench Shell / current-control readback 面持有。

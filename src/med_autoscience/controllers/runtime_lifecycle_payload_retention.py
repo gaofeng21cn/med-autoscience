@@ -21,6 +21,9 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof
 
 SURFACE_KIND = "runtime_lifecycle_payload_retention"
 SCHEMA_VERSION = 1
+OPL_MAINTENANCE_AUTHORIZATION_SURFACE_KIND = "opl_runtime_lifecycle_maintenance_authorization"
+_AUTHORIZATION_PROOF_SURFACE_KIND = "opl_runtime_lifecycle_maintenance_authorization_proof"
+_AUTHORIZATION_BLOCKER_STATUS = "blocked_opl_runtime_lifecycle_maintenance_authorization_required"
 _TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ"
 _RETIRED_COLD_PAYLOAD_SURFACE_KIND = "runtime_lifecycle_payload_semantic_retention_ref"
 _RETENTION_REF_SURFACE_KIND = "runtime_lifecycle_payload_retention_ref"
@@ -40,11 +43,19 @@ def run_runtime_lifecycle_payload_retention(
     max_rows: int | None = None,
     compact: bool = False,
     retire_cold_payloads: bool = False,
+    opl_maintenance_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_db_path = Path(db_path).expanduser().resolve()
     recorded_at = _utc_now()
     threshold_bytes = max(0, int(min_mb)) * 1024 * 1024
     cold_root = _cold_store_root(db_path=resolved_db_path, cold_store_root=cold_store_root)
+    authorization_proof, authorization_blocker = _opl_maintenance_authorization_result(
+        apply=apply,
+        authorization=opl_maintenance_authorization,
+        db_path=resolved_db_path,
+        operation="payload_retention",
+        maintenance_surface=SURFACE_KIND,
+    )
     candidates: list[dict[str, Any]] = []
     blockers: list[dict[str, Any]] = []
     moved_count = 0
@@ -53,6 +64,30 @@ def run_runtime_lifecycle_payload_retention(
     retired_cold_payload_count = 0
     retired_cold_payload_release_bytes = 0
     actual_release_bytes = 0
+
+    if authorization_blocker is not None:
+        receipt = _receipt(
+            db_path=resolved_db_path,
+            recorded_at=recorded_at,
+            apply=apply,
+            compact=compact,
+            threshold_bytes=threshold_bytes,
+            max_rows=max_rows,
+            cold_root=cold_root,
+            candidates=[],
+            blockers=[authorization_blocker],
+            moved_count=0,
+            deduped_count=0,
+            cold_payload_candidates=[],
+            retired_cold_payload_count=0,
+            retired_cold_payload_release_bytes=0,
+            actual_release_bytes=0,
+            compact_result=None,
+            retire_cold_payloads=retire_cold_payloads,
+            opl_maintenance_authorization=authorization_proof,
+        )
+        _write_receipt(db_path=resolved_db_path, receipt=receipt, recorded_at=recorded_at)
+        return receipt
 
     if not resolved_db_path.is_file():
         receipt = _receipt(
@@ -73,6 +108,7 @@ def run_runtime_lifecycle_payload_retention(
             actual_release_bytes=0,
             compact_result=None,
             retire_cold_payloads=retire_cold_payloads,
+            opl_maintenance_authorization=authorization_proof,
         )
         _write_receipt(db_path=resolved_db_path, receipt=receipt, recorded_at=recorded_at)
         return receipt
@@ -183,6 +219,7 @@ def run_runtime_lifecycle_payload_retention(
         compact_result=compact_result,
         status=status,
         retire_cold_payloads=retire_cold_payloads,
+        opl_maintenance_authorization=authorization_proof,
     )
     _write_receipt(db_path=resolved_db_path, receipt=receipt, recorded_at=recorded_at)
     return receipt
@@ -192,9 +229,32 @@ def repair_runtime_lifecycle_sqlite_sidecars(
     *,
     db_path: Path,
     apply: bool,
+    opl_maintenance_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_db_path = Path(db_path).expanduser().resolve()
     recorded_at = _utc_now()
+    authorization_proof, authorization_blocker = _opl_maintenance_authorization_result(
+        apply=apply,
+        authorization=opl_maintenance_authorization,
+        db_path=resolved_db_path,
+        operation="sqlite_sidecar_repair",
+        maintenance_surface="runtime_lifecycle_sqlite_sidecar_repair",
+    )
+    if authorization_blocker is not None:
+        receipt = _sidecar_repair_receipt(
+            db_path=resolved_db_path,
+            recorded_at=recorded_at,
+            apply=apply,
+            immutable_integrity=None,
+            normal_integrity_before=None,
+            normal_integrity_after=None,
+            sidecars=[],
+            blockers=[authorization_blocker],
+            opl_maintenance_authorization=authorization_proof,
+        )
+        _write_receipt(db_path=resolved_db_path, receipt=receipt, recorded_at=recorded_at)
+        return receipt
+
     if not resolved_db_path.is_file():
         receipt = _sidecar_repair_receipt(
             db_path=resolved_db_path,
@@ -211,6 +271,7 @@ def repair_runtime_lifecycle_sqlite_sidecars(
                     "db_path": str(resolved_db_path),
                 }
             ],
+            opl_maintenance_authorization=authorization_proof,
         )
         _write_receipt(db_path=resolved_db_path, receipt=receipt, recorded_at=recorded_at)
         return receipt
@@ -257,6 +318,7 @@ def repair_runtime_lifecycle_sqlite_sidecars(
         sidecars=sidecars,
         blockers=blockers,
         status=status,
+        opl_maintenance_authorization=authorization_proof,
     )
     _write_receipt(db_path=resolved_db_path, receipt=receipt, recorded_at=recorded_at)
     return receipt
@@ -608,6 +670,93 @@ def _sync_externalized_payload_ref(
     )
 
 
+def _opl_maintenance_authorization_result(
+    *,
+    apply: bool,
+    authorization: Mapping[str, Any] | None,
+    db_path: Path,
+    operation: str,
+    maintenance_surface: str,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    base = {
+        "surface_kind": _AUTHORIZATION_PROOF_SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "status": "not_required_for_dry_run" if not apply else "missing",
+        "required_for_apply": bool(apply),
+        "generic_maintenance_owner": "one-person-lab",
+        "mas_role": "maintenance_callable_adapter",
+        "operation": operation,
+        "maintenance_surface": maintenance_surface,
+        "db_path": str(db_path),
+        "can_create_opl_command": False,
+        "can_create_opl_event": False,
+        "can_create_opl_outbox": False,
+        "can_claim_runtime_currentness": False,
+    }
+    if not apply:
+        return base, None
+    if not isinstance(authorization, Mapping):
+        return base, _authorization_blocker(base, reason="missing_authorization")
+    proof = dict(base)
+    proof["authorization"] = _authorization_projection(authorization)
+    if authorization.get("surface_kind") != OPL_MAINTENANCE_AUTHORIZATION_SURFACE_KIND:
+        proof["status"] = "invalid"
+        return proof, _authorization_blocker(proof, reason="invalid_surface_kind")
+    if str(authorization.get("operation") or "") != operation:
+        proof["status"] = "invalid"
+        return proof, _authorization_blocker(proof, reason="operation_mismatch")
+    authorized_surface = str(authorization.get("maintenance_surface") or "")
+    if authorized_surface != maintenance_surface:
+        proof["status"] = "invalid"
+        return proof, _authorization_blocker(proof, reason="maintenance_surface_mismatch")
+    authorized_db_path = str(authorization.get("db_path") or "").strip()
+    if Path(authorized_db_path).expanduser().resolve() != db_path:
+        proof["status"] = "invalid"
+        return proof, _authorization_blocker(proof, reason="db_path_mismatch")
+    outcome = str(authorization.get("outcome") or "").strip()
+    if outcome != "authorized":
+        proof["status"] = "invalid"
+        return proof, _authorization_blocker(proof, reason="outcome_not_authorized")
+    if not _non_empty_text(authorization.get("authorization_ref")):
+        proof["status"] = "invalid"
+        return proof, _authorization_blocker(proof, reason="missing_authorization_ref")
+    proof["status"] = "authorized"
+    proof["authorization_ref"] = str(authorization.get("authorization_ref"))
+    proof["outcome"] = outcome
+    return proof, None
+
+
+def _authorization_projection(authorization: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "surface_kind": authorization.get("surface_kind"),
+        "operation": authorization.get("operation"),
+        "maintenance_surface": authorization.get("maintenance_surface"),
+        "db_path": authorization.get("db_path"),
+        "outcome": authorization.get("outcome"),
+        "authorization_ref": authorization.get("authorization_ref"),
+        "owner": authorization.get("owner"),
+        "stage_run_id": authorization.get("stage_run_id"),
+        "event_ref": authorization.get("event_ref"),
+        "outbox_ref": authorization.get("outbox_ref"),
+    }
+
+
+def _authorization_blocker(proof: Mapping[str, Any], *, reason: str) -> dict[str, Any]:
+    return {
+        "status": _AUTHORIZATION_BLOCKER_STATUS,
+        "reason": reason,
+        "typed_blocker": "opl_runtime_lifecycle_maintenance_authorization_required",
+        "stable_blocker": True,
+        "owner": "one-person-lab",
+        "mas_role": "maintenance_callable_adapter",
+        "opl_maintenance_authorization": dict(proof),
+    }
+
+
+def _non_empty_text(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
 def _externalized_payload_capsule(
     *,
     db_path: Path,
@@ -699,6 +848,7 @@ def _receipt(
     compact_result: dict[str, Any] | None,
     retire_cold_payloads: bool = False,
     status: str | None = None,
+    opl_maintenance_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "surface_kind": SURFACE_KIND,
@@ -734,7 +884,11 @@ def _receipt(
         "actual_release_bytes": actual_release_bytes + retired_cold_payload_release_bytes,
         "compact": compact_result,
         "body_included": False,
+        "retained_mas_role": "maintenance_callable_adapter",
+        "generic_maintenance_owner": "one-person-lab",
+        "opl_maintenance_authorization": dict(opl_maintenance_authorization or {}),
         "mutation_policy": {
+            "requires_opl_maintenance_authorization_for_apply": True,
             "externalizes_large_derived_payload_columns": bool(apply),
             "retires_externalized_runtime_lifecycle_payload_body": bool(apply and retire_cold_payloads),
             "keeps_route_and_summary_columns_inline": True,
@@ -761,6 +915,7 @@ def _sidecar_repair_receipt(
     sidecars: list[dict[str, Any]],
     blockers: list[dict[str, Any]],
     status: str | None = None,
+    opl_maintenance_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "surface_kind": "runtime_lifecycle_sqlite_sidecar_repair",
@@ -786,7 +941,11 @@ def _sidecar_repair_receipt(
         "normal_integrity_check_before": dict(normal_integrity_before or {}),
         "normal_integrity_check_after": dict(normal_integrity_after or {}),
         "body_included": False,
+        "retained_mas_role": "maintenance_callable_adapter",
+        "generic_maintenance_owner": "one-person-lab",
+        "opl_maintenance_authorization": dict(opl_maintenance_authorization or {}),
         "mutation_policy": {
+            "requires_opl_maintenance_authorization_for_apply": True,
             "deletes_domain_truth": False,
             "deletes_payload_body": False,
             "requires_immutable_integrity_ok_before_sidecar_removal": True,

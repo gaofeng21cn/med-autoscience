@@ -343,6 +343,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_lifecycle_payload_retention_parser.add_argument("--compact", action="store_true")
     runtime_lifecycle_payload_retention_parser.add_argument("--retire-cold-payloads", action="store_true")
     runtime_lifecycle_payload_retention_parser.add_argument("--repair-stale-sidecars", action="store_true")
+    runtime_lifecycle_payload_retention_parser.add_argument("--opl-maintenance-authorization")
     runtime_lifecycle_payload_retention_mode = runtime_lifecycle_payload_retention_parser.add_mutually_exclusive_group(
         required=True
     )

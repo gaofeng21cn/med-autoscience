@@ -34,6 +34,7 @@ def test_runtime_lifecycle_payload_retention_externalizes_large_payload_columns(
         cold_store_root=tmp_path / "cold-store",
         min_mb=0,
         compact=True,
+        opl_maintenance_authorization=_opl_authorization(db_path),
     )
 
     assert applied["status"] == "applied"
@@ -68,6 +69,7 @@ def test_runtime_lifecycle_payload_retention_retires_externalized_cold_payloads(
         cold_store_root=cold_store,
         min_mb=0,
         compact=False,
+        opl_maintenance_authorization=_opl_authorization(db_path),
     )
     assert externalized["moved_count"] + externalized["deduped_count"] == 4
 
@@ -78,6 +80,7 @@ def test_runtime_lifecycle_payload_retention_retires_externalized_cold_payloads(
         min_mb=0,
         compact=True,
         retire_cold_payloads=True,
+        opl_maintenance_authorization=_opl_authorization(db_path),
     )
 
     assert retired["status"] == "applied"
@@ -113,6 +116,7 @@ def test_runtime_lifecycle_payload_retention_compacts_without_new_payload_candid
         cold_store_root=tmp_path / "cold-store",
         min_mb=16,
         compact=True,
+        opl_maintenance_authorization=_opl_authorization(db_path),
     )
 
     assert compacted["status"] == "compacted"
@@ -138,6 +142,7 @@ def test_runtime_lifecycle_payload_retention_reports_only_below_threshold_refs_a
         min_mb=0,
         compact=False,
         max_rows=1,
+        opl_maintenance_authorization=_opl_authorization(db_path),
     )
 
     result = module.run_runtime_lifecycle_payload_retention(
@@ -165,6 +170,7 @@ def test_runtime_lifecycle_payload_retention_missing_db_receipt_keeps_payload_fi
         min_mb=16,
         compact=True,
         retire_cold_payloads=True,
+        opl_maintenance_authorization=_opl_authorization(tmp_path / "missing.sqlite"),
     )
 
     assert result["status"] == "blocked"
@@ -190,6 +196,7 @@ def test_runtime_lifecycle_payload_retention_blocks_cold_payload_outside_cold_ro
         min_mb=0,
         compact=False,
         max_rows=1,
+        opl_maintenance_authorization=_opl_authorization(db_path),
     )
     object_path = Path(externalized["candidate_samples"][0]["cold_object_path"])
     before_sha = hashlib.sha256(object_path.read_bytes()).hexdigest()
@@ -201,6 +208,7 @@ def test_runtime_lifecycle_payload_retention_blocks_cold_payload_outside_cold_ro
         min_mb=0,
         compact=False,
         retire_cold_payloads=True,
+        opl_maintenance_authorization=_opl_authorization(db_path),
     )
 
     assert blocked["status"] == "blocked"
@@ -223,6 +231,7 @@ def test_runtime_lifecycle_payload_retention_compact_removes_stale_sqlite_sideca
         min_mb=0,
         compact=True,
         max_rows=1,
+        opl_maintenance_authorization=_opl_authorization(db_path),
     )
 
     assert applied["status"] == "applied"
@@ -245,7 +254,11 @@ def test_runtime_lifecycle_sqlite_sidecar_repair_blocks_live_readable_sidecars(t
     _create_runtime_lifecycle_fixture(db_path=db_path, payload_json=payload_json, payload_sha=payload_sha)
     _write_sqlite_sidecars(db_path)
 
-    applied = module.repair_runtime_lifecycle_sqlite_sidecars(db_path=db_path, apply=True)
+    applied = module.repair_runtime_lifecycle_sqlite_sidecars(
+        db_path=db_path,
+        apply=True,
+        opl_maintenance_authorization=_opl_authorization(db_path, operation="sqlite_sidecar_repair"),
+    )
 
     assert applied["status"] == "blocked"
     assert applied["blockers"][0]["status"] == "blocked_live_sqlite_sidecars_may_hold_checkpoint_data"
@@ -278,13 +291,61 @@ def test_runtime_lifecycle_sqlite_sidecar_repair_removes_stale_sidecars_after_im
     assert Path(f"{db_path}-wal").exists()
     assert planned["immutable_integrity_check"]["status"] == "ok"
 
-    applied = module.repair_runtime_lifecycle_sqlite_sidecars(db_path=db_path, apply=True)
+    applied = module.repair_runtime_lifecycle_sqlite_sidecars(
+        db_path=db_path,
+        apply=True,
+        opl_maintenance_authorization=_opl_authorization(db_path, operation="sqlite_sidecar_repair"),
+    )
 
     assert applied["status"] == "applied"
     assert {item["status"] for item in applied["sidecars"]} == {"removed_stale_sqlite_sidecar"}
     assert not Path(f"{db_path}-wal").exists()
     assert not Path(f"{db_path}-shm").exists()
     assert applied["normal_integrity_check_after"]["status"] == "ok"
+
+
+def test_runtime_lifecycle_payload_retention_apply_requires_opl_authorization(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_lifecycle_payload_retention")
+    db_path = tmp_path / "runtime_lifecycle.sqlite"
+    payload_json = json.dumps({"payload": "x" * 4096}, sort_keys=True)
+    payload_sha = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+    _create_runtime_lifecycle_fixture(db_path=db_path, payload_json=payload_json, payload_sha=payload_sha)
+
+    result = module.run_runtime_lifecycle_payload_retention(
+        db_path=db_path,
+        apply=True,
+        cold_store_root=tmp_path / "cold-store",
+        min_mb=0,
+        compact=True,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["candidate_count"] == 0
+    assert result["blocker_samples"][0]["status"] == "blocked_opl_runtime_lifecycle_maintenance_authorization_required"
+    assert result["blocker_samples"][0]["typed_blocker"] == "opl_runtime_lifecycle_maintenance_authorization_required"
+    assert result["opl_maintenance_authorization"]["status"] == "missing"
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("SELECT payload_json FROM report_index").fetchone()[0] == payload_json
+    assert not (tmp_path / "cold-store").exists()
+
+
+def test_runtime_lifecycle_sqlite_sidecar_repair_apply_requires_opl_authorization(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_lifecycle_payload_retention")
+    db_path = tmp_path / "runtime_lifecycle.sqlite"
+    payload_json = json.dumps({"payload": "x" * 4096}, sort_keys=True)
+    payload_sha = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+    _create_runtime_lifecycle_fixture(db_path=db_path, payload_json=payload_json, payload_sha=payload_sha)
+    Path(f"{db_path}-wal").write_bytes(b"stale wal")
+    Path(f"{db_path}-shm").write_bytes(b"stale shm")
+
+    result = module.repair_runtime_lifecycle_sqlite_sidecars(db_path=db_path, apply=True)
+
+    assert result["status"] == "blocked"
+    assert result["sidecar_count"] == 0
+    assert result["blockers"][0]["status"] == "blocked_opl_runtime_lifecycle_maintenance_authorization_required"
+    assert result["opl_maintenance_authorization"]["status"] == "missing"
+    assert Path(f"{db_path}-wal").read_bytes() == b"stale wal"
+    assert Path(f"{db_path}-shm").read_bytes() == b"stale shm"
 
 
 def test_runtime_lifecycle_payload_retention_cli_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -300,6 +361,7 @@ def test_runtime_lifecycle_payload_retention_cli_dispatches_controller(monkeypat
         max_rows: int | None,
         compact: bool,
         retire_cold_payloads: bool,
+        opl_maintenance_authorization: dict[str, object] | None,
     ) -> dict[str, object]:
         called["db_path"] = db_path
         called["apply"] = apply
@@ -308,12 +370,18 @@ def test_runtime_lifecycle_payload_retention_cli_dispatches_controller(monkeypat
         called["max_rows"] = max_rows
         called["compact"] = compact
         called["retire_cold_payloads"] = retire_cold_payloads
+        called["opl_maintenance_authorization"] = opl_maintenance_authorization
         return {"surface_kind": "runtime_lifecycle_payload_retention", "status": "applied"}
 
     monkeypatch.setattr(
         cli.runtime_lifecycle_payload_retention,
         "run_runtime_lifecycle_payload_retention",
         fake_run_runtime_lifecycle_payload_retention,
+    )
+    authorization_path = tmp_path / "opl-maintenance-authorization.json"
+    authorization_path.write_text(
+        json.dumps(_opl_authorization(tmp_path / "runtime_lifecycle.sqlite"), ensure_ascii=False),
+        encoding="utf-8",
     )
 
     exit_code = cli.main(
@@ -330,6 +398,8 @@ def test_runtime_lifecycle_payload_retention_cli_dispatches_controller(monkeypat
             "5",
             "--compact",
             "--retire-cold-payloads",
+            "--opl-maintenance-authorization",
+            str(authorization_path),
         ]
     )
 
@@ -342,6 +412,7 @@ def test_runtime_lifecycle_payload_retention_cli_dispatches_controller(monkeypat
         "max_rows": 5,
         "compact": True,
         "retire_cold_payloads": True,
+        "opl_maintenance_authorization": _opl_authorization(tmp_path / "runtime_lifecycle.sqlite"),
     }
     assert json.loads(capsys.readouterr().out)["status"] == "applied"
 
@@ -354,15 +425,25 @@ def test_runtime_lifecycle_payload_retention_cli_repairs_stale_sidecars(monkeypa
         *,
         db_path: Path,
         apply: bool,
+        opl_maintenance_authorization: dict[str, object] | None,
     ) -> dict[str, object]:
         called["db_path"] = db_path
         called["apply"] = apply
+        called["opl_maintenance_authorization"] = opl_maintenance_authorization
         return {"surface_kind": "runtime_lifecycle_sqlite_sidecar_repair", "status": "applied"}
 
     monkeypatch.setattr(
         cli.runtime_lifecycle_payload_retention,
         "repair_runtime_lifecycle_sqlite_sidecars",
         fake_repair_runtime_lifecycle_sqlite_sidecars,
+    )
+    authorization_path = tmp_path / "opl-maintenance-authorization.json"
+    authorization_path.write_text(
+        json.dumps(
+            _opl_authorization(tmp_path / "runtime_lifecycle.sqlite", operation="sqlite_sidecar_repair"),
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
     )
 
     exit_code = cli.main(
@@ -372,6 +453,8 @@ def test_runtime_lifecycle_payload_retention_cli_repairs_stale_sidecars(monkeypa
             str(tmp_path / "runtime_lifecycle.sqlite"),
             "--repair-stale-sidecars",
             "--apply",
+            "--opl-maintenance-authorization",
+            str(authorization_path),
         ]
     )
 
@@ -379,6 +462,10 @@ def test_runtime_lifecycle_payload_retention_cli_repairs_stale_sidecars(monkeypa
     assert called == {
         "db_path": tmp_path / "runtime_lifecycle.sqlite",
         "apply": True,
+        "opl_maintenance_authorization": _opl_authorization(
+            tmp_path / "runtime_lifecycle.sqlite",
+            operation="sqlite_sidecar_repair",
+        ),
     }
     assert json.loads(capsys.readouterr().out)["status"] == "applied"
 
@@ -399,6 +486,7 @@ def test_runtime_lifecycle_payload_retention_namespaces_cold_store_by_workspace_
         min_mb=0,
         compact=False,
         max_rows=1,
+        opl_maintenance_authorization=_opl_authorization(root_db),
     )
     quest_result = module.run_runtime_lifecycle_payload_retention(
         db_path=quest_db,
@@ -407,6 +495,7 @@ def test_runtime_lifecycle_payload_retention_namespaces_cold_store_by_workspace_
         min_mb=0,
         compact=False,
         max_rows=1,
+        opl_maintenance_authorization=_opl_authorization(quest_db),
     )
 
     assert "/cold-store/DM-CVD/" in root_result["candidate_samples"][0]["cold_object_path"]
@@ -520,3 +609,17 @@ def _write_sqlite_sidecars(db_path: Path) -> None:
         conn.commit()
         assert Path(f"{db_path}-wal").exists()
         assert Path(f"{db_path}-shm").exists()
+
+
+def _opl_authorization(db_path: Path, *, operation: str = "payload_retention") -> dict[str, object]:
+    return {
+        "surface_kind": "opl_runtime_lifecycle_maintenance_authorization",
+        "operation": operation,
+        "maintenance_surface": "runtime_lifecycle_sqlite_sidecar_repair"
+        if operation == "sqlite_sidecar_repair"
+        else "runtime_lifecycle_payload_retention",
+        "db_path": str(db_path.expanduser().resolve()),
+        "outcome": "authorized",
+        "authorization_ref": f"opl://runtime-lifecycle-maintenance/{operation}/fixture",
+        "owner": "one-person-lab",
+    }

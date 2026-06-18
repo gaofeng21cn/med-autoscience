@@ -847,6 +847,74 @@
         "tests/test_progress_portal.py",
         "tests/test_progress_portal_workbench_boundary.py"
       ]
+    },
+    {
+      "surface_id": "runtime_lifecycle_payload_retention",
+      "active_caller_migrated": false,
+      "compatibility_alias_allowed": false,
+      "generic_runtime_owner": "one-person-lab",
+      "mas_owner_claim_allowed": false,
+      "current_disposition": "opl_authorized_maintenance_callable_adapter_live_takeover_tail_open",
+      "retained_mas_role": "maintenance_callable_adapter_and_body_free_receipt_projection",
+      "replacement_surface": "OPL runtime lifecycle cleanup / retention policy plus OPL maintenance authorization readback",
+      "authority_boundary": {
+        "can_create_opl_command": false,
+        "can_create_opl_event": false,
+        "can_create_opl_outbox": false,
+        "can_create_opl_stage_run": false,
+        "can_claim_runtime_currentness": false,
+        "can_authorize_generic_cleanup_policy": false,
+        "can_authorize_artifact_mutation": false,
+        "can_authorize_publication_ready": false,
+        "can_write_domain_truth": false,
+        "can_write_publication_eval": false,
+        "can_write_controller_decision": false,
+        "stores_body": false,
+        "mutates_derived_runtime_lifecycle_payload_only_when_opl_authorized": true
+      },
+      "apply_gate": {
+        "required_authorization_surface": "opl_runtime_lifecycle_maintenance_authorization",
+        "proof_surface": "opl_runtime_lifecycle_maintenance_authorization_proof",
+        "required_for_apply": true,
+        "dry_run_requires_authorization": false,
+        "must_bind": [
+          "operation",
+          "maintenance_surface",
+          "db_path",
+          "outcome",
+          "authorization_ref"
+        ],
+        "missing_or_invalid_authorization_status": "blocked_opl_runtime_lifecycle_maintenance_authorization_required",
+        "typed_blocker": "opl_runtime_lifecycle_maintenance_authorization_required",
+        "applies_to_operations": [
+          "payload_retention",
+          "sqlite_sidecar_repair"
+        ]
+      },
+      "forbidden_claims": [
+        "mas_owned_generic_runtime",
+        "mas_owned_generic_runtime_lifecycle_cleanup_policy",
+        "mas_owned_generic_persistence_engine",
+        "mas_owned_sqlite_sidecar_owner",
+        "mas_owned_queue",
+        "mas_owned_attempt_ledger",
+        "runtime_storage_apply_as_runtime_ready",
+        "runtime_storage_apply_as_paper_progress",
+        "provider_completion_as_domain_ready"
+      ],
+      "retirement_gate": {
+        "replacement_parity_required": true,
+        "live_opl_cleanup_policy_takeover_required": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "tombstone_or_provenance_required": true,
+        "completion_claim_requires_live_owner_or_opl_readback": true
+      },
+      "verified_by": [
+        "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_payload_retention_apply_requires_opl_authorization",
+        "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_sqlite_sidecar_repair_apply_requires_opl_authorization",
+        "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_payload_retention_externalizes_large_payload_columns",
+        "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_sqlite_sidecar_repair_removes_stale_sidecars_after_immutable_integrity_ok"
+      ]
     }
   ],
   "version": "mas-runtime-surface-retirement-inventory.v1"
