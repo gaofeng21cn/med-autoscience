@@ -322,6 +322,91 @@ def test_readback_required_projection_accepts_same_identity_opl_runtime_readback
     assert blocked["reason"] == "opl_supervisor_decision_readback_required"
 
 
+def test_materialize_recovery_action_gate_requires_bound_opl_readback() -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    supervisor_decision = {
+        "decision": "materialize_recovery_action",
+        "paper_autonomy_obligation": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+        },
+        "next_safe_action": {
+            "kind": "materialize_recovery_work_unit_or_receipt",
+            "source_next_safe_action": {
+                "kind": "admit_provider_attempt",
+                "provider_admission_requires_opl_runtime_result": False,
+            },
+        },
+    }
+    recovery = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "admission_pending",
+        "study_id": study_id,
+        "current_authority": {
+            "owner": "write",
+            "obligation": dict(supervisor_decision["paper_autonomy_obligation"]),
+        },
+        "next_safe_action": {
+            "kind": "admit_provider_attempt",
+            "provider_admission_requires_opl_runtime_result": False,
+        },
+        "supervisor_decision": dict(supervisor_decision),
+    }
+    request_only_payload = {
+        "study_id": study_id,
+        "provider_admission_candidates": [
+            {
+                "study_id": study_id,
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "provider_admission_pending": False,
+                "provider_admission_requires_opl_runtime_result": True,
+                "opl_transition_readback_source": "opl_domain_progress_transition_runtime_live_readback",
+            }
+        ],
+    }
+    readback_payload = {
+        "study_id": study_id,
+        "provider_admission_candidates": [
+            {
+                "study_id": study_id,
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "opl_transition_readback_source": "opl_domain_progress_transition_runtime_live_readback",
+                "opl_domain_progress_transition_result": opl_transition_readback(
+                    study_id,
+                    action_fingerprint=fingerprint,
+                    work_unit_id=work_unit_id,
+                ),
+            }
+        ],
+    }
+
+    blocked = provider_admission_supervisor_gate(
+        request_only_payload,
+        paper_recovery_state=recovery,
+    )
+    allowed = provider_admission_supervisor_gate(
+        readback_payload,
+        paper_recovery_state=recovery,
+    )
+
+    assert blocked["blocked"] is True
+    assert blocked["reason"] == "paper_autonomy_supervisor_decision_blocks_provider_admission"
+    assert allowed == {
+        "blocked": False,
+        "admission_allowed": True,
+        "supervisor_decision": supervisor_decision,
+    }
+
+
 def test_admission_pending_without_identity_bound_provider_admission_materializes_recovery_not_idle() -> None:
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",

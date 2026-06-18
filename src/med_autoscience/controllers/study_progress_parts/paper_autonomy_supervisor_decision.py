@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
-    has_opl_transition_readback as _has_opl_transition_readback,
+    provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
 )
 
 
@@ -157,27 +157,12 @@ def _supervisor_decision_allows_provider_admission_materialization(
 ) -> bool:
     if _text(supervisor_decision.get("decision")) != "materialize_recovery_action":
         return False
-    recovery = _mapping(paper_recovery_state) or _mapping(payload.get("paper_recovery_state"))
     if _payload_has_bound_opl_transition_readback(
         payload,
         supervisor_decision=supervisor_decision,
     ):
         return True
-    if _payload_has_opl_transition_readback(payload):
-        return _text(recovery.get("phase")) == "admission_pending"
-    next_safe_action = _mapping(recovery.get("next_safe_action"))
-    if next_safe_action.get("provider_admission_requires_opl_runtime_result") is not False:
-        return False
-    phase = _text(recovery.get("phase"))
-    if phase != "admission_pending":
-        return False
-    action_kind = _text(next_safe_action.get("kind"))
-    return action_kind in {
-        "materialize_mas_transition_request_or_owner_callable",
-        "materialize_successor_owner_action",
-        "admit_provider_attempt",
-        "admit_identity_bound_stage_packet",
-    }
+    return False
 
 
 def _payload_has_bound_opl_transition_readback(
@@ -224,7 +209,7 @@ def _candidate_has_matching_opl_readback(
 ) -> bool:
     if _text(candidate.get("opl_transition_readback_source")) != _OPL_TRANSITION_READBACK_SOURCE:
         return False
-    if not _has_opl_transition_readback(candidate):
+    if not _provider_admission_opl_transition_readback(candidate):
         return False
     result = _mapping(candidate.get("opl_domain_progress_transition_result"))
     identity = _mapping(result.get("identity"))
@@ -281,15 +266,6 @@ def _candidate_identity_fields_do_not_conflict(
             if value is not None and value != expected_fingerprint:
                 return False
     return True
-
-
-def _payload_has_opl_transition_readback(payload: Mapping[str, Any]) -> bool:
-    return any(
-        _has_opl_transition_readback(item)
-        for field in ("provider_admission_candidates", "transition_request_candidates")
-        for item in payload.get(field) or []
-        if isinstance(item, Mapping)
-    )
 
 
 def supervisor_block_projection(gate: Mapping[str, Any]) -> dict[str, Any]:
