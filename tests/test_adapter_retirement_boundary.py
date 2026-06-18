@@ -191,12 +191,17 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "legacy_current_default_executor_dispatches_preview_api" in current_default_preview["forbidden_claims"]
 
     owner_callable_projection = surfaces["domain_action_request_materializer_owner_callable_adapter_projection"]
-    assert owner_callable_projection["current_disposition"] == "legacy_diagnostic_projection"
+    assert owner_callable_projection["active_caller_migrated"] is True
+    assert (
+        owner_callable_projection["current_disposition"]
+        == "direct_readback_migrated_legacy_diagnostic_projection_only"
+    )
     assert owner_callable_projection["retained_mas_role"] == "migration_diagnostic_projection_only"
     assert owner_callable_projection["canonical_surface"] == "domain_progress_transition_requests"
     assert owner_callable_projection["retention_reason"] == (
-        "temporary migration diagnostic projection until all active callers consume "
-        "domain_progress_transition_requests and OPL readback directly"
+        "temporary migration diagnostic projection only; active direct readback now suppresses top-level "
+        "owner_callable_adapters and exposes canonical domain_progress_transition_requests while OPL live "
+        "readback remains the physical retirement gate"
     )
     assert owner_callable_projection["retirement_gate"] == {
         "active_caller_alone_retains_surface": False,
@@ -223,6 +228,16 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "forbidden_claims"
     ]
     assert "legacy_caller_exists" not in owner_callable_projection["retention_reason"]
+    assert owner_callable_projection["verified_by"] == [
+        (
+            "tests/test_domain_action_request_materializer.py::"
+            "test_materialize_domain_action_requests_only_writes_current_owner_dispatch_for_route_epoch"
+        ),
+        (
+            "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py::"
+            "test_current_default_dispatch_for_execution_marks_paper_recovery_callable_ready"
+        ),
+    ]
 
     execution_latest = surfaces["default_executor_execution_latest_wire_projection"]
     assert execution_latest["active_caller_migrated"] is True

@@ -45,6 +45,8 @@ Date: `2026-06-16`
 
 2026-06-17 export priority follow-through：`domain-handler export` 的 pending family task 现在先导出 current-control 派生的 canonical `mas_domain_progress_transition_request`，只有没有该 canonical request 时才回退 legacy `default_executor_dispatch` carrier。该修复关闭的是 legacy carrier 抢在 OPL DomainProgressTransitionRuntime request 前面的 read-model priority 复发口；它仍不声明 provider running proof、DHD apply success、DM002/DM003 live paper progress、publication-ready、domain-ready 或 production-ready。
 
+2026-06-18 materializer request packet follow-through：`domain_action_request_materializer.request_tasks` 现在只导出 `supervisor_request_handoff_task_ref` refs-only diagnostic projection，包含 identity、request packet path、status、typed blocker reason、readiness identity 与 OPL transition runtime postcondition；`handoff_packet`、`source_action`、`owner_route`、operator payload、prompt contract 和 request packet body 不再从该字段导出。完整 body 和 OPL intake carrier 只能来自 canonical `domain_progress_transition_requests`。该修复关闭的是 materializer 顶层 request packet body 重新变成 MAS-local outbox / command / event / StageRun / provider admission / next-action authority 的复发口；它仍不声明旧 carrier 物理退役、DHD apply success、live paper progress 或 production-ready。
+
 ## 目标态
 
 MAS 的目标态是：

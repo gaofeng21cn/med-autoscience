@@ -212,10 +212,10 @@
       "surface_id": "domain_action_request_materializer_current_default_executor_dispatches_api"
     },
     {
-      "active_caller_migrated": false,
+      "active_caller_migrated": true,
       "canonical_surface": "domain_progress_transition_requests",
       "compatibility_alias_allowed": false,
-      "current_disposition": "legacy_diagnostic_projection",
+      "current_disposition": "direct_readback_migrated_legacy_diagnostic_projection_only",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -241,7 +241,7 @@
       "mas_owner_claim_allowed": false,
       "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime readback",
       "retained_mas_role": "migration_diagnostic_projection_only",
-      "retention_reason": "temporary migration diagnostic projection until all active callers consume domain_progress_transition_requests and OPL readback directly",
+      "retention_reason": "temporary migration diagnostic projection only; active direct readback now suppresses top-level owner_callable_adapters and exposes canonical domain_progress_transition_requests while OPL live readback remains the physical retirement gate",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,
@@ -250,7 +250,57 @@
         "replacement_parity_required": true,
         "tombstone_or_provenance_required": true
       },
-      "surface_id": "domain_action_request_materializer_owner_callable_adapter_projection"
+      "surface_id": "domain_action_request_materializer_owner_callable_adapter_projection",
+      "verified_by": [
+        "tests/test_domain_action_request_materializer.py::test_materialize_domain_action_requests_only_writes_current_owner_dispatch_for_route_epoch",
+        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py::test_current_default_dispatch_for_execution_marks_paper_recovery_callable_ready"
+      ]
+    },
+    {
+      "active_caller_migrated": true,
+      "canonical_surface": "domain_progress_transition_requests",
+      "compatibility_alias_allowed": false,
+      "current_disposition": "refs_only_diagnostic_projection",
+      "forbidden_claims": [
+        "mas_owned_generic_runtime",
+        "mas_owned_queue",
+        "mas_owned_attempt_ledger",
+        "mas_owned_retry_dead_letter",
+        "request_tasks_as_outbox",
+        "request_tasks_as_command",
+        "request_tasks_as_event",
+        "request_tasks_as_stage_run",
+        "request_tasks_as_provider_admission",
+        "request_tasks_as_next_action_authority",
+        "request_tasks_as_executable_handoff_body",
+        "provider_completion_as_domain_ready"
+      ],
+      "generic_runtime_owner": "one-person-lab",
+      "mas_owner_claim_allowed": false,
+      "projection_boundary": {
+        "body_authority": false,
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "handoff_packet_body_omitted": true,
+        "owner_route_body_omitted": true,
+        "payload_body_omitted": true,
+        "request_packet_body_omitted": true,
+        "source_action_body_omitted": true
+      },
+      "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime durable carrier",
+      "retained_mas_role": "identity_refs_only_diagnostic_projection",
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "no_forbidden_write_proof_required": true,
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
+      },
+      "surface_id": "domain_action_request_materializer_request_tasks_projection",
+      "verified_by": [
+        "tests/domain_action_request_materializer_cases/request_handoff_dispatch_cases.py::test_materialize_domain_action_requests_writes_request_handoff_for_publication_gate_and_ai_reviewer_actions",
+        "tests/domain_action_request_materializer_cases/test_stage_artifact_publication_handoff.py::test_materialize_domain_action_requests_dispatches_medical_paper_readiness_payload_ref"
+      ]
     },
     {
       "active_caller_migrated": true,

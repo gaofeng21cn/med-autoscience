@@ -206,11 +206,14 @@ def test_domain_action_materializer_blocks_new_default_executor_task_until_runni
         apply=True,
     )
 
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "blocked"
     assert dispatch["blocked_reason"] == "closeout_required_before_new_default_executor_task"
     assert dispatch["progress_first_closeout_admission"]["export_new_default_executor_task"] is False
     assert dispatch["progress_first_closeout_admission"]["typed_blocker"]["work_unit_id"] == "publishability_repair_sprint"
+    assert result["request_tasks"][0]["surface"] == "supervisor_request_handoff_task_ref"
+    assert result["request_tasks"][0]["handoff_packet_body_omitted"] is True
+    assert "handoff_packet" not in result["request_tasks"][0]
     assert result["written_files"] == []
     assert result["apply_writes_disabled_reason"] == "opl_domain_progress_transition_runtime_owns_durable_carrier"
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"

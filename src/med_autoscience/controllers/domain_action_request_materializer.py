@@ -38,6 +38,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     execution_gate,
     persistence,
     publication_owner_materialization,
+    request_task_projection,
     supervisor_request_packets,
     transition_request_projection,
     writer_handoff_preservation,
@@ -1316,6 +1317,13 @@ def materialize_domain_action_requests(
         request_tasks=request_tasks,
         owner_callable_adapters=owner_callable_adapters,
     )
+    request_task_refs = request_task_projection.request_task_ref_projections(
+        request_tasks,
+        schema_version=SCHEMA_VERSION,
+        target_runtime_owner=TARGET_RUNTIME_OWNER,
+        transition_runtime_postcondition=_opl_transition_runtime_postcondition(),
+        authority_boundary=_mas_transition_projection_authority_boundary(),
+    )
     transition_requests = transition_request_projection.domain_progress_transition_request_projection(owner_callable_adapters)
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
@@ -1374,8 +1382,10 @@ def materialize_domain_action_requests(
         "mas_creates_opl_stage_run": False,
         "mas_dispatch_authority": False,
         "authority_boundary": _mas_transition_projection_authority_boundary(),
-        "request_task_count": len(request_tasks),
-        "request_tasks": request_tasks,
+        "request_task_count": len(request_task_refs),
+        "request_task_projection_scope": "identity_refs_only",
+        "request_task_body_omitted": True,
+        "request_tasks": request_task_refs,
         "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
         "ai_reviewer_request_refreshes": ai_reviewer_request_refreshes,
         "legacy_owner_callable_adapter_diagnostics": legacy_owner_callable_adapter_diagnostics(

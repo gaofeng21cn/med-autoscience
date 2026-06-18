@@ -107,7 +107,6 @@ def test_materializer_selects_identity_different_current_owner_action_over_prior
         "gate_clearing_batch_followthrough.actionable_current_work_unit"
     )
     assert result["domain_progress_transition_requests"][0]["dispatch_status"] == "dry_run"
-    assert result["request_tasks"][0]["handoff_packet"]["work_unit_id"] == "analysis_claim_evidence_repair"
     assert (
         result["domain_progress_transition_requests"][0]["source_action"]["work_unit_id"]
         == "analysis_claim_evidence_repair"
@@ -230,11 +229,12 @@ def test_materializer_selects_owner_gate_route_back_followthrough_over_typed_blo
     assert result["request_tasks"][0]["authority"] == "paper_recovery_state.accepted_owner_gate_decision"
     assert result["request_tasks"][0]["request_owner"] == "write"
     assert result["request_tasks"][0]["reason"] == "analysis_claim_evidence_repair"
-    assert result["request_tasks"][0]["handoff_packet"]["work_unit_id"] == "analysis_claim_evidence_repair"
-    assert result["request_tasks"][0]["handoff_packet"]["work_unit_fingerprint"] == fingerprint
-    assert result["request_tasks"][0]["source_action"]["source_ref"] == route_back_ref
-    assert result["request_tasks"][0]["source_action"]["provider_admission_allowed"] is False
-    assert result["request_tasks"][0]["source_action"]["paper_progress_stall"] == {
+    assert result["request_tasks"][0]["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert result["request_tasks"][0]["work_unit_fingerprint"] == fingerprint
+    source_action = result["domain_progress_transition_requests"][0]["source_action"]
+    assert source_action["source_ref"] == route_back_ref
+    assert source_action["provider_admission_allowed"] is False
+    assert source_action["paper_progress_stall"] == {
         "kind": "owner_gate_route_back",
         "route_back_evidence_ref": route_back_ref,
         "provider_admission_allowed": False,

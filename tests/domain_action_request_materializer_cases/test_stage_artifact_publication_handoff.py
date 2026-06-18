@@ -337,18 +337,17 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     assert task["surface_key"] == "literature_provider_runtime"
     assert task["operator_payload_ref"] == request_ref
     assert task["operator_payload_present"] is True
-    assert task["operator_payload"]["payload_source"] == "medical_paper_readiness_owner_payload_authoring"
-    assert task["operator_payload"]["provider_payloads"][0]["provider"] == "pubmed"
-    assert task["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
-    assert task["payload_authoring_target"]["operator_payload"]["payload_source"] == (
-        "medical_paper_readiness_owner_payload_authoring"
-    )
-    assert task["payload_authoring_target"]["operator_payload_contract"]["empty_payload_is_not_success_evidence"] is True
+    assert task["operator_payload_body_omitted"] is True
+    assert task["payload_authoring_target_body_omitted"] is True
+    assert "operator_payload" not in task
+    assert "payload_authoring_target" not in task
     assert not request_path.exists()
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["readiness_surface_identity"] == task["readiness_surface_identity"]
     assert dispatch["surface_key"] == "literature_provider_runtime"
     assert dispatch["operator_payload_present"] is True
+    assert dispatch["operator_payload"]["payload_source"] == "medical_paper_readiness_owner_payload_authoring"
+    assert dispatch["operator_payload"]["provider_payloads"][0]["provider"] == "pubmed"
     assert dispatch["operator_payload"]["provider_payloads"][2]["provider"] == "semantic_scholar"
     assert dispatch["operator_payload_ref"] == request_ref
     assert dispatch["prompt_contract_ref"]["surface_key"] == "literature_provider_runtime"
@@ -359,6 +358,9 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     )
     assert dispatch["prompt_contract_ref"]["operator_payload_ref"] == request_ref
     assert dispatch["prompt_contract_ref"]["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
+    assert dispatch["prompt_contract_ref"]["payload_authoring_target"]["operator_payload_contract"][
+        "empty_payload_is_not_success_evidence"
+    ] is True
     assert not persisted_dispatch_path.exists()
 
 

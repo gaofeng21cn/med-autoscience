@@ -452,10 +452,11 @@ def test_current_input_ai_reviewer_record_consumption_work_unit_materializes_to_
     assert request["action_type"] == "run_quality_repair_batch"
     assert request["request_owner"] == "write"
     assert request["reason"] == "manuscript_story_surface_delta_missing"
-    assert request["source_action"]["next_work_unit"] == "medical_prose_write_repair"
+    assert "source_action" not in request
     assert dispatch["action_type"] == "run_quality_repair_batch"
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["owner_route_attempt_envelope"]["work_unit_id"] == work_unit_id
+    assert dispatch["source_action"]["next_work_unit"] == "medical_prose_write_repair"
     assert dispatch["source_action"]["reviewer_record_ref"] == str(record_path.resolve())
     assert dispatch["source_action"]["source_eval_id"] == eval_id
     assert dispatch["source_action"]["materialization_decision"] == "story_surface_delta_or_typed_blocker_required"

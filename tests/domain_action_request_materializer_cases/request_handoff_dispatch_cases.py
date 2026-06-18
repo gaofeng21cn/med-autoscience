@@ -229,42 +229,38 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     assert not ai_packet_path.exists()
     assert not freshness_packet_path.exists()
     assert not display_packet_path.exists()
-    gate_packet = result["request_tasks"][0]["handoff_packet"]
-    ai_packet = result["request_tasks"][1]["handoff_packet"]
-    freshness_packet = result["request_tasks"][2]["handoff_packet"]
-    display_packet = result["request_tasks"][3]["handoff_packet"]
-    assert gate_packet["authority"] == "observability_only"
-    assert ai_packet["authority"] == "observability_only"
-    assert freshness_packet["authority"] == "observability_only"
-    assert display_packet["authority"] == "observability_only"
+    assert {task["surface"] for task in result["request_tasks"]} == {"supervisor_request_handoff_task_ref"}
+    assert {task["payload_body_omitted"] for task in result["request_tasks"]} == {True}
+    assert {task["handoff_packet_body_omitted"] for task in result["request_tasks"]} == {True}
+    assert {task["source_action_body_omitted"] for task in result["request_tasks"]} == {True}
+    assert all("handoff_packet" not in task for task in result["request_tasks"])
+    assert all("source_action" not in task for task in result["request_tasks"])
+
+    prompt_contracts = [dispatch["prompt_contract_ref"] for dispatch in result["domain_progress_transition_requests"]]
+    gate_packet, ai_packet, freshness_packet, display_packet = prompt_contracts
+    assert gate_packet["provider_admission_pending"] is False
+    assert ai_packet["provider_admission_pending"] is False
+    assert freshness_packet["provider_admission_pending"] is False
+    assert display_packet["provider_admission_pending"] is False
     assert gate_packet["opl_transition_runtime_postcondition"] == task_postcondition
     assert ai_packet["opl_transition_runtime_postcondition"] == task_postcondition
     assert freshness_packet["opl_transition_runtime_postcondition"] == task_postcondition
     assert display_packet["opl_transition_runtime_postcondition"] == task_postcondition
-    assert gate_packet["authority_boundary"]["mas_dispatch_authority"] is False
-    assert ai_packet["authority_boundary"]["mas_dispatch_authority"] is False
-    assert freshness_packet["authority_boundary"]["mas_dispatch_authority"] is False
-    assert display_packet["authority_boundary"]["mas_dispatch_authority"] is False
-    assert gate_packet["request_owner"] == "publication_gate"
-    assert ai_packet["request_owner"] == "ai_reviewer"
-    assert freshness_packet["request_owner"] == "artifact_os"
-    assert display_packet["request_owner"] == "artifact_os"
-    assert gate_packet["next_executable_owner"] == "publication_gate"
-    assert ai_packet["next_executable_owner"] == "ai_reviewer"
-    assert freshness_packet["next_executable_owner"] == "artifact_os"
-    assert display_packet["next_executable_owner"] == "artifact_os"
-    assert gate_packet["owner_pickup"]["owner"] == "publication_gate"
-    assert ai_packet["owner_pickup"]["owner"] == "ai_reviewer"
-    assert freshness_packet["owner_pickup"]["owner"] == "artifact_os"
-    assert display_packet["owner_pickup"]["owner"] == "artifact_os"
-    assert ai_packet["required_output_surface"] == "artifacts/publication_eval/latest.json"
+    assert gate_packet["request_packet_ref"] == "artifacts/supervision/requests/publication_gate_specificity/latest.json"
+    assert ai_packet["request_packet_ref"] == "artifacts/supervision/requests/ai_reviewer/latest.json"
+    assert freshness_packet["request_packet_ref"] == "artifacts/supervision/requests/current_package_freshness/latest.json"
+    assert display_packet["request_packet_ref"] == (
+        "artifacts/supervision/requests/artifact_display_materialization/latest.json"
+    )
+    assert result["domain_progress_transition_requests"][0]["next_executable_owner"] == "publication_gate"
+    assert result["domain_progress_transition_requests"][1]["next_executable_owner"] == "ai_reviewer"
+    assert result["domain_progress_transition_requests"][2]["next_executable_owner"] == "artifact_os"
+    assert result["domain_progress_transition_requests"][3]["next_executable_owner"] == "artifact_os"
+    assert ai_packet["required_output_surface"] == (
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    )
     assert freshness_packet["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
     assert display_packet["required_output_surface"] == "paper/display_registry.json"
-    assert gate_packet["supervisor_authority_boundary"] == "request_only"
-    assert ai_packet["supervisor_authority_boundary"] == "request_only"
-    assert freshness_packet["supervisor_authority_boundary"] == "request_only"
-    assert display_packet["supervisor_authority_boundary"] == "request_only"
-    assert "publication_eval" in ai_packet["consumer_does_not_mutate"]
     assert gate_packet["paper_package_mutation_allowed"] is False
     assert ai_packet["quality_gate_relaxation_allowed"] is False
     assert not (

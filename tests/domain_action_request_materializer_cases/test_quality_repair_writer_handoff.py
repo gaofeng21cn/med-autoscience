@@ -489,7 +489,7 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     transition_request = _assert_transition_request_projection(dispatch)
     _assert_request_task_projection(request)
     assert request["reason"] == "manuscript_story_surface_delta_missing"
-    assert request["source_action"]["next_work_unit"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+    assert "source_action" not in request
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["medical_claim_authoring_allowed"] is True
     assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"

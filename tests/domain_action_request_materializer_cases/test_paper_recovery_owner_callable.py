@@ -1097,6 +1097,19 @@ def test_current_default_dispatch_for_execution_marks_paper_recovery_callable_re
     assert execution_payload["domain_progress_transition_requests"][0]["dispatch_status"] == (
         "transition_request_pending"
     )
+    for payload in (observe_payload, execution_payload):
+        assert payload["canonical_transition_request_surface"] == "domain_progress_transition_requests"
+        assert payload["domain_progress_transition_request_count"] == 1
+        assert "owner_callable_adapters" not in payload
+        assert "owner_callable_adapter_count" not in payload
+        diagnostics = payload["legacy_owner_callable_adapter_diagnostics"]
+        assert diagnostics["diagnostic_only"] is True
+        assert diagnostics["legacy_payload_scope"] == "identity_refs_only"
+        assert diagnostics["legacy_dispatch_body_omitted"] is True
+        assert diagnostics["legacy_dispatches"] == diagnostics["legacy_dispatch_refs"]
+        assert "opl_domain_progress_transition_request" not in diagnostics["legacy_dispatches"][0]
+        assert "owner_route" not in diagnostics["legacy_dispatches"][0]
+        assert "source_action" not in diagnostics["legacy_dispatches"][0]
 
 
 def test_materialize_dry_run_reports_paper_recovery_callable_as_would_be_ready(

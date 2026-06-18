@@ -142,4 +142,5 @@ def test_unit_harmonization_uses_body_free_precise_target_surface(
         / "latest.json"
     )
     assert not packet_path.exists()
-    assert task["handoff_packet"]["required_output_target_surface"] == target_surface
+    assert task["handoff_packet_body_omitted"] is True
+    assert dispatch["prompt_contract_ref"]["required_output_target_surface"] == target_surface
