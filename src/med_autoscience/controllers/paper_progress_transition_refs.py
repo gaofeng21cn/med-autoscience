@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    required_opl_transition_readback_shape,
+)
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 
 
@@ -163,11 +166,15 @@ def _receipt(
         "mas_can_authorize_provider_admission": False,
         "mas_can_own_event_log_or_outbox": False,
         "mas_can_create_opl_outbox_record": False,
+        "mas_can_append_opl_event_log": False,
+        "mas_can_emit_opl_outbox_item": False,
         "mas_can_create_opl_event": False,
         "mas_can_create_opl_stage_run": False,
         "provider_admission_authority": False,
         "provider_admission_effect": "transition_request_pending",
         "requires_opl_transition_readback": True,
+        "required_opl_transition_runtime_readback": _required_opl_transition_runtime_readback(),
+        "required_opl_transactional_outbox": _required_opl_transactional_outbox(),
         "deprecated_projection_fields_authority": False,
         **semantic_receipt,
         "intent": dict(intent),
@@ -177,6 +184,26 @@ def _receipt(
 
 def _append_receipt(study_root: Path, receipt: Mapping[str, Any]) -> None:
     _append_jsonl(transition_refs_path(study_root), receipt)
+
+
+def _required_opl_transition_runtime_readback() -> dict[str, Any]:
+    return required_opl_transition_readback_shape()
+
+
+def _required_opl_transactional_outbox() -> dict[str, Any]:
+    readback_shape = required_opl_transition_readback_shape()
+    return {
+        "runtime_owner": _text(readback_shape.get("runtime_owner")) or "one-person-lab",
+        "runtime_kind": _text(readback_shape.get("runtime_kind"))
+        or "DomainProgressTransitionRuntime",
+        "command_present": True,
+        "event_present": True,
+        "outbox_item_present": True,
+        "same_transaction_event_and_outbox": True,
+        "stage_run_identity_required": "stage_run_identity"
+        in set(readback_shape.get("required_runtime_refs") or []),
+        "mas_can_create_command_event_outbox_or_stage_run": False,
+    }
 
 
 def _index_receipt(

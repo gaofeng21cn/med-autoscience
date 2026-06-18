@@ -61,9 +61,47 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
     assert first["provider_admission_authority"] is False
     assert first["provider_admission_effect"] == "transition_request_pending"
     assert first["requires_opl_transition_readback"] is True
+    assert first["required_opl_transition_runtime_readback"]["surface_kind"] == (
+        "opl_domain_progress_transition_runtime_live_readback"
+    )
+    assert first["required_opl_transition_runtime_readback"]["runtime_owner"] == "one-person-lab"
+    assert first["required_opl_transition_runtime_readback"]["runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )
+    assert first["required_opl_transition_runtime_readback"]["transaction_complete"] is True
+    assert first["required_opl_transition_runtime_readback"]["required_sections"] == [
+        "identity",
+        "causality",
+        "authority_boundary",
+        "exactly_one_outcome",
+        "projection_metadata",
+    ]
+    assert first["required_opl_transition_runtime_readback"]["required_runtime_refs"] == [
+        "event_id",
+        "outbox_item_id",
+        "stage_run_identity",
+    ]
+    assert first["required_opl_transactional_outbox"] == {
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "command_present": True,
+        "event_present": True,
+        "outbox_item_present": True,
+        "same_transaction_event_and_outbox": True,
+        "stage_run_identity_required": True,
+        "mas_can_create_command_event_outbox_or_stage_run": False,
+    }
+    assert first["mas_can_append_opl_event_log"] is False
+    assert first["mas_can_emit_opl_outbox_item"] is False
     assert first["deprecated_projection_fields_authority"] is False
     assert replay["receipt_status"] == "replayed_transition_request_ref"
     assert replay["receipt_id"] == first["receipt_id"]
+    assert replay["required_opl_transition_runtime_readback"] == first[
+        "required_opl_transition_runtime_readback"
+    ]
+    assert replay["required_opl_transactional_outbox"] == first[
+        "required_opl_transactional_outbox"
+    ]
     assert "started_worker" not in replay
     assert "worker_start_ref" not in replay
     assert replay["intent_fingerprint"] == first["intent_fingerprint"]
@@ -120,6 +158,10 @@ def test_transition_ref_fails_closed_for_same_idempotency_key_with_different_int
     assert conflict["fail_closed_reason"] == "idempotency_key_intent_conflict"
     assert "started_worker" not in conflict
     assert "worker_start_ref" not in conflict
+    assert conflict["required_opl_transactional_outbox"]["same_transaction_event_and_outbox"] is True
+    assert conflict["required_opl_transition_runtime_readback"]["accepted_outcome_kind"] == (
+        "provider_admission_enqueued_or_blocked"
+    )
     assert conflict["conflicting_receipt_id"] is not None
     assert len(refs.read_transition_refs(study_root=study_root)) == 2
 
@@ -149,6 +191,9 @@ def test_transition_ref_dedupes_same_source_without_worker_start_or_queue_claim(
     assert duplicate_source["receipt_status"] == "duplicate_source_fingerprint_ref"
     assert "started_worker" not in duplicate_source
     assert "worker_start_ref" not in duplicate_source
+    assert duplicate_source["required_opl_transactional_outbox"] == first[
+        "required_opl_transactional_outbox"
+    ]
     assert duplicate_source["duplicate_of_receipt_id"] == first["receipt_id"]
 
 
