@@ -4,6 +4,10 @@ import json
 import importlib
 from pathlib import Path
 
+from med_autoscience.controllers.default_executor_action_policy import (
+    SUPPORTED_ACTION_TYPES,
+)
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src" / "med_autoscience"
@@ -289,6 +293,20 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "closeout_binding_authorizes_execution": False,
         "missing_authorization_outcome": "opl_execution_authorization_required_typed_blocker",
         "provider_attempt_or_lease_required_when_blocked": False,
+    }
+    assert owner_dispatch["execution_authorization_coverage"] == {
+        "coverage_status": "repo_fail_closed_all_supported_actions_live_readback_tail_open",
+        "supported_action_types_ref": (
+            "src/med_autoscience/controllers/default_executor_action_policy.py#SUPPORTED_ACTION_TYPES"
+        ),
+        "repo_fail_closed_test_ref": (
+            "tests/test_domain_owner_action_dispatch_contract.py::"
+            "test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action"
+        ),
+        "request_projection_without_opl_proof_outcome": "opl_execution_authorization_required",
+        "repo_covered_action_families": sorted(SUPPORTED_ACTION_TYPES),
+        "live_readback_required_before_retirement": True,
+        "live_tail": "same_identity_opl_execution_authorization_or_stage_run_readback_for_every_active_caller",
     }
     assert "mas_local_dispatch_authority" in owner_dispatch["forbidden_claims"]
     assert "closeout_binding_as_execution_authorization" in owner_dispatch["forbidden_claims"]

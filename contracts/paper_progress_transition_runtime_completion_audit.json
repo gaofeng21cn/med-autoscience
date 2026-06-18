@@ -603,12 +603,13 @@
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_health_diagnostic_obligation_actuator",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_health_kernel",
         "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only"
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
+        "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_opl_state_index_kernel_takeover_or_no_active_caller_ref",
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
-        "domain_owner_action_dispatch_live_opl_authorization_for_every_active_caller_ref",
+        "domain_owner_action_dispatch_same_identity_live_opl_authorization_or_stage_run_readback_for_every_active_caller_ref",
         "legacy_default_executor_carrier_physical_delete_ref"
       ],
       "false_completion_boundary": [
@@ -679,7 +680,7 @@
     "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
     "domain_authority_refs_index OPL StateIndexKernel takeover or no-active-caller proof",
     "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
-    "domain_owner_action_dispatch live OPL authorization coverage for every active caller",
+    "domain_owner_action_dispatch same-identity live OPL authorization or StageRun readback for every active caller",
     "legacy default-executor carrier physical delete proof"
   ],
   "non_claims": {

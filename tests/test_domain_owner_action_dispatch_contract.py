@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import pytest
+
+from med_autoscience.controllers.default_executor_action_policy import (
+    SUPPORTED_ACTION_TYPES,
+)
 from med_autoscience.controllers.domain_owner_action_dispatch_parts.dispatch_contract import (
     dispatch_contract_error,
 )
@@ -8,9 +13,6 @@ from med_autoscience.controllers.domain_owner_action_dispatch_parts import (
 )
 from med_autoscience.controllers import domain_owner_action_dispatch
 from tests.provider_admission_current_control_helpers import opl_transition_readback
-
-
-SUPPORTED_ACTION_TYPES = frozenset({"run_quality_repair_batch"})
 
 
 def _dispatch(**overrides: object) -> dict[str, object]:
@@ -115,6 +117,29 @@ def test_transition_request_projection_requires_opl_execution_authorization() ->
         _projection(),
         apply=False,
     ) == (False, "opl_execution_authorization_required")
+
+
+@pytest.mark.parametrize("action_type", sorted(SUPPORTED_ACTION_TYPES))
+def test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action(
+    action_type: str,
+) -> None:
+    payload = _projection(
+        action_type=action_type,
+        study_id="study-a",
+        next_work_unit={"unit_id": f"work-unit::{action_type}"},
+        work_unit_fingerprint=f"fingerprint::{action_type}",
+        action_fingerprint=f"fingerprint::{action_type}",
+    )
+
+    assert dispatch_contract_error(
+        domain_owner_action_dispatch._dispatch_contract_payload(payload),
+        apply=True,
+        supported_action_types=SUPPORTED_ACTION_TYPES,
+    ) is None
+    assert domain_owner_action_dispatch._contract_guard(payload, apply=True) == (
+        False,
+        "opl_execution_authorization_required",
+    )
 
 
 def test_dispatch_receipt_projection_never_exports_mas_private_authority_claims(

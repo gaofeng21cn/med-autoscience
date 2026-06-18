@@ -391,6 +391,31 @@
         "missing_authorization_outcome": "opl_execution_authorization_required_typed_blocker",
         "provider_attempt_or_lease_required_when_blocked": false
       },
+      "execution_authorization_coverage": {
+        "coverage_status": "repo_fail_closed_all_supported_actions_live_readback_tail_open",
+        "supported_action_types_ref": "src/med_autoscience/controllers/default_executor_action_policy.py#SUPPORTED_ACTION_TYPES",
+        "repo_fail_closed_test_ref": "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
+        "request_projection_without_opl_proof_outcome": "opl_execution_authorization_required",
+        "repo_covered_action_families": [
+          "artifact_display_surface_materialization_required",
+          "canonical_paper_inputs_rehydrate_required",
+          "complete_medical_paper_readiness_surface",
+          "current_package_freshness_required",
+          "methodology_reframe_route_decision",
+          "paper_clean_room_rebuild_required",
+          "provenance_limited_harmonization_audit",
+          "publication_gate_specificity_required",
+          "publication_handoff_owner_gate",
+          "recover_transport_model_provenance",
+          "return_to_ai_reviewer_workflow",
+          "run_gate_clearing_batch",
+          "run_medical_publication_surface_from_clean_room",
+          "run_quality_repair_batch",
+          "unit_harmonized_external_validation_rerun"
+        ],
+        "live_readback_required_before_retirement": true,
+        "live_tail": "same_identity_opl_execution_authorization_or_stage_run_readback_for_every_active_caller"
+      },
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -413,7 +438,14 @@
         "replacement_parity_required": true,
         "tombstone_or_provenance_required": true
       },
-      "surface_id": "domain_owner_action_dispatch"
+      "surface_id": "domain_owner_action_dispatch",
+      "verified_by": [
+        "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
+        "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_accepts_matching_opl_transition_readback",
+        "tests/test_domain_owner_action_dispatch_cases/provider_hosted_exact_stage_packet_selection.py",
+        "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_provider_hosted_authorization.py",
+        "tests/test_domain_owner_action_dispatch_cases/provider_hosted_gate_clearing_authorization.py"
+      ]
     },
     {
       "active_caller_migrated": false,
