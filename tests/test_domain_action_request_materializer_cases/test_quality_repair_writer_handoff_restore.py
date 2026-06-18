@@ -205,7 +205,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
         apply=True,
     )
 
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
@@ -392,7 +392,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_when_current
         apply=True,
     )
 
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
@@ -506,7 +506,7 @@ def test_materialize_domain_action_requests_builds_writer_handoff_from_current_s
         apply=True,
     )
 
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"

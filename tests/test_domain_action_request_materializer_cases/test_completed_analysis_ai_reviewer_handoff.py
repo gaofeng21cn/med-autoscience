@@ -127,9 +127,9 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
     )
 
     assert result["request_task_count"] == 1
-    assert result["owner_callable_adapter_count"] == 1
+    assert result["domain_progress_transition_request_count"] == 1
     task = result["request_tasks"][0]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "ai_reviewer"
     assert task["owner_route_current"] is True
@@ -238,9 +238,9 @@ def test_materialize_domain_transition_ai_reviewer_re_eval_handoff(
     )
 
     assert result["request_task_count"] == 1
-    assert result["owner_callable_adapter_count"] == 1
+    assert result["domain_progress_transition_request_count"] == 1
     task = result["request_tasks"][0]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert task["dispatch_status"] == "transition_request_pending"
     assert task["request_owner"] == "ai_reviewer"
     assert task["owner_route_current"] is True
@@ -355,9 +355,9 @@ def test_current_write_domain_transition_supersedes_stale_ai_reviewer_queue(
     )
 
     assert result["request_task_count"] == 1
-    assert result["owner_callable_adapter_count"] == 1
+    assert result["domain_progress_transition_request_count"] == 1
     task = result["request_tasks"][0]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert task["action_type"] == "run_quality_repair_batch"
     assert task["request_owner"] == "write"
     assert dispatch["action_type"] == "run_quality_repair_batch"
@@ -471,7 +471,7 @@ def test_empty_per_study_queue_prevents_stale_top_level_redrive_without_current_
     )
 
     assert result["request_task_count"] == 0
-    assert result["owner_callable_adapter_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
     assert any(
         ignored["action_type"] == "return_to_ai_reviewer_workflow"
         and ignored["reason"] == "superseded_by_current_work_unit_typed_blocker"
@@ -554,8 +554,8 @@ def test_consumed_ai_reviewer_transition_uses_current_owner_route_basis_for_disp
         apply=True,
     )
 
-    assert result["owner_callable_adapter_count"] == 1
-    dispatch = result["owner_callable_adapters"][0]
+    assert result["domain_progress_transition_request_count"] == 1
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
@@ -661,8 +661,8 @@ def test_action_queue_dispatch_inherits_complete_owner_route_currentness_basis(
         apply=True,
     )
 
-    assert result["owner_callable_adapter_count"] == 1
-    dispatch = result["owner_callable_adapters"][0]
+    assert result["domain_progress_transition_request_count"] == 1
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
     for key, value in expected_basis.items():
