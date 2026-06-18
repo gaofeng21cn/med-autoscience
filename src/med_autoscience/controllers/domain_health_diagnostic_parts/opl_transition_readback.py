@@ -205,11 +205,19 @@ def has_opl_transition_readback(candidate: Mapping[str, Any]) -> bool:
     return bool(candidate_opl_transition_readback(candidate))
 
 
-def provider_admission_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str, Any]:
+def provider_admission_opl_transition_readback(
+    candidate: Mapping[str, Any],
+    *,
+    require_explicit_identity: bool = False,
+) -> dict[str, Any]:
     readback = candidate_opl_transition_readback(candidate)
     if not readback:
         return {}
-    if not _readback_matches_provider_admission_identity(candidate, readback):
+    if not _readback_matches_provider_admission_identity(
+        candidate,
+        readback,
+        require_explicit_identity=require_explicit_identity,
+    ):
         return {}
     return readback
 
@@ -263,39 +271,35 @@ def _is_opl_transition_runtime_container(payload: Mapping[str, Any]) -> bool:
 def _readback_matches_provider_admission_identity(
     candidate: Mapping[str, Any],
     readback: Mapping[str, Any],
+    *,
+    require_explicit_identity: bool = False,
 ) -> bool:
-    expected = _provider_admission_identity(candidate)
-    identity = _mapping(readback.get("identity"))
-    aggregate_identity = _mapping(identity.get("aggregate_identity"))
-    stage_run_identity = _mapping(identity.get("stage_run_identity"))
-
-    comparisons = {
-        "study_id": _text(aggregate_identity.get("study_id")),
-        "work_unit_id": _text(aggregate_identity.get("work_unit_id")),
-        "work_unit_fingerprint": _text(aggregate_identity.get("work_unit_fingerprint")),
-        "route_identity_key": _text(stage_run_identity.get("route_identity_key")),
-        "attempt_idempotency_key": _text(stage_run_identity.get("attempt_idempotency_key")),
-    }
-    for key, actual in comparisons.items():
-        expected_value = _text(expected.get(key))
-        if expected_value is None or actual != expected_value:
-            return False
-
-    expected_request_key = _text(expected.get("request_idempotency_key"))
-    if expected_request_key is None or _text(identity.get("idempotency_key")) != expected_request_key:
-        return False
-    return True
+    expected = _provider_admission_identity(
+        candidate,
+        require_explicit_identity=require_explicit_identity,
+    )
+    return transition_contract.readback_matches_provider_admission_identity(readback, expected)
 
 
-def _provider_admission_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
+def _provider_admission_identity(
+    candidate: Mapping[str, Any],
+    *,
+    require_explicit_identity: bool = False,
+) -> dict[str, Any]:
     transition_request = _transition_request(candidate)
     request_identity = _mapping(transition_request.get("aggregate_identity"))
+    request_stage_identity = _mapping(transition_request.get("stage_run_identity"))
+    transition_identity = _mapping(transition_request.get("identity"))
     state = _mapping(candidate.get("state"))
     state_request = _transition_request(state)
     state_request_identity = _mapping(state_request.get("aggregate_identity"))
+    state_request_stage_identity = _mapping(state_request.get("stage_run_identity"))
+    state_transition_identity = _mapping(state_request.get("identity"))
     policy = _mapping(candidate.get("paper_progress_policy_result"))
     policy_request = _transition_request(policy)
     policy_request_identity = _mapping(policy_request.get("aggregate_identity"))
+    policy_request_stage_identity = _mapping(policy_request.get("stage_run_identity"))
+    policy_transition_identity = _mapping(policy_request.get("identity"))
 
     study_id = (
         _text(candidate.get("study_id"))
@@ -313,11 +317,43 @@ def _provider_admission_identity(candidate: Mapping[str, Any]) -> dict[str, Any]
         or _text(state_request_identity.get("work_unit_fingerprint"))
         or _text(policy_request_identity.get("work_unit_fingerprint"))
     )
-    route_key = _text(candidate.get("route_identity_key")) or (
-        f"provider-admission::{study_id}::{work_unit_fingerprint}"
-        if study_id is not None and work_unit_fingerprint is not None
-        else None
+    route_identity_key = (
+        _text(candidate.get("route_identity_key"))
+        or _text(transition_request.get("route_identity_key"))
+        or _text(request_stage_identity.get("route_identity_key"))
+        or _text(transition_identity.get("route_identity_key"))
+        or _text(state.get("route_identity_key"))
+        or _text(state_request.get("route_identity_key"))
+        or _text(state_request_stage_identity.get("route_identity_key"))
+        or _text(state_transition_identity.get("route_identity_key"))
+        or _text(policy.get("route_identity_key"))
+        or _text(policy_request.get("route_identity_key"))
+        or _text(policy_request_stage_identity.get("route_identity_key"))
+        or _text(policy_transition_identity.get("route_identity_key"))
     )
+    if (
+        route_identity_key is None
+        and not require_explicit_identity
+        and study_id is not None
+        and work_unit_fingerprint is not None
+    ):
+        route_identity_key = f"provider-admission::{study_id}::{work_unit_fingerprint}"
+    attempt_idempotency_key = (
+        _text(candidate.get("attempt_idempotency_key"))
+        or _text(transition_request.get("attempt_idempotency_key"))
+        or _text(request_stage_identity.get("attempt_idempotency_key"))
+        or _text(transition_identity.get("attempt_idempotency_key"))
+        or _text(state.get("attempt_idempotency_key"))
+        or _text(state_request.get("attempt_idempotency_key"))
+        or _text(state_request_stage_identity.get("attempt_idempotency_key"))
+        or _text(state_transition_identity.get("attempt_idempotency_key"))
+        or _text(policy.get("attempt_idempotency_key"))
+        or _text(policy_request.get("attempt_idempotency_key"))
+        or _text(policy_request_stage_identity.get("attempt_idempotency_key"))
+        or _text(policy_transition_identity.get("attempt_idempotency_key"))
+    )
+    if attempt_idempotency_key is None and not require_explicit_identity:
+        attempt_idempotency_key = route_identity_key
     return {
         "study_id": study_id,
         "work_unit_id": (
@@ -330,14 +366,21 @@ def _provider_admission_identity(candidate: Mapping[str, Any]) -> dict[str, Any]
             or _text(policy_request_identity.get("work_unit_id"))
         ),
         "work_unit_fingerprint": work_unit_fingerprint,
-        "route_identity_key": route_key,
-        "attempt_idempotency_key": _text(candidate.get("attempt_idempotency_key")) or route_key,
+        "route_identity_key": route_identity_key,
+        "attempt_idempotency_key": attempt_idempotency_key,
         "request_idempotency_key": (
             _text(transition_request.get("idempotency_key"))
+            or _text(transition_request.get("request_idempotency_key"))
             or _text(state_request.get("idempotency_key"))
+            or _text(state_request.get("request_idempotency_key"))
             or _text(policy_request.get("idempotency_key"))
+            or _text(policy_request.get("request_idempotency_key"))
+            or _text(transition_identity.get("request_idempotency_key"))
+            or _text(state_transition_identity.get("request_idempotency_key"))
+            or _text(policy_transition_identity.get("request_idempotency_key"))
             or _text(candidate.get("idempotency_key"))
-            or route_key
+            or route_identity_key
+            or attempt_idempotency_key
         ),
     }
 

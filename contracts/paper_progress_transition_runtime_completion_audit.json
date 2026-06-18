@@ -304,6 +304,7 @@
         "MAS runtime-health local append API is retired.",
         "Runtime surface inventory tracks remaining private surface tails.",
         "domain_owner_action_dispatch has repo-level coverage for missing OPL proof fail-closed across every supported action, trusted OPL authorization, bound DomainProgressTransitionRuntime readback, and provider-hosted exact StageRun authorization.",
+        "domain_owner_action_dispatch now consumes the same helper-defined DomainProgressTransitionRuntime provider-admission identity binding as provider admission; readbacks missing explicit route_identity_key or attempt_idempotency_key fail closed as missing OPL authorization.",
         "Legacy default_executor_execution/latest.json fallback is no longer consumed by current provider admission, provider handoff export, or clean-migration recovery readers; legacy latest requires explicit history/replay opt-in.",
         "domain_authority_refs_index active callers now emit OPL StateIndex source-adapter proofs by default; db_path no longer implies MAS SQLite persistence, and SQLite writes require explicit opt-in for replay/local inspection.",
         "domain_action_request_materializer no longer emits top-level request_tasks; request task refs are nested under legacy_request_task_diagnostics.legacy_request_task_refs with diagnostic_ref_only/body_authority=false and tests assert the alias is absent.",
@@ -402,6 +403,7 @@
       "evidence": [
         "Runtime-health local append API is retired and inventory tracks remaining surfaces.",
         "domain_owner_action_dispatch repo tests cover fail-closed typed blockers for missing proof across every supported action, trusted OPL authorization, bound transition readback, and exact provider-hosted StageRun authorization.",
+        "domain_owner_action_dispatch no longer accepts its own weak readback binding; tests cover missing explicit route/attempt identity fail-closed through the shared OPL transition ABI helper.",
         "Top-level request_tasks alias is physically removed from materializer output, with replacement nested diagnostic refs and retirement inventory updated; remaining carriers still need live/no-active-caller closeout.",
         "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention projections remain authorization-free and non-progress claims."
       ],
@@ -668,6 +670,7 @@
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_fails_closed_without_opl_authorization_or_bound_readback",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_accepts_trusted_opl_execution_authorization_only",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_accepts_bound_domain_progress_transition_readback_only",
+        "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_rejects_readback_without_explicit_route_attempt_identity",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_owner_dispatch_rejects_unbound_domain_progress_transition_readback",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_provider_hosted_exact_stage_attempt_authorizes_only_matching_stage_packet",
         "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox",

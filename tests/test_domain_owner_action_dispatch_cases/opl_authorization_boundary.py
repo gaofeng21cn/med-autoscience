@@ -104,6 +104,26 @@ def test_owner_dispatch_accepts_trusted_opl_execution_authorization_only() -> No
 
 
 def test_owner_dispatch_accepts_bound_domain_progress_transition_readback_only() -> None:
+    request_key = "request-a"
+    payload = _projection(
+        next_work_unit={"unit_id": "write_delta"},
+        route_identity_key=request_key,
+        attempt_idempotency_key=request_key,
+        opl_domain_progress_transition_request={
+            "target_runtime_kind": "DomainProgressTransitionRuntime",
+            "idempotency_key": request_key,
+            "work_unit_id": "write_delta",
+            "work_unit_fingerprint": "fingerprint-a",
+            "route_identity_key": request_key,
+            "attempt_idempotency_key": request_key,
+        },
+        opl_domain_progress_transition_result=_readback(),
+    )
+
+    assert domain_owner_action_dispatch._contract_guard(payload, apply=False) == (True, None)
+
+
+def test_owner_dispatch_rejects_readback_without_explicit_route_attempt_identity() -> None:
     payload = _projection(
         next_work_unit={"unit_id": "write_delta"},
         opl_domain_progress_transition_request={
@@ -115,17 +135,25 @@ def test_owner_dispatch_accepts_bound_domain_progress_transition_readback_only()
         opl_domain_progress_transition_result=_readback(),
     )
 
-    assert domain_owner_action_dispatch._contract_guard(payload, apply=False) == (True, None)
+    assert domain_owner_action_dispatch._contract_guard(payload, apply=False) == (
+        False,
+        "opl_execution_authorization_required",
+    )
 
 
 def test_owner_dispatch_rejects_unbound_domain_progress_transition_readback() -> None:
+    request_key = "request-a"
     payload = _projection(
         next_work_unit={"unit_id": "write_delta"},
+        route_identity_key=request_key,
+        attempt_idempotency_key=request_key,
         opl_domain_progress_transition_request={
             "target_runtime_kind": "DomainProgressTransitionRuntime",
-            "idempotency_key": "request-a",
+            "idempotency_key": request_key,
             "work_unit_id": "write_delta",
             "work_unit_fingerprint": "fingerprint-a",
+            "route_identity_key": request_key,
+            "attempt_idempotency_key": request_key,
         },
         opl_domain_progress_transition_result=_readback(
             work_unit_id="stale_delta",

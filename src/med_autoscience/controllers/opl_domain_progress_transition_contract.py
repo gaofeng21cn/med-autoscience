@@ -133,6 +133,8 @@ def required_readback_shape() -> dict[str, Any]:
             "request_identity_field": PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD,
             "readback_must_match_current_transition_identity": True,
             "stale_or_cross_identity_readback_counts_as_request_pending": True,
+            "owner_callable_dispatch_uses_same_identity_binding": True,
+            "missing_route_or_attempt_identity_counts_as_missing_opl_authorization": True,
         },
         "accepted_outcome_kind": PROVIDER_ADMISSION_OUTCOME,
         "deprecated_projection_fields_not_authority": [
@@ -212,8 +214,51 @@ def live_readback_transaction_consistency() -> dict[str, bool]:
     return dict(LIVE_READBACK_TRANSACTION_CONSISTENCY)
 
 
+def live_readback_identity(readback: Mapping[str, Any]) -> dict[str, str | None]:
+    identity = _mapping(readback.get("identity"))
+    aggregate_identity = _mapping(identity.get("aggregate_identity"))
+    stage_run_identity = _mapping(identity.get("stage_run_identity"))
+    return {
+        "study_id": _text(aggregate_identity.get("study_id")),
+        "work_unit_id": _text(aggregate_identity.get("work_unit_id")),
+        "work_unit_fingerprint": _text(aggregate_identity.get("work_unit_fingerprint")),
+        "route_identity_key": _text(stage_run_identity.get("route_identity_key")),
+        "attempt_idempotency_key": _text(stage_run_identity.get("attempt_idempotency_key")),
+        PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD: _text(identity.get("idempotency_key")),
+    }
+
+
+def provider_admission_identity_complete(identity: Mapping[str, Any]) -> bool:
+    required = (
+        *PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS,
+        PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD,
+    )
+    return all(_text(identity.get(key)) is not None for key in required)
+
+
+def readback_matches_provider_admission_identity(
+    readback: Mapping[str, Any],
+    expected_identity: Mapping[str, Any],
+) -> bool:
+    if not provider_admission_identity_complete(expected_identity):
+        return False
+    actual_identity = live_readback_identity(readback)
+    return all(
+        _text(expected_identity.get(key)) == _text(actual_identity.get(key))
+        for key in (
+            *PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS,
+            PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD,
+        )
+    )
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
 
 
 __all__ = [
@@ -240,6 +285,9 @@ __all__ = [
     "mas_projection_authority_boundary",
     "mas_request_authority_boundary",
     "request_forbidden_runtime_fields",
+    "live_readback_identity",
     "required_readback_shape",
+    "provider_admission_identity_complete",
+    "readback_matches_provider_admission_identity",
     "runtime_postcondition",
 ]

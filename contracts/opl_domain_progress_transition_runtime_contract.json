@@ -118,7 +118,9 @@
       ],
       "request_identity_field": "request_idempotency_key",
       "readback_must_match_current_transition_identity": true,
-      "stale_or_cross_identity_readback_counts_as_request_pending": true
+      "stale_or_cross_identity_readback_counts_as_request_pending": true,
+      "owner_callable_dispatch_uses_same_identity_binding": true,
+      "missing_route_or_attempt_identity_counts_as_missing_opl_authorization": true
     }
   },
   "projection_postcondition_contract": {

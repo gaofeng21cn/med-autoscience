@@ -270,13 +270,41 @@ def test_transition_request_projection_with_opl_authorization_is_owner_callable_
 
 
 def test_transition_request_projection_accepts_matching_opl_transition_readback() -> None:
+    request_key = "request-a"
+    payload = _projection(
+        study_id="study-a",
+        next_work_unit={"unit_id": "write_delta"},
+        work_unit_fingerprint="fingerprint-a",
+        route_identity_key=request_key,
+        attempt_idempotency_key=request_key,
+        opl_domain_progress_transition_request={
+            "target_runtime_kind": "DomainProgressTransitionRuntime",
+            "idempotency_key": request_key,
+            "work_unit_id": "write_delta",
+            "work_unit_fingerprint": "fingerprint-a",
+            "route_identity_key": request_key,
+            "attempt_idempotency_key": request_key,
+        },
+        opl_domain_progress_transition_result=_opl_transition_readback(
+            study_id="study-a",
+            work_unit_id="write_delta",
+            work_unit_fingerprint="fingerprint-a",
+            request_key=request_key,
+        ),
+    )
+
+    assert domain_owner_action_dispatch._contract_guard(payload, apply=False) == (True, None)
+
+
+def test_transition_request_projection_rejects_readback_without_explicit_route_attempt_identity() -> None:
+    request_key = "request-a"
     payload = _projection(
         study_id="study-a",
         next_work_unit={"unit_id": "write_delta"},
         work_unit_fingerprint="fingerprint-a",
         opl_domain_progress_transition_request={
             "target_runtime_kind": "DomainProgressTransitionRuntime",
-            "idempotency_key": "request-a",
+            "idempotency_key": request_key,
             "work_unit_id": "write_delta",
             "work_unit_fingerprint": "fingerprint-a",
         },
@@ -284,23 +312,31 @@ def test_transition_request_projection_accepts_matching_opl_transition_readback(
             study_id="study-a",
             work_unit_id="write_delta",
             work_unit_fingerprint="fingerprint-a",
-            request_key="request-a",
+            request_key=request_key,
         ),
     )
 
-    assert domain_owner_action_dispatch._contract_guard(payload, apply=False) == (True, None)
+    assert domain_owner_action_dispatch._contract_guard(payload, apply=False) == (
+        False,
+        "opl_execution_authorization_required",
+    )
 
 
 def test_transition_request_projection_rejects_unbound_opl_transition_readback() -> None:
+    request_key = "request-a"
     payload = _projection(
         study_id="study-a",
         next_work_unit={"unit_id": "write_delta"},
         work_unit_fingerprint="fingerprint-a",
+        route_identity_key=request_key,
+        attempt_idempotency_key=request_key,
         opl_domain_progress_transition_request={
             "target_runtime_kind": "DomainProgressTransitionRuntime",
-            "idempotency_key": "request-a",
+            "idempotency_key": request_key,
             "work_unit_id": "write_delta",
             "work_unit_fingerprint": "fingerprint-a",
+            "route_identity_key": request_key,
+            "attempt_idempotency_key": request_key,
         },
         opl_domain_progress_transition_result=_opl_transition_readback(
             study_id="study-a",

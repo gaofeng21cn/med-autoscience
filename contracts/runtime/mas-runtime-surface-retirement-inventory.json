@@ -635,6 +635,7 @@
       "verified_by": [
         "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
         "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_accepts_matching_opl_transition_readback",
+        "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_rejects_readback_without_explicit_route_attempt_identity",
         "tests/test_domain_owner_action_dispatch_contract.py::test_current_consumer_dispatches_ignore_inline_default_executor_dispatch",
         "tests/test_domain_owner_action_dispatch_contract.py::test_current_consumer_dispatches_ignore_owner_callable_adapter_list",
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",

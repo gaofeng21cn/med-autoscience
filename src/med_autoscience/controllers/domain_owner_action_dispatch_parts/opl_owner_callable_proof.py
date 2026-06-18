@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
-    candidate_opl_transition_readback,
+    provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.opl_execution_boundary import (
     first_trusted_opl_execution_authorization,
@@ -31,13 +31,11 @@ def trusted_owner_callable_opl_proof(*payloads: object) -> dict[str, Any] | None
 
 
 def bound_opl_transition_readback(payload: Mapping[str, Any], *context_payloads: object) -> dict[str, Any]:
-    readback = candidate_opl_transition_readback(payload)
-    if not readback:
-        return {}
-    context = _iter_payloads(payload, *context_payloads)
-    if not _readback_matches_payloads(readback=readback, payloads=context):
-        return {}
-    return readback
+    context = _merged_context_payload(payload, *context_payloads)
+    return provider_admission_opl_transition_readback(
+        context,
+        require_explicit_identity=True,
+    )
 
 
 def has_bound_opl_transition_readback(payload: Mapping[str, Any], *context_payloads: object) -> bool:
@@ -58,41 +56,28 @@ def _trusted_execution_authorization(payload: Mapping[str, Any]) -> dict[str, An
     )
 
 
-def _readback_matches_payloads(
-    *,
-    readback: Mapping[str, Any],
-    payloads: list[Mapping[str, Any]],
-) -> bool:
-    identity = _mapping(readback.get("identity"))
-    aggregate_identity = _mapping(identity.get("aggregate_identity")) or identity
-    stage_run_identity = _mapping(identity.get("stage_run_identity"))
-    expected_study_ids = _union_expected(_expected_study_ids, payloads)
-    expected_work_unit_ids = _union_expected(_expected_work_unit_ids, payloads)
-    expected_fingerprints = _union_expected(_expected_work_unit_fingerprints, payloads)
-    request_keys = _union_expected(_expected_transition_request_keys, payloads)
-    if not expected_study_ids:
-        return False
-    if not (expected_work_unit_ids or expected_fingerprints or request_keys):
-        return False
-    if _conflicts(expected_study_ids, [_text(aggregate_identity.get("study_id"))]):
-        return False
-    if _conflicts(expected_work_unit_ids, [_text(aggregate_identity.get("work_unit_id"))]):
-        return False
-    if _conflicts(
-        expected_fingerprints,
-        [
-            _text(aggregate_identity.get("work_unit_fingerprint")),
-            _text(stage_run_identity.get("source_generation")),
-            _text(_mapping(readback.get("projection_metadata")).get("observed_generation")),
-        ],
+def _merged_context_payload(payload: Mapping[str, Any], *context_payloads: object) -> dict[str, Any]:
+    merged = dict(payload)
+    context = _iter_payloads(payload, *context_payloads)
+    for key, extractor in (
+        ("study_id", _expected_study_ids),
+        ("work_unit_id", _expected_work_unit_ids),
+        ("work_unit_fingerprint", _expected_work_unit_fingerprints),
+        ("route_identity_key", _expected_route_identity_keys),
+        ("attempt_idempotency_key", _expected_attempt_idempotency_keys),
     ):
-        return False
-    causality_key = _text(
-        _mapping(readback.get("causality")).get("mas_transition_request_idempotency_key")
-    ) or _text(_mapping(readback.get("causality")).get("transition_request_idempotency_key")) or _text(
-        identity.get("idempotency_key")
-    ) or _text(stage_run_identity.get("attempt_idempotency_key"))
-    return not _conflicts(request_keys, [causality_key])
+        if _text(merged.get(key)) is None and (value := _single_expected(extractor, context)) is not None:
+            merged[key] = value
+    if _text(merged.get("idempotency_key")) is None and (
+        value := _single_expected(_expected_transition_request_keys, context)
+    ) is not None:
+        merged["idempotency_key"] = value
+    return merged
+
+
+def _single_expected(extractor: Any, payloads: list[Mapping[str, Any]]) -> str | None:
+    values = _union_expected(extractor, payloads)
+    return next(iter(values)) if len(values) == 1 else None
 
 
 def _union_expected(
@@ -161,6 +146,54 @@ def _expected_work_unit_fingerprints(payload: Mapping[str, Any]) -> set[str]:
         currentness_basis.get("work_unit_fingerprint"),
         transition_request.get("work_unit_fingerprint"),
         transition_identity.get("work_unit_fingerprint"),
+    )
+
+
+def _expected_route_identity_keys(payload: Mapping[str, Any]) -> set[str]:
+    prompt_contract = _mapping(payload.get("prompt_contract"))
+    owner_route = _mapping(payload.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    source_action = _mapping(payload.get("source_action"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
+        _mapping(owner_route.get("currentness_contract")).get("basis")
+    )
+    transition_request = _mapping(payload.get("opl_domain_progress_transition_request"))
+    transition_identity = _mapping(transition_request.get("identity"))
+    stage_identity = _mapping(transition_request.get("stage_run_identity"))
+    return _non_empty_set(
+        payload.get("route_identity_key"),
+        prompt_contract.get("route_identity_key"),
+        owner_route.get("route_identity_key"),
+        source_action.get("route_identity_key"),
+        source_refs.get("route_identity_key"),
+        currentness_basis.get("route_identity_key"),
+        transition_request.get("route_identity_key"),
+        transition_identity.get("route_identity_key"),
+        stage_identity.get("route_identity_key"),
+    )
+
+
+def _expected_attempt_idempotency_keys(payload: Mapping[str, Any]) -> set[str]:
+    prompt_contract = _mapping(payload.get("prompt_contract"))
+    owner_route = _mapping(payload.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    source_action = _mapping(payload.get("source_action"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
+        _mapping(owner_route.get("currentness_contract")).get("basis")
+    )
+    transition_request = _mapping(payload.get("opl_domain_progress_transition_request"))
+    transition_identity = _mapping(transition_request.get("identity"))
+    stage_identity = _mapping(transition_request.get("stage_run_identity"))
+    return _non_empty_set(
+        payload.get("attempt_idempotency_key"),
+        prompt_contract.get("attempt_idempotency_key"),
+        owner_route.get("attempt_idempotency_key"),
+        source_action.get("attempt_idempotency_key"),
+        source_refs.get("attempt_idempotency_key"),
+        currentness_basis.get("attempt_idempotency_key"),
+        transition_request.get("attempt_idempotency_key"),
+        transition_identity.get("attempt_idempotency_key"),
+        stage_identity.get("attempt_idempotency_key"),
     )
 
 
