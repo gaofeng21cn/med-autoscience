@@ -532,7 +532,17 @@
         "repo_level_authorization_coverage_complete": true,
         "live_every_active_caller_soak_required": true,
         "missing_authorization_outcome": "opl_execution_authorization_required_typed_blocker",
-        "provider_attempt_or_lease_required_when_blocked": false
+        "provider_attempt_or_lease_required_when_blocked": false,
+        "running_provider_attempt_selector_boundary": {
+          "selector": "scan_route_currentness.live_provider_attempt_owner_route_from_scan_payload",
+          "running_provider_attempt_without_opl_proof_can_select_route": false,
+          "accepted_proofs": [
+            "trusted_opl_execution_authorization",
+            "exact_provider_hosted_stage_attempt",
+            "bound_opl_domain_progress_transition_runtime_readback"
+          ],
+          "missing_proof_outcome": "no_current_owner_route_selection"
+        }
       },
       "execution_authorization_coverage": {
         "coverage_status": "repo_fail_closed_all_supported_actions_live_readback_tail_open",
@@ -606,6 +616,9 @@
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
         "tests/test_domain_owner_action_dispatch_cases/test_paper_recovery_owner_callable.py::test_execute_dispatch_blocks_paper_recovery_provider_successor_without_opl_authorization",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py",
+        "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_requires_opl_execution_proof",
+        "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_accepts_trusted_opl_authorization",
+        "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_accepts_bound_opl_transition_readback",
         "tests/test_domain_owner_action_dispatch_cases/provider_hosted_exact_stage_packet_selection.py",
         "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_provider_hosted_authorization.py",
         "tests/test_domain_owner_action_dispatch_cases/provider_hosted_gate_clearing_authorization.py"

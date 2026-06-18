@@ -11,6 +11,8 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 
 from . import consumed_transition_owner_routes
 from . import fresh_progress_owner_actions
+from . import opl_execution_preflight
+from . import opl_owner_callable_proof
 from . import publication_owner_materialization_currentness
 from . import stage_native_dispatch_selection
 from . import writer_handoff_currentness
@@ -168,6 +170,12 @@ def live_provider_attempt_owner_route_from_scan_payload(
     live_attempt = _mapping(current_study.get("opl_provider_attempt")) or current_study
     if not _live_provider_attempt_matches_dispatch(live_attempt=live_attempt, dispatch=dispatch):
         return None
+    if not _live_provider_attempt_has_opl_execution_proof(
+        current_study=current_study,
+        live_attempt=live_attempt,
+        dispatch=dispatch,
+    ):
+        return None
     route = dispatch_owner_route(dispatch)
     if not route:
         return None
@@ -300,6 +308,24 @@ def _live_provider_attempt_matches_dispatch(
     normalized_dispatch_path = dispatch_path.replace("\\", "/")
     normalized_live_ref = live_dispatch_ref.replace("\\", "/")
     return normalized_dispatch_path == normalized_live_ref or normalized_dispatch_path.endswith(f"/{normalized_live_ref}")
+
+
+def _live_provider_attempt_has_opl_execution_proof(
+    *,
+    current_study: Mapping[str, Any],
+    live_attempt: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(dispatch):
+        return True
+    return (
+        opl_owner_callable_proof.trusted_owner_callable_opl_proof(
+            live_attempt,
+            current_study,
+            dispatch,
+        )
+        is not None
+    )
 
 
 def _dispatch_work_unit_id(dispatch: Mapping[str, Any]) -> str | None:
