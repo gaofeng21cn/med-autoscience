@@ -97,7 +97,10 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
         "DHD apply exactly-one live outcome when explicitly delegated",
         "provider admission arbiter fully consuming OPL transition events",
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
-        "domain_authority_refs_index live OPL StateIndexKernel takeover or no-active-caller physical delete proof",
+        (
+            "domain_authority_refs_index live OPL StateIndexKernel takeover or "
+            "no-active-caller physical delete proof after source-adapter default demotion"
+        ),
         "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
         "domain_owner_action_dispatch live every-active-caller soak or no-active-caller proof",
     } <= open_tails
