@@ -756,6 +756,253 @@ def test_domain_handler_export_projects_current_control_transition_request_to_op
     assert "runtime-health-event-stale-dispatch" not in json.dumps(task, sort_keys=True)
 
 
+def test_domain_handler_export_consumes_transition_request_after_owner_receipt(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    work_unit_fingerprint = "publication-blockers::0915410f804b3697"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    stale_route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason=work_unit_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+        runtime_health_epoch="runtime-health-event-stale-dispatch",
+        blocked_actions=[],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename=f"{action_type}.json",
+        action_type=action_type,
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-06-17T00:00:00+00:00",
+        owner_route=stale_route,
+    )
+
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        transition_request = {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "target_runtime_owner": "one-person-lab",
+            "recommended_transition_kind": "StartProviderAttempt",
+            "mas_can_create_opl_event": False,
+            "mas_can_create_opl_outbox_record": False,
+            "mas_can_create_opl_stage_run": False,
+            "currentness_basis": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                "runtime_health_epoch": "runtime-health-event-canonical-test",
+            },
+        }
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "owner_receipt_recorded",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "write",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+                "owner_receipt_ref": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                    "artifacts/controller/repair_execution_receipts/latest.json"
+                ),
+                "currentness_basis": transition_request["currentness_basis"],
+            },
+            "current_execution_envelope": {
+                "state_kind": "owner_receipt_recorded",
+                "owner": "write",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "owner_receipt_ref": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                    "artifacts/controller/repair_execution_receipts/latest.json"
+                ),
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "transition_request_pending",
+                "source": "opl_current_control_state.study_current_executable_owner_action",
+                "next_owner": "write",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "source_fingerprint": work_unit_fingerprint,
+                "owner_route_currentness_basis": transition_request["currentness_basis"],
+                "opl_domain_progress_transition_request": transition_request,
+                "paper_progress_policy_result": {
+                    "policy_result_id": "paper-policy::dm003-owner-receipt",
+                    "opl_domain_progress_transition_request": transition_request,
+                },
+            },
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert not [
+        task
+        for task in payload["pending_family_tasks"]
+        if task.get("reason") == "current_control_transition_request_pending"
+        and task.get("payload", {}).get("study_id") == study_id
+        and task.get("payload", {}).get("work_unit_id") == work_unit_id
+    ]
+
+
+def test_domain_handler_export_consumes_transition_request_from_current_control_handoff_terminal_surface(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    work_unit_fingerprint = "publication-blockers::0915410f804b3697"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    stale_route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason=work_unit_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+        runtime_health_epoch="runtime-health-event-stale-dispatch",
+        blocked_actions=[],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename=f"{action_type}.json",
+        action_type=action_type,
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-06-17T00:00:00+00:00",
+        owner_route=stale_route,
+    )
+
+    transition_request = {
+        "surface_kind": "mas_domain_progress_transition_request",
+        "target_runtime_owner": "one-person-lab",
+        "recommended_transition_kind": "StartProviderAttempt",
+        "mas_can_create_opl_event": False,
+        "mas_can_create_opl_outbox_record": False,
+        "mas_can_create_opl_stage_run": False,
+        "currentness_basis": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "truth_epoch": "truth-event-000024-daa5883571a64a07",
+            "runtime_health_epoch": "runtime-health-event-canonical-test",
+        },
+    }
+    terminal_current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "status": "owner_receipt_recorded",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner": "write",
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
+        "owner_receipt_ref": (
+            "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+            "artifacts/controller/repair_execution_receipts/latest.json"
+        ),
+        "currentness_basis": transition_request["currentness_basis"],
+    }
+
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "transition_request_pending",
+                "source": "opl_current_control_state.study_current_executable_owner_action",
+                "next_owner": "write",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "source_fingerprint": work_unit_fingerprint,
+                "owner_route_currentness_basis": transition_request["currentness_basis"],
+                "opl_domain_progress_transition_request": transition_request,
+                "paper_progress_policy_result": {
+                    "policy_result_id": "paper-policy::dm003-owner-receipt",
+                    "opl_domain_progress_transition_request": transition_request,
+                },
+            },
+            "opl_current_control_state_handoff": {
+                "transition_request_pending_count": 0,
+                "transition_request_candidates": [],
+                "provider_admission_terminal_closeout_consumed": {
+                    "surface_kind": "provider_admission_terminal_closeout_consumed",
+                    "stage_attempt_id": "sat-terminal",
+                    "action_type": action_type,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "owner_receipt_ref": (
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                        "artifacts/controller/repair_execution_receipts/latest.json"
+                    ),
+                },
+                "current_work_unit": terminal_current_work_unit,
+                "current_execution_envelope": {
+                    "state_kind": "owner_receipt_recorded",
+                    "owner": "write",
+                    "action_type": action_type,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                },
+            },
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert not [
+        task
+        for task in payload["pending_family_tasks"]
+        if task.get("reason") == "current_control_transition_request_pending"
+        and task.get("payload", {}).get("study_id") == study_id
+        and task.get("payload", {}).get("work_unit_id") == work_unit_id
+    ]
+
+
 def test_domain_handler_export_carries_stage_packet_for_recovery_successor_transition_request(
     tmp_path: Path,
     capsys,
