@@ -203,6 +203,28 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     assert {task["provider_admission_pending"] for task in result["request_tasks"]} == {False}
     assert {task["provider_admission_requires_opl_runtime_result"] for task in result["request_tasks"]} == {True}
     assert {task["mas_local_request_packet_persistence"] for task in result["request_tasks"]} == {"forbidden"}
+    task_postconditions = {
+        json.dumps(task["opl_transition_runtime_postcondition"], sort_keys=True)
+        for task in result["request_tasks"]
+    }
+    assert len(task_postconditions) == 1
+    task_postcondition = result["request_tasks"][0]["opl_transition_runtime_postcondition"]
+    assert task_postcondition["surface_kind"] == "opl_domain_progress_transition_runtime_postcondition"
+    assert task_postcondition["required_owner_surface"] == "one-person-lab DomainProgressTransitionRuntime"
+    assert task_postcondition["mas_can_satisfy_readback"] is False
+    assert task_postcondition["request_projection_only"] is True
+    assert task_postcondition["mas_projection_cannot_replace"] == [
+        "opl_command",
+        "opl_event",
+        "opl_transactional_outbox",
+        "opl_stage_run",
+        "opl_provider_admission",
+        "opl_fixed_point_reconcile",
+    ]
+    assert {task["authority_boundary"]["mas_creates_opl_outbox"] for task in result["request_tasks"]} == {False}
+    assert {task["authority_boundary"]["mas_creates_opl_event"] for task in result["request_tasks"]} == {False}
+    assert {task["authority_boundary"]["mas_creates_opl_stage_run"] for task in result["request_tasks"]} == {False}
+    assert {task["authority_boundary"]["can_select_next_action"] for task in result["request_tasks"]} == {False}
     assert not gate_packet_path.exists()
     assert not ai_packet_path.exists()
     assert not freshness_packet_path.exists()
@@ -215,6 +237,14 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     assert ai_packet["authority"] == "observability_only"
     assert freshness_packet["authority"] == "observability_only"
     assert display_packet["authority"] == "observability_only"
+    assert gate_packet["opl_transition_runtime_postcondition"] == task_postcondition
+    assert ai_packet["opl_transition_runtime_postcondition"] == task_postcondition
+    assert freshness_packet["opl_transition_runtime_postcondition"] == task_postcondition
+    assert display_packet["opl_transition_runtime_postcondition"] == task_postcondition
+    assert gate_packet["authority_boundary"]["mas_dispatch_authority"] is False
+    assert ai_packet["authority_boundary"]["mas_dispatch_authority"] is False
+    assert freshness_packet["authority_boundary"]["mas_dispatch_authority"] is False
+    assert display_packet["authority_boundary"]["mas_dispatch_authority"] is False
     assert gate_packet["request_owner"] == "publication_gate"
     assert ai_packet["request_owner"] == "ai_reviewer"
     assert freshness_packet["request_owner"] == "artifact_os"

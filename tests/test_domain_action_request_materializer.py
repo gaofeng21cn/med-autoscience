@@ -974,6 +974,30 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert transition_requests[0]["mas_creates_opl_stage_run"] is False
     assert transition_requests[0]["provider_admission_pending"] is False
     assert transition_requests[0]["provider_admission_requires_opl_runtime_result"] is True
+    transition_postcondition = transition_requests[0]["opl_transition_runtime_postcondition"]
+    assert transition_postcondition["surface_kind"] == "opl_domain_progress_transition_runtime_postcondition"
+    assert transition_postcondition["required_owner_surface"] == "one-person-lab DomainProgressTransitionRuntime"
+    assert transition_postcondition["mas_surface_role"] == "domain_intent_and_policy_request_projection"
+    assert transition_postcondition["mas_can_satisfy_readback"] is False
+    assert transition_postcondition["request_projection_only"] is True
+    assert transition_postcondition["required_readback_shape"] == {
+        "identity": True,
+        "causality": True,
+        "authority_boundary": True,
+        "exactly_one_outcome": True,
+        "projection_metadata": True,
+        "event_id": True,
+        "outbox_item_id": True,
+        "stage_run_identity": True,
+    }
+    assert transition_postcondition["mas_projection_cannot_replace"] == [
+        "opl_command",
+        "opl_event",
+        "opl_transactional_outbox",
+        "opl_stage_run",
+        "opl_provider_admission",
+        "opl_fixed_point_reconcile",
+    ]
     assert transition_requests[0]["opl_domain_progress_transition_request"]["surface_kind"] == (
         "mas_domain_progress_transition_request"
     )
@@ -981,6 +1005,9 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert result["mas_creates_opl_outbox"] is False
     assert result["mas_creates_opl_event"] is False
     assert result["mas_creates_opl_stage_run"] is False
+    assert result["authority_boundary"]["mas_dispatch_authority"] is False
+    assert result["authority_boundary"]["can_select_next_action"] is False
+    assert result["opl_transition_runtime_postcondition"] == transition_postcondition
     assert result["apply_writes_domain_intent_projection_only"] is True
     assert result["apply_writes_disabled_reason"] == (
         "opl_domain_progress_transition_runtime_owns_durable_carrier"
@@ -1003,6 +1030,9 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert dispatches[0]["dispatch_ready_for_execution_authority"] is False
     assert dispatches[0]["provider_admission_pending"] is False
     assert dispatches[0]["provider_admission_requires_opl_runtime_result"] is True
+    assert dispatches[0]["opl_transition_runtime_postcondition"] == transition_postcondition
+    assert dispatches[0]["authority_boundary"]["can_create_success_outcome"] is False
+    assert dispatches[0]["authority_boundary"]["can_select_next_action"] is False
     assert dispatches[0]["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert dispatches[0]["blocked_reason"] == "opl_execution_authorization_required"
     assert dispatches[0]["domain_intent"]["target_runtime_transition"] == "OPL Command/Event/Outbox/StageRun"
