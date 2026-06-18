@@ -3,7 +3,7 @@
   "version": "paper-autonomy-supervisor.v1",
   "owner": "MedAutoScience / OPL Framework",
   "state": "active_contract",
-  "purpose": "Machine-readable contract for the MAS paper progress policy adapter obligation, decision taxonomy, recovery materialization, progress accounting, and OPL substrate split.",
+  "purpose": "Machine-readable contract for the MAS paper progress policy adapter obligation, policy result projection taxonomy, recovery materialization, progress accounting, and OPL substrate split.",
   "machine_boundary": "This contract defines the MAS paper progress policy adapter handshake with OPL DomainProgressTransitionRuntime. It does not declare live study truth, paper closure, publication readiness, submission readiness, quality verdicts, artifact mutation authority, current package freshness, runtime production readiness, or OPL provider liveness.",
   "source_design_ref": "docs/runtime/designs/paper_autonomy_supervisor_target.md",
   "related_contract_refs": [
@@ -57,7 +57,7 @@
   "planning_root": {
     "desired_root": "current_owner_delta",
     "obligation_surface": "paper_autonomy_obligation",
-    "decision_surface": "supervisor_decision",
+    "decision_surface": "paper_progress_policy_result_projection",
     "one_obligation_per_current_owner_delta": true,
     "read_models_can_create_obligations": false,
     "query_surfaces": [
@@ -85,7 +85,9 @@
       "trace span",
       "portal text",
       "stage index file presence"
-    ]
+    ],
+    "legacy_decision_surface": "paper_autonomy_supervisor_decision",
+    "legacy_decision_surface_is_authority": false
   },
   "paper_autonomy_obligation": {
     "surface_kind": "paper_autonomy_obligation_contract",
@@ -138,7 +140,7 @@
     }
   },
   "supervisor_decision_taxonomy": {
-    "surface_kind": "paper_autonomy_supervisor_decision_taxonomy",
+    "surface_kind": "paper_progress_policy_result_projection_taxonomy",
     "decision_field": "decision",
     "decision_field_role": "policy_recommendation_label",
     "decision_field_is_authority": false,
@@ -176,8 +178,10 @@
         "next_safe_action",
         "paper_progress_classification",
         "platform_repair_classification",
-        "authority_boundary"
-      ]
+        "authority_boundary",
+        "legacy_decision_field_deprecated"
+      ],
+      "legacy_decision_field_deprecated": true
     },
     "opl_supervisor_decision_engine_readback_requirement": {
       "surface_kind": "opl_supervisor_decision_engine_readback_requirement",
@@ -325,7 +329,10 @@
       "queue_empty",
       "provider_healthy",
       "read_model_refreshed"
-    ]
+    ],
+    "policy_result_projection_surface": "paper_progress_policy_result_projection",
+    "legacy_decision_surface_kind": "paper_autonomy_supervisor_decision",
+    "legacy_decision_surface_is_authority": false
   },
   "recovery_action_contract": {
     "surface_kind": "paper_autonomy_recovery_action_contract",

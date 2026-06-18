@@ -176,8 +176,11 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "opl_authorized_owner_callable_adapter"
     )
     assert surfaces["domain_health_diagnostic_obligation_actuator"]["current_disposition"] == (
-        "opl_recovery_obligation_readback_consumer"
+        "obligation_readback_projection_consumer"
     )
+    assert surfaces["domain_health_diagnostic_obligation_actuator"][
+        "fail_closed_typed_blocker_surface"
+    ] == "mas_domain_typed_blocker"
     assert surfaces["domain_authority_refs_index"]["current_disposition"] == (
         "source_adapter_emitted_live_state_index_takeover_tail_open"
     )

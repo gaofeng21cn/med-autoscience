@@ -550,7 +550,7 @@
         "request_projection_only_can_satisfy_success": false
       },
       "compatibility_alias_allowed": false,
-      "current_disposition": "opl_recovery_obligation_readback_consumer",
+      "current_disposition": "obligation_readback_projection_consumer",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_generic_event_log",
@@ -564,7 +564,7 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
-      "no_forbidden_write_proof_surface": "artifacts/controller/domain_health_diagnostic_obligation_actuator/latest.json",
+      "no_forbidden_write_proof_surface": "artifacts/mas_authority/typed_blockers/domain_health_diagnostic_obligation/latest.json",
       "obligation_readback_boundary": {
         "request_projection_is_success_outcome": false,
         "success_proof_required_for_postcondition_ok": true,
@@ -578,12 +578,14 @@
         "supervisor_disallowed_outcome_is_success": false,
         "readback_result_validator_boundary_required": true,
         "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
-        "local_allowed_outcome_table_role": "contract_bound_result_shape_validation_not_supervisor_decision_engine"
+        "local_allowed_outcome_table_role": "contract_bound_result_shape_validation_not_supervisor_decision_engine",
+        "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
+        "actuator_can_write_private_blocker_surface": false
       },
       "replacement_surface": "OPL RecoveryObligationStore / SupervisorDecisionEngine readback plus MAS PaperProgressPolicyAdapter result",
       "request_projection_only_status": "transition_request_pending",
-      "retained_mas_role": "consume_only_obligation_outcome_projection_and_fail_closed_typed_blocker",
-      "retention_reason": "temporary refs projection until OPL recovery-obligation readback is the active caller and MAS retains only owner-answer / typed-blocker evidence consumption",
+      "retained_mas_role": "consume_only_obligation_outcome_projection_and_mas_typed_blocker_authority_result",
+      "retention_reason": "temporary refs projection until OPL recovery-obligation readback is the active caller; fail-closed blockers are MAS typed-blocker authority results, not actuator private writes",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,
@@ -605,7 +607,10 @@
       "mas_can_mutate_recovery_obligation_store": false,
       "mas_can_run_supervisor_decision_engine": false,
       "mas_can_create_opl_command_event_or_outbox": false,
-      "validator_module": "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.readback_result_validator"
+      "validator_module": "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.readback_result_validator",
+      "can_write_fail_closed_typed_control_blocker": false,
+      "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
+      "actuator_can_write_private_blocker_surface": false
     },
     {
       "active_caller_migrated": true,

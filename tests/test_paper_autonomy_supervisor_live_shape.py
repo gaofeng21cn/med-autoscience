@@ -35,7 +35,12 @@ def test_dm002_dm003_zero_queue_live_shape_emits_one_non_idle_supervisor_decisio
 
     assert set(decisions) == EXPECTED_STUDY_IDS
     for decision in decisions.values():
-        assert decision["surface_kind"] == "paper_autonomy_supervisor_decision"
+        assert decision["surface_kind"] == "paper_progress_policy_result_projection"
+        assert decision["legacy_decision_surface_kind"] == (
+            "paper_autonomy_supervisor_decision"
+        )
+        assert decision["legacy_decision_field_is_authority"] is False
+        assert decision["decision_field_deprecated"] is True
         assert decision["decision"] in ALLOWED_SUPERVISOR_DECISIONS
         assert decision["decision"] not in FORBIDDEN_TERMINAL_DECISIONS
         assert decision["identity_match"] is True

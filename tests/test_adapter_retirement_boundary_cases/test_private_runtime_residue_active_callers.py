@@ -172,7 +172,12 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "local_allowed_outcome_table_role": (
             "contract_bound_result_shape_validation_not_supervisor_decision_engine"
         ),
+        "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
+        "actuator_can_write_private_blocker_surface": False,
     }
+    assert actuator["can_write_fail_closed_typed_control_blocker"] is False
+    assert actuator["fail_closed_typed_blocker_surface"] == "mas_domain_typed_blocker"
+    assert actuator["actuator_can_write_private_blocker_surface"] is False
     assert actuator["transition_request_pending_can_close_physical_tail"] is False
     assert actuator["retirement_gate"]["owner_retirement_decision_required"] is True
     assert "mas_owned_recovery_obligation_store" in actuator["forbidden_claims"]

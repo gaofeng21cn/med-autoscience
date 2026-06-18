@@ -4,7 +4,8 @@ from collections.abc import Mapping
 from typing import Any
 
 
-SURFACE_KIND = "paper_autonomy_supervisor_decision"
+SURFACE_KIND = "paper_progress_policy_result_projection"
+LEGACY_DECISION_SURFACE_KIND = "paper_autonomy_supervisor_decision"
 OBLIGATION_SURFACE_KIND = "paper_autonomy_obligation"
 POLICY_RESULT_PROJECTION_SURFACE_KIND = "paper_progress_policy_result_projection"
 SCHEMA_VERSION = 1
@@ -140,7 +141,7 @@ def build_paper_progress_policy_result_projection(
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
             "policy_recommendation_label": policy_recommendation_label,
             "policy_recommendation_label_is_authority": False,
-            "legacy_decision_surface_kind": SURFACE_KIND,
+            "legacy_decision_surface_kind": LEGACY_DECISION_SURFACE_KIND,
             "legacy_decision_field": policy_recommendation_label,
             "legacy_decision_field_role": "policy_recommendation_label",
             "legacy_decision_field_is_authority": False,
@@ -214,6 +215,7 @@ __all__ = [
     "ALLOWED_DECISIONS",
     "AUTHORITY_BOUNDARY",
     "FORBIDDEN_TERMINAL_INTERPRETATIONS",
+    "LEGACY_DECISION_SURFACE_KIND",
     "OBLIGATION_SURFACE_KIND",
     "OPL_SUPERVISOR_DECISION_ENGINE_READBACK_REQUIREMENT",
     "POLICY_RECOMMENDATION_SEMANTICS",

@@ -365,16 +365,19 @@ def test_standard_agent_completion_evidence_ledger_names_precise_dhd_actuator_ph
     actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
 
     assert actuator["active_caller_migrated"] is False
-    assert actuator["current_disposition"] == "opl_recovery_obligation_readback_consumer"
+    assert actuator["current_disposition"] == "obligation_readback_projection_consumer"
     assert actuator["retention_reason"] == (
-        "temporary refs projection until OPL recovery-obligation readback is the active caller "
-        "and MAS retains only owner-answer / typed-blocker evidence consumption"
+        "temporary refs projection until OPL recovery-obligation readback is the active caller; "
+        "fail-closed blockers are MAS typed-blocker authority results, not actuator private writes"
     )
     assert actuator["request_projection_only_status"] == "transition_request_pending"
     assert actuator["transition_request_pending_can_close_physical_tail"] is False
     assert actuator["no_forbidden_write_proof_surface"] == (
-        "artifacts/controller/domain_health_diagnostic_obligation_actuator/latest.json"
+        "artifacts/mas_authority/typed_blockers/domain_health_diagnostic_obligation/latest.json"
     )
+    assert actuator["can_write_fail_closed_typed_control_blocker"] is False
+    assert actuator["fail_closed_typed_blocker_surface"] == "mas_domain_typed_blocker"
+    assert actuator["actuator_can_write_private_blocker_surface"] is False
     assert actuator["retirement_gate"] == {
         "active_caller_alone_retains_surface": False,
         "completion_claim_requires_live_owner_or_opl_readback": True,

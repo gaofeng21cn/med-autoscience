@@ -384,6 +384,12 @@ def test_domain_health_diagnostic_apply_projects_transition_request_when_provide
     assert "success_source_family" not in foundation
     blocker = outcome["typed_control_blocker"]
     assert blocker["blocker_type"] == "opl_transition_readback_required"
+    assert blocker["surface_kind"] == "mas_domain_typed_blocker"
+    assert blocker["owner_answer_shape"] == "typed_blocker_ref"
+    assert blocker["mas_authority_result_shape"] == "typed_blocker_ref"
+    assert blocker["private_actuator_surface_retired"] is True
+    assert blocker["actuator_private_write_authority"] is False
+    assert blocker["source"] == "domain_health_diagnostic.obligation_readback_projection"
     assert blocker["non_advancing_apply"] is True
     assert blocker["paper_progress_policy_result"]["recommended_opl_transition_kind"] == (
         "NonAdvancingApply"
@@ -415,6 +421,11 @@ def test_domain_health_diagnostic_apply_projects_transition_request_when_provide
     ] is False
     assert outcome["authority_boundary"]["can_apply_non_advancing_transition"] is False
     assert outcome["authority_boundary"]["can_replay_obligation"] is False
+    assert outcome["authority_boundary"]["can_write_fail_closed_typed_control_blocker"] is False
+    assert outcome["authority_boundary"]["fail_closed_typed_blocker_surface"] == (
+        "mas_domain_typed_blocker"
+    )
+    assert outcome["authority_boundary"]["actuator_can_write_private_blocker_surface"] is False
     postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
     assert postcondition["ok"] is False
     assert postcondition["outcome_kind"] == "transition_request_pending"
@@ -552,9 +563,19 @@ def test_domain_health_diagnostic_apply_does_not_accept_provider_admission_witho
     assert outcome["typed_control_blocker"]["blocker_type"] == (
         "non_advancing_apply"
     )
+    assert outcome["typed_control_blocker"]["surface_kind"] == "mas_domain_typed_blocker"
+    assert outcome["typed_control_blocker"]["owner_answer_shape"] == "typed_blocker_ref"
+    assert outcome["typed_control_blocker"]["mas_authority_result_shape"] == (
+        "typed_blocker_ref"
+    )
+    assert outcome["typed_control_blocker"]["private_actuator_surface_retired"] is True
+    assert outcome["typed_control_blocker"]["actuator_private_write_authority"] is False
     assert outcome["typed_control_blocker"]["authority_boundary"][
         "provider_admission_requires_opl_runtime_result"
     ] is True
+    assert outcome["typed_control_blocker"]["authority_boundary"][
+        "can_write_fail_closed_typed_control_blocker"
+    ] is False
     assert (
         "provider_admission_pending_requires_mas_transition_request"
         not in outcome["typed_control_blocker"]["authority_boundary"]

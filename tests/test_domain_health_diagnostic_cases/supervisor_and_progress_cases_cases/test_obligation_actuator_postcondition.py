@@ -717,11 +717,22 @@ def test_domain_health_diagnostic_apply_continues_same_tick_for_owner_receipt_co
     _assert_exactly_one_dhd_apply_outcome(typed_blocker_outcomes[0], "typed_blocker_ref")
     blocker = typed_blocker_outcomes[0]["typed_control_blocker"]
     assert blocker["blocker_type"] == "non_advancing_apply"
+    assert blocker["surface_kind"] == "mas_domain_typed_blocker"
+    assert blocker["owner_answer_shape"] == "typed_blocker_ref"
+    assert blocker["mas_authority_result_shape"] == "typed_blocker_ref"
+    assert blocker["private_actuator_surface_retired"] is True
+    assert blocker["actuator_private_write_authority"] is False
+    assert blocker["source"] == "domain_health_diagnostic.obligation_readback_projection"
     assert blocker["non_advancing_apply"] is True
     assert blocker["paper_progress_policy_result"]["recommended_opl_transition_kind"] == (
         "NonAdvancingApply"
     )
     assert blocker["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
+    assert blocker["authority_boundary"]["can_write_fail_closed_typed_control_blocker"] is False
+    assert blocker["authority_boundary"]["fail_closed_typed_blocker_surface"] == (
+        "mas_domain_typed_blocker"
+    )
+    assert blocker["authority_boundary"]["actuator_can_write_private_blocker_surface"] is False
     assert "provider_admission_pending_requires_mas_transition_request" not in blocker[
         "authority_boundary"
     ]
@@ -1048,11 +1059,22 @@ def test_domain_health_diagnostic_apply_fails_closed_when_ready_action_has_no_cl
     _assert_exactly_one_dhd_apply_outcome(outcome, "typed_blocker_ref")
     blocker = outcome["typed_control_blocker"]
     assert blocker["blocker_type"] == "non_advancing_apply"
+    assert blocker["surface_kind"] == "mas_domain_typed_blocker"
+    assert blocker["owner_answer_shape"] == "typed_blocker_ref"
+    assert blocker["mas_authority_result_shape"] == "typed_blocker_ref"
+    assert blocker["private_actuator_surface_retired"] is True
+    assert blocker["actuator_private_write_authority"] is False
+    assert blocker["source"] == "domain_health_diagnostic.obligation_readback_projection"
     assert blocker["non_advancing_apply"] is True
     assert blocker["paper_progress_policy_result"]["recommended_opl_transition_kind"] == (
         "NonAdvancingApply"
     )
     assert blocker["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
+    assert blocker["authority_boundary"]["can_write_fail_closed_typed_control_blocker"] is False
+    assert blocker["authority_boundary"]["fail_closed_typed_blocker_surface"] == (
+        "mas_domain_typed_blocker"
+    )
+    assert blocker["authority_boundary"]["actuator_can_write_private_blocker_surface"] is False
     assert "provider_admission_pending_requires_mas_transition_request" not in blocker[
         "authority_boundary"
     ]
@@ -1111,6 +1133,12 @@ def _assert_exactly_one_dhd_apply_outcome(
             "mas_owner_answer_readback",
             "mas_domain_authority_readback",
         }
+        if outcome["postcondition_ok"] is not True:
+            assert "success_outcome_source_family" not in outcome
+            assert "dhd_apply_success_proof" not in outcome
+            assert foundation["success_source_family"] == source_family
+            assert foundation["success_source_family_required"] is True
+            return
         assert outcome["success_outcome_source_family"] == source_family
         success_proof = outcome["dhd_apply_success_proof"]
         assert success_proof["surface_kind"] == "dhd_apply_success_proof"

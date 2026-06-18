@@ -127,7 +127,7 @@ def apply_managed_study_obligation_actuator(
         actuator_summary = _mapping(report.get("managed_study_obligation_actuator_summary"))
         report["managed_study_obligation_actuator_summary"] = {
             **actuator_summary,
-            "surface_kind": "managed_study_obligation_actuator_summary",
+            "surface_kind": "managed_study_obligation_readback_projection_summary",
             "schema_version": 1,
             "phase": phase,
             "outcome_count": len(outcomes),
@@ -402,7 +402,7 @@ def _provider_admission_or_transition_request_outcome(
             phase=phase,
             details={
                 "provider_admission_candidates": candidates,
-                "opl_runtime_result": runtime_result,
+                "opl_runtime_result": _normalized_opl_runtime_readback(runtime_result),
             },
         )
     blocker = _typed_control_blocker_payload(
@@ -553,8 +553,9 @@ def _fail_closed_obligation_outcome(
     blocker_path = (
         study_root
         / "artifacts"
-        / "controller"
-        / "domain_health_diagnostic_obligation_actuator"
+        / "mas_authority"
+        / "typed_blockers"
+        / "domain_health_diagnostic_obligation"
         / "latest.json"
     )
     blocker_path.parent.mkdir(parents=True, exist_ok=True)
@@ -597,13 +598,18 @@ def _typed_control_blocker_payload(
         reason=reason,
     )
     payload = {
-        "surface_kind": "domain_health_diagnostic_obligation_actuator_typed_blocker",
+        "surface_kind": "mas_domain_typed_blocker",
         "schema_version": 1,
         "status": "typed_blocker",
         "fail_closed": True,
         "blocker_type": blocker_type,
         "reason": reason,
-        "source": "domain_health_diagnostic.obligation_actuator",
+        "source": "domain_health_diagnostic.obligation_readback_projection",
+        "source_projection_surface": "domain_health_diagnostic_obligation_readback_projection",
+        "owner_answer_shape": "typed_blocker_ref",
+        "mas_authority_result_shape": "typed_blocker_ref",
+        "private_actuator_surface_retired": True,
+        "actuator_private_write_authority": False,
         "actuator_phase": phase,
         "study_id": _non_empty_text(action.get("study_id")) or _non_empty_text(obligation.get("study_id")),
         "quest_id": _non_empty_text(action.get("quest_id")) or _non_empty_text(obligation.get("quest_id")),
@@ -816,6 +822,48 @@ def _obligation_outcome(
         "typed_control_blocker": _clean_payload(_mapping(typed_control_blocker)),
     }
     return _clean_payload(payload)
+
+
+def _normalized_opl_runtime_readback(readback: Mapping[str, Any]) -> dict[str, Any]:
+    result = dict(readback)
+    identity = _mapping(result.get("identity"))
+    causality = _mapping(result.get("causality"))
+    latest = _mapping(result.get("latest_transaction_readback"))
+    stage_run_identity = _mapping(identity.get("stage_run_identity"))
+    refs = {
+        "event_id": _first_text(
+            result.get("event_id"),
+            identity.get("latest_event_id"),
+            identity.get("event_id"),
+            causality.get("event_id"),
+            latest.get("event_id"),
+            latest.get("transition_event_id"),
+        ),
+        "outbox_item_id": _first_text(
+            result.get("outbox_item_id"),
+            identity.get("latest_outbox_item_id"),
+            identity.get("outbox_item_id"),
+            causality.get("outbox_item_id"),
+            latest.get("outbox_item_id"),
+        ),
+        "transaction_id": _first_text(
+            result.get("transaction_id"),
+            identity.get("latest_transaction_id"),
+            identity.get("transaction_id"),
+            causality.get("transaction_id"),
+            latest.get("transaction_id"),
+        ),
+        "stage_run_id": _first_text(
+            result.get("stage_run_id"),
+            stage_run_identity.get("stage_run_id"),
+            stage_run_identity.get("stage_run_identity_ref"),
+        ),
+    }
+    for key, value in refs.items():
+        if value is not None and _non_empty_text(result.get(key)) is None:
+            result[key] = value
+    result["canonical_runtime_refs"] = refs
+    return _clean_payload(result)
 
 
 def _consume_only_readback_boundary() -> dict[str, Any]:

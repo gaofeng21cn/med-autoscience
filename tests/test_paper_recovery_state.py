@@ -83,7 +83,11 @@ def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     )
 
     assert state["surface_kind"] == "paper_recovery_state"
-    assert state["supervisor_decision"]["surface_kind"] == "paper_autonomy_supervisor_decision"
+    assert state["supervisor_decision"]["surface_kind"] == "paper_progress_policy_result_projection"
+    assert state["supervisor_decision"]["legacy_decision_surface_kind"] == (
+        "paper_autonomy_supervisor_decision"
+    )
+    assert state["supervisor_decision"]["legacy_decision_field_is_authority"] is False
     assert state["supervisor_decision"]["decision"] == "stop_with_stable_typed_blocker"
     assert state["phase"] == "domain_blocked"
     assert state["recovery_obligation_id"] == (

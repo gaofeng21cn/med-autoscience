@@ -66,7 +66,9 @@ def test_obligation_contract_requires_identity_timeout_and_nonterminal_pending_s
     root = contract["planning_root"]
     assert root["desired_root"] == "current_owner_delta"
     assert root["obligation_surface"] == "paper_autonomy_obligation"
-    assert root["decision_surface"] == "supervisor_decision"
+    assert root["decision_surface"] == "paper_progress_policy_result_projection"
+    assert root["legacy_decision_surface"] == "paper_autonomy_supervisor_decision"
+    assert root["legacy_decision_surface_is_authority"] is False
     assert root["one_obligation_per_current_owner_delta"] is True
     assert root["read_models_can_create_obligations"] is False
 
@@ -119,6 +121,10 @@ def test_supervisor_decision_taxonomy_is_closed_and_identity_bound() -> None:
     contract = _contract()
     taxonomy = contract["supervisor_decision_taxonomy"]
 
+    assert taxonomy["surface_kind"] == "paper_progress_policy_result_projection_taxonomy"
+    assert taxonomy["policy_result_projection_surface"] == "paper_progress_policy_result_projection"
+    assert taxonomy["legacy_decision_surface_kind"] == "paper_autonomy_supervisor_decision"
+    assert taxonomy["legacy_decision_surface_is_authority"] is False
     assert taxonomy["decision_field"] == "decision"
     assert taxonomy["decision_field_role"] == "policy_recommendation_label"
     assert taxonomy["decision_field_is_authority"] is False
@@ -142,6 +148,7 @@ def test_supervisor_decision_taxonomy_is_closed_and_identity_bound() -> None:
         "legacy_decision_surface_kind": "paper_autonomy_supervisor_decision",
         "legacy_decision_field_role": "policy_recommendation_label",
         "legacy_decision_field_is_authority": False,
+        "legacy_decision_field_deprecated": True,
         "mas_can_run_supervisor_decision_engine": False,
         "mas_can_store_recovery_obligation": False,
         "mas_can_create_opl_command_event_or_outbox": False,
@@ -158,6 +165,7 @@ def test_supervisor_decision_taxonomy_is_closed_and_identity_bound() -> None:
             "paper_progress_classification",
             "platform_repair_classification",
             "authority_boundary",
+            "legacy_decision_field_deprecated",
         ],
     }
     readback = taxonomy["opl_supervisor_decision_engine_readback_requirement"]

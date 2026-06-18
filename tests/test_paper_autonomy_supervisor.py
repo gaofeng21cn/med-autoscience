@@ -63,11 +63,17 @@ def test_execute_decision_requires_provider_and_stage_run_identity() -> None:
 
     decision = build_supervisor_decision(payload)
 
-    assert decision["surface_kind"] == "paper_autonomy_supervisor_decision"
-    assert decision["projection_role"] == "mas_policy_adapter_decision_projection"
+    assert decision["surface_kind"] == "paper_progress_policy_result_projection"
+    assert decision["projection_role"] == "mas_paper_progress_policy_result_projection"
     assert decision["policy_result_role"] == "mas_paper_progress_policy_result_projection"
     assert decision["authority"] is False
     assert decision["decision_authority"] is False
+    assert decision["legacy_surface_kind"] == "paper_autonomy_supervisor_decision"
+    assert decision["legacy_decision_surface_kind"] == "paper_autonomy_supervisor_decision"
+    assert decision["legacy_decision_field"] == decision["decision"]
+    assert decision["legacy_decision_field_role"] == "policy_recommendation_label"
+    assert decision["legacy_decision_field_is_authority"] is False
+    assert decision["decision_field_deprecated"] is True
     assert decision["supervisor_decision_engine_owner"] == "one-person-lab"
     assert decision["recovery_obligation_store_owner"] == "one-person-lab"
     assert decision["mas_can_run_supervisor_decision_engine"] is False
