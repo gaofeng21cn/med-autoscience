@@ -71,6 +71,7 @@ def build_runtime_report(
         managed_study_actions=managed_study_actions,
         progress_currentness=managed_study_progress_currentness,
     )
+    terminal_actions_by_study = _terminal_managed_study_actions_by_study(managed_study_actions)
     transition_request_candidates = _merge_provider_admission_candidates(
         _provider_admission_candidates_with_opl_runtime_readback(
             managed_study_opl_provider_admission_candidates,
@@ -84,6 +85,10 @@ def build_runtime_report(
             managed_study_progress_currentness,
             runtime_root=runtime_root,
         ),
+    )
+    transition_request_candidates = _candidates_without_terminal_managed_action(
+        transition_request_candidates,
+        terminal_actions_by_study=terminal_actions_by_study,
     )
     provider_admission_candidates = _provider_admission_candidates_with_opl_readback(
         transition_request_candidates
@@ -329,6 +334,85 @@ def _merge_provider_admission_candidates(
             seen.add(key)
             merged.append(dict(candidate))
     return merged
+
+
+def _terminal_managed_study_actions_by_study(
+    managed_study_actions: list[dict[str, Any]] | None,
+) -> dict[str, list[dict[str, Any]]]:
+    actions_by_study: dict[str, list[dict[str, Any]]] = {}
+    for action in managed_study_actions or []:
+        if not isinstance(action, Mapping):
+            continue
+        study_id = _text(action.get("study_id"))
+        if study_id is None:
+            continue
+        current_work_unit = _mapping(action.get("current_work_unit"))
+        status = _text(current_work_unit.get("status")) or _text(
+            _mapping(action.get("current_execution_envelope")).get("state_kind")
+        )
+        if status not in {"owner_receipt_recorded", "typed_blocker", "blocked_current_work_unit"}:
+            continue
+        if status in {"typed_blocker", "blocked_current_work_unit"} and not _terminal_action_has_typed_blocker(
+            action,
+            current_work_unit=current_work_unit,
+        ):
+            continue
+        actions_by_study.setdefault(study_id, []).append(dict(action))
+    return actions_by_study
+
+
+def _terminal_action_has_typed_blocker(
+    action: Mapping[str, Any],
+    *,
+    current_work_unit: Mapping[str, Any],
+) -> bool:
+    state = _mapping(current_work_unit.get("state"))
+    typed_blocker = (
+        _mapping(state.get("typed_blocker"))
+        or _mapping(current_work_unit.get("typed_blocker"))
+        or _mapping(_mapping(action.get("current_execution_envelope")).get("typed_blocker"))
+    )
+    return bool(typed_blocker)
+
+
+def _candidates_without_terminal_managed_action(
+    candidates: list[dict[str, Any]],
+    *,
+    terminal_actions_by_study: Mapping[str, list[dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    filtered: list[dict[str, Any]] = []
+    for candidate in candidates:
+        terminal_actions = terminal_actions_by_study.get(_text(candidate.get("study_id")) or "") or []
+        if any(_candidate_matches_terminal_action(candidate, action) for action in terminal_actions):
+            continue
+        filtered.append(dict(candidate))
+    return filtered
+
+
+def _candidate_matches_terminal_action(
+    candidate: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    current_work_unit = _mapping(action.get("current_work_unit"))
+    return all(
+        left is not None and right is not None and left == right
+        for left, right in (
+            (_text(candidate.get("study_id")), _text(action.get("study_id"))),
+            (_text(candidate.get("action_type")), _text(current_work_unit.get("action_type"))),
+            (_text(candidate.get("work_unit_id")), _text(current_work_unit.get("work_unit_id"))),
+            (_candidate_fingerprint(candidate), _current_work_unit_fingerprint(current_work_unit)),
+        )
+    )
+
+
+def _candidate_fingerprint(candidate: Mapping[str, Any]) -> str | None:
+    return _text(candidate.get("work_unit_fingerprint")) or _text(candidate.get("action_fingerprint"))
+
+
+def _current_work_unit_fingerprint(current_work_unit: Mapping[str, Any]) -> str | None:
+    return _text(current_work_unit.get("work_unit_fingerprint")) or _text(
+        current_work_unit.get("action_fingerprint")
+    )
 
 
 def _managed_study_action_context_by_study(

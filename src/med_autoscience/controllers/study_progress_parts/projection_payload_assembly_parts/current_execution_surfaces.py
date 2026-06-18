@@ -75,15 +75,6 @@ def refresh_current_execution_surfaces(
             },
         )
         return updated
-    paper_recovery_successor_action = _paper_recovery_successor_action(payload)
-    if paper_recovery_successor_action:
-        return _with_paper_recovery_successor_execution_surfaces(
-            payload=updated,
-            status=status,
-            handoff=handoff,
-            runtime_health_snapshot=runtime_health_snapshot,
-            current_action=paper_recovery_successor_action,
-        )
     handoff_executable_action = current_control_executable_owner_action(handoff)
     if handoff_executable_action:
         updated["current_executable_owner_action"] = handoff_executable_action
@@ -156,6 +147,15 @@ def refresh_current_execution_surfaces(
                 },
             )
             return updated
+    paper_recovery_successor_action = _paper_recovery_successor_action(payload)
+    if paper_recovery_successor_action:
+        return _with_paper_recovery_successor_execution_surfaces(
+            payload=updated,
+            status=status,
+            handoff=handoff,
+            runtime_health_snapshot=runtime_health_snapshot,
+            current_action=paper_recovery_successor_action,
+        )
     handoff_work_unit = _canonical_current_control_typed_blocker_work_unit(handoff)
     if handoff_work_unit:
         updated["current_work_unit"] = handoff_work_unit
@@ -873,6 +873,8 @@ def _paper_recovery_successor_action_for_owner_receipt_handoff(
 ) -> dict[str, Any]:
     if not _handoff_current_work_unit_is_owner_receipt(handoff):
         return {}
+    if _provider_admission_terminal_closeout_consumed_current_work_unit(handoff):
+        return {}
     recovery = _mapping_copy(payload.get("paper_recovery_state"))
     decision = _mapping_copy(recovery.get("supervisor_decision"))
     if decision.get("identity_match") is not True:
@@ -881,6 +883,24 @@ def _paper_recovery_successor_action_for_owner_receipt_handoff(
     if not paper_recovery_successor_action_ready(successor_action):
         return {}
     return dict(successor_action)
+
+
+def _provider_admission_terminal_closeout_consumed_current_work_unit(
+    handoff: Mapping[str, Any],
+) -> bool:
+    consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        return False
+    if _non_empty_text(consumed.get("owner_receipt_ref")) is None and _non_empty_text(
+        consumed.get("typed_blocker_ref")
+    ) is None:
+        return False
+    current = _mapping_copy(handoff.get("current_work_unit"))
+    if not current:
+        return False
+    consumed_identity = _identity_values(consumed)
+    current_identity = _identity_values(current)
+    return not _identities_conflict(consumed_identity, current_identity)
 
 
 def _text_list(value: object) -> list[str]:

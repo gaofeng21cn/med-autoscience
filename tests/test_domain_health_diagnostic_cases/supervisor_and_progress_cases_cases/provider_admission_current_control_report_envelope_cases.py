@@ -873,3 +873,91 @@ def test_runtime_report_prefers_owner_receipt_currentness_over_stale_user_waitin
     assert action["current_work_unit"]["status"] == "owner_receipt_recorded"
     assert action["paper_recovery_state"]["phase"] == "owner_receipt_recorded"
     assert action["paper_recovery_state"]["next_safe_action"]["kind"] == "consume_owner_receipt"
+
+
+def test_runtime_report_consumes_terminal_owner_receipt_over_matching_transition_request() -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    owner_receipt_ref = (
+        "/workspace/studies/003/artifacts/controller/repair_execution_receipts/latest.json"
+    )
+    transition_request = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "transition_request_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "next_executable_owner": "write",
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+    }
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "decision": "blocked",
+                "reason": "quest_waiting_for_user",
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[],
+        managed_study_progress_currentness={
+            study_id: {
+                "study_id": study_id,
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "owner_receipt_recorded",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "state": {
+                        "state_kind": "owner_receipt_recorded",
+                        "owner_receipt_ref": owner_receipt_ref,
+                    },
+                    "required_output_contract": {
+                        "owner_receipt_consumed": True,
+                        "owner_receipt_ref": owner_receipt_ref,
+                        "provider_completion_is_domain_completion": False,
+                    },
+                },
+                "current_execution_envelope": {
+                    "state_kind": "owner_receipt_recorded",
+                    "owner": "write",
+                    "next_work_unit": None,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                },
+                "current_executable_owner_action": None,
+            }
+        },
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+        managed_study_opl_transition_request_candidates=[transition_request],
+    )
+
+    assert result["transition_request_pending_count"] == 0
+    assert result["managed_study_opl_transition_request_candidates"] == []
+    assert result["provider_admission_pending_count"] == 0
+    action = result["managed_study_actions"][0]
+    assert action["decision"] == "owner_receipt_recorded"
+    assert action.get("current_executable_owner_action") is None
+    assert action["current_work_unit"]["status"] == "owner_receipt_recorded"
