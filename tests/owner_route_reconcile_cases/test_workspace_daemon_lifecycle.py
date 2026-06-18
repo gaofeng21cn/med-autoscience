@@ -4,7 +4,45 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.runtime_health_kernel_parts import event_log as runtime_health_event_log
+
 from tests.study_runtime_test_helpers import make_profile, write_study
+
+
+def _write_runtime_health_fixture_event(
+    runtime_health_kernel,
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str,
+    event_type: str,
+    payload: dict[str, object],
+    recorded_at: str,
+) -> None:
+    event_type_text = str(event_type or "").strip()
+    path = runtime_health_kernel.runtime_health_events_path(study_root=study_root)
+    existing = runtime_health_kernel.read_runtime_health_events(study_root=study_root)
+    sequence = len(existing) + 1
+    event = {
+        "schema_version": runtime_health_kernel.SCHEMA_VERSION,
+        "event_id": runtime_health_event_log.build_event_id(
+            study_id=study_id,
+            quest_id=quest_id,
+            event_type=event_type_text,
+            payload=payload,
+            recorded_at=recorded_at,
+            sequence=sequence,
+        ),
+        "sequence": sequence,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "event_type": event_type_text,
+        "recorded_at": recorded_at,
+        "payload": dict(payload),
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
 
 
 def test_scan_domain_routes_apply_safe_actions_releases_idle_workspace_daemon(
@@ -376,7 +414,8 @@ def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtim
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     for sequence in range(1, 4):
-        runtime_health_kernel.append_runtime_health_event(
+        _write_runtime_health_fixture_event(
+            runtime_health_kernel,
             study_root=study_root,
             study_id=study_id,
             quest_id=study_id,

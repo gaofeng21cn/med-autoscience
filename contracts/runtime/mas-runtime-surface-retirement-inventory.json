@@ -435,7 +435,9 @@
         "provider_completion_as_domain_ready"
       ],
       "generic_runtime_owner": "one-person-lab",
+      "historical_event_log_role": "legacy_fixture_and_explicit_archive_import_provenance_input_only",
       "local_event_log_append_from_status_payload": false,
+      "mas_local_event_append_api_retired": true,
       "mas_owner_claim_allowed": false,
       "read_only_actions": [
         "read_runtime_status",
@@ -443,9 +445,14 @@
       ],
       "replacement_surface": "OPL Observability / StageRun / DomainProgressTransitionRuntime readback plus MAS owner answer projection",
       "retained_mas_role": "body_free_runtime_health_diagnostic_projection",
+      "retired_code_symbols": [
+        "runtime_health_kernel.append_runtime_health_event",
+        "runtime_health_kernel_parts.event_log.append_runtime_health_event"
+      ],
       "surface_id": "runtime_health_kernel",
       "verified_by": [
-        "tests/test_runtime_health_kernel.py"
+        "tests/test_runtime_health_kernel.py",
+        "tests/test_adapter_retirement_boundary.py"
       ]
     },
     {

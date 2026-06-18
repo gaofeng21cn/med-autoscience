@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-import pytest
+from med_autoscience.controllers.runtime_health_kernel_parts import event_log as runtime_health_event_log
 
 
 def _kernel():
@@ -16,6 +16,134 @@ def _opl_lifecycle_payload(sequence: int, payload: dict[str, object]) -> dict[st
         **payload,
         "opl_lifecycle_proof_ref": f"opl-stage-attempt://runtime-health-test-{sequence}",
     }
+
+
+def _write_runtime_health_fixture_event(
+    module,
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str,
+    event_type: str,
+    payload: dict[str, object] | None = None,
+    recorded_at: str,
+    source_signature: str | None = None,
+) -> dict[str, object]:
+    event_type_text = str(event_type or "").strip()
+    if event_type_text not in module.RUNTIME_HEALTH_EVENT_TYPES:
+        raise ValueError(f"unknown runtime health fixture event type: {event_type}")
+    resolved_payload = _runtime_health_fixture_payload_with_authority_boundary(
+        module,
+        event_type=event_type_text,
+        payload=payload or {},
+    )
+    path = module.runtime_health_events_path(study_root=study_root)
+    existing = module.read_runtime_health_events(study_root=study_root)
+    if source_signature:
+        for event in existing:
+            if (
+                event.get("study_id") == study_id
+                and event.get("quest_id") == quest_id
+                and event.get("event_type") == event_type_text
+                and _runtime_health_fixture_source_signature(module, event) == source_signature
+            ):
+                return {**event, "duplicate_replay": True}
+    sequence = len(existing) + 1
+    event = {
+        "schema_version": module.SCHEMA_VERSION,
+        "event_id": runtime_health_event_log.build_event_id(
+            study_id=study_id,
+            quest_id=quest_id,
+            event_type=event_type_text,
+            payload=resolved_payload,
+            recorded_at=recorded_at,
+            sequence=sequence,
+        ),
+        "sequence": sequence,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "event_type": event_type_text,
+        "recorded_at": recorded_at,
+        "payload": resolved_payload,
+    }
+    if source_signature:
+        event["source_signature"] = source_signature
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
+    return event
+
+
+def _runtime_health_fixture_payload_with_authority_boundary(
+    module,
+    *,
+    event_type: str,
+    payload: dict[str, object],
+) -> dict[str, object]:
+    normalized = dict(payload)
+    opl_lifecycle_event_types = {
+        "launch_attempt",
+        "recover_attempt",
+        "relaunch_attempt",
+        "attempt_released",
+        "escalation_opened",
+        "escalation_resolved",
+    }
+    if event_type not in opl_lifecycle_event_types:
+        return normalized
+    proof_ref = _runtime_health_fixture_lifecycle_proof_ref(normalized)
+    if proof_ref is None:
+        raise ValueError("opl_lifecycle_proof_required_for_runtime_lifecycle_event_fixture")
+    normalized["opl_lifecycle_proof_ref"] = proof_ref
+    normalized["lifecycle_authority_owner"] = "one-person-lab"
+    normalized["opl_observability_readback_boundary"] = dict(module.OPL_OBSERVABILITY_READBACK_BOUNDARY)
+    normalized["attempt_ledger_authority_boundary"] = dict(module.ATTEMPT_LEDGER_AUTHORITY_BOUNDARY)
+    normalized["diagnostic_only"] = True
+    normalized["mas_runtime_health_event_role"] = "diagnostic_observation"
+    normalized["lifecycle_authority"] = False
+    normalized["attempt_lifecycle_authority"] = False
+    normalized["retry_or_dead_letter_authority"] = False
+    normalized["worker_residency_authority"] = False
+    normalized["attempt_ledger_authority"] = False
+    normalized["provider_admission_authority"] = False
+    normalized["readiness_authority"] = False
+    normalized["runtime_currentness_authority"] = False
+    normalized["transient_lifecycle_observation"] = False
+    return normalized
+
+
+def _runtime_health_fixture_lifecycle_proof_ref(payload: dict[str, object]) -> str | None:
+    for key in (
+        "opl_lifecycle_proof_ref",
+        "opl_lifecycle_ref",
+        "opl_command_ref",
+        "opl_event_ref",
+        "opl_outbox_ref",
+        "opl_stage_run_ref",
+        "opl_stage_attempt_id",
+        "stage_attempt_id",
+        "active_stage_attempt_id",
+        "active_workflow_id",
+    ):
+        text = str(payload.get(key) or "").strip()
+        if text:
+            return text
+    readback = payload.get("opl_lifecycle_readback")
+    if isinstance(readback, dict):
+        for key in ("ref", "id", "stage_attempt_id", "stage_run_ref", "event_ref", "outbox_ref"):
+            text = str(readback.get(key) or "").strip()
+            if text:
+                return text
+    return None
+
+
+def _runtime_health_fixture_source_signature(module, event: dict[str, object]) -> str:
+    payload = event.get("payload")
+    return str(event.get("source_signature") or "") or runtime_health_event_log.event_source_signature(
+        event_type=str(event.get("event_type") or ""),
+        payload=payload if isinstance(payload, dict) else {},
+        stable_event_payload=module._stable_event_payload,
+    )
 
 
 def _assert_observability_readback_boundary(boundary: dict[str, object]) -> None:
@@ -61,28 +189,18 @@ def _assert_attempt_ledger_authority_boundary(boundary: dict[str, object]) -> No
     assert boundary["suppressed_transient_lifecycle_events_can_advance_attempt_ledger"] is False
 
 
-def test_runtime_health_rejects_lifecycle_event_without_opl_proof(tmp_path: Path) -> None:
+def test_runtime_health_kernel_no_longer_exposes_local_event_append_api() -> None:
+    module = _kernel()
+
+    assert not hasattr(module, "append_runtime_health_event")
+    assert not hasattr(runtime_health_event_log, "append_runtime_health_event")
+
+
+def test_runtime_health_historical_lifecycle_fixture_is_diagnostic_when_opl_proof_backed(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
 
-    with pytest.raises(ValueError, match="opl_lifecycle_proof_required_for_runtime_lifecycle_event"):
-        module.append_runtime_health_event(
-            study_root=study_root,
-            study_id="002-dm-cvd",
-            quest_id="002-dm-cvd",
-            event_type="recover_attempt",
-            payload={"attempt_state": "failed", "failure_reason": "no_live_session"},
-            recorded_at="2026-05-01T00:00:00+00:00",
-        )
-
-    assert module.read_runtime_health_events(study_root=study_root) == []
-
-
-def test_runtime_health_lifecycle_event_is_diagnostic_when_opl_proof_backed(tmp_path: Path) -> None:
-    module = _kernel()
-    study_root = tmp_path / "studies" / "002-dm-cvd"
-
-    event = module.append_runtime_health_event(
+    event = _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="002-dm-cvd",
         quest_id="002-dm-cvd",
@@ -114,7 +232,7 @@ def test_runtime_health_lifecycle_event_is_diagnostic_when_opl_proof_backed(tmp_
 def test_runtime_health_strict_live_requires_worker_and_active_run_id(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="002-dm-cvd",
         quest_id="002-dm-cvd",
@@ -128,7 +246,7 @@ def test_runtime_health_strict_live_requires_worker_and_active_run_id(tmp_path: 
         },
         recorded_at="2026-05-01T00:00:00+00:00",
     )
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="002-dm-cvd",
         quest_id="002-dm-cvd",
@@ -330,7 +448,7 @@ def test_runtime_health_attempt_retry_and_action_fields_are_diagnostic_hints(tmp
 def test_runtime_health_missing_live_session_recovers_with_stale_run_as_last_known(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dm-cvd"
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="003-dm-cvd",
         quest_id="003-dm-cvd",
@@ -338,7 +456,7 @@ def test_runtime_health_missing_live_session_recovers_with_stale_run_as_last_kno
         payload=_opl_lifecycle_payload(1, {"attempt_state": "succeeded", "active_run_id": "run-599e53e9"}),
         recorded_at="2026-05-01T00:00:00+00:00",
     )
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="003-dm-cvd",
         quest_id="003-dm-cvd",
@@ -353,7 +471,7 @@ def test_runtime_health_missing_live_session_recovers_with_stale_run_as_last_kno
         },
         recorded_at="2026-05-01T00:03:00+00:00",
     )
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="003-dm-cvd",
         quest_id="003-dm-cvd",
@@ -379,7 +497,7 @@ def test_runtime_health_missing_live_session_recovers_with_stale_run_as_last_kno
 def test_runtime_health_recovery_budget_exhaustion_escalates(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="002-dm-cvd",
         quest_id="002-dm-cvd",
@@ -393,7 +511,7 @@ def test_runtime_health_recovery_budget_exhaustion_escalates(tmp_path: Path) -> 
         recorded_at="2026-05-01T00:00:00+00:00",
     )
     for sequence in range(1, 4):
-        module.append_runtime_health_event(
+        _write_runtime_health_fixture_event(module,
             study_root=study_root,
             study_id="002-dm-cvd",
             quest_id="002-dm-cvd",
@@ -421,7 +539,7 @@ def test_runtime_health_explicit_relaunch_starts_new_recovery_budget_epoch(tmp_p
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
     for sequence in range(1, 4):
-        module.append_runtime_health_event(
+        _write_runtime_health_fixture_event(module,
             study_root=study_root,
             study_id="002-dm-cvd",
             quest_id="002-dm-cvd",
@@ -473,7 +591,7 @@ def test_runtime_health_submission_metadata_parking_dominates_stale_recovery_bud
     module = _kernel()
     study_root = tmp_path / "studies" / "001-dm-cvd"
     for sequence in range(1, 4):
-        module.append_runtime_health_event(
+        _write_runtime_health_fixture_event(module,
             study_root=study_root,
             study_id="001-dm-cvd",
             quest_id="001-dm-cvd-reentry",
@@ -487,7 +605,7 @@ def test_runtime_health_submission_metadata_parking_dominates_stale_recovery_bud
             ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="001-dm-cvd",
         quest_id="001-dm-cvd-reentry",
@@ -518,7 +636,7 @@ def test_runtime_health_zero_retry_budget_blocks_recover_runtime_even_without_fa
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dpcc"
     for sequence in range(1, 4):
-        module.append_runtime_health_event(
+        _write_runtime_health_fixture_event(module,
             study_root=study_root,
             study_id="003-dpcc",
             quest_id="003-dpcc",
@@ -533,7 +651,7 @@ def test_runtime_health_zero_retry_budget_blocks_recover_runtime_even_without_fa
             ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="003-dpcc",
         quest_id="003-dpcc",
@@ -564,7 +682,7 @@ def test_runtime_health_provider_ready_supervisor_tick_starts_new_recovery_budge
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
     for sequence in range(1, 4):
-        module.append_runtime_health_event(
+        _write_runtime_health_fixture_event(module,
             study_root=study_root,
             study_id="002-dm-cvd",
             quest_id="002-dm-cvd",
@@ -624,7 +742,7 @@ def test_runtime_health_provider_ready_handoff_starts_new_recovery_budget_epoch(
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
     for sequence in range(1, 4):
-        module.append_runtime_health_event(
+        _write_runtime_health_fixture_event(module,
             study_root=study_root,
             study_id="002-dm-cvd",
             quest_id="002-dm-cvd",
@@ -691,7 +809,7 @@ def test_runtime_health_zero_retry_budget_escalates_stopped_controller_guard_rec
     module = _kernel()
     study_root = tmp_path / "studies" / "001-dm-cvd"
     for sequence in range(1, 4):
-        module.append_runtime_health_event(
+        _write_runtime_health_fixture_event(module,
             study_root=study_root,
             study_id="001-dm-cvd",
             quest_id="001-dm-cvd",
@@ -706,7 +824,7 @@ def test_runtime_health_zero_retry_budget_escalates_stopped_controller_guard_rec
             ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="001-dm-cvd",
         quest_id="001-dm-cvd",
@@ -735,10 +853,10 @@ def test_runtime_health_zero_retry_budget_escalates_stopped_controller_guard_rec
     assert "recover_runtime" not in snapshot["allowed_controller_actions"]
 
 
-def test_runtime_health_append_deduplicates_same_source_signature(tmp_path: Path) -> None:
+def test_runtime_health_historical_fixture_deduplicates_same_source_signature(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
-    first = module.append_runtime_health_event(
+    first = _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="002-dm-cvd",
         quest_id="002-dm-cvd",
@@ -747,7 +865,7 @@ def test_runtime_health_append_deduplicates_same_source_signature(tmp_path: Path
         recorded_at="2026-05-01T00:00:00+00:00",
         source_signature="recover-attempt::same",
     )
-    second = module.append_runtime_health_event(
+    second = _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="002-dm-cvd",
         quest_id="002-dm-cvd",
@@ -767,7 +885,7 @@ def test_runtime_health_append_deduplicates_same_source_signature(tmp_path: Path
 def test_runtime_health_stopped_quest_waits_for_explicit_resume_without_probe(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "004-dm-cvd"
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="004-dm-cvd",
         quest_id="004-dm-cvd",
@@ -796,7 +914,7 @@ def test_runtime_health_stopped_quest_waits_for_explicit_resume_without_probe(tm
 def test_runtime_health_manual_hold_dominates_active_missing_live_session(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "004-dm-cvd"
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="004-dm-cvd",
         quest_id="004-dm-cvd",
@@ -826,7 +944,7 @@ def test_runtime_health_manual_hold_dominates_active_missing_live_session(tmp_pa
 def test_runtime_health_user_pause_dominates_active_missing_live_session(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="002-dm-cvd",
         quest_id="002-dm-cvd",
@@ -856,7 +974,7 @@ def test_runtime_health_user_pause_dominates_active_missing_live_session(tmp_pat
 def test_runtime_health_explicit_resume_reason_dominates_active_missing_live_session(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "004-dm-cvd"
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="004-dm-cvd",
         quest_id="004-dm-cvd",
@@ -999,7 +1117,7 @@ def test_runtime_health_live_new_run_does_not_inherit_stale_recovery_budget(tmp_
     module = _kernel()
     study_root = tmp_path / "studies" / "001-dm-cvd"
     for sequence in range(1, 4):
-        module.append_runtime_health_event(
+        _write_runtime_health_fixture_event(module,
             study_root=study_root,
             study_id="001-dm-cvd",
             quest_id="001-dm-cvd",
@@ -1014,7 +1132,7 @@ def test_runtime_health_live_new_run_does_not_inherit_stale_recovery_budget(tmp_
             ),
             recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
         )
-    module.append_runtime_health_event(
+    _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="001-dm-cvd",
         quest_id="001-dm-cvd",

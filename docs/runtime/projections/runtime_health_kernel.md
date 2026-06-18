@@ -13,12 +13,12 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 - Kubernetes controller/reconcile：OPL 负责 desired runtime intent 与 observed attempt state 收敛；MAS 只解释 domain blockers 与 owner receipts。
 - Temporal durable history/replay：runtime health 由 OPL attempt history 与 MAS refs 重建，不能依赖 `last_launch_report` 这类最近动作摘要。
-- CQRS/Event Sourcing：append-only event log 是写模型，`latest.json` 和前台字段是可重建 read model。
+- CQRS/Event Sourcing：OPL Observability / StageRun / attempt ledger 是写模型；MAS 只能读取历史 diagnostic refs 或从 status payload 生成 shadow events 来重建 `latest.json` 读面。
 - SRE 运行纪律：恢复必须有 retry budget、backoff/升级语义和可解释人工介入信号。
 
 ## 稳定表面
 
-- append-only event log：`studies/<study_id>/artifacts/runtime/health/events.jsonl`，仅记录 MAS domain health / blocker refs
+- historical diagnostic event log：`studies/<study_id>/artifacts/runtime/health/events.jsonl`，仅作为 legacy fixture / explicit archive import / provenance input；MAS 当前 runtime health 不再暴露 append API，也不把本地 event log 写入当作 lifecycle、attempt、retry、worker 或 provider authority
 - materialized snapshot：`studies/<study_id>/artifacts/runtime/health/latest.json`，不是 OPL runtime attempt truth
 - read-model embedding：`progress_projection.runtime_health_snapshot`
 - user projection embedding：`study_progress.runtime_health_epoch` 与 `study_progress.runtime_health_snapshot`
@@ -27,7 +27,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 `runtime_session` 是 retired worker/session read model 名称；当前 live/no-live、last attempt、worker liveness、retry/dead-letter 和 provider terminal truth 来自 OPL `current_control_state`。MAS projection 只能显示 OPL refs、owner receipt、typed blocker、route-back reason 和 historical fixture / explicit archive import reference；它不判断 scientific quality，不授权 publication/submission readiness，也不替代 OPL attempt ledger。`canonical_runtime_action` 与 `allowed_controller_actions` 只保留为 legacy-compatible diagnostic hint；同一 snapshot 必须同时暴露 `runtime_action_hint_is_authority=false`、`allowed_controller_action_hints_are_authority=false`、`opl_observability_readback_required=true`、`opl_current_control_or_stage_run_readback_required=true` 与 `mas_private_attempt_loop_forbidden=true`，任何执行、恢复、attempt、worker 或 provider admission 都必须回到 OPL Observability / StageRun / current-control readback。
 
-显式 `source_signature` 是 runtime health diagnostic event 的幂等键。同一 `(study_id, quest_id, event_type, source_signature)` 重放只能返回 existing diagnostic event。没有 OPL lifecycle proof 的 recover / launch / relaunch / release / escalation 类事件不得写成 MAS lifecycle 事实，也不得在 MAS 内消耗 retry budget；retry/dead-letter、attempt ledger、worker liveness 与 runtime lifecycle 由 OPL current-control / StageRun / Observability readback 承担。
+显式 `source_signature` 只用于 historical diagnostic event fixture / archive import 的幂等识别，不再对应 MAS runtime health append API。没有 OPL lifecycle proof 的 recover / launch / relaunch / release / escalation 类历史事件不得写成 MAS lifecycle 事实，也不得在 MAS 内消耗 retry budget；retry/dead-letter、attempt ledger、worker liveness 与 runtime lifecycle 由 OPL current-control / StageRun / Observability readback 承担。
 
 显式 reconcile 入口：
 
@@ -35,7 +35,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile> --study-id <study_id>
 ```
 
-该入口先读取当前 `progress_projection`，再把 status payload 归一化为 runtime health events 并刷新 `artifacts/runtime/health/latest.json`。
+该入口先读取当前 `progress_projection`，再把 status payload 归一化为 transient shadow events 并刷新 `artifacts/runtime/health/latest.json`。这些 shadow events 不会追加到 `events.jsonl`；它们只服务本次 read-only diagnostic projection。
 
 `owner_receipt_handoff` 是 retired controller/supervisor 恢复意图 ledger 名称；当前恢复由 OPL desired intent vs actual attempt reconciliation 管理。MAS 只能返回 route-back、owner receipt、typed blocker 或 domain_health_diagnostic blocker；`runtime_reconcile_trigger` 只能展示 OPL next action 或 MAS blocker refs，用户刷新 Portal 不会直接 relaunch worker。
 

@@ -294,6 +294,21 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "closeout_binding_as_execution_authorization" in owner_dispatch["forbidden_claims"]
     assert "legacy_caller_exists" not in owner_dispatch["retention_reason"]
 
+    runtime_health = surfaces["runtime_health_kernel"]
+    assert runtime_health["current_disposition"] == "read_only_diagnostic_publisher"
+    assert runtime_health["active_caller_migrated"] is True
+    assert runtime_health["local_event_log_append_from_status_payload"] is False
+    assert runtime_health["mas_local_event_append_api_retired"] is True
+    assert runtime_health["historical_event_log_role"] == (
+        "legacy_fixture_and_explicit_archive_import_provenance_input_only"
+    )
+    assert runtime_health["retired_code_symbols"] == [
+        "runtime_health_kernel.append_runtime_health_event",
+        "runtime_health_kernel_parts.event_log.append_runtime_health_event",
+    ]
+    assert "tests/test_adapter_retirement_boundary.py" in runtime_health["verified_by"]
+    assert "mas_owned_attempt_ledger" in runtime_health["forbidden_claims"]
+
     obligation_actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
     assert obligation_actuator["current_disposition"] == "opl_recovery_obligation_readback_consumer"
     assert obligation_actuator["retained_mas_role"] == (
