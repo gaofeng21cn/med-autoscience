@@ -101,6 +101,10 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
         ),
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
         (
+            "legacy default-executor carrier no-active StageRun ABI caller physical delete "
+            "proof after OPL StageRun ABI/provenance boundary proof"
+        ),
+        (
             "domain_authority_refs_index live OPL StateIndexKernel takeover or "
             "no-active-replay/local-inspection-caller physical delete proof after active caller source-adapter migration"
         ),
@@ -203,6 +207,27 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert surfaces["domain_authority_refs_index"]["retirement_gate"][
         "no_active_authority_caller_proven"
     ] is True
+    assert surfaces["default_executor_dispatch_request"]["active_caller_boundary"][
+        "active_caller_effect"
+    ] == "opl_domain_progress_transition_runtime_intake_only"
+    assert surfaces["default_executor_dispatch_request"]["active_caller_boundary"][
+        "provider_admission_pending"
+    ] is False
+    assert surfaces["default_executor_dispatch_request"][
+        "legacy_stage_run_abi_provenance_boundary"
+    ]["mas_can_create_stage_run"] is False
+    assert surfaces["default_executor_dispatch_request"][
+        "legacy_stage_run_abi_provenance_boundary"
+    ]["requires_opl_domain_progress_transition_runtime_intake"] is True
+    assert surfaces["default_executor_execution_latest_wire_projection"][
+        "legacy_stage_run_abi_boundary"
+    ]["abi_role"] == "opl_stagerun_closeout_provenance_identity_recovery_only"
+    assert surfaces["default_executor_execution_latest_wire_projection"][
+        "legacy_stage_run_abi_boundary"
+    ]["stage_closeout_packets_can_authorize_provider_admission"] is False
+    assert surfaces["default_executor_execution_latest_wire_projection"][
+        "legacy_stage_run_abi_boundary"
+    ]["stage_closeout_packets_can_authorize_execution"] is False
     assert surfaces["runtime_lifecycle_payload_retention"]["current_disposition"] == (
         "opl_authorized_maintenance_callable_adapter_live_takeover_tail_open"
     )
@@ -223,8 +248,20 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
             ),
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
         "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
-        "legacy_default_executor_carrier_opl_stagerun_abi_or_no_active_caller_physical_delete_ref",
+        "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref",
     } <= set(physical_gate["missing_evidence_tails"])
+    assert (
+        "legacy_default_executor_carrier_opl_stagerun_abi_or_no_active_caller_physical_delete_ref"
+        not in physical_gate["missing_evidence_tails"]
+    )
+    assert (
+        "tests/test_adapter_retirement_boundary.py::"
+        "test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "legacy_stage_run_abi_provenance_without_no_active_caller_physical_delete"
+        in physical_gate["false_completion_boundary"]
+    )
     assert (
         "runtime_lifecycle_payload_retention_live_opl_cleanup_policy_takeover_or_no_active_caller_physical_delete_ref"
         not in physical_gate["missing_evidence_tails"]
@@ -252,6 +289,37 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert (
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::"
         "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
+        "default_executor_dispatch_request#legacy_stage_run_abi_provenance_boundary"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
+        "default_executor_execution_latest_wire_projection#legacy_stage_run_abi_boundary"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "src/med_autoscience/controllers/study_transition_receipt_consumption_parts/"
+        "default_executor_candidates.py::_execution_from_stage_closeout#"
+        "legacy_stage_run_abi_provenance_only"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
+        "_validate_legacy_default_executor_carrier"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
+        "_validate_legacy_stage_run_abi"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_adapter_retirement_boundary.py::"
+        "test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#"
+        "legacy_default_executor_carrier_stage_run_abi_boundary"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::"
+        "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#"
+        "legacy_default_executor_carrier_authority_regression"
     ) in physical_gate["observed_refs"]
     assert (
         "tests/test_runtime_lifecycle_payload_retention.py::"

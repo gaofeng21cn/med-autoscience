@@ -32,7 +32,9 @@
         "mas_owned_queue",
         "mas_owned_attempt_ledger",
         "mas_owned_retry_dead_letter",
-        "provider_completion_as_domain_ready"
+        "provider_completion_as_domain_ready",
+        "legacy_default_executor_carrier_as_provider_admission",
+        "legacy_default_executor_carrier_as_stage_run_authority"
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
@@ -205,6 +207,28 @@
         "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
         "transition_request_status": "transition_request_pending"
       },
+      "active_caller_boundary": {
+        "active_caller_effect": "opl_domain_progress_transition_runtime_intake_only",
+        "active_caller_retains_authority": false,
+        "active_caller_retains_runtime_authority": false,
+        "active_caller_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "provider_admission_pending": false,
+        "provider_attempt_or_lease_required": false,
+        "transition_request_pending_only": true
+      },
+      "legacy_stage_run_abi_provenance_boundary": {
+        "carrier_kind": "opl_domain_progress_transition_request_carrier",
+        "legacy_surface": "default_executor_dispatch_request",
+        "mas_can_create_stage_run": false,
+        "mas_can_mark_provider_admission": false,
+        "mas_can_mark_provider_running": false,
+        "provider_admission_pending": false,
+        "provenance_only_until_opl_readback": true,
+        "requires_opl_domain_progress_transition_runtime_intake": true,
+        "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
+        "transition_request_pending_only": true
+      },
       "mas_owner_claim_allowed": false,
       "priority_boundary": "current_control_transition_request_precedes_legacy_dispatch_carrier",
       "projection_counting_boundary": {
@@ -213,6 +237,16 @@
         "opl_live_readback_candidates_count_as": "provider_admission_pending",
         "opl_log_derived_readback_candidates_count_as": "deprecated_diagnostic_only",
         "request_only_candidates_count_as": "transition_request_pending"
+      },
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "no_active_authority_caller_proven": true,
+        "no_forbidden_write_proof_required": true,
+        "repo_stage_run_abi_provenance_proven": true,
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
       },
       "retained_mas_role": "domain_intent_owner_route_typed_blocker_and_owner_receipt_refs",
       "surface_id": "default_executor_dispatch_request"
@@ -488,7 +522,11 @@
         "provider_completion_as_domain_ready",
         "legacy_wire_latest_as_current_provider_admission",
         "legacy_wire_latest_as_current_owner_handoff",
-        "legacy_wire_latest_as_current_recovery_action"
+        "legacy_wire_latest_as_current_recovery_action",
+        "legacy_stage_closeout_packet_as_provider_admission_authority",
+        "legacy_stage_closeout_packet_as_execution_authority",
+        "legacy_stage_closeout_packet_as_attempt_lifecycle_authority",
+        "dispatch_ref_stage_packet_identity_recovery_as_authority"
       ],
       "generic_runtime_owner": "one-person-lab",
       "legacy_wire_path": "artifacts/supervision/consumer/default_executor_execution/latest.json",
@@ -529,10 +567,39 @@
         "tests/owner_route_reconcile_cases/test_default_executor_receipt_consumption.py::test_scan_consumes_executed_default_executor_receipt_for_current_write_route",
         "tests/owner_route_reconcile_cases/test_default_executor_receipt_recovery.py::test_default_executor_receipt_consumes_prior_execution_from_ledger_after_later_action",
         "tests/owner_route_reconcile_cases/test_default_executor_receipt_recovery.py::test_default_executor_closeout_with_recovered_stage_packet_currentness_redrives",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression",
+        "tests/test_adapter_retirement_boundary.py::test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_stage_run_abi_violation"
       ],
       "legacy_wire_default_reader_fallback_allowed": false,
-      "legacy_wire_history_merge_requires_explicit_opt_in": true
+      "legacy_wire_history_merge_requires_explicit_opt_in": true,
+      "legacy_stage_run_abi_boundary": {
+        "abi_role": "opl_stagerun_closeout_provenance_identity_recovery_only",
+        "stage_id": "domain_owner/default-executor-dispatch",
+        "closeout_packet_roots": [
+          "artifacts/supervision/consumer/default_executor_execution/*.closeout.json",
+          "artifacts/supervision/consumer/stage_attempt_closeouts/*.json",
+          "paper/review/*.json",
+          "paper/review/default_executor_closeouts/*.json"
+        ],
+        "allowed_consumption": [
+          "terminal_closeout_consumption",
+          "typed_blocker_consumption",
+          "owner_route_currentness_identity_recovery",
+          "paper_stage_log_delta_projection"
+        ],
+        "latest_wire_surface_is_stage_run_abi": false,
+        "stage_closeout_packets_are_latest_wire_fallback": false,
+        "stage_closeout_packets_can_authorize_provider_admission": false,
+        "stage_closeout_packets_can_authorize_execution": false,
+        "stage_closeout_packets_can_create_provider_attempt": false,
+        "stage_closeout_packets_can_create_opl_event_outbox_or_stage_run": false,
+        "stage_closeout_packets_can_claim_running_or_progress": false,
+        "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result": false,
+        "dispatch_ref_stage_packet_identity_recovery_is_authority": false,
+        "terminal_closeout_consumption_requires_owner_result_or_typed_blocker": true,
+        "physical_delete_requires_no_active_stage_run_abi_caller_scan": true
+      }
     },
     {
       "active_caller_migrated": true,

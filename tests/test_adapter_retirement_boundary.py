@@ -154,6 +154,38 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         default_dispatch["priority_boundary"]
         == "current_control_transition_request_precedes_legacy_dispatch_carrier"
     )
+    assert default_dispatch["active_caller_boundary"] == {
+        "active_caller_effect": "opl_domain_progress_transition_runtime_intake_only",
+        "active_caller_retains_authority": False,
+        "active_caller_retains_runtime_authority": False,
+        "active_caller_retains_surface": False,
+        "completion_claim_requires_live_owner_or_opl_readback": True,
+        "provider_admission_pending": False,
+        "provider_attempt_or_lease_required": False,
+        "transition_request_pending_only": True,
+    }
+    assert default_dispatch["legacy_stage_run_abi_provenance_boundary"] == {
+        "carrier_kind": "opl_domain_progress_transition_request_carrier",
+        "legacy_surface": "default_executor_dispatch_request",
+        "mas_can_create_stage_run": False,
+        "mas_can_mark_provider_admission": False,
+        "mas_can_mark_provider_running": False,
+        "provider_admission_pending": False,
+        "provenance_only_until_opl_readback": True,
+        "requires_opl_domain_progress_transition_runtime_intake": True,
+        "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
+        "transition_request_pending_only": True,
+    }
+    assert default_dispatch["retirement_gate"] == {
+        "active_caller_alone_retains_surface": False,
+        "completion_claim_requires_live_owner_or_opl_readback": True,
+        "no_active_caller_required_before_physical_delete": True,
+        "no_active_authority_caller_proven": True,
+        "no_forbidden_write_proof_required": True,
+        "repo_stage_run_abi_provenance_proven": True,
+        "replacement_parity_required": True,
+        "tombstone_or_provenance_required": True,
+    }
     assert default_dispatch["projection_counting_boundary"] == {
         "opl_live_readback_candidates_count_as": "provider_admission_pending",
         "request_only_candidates_count_as": "transition_request_pending",
@@ -291,6 +323,45 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "legacy_wire_latest_as_current_provider_admission" in execution_latest["forbidden_claims"]
     assert "legacy_wire_latest_as_current_owner_handoff" in execution_latest["forbidden_claims"]
     assert "legacy_wire_latest_as_current_recovery_action" in execution_latest["forbidden_claims"]
+    assert "legacy_stage_closeout_packet_as_provider_admission_authority" in execution_latest[
+        "forbidden_claims"
+    ]
+    assert "legacy_stage_closeout_packet_as_execution_authority" in execution_latest[
+        "forbidden_claims"
+    ]
+    assert "legacy_stage_closeout_packet_as_attempt_lifecycle_authority" in execution_latest[
+        "forbidden_claims"
+    ]
+    assert "dispatch_ref_stage_packet_identity_recovery_as_authority" in execution_latest[
+        "forbidden_claims"
+    ]
+    assert execution_latest["legacy_stage_run_abi_boundary"] == {
+        "abi_role": "opl_stagerun_closeout_provenance_identity_recovery_only",
+        "stage_id": "domain_owner/default-executor-dispatch",
+        "closeout_packet_roots": [
+            "artifacts/supervision/consumer/default_executor_execution/*.closeout.json",
+            "artifacts/supervision/consumer/stage_attempt_closeouts/*.json",
+            "paper/review/*.json",
+            "paper/review/default_executor_closeouts/*.json",
+        ],
+        "allowed_consumption": [
+            "terminal_closeout_consumption",
+            "typed_blocker_consumption",
+            "owner_route_currentness_identity_recovery",
+            "paper_stage_log_delta_projection",
+        ],
+        "latest_wire_surface_is_stage_run_abi": False,
+        "stage_closeout_packets_are_latest_wire_fallback": False,
+        "stage_closeout_packets_can_authorize_provider_admission": False,
+        "stage_closeout_packets_can_authorize_execution": False,
+        "stage_closeout_packets_can_create_provider_attempt": False,
+        "stage_closeout_packets_can_create_opl_event_outbox_or_stage_run": False,
+        "stage_closeout_packets_can_claim_running_or_progress": False,
+        "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result": False,
+        "dispatch_ref_stage_packet_identity_recovery_is_authority": False,
+        "terminal_closeout_consumption_requires_owner_result_or_typed_blocker": True,
+        "physical_delete_requires_no_active_stage_run_abi_caller_scan": True,
+    }
 
     owner_dispatch = surfaces["domain_owner_action_dispatch"]
     assert owner_dispatch["active_caller_migrated"] is True
@@ -627,6 +698,119 @@ def test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_l
     assert len(replay_candidates) == 1
     assert replay_candidates[0][0]["action_type"] == "legacy_action"
     assert replay_candidates[0][1] == "artifacts/supervision/consumer/default_executor_execution/latest.json"
+
+
+def test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only(
+    tmp_path,
+) -> None:
+    candidates = importlib.import_module(
+        "med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates"
+    )
+    study_root = tmp_path / "studies" / "study-1"
+    closeout_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "sat_001.closeout.json"
+    )
+    closeout_path.parent.mkdir(parents=True)
+    closeout_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "schema_version": 1,
+                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_attempt_id": "sat_001",
+                "study_id": "study-1",
+                "quest_id": "study-1",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "fingerprint-current",
+                "status": "closed_with_domain_owner_refs",
+                "execution_status": "executed",
+                "owner_receipt": {
+                    "owner": "write",
+                    "status": "executed",
+                    "quality_authorized": False,
+                    "submission_authorized": False,
+                    "current_package_write_authorized": False,
+                },
+                "domain_execution": {
+                    "action_type": "run_quality_repair_batch",
+                    "domain_owner": "write",
+                    "execution_status": "executed",
+                },
+                "closeout_refs": [
+                    "studies/study-1/artifacts/supervision/consumer/default_executor_execution/"
+                    "sat_001.closeout.json",
+                ],
+                "paper_stage_log": {
+                    "surface_kind": "mas_paper_facing_stage_log_summary",
+                    "status": "available",
+                    "stage_name": "medical_prose_write_repair",
+                    "problem_summary": "Quality repair completed with owner receipt.",
+                    "stage_goal": "Complete repair.",
+                    "stage_work_done": ["repair finished"],
+                    "paper_work_done": ["repair finished"],
+                    "changed_stage_surfaces": [],
+                    "changed_paper_surfaces": [],
+                    "outcome": "executed",
+                    "remaining_blockers": [],
+                    "duration": {"status": "missing", "value": None},
+                    "token_usage": {"status": "missing", "value": None, "total_tokens": None},
+                    "cost": {"status": "missing", "value": None, "total_cost": None},
+                    "usage_refs": [],
+                    "cost_refs": [],
+                    "progress_delta_classification": "typed_blocker",
+                    "deliverable_progress_delta": {"count": 0, "token_usage_total": None},
+                    "paper_progress_delta": {"count": 0, "token_usage_total": None},
+                    "platform_repair_delta": {"count": 0, "token_usage_total": None},
+                    "next_forced_delta": {
+                        "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                        "work_unit_id": "medical_prose_write_repair",
+                    },
+                    "evidence_refs": [
+                        "studies/study-1/artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_001.closeout.json",
+                    ],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    [candidate] = [
+        execution
+        for execution, _receipt_ref in candidates.default_executor_execution_candidates(
+            study_root=study_root
+        )
+    ]
+
+    assert candidate["receipt_ref"] == (
+        "artifacts/supervision/consumer/default_executor_execution/sat_001.closeout.json"
+    )
+    assert candidate["legacy_stage_run_abi_role"] == (
+        "opl_stagerun_closeout_provenance_identity_recovery_only"
+    )
+    assert candidate["stage_closeout_packet_role"] == (
+        "terminal_closeout_provenance_and_identity_recovery"
+    )
+    assert candidate["stage_closeout_packets_can_authorize_provider_admission"] is False
+    assert candidate["stage_closeout_packets_can_authorize_execution"] is False
+    assert candidate["stage_closeout_packets_can_create_provider_attempt"] is False
+    assert candidate["stage_closeout_packets_can_create_opl_event_outbox_or_stage_run"] is False
+    assert candidate["stage_closeout_packets_can_claim_running_or_progress"] is False
+    assert (
+        candidate["stage_closeout_packets_can_satisfy_current_receipt_without_owner_result"]
+        is False
+    )
+    assert candidate["dispatch_ref_stage_packet_identity_recovery_is_authority"] is False
+    assert candidate["provider_admission_authority"] is False
+    assert candidate["execution_authority"] is False
+    assert candidate["attempt_lifecycle_authority"] is False
+    assert candidate["queue_authority"] is False
 
 
 def test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in(

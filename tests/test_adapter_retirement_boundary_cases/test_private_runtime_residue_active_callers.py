@@ -295,12 +295,33 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["domain_authority_refs_index"]["allowed_effect"] == (
         "opl_state_index_source_adapter_emitted_no_sqlite_persistence"
     )
+    assert open_surfaces["default_executor_dispatch_request"]["authority_status"] == (
+        "legacy_default_executor_carrier_opl_stage_run_abi_provenance_only"
+    )
+    assert open_surfaces["default_executor_dispatch_request"]["allowed_effect"] == (
+        "opl_domain_progress_transition_runtime_intake_only"
+    )
     assert open_surfaces["domain_health_diagnostic_obligation_actuator"]["authority_status"] == (
         "consume_only_readback_projection_live_tail_open"
     )
     assert open_surfaces["domain_owner_action_dispatch"]["authority_status"] == (
         "opl_authorized_owner_callable_adapter_live_tail_open"
     )
+    assert open_surfaces["default_executor_execution_latest_wire_projection"]["authority_status"] == (
+        "legacy_latest_history_only_stage_run_abi_provenance_tail_open"
+    )
+    assert open_surfaces["default_executor_execution_latest_wire_projection"]["allowed_effect"] == (
+        "canonical_owner_receipt_or_legacy_stage_run_closeout_provenance_only"
+    )
+    assert open_surfaces["default_executor_execution_latest_wire_projection"][
+        "legacy_stage_run_abi_role"
+    ] == "opl_stagerun_closeout_provenance_identity_recovery_only"
+    assert open_surfaces["default_executor_execution_latest_wire_projection"][
+        "legacy_stage_run_provider_admission_authority"
+    ] is False
+    assert open_surfaces["default_executor_execution_latest_wire_projection"][
+        "legacy_stage_run_execution_authority"
+    ] is False
     assert open_surfaces["runtime_storage_maintenance"]["apply_authorization_surface"] == (
         "opl_runtime_storage_maintenance_authorization"
     )
@@ -362,3 +383,86 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
             ),
         ),
     } <= {(item["surface_id"], item["reason"]) for item in legacy_violations}
+
+    legacy_stage_run_bad_inventory = json.loads(json.dumps(inventory))
+    legacy_stage_run = next(
+        surface
+        for surface in legacy_stage_run_bad_inventory["surfaces"]
+        if surface["surface_id"] == "default_executor_execution_latest_wire_projection"
+    )
+    legacy_stage_run["legacy_stage_run_abi_boundary"][
+        "stage_closeout_packets_can_authorize_provider_admission"
+    ] = True
+    legacy_stage_run["legacy_stage_run_abi_boundary"][
+        "stage_closeout_packets_can_authorize_execution"
+    ] = True
+    legacy_stage_run["legacy_stage_run_abi_boundary"][
+        "terminal_closeout_consumption_requires_owner_result_or_typed_blocker"
+    ] = False
+
+    legacy_stage_run_violations = retirement.validate_runtime_surface_retirement_inventory(
+        legacy_stage_run_bad_inventory
+    )
+
+    assert {
+        (
+            "default_executor_execution_latest_wire_projection",
+            (
+                "truthy_authority_flag:legacy_stage_run_abi_boundary."
+                "stage_closeout_packets_can_authorize_provider_admission"
+            ),
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            (
+                "truthy_authority_flag:legacy_stage_run_abi_boundary."
+                "stage_closeout_packets_can_authorize_execution"
+            ),
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            (
+                "legacy_stage_run_abi_authority:"
+                "stage_closeout_packets_can_authorize_provider_admission"
+            ),
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "legacy_stage_run_abi_authority:stage_closeout_packets_can_authorize_execution",
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "stage_closeout_terminal_consumption_not_owner_result_bound",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in legacy_stage_run_violations}
+
+    carrier_bad_inventory = json.loads(json.dumps(inventory))
+    legacy_carrier = next(
+        surface
+        for surface in carrier_bad_inventory["surfaces"]
+        if surface["surface_id"] == "default_executor_dispatch_request"
+    )
+    legacy_carrier["active_caller_boundary"]["provider_admission_pending"] = True
+    legacy_carrier["legacy_stage_run_abi_provenance_boundary"]["mas_can_create_stage_run"] = True
+    legacy_carrier["legacy_stage_run_abi_provenance_boundary"][
+        "requires_opl_domain_progress_transition_runtime_intake"
+    ] = False
+
+    carrier_violations = retirement.validate_runtime_surface_retirement_inventory(
+        carrier_bad_inventory
+    )
+
+    assert {
+        (
+            "default_executor_dispatch_request",
+            "legacy_carrier_active_boundary_forbidden:provider_admission_pending",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "legacy_stage_run_abi_forbidden:mas_can_create_stage_run",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "legacy_carrier_missing_opl_runtime_intake_requirement",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in carrier_violations}

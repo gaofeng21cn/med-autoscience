@@ -42,6 +42,14 @@ FORBIDDEN_TRUE_AUTHORITY_FLAGS = frozenset(
         "active_caller_retains_authority",
         "active_caller_retains_runtime_authority",
         "can_write_fail_closed_typed_control_blocker",
+        "stage_closeout_packets_can_authorize_provider_admission",
+        "stage_closeout_packets_can_authorize_execution",
+        "stage_closeout_packets_can_create_provider_attempt",
+        "stage_closeout_packets_can_create_opl_event_outbox_or_stage_run",
+        "stage_closeout_packets_can_claim_running_or_progress",
+        "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result",
+        "dispatch_ref_stage_packet_identity_recovery_is_authority",
+        "latest_wire_surface_is_stage_run_abi",
     }
 )
 
@@ -103,8 +111,11 @@ def validate_runtime_surface_retirement_inventory(
             violations.append(_violation(surface_id, "missing_provider_completion_forbidden_claim"))
         for flag_path in _truthy_authority_flags(surface):
             violations.append(_violation(surface_id, f"truthy_authority_flag:{flag_path}"))
+        if surface_id == "default_executor_dispatch_request":
+            violations.extend(_validate_legacy_default_executor_carrier(surface_id, surface))
         if surface_id == "default_executor_execution_latest_wire_projection":
             violations.extend(_validate_legacy_latest_wire(surface_id, surface))
+            violations.extend(_validate_legacy_stage_run_abi(surface_id, surface))
         if surface.get("current_disposition") != "physically_retired":
             violations.extend(_validate_open_surface(surface_id, surface))
     return violations
@@ -192,10 +203,110 @@ def _validate_legacy_latest_wire(
     return violations
 
 
+def _validate_legacy_stage_run_abi(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    boundary = surface.get("legacy_stage_run_abi_boundary")
+    if not isinstance(boundary, Mapping):
+        return [_violation(surface_id, "missing_legacy_stage_run_abi_boundary")]
+    if boundary.get("abi_role") != "opl_stagerun_closeout_provenance_identity_recovery_only":
+        violations.append(_violation(surface_id, "legacy_stage_run_abi_role_not_provenance_only"))
+    if boundary.get("stage_id") != "domain_owner/default-executor-dispatch":
+        violations.append(_violation(surface_id, "legacy_stage_run_abi_stage_id_not_bound"))
+    if boundary.get("latest_wire_surface_is_stage_run_abi") is not False:
+        violations.append(_violation(surface_id, "legacy_latest_wire_misclassified_as_stage_run_abi"))
+    if boundary.get("stage_closeout_packets_are_latest_wire_fallback") is not False:
+        violations.append(_violation(surface_id, "stage_closeout_packets_are_latest_wire_fallback"))
+    for key in (
+        "stage_closeout_packets_can_authorize_provider_admission",
+        "stage_closeout_packets_can_authorize_execution",
+        "stage_closeout_packets_can_create_provider_attempt",
+        "stage_closeout_packets_can_create_opl_event_outbox_or_stage_run",
+        "stage_closeout_packets_can_claim_running_or_progress",
+        "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result",
+        "dispatch_ref_stage_packet_identity_recovery_is_authority",
+    ):
+        if boundary.get(key, False) is not False:
+            violations.append(_violation(surface_id, f"legacy_stage_run_abi_authority:{key}"))
+    if boundary.get("terminal_closeout_consumption_requires_owner_result_or_typed_blocker") is not True:
+        violations.append(_violation(surface_id, "stage_closeout_terminal_consumption_not_owner_result_bound"))
+    if boundary.get("physical_delete_requires_no_active_stage_run_abi_caller_scan") is not True:
+        violations.append(_violation(surface_id, "stage_closeout_physical_delete_missing_no_active_caller_scan"))
+    closeout_roots = boundary.get("closeout_packet_roots")
+    if not isinstance(closeout_roots, list) or not closeout_roots:
+        violations.append(_violation(surface_id, "stage_closeout_packet_roots_missing"))
+    allowed = boundary.get("allowed_consumption")
+    if not isinstance(allowed, list) or "terminal_closeout_consumption" not in allowed:
+        violations.append(_violation(surface_id, "stage_closeout_allowed_consumption_missing_terminal_closeout"))
+    return violations
+
+
+def _validate_legacy_default_executor_carrier(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    active_boundary = surface.get("active_caller_boundary")
+    if isinstance(active_boundary, Mapping):
+        if active_boundary.get("active_caller_effect") != "opl_domain_progress_transition_runtime_intake_only":
+            violations.append(_violation(surface_id, "legacy_carrier_active_effect_not_opl_intake_only"))
+        for key in (
+            "active_caller_retains_authority",
+            "active_caller_retains_runtime_authority",
+            "active_caller_retains_surface",
+            "provider_admission_pending",
+            "provider_attempt_or_lease_required",
+        ):
+            if active_boundary.get(key, False) is not False:
+                violations.append(_violation(surface_id, f"legacy_carrier_active_boundary_forbidden:{key}"))
+        if active_boundary.get("transition_request_pending_only") is not True:
+            violations.append(_violation(surface_id, "legacy_carrier_not_transition_request_pending_only"))
+        if active_boundary.get("completion_claim_requires_live_owner_or_opl_readback") is not True:
+            violations.append(_violation(surface_id, "legacy_carrier_missing_live_readback_completion_gate"))
+    else:
+        violations.append(_violation(surface_id, "missing_legacy_carrier_active_caller_boundary"))
+
+    abi_boundary = surface.get("legacy_stage_run_abi_provenance_boundary")
+    if isinstance(abi_boundary, Mapping):
+        if abi_boundary.get("carrier_kind") != "opl_domain_progress_transition_request_carrier":
+            violations.append(_violation(surface_id, "legacy_carrier_kind_not_opl_transition_request"))
+        if abi_boundary.get("task_kind_retained_for_opl_stage_run_abi") != "domain_owner/default-executor-dispatch":
+            violations.append(_violation(surface_id, "legacy_carrier_missing_stage_run_abi_task_kind"))
+        for key in (
+            "mas_can_create_stage_run",
+            "mas_can_mark_provider_admission",
+            "mas_can_mark_provider_running",
+            "provider_admission_pending",
+        ):
+            if abi_boundary.get(key, False) is not False:
+                violations.append(_violation(surface_id, f"legacy_stage_run_abi_forbidden:{key}"))
+        if abi_boundary.get("requires_opl_domain_progress_transition_runtime_intake") is not True:
+            violations.append(_violation(surface_id, "legacy_carrier_missing_opl_runtime_intake_requirement"))
+        if abi_boundary.get("provenance_only_until_opl_readback") is not True:
+            violations.append(_violation(surface_id, "legacy_carrier_not_provenance_only_until_readback"))
+        if abi_boundary.get("transition_request_pending_only") is not True:
+            violations.append(_violation(surface_id, "legacy_carrier_abi_not_transition_request_pending_only"))
+    else:
+        violations.append(_violation(surface_id, "missing_legacy_stage_run_abi_provenance_boundary"))
+
+    gate = surface.get("retirement_gate")
+    if isinstance(gate, Mapping):
+        if gate.get("repo_stage_run_abi_provenance_proven") is not True:
+            violations.append(_violation(surface_id, "legacy_carrier_repo_stage_run_abi_provenance_not_proven"))
+        if gate.get("no_active_authority_caller_proven") is not True:
+            violations.append(_violation(surface_id, "legacy_carrier_no_active_authority_caller_not_proven"))
+    else:
+        violations.append(_violation(surface_id, "missing_legacy_carrier_retirement_gate"))
+    return violations
+
+
 def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     active_boundary = surface.get("active_caller_boundary")
     apply_gate = surface.get("apply_gate")
     retirement_gate = surface.get("retirement_gate")
+    legacy_stage_run_boundary = surface.get("legacy_stage_run_abi_boundary")
     return {
         "surface_id": surface["surface_id"],
         "current_disposition": surface["current_disposition"],
@@ -220,6 +331,21 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             if isinstance(apply_gate, Mapping)
             else None
         ),
+        "legacy_stage_run_abi_role": (
+            legacy_stage_run_boundary.get("abi_role")
+            if isinstance(legacy_stage_run_boundary, Mapping)
+            else None
+        ),
+        "legacy_stage_run_provider_admission_authority": (
+            legacy_stage_run_boundary.get("stage_closeout_packets_can_authorize_provider_admission")
+            if isinstance(legacy_stage_run_boundary, Mapping)
+            else None
+        ),
+        "legacy_stage_run_execution_authority": (
+            legacy_stage_run_boundary.get("stage_closeout_packets_can_authorize_execution")
+            if isinstance(legacy_stage_run_boundary, Mapping)
+            else None
+        ),
         "retirement_gate": dict(retirement_gate) if isinstance(retirement_gate, Mapping) else None,
     }
 
@@ -235,6 +361,10 @@ def _authority_status(surface: Mapping[str, Any]) -> str:
         return "consume_only_readback_projection_live_tail_open"
     if surface_id == "domain_authority_refs_index":
         return "active_callers_migrated_opl_state_index_source_adapter_live_tail_open"
+    if surface_id == "default_executor_execution_latest_wire_projection":
+        return "legacy_latest_history_only_stage_run_abi_provenance_tail_open"
+    if surface_id == "default_executor_dispatch_request":
+        return "legacy_default_executor_carrier_opl_stage_run_abi_provenance_only"
     if disposition.startswith("read_only"):
         return "read_only_projection_no_authority"
     if "projection" in disposition or "refs_only" in disposition:
@@ -250,6 +380,8 @@ def _allowed_effect(surface: Mapping[str, Any]) -> str:
         return str(boundary["active_caller_effect"])
     if surface.get("surface_id") == "domain_owner_action_dispatch":
         return "execute_only_with_trusted_opl_authorization_or_bound_readback"
+    if surface.get("surface_id") == "default_executor_execution_latest_wire_projection":
+        return "canonical_owner_receipt_or_legacy_stage_run_closeout_provenance_only"
     if isinstance(surface.get("apply_gate"), Mapping):
         return "mutate_only_when_bound_opl_maintenance_authorization_is_present"
     if surface.get("surface_id") == "runtime_health_kernel":

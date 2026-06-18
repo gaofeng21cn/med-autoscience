@@ -7,7 +7,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 
 
-def test_default_executor_execution_dispatch_ref_can_be_stage_packet_authority() -> None:
+def test_default_executor_execution_dispatch_ref_opt_in_recovers_stage_packet_identity_only() -> None:
     study_root = Path("/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap")
     dispatch_path = (
         study_root
@@ -47,6 +47,9 @@ def test_default_executor_execution_dispatch_ref_can_be_stage_packet_authority()
     assert candidate["stage_packet_refs"] == [expected_ref]
     assert candidate["source_refs"]["stage_packet_ref"] == "preserved-stage-packet"
     assert candidate["source_refs"]["stage_packet_refs"] == ["preserved-stage-packet"]
+    assert candidate.get("provider_admission_authority") is not True
+    assert candidate.get("execution_authority") is not True
+    assert candidate.get("attempt_lifecycle_authority") is not True
 
 
 def test_dispatch_ref_stage_packet_authority_requires_explicit_opt_in() -> None:
