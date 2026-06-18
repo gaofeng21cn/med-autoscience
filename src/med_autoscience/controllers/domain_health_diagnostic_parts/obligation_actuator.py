@@ -57,6 +57,7 @@ CONSUME_ONLY_READBACK_BOUNDARY = {
     "mas_can_generate_human_gate_resume_token": False,
     "mas_can_authorize_provider_admission": False,
     "success_requires_source_family": list(SUCCESS_OUTCOME_SOURCE_FAMILIES),
+    "success_requires_opl_foundation_readback_boundary": True,
     "request_projection_is_success_outcome": False,
     "supervisor_disallowed_outcome_is_success": False,
 }
@@ -94,6 +95,7 @@ ACTUATOR_AUTHORITY_BOUNDARY = {
     "success_outcome_source_families": list(SUCCESS_OUTCOME_SOURCE_FAMILIES),
     "request_projection_outcome_source_family": "mas_policy_request_projection",
     "request_projection_is_success_outcome": False,
+    "success_requires_opl_foundation_readback_boundary": True,
     "consume_only_readback_boundary": dict(CONSUME_ONLY_READBACK_BOUNDARY),
 }
 
@@ -868,10 +870,15 @@ def _obligation_outcome(
     allowed_decision_outcomes = _allowed_decision_outcomes(decision_kind)
     outcome_allowed = outcome_kind in allowed_decision_outcomes
     source_family = _outcome_source_family(outcome_kind)
+    opl_foundation = _opl_foundation_readback_boundary(source_family=source_family)
     effective_postcondition_ok = (
         postcondition_ok
         and outcome_allowed
         and source_family != "mas_policy_request_projection"
+        and _outcome_has_required_foundation_readback(
+            source_family=source_family,
+            opl_foundation=opl_foundation,
+        )
     )
     decision_id = _paper_autonomy_supervisor_decision_id(
         action=action,
@@ -889,6 +896,8 @@ def _obligation_outcome(
         "exactly_one_outcome": True,
         "postcondition_ok": effective_postcondition_ok,
         "outcome_source_family": source_family,
+        "opl_foundation_readback_boundary": opl_foundation,
+        "success_requires_opl_foundation_readback_boundary": True,
         "success_outcome_source_family": (
             source_family
             if effective_postcondition_ok
@@ -934,6 +943,38 @@ def _outcome_source_family(outcome_kind: str) -> str:
 
 def _consume_only_readback_boundary() -> dict[str, Any]:
     return dict(CONSUME_ONLY_READBACK_BOUNDARY)
+
+
+def _opl_foundation_readback_boundary(*, source_family: str) -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_foundation_readback_boundary",
+        "source_family": source_family,
+        "opl_runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
+        "opl_transition_runtime_kind": OPL_TRANSITION_RUNTIME_KIND,
+        "consumed_opl_foundation_surfaces": list(OPL_FOUNDATION_CONSUMED_SURFACES),
+        "mas_role": "consume_only_projection",
+        "mas_can_store_recovery_obligation": False,
+        "mas_can_run_supervisor_decision_engine": False,
+        "mas_can_run_fixed_point_runtime": False,
+        "mas_can_replay_obligation": False,
+        "mas_policy_request_projection_can_satisfy_success": False,
+        "success_source_family": (
+            source_family if source_family in SUCCESS_OUTCOME_SOURCE_FAMILIES else None
+        ),
+        "success_source_family_required": source_family in SUCCESS_OUTCOME_SOURCE_FAMILIES,
+    }
+
+
+def _outcome_has_required_foundation_readback(
+    *,
+    source_family: str,
+    opl_foundation: Mapping[str, Any],
+) -> bool:
+    if source_family not in SUCCESS_OUTCOME_SOURCE_FAMILIES:
+        return False
+    if _non_empty_text(opl_foundation.get("surface_kind")) != "opl_foundation_readback_boundary":
+        return False
+    return _non_empty_text(opl_foundation.get("success_source_family")) == source_family
 
 
 def _action_supervisor_decision(action: Mapping[str, Any]) -> dict[str, Any]:
@@ -1082,6 +1123,12 @@ def _postcondition_from_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
         )
         is True,
         "outcome_source_family": _non_empty_text(outcome.get("outcome_source_family")),
+        "opl_foundation_readback_boundary": _clean_payload(
+            _mapping(outcome.get("opl_foundation_readback_boundary"))
+        ),
+        "success_requires_opl_foundation_readback_boundary": (
+            outcome.get("success_requires_opl_foundation_readback_boundary") is True
+        ),
         "success_outcome_source_family": _non_empty_text(
             outcome.get("success_outcome_source_family")
         ),

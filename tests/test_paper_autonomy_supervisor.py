@@ -4,6 +4,10 @@ from med_autoscience.controllers.paper_autonomy_supervisor import (
     build_paper_autonomy_obligation,
     build_supervisor_decision,
 )
+from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
+    execute_decision_identity_evidence_complete,
+    provider_admission_supervisor_gate,
+)
 from tests.test_paper_recovery_state_cases.shared import (
     _executable_work_unit,
     _typed_blocker_work_unit,
@@ -61,7 +65,20 @@ def test_execute_decision_requires_provider_and_stage_run_identity() -> None:
 
     assert decision["surface_kind"] == "paper_autonomy_supervisor_decision"
     assert decision["projection_role"] == "mas_policy_adapter_decision_projection"
+    assert decision["policy_result_role"] == "mas_paper_progress_policy_result_projection"
     assert decision["authority"] is False
+    assert decision["decision_authority"] is False
+    assert decision["supervisor_decision_engine_owner"] == "one-person-lab"
+    assert decision["recovery_obligation_store_owner"] == "one-person-lab"
+    assert decision["mas_can_run_supervisor_decision_engine"] is False
+    assert decision["mas_can_store_recovery_obligation"] is False
+    assert decision["opl_supervisor_decision_engine_boundary"] == {
+        "surface_kind": "opl_supervisor_decision_engine_boundary",
+        "owner": "one-person-lab",
+        "mas_role": "policy_result_projection_consumer",
+        "mas_can_run_decision_engine": False,
+        "mas_can_persist_recovery_obligation_store": False,
+    }
     assert decision["source_of_truth_chain"] == [
         "DomainIntent",
         "OPL Command/Event/Outbox/StageRun",
@@ -69,6 +86,16 @@ def test_execute_decision_requires_provider_and_stage_run_identity() -> None:
         "Derived Projection",
     ]
     assert decision["authority_boundary"]["adapter_kind"] == "mas_policy_adapter"
+    assert decision["authority_boundary"]["decision_authority"] is False
+    assert decision["authority_boundary"]["supervisor_decision_engine_owner"] == (
+        "one-person-lab"
+    )
+    assert decision["authority_boundary"]["recovery_obligation_store_owner"] == (
+        "one-person-lab"
+    )
+    assert decision["authority_boundary"]["opl_supervisor_decision_engine_owner"] == (
+        "one-person-lab"
+    )
     assert decision["authority_boundary"]["can_store_recovery_obligation"] is False
     assert decision["authority_boundary"]["can_generate_supervisor_decision_authority"] is False
     assert decision["authority_boundary"]["can_create_opl_command_event_or_outbox"] is False
@@ -82,6 +109,35 @@ def test_execute_decision_requires_provider_and_stage_run_identity() -> None:
     assert "provider-admission:dm003:repair" in decision["evidence_refs"]
     assert "stage-run-dm003" in decision["evidence_refs"]
     assert decision["paper_progress_classification"] == "none_until_mas_owner_result"
+
+
+def test_execute_decision_gate_requires_provider_and_stage_run_evidence_together() -> None:
+    provider_only = _execute_decision_with_evidence(["provider-admission:dm003:repair"])
+    stage_only = _execute_decision_with_evidence(["stage-run-dm003"])
+    both = _execute_decision_with_evidence([
+        "provider-admission:dm003:repair",
+        "stage-run-dm003",
+    ])
+
+    assert execute_decision_identity_evidence_complete(provider_only) is False
+    assert provider_admission_supervisor_gate(
+        {"paper_autonomy_supervisor_decision": provider_only}
+    ) == {
+        "blocked": True,
+        "admission_allowed": False,
+        "reason": "execute_current_owner_delta_missing_identity_or_evidence",
+        "supervisor_decision": provider_only,
+    }
+
+    assert execute_decision_identity_evidence_complete(stage_only) is False
+    assert provider_admission_supervisor_gate(
+        {"paper_autonomy_supervisor_decision": stage_only}
+    )["blocked"] is True
+
+    assert execute_decision_identity_evidence_complete(both) is True
+    assert provider_admission_supervisor_gate(
+        {"paper_autonomy_supervisor_decision": both}
+    )["admission_allowed"] is True
 
 
 def test_admission_pending_without_identity_bound_provider_admission_materializes_recovery_not_idle() -> None:
@@ -538,3 +594,25 @@ def test_obligation_shape_is_identity_bound() -> None:
         "003-dpcc-primary-care-phenotype-treatment-gap:run_gate_clearing_batch:"
     )
     assert obligation["attempt_idempotency_key"] == "idem-dm003"
+
+
+def _execute_decision_with_evidence(evidence_refs: list[str]) -> dict[str, object]:
+    fingerprint = "publication-blockers::0915410f804b3697"
+    obligation = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "stage_id": "publication_supervision",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": fingerprint,
+        "route_identity_key": "route::dm003::quality-repair",
+        "attempt_idempotency_key": "attempt::dm003::quality-repair",
+    }
+    return {
+        "surface_kind": "paper_autonomy_supervisor_decision",
+        "decision": "execute_current_owner_delta",
+        "identity_match": True,
+        "paper_autonomy_obligation": obligation,
+        "evidence_refs": evidence_refs,
+        "missing_evidence_refs": [],
+    }

@@ -284,6 +284,18 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         ],
         "request_projection_outcome_source_family": "mas_policy_request_projection",
         "request_projection_is_success_outcome": False,
+        "success_requires_opl_foundation_readback_boundary": True,
+        "opl_foundation_readback_boundary_required_fields": [
+            "surface_kind",
+            "source_family",
+            "opl_runtime_owner",
+            "opl_transition_runtime_kind",
+            "consumed_opl_foundation_surfaces",
+            "mas_role",
+            "mas_can_store_recovery_obligation=false",
+            "mas_can_run_supervisor_decision_engine=false",
+            "mas_policy_request_projection_can_satisfy_success=false",
+        ],
         "supervisor_disallowed_outcome_is_success": False,
     }
     assert readback["consume_only_readback_boundary"] == {
@@ -313,6 +325,7 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
             "mas_owner_answer_readback",
             "mas_domain_authority_readback",
         ],
+        "success_requires_opl_foundation_readback_boundary": True,
         "request_projection_is_success_outcome": False,
         "supervisor_disallowed_outcome_is_success": False,
     }

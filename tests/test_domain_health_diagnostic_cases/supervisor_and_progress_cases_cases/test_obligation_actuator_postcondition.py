@@ -1077,11 +1077,22 @@ def _assert_exactly_one_dhd_apply_outcome(
     assert outcome["outcome_kind"] == expected_kind
     assert present == [expected_kind]
     source_family = outcome["outcome_source_family"]
+    foundation = outcome["opl_foundation_readback_boundary"]
+    assert foundation["surface_kind"] == "opl_foundation_readback_boundary"
+    assert foundation["source_family"] == source_family
+    assert foundation["opl_runtime_owner"] == "one-person-lab"
+    assert foundation["mas_role"] == "consume_only_projection"
+    assert foundation["mas_can_store_recovery_obligation"] is False
+    assert foundation["mas_can_run_supervisor_decision_engine"] is False
+    assert foundation["mas_policy_request_projection_can_satisfy_success"] is False
+    assert outcome["success_requires_opl_foundation_readback_boundary"] is True
     if expected_kind == "transition_request_pending":
         assert source_family == "mas_policy_request_projection"
         assert outcome["request_projection_only"] is True
         assert outcome["postcondition_ok"] is False
         assert "success_outcome_source_family" not in outcome
+        assert foundation["success_source_family_required"] is False
+        assert "success_source_family" not in foundation
     else:
         assert source_family in {
             "opl_runtime_readback",
@@ -1089,6 +1100,8 @@ def _assert_exactly_one_dhd_apply_outcome(
             "mas_domain_authority_readback",
         }
         assert outcome["success_outcome_source_family"] == source_family
+        assert foundation["success_source_family"] == source_family
+        assert foundation["success_source_family_required"] is True
         assert outcome.get("request_projection_only") is not True
 
 
@@ -1173,6 +1186,11 @@ def test_obligation_actuator_transition_request_is_projection_not_success(
     assert postcondition["ok"] is False
     assert postcondition["outcome_source_family"] == "mas_policy_request_projection"
     assert postcondition["request_projection_only"] is True
+    assert postcondition["success_requires_opl_foundation_readback_boundary"] is True
+    foundation = postcondition["opl_foundation_readback_boundary"]
+    assert foundation["source_family"] == "mas_policy_request_projection"
+    assert foundation["mas_policy_request_projection_can_satisfy_success"] is False
+    assert foundation["success_source_family_required"] is False
     consume_only = postcondition["consume_only_readback_boundary"]
     assert consume_only["surface_kind"] == "domain_health_diagnostic_apply_consume_only_readback"
     assert consume_only["opl_recovery_obligation_store_owner"] == "one-person-lab"
@@ -1242,6 +1260,10 @@ def test_obligation_actuator_disallowed_supervisor_outcome_fails_postcondition(
     assert outcome["paper_autonomy_supervisor_outcome_allowed"] is False
     assert outcome["postcondition_ok"] is False
     assert "success_outcome_source_family" not in outcome
+    assert outcome["success_requires_opl_foundation_readback_boundary"] is True
+    assert outcome["opl_foundation_readback_boundary"]["success_source_family"] == (
+        "mas_owner_answer_readback"
+    )
     assert outcome["consume_only_readback_boundary"]["supervisor_disallowed_outcome_is_success"] is False
     postcondition = report["managed_study_actions"][0]["dhd_apply_postcondition"]
     assert postcondition["ok"] is False

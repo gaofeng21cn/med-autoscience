@@ -286,6 +286,12 @@ def test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as
     assert outcome["authority_boundary"]["accepts_opl_stage_run_readback"] is True
     assert outcome["authority_boundary"]["accepts_mas_owner_answer_result"] is True
     assert outcome["authority_boundary"]["provider_admission_requires_opl_runtime_result"] is True
+    foundation = outcome["opl_foundation_readback_boundary"]
+    assert foundation["source_family"] == "opl_runtime_readback"
+    assert foundation["success_source_family"] == "opl_runtime_readback"
+    assert foundation["success_source_family_required"] is True
+    assert foundation["mas_can_run_supervisor_decision_engine"] is False
+    assert foundation["mas_policy_request_projection_can_satisfy_success"] is False
     consume_only = outcome["consume_only_readback_boundary"]
     assert consume_only["opl_runtime_owner"] == "one-person-lab"
     assert consume_only["opl_supervisor_decision_engine_owner"] == "one-person-lab"
@@ -298,6 +304,9 @@ def test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"][
         "consume_only_readback_boundary"
     ] == consume_only
+    assert report["managed_study_actions"][0]["dhd_apply_postcondition"][
+        "opl_foundation_readback_boundary"
+    ] == foundation
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["authority_boundary"][
         "provider_admission_requires_opl_runtime_result"
     ] is True
@@ -367,6 +376,12 @@ def test_domain_health_diagnostic_apply_projects_transition_request_when_provide
         f"provider-admission::{study_id}::medical_prose_write_repair"
     )
     assert outcome["details"]["required_opl_runtime_result"] is True
+    assert outcome["success_requires_opl_foundation_readback_boundary"] is True
+    foundation = outcome["opl_foundation_readback_boundary"]
+    assert foundation["source_family"] == "mas_policy_request_projection"
+    assert foundation["success_source_family_required"] is False
+    assert foundation["mas_policy_request_projection_can_satisfy_success"] is False
+    assert "success_source_family" not in foundation
     blocker = outcome["typed_control_blocker"]
     assert blocker["blocker_type"] == "opl_transition_readback_required"
     assert blocker["non_advancing_apply"] is True

@@ -132,9 +132,10 @@ def execute_decision_identity_evidence_complete(
     if not all(_text(obligation.get(key)) is not None for key in _REQUIRED_OBLIGATION_FIELDS):
         return False
     evidence_refs = _text_items(decision.get("evidence_refs"))
-    if _has_marker(evidence_refs, _PROVIDER_EVIDENCE_MARKERS):
-        return True
-    return _has_marker(evidence_refs, _STAGE_RUN_EVIDENCE_MARKERS)
+    return _has_marker(evidence_refs, _PROVIDER_EVIDENCE_MARKERS) and _has_marker(
+        evidence_refs,
+        _STAGE_RUN_EVIDENCE_MARKERS,
+    )
 
 
 def _supervisor_decision_allows_provider_admission_materialization(
