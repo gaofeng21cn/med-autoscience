@@ -127,6 +127,26 @@ def progress_payload(study_id: str = "001-risk") -> dict[str, object]:
             "status": "provider_admitted",
             "supervisor_tick_status": "fresh",
         },
+        "current_owner_delta": {
+            "surface_kind": "current_owner_delta",
+            "owner": "ai_reviewer",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "quality-repair-001",
+            "work_unit_fingerprint": "quality-repair-fp-001",
+            "required_delta_kind": "owner_receipt_or_typed_blocker",
+            "target_surface": {
+                "surface_ref": "studies/001-risk/artifacts/publication_eval/latest.json",
+            },
+            "latest_owner_answer_kind": "typed_blocker",
+            "latest_owner_answer_ref": "studies/001-risk/artifacts/owner/typed_blocker.json",
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "owner": "ai_reviewer",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "quality-repair-001",
+            "work_unit_fingerprint": "quality-repair-fp-001",
+        },
         "outer_supervision_slo": {
             "surface_kind": "outer_supervision_slo",
             "state": "fresh",

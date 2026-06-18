@@ -67,7 +67,36 @@ def _assert_research_runtime_control_projection(*, module, payload, profile, pro
     assert payload["session_continuity"]["progress_surface"]["surface_kind"] == "study_progress"
     assert payload["session_continuity"]["artifact_surface"]["surface_kind"] == "progress_projection"
     assert payload["progress_projection"]["surface_kind"] == "progress_projection"
-    assert payload["progress_projection"]["progress_surface"]["surface_kind"] == "workspace_cockpit"
+    assert payload["progress_projection"]["progress_surface"] == {
+        "surface_kind": "study_progress",
+        "summary": (
+            "默认读取 study_progress.current_owner_delta、current_executable_owner_action 和 owner receipt / typed blocker refs。"
+        ),
+        "command": (
+            "uv run python -m med_autoscience.cli study progress --profile "
+            + str(profile_ref.resolve())
+            + " --study-id <study_id> --format json"
+        ),
+        "step_id": "inspect_current_owner_delta",
+        "locator_fields": ["profile_ref", "study_id"],
+    }
+    assert payload["progress_projection"]["domain_projection"]["default_read_surface"] == {
+        "surface_kind": "study_progress",
+        "field_path": "current_owner_delta",
+        "fallback_field_path": "current_executable_owner_action",
+        "receipt_or_blocker_fields": ["owner_receipt_ref", "typed_blocker_ref"],
+        "ordinary_read_priority": 0,
+    }
+    diagnostic_audit_plane = payload["progress_projection"]["domain_projection"]["diagnostic_audit_plane"]
+    assert diagnostic_audit_plane["audit_only_fields"] == [
+        "raw_worklist",
+        "provider_trace",
+        "queue_counts",
+        "legacy_dispatch",
+    ]
+    assert diagnostic_audit_plane["must_not_override_current_owner_delta"] is True
+    assert "workbench" in diagnostic_audit_plane["workspace_cockpit_command"]
+    assert "study progress" in diagnostic_audit_plane["runtime_status_command"]
     assert "studies/<study_id>/artifacts" in payload["progress_projection"]["inspect_paths"]
 
 def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref) -> None:

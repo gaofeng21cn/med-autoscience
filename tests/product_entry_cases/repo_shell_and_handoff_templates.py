@@ -78,3 +78,51 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert_manifest_entry_and_lifecycle_surfaces(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
     assert_manifest_preflight_and_guardrail_surfaces(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
     assert_manifest_phase_and_readiness_surfaces(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
+
+
+def test_product_entry_progress_projection_defaults_to_current_owner_delta(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+            workspace_domain_route_contract={
+                "status": "loaded",
+                "loaded": True,
+                "summary": "OPL provider/runtime manager workspace supervision 已在线。",
+                "drift_reasons": [],
+            },
+        ),
+    )
+
+    payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    progress = payload["progress_projection"]
+
+    assert progress["progress_surface"]["surface_kind"] == "study_progress"
+    assert progress["progress_surface"]["step_id"] == "inspect_current_owner_delta"
+    assert progress["progress_surface"]["locator_fields"] == ["profile_ref", "study_id"]
+    assert progress["domain_projection"]["default_read_surface"] == {
+        "surface_kind": "study_progress",
+        "field_path": "current_owner_delta",
+        "fallback_field_path": "current_executable_owner_action",
+        "receipt_or_blocker_fields": ["owner_receipt_ref", "typed_blocker_ref"],
+        "ordinary_read_priority": 0,
+    }
+    diagnostic_audit_plane = progress["domain_projection"]["diagnostic_audit_plane"]
+    assert diagnostic_audit_plane["audit_only_fields"] == [
+        "raw_worklist",
+        "provider_trace",
+        "queue_counts",
+        "legacy_dispatch",
+    ]
+    assert diagnostic_audit_plane["must_not_override_current_owner_delta"] is True

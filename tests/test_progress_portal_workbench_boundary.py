@@ -62,6 +62,27 @@ def _runtime_workbench_projection(study_workbench: dict[str, object]) -> dict[st
 def test_study_workbench_next_system_action_is_read_only_owner_delta_summary() -> None:
     payload = _study_workbench_payload()
 
+    assert payload["tabs"][0] == {
+        "id": "current_owner_delta",
+        "label": "Current Owner Delta",
+        "status": "available",
+    }
+    default_read = payload["current_owner_delta"]
+    assert default_read["surface_kind"] == "mas_progress_portal_current_owner_delta_default_read"
+    assert default_read["read_surface_role"] == "ordinary_default_current_owner_delta"
+    assert default_read["default_read_priority"] == 0
+    assert default_read["owner"] == "ai_reviewer"
+    assert default_read["action_type"] == "run_quality_repair_batch"
+    assert default_read["work_unit_id"] == "quality-repair-001"
+    assert default_read["required_delta_kind"] == "owner_receipt_or_typed_blocker"
+    assert default_read["typed_blocker_ref"] == "studies/001-risk/artifacts/owner/typed_blocker.json"
+    assert {"raw_worklist", "provider_trace", "queue_counts", "legacy_dispatch"} <= set(
+        default_read["audit_plane_exclusions"]
+    )
+    assert default_read["authority"]["projection_only"] is True
+    assert default_read["authority"]["can_generate_action"] is False
+    assert default_read["authority"]["can_authorize_provider_admission"] is False
+
     boundary = payload["overview_action_boundary"]
     assert payload["overview"]["next_system_action_boundary"] == boundary
     assert boundary["surface_kind"] == "mas_progress_portal_study_workbench_overview_action_boundary"
@@ -76,6 +97,15 @@ def test_study_workbench_next_system_action_is_read_only_owner_delta_summary() -
     assert boundary["must_not_be_used_as_next_action_authority"] is True
     assert boundary["must_not_be_used_as_publication_ready"] is True
     assert boundary["must_not_be_used_as_paper_progress"] is True
+
+
+def test_study_workbench_renders_current_owner_delta_before_diagnostics() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.study_workbench")
+    html = module.render_study_workbench_sections(_study_workbench_payload())
+
+    assert html.index("Current Owner Delta") < html.index("运行")
+    assert "run_quality_repair_batch" in html
+    assert "provider_trace" in html
 
 
 def test_action_owner_routing_policy_cannot_dispatch_or_admit_provider() -> None:

@@ -197,7 +197,8 @@ def _build_progress_projection_surface(
     progress_projection_command: str,
 ) -> dict[str, Any]:
     headline = _non_empty_text(product_entry_status.get("summary")) or "MAS 当前保持 repo-owned product entry continuity。"
-    next_step = _non_empty_text(operator_loop_surface.get("command")) or "none"
+    progress_command = str((product_entry_shell.get("study_progress") or {}).get("command") or "")
+    next_step = progress_command or _non_empty_text(operator_loop_surface.get("command")) or "none"
     latest_update = _non_empty_text(repo_mainline.get("current_stage_summary")) or _non_empty_text(
         repo_mainline.get("current_program_phase_summary")
     ) or headline
@@ -213,11 +214,11 @@ def _build_progress_projection_surface(
         current_status=_non_empty_text(product_entry_readiness.get("verdict")) or "runtime_ready_not_standalone_product",
         runtime_status="ready" if bool(product_entry_preflight.get("ready_to_try_now")) and not blocking_check_ids else "blocked",
         progress_surface={
-            "surface_kind": "workspace_cockpit",
-            "summary": "读取 workspace attention queue 与监督在线态（progress 指针）。",
+            "surface_kind": "study_progress",
+            "summary": "默认读取 study_progress.current_owner_delta、current_executable_owner_action 和 owner receipt / typed blocker refs。",
             "command": next_step,
-            "step_id": "open_loop",
-            "locator_fields": ["profile_ref"],
+            "step_id": "inspect_current_owner_delta",
+            "locator_fields": ["profile_ref", "study_id"],
         },
         artifact_surface={
             "surface_kind": "progress_projection",
@@ -231,10 +232,23 @@ def _build_progress_projection_surface(
         human_gate_ids=_collect_family_human_gate_ids(family_orchestration),
         domain_projection={
             "recommended_restore_command": str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
-            "recommended_progress_command": str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
+            "recommended_progress_command": progress_command,
+            "default_read_surface": {
+                "surface_kind": "study_progress",
+                "field_path": "current_owner_delta",
+                "fallback_field_path": "current_executable_owner_action",
+                "receipt_or_blocker_fields": ["owner_receipt_ref", "typed_blocker_ref"],
+                "ordinary_read_priority": 0,
+            },
+            "diagnostic_audit_plane": {
+                "workspace_cockpit_command": str(operator_loop_surface.get("command") or ""),
+                "runtime_status_command": progress_projection_command,
+                "audit_only_fields": ["raw_worklist", "provider_trace", "queue_counts", "legacy_dispatch"],
+                "must_not_override_current_owner_delta": True,
+            },
             "research_runtime_control_projection": _build_research_runtime_control_projection(
                 resume_command=str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
-                check_progress_command=str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
+                check_progress_command=progress_command,
                 check_runtime_status_command=progress_projection_command,
                 surface_kind="research_runtime_control_projection",
             ),

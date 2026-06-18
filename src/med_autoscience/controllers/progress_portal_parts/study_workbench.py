@@ -89,6 +89,7 @@ def build_study_workbench_payload(
         study_id=resolved_study_id,
         study_root=_first_text(resolved_progress.get("study_root"), _mapping(resolved_progress.get("refs")).get("study_root")),
     )
+    current_owner_delta = _current_owner_delta_projection(resolved_progress)
     progress_first = build_progress_first_operator_projection(resolved_progress)
     path_stage = {
         "current_stage": _first_text(user_visible.get("current_stage"), cockpit_study.get("current_stage")),
@@ -157,6 +158,11 @@ def build_study_workbench_payload(
         "study_id": resolved_study_id,
         "summary": summary,
         "tabs": [
+            {
+                "id": "current_owner_delta",
+                "label": "Current Owner Delta",
+                "status": _non_empty_text(current_owner_delta.get("status")) or "missing",
+            },
             {"id": "overview", "label": "概览", "status": _tab_status(overview)},
             {"id": "route_map", "label": "研究路线地图", "status": _non_empty_text(route_map.get("status")) or "missing"},
             {
@@ -190,6 +196,7 @@ def build_study_workbench_payload(
         "route_decision_trail": route_decision_trail,
         "stage_knowledge": stage_knowledge,
         "stage_review_index": stage_review_index,
+        "current_owner_delta": current_owner_delta,
         "progress_first": progress_first,
         "path_stage": path_stage,
         "runtime": runtime_projection,
@@ -206,6 +213,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
     route_decision_trail = _mapping(payload.get("route_decision_trail"))
     stage_knowledge = _mapping(payload.get("stage_knowledge"))
     stage_review_index = _mapping(payload.get("stage_review_index"))
+    current_owner_delta = _mapping(payload.get("current_owner_delta"))
     progress_first = _mapping(payload.get("progress_first"))
     path_stage = _mapping(payload.get("path_stage"))
     runtime = _mapping(payload.get("runtime"))
@@ -221,6 +229,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
             + escape(display_text(overview.get("state_label"), empty_text="状态投影缺失", preserve_known_token=False))
             + "</p>",
             "</section>",
+            _current_owner_delta_section(current_owner_delta),
             render_route_map_section(route_map),
             render_route_decision_trail_section(route_decision_trail),
             _stage_knowledge_section(stage_knowledge),
@@ -311,6 +320,120 @@ def _overview_action_boundary() -> dict[str, Any]:
         "must_not_be_used_as_publication_ready": True,
         "must_not_be_used_as_paper_progress": True,
     }
+
+
+def _current_owner_delta_projection(progress: Mapping[str, Any]) -> dict[str, Any]:
+    monitoring = _mapping(progress.get("progress_first_monitoring_summary"))
+    stage_kernel = _mapping(progress.get("stage_kernel_projection"))
+    stage_run_kernel = _mapping(stage_kernel.get("stage_run_kernel"))
+    owner_delta = (
+        _mapping(progress.get("current_owner_delta"))
+        or _mapping(monitoring.get("current_owner_delta"))
+        or _mapping(stage_kernel.get("current_owner_delta"))
+        or _mapping(stage_run_kernel.get("current_owner_delta"))
+    )
+    executable_action = (
+        _mapping(progress.get("current_executable_owner_action"))
+        or _mapping(monitoring.get("current_executable_owner_action"))
+        or _mapping(owner_delta.get("next_owner_action"))
+    )
+    hard_gate = _mapping(owner_delta.get("hard_gate"))
+    target_surface = _mapping(owner_delta.get("target_surface")) or _mapping(executable_action.get("target_surface"))
+    latest_owner_answer_kind = _first_text(owner_delta.get("latest_owner_answer_kind"))
+    latest_owner_answer_ref = _first_text(owner_delta.get("latest_owner_answer_ref"))
+    return {
+        "surface_kind": "mas_progress_portal_current_owner_delta_default_read",
+        "schema_version": 1,
+        "status": "available" if owner_delta or executable_action else "missing",
+        "default_read_priority": 0,
+        "read_surface_role": "ordinary_default_current_owner_delta",
+        "audit_plane_exclusions": [
+            "raw_worklist",
+            "provider_trace",
+            "queue_counts",
+            "legacy_dispatch",
+            "sidecar_output",
+        ],
+        "current_owner_delta": owner_delta,
+        "current_executable_owner_action": executable_action,
+        "owner": _first_text(owner_delta.get("owner"), executable_action.get("owner"), executable_action.get("next_owner")),
+        "action_type": _first_text(owner_delta.get("action_type"), executable_action.get("action_type")),
+        "work_unit_id": _first_text(owner_delta.get("work_unit_id"), executable_action.get("work_unit_id")),
+        "work_unit_fingerprint": _first_text(
+            owner_delta.get("work_unit_fingerprint"),
+            executable_action.get("work_unit_fingerprint"),
+            executable_action.get("action_fingerprint"),
+        ),
+        "required_delta_kind": _first_text(
+            owner_delta.get("required_delta_kind"),
+            executable_action.get("required_delta_kind"),
+            hard_gate.get("required_delta_kind"),
+        ),
+        "target_surface": target_surface,
+        "hard_gate": hard_gate,
+        "owner_receipt_ref": _first_text(
+            owner_delta.get("owner_receipt_ref"),
+            latest_owner_answer_ref if latest_owner_answer_kind == "owner_receipt" else None,
+            hard_gate.get("owner_receipt_ref"),
+        ),
+        "typed_blocker_ref": _first_text(
+            owner_delta.get("typed_blocker_ref"),
+            latest_owner_answer_ref if latest_owner_answer_kind == "typed_blocker" else None,
+            hard_gate.get("typed_blocker_ref"),
+        ),
+        "authority": {
+            "writes_authority_surface": False,
+            "projection_only": True,
+            "can_generate_action": False,
+            "can_execute": False,
+            "can_authorize_provider_admission": False,
+            "can_authorize_worker_attempt": False,
+            "must_not_be_used_as_publication_ready": True,
+            "must_not_be_used_as_paper_progress": True,
+        },
+    }
+
+
+def _current_owner_delta_section(projection: Mapping[str, Any]) -> str:
+    target_surface = _mapping(projection.get("target_surface"))
+    return (
+        '<section class="panel wide current-owner-delta-default-read"><h2>Current Owner Delta '
+        + status_chip(projection.get("status") or "missing")
+        + "</h2><dl>"
+        + _key_value_table(
+            {
+                "owner": display_text(projection.get("owner"), empty_text="missing", preserve_known_token=True),
+                "action_type": display_text(projection.get("action_type"), empty_text="missing", preserve_known_token=True),
+                "work_unit_id": display_text(projection.get("work_unit_id"), empty_text="missing", preserve_known_token=True),
+                "required_delta_kind": display_text(
+                    projection.get("required_delta_kind"),
+                    empty_text="missing",
+                    preserve_known_token=True,
+                ),
+                "target_surface": display_text(
+                    target_surface.get("surface_ref") or target_surface.get("ref"),
+                    empty_text="missing",
+                    preserve_known_token=True,
+                ),
+                "owner_receipt_ref": display_text(
+                    projection.get("owner_receipt_ref"),
+                    empty_text="missing",
+                    preserve_known_token=True,
+                ),
+                "typed_blocker_ref": display_text(
+                    projection.get("typed_blocker_ref"),
+                    empty_text="missing",
+                    preserve_known_token=True,
+                ),
+            }
+        )
+        + "</dl>"
+        + list_html(
+            _string_list(projection.get("audit_plane_exclusions")),
+            empty_text="没有 audit-only exclusions。",
+        )
+        + "</section>"
+    )
 
 
 def _stage_knowledge_projection(progress: Mapping[str, Any], study_id: str) -> dict[str, Any]:
