@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 
+from med_autoscience.controllers.paper_autonomy_supervisor import build_supervisor_decision
 from tests.provider_admission_current_control_helpers import (
     opl_transition_readback,
 )
@@ -65,6 +66,25 @@ def _opl_transition_result(
     )
 
 
+def _assert_readback_required_supervisor_projection(state: dict[str, object]) -> None:
+    decision = state["supervisor_decision"]
+    assert isinstance(decision, dict)
+    assert decision["surface_kind"] == "paper_progress_policy_result_projection"
+    assert decision["decision"] == "opl_supervisor_decision_readback_required"
+    assert decision["decision_authority"] is False
+    assert decision["read_model_can_build_supervisor_decision"] is False
+    assert decision["requires_opl_supervisor_decision_engine_readback"] is True
+    assert decision["mas_can_run_supervisor_decision_engine"] is False
+    assert decision["mas_can_store_recovery_obligation"] is False
+    assert decision["mas_can_authorize_provider_admission"] is False
+    assert decision["provider_admission_pending"] is False
+    assert decision["missing_evidence_refs"] == [
+        "explicit_paper_autonomy_supervisor_decision_projection",
+        "opl_supervisor_decision_engine_readback",
+    ]
+    assert "paper_autonomy_obligation" not in decision
+
+
 def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     state = _module().build_paper_recovery_state(
         {
@@ -83,12 +103,7 @@ def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     )
 
     assert state["surface_kind"] == "paper_recovery_state"
-    assert state["supervisor_decision"]["surface_kind"] == "paper_progress_policy_result_projection"
-    assert state["supervisor_decision"]["legacy_decision_surface_kind"] == (
-        "paper_autonomy_supervisor_decision"
-    )
-    assert state["supervisor_decision"]["legacy_decision_field_is_authority"] is False
-    assert state["supervisor_decision"]["decision"] == "stop_with_stable_typed_blocker"
+    _assert_readback_required_supervisor_projection(state)
     assert state["phase"] == "domain_blocked"
     assert state["recovery_obligation_id"] == (
         "paper-recovery::002-dm-cvd-mortality-risk::run_gate_clearing_batch::"
@@ -98,6 +113,31 @@ def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
     assert state["suppressed_surfaces"] == ["current_executable_owner_action"]
+
+
+def test_paper_recovery_state_consumes_explicit_policy_projection_without_rebuilding() -> None:
+    payload = {
+        "study_id": "002-dm-cvd-mortality-risk",
+        "current_work_unit": _typed_blocker_work_unit(),
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "next_owner": "analysis-campaign",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "analysis_claim_evidence_repair",
+        },
+    }
+    policy_projection = build_supervisor_decision(payload)
+
+    state = _module().build_paper_recovery_state(
+        payload | {"paper_progress_policy_result_projection": policy_projection}
+    )
+
+    assert state["phase"] == "domain_blocked"
+    assert state["supervisor_decision"] == policy_projection
+    assert state["supervisor_decision"]["decision"] == "stop_with_stable_typed_blocker"
+    assert state["supervisor_decision"]["decision_authority"] is False
+    assert state["supervisor_decision"]["mas_can_run_supervisor_decision_engine"] is False
 
 
 def test_terminal_selector_residue_yields_successor_over_stale_progress_first_owner_receipt() -> None:
@@ -197,7 +237,7 @@ def test_terminal_selector_residue_yields_successor_over_stale_progress_first_ow
         "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
         "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
     }
-    assert state["supervisor_decision"]["decision"] == "materialize_recovery_action"
+    _assert_readback_required_supervisor_projection(state)
 
 
 def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
@@ -243,7 +283,7 @@ def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
     )
 
     assert state["phase"] == "owner_action_ready"
-    assert state["supervisor_decision"]["decision"] == "materialize_recovery_action"
+    _assert_readback_required_supervisor_projection(state)
     assert state["conditions"] == [
         {
             "condition": "accepted_owner_gate_decision",
@@ -1258,7 +1298,9 @@ def test_runtime_report_keeps_observe_only_transition_request_pending_until_opl_
     assert action["paper_recovery_state"]["phase"] == "owner_action_ready"
     assert action["current_work_unit"]["status"] == "executable_owner_action"
     assert action["current_execution_envelope"]["state_kind"] == "executable_owner_action"
-    assert action["supervisor_decision"]["decision"] == "materialize_recovery_action"
+    assert action["supervisor_decision"]["decision"] == "opl_supervisor_decision_readback_required"
+    assert action["supervisor_decision"]["read_model_can_build_supervisor_decision"] is False
+    assert action["supervisor_decision"]["mas_can_run_supervisor_decision_engine"] is False
     assert action["provider_admission_state"]["status"] == "none"
     assert action["provider_admission_state"]["candidate_count"] == 0
     assert action["provider_admission_state"]["running_provider_attempt"] is False

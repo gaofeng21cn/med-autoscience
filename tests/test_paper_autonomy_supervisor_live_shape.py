@@ -78,7 +78,7 @@ def test_dm002_dm003_current_blockers_materialize_recovery_actions_when_owner_ca
     assert dm003["paper_progress_classification"] == "none_until_owner_receipt_or_stable_blocker"
 
 
-def test_paper_recovery_state_embeds_same_supervisor_decision_for_dm002_dm003_live_shape() -> None:
+def test_paper_recovery_state_requires_supervisor_readback_for_dm002_dm003_live_shape() -> None:
     report = _dm002_dm003_dhd_live_shape()
 
     for study_id, progress in report["progress_currentness"].items():
@@ -93,13 +93,13 @@ def test_paper_recovery_state_embeds_same_supervisor_decision_for_dm002_dm003_li
         )
         direct_decision = build_supervisor_decision(progress, paper_recovery_state=state)
 
-        assert state["supervisor_decision"] == direct_decision
-        assert state["supervisor_decision"]["decision"] == "materialize_recovery_action"
-        assert state["supervisor_decision"]["decision"] in ALLOWED_SUPERVISOR_DECISIONS
-        assert "provider_admission_pending_count=0" in state["supervisor_decision"][
+        _assert_paper_recovery_state_requires_supervisor_readback(state)
+        assert direct_decision["decision"] == "materialize_recovery_action"
+        assert direct_decision["decision"] in ALLOWED_SUPERVISOR_DECISIONS
+        assert "provider_admission_pending_count=0" in direct_decision[
             "forbidden_interpretations"
         ]
-        assert "action_queue=[]" in state["supervisor_decision"]["forbidden_interpretations"]
+        assert "action_queue=[]" in direct_decision["forbidden_interpretations"]
         assert state["study_id"] == study_id
 
 
@@ -109,7 +109,7 @@ def test_owner_receipt_recorded_live_shape_is_allowed_terminal_supervisor_decisi
     decision = build_supervisor_decision(progress, paper_recovery_state=state)
 
     assert state["phase"] == "owner_receipt_recorded"
-    assert state["supervisor_decision"] == decision
+    _assert_paper_recovery_state_requires_supervisor_readback(state)
     assert decision["decision"] == "stop_with_owner_receipt"
     assert decision["decision"] in ALLOWED_SUPERVISOR_DECISIONS
     assert decision["decision"] not in FORBIDDEN_TERMINAL_DECISIONS
@@ -149,13 +149,29 @@ def _decisions_by_study(report: Mapping[str, Any]) -> dict[str, Mapping[str, Any
                 "provider_admission_pending_count": report["provider_admission_pending_count"],
             },
         )
-        assert state["supervisor_decision"] == build_supervisor_decision(
+        _assert_paper_recovery_state_requires_supervisor_readback(state)
+        decision = build_supervisor_decision(
             progress,
             paper_recovery_state=state,
         )
         assert study_id not in decisions
-        decisions[study_id] = state["supervisor_decision"]
+        decisions[study_id] = decision
     return decisions
+
+
+def _assert_paper_recovery_state_requires_supervisor_readback(
+    state: Mapping[str, Any],
+) -> None:
+    decision = state["supervisor_decision"]
+    assert isinstance(decision, Mapping)
+    assert decision["surface_kind"] == "paper_progress_policy_result_projection"
+    assert decision["decision"] == "opl_supervisor_decision_readback_required"
+    assert decision["decision_authority"] is False
+    assert decision["read_model_can_build_supervisor_decision"] is False
+    assert decision["requires_opl_supervisor_decision_engine_readback"] is True
+    assert decision["mas_can_run_supervisor_decision_engine"] is False
+    assert decision["mas_can_store_recovery_obligation"] is False
+    assert decision["provider_admission_pending"] is False
 
 
 def _dm002_dm003_dhd_live_shape() -> dict[str, Any]:

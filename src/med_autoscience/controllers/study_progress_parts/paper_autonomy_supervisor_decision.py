@@ -349,8 +349,10 @@ def _explicit_supervisor_decision(
 ) -> dict[str, Any]:
     recovery = _mapping(paper_recovery_state) or _mapping(payload.get("paper_recovery_state"))
     for candidate in (
+        payload.get("paper_progress_policy_result_projection"),
         payload.get("paper_autonomy_supervisor_decision"),
         payload.get("supervisor_decision"),
+        recovery.get("paper_progress_policy_result_projection"),
         recovery.get("supervisor_decision"),
         recovery.get("paper_autonomy_supervisor_decision"),
     ):

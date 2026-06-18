@@ -692,6 +692,20 @@
         "provider_admission_gate_outcome_when_missing_readback": "blocked",
         "provider_admission_pending_when_missing_readback": false
       },
+      "paper_recovery_state_supervisor_projection_boundary": {
+        "surface": "paper_recovery_state.supervisor_decision",
+        "surface_role": "explicit_policy_projection_or_opl_readback_consumer",
+        "explicit_projection_required": true,
+        "accepted_explicit_projection_fields": [
+          "paper_progress_policy_result_projection",
+          "paper_autonomy_supervisor_decision"
+        ],
+        "missing_explicit_projection_outcome": "opl_supervisor_decision_readback_required",
+        "paper_recovery_state_can_build_decision": false,
+        "read_model_can_run_supervisor_decision_engine": false,
+        "requires_opl_supervisor_decision_engine_readback": true,
+        "provider_admission_pending_when_missing_readback": false
+      },
       "obligation_readback_boundary": {
         "request_projection_is_success_outcome": false,
         "success_proof_required_for_postcondition_ok": true,
@@ -727,7 +741,10 @@
       "verified_by": [
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py::test_obligation_actuator_transition_request_is_projection_not_success",
-        "tests/test_paper_autonomy_supervisor.py::test_projection_helper_does_not_build_supervisor_decision_without_explicit_readback"
+        "tests/test_paper_autonomy_supervisor.py::test_projection_helper_does_not_build_supervisor_decision_without_explicit_readback",
+        "tests/test_paper_recovery_state.py::test_typed_blocker_owns_recovery_even_when_residual_action_exists",
+        "tests/test_paper_recovery_state.py::test_paper_recovery_state_consumes_explicit_policy_projection_without_rebuilding",
+        "tests/test_paper_autonomy_supervisor_live_shape.py::test_paper_recovery_state_requires_supervisor_readback_for_dm002_dm003_live_shape"
       ],
       "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
       "local_allowed_outcome_table_role": "contract_bound_result_shape_validation_not_supervisor_decision_engine",
@@ -735,6 +752,7 @@
       "mas_can_mutate_recovery_obligation_store": false,
       "mas_can_run_supervisor_decision_engine": false,
       "study_progress_supervisor_projection_can_build_decision": false,
+      "paper_recovery_state_can_build_decision": false,
       "read_model_can_run_supervisor_decision_engine": false,
       "missing_explicit_supervisor_projection_outcome": "opl_supervisor_decision_readback_required",
       "mas_can_create_opl_command_event_or_outbox": false,

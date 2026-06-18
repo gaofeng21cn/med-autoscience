@@ -17,6 +17,9 @@ from med_autoscience.controllers.paper_recovery_state_parts.obligation_matching 
     action_matches_obligation as _current_action_matches_obligation,
     current_work_unit_matches_obligation as _current_work_unit_matches_obligation,
 )
+from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
+    supervisor_decision_for_projection as _supervisor_decision_for_projection,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     has_opl_transition_readback as _has_opl_transition_readback,
 )
@@ -126,6 +129,7 @@ def build_paper_recovery_state(
             current_owner=current_owner,
             suppressed_surfaces=_suppressed_surfaces_for_owner_gate_decision(progress),
             evidence_refs=_owner_gate_decision_refs(owner_gate_payload),
+            diagnostic_report=diagnostic,
         )
 
     typed_blocker = _current_typed_blocker(current_work_unit)
@@ -166,6 +170,7 @@ def build_paper_recovery_state(
                     successor_owner_action=successor_action,
                 ),
                 current_owner=successor_owner,
+                diagnostic_report=diagnostic,
             )
         owner = _text(obligation.get("owner"))
         owner_receipt_ref = _text(owner_receipt.get("owner_receipt_ref"))
@@ -188,6 +193,7 @@ def build_paper_recovery_state(
             ),
             current_owner=owner,
             evidence_refs=[owner_receipt_ref] if owner_receipt_ref is not None else [],
+            diagnostic_report=diagnostic,
         )
     typed_blocker_superseded_by_current_action = bool(
         typed_blocker
@@ -226,6 +232,7 @@ def build_paper_recovery_state(
             ),
             current_owner=successor_owner,
             suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
+            diagnostic_report=diagnostic,
         )
     if typed_blocker and not typed_blocker_superseded_by_current_action:
         blocker_reason = _typed_blocker_reason(typed_blocker)
@@ -261,6 +268,7 @@ def build_paper_recovery_state(
                 ),
                 current_owner=successor_owner,
                 suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
+                diagnostic_report=diagnostic,
             )
         owner_gate = None
         if not _typed_blocker_has_stable_outcome_ref(typed_blocker):
@@ -291,6 +299,7 @@ def build_paper_recovery_state(
                 current_owner=owner,
                 suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
                 evidence_refs=_text_items(owner_gate.get("evidence_refs")),
+                diagnostic_report=diagnostic,
             )
         if current_action and current_work_unit_reducer.action_supersedes_typed_blocker(
             action=current_action,
@@ -319,6 +328,7 @@ def build_paper_recovery_state(
                 ),
                 current_owner=successor_owner,
                 suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
+                diagnostic_report=diagnostic,
             )
         owner_callable = _current_mas_owner_callable(progress, obligation=obligation)
         if owner_callable is not None:
@@ -339,6 +349,7 @@ def build_paper_recovery_state(
                     owner_callable=owner_callable,
                 ),
                 current_owner=owner,
+                diagnostic_report=diagnostic,
             )
         return _state(
             progress,
@@ -357,6 +368,7 @@ def build_paper_recovery_state(
             ),
             current_owner=owner,
             suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
+            diagnostic_report=diagnostic,
         )
 
     contradiction = _projection_contradiction(progress, obligation=obligation)
@@ -372,6 +384,7 @@ def build_paper_recovery_state(
                 owner="MedAutoScience",
             ),
             current_owner="MedAutoScience",
+            diagnostic_report=diagnostic,
         )
 
     terminal_closeout = _matching_terminal_closeout(progress, obligation=obligation)
@@ -402,6 +415,7 @@ def build_paper_recovery_state(
                 ),
                 current_owner=owner,
                 evidence_refs=_closeout_refs(terminal_closeout),
+                diagnostic_report=diagnostic,
             )
         return _state(
             progress,
@@ -419,6 +433,7 @@ def build_paper_recovery_state(
                 owner="MedAutoScience",
             ),
             evidence_refs=_closeout_refs(terminal_closeout),
+            diagnostic_report=diagnostic,
         )
 
     manual_delta = _mapping(progress.get("manual_foreground_delta"))
@@ -439,6 +454,7 @@ def build_paper_recovery_state(
                 owner="MedAutoScience",
             ),
             current_owner="MedAutoScience",
+            diagnostic_report=diagnostic,
         )
 
     if _has_running_provider_attempt(progress, current_work_unit=current_work_unit):
@@ -454,6 +470,7 @@ def build_paper_recovery_state(
                 owner=owner,
             ),
             current_owner=owner,
+            diagnostic_report=diagnostic,
         )
 
     successor_action = _current_owner_successor_action(progress, current_action=current_action)
@@ -473,6 +490,7 @@ def build_paper_recovery_state(
                 successor_owner_action=successor_action,
             ),
             current_owner=successor_owner,
+            diagnostic_report=diagnostic,
         )
 
     admission_blocked = _admission_blocked_condition(progress, diagnostic)
@@ -497,6 +515,7 @@ def build_paper_recovery_state(
                     owner_callable=owner_callable,
                 ),
                 current_owner=owner,
+                diagnostic_report=diagnostic,
             )
         return _state(
             progress,
@@ -510,6 +529,7 @@ def build_paper_recovery_state(
                 required_input="OPL transport recovery authorization, current identity-bound provider start, or stable typed blocker",
             ),
             current_owner=owner,
+            diagnostic_report=diagnostic,
         )
 
     if _provider_admission_pending(progress):
@@ -526,6 +546,7 @@ def build_paper_recovery_state(
                 owner=owner,
             ),
             current_owner=owner,
+            diagnostic_report=diagnostic,
         )
 
     if _transition_request_pending(progress):
@@ -548,6 +569,7 @@ def build_paper_recovery_state(
                 required_input="OPL command/event/outbox or StageRun readback for the same transition request",
             ),
             current_owner=owner,
+            diagnostic_report=diagnostic,
         )
 
     if _current_work_unit_status(current_work_unit) == "executable_owner_action" or (
@@ -569,6 +591,7 @@ def build_paper_recovery_state(
                     owner_callable=owner_callable,
                 ),
                 current_owner=owner,
+                diagnostic_report=diagnostic,
             )
         return _state(
             progress,
@@ -581,6 +604,7 @@ def build_paper_recovery_state(
                 owner=owner,
             ),
             current_owner=owner,
+            diagnostic_report=diagnostic,
         )
 
     return _state(
@@ -594,6 +618,7 @@ def build_paper_recovery_state(
             owner="MedAutoScience",
         ),
         current_owner="MedAutoScience",
+        diagnostic_report=diagnostic,
     )
 
 
@@ -607,6 +632,7 @@ def _state(
     current_owner: str | None = None,
     suppressed_surfaces: list[str] | None = None,
     evidence_refs: list[str] | None = None,
+    diagnostic_report: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     owner = current_owner or _text(obligation.get("owner")) or "MedAutoScience"
     payload = {
@@ -628,17 +654,12 @@ def _state(
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
     cleaned = {key: value for key, value in payload.items() if value not in (None, "", [], {})}
-    cleaned["supervisor_decision"] = _supervisor_decision(progress, cleaned)
+    cleaned["supervisor_decision"] = _supervisor_decision_for_projection(
+        progress,
+        paper_recovery_state=cleaned,
+        diagnostic_report=diagnostic_report,
+    )
     return cleaned
-
-
-def _supervisor_decision(
-    progress: Mapping[str, Any],
-    recovery_state: Mapping[str, Any],
-) -> dict[str, Any]:
-    from med_autoscience.controllers.paper_autonomy_supervisor import build_supervisor_decision
-
-    return build_supervisor_decision(progress, paper_recovery_state=recovery_state)
 
 
 def _obligation(
