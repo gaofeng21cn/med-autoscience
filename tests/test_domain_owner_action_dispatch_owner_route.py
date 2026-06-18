@@ -6,6 +6,7 @@ from pathlib import Path
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
+    transition_request_consumer_latest as _transition_request_consumer_latest,
     write_current_dispatch as _write_current_dispatch,
     write_json as _write_json,
 )
@@ -248,11 +249,7 @@ def test_execute_dispatch_rejects_dispatch_owner_route_when_scan_lacks_study_rou
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
-        },
+        _transition_request_consumer_latest({**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}),
     )
     monkeypatch.setattr(
         module.action_execution.quality_repair,
@@ -352,11 +349,7 @@ def test_execute_dispatch_authorization_ignores_diagnostic_owner_reason_drift(
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
-        },
+        _transition_request_consumer_latest({**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}),
     )
     monkeypatch.setattr(
         module.action_execution.quality_repair,
@@ -447,11 +440,7 @@ def test_execute_dispatch_filters_when_current_macro_state_drifted(
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
-        },
+        _transition_request_consumer_latest({**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}),
     )
 
     result = module.dispatch_domain_owner_actions(
@@ -516,14 +505,10 @@ def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [
-                {**ready_dispatch, "refs": {"dispatch_path": str(ready_path)}},
-                {**blocked_dispatch, "refs": {"dispatch_path": str(blocked_path)}},
-            ],
-        },
+        _transition_request_consumer_latest(
+            {**ready_dispatch, "refs": {"dispatch_path": str(ready_path)}},
+            {**blocked_dispatch, "refs": {"dispatch_path": str(blocked_path)}},
+        ),
     )
     monkeypatch.setattr(
         module.action_execution,
@@ -862,11 +847,7 @@ def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exh
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
-        },
+        _transition_request_consumer_latest({**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}),
     )
     called: dict[str, object] = {}
 

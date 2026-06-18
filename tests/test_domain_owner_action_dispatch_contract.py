@@ -384,6 +384,62 @@ def test_current_consumer_dispatches_ignore_owner_callable_adapter_list(tmp_path
     assert dispatches[0]["surface"] == "mas_domain_progress_transition_request_projection"
 
 
+def test_current_consumer_dispatches_ignore_inline_default_executor_dispatch(tmp_path) -> None:
+    from med_autoscience.controllers.domain_owner_action_dispatch_parts import persisted_dispatches
+
+    study_id = "study-a"
+    consumer_payload = _dispatch(
+        study_id=study_id,
+        refs={"dispatch_path": str(tmp_path / "inline-legacy.json")},
+    )
+
+    dispatches = persisted_dispatches.current_consumer_dispatches(
+        study_id=study_id,
+        consumer_payload=consumer_payload,
+        consumer_latest_path=tmp_path / "missing.json",
+    )
+
+    assert dispatches == []
+
+
+def test_current_consumer_dispatches_accept_canonical_prompt_contract_ref(tmp_path) -> None:
+    from med_autoscience.controllers.domain_owner_action_dispatch_parts import persisted_dispatches
+
+    study_id = "study-a"
+    prompt_contract = {
+        "study_id": study_id,
+        "prompt_budget": {},
+        "compact_evidence_packet_ref": "packet://evidence",
+        "do_not_repeat": True,
+        "repeat_suppression_key": "repeat-key",
+        "forbidden_surfaces": list(domain_owner_action_dispatch.FORBIDDEN_SURFACES),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+    }
+    consumer_payload = {
+        "domain_progress_transition_requests": [
+            _projection(
+                study_id=study_id,
+                refs={"dispatch_path": str(tmp_path / "canonical.json")},
+                prompt_contract=None,
+                prompt_contract_ref=prompt_contract,
+            )
+        ],
+    }
+
+    dispatches = persisted_dispatches.current_consumer_dispatches(
+        study_id=study_id,
+        consumer_payload=consumer_payload,
+        consumer_latest_path=tmp_path / "missing.json",
+    )
+
+    assert len(dispatches) == 1
+    assert dispatches[0]["prompt_contract"] == prompt_contract
+    assert dispatches[0]["prompt_contract_ref"] == prompt_contract
+
+
 def test_current_materialized_dispatches_ignore_owner_callable_adapter_list(tmp_path) -> None:
     from med_autoscience.controllers.domain_owner_action_dispatch_parts import (
         current_dispatch_materialization,

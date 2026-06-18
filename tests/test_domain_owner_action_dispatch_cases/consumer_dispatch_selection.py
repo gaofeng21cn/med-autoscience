@@ -8,6 +8,7 @@ from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
     patch_dispatchable_study_progress as _patch_dispatchable_study_progress,
+    transition_request_consumer_latest as _transition_request_consumer_latest,
     write_json as _write_json,
     write_scan_latest as _write_scan_latest,
 )
@@ -63,11 +64,7 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "owner_callable_adapter_count": 1,
-            "owner_callable_adapters": [current_dispatch],
-        },
+        _transition_request_consumer_latest(current_dispatch),
     )
     executed_action_types: list[str] = []
 
@@ -167,11 +164,7 @@ def test_execute_dispatch_defaults_to_same_tick_consumer_payload_dispatch(
     dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
     _write_json(dispatch_path, dispatch_payload)
     _write_scan_latest(profile, study_id, route)
-    consumer_payload = {
-        "surface": "domain_action_request_materializer",
-        "owner_callable_adapter_count": 1,
-        "owner_callable_adapters": [dispatch_payload],
-    }
+    consumer_payload = _transition_request_consumer_latest(dispatch_payload)
 
     result = module.dispatch_domain_owner_actions(
         profile=profile,
@@ -277,12 +270,7 @@ def test_execute_dispatch_selects_fresh_progress_current_owner_action_when_curre
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapter_count": 1,
-            "owner_callable_adapters": [dispatch_payload],
-        },
+        _transition_request_consumer_latest(dispatch_payload),
     )
 
     def fake_read_study_progress(**kwargs) -> dict[str, object]:
@@ -338,7 +326,7 @@ def test_execute_dispatch_selects_fresh_progress_current_owner_action_when_curre
     assert result["executions"][0]["dispatch_path"] == str(dispatch_path)
 
 
-def test_execute_dispatch_accepts_single_dispatch_payload_shape(
+def test_execute_dispatch_accepts_single_transition_request_consumer_payload_shape(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -387,7 +375,7 @@ def test_execute_dispatch_accepts_single_dispatch_payload_shape(
         action_types=("publication_gate_specificity_required",),
         mode="developer_apply_safe",
         apply=True,
-        consumer_payload=current_dispatch,
+        consumer_payload=_transition_request_consumer_latest(current_dispatch),
     )
 
     assert result["execution_count"] == 1
@@ -395,6 +383,57 @@ def test_execute_dispatch_accepts_single_dispatch_payload_shape(
     assert result["blocked_count"] == 0
     assert result["executions"][0]["dispatch_path"] == str(dispatch_path)
     assert executed_action_types == ["publication_gate_specificity_required"]
+
+
+def test_execute_dispatch_ignores_single_legacy_dispatch_payload_shape(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    _patch_dispatchable_study_progress(monkeypatch, default_study_id=study_id)
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "immutable"
+        / "publication_gate_specificity_required"
+        / "current.json"
+    )
+    current_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="publication_gate_specificity_required",
+        owner="publication_gate",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    current_dispatch["refs"] = {
+        "dispatch_path": str(dispatch_path),
+        "immutable_dispatch_path": str(dispatch_path),
+    }
+    _write_scan_latest(profile, study_id, dict(current_dispatch["owner_route"]))
+
+    def fail_publication_gate_specificity(**kwargs) -> dict[str, object]:
+        raise AssertionError("legacy inline dispatch payload should not execute")
+
+    monkeypatch.setattr(module, "_execute_publication_gate_specificity", fail_publication_gate_specificity)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("publication_gate_specificity_required",),
+        mode="developer_apply_safe",
+        apply=True,
+        consumer_payload=current_dispatch,
+    )
+
+    assert result["execution_count"] == 0
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 0
 
 
 def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_stale(
@@ -492,11 +531,7 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "owner_callable_adapter_count": 1,
-            "owner_callable_adapters": [current_dispatch],
-        },
+        _transition_request_consumer_latest(current_dispatch),
     )
     called: list[str] = []
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
+    transition_request_consumer_latest as _transition_request_consumer_latest,
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -353,14 +354,10 @@ def test_default_dispatch_current_stage_handoff_supersedes_consumed_transition_g
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [
-                {**gate_dispatch, "refs": {"dispatch_path": str(gate_path)}},
-                {**handoff_dispatch, "refs": {"dispatch_path": str(handoff_path)}},
-            ],
-        },
+        _transition_request_consumer_latest(
+            {**gate_dispatch, "refs": {"dispatch_path": str(gate_path)}},
+            {**handoff_dispatch, "refs": {"dispatch_path": str(handoff_path)}},
+        ),
     )
 
     result = module.dispatch_domain_owner_actions(

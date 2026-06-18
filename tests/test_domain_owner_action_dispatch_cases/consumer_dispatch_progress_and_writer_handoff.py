@@ -8,6 +8,7 @@ from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
     patch_dispatchable_study_progress as _patch_dispatchable_study_progress,
+    transition_request_consumer_latest as _transition_request_consumer_latest,
     write_json as _write_json,
     write_scan_latest as _write_scan_latest,
 )
@@ -125,11 +126,7 @@ def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
     _write_scan_latest(profile, study_id, route)
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [dispatch_payload],
-        },
+        _transition_request_consumer_latest(dispatch_payload),
     )
 
     def fake_publication_gate_specificity(**kwargs) -> dict[str, object]:
@@ -483,11 +480,7 @@ def test_execute_dispatch_blocks_owner_request_persisted_writer_handoff_without_
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [stale_consumer_dispatch],
-        },
+        _transition_request_consumer_latest(stale_consumer_dispatch),
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
 

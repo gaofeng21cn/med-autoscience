@@ -370,12 +370,16 @@ def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
     assert call["mode"] == "developer_apply_safe"
     assert call["apply"] is True
     consumer_payload = call["consumer_payload"]
-    dispatch = consumer_payload["owner_callable_adapters"][0]
+    assert consumer_payload["canonical_transition_request_surface"] == "domain_progress_transition_requests"
+    assert consumer_payload["domain_progress_transition_request_count"] == 1
+    dispatch = consumer_payload["domain_progress_transition_requests"][0]
+    legacy_dispatch = consumer_payload["owner_callable_adapters"][0]
     assert dispatch["dispatch_status"] == "ready"
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["owner_route"]["next_owner"] == "ai_reviewer"
     assert "return_to_ai_reviewer_workflow" in dispatch["owner_route"]["allowed_actions"]
+    assert legacy_dispatch["action_type"] == dispatch["action_type"]
     assert (study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json").is_file()
     assert (
         study_root
@@ -448,7 +452,7 @@ def test_paper_repair_executor_ai_reviewer_handoff_preserves_runtime_health_epoc
     )
 
     assert result["accepted"] is False
-    dispatch = calls[0]["consumer_payload"]["owner_callable_adapters"][0]
+    dispatch = calls[0]["consumer_payload"]["domain_progress_transition_requests"][0]
     assert dispatch["owner_route"]["runtime_health_epoch"] == "runtime-health-event-current"
     assert dispatch["prompt_contract"]["owner_route"]["runtime_health_epoch"] == "runtime-health-event-current"
     envelope = attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
@@ -658,7 +662,7 @@ def test_paper_repair_executor_ai_reviewer_handoff_uses_work_unit_owner_route_ru
     )
 
     assert result["accepted"] is False
-    dispatch = calls[0]["consumer_payload"]["owner_callable_adapters"][0]
+    dispatch = calls[0]["consumer_payload"]["domain_progress_transition_requests"][0]
     assert dispatch["owner_route"]["runtime_health_epoch"] == "runtime-health-event-from-work-unit-route"
     assert (
         dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"]["runtime_health_epoch"]

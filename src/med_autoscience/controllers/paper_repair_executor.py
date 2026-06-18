@@ -10,6 +10,7 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers import (
     canonical_manuscript_package_loop,
+    domain_action_request_materializer,
     domain_owner_action_dispatch,
     paper_repair_execution_evidence,
     quality_repair_batch,
@@ -394,11 +395,15 @@ def _ai_reviewer_owner_consumer_payload(
         opl_execution_authorization=opl_execution_authorization,
     )
     _write_json(dispatch_path, dispatch)
+    transition_request = domain_action_request_materializer._with_transition_request_projection(dispatch)
     return {
         "surface": "paper_repair_inline_consumer_payload",
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
         "owner_callable_adapters": [dispatch],
+        "domain_progress_transition_requests": [transition_request],
+        "domain_progress_transition_request_count": 1,
     }
 
 

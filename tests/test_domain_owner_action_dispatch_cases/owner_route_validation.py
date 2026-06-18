@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
+    transition_request_consumer_latest as _transition_request_consumer_latest,
     write_json as _write_json,
     write_scan_latest as _write_scan_latest,
 )
@@ -42,11 +43,7 @@ def test_execute_dispatch_rejects_dispatch_without_owner_route_when_current_cont
     _write_scan_latest(profile, study_id, route)
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [{**dispatch, "refs": {"dispatch_path": str(dispatch_path)}}],
-        },
+        _transition_request_consumer_latest({**dispatch, "refs": {"dispatch_path": str(dispatch_path)}}),
     )
 
     result = module.dispatch_domain_owner_actions(
@@ -110,11 +107,7 @@ def test_execute_dispatch_accepts_current_action_queue_owner_route(monkeypatch, 
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [dispatch],
-        },
+        _transition_request_consumer_latest(dispatch),
     )
     called: list[str] = []
 
@@ -232,11 +225,7 @@ def test_execute_dispatch_uses_action_queue_route_when_scan_owner_route_is_not_d
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [dispatch],
-        },
+        _transition_request_consumer_latest(dispatch),
     )
     called: list[str] = []
 

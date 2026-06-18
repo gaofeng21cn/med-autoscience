@@ -6,6 +6,7 @@ from pathlib import Path
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
+    transition_request_consumer_latest as _transition_request_consumer_latest,
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -106,11 +107,7 @@ def test_quality_repair_batch_ignores_nonterminal_stall_fingerprint_drift(
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
-        },
+        _transition_request_consumer_latest({**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}),
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
     called: dict[str, object] = {}

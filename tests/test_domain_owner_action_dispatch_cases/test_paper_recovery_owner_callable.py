@@ -6,6 +6,7 @@ from pathlib import Path
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
+    transition_request_consumer_latest as _transition_request_consumer_latest,
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -83,11 +84,9 @@ def test_execute_dispatch_accepts_paper_recovery_owner_callable_route_without_sc
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
-        },
+        _transition_request_consumer_latest(
+            {**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}
+        ),
     )
     monkeypatch.setattr(
         module.action_execution,
@@ -246,18 +245,9 @@ def test_execute_dispatch_blocks_persisted_paper_recovery_owner_callable_without
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "target_runtime_owner": "one-person-lab",
-            "mas_dispatch_authority": False,
-            "mas_creates_opl_outbox": False,
-            "mas_creates_opl_event": False,
-            "mas_creates_opl_stage_run": False,
-            "owner_callable_adapters": [
-                {**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}
-            ],
-        },
+        _transition_request_consumer_latest(
+            {**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}
+        ),
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
     called: dict[str, object] = {}
@@ -303,28 +293,33 @@ def test_execute_dispatch_blocks_persisted_paper_recovery_owner_callable_without
         "write_permitted": False,
         "required_input": "OPL provider attempt, active lease, and execution authorization decision",
     }
-    assert execution["owner_callable_adapter_boundary"] == {
-        "surface_role": "mas_owner_callable_adapter_receipt_projection",
-        "mas_role": "owner_callable_adapter_and_authority_result_validator",
-        "runtime_owner": "one-person-lab",
-        "execution_authority_owner": "one-person-lab",
-        "opl_proof_required": True,
-        "missing_opl_proof_outcome": "opl_execution_authorization_required",
-        "projection_authority": False,
-        "execution_ledger_authority": False,
-        "attempt_lifecycle_authority": False,
-        "queue_authority": False,
-        "retry_or_dead_letter_authority": False,
-        "mas_dispatch_authority": False,
-        "mas_creates_opl_outbox": False,
-        "mas_creates_opl_event": False,
-        "mas_creates_opl_stage_run": False,
-        "can_authorize_provider_admission": False,
-        "can_create_provider_attempt": False,
-        "can_generate_next_action": False,
-        "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
-        "replacement_owner_surface": "OPL DomainProgressTransitionRuntime / StageRun",
-    }
+    boundary = execution["owner_callable_adapter_boundary"]
+    assert boundary["surface_role"] == "mas_owner_callable_adapter_receipt_projection"
+    assert boundary["mas_role"] == "owner_callable_adapter_and_authority_result_validator"
+    assert boundary["runtime_owner"] == "one-person-lab"
+    assert boundary["execution_authority_owner"] == "one-person-lab"
+    assert boundary["opl_proof_required"] is True
+    assert boundary["missing_opl_proof_outcome"] == "opl_execution_authorization_required"
+    assert boundary["projection_authority"] is False
+    assert boundary["execution_ledger_authority"] is False
+    assert boundary["attempt_lifecycle_authority"] is False
+    assert boundary["queue_authority"] is False
+    assert boundary["retry_or_dead_letter_authority"] is False
+    assert boundary["mas_dispatch_authority"] is False
+    assert boundary["mas_creates_opl_outbox"] is False
+    assert boundary["mas_creates_opl_event"] is False
+    assert boundary["mas_creates_opl_stage_run"] is False
+    assert boundary["can_authorize_provider_admission"] is False
+    assert boundary["can_create_provider_attempt"] is False
+    assert boundary["can_generate_next_action"] is False
+    assert boundary["can_satisfy_opl_readback"] is False
+    assert boundary["legacy_default_executor_execution_path_role"] == "wire_compatibility_and_provenance_ref_only"
+    assert boundary["replacement_owner_surface"] == "OPL DomainProgressTransitionRuntime / StageRun"
+    requirement = boundary["opl_readback_requirement"]
+    assert requirement["required_owner_surface"] == "one-person-lab DomainProgressTransitionRuntime / StageRun"
+    assert requirement["mas_can_satisfy_readback"] is False
+    assert requirement["required_readback_shape"]["exactly_one_outcome"] is True
+    assert "opl_stage_run" in requirement["mas_receipt_projection_cannot_replace"]
     assert execution["mas_private_attempt_loop_forbidden"] is True
     assert execution["provider_attempt_or_lease_required"] is False
     assert called == {}
@@ -524,12 +519,10 @@ def test_execute_dispatch_selects_same_tick_paper_recovery_successor_dispatch(
             },
         },
     )
-    consumer_payload = {
-        "surface": "domain_action_request_materializer",
-        "schema_version": 1,
-        "owner_callable_adapter_count": 1,
-        "owner_callable_adapters": [stale_dispatch_payload, dispatch_payload],
-    }
+    consumer_payload = _transition_request_consumer_latest(
+        stale_dispatch_payload,
+        dispatch_payload,
+    )
 
     def fake_read_study_progress(**_: object) -> dict[str, object]:
         return {
@@ -738,13 +731,9 @@ def test_execute_dispatch_blocks_paper_recovery_provider_successor_without_opl_a
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [
-                {**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}
-            ],
-        },
+        _transition_request_consumer_latest(
+            {**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}
+        ),
     )
     monkeypatch.setattr(
         module,

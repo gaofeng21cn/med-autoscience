@@ -6,6 +6,7 @@ from pathlib import Path
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
+    transition_request_consumer_latest as _transition_request_consumer_latest,
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -348,24 +349,14 @@ def _dm003_ai_reviewer_dispatch(profile, study_root: Path) -> dict[str, object]:
 def _write_consumer_latest(profile, dispatch_payload: dict[str, object]) -> None:
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapter_count": 1,
-            "owner_callable_adapters": [dispatch_payload],
-        },
+        _transition_request_consumer_latest(dispatch_payload),
     )
 
 
 def _write_consumer_latest_dispatches(profile, dispatch_payloads: list[dict[str, object]]) -> None:
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapter_count": len(dispatch_payloads),
-            "owner_callable_adapters": dispatch_payloads,
-        },
+        _transition_request_consumer_latest(*dispatch_payloads),
     )
 
 

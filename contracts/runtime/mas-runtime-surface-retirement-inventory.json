@@ -480,6 +480,19 @@
         "live_readback_required_before_retirement": true,
         "live_tail": "live_every_active_caller_soak_or_no_active_caller_proof"
       },
+      "consumer_input_boundary": {
+        "canonical_current_surface": "domain_progress_transition_requests",
+        "canonical_prompt_contract_field": "prompt_contract_ref",
+        "dispatcher_prompt_contract_normalization": "prompt_contract_ref_to_prompt_contract_for_adapter_preflight_only",
+        "inline_default_executor_dispatch_request_candidate_allowed": false,
+        "owner_callable_adapters_candidate_allowed": false,
+        "legacy_default_executor_dispatches_candidate_role": "persisted_migration_carrier_only_after_transition_request_normalization_and_opl_authorization_guard",
+        "explicit_action_transition_request_pending_selection": "fail_closed_blocker_projection_only",
+        "explicit_action_pending_request_outcome": "opl_execution_authorization_required",
+        "can_authorize_provider_admission": false,
+        "can_create_provider_attempt": false,
+        "can_create_opl_event_outbox_or_stage_run": false
+      },
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -507,6 +520,9 @@
       "verified_by": [
         "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
         "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_accepts_matching_opl_transition_readback",
+        "tests/test_domain_owner_action_dispatch_contract.py::test_current_consumer_dispatches_ignore_inline_default_executor_dispatch",
+        "tests/test_domain_owner_action_dispatch_contract.py::test_current_consumer_dispatches_ignore_owner_callable_adapter_list",
+        "tests/test_domain_owner_action_dispatch_cases/test_paper_recovery_owner_callable.py::test_execute_dispatch_blocks_paper_recovery_provider_successor_without_opl_authorization",
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py",
         "tests/test_domain_owner_action_dispatch_cases/provider_hosted_exact_stage_packet_selection.py",
         "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_provider_hosted_authorization.py",

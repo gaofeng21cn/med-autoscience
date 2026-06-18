@@ -129,6 +129,10 @@ def explicit_action_dispatches(
             )
             is not None
             and not stage_native_next_action_current
+            and not fresh_progress_owner_actions.dispatch_matches_paper_recovery_successor(
+                progress=_mapping(fresh_progress),
+                dispatch=payload,
+            )
         ):
             continue
         if current_writer_handoff.fresh_progress_ticket_supersedes_action(
@@ -219,11 +223,22 @@ def _explicit_request_requires_opl_blocker_projection(
         return False
     if _text(dispatch.get("dispatch_status")) != "ready":
         return False
+    if not _is_domain_progress_transition_request_projection(dispatch):
+        return False
     if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
         dispatch
     ):
         return False
     return True
+
+
+def _is_domain_progress_transition_request_projection(dispatch: Mapping[str, Any]) -> bool:
+    return (
+        _text(dispatch.get("surface")) == "mas_domain_progress_transition_request_projection"
+        and _text(dispatch.get("legacy_surface")) == "default_executor_dispatch_request"
+        and dispatch.get("projection_only") is True
+        and dispatch.get("owner_callable_carrier_projection_only") is True
+    )
 
 
 def _consumer_latest_matches_dispatch(
@@ -541,6 +556,19 @@ def selected_dispatches(
             )
             continue
         elif key not in selected_keys:
+            selected.append(payload)
+            selected_keys.add(key)
+            selected_by_key[key] = len(selected) - 1
+    if not selected:
+        for payload in _explicit_transition_request_blocker_dispatches(
+            study_id=study_id,
+            requested=requested,
+            consumer_payload=consumer_payload,
+            consumer_latest_path=consumer_latest_path,
+        ):
+            key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
+            if key in selected_keys:
+                continue
             selected.append(payload)
             selected_keys.add(key)
             selected_by_key[key] = len(selected) - 1
@@ -977,6 +1005,12 @@ def _prefer_current_dispatch(
     current_study = scan_route_currentness.scan_study(scan_payload, study_id)
     consumer_score = scan_route_currentness.dispatch_currentness_score(consumer_dispatch, current_study)
     persisted_score = scan_route_currentness.dispatch_currentness_score(persisted_dispatch, current_study)
+    if (
+        _is_domain_progress_transition_request_projection(consumer_dispatch)
+        and persisted_score >= consumer_score
+        and persisted_score > (0, 0)
+    ):
+        return dict(persisted_dispatch)
     if persisted_score > consumer_score:
         return dict(persisted_dispatch)
     return dict(consumer_dispatch)
@@ -1004,9 +1038,6 @@ def current_consumer_dispatches(
     latest = dict(consumer_payload) if consumer_payload is not None else _read_json_object(consumer_latest_path)
     if latest is None:
         return []
-    inline_dispatch = _inline_default_executor_dispatch(latest, study_id=study_id)
-    if inline_dispatch is not None:
-        return [inline_dispatch]
     dispatches: list[dict[str, Any]] = []
     seen: set[tuple[str | None, str | None]] = set()
     for dispatch in _domain_progress_transition_request_items(latest):
@@ -1027,19 +1058,37 @@ def current_consumer_dispatches(
     return dispatches
 
 
-def _inline_default_executor_dispatch(payload: Mapping[str, Any], *, study_id: str) -> dict[str, Any] | None:
-    if _text(payload.get("surface")) != "default_executor_dispatch_request":
-        return None
-    if _text(payload.get("study_id")) != study_id:
-        return None
-    if _text(payload.get("dispatch_status")) != "ready":
-        return None
-    refs = _mapping(payload.get("refs"))
-    if not _text(refs.get("dispatch_path")):
-        return None
-    if not _text(payload.get("action_type")):
-        return None
-    return _with_owner_callable_adapter_semantics(payload)
+def _explicit_transition_request_blocker_dispatches(
+    *,
+    study_id: str,
+    requested: set[str],
+    consumer_payload: Mapping[str, Any] | None,
+    consumer_latest_path: Path,
+) -> list[dict[str, Any]]:
+    if not requested:
+        return []
+    latest = dict(consumer_payload) if consumer_payload is not None else _read_json_object(consumer_latest_path)
+    if latest is None:
+        return []
+    dispatches: list[dict[str, Any]] = []
+    seen: set[tuple[str | None, str | None]] = set()
+    for dispatch in _domain_progress_transition_request_items(latest):
+        payload = _with_owner_callable_adapter_semantics(_mapping(dispatch))
+        if _text(payload.get("study_id")) != study_id:
+            continue
+        if _text(payload.get("action_type")) not in requested:
+            continue
+        if _text(payload.get("dispatch_status")) != "transition_request_pending":
+            continue
+        if not _is_domain_progress_transition_request_projection(payload):
+            continue
+        refs = _mapping(payload.get("refs"))
+        key = (_text(refs.get("dispatch_path")), _text(payload.get("action_type")))
+        if key in seen:
+            continue
+        seen.add(key)
+        dispatches.append(payload)
+    return dispatches
 
 
 def _domain_progress_transition_request_items(payload: Mapping[str, Any]) -> list[object]:
@@ -1048,6 +1097,10 @@ def _domain_progress_transition_request_items(payload: Mapping[str, Any]) -> lis
 
 def _with_owner_callable_adapter_semantics(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(dispatch)
+    if "prompt_contract" not in payload:
+        prompt_contract_ref = _mapping(payload.get("prompt_contract_ref"))
+        if prompt_contract_ref:
+            payload["prompt_contract"] = prompt_contract_ref
     payload.setdefault("adapter_kind", "opl_authorized_owner_callable_adapter")
     payload.setdefault("target_runtime_owner", "one-person-lab")
     payload.setdefault("target_runtime_owner_authority_required", True)

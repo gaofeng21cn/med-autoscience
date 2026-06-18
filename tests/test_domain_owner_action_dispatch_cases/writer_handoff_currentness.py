@@ -6,6 +6,7 @@ from pathlib import Path
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
+    transition_request_consumer_latest as _transition_request_consumer_latest,
     write_json as _write_json,
     write_current_dispatch,
 )
@@ -74,6 +75,7 @@ def test_quality_repair_writer_handoff_bridges_runtime_owner_route_currentness(t
         "source_eval_id": source_eval_id,
         "work_unit_id": "medical_prose_write_repair",
         "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
+        "source_fingerprint": "truth-source::dm003::medical-prose",
         "truth_epoch": source_eval_id,
         "runtime_health_epoch": "runtime-health-dm003-write-route",
     }
@@ -271,11 +273,9 @@ def test_execute_dispatch_accepts_request_bound_writer_handoff_bridged_from_runt
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
-        },
+        _transition_request_consumer_latest(
+            {**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}
+        ),
     )
     monkeypatch.setattr(
         module.action_execution.quality_repair,
@@ -538,11 +538,9 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
     )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
-        },
+        _transition_request_consumer_latest(
+            {**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}
+        ),
     )
     monkeypatch.setattr(
         module.action_execution.quality_repair,

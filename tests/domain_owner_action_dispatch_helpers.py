@@ -149,19 +149,32 @@ def write_scan_latest(profile, study_id: str, owner_route: dict[str, object]) ->
     )
 
 
+def transition_request_projection(dispatch: dict[str, object]) -> dict[str, object]:
+    from med_autoscience.controllers import domain_action_request_materializer
+
+    return domain_action_request_materializer._with_transition_request_projection(dispatch)
+
+
+def transition_request_consumer_latest(*dispatches: dict[str, object]) -> dict[str, object]:
+    transition_requests = [transition_request_projection(dispatch) for dispatch in dispatches]
+    return {
+        "surface": "domain_action_request_materializer",
+        "schema_version": 1,
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "owner_callable_adapters": list(dispatches),
+        "domain_progress_transition_requests": transition_requests,
+        "domain_progress_transition_request_count": len(transition_requests),
+    }
+
+
 def write_current_dispatch(path: Path, profile, dispatch: dict[str, object]) -> None:
     write_json(path, dispatch)
     write_scan_latest(profile, str(dispatch["study_id"]), dict(dispatch["owner_route"]))
+    current_dispatch = {
+        **dispatch,
+        "refs": {"dispatch_path": str(path)},
+    }
     write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [
-                {
-                    **dispatch,
-                    "refs": {"dispatch_path": str(path)},
-                }
-            ],
-        },
+        transition_request_consumer_latest(current_dispatch),
     )
