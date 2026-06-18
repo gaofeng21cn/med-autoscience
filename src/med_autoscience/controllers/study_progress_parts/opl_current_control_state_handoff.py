@@ -949,7 +949,9 @@ def _terminal_closeout_matches_action_bound_identity(
     terminal_stage_packet_refs = _stage_packet_refs(terminal)
     if terminal_stage_packet_refs and terminal_stage_packet_refs.intersection(_stage_packet_refs(action)):
         return True
-    return _terminal_closeout_action_identity_matches_candidate(terminal=terminal, action=action)
+    # Identity-bound admissions are backed by OPL runtime readback or explicit
+    # dispatch identity; weak action/work-unit/fingerprint matching is legacy-only.
+    return False
 
 
 def _action_stage_run_ids(action: Mapping[str, Any]) -> set[str]:
