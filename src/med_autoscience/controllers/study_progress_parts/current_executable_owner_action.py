@@ -124,8 +124,6 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         payload=payload,
     ):
         return paper_recovery_action
-    if paper_recovery_successor_action_ready(paper_recovery_action):
-        return paper_recovery_action
     if (
         domain_transition_action is not None
         and consumed_closeout_typed_blocker_allows_domain_transition_successor(
@@ -142,6 +140,8 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         repair_progress_action=repair_progress_action,
     ):
         return domain_transition_action
+    if paper_recovery_successor_action_ready(paper_recovery_action):
+        return paper_recovery_action
     if _gate_followthrough_supersedes_repair_progress(
         gate_followthrough_action=gate_followthrough_action,
         repair_progress_action=repair_progress_action,
@@ -335,6 +335,34 @@ def _repair_progress_consumes_paper_recovery_successor(
         return False
     if source_work_unit != _non_empty_text(current_work_unit.get("work_unit_id")):
         return False
+    paper_fingerprint = _non_empty_text(paper_action.get("work_unit_fingerprint")) or _non_empty_text(
+        paper_action.get("action_fingerprint")
+    )
+    repair_identity_fingerprint = (
+        _non_empty_text(repair_progress.get("work_unit_fingerprint"))
+        or _non_empty_text(repair_progress.get("action_fingerprint"))
+        or _non_empty_text(
+            _mapping_copy(repair_action.get("repair_progress_precedence")).get(
+                "work_unit_fingerprint"
+            )
+        )
+        or _non_empty_text(
+            _mapping_copy(repair_action.get("repair_progress_precedence")).get(
+                "action_fingerprint"
+            )
+        )
+    )
+    repair_source_fingerprint = _non_empty_text(repair_progress.get("source_fingerprint")) or _non_empty_text(
+        _mapping_copy(repair_action.get("repair_progress_precedence")).get("source_fingerprint")
+    )
+    if (
+        repair_identity_fingerprint is not None
+        and repair_source_fingerprint is not None
+        and paper_fingerprint is not None
+        and repair_identity_fingerprint == paper_fingerprint
+        and repair_source_fingerprint != paper_fingerprint
+    ):
+        return False
     repair_eval = _non_empty_text(repair_progress.get("source_eval_id")) or _non_empty_text(
         repair_action.get("source_eval_id")
     )
@@ -356,9 +384,6 @@ def _repair_progress_consumes_paper_recovery_successor(
     )
     if followthrough_work_unit != source_work_unit:
         return False
-    paper_fingerprint = _non_empty_text(paper_action.get("work_unit_fingerprint")) or _non_empty_text(
-        paper_action.get("action_fingerprint")
-    )
     current_fingerprint = _non_empty_text(current_work_unit.get("work_unit_fingerprint")) or _non_empty_text(
         current_work_unit.get("action_fingerprint")
     )

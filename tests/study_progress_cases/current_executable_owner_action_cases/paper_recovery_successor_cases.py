@@ -216,3 +216,118 @@ def test_paper_recovery_successor_precedes_stale_repair_progress_gate_replay_act
     assert action["action_type"] == "run_quality_repair_batch"
     assert action["work_unit_id"] == "medical_prose_write_repair"
     assert action["work_unit_fingerprint"] == "publication-blockers::0915410f804b3697"
+
+
+def test_paper_recovery_successor_survives_stale_repair_progress_during_fixed_point() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260616T042403Z::sat_07183cd27fc9f913b03dfcee"
+    )
+    successor_fingerprint = "publication-blockers::0915410f804b3697"
+    stale_repair_fingerprint = "sha256:9a9e92dd13d055c1c869e7d1da0234ba88ea723e9bfe24c00075496011c19e0b"
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "publication_eval": {"eval_id": source_eval_id},
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": successor_fingerprint,
+                "action_fingerprint": successor_fingerprint,
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                },
+            },
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": successor_fingerprint,
+                "action_fingerprint": successor_fingerprint,
+                "source_fingerprint": stale_repair_fingerprint,
+                "source_eval_id": source_eval_id,
+                "repair_execution_evidence_ref": (
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "owner_receipt_ref": (
+                    "artifacts/controller/repair_execution_receipts/latest.json"
+                ),
+                "gate_replay_refs": [
+                    "artifacts/controller/gate_clearing_batch/latest.json",
+                    "artifacts/controller/gate_replay_requests/latest.json",
+                ],
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_done": True,
+            },
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": successor_fingerprint,
+                "work_unit_currentness": {
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": successor_fingerprint,
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "gate_replay_status": "blocked",
+                "latest_record_path": (
+                    "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                    "artifacts/controller/gate_clearing_batch/latest.json"
+                ),
+            },
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_action_ready",
+                "current_authority": {
+                    "owner": "write",
+                    "authority": "med-autoscience",
+                },
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "provider_admission_allowed": True,
+                    "successor_owner_action": {
+                        "action_type": "run_quality_repair_batch",
+                        "owner": "write",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": successor_fingerprint,
+                        "source_eval_id": source_eval_id,
+                        "source_surface": (
+                            "gate_clearing_batch_followthrough.actionable_current_work_unit"
+                        ),
+                        "source_ref": (
+                            "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                            "artifacts/controller/gate_clearing_batch/latest.json"
+                        ),
+                    },
+                },
+                "supervisor_decision": {
+                    "decision": "materialize_recovery_action",
+                    "identity_match": True,
+                },
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["work_unit_id"] == "medical_prose_write_repair"
+    assert action["work_unit_fingerprint"] == successor_fingerprint
