@@ -25,6 +25,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
+    provider_admission_opl_transition_readback,
     required_opl_transition_readback_shape,
 )
 from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
@@ -145,9 +146,20 @@ def _stage_route_arbiter_decisions(
             decisions.append(
                 _arbiter_decision(
                     candidate,
-                    decision="weak_provider_admission_identity",
+                    decision=(
+                        "opl_transition_readback_required"
+                        if candidate_opl_transition_readback(candidate)
+                        else "weak_provider_admission_identity"
+                    ),
                     effect="suppress_provider_admission_pending",
-                    evidence=weak_identity,
+                    evidence=(
+                        _opl_transition_readback_required_evidence(
+                            candidate,
+                            weak_identity=weak_identity,
+                        )
+                        if candidate_opl_transition_readback(candidate)
+                        else weak_identity
+                    ),
                 )
             )
             continue
@@ -790,8 +802,12 @@ def _candidate_requires_strong_current_control_identity(candidate: Mapping[str, 
     }
 
 
-def _opl_transition_readback_required_evidence(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    if candidate_opl_transition_readback(candidate):
+def _opl_transition_readback_required_evidence(
+    candidate: Mapping[str, Any],
+    *,
+    weak_identity: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    if provider_admission_opl_transition_readback(candidate):
         return {}
     transition_request = _mapping(candidate.get("opl_domain_progress_transition_request"))
     if not transition_request:
@@ -800,12 +816,15 @@ def _opl_transition_readback_required_evidence(candidate: Mapping[str, Any]) -> 
                 "opl_domain_progress_transition_request"
             )
         )
-    if not transition_request:
+    if not transition_request and not weak_identity:
         return {}
     required_shape = required_opl_transition_readback_shape()
     return {
         "status": "NonAdvancingApply",
         "blocked_reason": "opl_transition_readback_required",
+        "candidate_has_opl_transition_readback": bool(candidate_opl_transition_readback(candidate)),
+        "candidate_has_provider_bound_opl_transition_readback": False,
+        "weak_provider_admission_identity": dict(weak_identity) if weak_identity else None,
         "required_runtime": _non_empty_text(required_shape.get("runtime_kind"))
         or "DomainProgressTransitionRuntime",
         "required_runtime_owner": _non_empty_text(required_shape.get("runtime_owner"))

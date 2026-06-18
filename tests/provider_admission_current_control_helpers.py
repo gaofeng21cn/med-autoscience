@@ -184,14 +184,33 @@ def provider_candidate_with_opl_readback(
     study_id: str,
     *,
     action_fingerprint: str,
+    work_unit_id: str = "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+    action_type: str = "return_to_ai_reviewer_workflow",
+    next_executable_owner: str = "ai_reviewer",
+    required_output_surface: str = "artifacts/publication_eval/latest.json",
 ) -> dict[str, object]:
-    candidate = provider_candidate(
-        profile,
-        study_id,
-        action_fingerprint=action_fingerprint,
-    )
+    candidate = {
+        **provider_candidate(
+            profile,
+            study_id,
+            action_fingerprint=action_fingerprint,
+        ),
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "next_executable_owner": next_executable_owner,
+        "required_output_surface": required_output_surface,
+        "currentness_basis": {
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+        },
+    }
     candidate["opl_domain_progress_transition_live_readback"] = opl_transition_readback(
         study_id,
         action_fingerprint=action_fingerprint,
+        work_unit_id=work_unit_id,
     )
     return candidate

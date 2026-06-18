@@ -108,19 +108,15 @@ def test_provider_admission_current_control_suppresses_candidate_blocked_by_pape
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
     action_fingerprint = "publication-blockers::0915410f804b3697"
-    candidate = {
-        **_provider_candidate_with_opl_readback(
-            profile,
-            study_id,
-            action_fingerprint=action_fingerprint,
-        ),
-        "action_type": "run_quality_repair_batch",
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": action_fingerprint,
-        "action_fingerprint": action_fingerprint,
-        "next_executable_owner": "write",
-        "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
-    }
+    candidate = _provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_fingerprint=action_fingerprint,
+        work_unit_id=work_unit_id,
+        action_type="run_quality_repair_batch",
+        next_executable_owner="write",
+        required_output_surface="artifacts/controller/repair_execution_evidence/latest.json",
+    )
 
     result = module.materialize_provider_admission_current_control_state(
         profile=profile,
@@ -188,19 +184,15 @@ def test_provider_admission_current_control_requires_execute_supervisor_decision
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
     action_fingerprint = "publication-blockers::0915410f804b3697"
-    candidate = {
-        **_provider_candidate_with_opl_readback(
-            profile,
-            study_id,
-            action_fingerprint=action_fingerprint,
-        ),
-        "action_type": "run_quality_repair_batch",
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": action_fingerprint,
-        "action_fingerprint": action_fingerprint,
-        "next_executable_owner": "write",
-        "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
-    }
+    candidate = _provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_fingerprint=action_fingerprint,
+        work_unit_id=work_unit_id,
+        action_type="run_quality_repair_batch",
+        next_executable_owner="write",
+        required_output_surface="artifacts/controller/repair_execution_evidence/latest.json",
+    )
 
     result = module.materialize_provider_admission_current_control_state(
         profile=profile,
