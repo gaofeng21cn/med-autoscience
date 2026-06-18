@@ -3,27 +3,19 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-OPL_TRANSITION_RUNTIME_OWNER = "one-person-lab"
-OPL_TRANSITION_RUNTIME_KIND = "DomainProgressTransitionRuntime"
-OPL_TRANSITION_LIVE_READBACK_SURFACE = (
-    "opl_domain_progress_transition_runtime_live_readback"
-)
-OPL_TRANSITION_RESULT_SURFACE = OPL_TRANSITION_LIVE_READBACK_SURFACE
-LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME = "provider_admission_enqueued_or_blocked"
-LIVE_READBACK_COMPLETE_STATUS = "complete_transaction"
+from med_autoscience.controllers import opl_domain_progress_transition_contract as transition_contract
 
-REQUIRED_READBACK_SECTIONS = (
-    "identity",
-    "causality",
-    "authority_boundary",
-    "exactly_one_outcome",
-    "projection_metadata",
-)
-REQUIRED_RUNTIME_REFS = (
-    "event_id",
-    "outbox_item_id",
-    "stage_run_identity",
-)
+OPL_TRANSITION_RUNTIME_OWNER = transition_contract.RUNTIME_OWNER
+OPL_TRANSITION_RUNTIME_KIND = transition_contract.RUNTIME_KIND
+OPL_TRANSITION_LIVE_READBACK_SURFACE = transition_contract.LIVE_READBACK_SURFACE
+OPL_TRANSITION_RESULT_SURFACE = OPL_TRANSITION_LIVE_READBACK_SURFACE
+LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME = transition_contract.PROVIDER_ADMISSION_OUTCOME
+LIVE_READBACK_COMPLETE_STATUS = transition_contract.LIVE_READBACK_COMPLETE_STATUS
+
+REQUIRED_READBACK_SECTIONS = transition_contract.REQUIRED_READBACK_SECTIONS
+REQUIRED_RUNTIME_REFS = transition_contract.REQUIRED_RUNTIME_REFS
+
+_RUNTIME_ID = transition_contract.RUNTIME_ID
 
 
 def valid_opl_transition_readback(value: Mapping[str, Any]) -> bool:
@@ -34,23 +26,7 @@ def valid_opl_transition_readback(value: Mapping[str, Any]) -> bool:
 
 
 def required_opl_transition_readback_shape() -> dict[str, Any]:
-    return {
-        "surface_kind": OPL_TRANSITION_LIVE_READBACK_SURFACE,
-        "runtime_id": "opl_domain_progress_transition_runtime",
-        "runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
-        "runtime_kind": OPL_TRANSITION_RUNTIME_KIND,
-        "runtime_readback_status": LIVE_READBACK_COMPLETE_STATUS,
-        "transaction_complete": True,
-        "required_sections": list(REQUIRED_READBACK_SECTIONS),
-        "required_runtime_refs": list(REQUIRED_RUNTIME_REFS),
-        "accepted_outcome_kind": LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME,
-        "deprecated_projection_fields_not_authority": [
-            "opl_domain_progress_transition_result.surface_kind",
-            "stage_run_id",
-            "event_id_without_causality",
-            "outbox_item_id_without_authority_boundary",
-        ],
-    }
+    return transition_contract.required_readback_shape()
 
 
 def _valid_live_transition_readback(result: Mapping[str, Any]) -> bool:
@@ -149,7 +125,7 @@ def _valid_live_exactly_one_outcome(outcome: Mapping[str, Any]) -> bool:
 def _valid_live_projection_metadata(metadata: Mapping[str, Any]) -> bool:
     return (
         metadata.get("authority") is False
-        and _text(metadata.get("runtime_id")) == "opl_domain_progress_transition_runtime"
+        and _text(metadata.get("runtime_id")) == _RUNTIME_ID
         and _text(metadata.get("read_model_rebuild_owner")) == OPL_TRANSITION_RUNTIME_OWNER
         and _text(metadata.get("derived_from_event_id")) is not None
         and _text(metadata.get("observed_generation")) is not None

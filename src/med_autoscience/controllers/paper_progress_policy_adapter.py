@@ -5,6 +5,7 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers import opl_domain_progress_transition_contract as transition_contract
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     required_opl_transition_readback_shape,
 )
@@ -26,21 +27,7 @@ ADOPT_PAPER_DELTA = "AdoptPaperDelta"
 STOP_LOSS = "StopLoss"
 NON_ADVANCING_APPLY = "NonAdvancingApply"
 
-FORBIDDEN_RUNTIME_FIELDS = [
-    "current_control_command",
-    "current_control_command_outbox_record",
-    "opl_domain_progress_command",
-    "opl_domain_progress_command_outbox_record",
-    "opl_domain_progress_transition_event",
-    "opl_domain_progress_transition_outbox_item",
-    "opl_event_log_record",
-    "opl_outbox_record",
-    "projection_metadata",
-    "read_model_generation_metadata",
-    "stage_run",
-    "stage_run_identity",
-    "fixed_point_reconciler_state",
-]
+FORBIDDEN_RUNTIME_FIELDS = transition_contract.request_forbidden_runtime_fields()
 
 _PROVIDER_ADMISSION_NEXT_KINDS = {
     "admit_provider_attempt",
@@ -427,14 +414,15 @@ def _opl_domain_progress_transition_request(
     source_generation = _text(identity.get("source_generation")) or fingerprint
     request = {
         "surface_kind": "mas_domain_progress_transition_request",
-        "target_runtime_kind": "DomainProgressTransitionRuntime",
-        "target_runtime_owner": "one-person-lab",
+        "target_runtime_kind": transition_contract.RUNTIME_KIND,
+        "target_runtime_owner": transition_contract.RUNTIME_OWNER,
         "request_owner": "med-autoscience",
         "authority_role": "domain_policy_request_only",
+        "runtime_contract_ref": transition_contract.CONTRACT_REF,
         "mas_can_create_opl_outbox_record": False,
         "mas_can_create_opl_event": False,
         "mas_can_create_opl_stage_run": False,
-        "runtime_kind": "DomainProgressTransitionRuntime",
+        "runtime_kind": transition_contract.RUNTIME_KIND,
         "recommended_transition_kind": policy_kind,
         "aggregate_identity": {
             "aggregate_kind": "study_work_unit",

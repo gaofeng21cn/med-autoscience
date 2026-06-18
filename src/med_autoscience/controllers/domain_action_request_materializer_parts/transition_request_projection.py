@@ -7,48 +7,9 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     currentness_identity,
     transition_request_record_fields,
 )
+from med_autoscience.controllers import opl_domain_progress_transition_contract as transition_contract
 
-TARGET_RUNTIME_OWNER = "one-person-lab"
-_OPL_TRANSITION_RUNTIME_POSTCONDITION = {
-    "surface_kind": "opl_domain_progress_transition_runtime_postcondition",
-    "required_owner_surface": "one-person-lab DomainProgressTransitionRuntime",
-    "mas_surface_role": "domain_intent_and_policy_request_projection",
-    "mas_can_satisfy_readback": False,
-    "request_projection_only": True,
-    "required_readback_shape": {
-        "identity": True,
-        "causality": True,
-        "authority_boundary": True,
-        "exactly_one_outcome": True,
-        "projection_metadata": True,
-        "event_id": True,
-        "outbox_item_id": True,
-        "stage_run_identity": True,
-    },
-    "mas_projection_cannot_replace": [
-        "opl_command",
-        "opl_event",
-        "opl_transactional_outbox",
-        "opl_stage_run",
-        "opl_provider_admission",
-        "opl_fixed_point_reconcile",
-    ],
-}
-_MAS_TRANSITION_PROJECTION_AUTHORITY_BOUNDARY = {
-    "mas_materializes_domain_intent": True,
-    "mas_creates_owner_callable_carrier": False,
-    "mas_creates_opl_outbox": False,
-    "mas_creates_opl_event": False,
-    "mas_creates_opl_stage_run": False,
-    "mas_dispatch_authority": False,
-    "provider_admission_pending": False,
-    "can_create_success_outcome": False,
-    "can_select_next_action": False,
-    "target_runtime_owner": TARGET_RUNTIME_OWNER,
-    "execution_requires_opl_authorization": True,
-    "durable_carrier_owner": TARGET_RUNTIME_OWNER,
-    "projection_only": True,
-}
+TARGET_RUNTIME_OWNER = transition_contract.RUNTIME_OWNER
 
 
 def domain_progress_transition_request_projection(dispatches: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -654,14 +615,11 @@ def _apply_transition_projection_boundary(payload: dict[str, Any]) -> dict[str, 
 
 
 def _opl_transition_runtime_postcondition() -> dict[str, Any]:
-    return {
-        key: dict(value) if isinstance(value, Mapping) else list(value) if isinstance(value, list) else value
-        for key, value in _OPL_TRANSITION_RUNTIME_POSTCONDITION.items()
-    }
+    return transition_contract.runtime_postcondition()
 
 
 def _mas_transition_projection_authority_boundary() -> dict[str, Any]:
-    return dict(_MAS_TRANSITION_PROJECTION_AUTHORITY_BOUNDARY)
+    return transition_contract.mas_projection_authority_boundary()
 
 
 def _mapping(value: object) -> dict[str, Any]:

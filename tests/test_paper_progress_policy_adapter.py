@@ -21,6 +21,9 @@ OPL_RUNTIME_FIELDS = {
 
 
 def _assert_clean_opl_transition_request(result: dict) -> None:
+    transition_contract = importlib.import_module(
+        "med_autoscience.controllers.opl_domain_progress_transition_contract"
+    )
     readback_contract = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
     )
@@ -33,6 +36,10 @@ def _assert_clean_opl_transition_request(result: dict) -> None:
     assert request["mas_can_create_opl_stage_run"] is False
     assert request["provider_admission_requires_opl_readback_shape"] == (
         readback_contract.required_opl_transition_readback_shape()
+    )
+    assert request["runtime_contract_ref"] == transition_contract.CONTRACT_REF
+    assert request["forbidden_runtime_fields"] == (
+        transition_contract.request_forbidden_runtime_fields()
     )
     assert OPL_RUNTIME_FIELDS.isdisjoint(request)
 

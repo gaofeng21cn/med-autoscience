@@ -1,0 +1,122 @@
+{
+  "surface_kind": "opl_domain_progress_transition_runtime_contract",
+  "schema_version": 1,
+  "state": "active_machine_contract",
+  "owner": "One Person Lab / MedAutoScience boundary",
+  "purpose": "Single MAS-facing ABI for OPL DomainProgressTransitionRuntime requests, transactions, live readback, and projection demotion.",
+  "machine_boundary": "This contract defines request and readback shapes. It does not create OPL commands, events, outbox items, StageRun identity, provider attempts, MAS owner receipts, typed blockers, human gates, paper deltas, publication verdicts, production readiness, or live paper progress.",
+  "runtime_identity": {
+    "runtime_id": "opl_domain_progress_transition_runtime",
+    "runtime_owner": "one-person-lab",
+    "runtime_kind": "DomainProgressTransitionRuntime",
+    "contract_ref": "contracts/opl_domain_progress_transition_runtime_contract.json"
+  },
+  "transition_taxonomy": [
+    "ConsumeOwnerReceipt",
+    "StartProviderAttempt",
+    "ConsumeTerminalCloseout",
+    "RecordTypedBlocker",
+    "OpenHumanGate",
+    "MaterializeOwnerAction",
+    "AdoptPaperDelta",
+    "AdoptRouteBackEvidence",
+    "StopLoss",
+    "NonAdvancingApply"
+  ],
+  "mas_request_contract": {
+    "surface_kind": "mas_domain_progress_transition_request",
+    "authority_role": "domain_policy_request_only",
+    "request_owner": "med-autoscience",
+    "target_runtime_owner": "one-person-lab",
+    "target_runtime_kind": "DomainProgressTransitionRuntime",
+    "required_identity_fields": [
+      "study_id",
+      "work_unit_id",
+      "work_unit_fingerprint",
+      "idempotency_key",
+      "source_generation",
+      "expected_version"
+    ],
+    "forbidden_runtime_fields": [
+      "current_control_command",
+      "current_control_command_outbox_record",
+      "opl_domain_progress_command",
+      "opl_domain_progress_command_outbox_record",
+      "opl_domain_progress_transition_event",
+      "opl_domain_progress_transition_outbox_item",
+      "opl_event_log_record",
+      "opl_outbox_record",
+      "projection_metadata",
+      "read_model_generation_metadata",
+      "stage_run",
+      "stage_run_identity",
+      "fixed_point_reconciler_state"
+    ],
+    "authority_boundary": {
+      "mas_can_create_opl_outbox_record": false,
+      "mas_can_create_opl_event": false,
+      "mas_can_create_opl_stage_run": false,
+      "mas_can_authorize_provider_admission": false,
+      "mas_can_mark_provider_attempt_running": false,
+      "provider_completion_is_domain_completion": false
+    }
+  },
+  "live_readback_contract": {
+    "surface_kind": "opl_domain_progress_transition_runtime_live_readback",
+    "runtime_readback_status": "complete_transaction",
+    "transaction_complete": true,
+    "required_sections": [
+      "identity",
+      "causality",
+      "authority_boundary",
+      "exactly_one_outcome",
+      "projection_metadata"
+    ],
+    "required_runtime_refs": [
+      "event_id",
+      "outbox_item_id",
+      "stage_run_identity"
+    ],
+    "accepted_outcome_kind": "provider_admission_enqueued_or_blocked",
+    "transaction_consistency": {
+      "identity_latest_refs_match_causality": true,
+      "identity_latest_refs_match_latest_transaction_readback": true,
+      "projection_metadata_derived_from_event_id_matches_identity_latest_event_id": true,
+      "latest_transaction_requires_command_event_outbox": true,
+      "same_transaction_event_and_outbox": true
+    }
+  },
+  "projection_postcondition_contract": {
+    "surface_kind": "opl_domain_progress_transition_runtime_postcondition",
+    "mas_surface_role": "domain_intent_and_policy_request_projection",
+    "mas_can_satisfy_readback": false,
+    "request_projection_only": true,
+    "mas_projection_cannot_replace": [
+      "opl_command",
+      "opl_event",
+      "opl_transactional_outbox",
+      "opl_stage_run",
+      "opl_provider_admission",
+      "opl_fixed_point_reconcile"
+    ],
+    "derived_projection_requires": [
+      "derived_from_event_id",
+      "observed_generation",
+      "authority=false"
+    ]
+  },
+  "forbidden_completion_interpretations": [
+    "contract_landed",
+    "docs_updated",
+    "focused_tests_passed",
+    "DHD_dry_run",
+    "DHD_observe_only",
+    "queue_empty",
+    "provider_admission_pending_count=0",
+    "transition_request_pending_count=0",
+    "projection_clean",
+    "event_id_present_without_full_readback",
+    "outbox_item_id_present_without_full_readback",
+    "StageRun_identity_present_without_currentness_match"
+  ]
+}

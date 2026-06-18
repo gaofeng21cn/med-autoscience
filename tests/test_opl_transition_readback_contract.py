@@ -71,11 +71,13 @@ def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() 
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
     )
+    contract = importlib.import_module(
+        "med_autoscience.controllers.opl_domain_progress_transition_contract"
+    )
     trusted = _live_readback()
 
-    assert module.required_opl_transition_readback_shape()["surface_kind"] == (
-        "opl_domain_progress_transition_runtime_live_readback"
-    )
+    assert module.required_opl_transition_readback_shape() == contract.required_readback_shape()
+    assert module.required_opl_transition_readback_shape()["surface_kind"] == contract.LIVE_READBACK_SURFACE
     assert module.valid_opl_transition_readback(trusted) is True
     assert module.candidate_opl_transition_readback(
         {"opl_domain_progress_transition_live_readback": trusted}

@@ -992,6 +992,9 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     transition_postcondition = transition_requests[0]["opl_transition_runtime_postcondition"]
     assert transition_postcondition["surface_kind"] == "opl_domain_progress_transition_runtime_postcondition"
     assert transition_postcondition["required_owner_surface"] == "one-person-lab DomainProgressTransitionRuntime"
+    assert transition_postcondition["runtime_contract_ref"] == (
+        "contracts/opl_domain_progress_transition_runtime_contract.json"
+    )
     assert transition_postcondition["mas_surface_role"] == "domain_intent_and_policy_request_projection"
     assert transition_postcondition["mas_can_satisfy_readback"] is False
     assert transition_postcondition["request_projection_only"] is True

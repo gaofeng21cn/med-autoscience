@@ -8,6 +8,7 @@
   "source_of_truth": {
     "target_design": "docs/runtime/designs/paper_progress_transition_kernel_target.md",
     "active_plan": "docs/active/mas-ideal-state-gap-plan.md",
+    "transition_runtime_contract": "contracts/opl_domain_progress_transition_runtime_contract.json",
     "runtime_truth_skill": "mas-runtime-truth-audit",
     "focused_replay_tests": "tests/test_paper_progress_transition_replay_fixtures.py"
   },
@@ -16,6 +17,7 @@
     "live_evidence_surface_status": "read_only_acceptance_boundary_recorded",
     "mas_command_event_log_extractor_status": "retired_public_surface",
     "mas_opl_live_readback_consumer_status": "transaction_consistency_fail_closed",
+    "mas_opl_transition_abi_status": "single_sourced_contract_and_helper_landed_not_live_progress",
     "live_paper_progress_claim_allowed": false,
     "dhd_dirty_lane_written": false,
     "yang_workspace_runtime_artifacts_written": false
@@ -197,6 +199,7 @@
   ],
   "verification_refs": [
     "tests/test_opl_transition_readback_contract.py",
+    "tests/test_opl_domain_progress_transition_runtime_contract.py",
     "tests/test_paper_progress_transition_replay_fixtures.py",
     "docs/runtime/designs/paper_progress_transition_kernel_target.md",
     "docs/active/mas-ideal-state-gap-plan.md"
