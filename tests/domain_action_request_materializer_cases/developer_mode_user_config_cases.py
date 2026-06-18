@@ -261,8 +261,8 @@ def test_blocked_current_work_unit_dispatch_exposes_supervisor_gate(
     )
 
     assert result["apply_allowed"] is False
-    assert result["blocked_owner_callable_adapter_count"] == 1
-    dispatch = result["owner_callable_adapters"][0]
+    assert result["blocked_domain_progress_transition_request_count"] == 1
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["dispatch_status"] == "blocked"
     assert dispatch["blocked_reason"] == "developer_apply_safe_required"
     assert dispatch["execution_gate"] == {
@@ -405,7 +405,7 @@ def test_materialize_domain_action_requests_uses_pull_request_route_for_non_owne
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["developer_supervisor_mode"]["repo_write_policy"]["route"] == "pull_request"
     assert result["developer_supervisor_mode"]["repo_write_policy"]["pull_request_required"] is True
-    assert result["owner_callable_adapter_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
     assert not (study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json").exists()
 
 

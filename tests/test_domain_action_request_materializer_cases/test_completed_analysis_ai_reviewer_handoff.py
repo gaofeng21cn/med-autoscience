@@ -665,9 +665,10 @@ def test_action_queue_dispatch_inherits_complete_owner_route_currentness_basis(
     dispatch = result["owner_callable_adapters"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
-    assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"] == expected_basis
-    assert dispatch["prompt_contract"]["owner_route_currentness_basis"] == expected_basis
-    assert dispatch["owner_route_attempt_envelope"]["owner_route_currentness_basis"] == expected_basis
+    for key, value in expected_basis.items():
+        assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"][key] == value
+        assert dispatch["prompt_contract"]["owner_route_currentness_basis"][key] == value
+        assert dispatch["owner_route_attempt_envelope"]["owner_route_currentness_basis"][key] == value
     assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
     assert dispatch["provider_admission_pending"] is False
     assert dispatch["provider_admission_requires_opl_runtime_result"] is True

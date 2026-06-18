@@ -134,10 +134,10 @@ def test_materialize_domain_action_requests_prefers_fresh_progress_ticket_over_s
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
+    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
         "run_gate_clearing_batch"
     ]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["next_executable_owner"] == "finalize"
     assert dispatch["owner_route"]["allowed_actions"] == ["run_gate_clearing_batch"]
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
@@ -261,10 +261,10 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
+    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
         "run_gate_clearing_batch"
     ]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
     assert dispatch["source_action"]["controller_work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
@@ -357,7 +357,7 @@ def test_materialize_domain_action_requests_blocks_stage_native_write_when_fresh
         apply=False,
     )
 
-    assert result["owner_callable_adapters"] == []
+    assert result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"] == []
     assert any(
         item["action_type"] == "current_execution_envelope_typed_blocker"
         and item["reason"] == "unsupported_action_type"
@@ -477,10 +477,10 @@ def test_materialize_domain_action_requests_routes_consumed_write_closeout_to_ai
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
+    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
         "return_to_ai_reviewer_workflow"
     ]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
@@ -592,7 +592,7 @@ def test_materialize_domain_action_requests_blocks_readiness_and_stage_native_wh
     )
 
     assert result["request_task_count"] == 0
-    assert result["owner_callable_adapter_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
     assert any(
         item["action_type"] == "complete_medical_paper_readiness_surface"
         and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
@@ -680,10 +680,10 @@ def test_materialize_domain_action_requests_prefers_fresh_readiness_action_over_
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
+    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
         "complete_medical_paper_readiness_surface"
     ]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["surface_key"] == "authoring_runtime_authorization"
     assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
@@ -790,10 +790,10 @@ def test_materialize_domain_action_requests_routes_publication_eval_recommended_
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["owner_callable_adapters"]] == [
+    assert [item["action_type"] for item in result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]] == [
         "run_quality_repair_batch"
     ]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["study_id"] == study_id
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["owner_route"]["work_unit_fingerprint"] == fingerprint
@@ -868,7 +868,7 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
 
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
-    assert result["owner_callable_adapter_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
     assert result["written_files"] == []
     assert json.loads(consumer_path.read_text(encoding="utf-8"))["owner_callable_adapter_count"] == 1
 
@@ -940,15 +940,26 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
         apply=True,
     )
 
-    dispatches = result["owner_callable_adapters"]
+    dispatches = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]
     assert result["target_runtime_owner"] == "one-person-lab"
     assert result["canonical_transition_request_surface"] == "domain_progress_transition_requests"
-    assert result["owner_callable_adapter_list_deprecated"] is True
-    assert result["owner_callable_adapter_list_diagnostic_only"] is True
-    assert result["owner_callable_adapter_counts_authority"] is False
-    assert result["owner_callable_adapter_readiness_authority"] is False
-    assert result["owner_callable_adapter_list_can_create_success_outcome"] is False
+    assert "owner_callable_adapter_list_deprecated" not in result
+    assert "owner_callable_adapter_count" not in result
+    assert "owner_callable_adapters" not in result
     assert result["domain_progress_transition_request_count"] == 2
+    legacy_diagnostics = result["legacy_owner_callable_adapter_diagnostics"]
+    assert legacy_diagnostics["surface"] == "legacy_owner_callable_adapter_diagnostics"
+    assert legacy_diagnostics["canonical_transition_request_surface"] == "domain_progress_transition_requests"
+    assert legacy_diagnostics["diagnostic_only"] is True
+    assert legacy_diagnostics["counts_authority"] is False
+    assert legacy_diagnostics["readiness_authority"] is False
+    assert legacy_diagnostics["can_create_success_outcome"] is False
+    assert legacy_diagnostics["legacy_payload_scope"] == "diagnostics_only"
+    assert legacy_diagnostics["legacy_dispatch_count"] == 2
+    assert legacy_diagnostics["legacy_ready_count"] == 0
+    assert legacy_diagnostics["legacy_blocked_count"] == 1
+    assert legacy_diagnostics["legacy_transition_request_pending_count"] == 1
+    assert len(legacy_diagnostics["legacy_dispatches"]) == 2
     transition_requests = result["domain_progress_transition_requests"]
     assert [item["action_type"] for item in transition_requests] == [
         "current_package_freshness_required",
@@ -974,7 +985,7 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert result["apply_writes_disabled_reason"] == (
         "opl_domain_progress_transition_runtime_owns_durable_carrier"
     )
-    assert result["owner_callable_adapters"] == dispatches
+    assert result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"] == dispatches
     assert [item["action_type"] for item in dispatches] == [
         "current_package_freshness_required",
         "return_to_ai_reviewer_workflow",

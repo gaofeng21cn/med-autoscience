@@ -107,7 +107,7 @@ def test_unit_harmonization_uses_body_free_precise_target_surface(
     )
 
     task = result["request_tasks"][0]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     target_surface = task["required_output_target_surface"]
     assert target_surface == dispatch["prompt_contract"]["required_output_target_surface"]
     assert target_surface == dispatch["required_output_target_surface"]

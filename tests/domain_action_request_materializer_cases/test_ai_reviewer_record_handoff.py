@@ -124,7 +124,7 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
         apply=True,
     )
 
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert dispatch["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
@@ -297,7 +297,7 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
         apply=True,
     )
 
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["dispatch_status"] == "repeat_suppressed"
     assert dispatch["repeat_suppressed"] is True
     assert dispatch["blocked_reason"] == "repeat_suppressed"
@@ -307,7 +307,7 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
     assert dispatch["record_production_satisfaction"]["record_ref"].endswith(
         "20260605T045553Z_publication_eval_record.json"
     )
-    assert result["ready_owner_callable_adapter_count"] == 0
+    assert result["ready_domain_progress_transition_request_count"] == 0
     assert result["repeat_suppressed_count"] == 1
     persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
     assert persisted["dispatch_status"] == "ready"

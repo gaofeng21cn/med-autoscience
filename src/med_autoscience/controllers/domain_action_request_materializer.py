@@ -16,6 +16,7 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
     two_layer_ai_repair_policy_payload,
 )
 from med_autoscience.controllers.owner_callable_adapter_projection import (
+    legacy_owner_callable_adapter_diagnostics,
     with_owner_callable_adapter_projection,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
@@ -1343,12 +1344,6 @@ def materialize_domain_action_requests(
         )
         for action in selected_request_actions
     ]
-    ready_owner_callable_adapter_count = _dispatch_status_count(owner_callable_adapters, "ready")
-    blocked_owner_callable_adapter_count = _dispatch_status_count(owner_callable_adapters, "blocked")
-    transition_request_pending_owner_callable_adapter_count = _dispatch_status_count(
-        owner_callable_adapters,
-        "transition_request_pending",
-    )
     _apply_progress_first_closeout_to_request_tasks(
         request_tasks=request_tasks,
         owner_callable_adapters=owner_callable_adapters,
@@ -1387,19 +1382,20 @@ def materialize_domain_action_requests(
             if dispatch_ready_for_execution and not apply
             else None
         ),
-        "owner_callable_adapter_list_role": "legacy_transition_request_projection_list",
-        "owner_callable_adapter_list_deprecated": True,
-        "owner_callable_adapter_list_diagnostic_only": True,
-        "owner_callable_adapter_counts_authority": False,
-        "owner_callable_adapter_readiness_authority": False,
-        "owner_callable_adapter_list_can_create_success_outcome": False,
-        "owner_callable_adapter_list_deprecated_reason": (
-            "domain_progress_transition_requests is the canonical MAS->OPL transition request readback"
-        ),
-        "owner_callable_adapters_are_transition_request_projections": True,
         "mas_creates_owner_callable_carrier": False,
         "canonical_transition_request_surface": "domain_progress_transition_requests",
         "domain_progress_transition_request_count": len(transition_requests),
+        "ready_domain_progress_transition_request_count": _dispatch_status_count(
+            transition_requests,
+            "ready",
+        ),
+        "blocked_domain_progress_transition_request_count": _dispatch_status_count(
+            transition_requests,
+            "blocked",
+        ),
+        "transition_request_pending_domain_progress_transition_request_count": (
+            _dispatch_status_count(transition_requests, "transition_request_pending")
+        ),
         "domain_progress_transition_requests": transition_requests,
         "runtime_control_owner": "one-person-lab",
         "target_runtime_owner": TARGET_RUNTIME_OWNER,
@@ -1412,13 +1408,9 @@ def materialize_domain_action_requests(
         "request_tasks": request_tasks,
         "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
         "ai_reviewer_request_refreshes": ai_reviewer_request_refreshes,
-        "owner_callable_adapter_count": len(owner_callable_adapters),
-        "ready_owner_callable_adapter_count": ready_owner_callable_adapter_count,
-        "blocked_owner_callable_adapter_count": blocked_owner_callable_adapter_count,
-        "transition_request_pending_owner_callable_adapter_count": (
-            transition_request_pending_owner_callable_adapter_count
+        "legacy_owner_callable_adapter_diagnostics": legacy_owner_callable_adapter_diagnostics(
+            {"owner_callable_adapters": owner_callable_adapters}
         ),
-        "owner_callable_adapters": owner_callable_adapters,
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in owner_callable_adapters),
         "ignored_actions": ignored_actions,
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),

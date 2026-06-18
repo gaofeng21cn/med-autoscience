@@ -131,7 +131,7 @@ def test_materialize_domain_action_requests_dry_run_ignores_unsupported_action_w
     assert result["github_gate"]["allowed"] is True
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
-    assert result["owner_callable_adapter_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
     assert result["ignored_actions"] == [
         {
             "study_id": study_id,
@@ -185,7 +185,7 @@ def test_materialize_domain_action_requests_apply_does_not_write_unsupported_act
     assert result["dry_run"] is False
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
-    assert result["owner_callable_adapter_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
     assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert not consumer_path.exists()
@@ -270,7 +270,7 @@ def test_materialize_domain_action_requests_does_not_resurrect_existing_unsuppor
 
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
-    assert result["owner_callable_adapter_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
     assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["repeat_suppressed_count"] == 0

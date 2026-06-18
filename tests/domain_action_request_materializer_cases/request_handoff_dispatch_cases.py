@@ -378,11 +378,11 @@ def test_materialize_domain_action_requests_mixed_queue_writes_owner_callable_ad
         apply=True,
     )
 
-    dispatches = result["owner_callable_adapters"]
+    dispatches = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"]
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
-    assert result["owner_callable_adapter_count"] == 2
+    assert result["domain_progress_transition_request_count"] == 2
     assert [dispatch["executor_kind"] for dispatch in dispatches] == [
         "codex_cli_default",
         "codex_cli_default",
@@ -521,7 +521,7 @@ def test_materialize_domain_action_requests_does_not_repeat_suppress_pending_ai_
         apply=True,
     )
 
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["repeat_suppressed"] is False
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"

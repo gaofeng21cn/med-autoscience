@@ -25,6 +25,9 @@ def transition_request_count(payload: Mapping[str, Any]) -> int:
 
 
 def transition_request_status_count(payload: Mapping[str, Any], status: str) -> int:
+    key = f"{status}_domain_progress_transition_request_count"
+    if key in payload:
+        return _int_value(payload.get(key))
     return sum(
         _text(item.get("dispatch_status")) == status
         for item in domain_progress_transition_requests(payload)
@@ -32,38 +35,76 @@ def transition_request_status_count(payload: Mapping[str, Any], status: str) -> 
 
 
 def adapter_count(payload: Mapping[str, Any]) -> int:
+    return legacy_owner_callable_adapter_count(payload)
+
+
+def legacy_owner_callable_adapter_count(payload: Mapping[str, Any]) -> int:
     if "owner_callable_adapter_count" in payload:
         return _int_value(payload.get("owner_callable_adapter_count"))
     return len(owner_callable_adapters(payload))
 
 
 def adapter_status_count(payload: Mapping[str, Any], status: str) -> int:
+    return legacy_owner_callable_adapter_status_count(payload, status)
+
+
+def legacy_owner_callable_adapter_status_count(payload: Mapping[str, Any], status: str) -> int:
     key = f"{status}_owner_callable_adapter_count"
     if key in payload:
         return _int_value(payload.get(key))
     return sum(_text(item.get("dispatch_status")) == status for item in owner_callable_adapters(payload))
 
 
+def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dict[str, Any]:
+    adapters = owner_callable_adapters(payload)
+    return {
+        "surface": "legacy_owner_callable_adapter_diagnostics",
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "diagnostic_only": True,
+        "counts_authority": False,
+        "readiness_authority": False,
+        "can_create_success_outcome": False,
+        "legacy_dispatch_count": len(adapters),
+        "legacy_ready_count": _status_count(adapters, "ready"),
+        "legacy_blocked_count": _status_count(adapters, "blocked"),
+        "legacy_transition_request_pending_count": _status_count(
+            adapters,
+            "transition_request_pending",
+        ),
+        "legacy_payload_scope": "diagnostics_only",
+        "legacy_dispatches": adapters,
+    }
+
+
 def with_owner_callable_adapter_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     projected = dict(payload)
     adapters = owner_callable_adapters(projected)
     transition_requests = domain_progress_transition_requests(projected)
-    projected.setdefault("owner_callable_adapter_list_role", "legacy_transition_request_projection_list")
-    projected.setdefault("owner_callable_adapter_list_deprecated", True)
-    projected.setdefault("owner_callable_adapter_list_diagnostic_only", True)
-    projected.setdefault("owner_callable_adapter_counts_authority", False)
-    projected.setdefault("owner_callable_adapter_readiness_authority", False)
-    projected.setdefault("owner_callable_adapter_list_can_create_success_outcome", False)
-    projected.setdefault("canonical_transition_request_surface", "domain_progress_transition_requests")
-    projected.setdefault("owner_callable_adapter_count", len(adapters))
-    projected.setdefault("ready_owner_callable_adapter_count", _status_count(adapters, "ready"))
-    projected.setdefault("blocked_owner_callable_adapter_count", _status_count(adapters, "blocked"))
-    projected.setdefault(
+    diagnostics = legacy_owner_callable_adapter_diagnostics(projected) if adapters else None
+    for key in (
+        "owner_callable_adapters",
+        "owner_callable_adapter_count",
+        "ready_owner_callable_adapter_count",
+        "blocked_owner_callable_adapter_count",
         "transition_request_pending_owner_callable_adapter_count",
-        _status_count(adapters, "transition_request_pending"),
-    )
-    projected.setdefault("owner_callable_adapters", adapters)
+    ):
+        projected.pop(key, None)
+    projected.setdefault("canonical_transition_request_surface", "domain_progress_transition_requests")
+    if diagnostics:
+        projected.setdefault("legacy_owner_callable_adapter_diagnostics", diagnostics)
     projected.setdefault("domain_progress_transition_request_count", len(transition_requests))
+    projected.setdefault(
+        "ready_domain_progress_transition_request_count",
+        _status_count(transition_requests, "ready"),
+    )
+    projected.setdefault(
+        "blocked_domain_progress_transition_request_count",
+        _status_count(transition_requests, "blocked"),
+    )
+    projected.setdefault(
+        "transition_request_pending_domain_progress_transition_request_count",
+        _status_count(transition_requests, "transition_request_pending"),
+    )
     projected.setdefault("domain_progress_transition_requests", transition_requests)
     return projected
 
@@ -111,6 +152,9 @@ __all__ = [
     "adapter_count",
     "adapter_status_count",
     "domain_progress_transition_requests",
+    "legacy_owner_callable_adapter_count",
+    "legacy_owner_callable_adapter_diagnostics",
+    "legacy_owner_callable_adapter_status_count",
     "owner_callable_adapters",
     "transition_request_count",
     "transition_request_status_count",

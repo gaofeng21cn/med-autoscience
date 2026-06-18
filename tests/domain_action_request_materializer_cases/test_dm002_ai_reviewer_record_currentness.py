@@ -89,7 +89,7 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     route = dispatch["owner_route"]
     basis = route["currentness_contract"]["basis"]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
@@ -111,6 +111,6 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
     transition_basis = dispatch["opl_domain_progress_transition_request"]["currentness_basis"]
     assert transition_basis["source_eval_id"] == eval_id
     assert route["source_refs"]["owner_route_currentness_basis"]["source_eval_id"] == eval_id
-    assert result["ready_owner_callable_adapter_count"] == 0
-    assert result["transition_request_pending_owner_callable_adapter_count"] == 1
-    assert result["blocked_owner_callable_adapter_count"] == 0
+    assert result["ready_domain_progress_transition_request_count"] == 0
+    assert result["transition_request_pending_domain_progress_transition_request_count"] == 1
+    assert result["blocked_domain_progress_transition_request_count"] == 0

@@ -611,11 +611,31 @@ def test_transition_request_counts_are_canonical_not_legacy_adapter_counts() -> 
         ],
     }
 
-    assert projection.adapter_count(payload) == 99
-    assert projection.adapter_status_count(payload, "ready") == 88
+    assert projection.legacy_owner_callable_adapter_count(payload) == 99
+    assert projection.legacy_owner_callable_adapter_status_count(payload, "ready") == 88
+    assert projection.adapter_count(payload) == projection.legacy_owner_callable_adapter_count(payload)
+    assert projection.adapter_status_count(
+        payload,
+        "ready",
+    ) == projection.legacy_owner_callable_adapter_status_count(payload, "ready")
     assert projection.transition_request_count(payload) == 2
     assert projection.transition_request_status_count(payload, "transition_request_pending") == 1
     assert projection.transition_request_status_count(payload, "blocked") == 1
+    diagnostics = projection.legacy_owner_callable_adapter_diagnostics(payload)
+    assert diagnostics["surface"] == "legacy_owner_callable_adapter_diagnostics"
+    assert diagnostics["canonical_transition_request_surface"] == "domain_progress_transition_requests"
+    assert diagnostics["diagnostic_only"] is True
+    assert diagnostics["counts_authority"] is False
+    assert diagnostics["readiness_authority"] is False
+    assert diagnostics["can_create_success_outcome"] is False
+    assert diagnostics["legacy_payload_scope"] == "diagnostics_only"
+    assert diagnostics["legacy_dispatch_count"] == 1
+    assert diagnostics["legacy_ready_count"] == 1
+    assert diagnostics["legacy_blocked_count"] == 0
+    assert diagnostics["legacy_transition_request_pending_count"] == 0
+    assert diagnostics["legacy_dispatches"] == [
+        {"dispatch_status": "ready", "action_type": "legacy_ready"}
+    ]
 
 
 def test_owner_callable_projection_requires_canonical_transition_request_surface() -> None:
@@ -654,10 +674,12 @@ def test_owner_callable_projection_requires_canonical_transition_request_surface
         "domain_progress_transition_request_count"
     ] == 0
     legacy_projected = projection.with_owner_callable_adapter_projection(legacy_payload)
-    assert legacy_projected["owner_callable_adapter_list_diagnostic_only"] is True
-    assert legacy_projected["owner_callable_adapter_counts_authority"] is False
-    assert legacy_projected["owner_callable_adapter_readiness_authority"] is False
-    assert legacy_projected["owner_callable_adapter_list_can_create_success_outcome"] is False
+    assert "owner_callable_adapter_list_diagnostic_only" not in legacy_projected
+    assert "owner_callable_adapter_count" not in legacy_projected
+    assert "owner_callable_adapters" in legacy_payload
+    assert "owner_callable_adapters" not in legacy_projected
+    assert legacy_projected["legacy_owner_callable_adapter_diagnostics"]["diagnostic_only"] is True
+    assert legacy_projected["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatch_count"] == 1
     assert legacy_projected["canonical_transition_request_surface"] == (
         "domain_progress_transition_requests"
     )
@@ -698,10 +720,9 @@ def test_owner_callable_projection_requires_canonical_transition_request_surface
     assert requests[0]["provider_admission_requires_opl_runtime_result"] is True
     projected = projection.with_owner_callable_adapter_projection(canonical_payload)
     assert projected["domain_progress_transition_request_count"] == 1
-    assert projected["owner_callable_adapter_list_diagnostic_only"] is True
-    assert projected["owner_callable_adapter_counts_authority"] is False
-    assert projected["owner_callable_adapter_readiness_authority"] is False
-    assert projected["owner_callable_adapter_list_can_create_success_outcome"] is False
+    assert "owner_callable_adapter_list_diagnostic_only" not in projected
+    assert "owner_callable_adapter_count" not in projected
+    assert "owner_callable_adapters" not in projected
 
 
 def test_dhd_same_tick_admission_consumes_only_canonical_transition_requests(tmp_path: Path) -> None:

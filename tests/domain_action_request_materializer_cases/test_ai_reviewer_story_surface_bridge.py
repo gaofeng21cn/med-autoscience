@@ -166,7 +166,7 @@ def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surf
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
     assert request["request_owner"] == "write"
@@ -294,7 +294,7 @@ def test_ai_reviewer_record_production_work_unit_consumes_current_record_before_
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
     assert request["request_owner"] == "write"
@@ -447,7 +447,7 @@ def test_current_input_ai_reviewer_record_consumption_work_unit_materializes_to_
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
     assert request["request_owner"] == "write"
@@ -600,7 +600,7 @@ def test_ai_reviewer_record_stale_after_current_inputs_keeps_ai_reviewer_product
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "return_to_ai_reviewer_workflow"
     assert request["request_owner"] == "ai_reviewer"
@@ -749,7 +749,7 @@ def test_current_ai_reviewer_write_routeback_preempts_stale_package_freshness_fo
     )
 
     request = result["request_tasks"][0]
-    dispatch = result["owner_callable_adapters"][0]
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     source_refs = dispatch["owner_route"]["source_refs"]
     assert request["action_type"] == "run_quality_repair_batch"
     assert request["request_owner"] == "write"

@@ -118,8 +118,8 @@ def test_materializer_dispatches_paper_recovery_owner_callable_for_current_typed
         apply=False,
     )
 
-    assert result["owner_callable_adapter_count"] == 1
-    dispatch = result["owner_callable_adapters"][0]
+    assert result["domain_progress_transition_request_count"] == 1
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["action_type"] == "complete_medical_paper_readiness_surface"
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["owner_route"]["work_unit_fingerprint"] == fingerprint
@@ -200,8 +200,8 @@ def test_materializer_dispatches_fresh_paper_recovery_owner_callable_without_sca
         apply=False,
     )
 
-    assert result["owner_callable_adapter_count"] == 1
-    dispatch = result["owner_callable_adapters"][0]
+    assert result["domain_progress_transition_request_count"] == 1
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["action_type"] == "run_gate_clearing_batch"
     assert dispatch["next_executable_owner"] == "publication_gate"
     assert dispatch["source_action"]["authority"] == "paper_recovery_state"
@@ -319,8 +319,8 @@ def test_materializer_dispatches_identity_different_paper_recovery_successor_act
         apply=False,
     )
 
-    assert result["owner_callable_adapter_count"] == 1
-    dispatch = result["owner_callable_adapters"][0]
+    assert result["domain_progress_transition_request_count"] == 1
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["action_type"] == "run_quality_repair_batch"
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["work_unit_id"] == "medical_prose_write_repair"
@@ -512,8 +512,8 @@ def test_materializer_prefers_fresh_paper_recovery_successor_over_stale_scan_sta
         apply=False,
     )
 
-    assert result["owner_callable_adapter_count"] == 1
-    dispatch = result["owner_callable_adapters"][0]
+    assert result["domain_progress_transition_request_count"] == 1
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["action_type"] == "run_gate_clearing_batch"
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
     assert dispatch["work_unit_id"] == "publication_gate_replay"
@@ -694,8 +694,8 @@ def test_materializer_prefers_fresh_progress_owner_action_over_stale_scan_paper_
         apply=False,
     )
 
-    assert result["owner_callable_adapter_count"] == 1
-    dispatch = result["owner_callable_adapters"][0]
+    assert result["domain_progress_transition_request_count"] == 1
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["action_type"] == "run_quality_repair_batch"
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["work_unit_id"] == "medical_prose_write_repair"
@@ -865,8 +865,8 @@ def test_materializer_turns_dm002_anti_loop_owner_gate_into_publishability_repai
         apply=False,
     )
 
-    assert result["owner_callable_adapter_count"] == 1
-    dispatch = result["owner_callable_adapters"][0]
+    assert result["domain_progress_transition_request_count"] == 1
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["action_type"] == "run_quality_repair_batch"
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["work_unit_id"] == "publishability_repair_sprint"
@@ -1063,10 +1063,10 @@ def test_materialize_dry_run_reports_paper_recovery_callable_as_would_be_ready(
         "opl_execution_authorization_required"
     )
     assert result["written_files"] == []
-    assert result["owner_callable_adapter_count"] == 1
-    assert result["ready_owner_callable_adapter_count"] == 0
-    assert result["transition_request_pending_owner_callable_adapter_count"] == 1
-    dispatch = result["owner_callable_adapters"][0]
+    assert result["domain_progress_transition_request_count"] == 1
+    assert result["ready_domain_progress_transition_request_count"] == 0
+    assert result["transition_request_pending_domain_progress_transition_request_count"] == 1
+    dispatch = result["legacy_owner_callable_adapter_diagnostics"]["legacy_dispatches"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
     assert dispatch["mas_local_dispatch_carrier_persistence"] == "forbidden"
