@@ -88,6 +88,15 @@ def refresh_current_execution_surfaces(
             handoff,
             current_control_executable_action=handoff_executable_action,
         )
+    terminal_typed_blocker = _consumed_terminal_typed_blocker_for_execution_refresh(handoff)
+    if terminal_typed_blocker:
+        return _with_terminal_typed_blocker_execution_surfaces(
+            payload=updated,
+            status=status,
+            handoff=handoff,
+            runtime_health_snapshot=runtime_health_snapshot,
+            typed_blocker=terminal_typed_blocker,
+        )
     handoff_owner_receipt_work_unit = _canonical_current_control_owner_receipt_work_unit(handoff)
     if handoff_owner_receipt_work_unit:
         successor_action = _paper_recovery_successor_action_for_owner_receipt_handoff(
@@ -385,6 +394,81 @@ def _with_paper_recovery_successor_execution_surfaces(
     return updated
 
 
+def _with_terminal_typed_blocker_execution_surfaces(
+    *,
+    payload: dict[str, Any],
+    status: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+    runtime_health_snapshot: Mapping[str, Any],
+    typed_blocker: Mapping[str, Any],
+) -> dict[str, Any]:
+    updated = dict(payload)
+    updated["current_executable_owner_action"] = None
+    progress_for_blocker = _without_owner_receipt_recovery_projection(updated)
+    current_work = current_work_unit.build_current_work_unit(
+        status=status,
+        progress=progress_for_blocker,
+        actions=[],
+        current_executable_owner_action=None,
+        provider_admission=handoff,
+        live_provider_attempt=handoff,
+        typed_blocker=typed_blocker,
+        blocked_reason=typed_blocker_reason(typed_blocker),
+        next_owner=_non_empty_text(typed_blocker.get("owner")) or _non_empty_text(handoff.get("next_owner")),
+        runtime_health=runtime_health_snapshot,
+    )
+    current_work = _with_current_work_unit_state_source(
+        current_work,
+        source="terminal_closeout_typed_blocker",
+    )
+    updated["current_work_unit"] = current_work
+    updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+        status=status,
+        progress={**progress_for_blocker, "current_work_unit": current_work},
+        actions=[],
+        blocked_reason=typed_blocker_reason(typed_blocker),
+        next_owner=_non_empty_text(typed_blocker.get("owner")) or _non_empty_text(handoff.get("next_owner")),
+        typed_blocker=typed_blocker,
+        runtime_health=runtime_health_snapshot,
+        live_provider_attempt=handoff,
+        current_work_unit_payload=current_work,
+    )
+    updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+        action_queue=[],
+        runtime_health=runtime_health_snapshot,
+        extra={
+            "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+        },
+    )
+    return updated
+
+
+def _with_current_work_unit_state_source(
+    current_work_unit_payload: Mapping[str, Any],
+    *,
+    source: str,
+) -> dict[str, Any]:
+    updated = dict(current_work_unit_payload)
+    state = _mapping_copy(updated.get("state"))
+    if state:
+        state["source"] = source
+        updated["state"] = state
+    return updated
+
+
+def _without_owner_receipt_recovery_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
+    updated = dict(payload)
+    updated["current_executable_owner_action"] = None
+    for key in (
+        "paper_recovery_state",
+        "paper_autonomy_supervisor_decision",
+        "repair_progress_projection",
+        "gate_clearing_batch_followthrough",
+    ):
+        updated.pop(key, None)
+    return updated
+
+
 def _canonical_current_control_typed_blocker_work_unit(handoff: Mapping[str, Any]) -> dict[str, Any]:
     if handoff.get("running_provider_attempt") is True:
         return {}
@@ -523,7 +607,11 @@ def _canonical_actions_for_execution_refresh(
 
 def _canonical_typed_blocker_for_execution_refresh(handoff: Mapping[str, Any]) -> dict[str, Any]:
     if _handoff_current_work_unit_is_owner_receipt(handoff):
-        return {}
+        return _consumed_terminal_typed_blocker_for_execution_refresh(handoff)
+    return _canonical_typed_blocker_from_handoff(handoff)
+
+
+def _canonical_typed_blocker_from_handoff(handoff: Mapping[str, Any]) -> dict[str, Any]:
     typed_blocker = _mapping_copy(handoff.get("typed_blocker"))
     if typed_blocker:
         return typed_blocker
@@ -572,6 +660,38 @@ def _canonical_typed_blocker_for_execution_refresh(handoff: Mapping[str, Any]) -
         }.items()
         if value not in (None, "", [], {})
     }
+
+
+def _consumed_terminal_typed_blocker_for_execution_refresh(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    if handoff.get("running_provider_attempt") is True:
+        return {}
+    if not _handoff_current_work_unit_is_owner_receipt(handoff):
+        return {}
+    consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if _non_empty_text(consumed.get("typed_blocker_ref")) is None and not _mapping_copy(
+        consumed.get("typed_blocker")
+    ):
+        return {}
+    typed_blocker = _canonical_typed_blocker_from_handoff(handoff)
+    if not typed_blocker:
+        return {}
+    current = _mapping_copy(handoff.get("current_work_unit"))
+    if not _identity_overlaps_without_conflict(current, typed_blocker):
+        return {}
+    if not _identity_overlaps_without_conflict(consumed, typed_blocker):
+        return {}
+    return typed_blocker
+
+
+def _identity_overlaps_without_conflict(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    left_identity = _identity_values(left)
+    right_identity = _identity_values(right)
+    if _identities_conflict(left_identity, right_identity):
+        return False
+    return any(
+        left_identity.get(key) is not None and right_identity.get(key) is not None
+        for key in ("action_type", "work_unit_id", "fingerprint")
+    )
 
 
 def _typed_blocker_from_current_control_blocked_reason(handoff: Mapping[str, Any]) -> dict[str, Any]:
