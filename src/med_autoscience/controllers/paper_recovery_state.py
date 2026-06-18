@@ -17,6 +17,9 @@ from med_autoscience.controllers.paper_recovery_state_parts.obligation_matching 
     action_matches_obligation as _current_action_matches_obligation,
     current_work_unit_matches_obligation as _current_work_unit_matches_obligation,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    has_opl_transition_readback as _has_opl_transition_readback,
+)
 from med_autoscience.controllers.paper_recovery_state_parts.owner_gate_decision import (
     accepted_owner_gate_decision as _accepted_owner_gate_decision,
     matching_owner_gate_decision_event as _matching_owner_gate_decision_event,
@@ -815,11 +818,13 @@ def _has_current_provider_admission_candidate(
     if (
         _current_work_unit_status(current_work_unit) == "executable_owner_action"
         and _mapping(current_work_unit.get("state")).get("provider_admission_pending") is True
+        and _has_opl_transition_readback(current_work_unit)
         and _current_work_unit_matches_obligation(current_work_unit, obligation=obligation)
     ):
         return True
     return any(
-        _provider_admission_candidate_matches_obligation(candidate, obligation=obligation)
+        _has_opl_transition_readback(candidate)
+        and _provider_admission_candidate_matches_obligation(candidate, obligation=obligation)
         for candidate in progress.get("provider_admission_candidates") or []
         if isinstance(candidate, Mapping)
     )

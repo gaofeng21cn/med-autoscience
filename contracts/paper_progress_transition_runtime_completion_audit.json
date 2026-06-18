@@ -18,7 +18,7 @@
     "goal_complete": false,
     "completion_claim_allowed": false,
     "classification": "platform_runtime_and_policy_adapter_landed_live_paper_acceptance_open",
-    "current_summary": "OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, terminal closeout currentness, provider-hosted stale admission recovery, and MAS runtime-health local event append retirement have landed. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, full provider-admission consumption, and DM002/DM003 fresh paper-line outcome are not closed."
+    "current_summary": "OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, terminal closeout currentness, provider-hosted stale admission recovery, and MAS runtime-health local event append retirement have landed. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, full provider-admission consumption, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present."
   },
   "status_values": [
     "done",
@@ -220,22 +220,24 @@
       "correct_owner": "OPL Runway",
       "target": "Provider admission accepts only OPL transition outbox or StageRun identity, not MAS projection residue.",
       "status": "partial",
-      "completion_percent": 74,
+      "completion_percent": 76,
       "evidence": [
         "OPL current-control and provider-hosted tests cover transition runtime payload, stale admission recovery, and single-flight guards.",
-        "MAS arbiter tests require OPL live readback for provider_admission_pending."
+        "MAS arbiter tests require OPL live readback for provider_admission_pending.",
+        "Paper recovery state now requires complete OPL live readback before current provider-admission projections can suppress stale parked/operator projections."
       ],
-      "open_gap": "Fresh DM002/DM003 provider admission/running proof remains open."
+      "open_gap": "Fresh DM002/DM003 provider admission/running proof remains open; repo evidence now also blocks request-only current_work_unit/provider-admission projections from acting as admission evidence."
     },
     {
       "feature_id": "current_work_unit_projection",
       "correct_owner": "Derived MAS projection",
       "target": "current_work_unit projects current aggregate but does not choose or authorize the next action.",
       "status": "partial",
-      "completion_percent": 70,
+      "completion_percent": 72,
       "evidence": [
         "Projection metadata authority demotion tests are in place.",
-        "Terminal closeout currentness now blocks same-identity record-only re-execution."
+        "Terminal closeout currentness now blocks same-identity record-only re-execution.",
+        "Current work unit provider_admission_pending booleans without complete OPL live readback no longer count as provider admission evidence in paper recovery state."
       ],
       "open_gap": "Full consume-only derivation from OPL transition event remains tied to live apply/readback closure."
     },
@@ -256,10 +258,11 @@
       "correct_owner": "MAS semantic projection",
       "target": "Paper recovery semantics remain MAS-owned, while materialization, admission, and fixed-point runtime are OPL-owned.",
       "status": "partial",
-      "completion_percent": 68,
+      "completion_percent": 70,
       "evidence": [
         "Paper recovery read models no longer suffice as provider admission.",
-        "MAS replay fixtures distinguish domain policy result from OPL runtime authority."
+        "MAS replay fixtures distinguish domain policy result from OPL runtime authority.",
+        "Paper recovery state regression tests cover request-only provider admission candidates and current_work_unit pending booleans as projection repair, not admission."
       ],
       "open_gap": "Remaining live materialization and closeout paths must prove OPL runtime-backed transitions."
     },
@@ -348,11 +351,12 @@
     {
       "phase_id": "lane_5_projection_demotion",
       "status": "partial",
-      "completion_percent": 66,
+      "completion_percent": 68,
       "evidence": [
-        "Projection metadata and runtime inventory demote several authority surfaces."
+        "Projection metadata and runtime inventory demote several authority surfaces.",
+        "Paper recovery state no longer lets request-only current_work_unit/provider-admission projections suppress projection repair without complete OPL live readback."
       ],
-      "open_gap": "All downstream read models must be rebuilt from OPL event plus MAS policy result."
+      "open_gap": "All downstream read models must still rebuild from OPL event plus MAS policy result, and live paper-line acceptance remains open."
     },
     {
       "phase_id": "lane_6_human_gate_read_model_rebuild",
@@ -567,7 +571,10 @@
       "observed_refs": [
         "contracts/paper_progress_replay_live_evidence_status.json#/live_evidence_acceptance",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/default_executor_dispatch_request",
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_owner_action_dispatch"
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_owner_action_dispatch",
+        "tests/test_paper_recovery_state_cases/opl_authorization_cases.py::test_request_only_provider_admission_candidate_does_not_suppress_projection_contradiction",
+        "tests/test_paper_recovery_state_cases/opl_authorization_cases.py::test_opl_live_readback_provider_admission_candidate_suppresses_stale_projection",
+        "tests/test_paper_recovery_state.py::test_current_work_unit_provider_admission_without_candidate_or_opl_readback_repairs_projection_before_admission"
       ],
       "missing_evidence_tails": [
         "OPL outbox and StageRun identity live readback for the same transition request",
@@ -614,7 +621,9 @@
         "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::test_provider_hosted_exact_stage_attempt_authorizes_only_matching_stage_packet",
         "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox",
         "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies",
-        "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable"
+        "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
+        "src/med_autoscience/controllers/paper_recovery_state.py::_has_current_provider_admission_candidate requires OPL live readback for provider admission projections",
+        "tests/test_paper_recovery_state.py::test_current_work_unit_provider_admission_without_candidate_or_opl_readback_repairs_projection_before_admission"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_caller_physical_delete_ref",

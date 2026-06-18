@@ -423,7 +423,7 @@ def test_current_work_unit_provider_admission_pending_supersedes_stale_parked_pr
     assert state["current_authority"]["owner"] == "gate_clearing_batch"
 
 
-def test_current_work_unit_provider_admission_without_candidate_observe_only_is_admission_blocked() -> None:
+def test_current_work_unit_provider_admission_without_candidate_or_opl_readback_repairs_projection_before_admission() -> None:
     current_work_unit = _executable_work_unit(
         owner="gate_clearing_batch",
         action_type="run_gate_clearing_batch",
@@ -464,13 +464,15 @@ def test_current_work_unit_provider_admission_without_candidate_observe_only_is_
         },
     )
 
-    assert state["phase"] == "admission_blocked"
+    assert state["phase"] == "projection_inconsistent"
     assert state["conditions"] == [
         {
-            "condition": "provider_admission_pending_without_startable_dispatch",
-            "reason": "dhd_report_observe_only",
+            "condition": "operator_card_contradicts_auto_runtime_parked",
+            "operator_handling_state": "explicit_resume_pending",
+            "auto_runtime_parked": False,
         }
     ]
+    assert state["next_safe_action"]["kind"] == "repair_projection_before_admission"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
 
 
