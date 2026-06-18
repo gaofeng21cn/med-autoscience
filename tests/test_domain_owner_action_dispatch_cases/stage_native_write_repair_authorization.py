@@ -792,7 +792,7 @@ def test_stage_native_next_action_without_authority_binding_does_not_preempt_cur
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
-        / "old_writer_handoff.json"
+        / "run_quality_repair_batch.json"
     )
     old_writer_handoff["refs"] = {"dispatch_path": str(old_path)}
     _write_json(old_path, old_writer_handoff)
@@ -850,7 +850,11 @@ def test_stage_native_next_action_without_authority_binding_does_not_preempt_cur
         mode="developer_apply_safe",
         apply=False,
     )
-    assert materialized["owner_callable_adapters"] == []
+    assert "owner_callable_adapters" not in materialized
+    assert materialized["canonical_transition_request_surface"] == "domain_progress_transition_requests"
+    assert materialized["legacy_owner_callable_adapter_diagnostics"]["diagnostic_only"] is True
+    assert materialized["legacy_owner_callable_adapter_diagnostics"]["readiness_authority"] is False
+    assert materialized["domain_progress_transition_requests"] == []
     assert any(
         item["action_type"] == "run_quality_repair_batch"
         and item["reason"] == "stage_native_workspace_next_action_requires_authority_binding"

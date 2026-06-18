@@ -117,6 +117,63 @@ def test_transition_request_projection_requires_opl_execution_authorization() ->
     ) == (False, "opl_execution_authorization_required")
 
 
+def test_dispatch_receipt_projection_never_exports_mas_private_authority_claims(
+    tmp_path,
+) -> None:
+    dispatch = _dispatch(
+        study_id="study-a",
+        action_id="action-a",
+        mas_dispatch_authority=True,
+        mas_creates_opl_outbox=True,
+        mas_creates_opl_event=True,
+        mas_creates_opl_stage_run=True,
+    )
+
+    payload = domain_owner_action_dispatch._dispatch_execution_payload(
+        profile=object(),
+        generated_at="2026-06-18T00:00:00+00:00",
+        study_id="study-a",
+        dispatch_path=tmp_path / "dispatch.json",
+        dispatch=dispatch,
+        action_type="run_quality_repair_batch",
+        guard_ok=False,
+        guard_reason="mas_dispatch_authority_forbidden",
+        current_route=None,
+        owner_route_basis=None,
+        owner_route_block_reason=None,
+        prompt_contract={},
+        repeat_guard={
+            "repeat_suppressed": False,
+            "repeat_suppression_key": "repeat-key",
+        },
+        action_fingerprint="fingerprint-a",
+        action_cost={
+            "action_class": "owner_callable",
+            "will_start_llm": False,
+        },
+        stall_handoff_allowed=False,
+        stall_diagnostic={},
+        current_study={},
+        apply=False,
+        developer_mode_payload={},
+        execution={
+            "execution_status": "blocked",
+            "blocked_reason": "mas_dispatch_authority_forbidden",
+            "owner_callable_surface": None,
+        },
+    )
+
+    assert payload["mas_dispatch_authority"] is False
+    assert payload["mas_creates_opl_outbox"] is False
+    assert payload["mas_creates_opl_event"] is False
+    assert payload["mas_creates_opl_stage_run"] is False
+    assert payload["source_dispatch_claimed_mas_authority"] is True
+    assert payload["source_dispatch_claimed_opl_write"] is True
+    assert payload["owner_callable_adapter_boundary"]["mas_dispatch_authority"] is False
+    assert payload["execution_ledger_authority"] is False
+    assert payload["attempt_lifecycle_authority"] is False
+
+
 def test_closeout_binding_does_not_authorize_owner_callable_execution() -> None:
     binding = {
         "surface_kind": "medical_paper_readiness_closeout_binding",

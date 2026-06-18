@@ -137,35 +137,21 @@ def explicit_action_dispatches(
             action_type=action_type,
         ):
             scan_route_current = False
-        if require_current_authority and (
-            not owner_request_matches_dispatch(
-                profile=profile,
-                study_id=study_id,
-                action_type=action_type,
-                dispatch=payload,
-            )
-            and not scan_route_current
-            and not accepted_owner_gate_decision.dispatch_matches_study_progress(
-                profile=profile, study_id=study_id, dispatch=payload
-            )
-            and not _fresh_progress_owner_action_selectable(
-                current_study=current_study,
-                progress=_mapping(fresh_progress),
-                dispatch=payload,
-            )
-            and not live_provider_attempt_owner_route_from_scan_payload(
-                scan_payload=scan_payload,
-                study_id=study_id,
-                dispatch=payload,
-            )
-            and not provider_hosted_stage_run_current
-            and not stage_native_next_action_current
-            and not current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
-                profile=profile,
-                study_id=study_id,
-                action_type=action_type,
-                dispatch=payload,
-            )
+        current_authority = _explicit_dispatch_current_authority(
+            profile=profile,
+            study_id=study_id,
+            action_type=action_type,
+            dispatch=payload,
+            fresh_progress=_mapping(fresh_progress),
+            current_study=current_study,
+            scan_payload=scan_payload,
+            scan_route_current=scan_route_current,
+            provider_hosted_stage_run_current=provider_hosted_stage_run_current,
+            stage_native_next_action_current=stage_native_next_action_current,
+        )
+        if require_current_authority and not current_authority and not _explicit_request_requires_opl_blocker_projection(
+            action_types=action_types,
+            dispatch=payload,
         ):
             continue
         key = (str(path), action_type)
@@ -174,6 +160,70 @@ def explicit_action_dispatches(
         seen.add(key)
         dispatches.append(payload)
     return dispatches
+
+
+def _explicit_dispatch_current_authority(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+    fresh_progress: Mapping[str, Any],
+    current_study: Mapping[str, Any],
+    scan_payload: Mapping[str, Any] | None,
+    scan_route_current: bool,
+    provider_hosted_stage_run_current: bool,
+    stage_native_next_action_current: bool,
+) -> bool:
+    return (
+        owner_request_matches_dispatch(
+            profile=profile,
+            study_id=study_id,
+            action_type=action_type,
+            dispatch=dispatch,
+        )
+        or scan_route_current
+        or accepted_owner_gate_decision.dispatch_matches_study_progress(
+            profile=profile, study_id=study_id, dispatch=dispatch
+        )
+        or _fresh_progress_owner_action_selectable(
+            current_study=current_study,
+            progress=fresh_progress,
+            dispatch=dispatch,
+        )
+        or live_provider_attempt_owner_route_from_scan_payload(
+            scan_payload=scan_payload,
+            study_id=study_id,
+            dispatch=dispatch,
+        )
+        or provider_hosted_stage_run_current
+        or stage_native_next_action_current
+        or current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
+            profile=profile,
+            study_id=study_id,
+            action_type=action_type,
+            dispatch=dispatch,
+        )
+    )
+
+
+def _explicit_request_requires_opl_blocker_projection(
+    *,
+    action_types: tuple[str, ...],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if not action_types:
+        return False
+    action_type = _text(dispatch.get("action_type"))
+    if action_type is None or action_type not in action_types:
+        return False
+    if _text(dispatch.get("dispatch_status")) != "ready":
+        return False
+    if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
+        dispatch
+    ):
+        return False
+    return True
 
 
 def _consumer_latest_matches_dispatch(

@@ -858,10 +858,19 @@ def _dispatch_execution_payload(
         "schema_version": SCHEMA_VERSION,
         "adapter_kind": _text(dispatch.get("adapter_kind")) or "opl_authorized_owner_callable_adapter",
         "target_runtime_owner": _text(dispatch.get("target_runtime_owner")) or "one-person-lab",
-        "mas_dispatch_authority": dispatch.get("mas_dispatch_authority") is True,
-        "mas_creates_opl_outbox": dispatch.get("mas_creates_opl_outbox") is True,
-        "mas_creates_opl_event": dispatch.get("mas_creates_opl_event") is True,
-        "mas_creates_opl_stage_run": dispatch.get("mas_creates_opl_stage_run") is True,
+        "mas_dispatch_authority": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+        "source_dispatch_claimed_mas_authority": dispatch.get("mas_dispatch_authority") is True,
+        "source_dispatch_claimed_opl_write": any(
+            dispatch.get(key) is True
+            for key in (
+                "mas_creates_opl_outbox",
+                "mas_creates_opl_event",
+                "mas_creates_opl_stage_run",
+            )
+        ),
         "execution_requires_opl_authorization": True,
         "opl_execution_authorization_required": dispatch.get("opl_execution_authorization_required") is True
         or prompt_contract.get("opl_execution_authorization_required") is True,

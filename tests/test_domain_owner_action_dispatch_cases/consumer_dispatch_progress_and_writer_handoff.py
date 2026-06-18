@@ -106,6 +106,20 @@ def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
         required_output_surface="artifacts/publication_eval/latest.json",
         owner_route=route,
     )
+    dispatch_payload["opl_execution_authorization"] = {
+        "owner": "one-person-lab",
+        "provider_attempt_ref": f"opl://stage-attempts/{study_id}/publication_gate_specificity_required",
+        "stage_attempt_id": f"stage-attempt::{study_id}::publication_gate_specificity_required",
+        "attempt_lease_ref": f"opl://stage-attempts/{study_id}/publication_gate_specificity_required/leases/current",
+        "attempt_lease_status": "active",
+        "execution_authorization_decision_ref": (
+            f"opl://stage-attempts/{study_id}/publication_gate_specificity_required/execution-authorizations/current"
+        ),
+    }
+    assert isinstance(dispatch_payload["prompt_contract"], dict)
+    dispatch_payload["prompt_contract"]["opl_execution_authorization"] = dict(
+        dispatch_payload["opl_execution_authorization"]
+    )
     dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
     _write_json(dispatch_path, dispatch_payload)
     _write_scan_latest(profile, study_id, route)
