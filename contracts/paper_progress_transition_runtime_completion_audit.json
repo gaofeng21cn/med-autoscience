@@ -14,11 +14,11 @@
   },
   "overall": {
     "status": "partial",
-    "completion_percent": 69,
+    "completion_percent": 70,
     "goal_complete": false,
     "completion_claim_allowed": false,
     "classification": "platform_runtime_and_policy_adapter_landed_live_paper_acceptance_open",
-    "current_summary": "OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, terminal closeout currentness, provider-hosted stale admission recovery, terminal handoff fixed-point projection rebuild, and MAS runtime-health local event append retirement have landed. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, full provider-admission consumption, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present; terminal typed-blocker handoff consumption rebuilds paper_recovery_state and current_executable_owner_action so stale successor actions cannot survive the same refresh; and OPL current-control terminal closeout consumption no longer lets identity-bound admissions fall back to weak action/work-unit/fingerprint matching. Legacy default-executor latest wire fallback is now explicit-history-only: current provider admission, current provider handoff export, and current clean-migration recovery readers require canonical owner_callable_adapter_receipts/latest.json and do not consume default_executor_execution/latest.json."
+    "current_summary": "OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, terminal closeout currentness, provider-hosted stale admission recovery, terminal handoff fixed-point projection rebuild, consumed terminal-blocker precedence over owner-receipt handoff surfaces, and MAS runtime-health local event append retirement have landed. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, full provider-admission consumption, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present; terminal typed-blocker handoff consumption rebuilds paper_recovery_state and current_executable_owner_action so stale successor actions cannot survive the same refresh; current_execution_surfaces now consume same-identity terminal typed blockers even when the handoff current_work_unit still projects owner_receipt_recorded; and OPL current-control terminal closeout consumption no longer lets identity-bound admissions fall back to weak action/work-unit/fingerprint matching. Legacy default-executor latest wire fallback is now explicit-history-only: current provider admission, current provider handoff export, and current clean-migration recovery readers require canonical owner_callable_adapter_receipts/latest.json and do not consume default_executor_execution/latest.json."
   },
   "status_values": [
     "done",
@@ -249,11 +249,12 @@
       "correct_owner": "Derived MAS projection",
       "target": "current_executable_owner_action displays OPL event plus MAS policy result only; it is not an authority selector.",
       "status": "partial",
-      "completion_percent": 74,
+      "completion_percent": 75,
       "evidence": [
         "Same-identity NonAdvancingApply and terminal closeout filters suppress stale executable owner action.",
         "DM003 fresh readback after the v2 lane showed owner_receipt_recorded with current_executable_owner_action null.",
-        "tests/study_progress_cases/current_executable_owner_action_cases/dm003_owner_receipt_running_handoff.py::test_paper_recovery_refresh_rebuilds_successor_after_handoff_terminal_blocker proves terminal handoff typed blockers force current_executable_owner_action back to null instead of preserving stale successor action."
+        "tests/study_progress_cases/current_executable_owner_action_cases/dm003_owner_receipt_running_handoff.py::test_paper_recovery_refresh_rebuilds_successor_after_handoff_terminal_blocker proves terminal handoff typed blockers force current_executable_owner_action back to null instead of preserving stale successor action.",
+        "tests/study_progress_cases/current_executable_owner_action_cases/dm003_owner_receipt_running_handoff.py::test_paper_recovery_refresh_consumes_handoff_terminal_blocker_over_owner_receipt proves consumed terminal typed blockers suppress executable action even when the handoff current_work_unit still says owner_receipt_recorded."
       ],
       "open_gap": "Projection still needs long-tail live proof across other owner-answer families."
     },
@@ -262,13 +263,14 @@
       "correct_owner": "MAS semantic projection",
       "target": "Paper recovery semantics remain MAS-owned, while materialization, admission, and fixed-point runtime are OPL-owned.",
       "status": "partial",
-      "completion_percent": 72,
+      "completion_percent": 73,
       "evidence": [
         "Paper recovery read models no longer suffice as provider admission.",
         "MAS replay fixtures distinguish domain policy result from OPL runtime authority.",
         "Paper recovery state regression tests cover request-only provider admission candidates and current_work_unit pending booleans as projection repair, not admission.",
         "Current-control handoff projection keeps live-readback-backed admission pending until the terminal closeout binds the same OPL identity.",
-        "Terminal handoff typed-blocker refresh now rebuilds stale materialize_successor_owner_action recovery state into domain_blocked / resolve_typed_blocker after current_work_unit consumption."
+        "Terminal handoff typed-blocker refresh now rebuilds stale materialize_successor_owner_action recovery state into domain_blocked / resolve_typed_blocker after current_work_unit consumption.",
+        "Consumed terminal typed-blocker precedence covers handoffs whose current_work_unit still projects owner_receipt_recorded, so paper_recovery_state cannot retain a stale successor over the blocker."
       ],
       "open_gap": "Remaining live materialization and closeout paths must prove OPL runtime-backed transitions."
     },
@@ -360,12 +362,13 @@
     {
       "phase_id": "lane_5_projection_demotion",
       "status": "partial",
-      "completion_percent": 70,
+      "completion_percent": 71,
       "evidence": [
         "Projection metadata and runtime inventory demote several authority surfaces.",
         "Paper recovery state no longer lets request-only current_work_unit/provider-admission projections suppress projection repair without complete OPL live readback.",
         "OPL current-control terminal closeout consumption now preserves identity-bound live-readback provider admissions unless the closeout matches the same StageRun/route/idempotency/packet identity.",
-        "Paper recovery execution refresh reruns recovery state, current executable action, provider projection, and admission sync after terminal handoff typed-blocker consumption so stale successor state does not remain current."
+        "Paper recovery execution refresh reruns recovery state, current executable action, provider projection, and admission sync after terminal handoff typed-blocker consumption so stale successor state does not remain current.",
+        "Current execution surface refresh consumes provider_admission_terminal_closeout_consumed typed blockers before owner-receipt successor projection when their identity overlaps without conflict."
       ],
       "open_gap": "All downstream read models must still rebuild from OPL event plus MAS policy result, and live paper-line acceptance remains open."
     },
