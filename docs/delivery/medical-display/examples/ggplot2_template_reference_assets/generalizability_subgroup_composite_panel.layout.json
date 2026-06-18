@@ -1,0 +1,237 @@
+{
+  "template_id": "generalizability_subgroup_composite_panel",
+  "device": {
+    "x0": 0,
+    "y0": 0,
+    "x1": 1,
+    "y1": 1
+  },
+  "layout_boxes": [
+    {
+      "box_id": "title",
+      "box_type": "title",
+      "x0": 0.1887,
+      "y0": 0.9232,
+      "x1": 0.1887,
+      "y1": 0.9723
+    },
+    {
+      "box_id": "x_axis_title",
+      "box_type": "x_axis_title",
+      "x0": 0.1887,
+      "y0": 0.8472,
+      "x1": 0.1887,
+      "y1": 0.8835
+    },
+    {
+      "box_id": "y_axis_title",
+      "box_type": "y_axis_title",
+      "x0": 0.0231,
+      "y0": 0.9232,
+      "x1": 0.0483,
+      "y1": 0.9232
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel",
+      "box_type": "panel",
+      "x0": 0.1887,
+      "y0": 0.9232,
+      "x1": 0.1887,
+      "y1": 0.9232
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "legend",
+      "box_type": "legend",
+      "x0": 0.1887,
+      "y0": 0.9232,
+      "x1": 0.1887,
+      "y1": 0.9232
+    }
+  ],
+  "metrics": {
+    "renderer": "r_ggplot2_promoted_subprocess_v1",
+    "renderer_family": "r_ggplot2",
+    "renderer_role": "default",
+    "template_id": "generalizability_subgroup_composite_panel",
+    "data_fields": ["annotation", "annotation_tracks", "bars", "calibration_series", "cells", "coefficient_rows", "column_order", "decision_series", "effect_rows", "effect_threshold", "groups", "layer_supports", "left_bars", "metric_name", "modifiers", "normalization", "overview_rows", "panels", "points", "programs", "reference_line", "reference_value", "render_context", "right_bars", "risk_group_summaries", "row_order", "rows", "schema_version", "series", "significance_threshold", "slice_estimates", "source_data_digest", "subgroup_rows", "summary_cards", "support_cells", "threshold_summaries", "title", "x_label", "y_label"],
+    "panel_box_present": true
+  },
+  "render_context": {
+    "style_profile_id": "paper_neutral_clinical_v1",
+    "style_profile_sha256": "human-reference-default-style-profile",
+    "journal_palette_ref": "large_journal_safe_lancet_like_v1",
+    "palette": {
+      "primary": "#5F766B",
+      "secondary": "#B9AD9C",
+      "contrast": "#2F5D8A",
+      "neutral": "#7B8794",
+      "light": "#E7E1D8",
+      "primary_soft": "#EEF3F1",
+      "secondary_soft": "#F4EFE8",
+      "contrast_soft": "#E6EDF5",
+      "audit": "#B57F7F",
+      "audit_soft": "#F5ECE8",
+      "text": "#13293D",
+      "grid": "#E6EDF2",
+      "background": "#FFFFFF",
+      "heatmap_low": "#2166AC",
+      "heatmap_mid": "#FFFFFF",
+      "heatmap_high": "#B2182B",
+      "volcano_up": "#B2182B",
+      "volcano_down": "#2166AC",
+      "volcano_background": "#9CA3AF"
+    },
+    "semantic_roles": {
+      "model_curve": "primary",
+      "comparator_curve": "secondary",
+      "reference_line": "neutral",
+      "highlight_band": "light",
+      "text": "text",
+      "grid_line": "grid",
+      "figure_background": "background",
+      "heatmap_low": "heatmap_low",
+      "heatmap_mid": "heatmap_mid",
+      "heatmap_high": "heatmap_high",
+      "volcano_up": "volcano_up",
+      "volcano_down": "volcano_down",
+      "volcano_background": "volcano_background",
+      "flow_main_fill": "light",
+      "flow_main_edge": "neutral",
+      "flow_exclusion_fill": "audit_soft",
+      "flow_exclusion_edge": "audit",
+      "flow_primary_fill": "primary_soft",
+      "flow_primary_edge": "primary",
+      "flow_secondary_fill": "light",
+      "flow_secondary_edge": "neutral",
+      "flow_context_fill": "contrast_soft",
+      "flow_context_edge": "contrast",
+      "flow_audit_fill": "audit_soft",
+      "flow_audit_edge": "audit",
+      "flow_title_text": "neutral",
+      "flow_body_text": "neutral",
+      "flow_panel_label": "neutral",
+      "flow_connector": "neutral"
+    },
+    "style_roles": {
+      "model_curve": "#5F766B",
+      "comparator_curve": "#B9AD9C",
+      "reference_line": "#7B8794",
+      "highlight_band": "#E7E1D8",
+      "text": "#13293D",
+      "grid_line": "#E6EDF2",
+      "figure_background": "#FFFFFF",
+      "heatmap_low": "#2166AC",
+      "heatmap_mid": "#FFFFFF",
+      "heatmap_high": "#B2182B",
+      "volcano_up": "#B2182B",
+      "volcano_down": "#2166AC",
+      "volcano_background": "#9CA3AF",
+      "flow_main_fill": "#E7E1D8",
+      "flow_main_edge": "#7B8794",
+      "flow_exclusion_fill": "#F5ECE8",
+      "flow_exclusion_edge": "#B57F7F",
+      "flow_primary_fill": "#EEF3F1",
+      "flow_primary_edge": "#5F766B",
+      "flow_secondary_fill": "#E7E1D8",
+      "flow_secondary_edge": "#7B8794",
+      "flow_context_fill": "#E6EDF5",
+      "flow_context_edge": "#2F5D8A",
+      "flow_audit_fill": "#F5ECE8",
+      "flow_audit_edge": "#B57F7F",
+      "flow_title_text": "#7B8794",
+      "flow_body_text": "#7B8794",
+      "flow_panel_label": "#7B8794",
+      "flow_connector": "#7B8794"
+    },
+    "typography": {
+      "font_family": "sans",
+      "base_size": 11,
+      "title_size": 12.5,
+      "axis_title_size": 11,
+      "tick_size": 10,
+      "legend_size": 9.8,
+      "panel_label_size": 11
+    },
+    "stroke": {
+      "primary_linewidth": 2.2,
+      "secondary_linewidth": 1.8,
+      "reference_linewidth": 1,
+      "grid_linewidth": 0.25,
+      "marker_size": 4.5
+    },
+    "grid": {
+      "major": true,
+      "minor": false,
+      "major_axis": "both",
+      "minor_axis": "none",
+      "color": "#E6EDF2",
+      "linetype": "solid"
+    }
+  },
+  "style_profile": {
+    "style_profile_id": "paper_neutral_clinical_v1",
+    "style_profile_ref": "",
+    "style_profile_sha256": "human-reference-default-style-profile",
+    "journal_palette_ref": "large_journal_safe_lancet_like_v1",
+    "palette_keys": ["primary", "secondary", "contrast", "neutral", "light", "primary_soft", "secondary_soft", "contrast_soft", "audit", "audit_soft", "text", "grid", "background", "heatmap_low", "heatmap_mid", "heatmap_high", "volcano_up", "volcano_down", "volcano_background"],
+    "semantic_roles": {
+      "model_curve": "primary",
+      "comparator_curve": "secondary",
+      "reference_line": "neutral",
+      "highlight_band": "light",
+      "text": "text",
+      "grid_line": "grid",
+      "figure_background": "background",
+      "heatmap_low": "heatmap_low",
+      "heatmap_mid": "heatmap_mid",
+      "heatmap_high": "heatmap_high",
+      "volcano_up": "volcano_up",
+      "volcano_down": "volcano_down",
+      "volcano_background": "volcano_background",
+      "flow_main_fill": "light",
+      "flow_main_edge": "neutral",
+      "flow_exclusion_fill": "audit_soft",
+      "flow_exclusion_edge": "audit",
+      "flow_primary_fill": "primary_soft",
+      "flow_primary_edge": "primary",
+      "flow_secondary_fill": "light",
+      "flow_secondary_edge": "neutral",
+      "flow_context_fill": "contrast_soft",
+      "flow_context_edge": "contrast",
+      "flow_audit_fill": "audit_soft",
+      "flow_audit_edge": "audit",
+      "flow_title_text": "neutral",
+      "flow_body_text": "neutral",
+      "flow_panel_label": "neutral",
+      "flow_connector": "neutral"
+    },
+    "typography": {
+      "font_family": "sans",
+      "base_size": 11,
+      "title_size": 12.5,
+      "axis_title_size": 11,
+      "tick_size": 10,
+      "legend_size": 9.8,
+      "panel_label_size": 11
+    },
+    "stroke": {
+      "primary_linewidth": 2.2,
+      "secondary_linewidth": 1.8,
+      "reference_linewidth": 1,
+      "grid_linewidth": 0.25,
+      "marker_size": 4.5
+    },
+    "grid": {
+      "major": true,
+      "minor": false,
+      "major_axis": "both",
+      "minor_axis": "none",
+      "color": "#E6EDF2",
+      "linetype": "solid"
+    }
+  }
+}
