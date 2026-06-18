@@ -24,12 +24,19 @@ def test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies(t
     assert result["status"] == "indexed"
     assert result["authority_boundary"] == {
         "sqlite_role": "rebuildable_refs_only_sidecar_index",
+        "state_index_owner": "one-person-lab",
+        "mas_state_index_authority": False,
         "body_included": False,
         "rebuildable": True,
+        "refs_projection_only": True,
+        "body_free": True,
         "stores_study_truth": False,
         "stores_manuscript_body": False,
         "stores_artifact_body": False,
         "stores_owner_receipt_body": False,
+        "can_drive_lifecycle": False,
+        "can_select_next_action": False,
+        "can_authorize_currentness": False,
         "can_generate_next_action_authority": False,
         "can_authorize_provider_admission": False,
         "can_create_worker_attempt": False,
@@ -106,6 +113,42 @@ def test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies(t
         "can_claim_stage_progress": False,
         "replacement_owner_surface": "one-person-lab StateIndexKernel",
     }
+    readback_requirement = result["opl_state_index_kernel_readback_requirement"]
+    assert readback_requirement["surface_kind"] == "opl_state_index_kernel_readback_requirement"
+    assert readback_requirement["required_owner_surface"] == "one-person-lab StateIndexKernel"
+    assert readback_requirement["mas_surface_role"] == "temporary_refs_projection"
+    assert readback_requirement["mas_can_satisfy_readback"] is False
+    assert readback_requirement["required_readback_identity_fields"] == [
+        "domain_id",
+        "program_id",
+        "stage_id",
+        "attempt_id",
+        "surface_id",
+        "source_ref",
+        "receipt_ref",
+        "content_hash",
+        "observed_at",
+        "indexed_at",
+        "index_version",
+        "rebuild_epoch",
+    ]
+    assert readback_requirement["required_authority_boundary"] == {
+        "state_index_owner": "one-person-lab",
+        "mas_state_index_authority": False,
+        "refs_projection_only": True,
+        "body_free": True,
+        "can_drive_lifecycle": False,
+        "can_select_next_action": False,
+        "can_authorize_currentness": False,
+        "can_authorize_provider_admission": False,
+    }
+    assert readback_requirement["mas_projection_cannot_replace"] == [
+        "opl_state_index_kernel_readback",
+        "opl_lifecycle_index",
+        "opl_operator_read_model",
+        "opl_artifact_index",
+        "opl_queue_index",
+    ]
     assert result["legacy_surface_policy"] == {
         "runtime_events": "tombstone_provenance_only",
         "runtime_snapshots": "tombstone_provenance_only",
@@ -323,6 +366,12 @@ def test_maintain_runtime_storage_can_write_refs_only_state_index_pilot_summary(
     latest_payload = json.loads(Path(result["latest_report_path"]).read_text(encoding="utf-8"))
     assert latest_payload["refs_only_state_index_pilot"]["sqlite_ref"]["workspace_relative_path"] == (
         "artifacts/runtime/mas_refs_only_state_index_pilot.sqlite"
+    )
+    assert (
+        latest_payload["refs_only_state_index_pilot"]["opl_state_index_kernel_readback_requirement"][
+            "mas_can_satisfy_readback"
+        ]
+        is False
     )
     assert "OWNER_RECEIPT_BODY_MUST_NOT_ENTER_SQLITE" not in json.dumps(
         latest_payload["refs_only_state_index_pilot"],

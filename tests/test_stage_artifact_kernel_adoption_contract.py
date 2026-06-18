@@ -168,7 +168,51 @@ def test_mas_refs_only_state_index_pilot_is_body_free_and_opt_in() -> None:
     assert pilot["body_included"] is False
     assert pilot["derived_index_rebuildable"] is True
     assert pilot["sqlite_record_counts_as_stage_complete"] is False
+    assert pilot["state_index_owner"] == "one-person-lab"
+    assert pilot["mas_state_index_authority"] is False
+    assert pilot["refs_projection_only"] is True
+    assert pilot["body_free"] is True
+    assert pilot["can_drive_lifecycle"] is False
+    assert pilot["can_select_next_action"] is False
+    assert pilot["can_authorize_currentness"] is False
     assert pilot["generic_state_index_owner"] == "one-person-lab"
+    assert pilot["opl_state_index_kernel_readback_requirement"] == {
+        "surface_kind": "opl_state_index_kernel_readback_requirement",
+        "required_owner_surface": "one-person-lab StateIndexKernel",
+        "mas_surface_role": "temporary_refs_projection",
+        "mas_can_satisfy_readback": False,
+        "required_readback_identity_fields": [
+            "domain_id",
+            "program_id",
+            "stage_id",
+            "attempt_id",
+            "surface_id",
+            "source_ref",
+            "receipt_ref",
+            "content_hash",
+            "observed_at",
+            "indexed_at",
+            "index_version",
+            "rebuild_epoch",
+        ],
+        "required_authority_boundary": {
+            "state_index_owner": "one-person-lab",
+            "mas_state_index_authority": False,
+            "refs_projection_only": True,
+            "body_free": True,
+            "can_drive_lifecycle": False,
+            "can_select_next_action": False,
+            "can_authorize_currentness": False,
+            "can_authorize_provider_admission": False,
+        },
+        "mas_projection_cannot_replace": [
+            "opl_state_index_kernel_readback",
+            "opl_lifecycle_index",
+            "opl_operator_read_model",
+            "opl_artifact_index",
+            "opl_queue_index",
+        ],
+    }
     assert {
         "study_truth_body",
         "publication_eval_body",

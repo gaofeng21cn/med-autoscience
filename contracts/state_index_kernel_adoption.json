@@ -63,9 +63,53 @@
       "can_claim_stage_progress": false,
       "replacement_owner_surface": "one-person-lab StateIndexKernel"
     },
+    "opl_state_index_kernel_readback_requirement": {
+      "surface_kind": "opl_state_index_kernel_readback_requirement",
+      "required_owner_surface": "one-person-lab StateIndexKernel",
+      "mas_surface_role": "temporary_refs_projection",
+      "mas_can_satisfy_readback": false,
+      "required_readback_identity_fields": [
+        "domain_id",
+        "program_id",
+        "stage_id",
+        "attempt_id",
+        "surface_id",
+        "source_ref",
+        "receipt_ref",
+        "content_hash",
+        "observed_at",
+        "indexed_at",
+        "index_version",
+        "rebuild_epoch"
+      ],
+      "required_authority_boundary": {
+        "state_index_owner": "one-person-lab",
+        "mas_state_index_authority": false,
+        "refs_projection_only": true,
+        "body_free": true,
+        "can_drive_lifecycle": false,
+        "can_select_next_action": false,
+        "can_authorize_currentness": false,
+        "can_authorize_provider_admission": false
+      },
+      "mas_projection_cannot_replace": [
+        "opl_state_index_kernel_readback",
+        "opl_lifecycle_index",
+        "opl_operator_read_model",
+        "opl_artifact_index",
+        "opl_queue_index"
+      ]
+    },
     "body_included": false,
     "derived_index_rebuildable": true,
     "sqlite_record_counts_as_stage_complete": false,
+    "state_index_owner": "one-person-lab",
+    "mas_state_index_authority": false,
+    "refs_projection_only": true,
+    "body_free": true,
+    "can_drive_lifecycle": false,
+    "can_select_next_action": false,
+    "can_authorize_currentness": false,
     "generic_state_index_owner": "one-person-lab",
     "forbidden_payload_roles": [
       "study_truth_body",

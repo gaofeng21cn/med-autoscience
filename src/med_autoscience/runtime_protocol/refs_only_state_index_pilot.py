@@ -31,12 +31,19 @@ FORBIDDEN_BODY_MARKER_ROLES = (
 
 _AUTHORITY_BOUNDARY = {
     "sqlite_role": "rebuildable_refs_only_sidecar_index",
+    "state_index_owner": "one-person-lab",
+    "mas_state_index_authority": False,
     "body_included": False,
     "rebuildable": True,
+    "refs_projection_only": True,
+    "body_free": True,
     "stores_study_truth": False,
     "stores_manuscript_body": False,
     "stores_artifact_body": False,
     "stores_owner_receipt_body": False,
+    "can_drive_lifecycle": False,
+    "can_select_next_action": False,
+    "can_authorize_currentness": False,
     "can_generate_next_action_authority": False,
     "can_authorize_provider_admission": False,
     "can_create_worker_attempt": False,
@@ -86,6 +93,43 @@ _PRIVATE_CONTROL_PLANE_BOUNDARY = {
     "can_claim_runtime_currentness": False,
     "can_claim_stage_progress": False,
     "replacement_owner_surface": "one-person-lab StateIndexKernel",
+}
+_OPL_STATE_INDEX_READBACK_REQUIREMENT = {
+    "surface_kind": "opl_state_index_kernel_readback_requirement",
+    "required_owner_surface": "one-person-lab StateIndexKernel",
+    "mas_surface_role": "temporary_refs_projection",
+    "mas_can_satisfy_readback": False,
+    "required_readback_identity_fields": [
+        "domain_id",
+        "program_id",
+        "stage_id",
+        "attempt_id",
+        "surface_id",
+        "source_ref",
+        "receipt_ref",
+        "content_hash",
+        "observed_at",
+        "indexed_at",
+        "index_version",
+        "rebuild_epoch",
+    ],
+    "required_authority_boundary": {
+        "state_index_owner": "one-person-lab",
+        "mas_state_index_authority": False,
+        "refs_projection_only": True,
+        "body_free": True,
+        "can_drive_lifecycle": False,
+        "can_select_next_action": False,
+        "can_authorize_currentness": False,
+        "can_authorize_provider_admission": False,
+    },
+    "mas_projection_cannot_replace": [
+        "opl_state_index_kernel_readback",
+        "opl_lifecycle_index",
+        "opl_operator_read_model",
+        "opl_artifact_index",
+        "opl_queue_index",
+    ],
 }
 
 
@@ -202,6 +246,7 @@ def rebuild_refs_only_state_index(
         "payload_role": "ref_metadata_only",
         "projection_policy": dict(_PROJECTION_POLICY),
         "private_control_plane_boundary": dict(_PRIVATE_CONTROL_PLANE_BOUNDARY),
+        "opl_state_index_kernel_readback_requirement": dict(_OPL_STATE_INDEX_READBACK_REQUIREMENT),
         "index_version": INDEX_VERSION,
         "rebuild_epoch": rebuild_epoch,
         "stage_folder_attempt_projection": _stage_folder_attempt_projection(
