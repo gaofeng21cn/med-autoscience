@@ -17,6 +17,14 @@ REQUIRED_CATEGORIES = {
     "refs_only_helper",
     "diagnostic_probe",
 }
+CONTRACT_ONLY_ITEM_OVERLAY_FIELDS = {
+    "disposition",
+    "no_active_caller",
+    "replacement_parity",
+    "no_forbidden_write_proof",
+    "retirement_gate",
+    "tombstone_or_provenance",
+}
 
 
 def _contract() -> dict[str, object]:
@@ -25,10 +33,39 @@ def _contract() -> dict[str, object]:
     )
 
 
+def _without_contract_only_overlays(payload: dict[str, object]) -> dict[str, object]:
+    managed = dict(payload)
+    managed.pop("retirement_gate_policy", None)
+    managed["items"] = [
+        {
+            key: value
+            for key, value in dict(item).items()
+            if key not in CONTRACT_ONLY_ITEM_OVERLAY_FIELDS
+        }
+        for item in managed["items"]
+    ]
+    return managed
+
+
 def test_authority_kernel_inventory_contract_matches_builder() -> None:
     module = importlib.import_module("med_autoscience.authority_kernel_inventory")
 
-    assert _contract() == module.build_authority_kernel_inventory()
+    assert _without_contract_only_overlays(_contract()) == _without_contract_only_overlays(
+        module.build_authority_kernel_inventory()
+    )
+
+
+def test_authority_kernel_inventory_contract_retirement_gate_overlay_is_explicit() -> None:
+    inventory = _contract()
+    policy = inventory["retirement_gate_policy"]
+
+    assert policy["surface_kind"] == "mas_authority_kernel_retirement_gate_policy"
+    assert policy["no_active_caller_required_before_delete"] is True
+    assert policy["no_forbidden_write_proof_required"] is True
+    assert policy["tombstone_or_provenance_required_before_delete"] is True
+    assert policy["completion_percent_policy"].startswith(
+        "inventory_or_test_green_is_not_100_percent"
+    )
 
 
 def test_authority_kernel_inventory_covers_required_categories_and_fields() -> None:

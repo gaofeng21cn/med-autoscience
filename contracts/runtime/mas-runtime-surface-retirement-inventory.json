@@ -336,6 +336,7 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "no_forbidden_write_proof_surface": "artifacts/controller/domain_health_diagnostic_obligation_actuator/latest.json",
       "obligation_readback_boundary": {
         "request_projection_is_success_outcome": false,
         "success_outcome_source_families": [
@@ -346,8 +347,20 @@
         "supervisor_disallowed_outcome_is_success": false
       },
       "replacement_surface": "OPL RecoveryObligationStore / SupervisorDecisionEngine readback plus MAS PaperProgressPolicyAdapter result",
+      "request_projection_only_status": "transition_request_pending",
       "retained_mas_role": "consume_only_obligation_outcome_projection_and_fail_closed_typed_blocker",
-      "surface_id": "domain_health_diagnostic_obligation_actuator"
+      "retention_reason": "temporary refs projection until OPL recovery-obligation readback is the active caller and MAS retains only owner-answer / typed-blocker evidence consumption",
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "no_forbidden_write_proof_required": true,
+        "owner_retirement_decision_required": true,
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
+      },
+      "surface_id": "domain_health_diagnostic_obligation_actuator",
+      "transition_request_pending_can_close_physical_tail": false
     },
     {
       "active_caller_migrated": true,

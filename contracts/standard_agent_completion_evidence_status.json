@@ -67,12 +67,14 @@
         "contracts/authority_kernel_inventory.json",
         "contracts/functional_privatization_audit.json",
         "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_health_diagnostic_obligation_actuator",
         "tests/test_authority_kernel_inventory.py::test_authority_kernel_inventory_does_not_list_generic_runtime_owner_as_retained_authority",
+        "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory",
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_physical_source_morphology_scan_without_completion_claim"
       ],
       "missing_evidence_tails": [
         "direct_or_hosted_generated_surface_production_consumption_ref",
-        "physical_retirement_owner_decision_ref"
+        "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref"
       ],
       "false_completion_boundary": [
         "functional_structure_gap_count_zero",

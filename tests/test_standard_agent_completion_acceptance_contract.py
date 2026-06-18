@@ -282,12 +282,20 @@ def test_standard_agent_completion_evidence_ledger_records_physical_source_morph
     assert scan_ref in morphology["required_evidence_refs"]
     assert {scan_ref, scan_test_ref} <= set(morphology["observed_refs"])
     assert (
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/"
+        "surfaces/domain_health_diagnostic_obligation_actuator"
+    ) in morphology["observed_refs"]
+    assert (
+        "tests/test_adapter_retirement_boundary.py::"
+        "test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory"
+    ) in morphology["observed_refs"]
+    assert (
         "physical_source_morphology_scan_beyond_classification_zero_ref"
         not in morphology["missing_evidence_tails"]
     )
     assert {
         "direct_or_hosted_generated_surface_production_consumption_ref",
-        "physical_retirement_owner_decision_ref",
+        "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
     } <= set(morphology["missing_evidence_tails"])
     assert {
         "functional_structure_gap_count_zero",
@@ -296,6 +304,50 @@ def test_standard_agent_completion_evidence_ledger_records_physical_source_morph
         "history_or_tombstone_prose",
     } <= set(morphology["false_completion_boundary"])
     assert ledger["overall_status"] == "evidence_tail_open_not_complete"
+    assert ledger["completion_claim_allowed"] is False
+
+
+def test_standard_agent_completion_evidence_ledger_names_precise_dhd_actuator_physical_tail() -> None:
+    ledger = _ledger()
+    gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
+    morphology = gates["physical_source_morphology_standardized"]
+    inventory = json.loads(
+        (
+            REPO_ROOT
+            / "contracts"
+            / "runtime"
+            / "mas-runtime-surface-retirement-inventory.json"
+        ).read_text(encoding="utf-8")
+    )
+    surfaces = {surface["surface_id"]: surface for surface in inventory["surfaces"]}
+    actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
+
+    assert actuator["active_caller_migrated"] is False
+    assert actuator["current_disposition"] == "opl_recovery_obligation_readback_consumer"
+    assert actuator["retention_reason"] == (
+        "temporary refs projection until OPL recovery-obligation readback is the active caller "
+        "and MAS retains only owner-answer / typed-blocker evidence consumption"
+    )
+    assert actuator["request_projection_only_status"] == "transition_request_pending"
+    assert actuator["transition_request_pending_can_close_physical_tail"] is False
+    assert actuator["no_forbidden_write_proof_surface"] == (
+        "artifacts/controller/domain_health_diagnostic_obligation_actuator/latest.json"
+    )
+    assert actuator["retirement_gate"] == {
+        "active_caller_alone_retains_surface": False,
+        "completion_claim_requires_live_owner_or_opl_readback": True,
+        "no_active_caller_required_before_physical_delete": True,
+        "no_forbidden_write_proof_required": True,
+        "owner_retirement_decision_required": True,
+        "replacement_parity_required": True,
+        "tombstone_or_provenance_required": True,
+    }
+
+    assert (
+        "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref"
+    ) in morphology["missing_evidence_tails"]
+    assert "physical_retirement_owner_decision_ref" not in morphology["missing_evidence_tails"]
+    assert morphology["status"] == "evidence_required"
     assert ledger["completion_claim_allowed"] is False
 
 
