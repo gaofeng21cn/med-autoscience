@@ -71,7 +71,7 @@ def _valid_live_transition_readback(result: Mapping[str, Any]) -> bool:
             ("exactly_one_outcome", _valid_live_exactly_one_outcome),
             ("projection_metadata", _valid_live_projection_metadata),
         )
-    )
+    ) and _valid_live_readback_consistency(result)
 
 
 def _has_live_runtime_refs(result: Mapping[str, Any]) -> bool:
@@ -104,6 +104,9 @@ def _valid_live_identity(identity: Mapping[str, Any]) -> bool:
             "route_identity_key",
             "attempt_idempotency_key",
         )
+    ) and (
+        _text(stage_run_identity.get("stage_run_id")) is not None
+        or _text(stage_run_identity.get("stage_run_identity_ref")) is not None
     )
 
 
@@ -150,6 +153,31 @@ def _valid_live_projection_metadata(metadata: Mapping[str, Any]) -> bool:
         and _text(metadata.get("read_model_rebuild_owner")) == OPL_TRANSITION_RUNTIME_OWNER
         and _text(metadata.get("derived_from_event_id")) is not None
         and _text(metadata.get("observed_generation")) is not None
+    )
+
+
+def _valid_live_readback_consistency(result: Mapping[str, Any]) -> bool:
+    identity = _mapping(result.get("identity"))
+    causality = _mapping(result.get("causality"))
+    projection_metadata = _mapping(result.get("projection_metadata"))
+    latest_transaction = _mapping(result.get("latest_transaction_readback"))
+
+    event_id = _text(identity.get("latest_event_id"))
+    outbox_item_id = _text(identity.get("latest_outbox_item_id"))
+    transaction_id = _text(identity.get("latest_transaction_id"))
+    if event_id is None or outbox_item_id is None or transaction_id is None:
+        return False
+
+    return (
+        _same_text(causality.get("event_id"), event_id)
+        and _same_text(causality.get("outbox_item_id"), outbox_item_id)
+        and _same_text(causality.get("transaction_id"), transaction_id)
+        and _same_text(projection_metadata.get("derived_from_event_id"), event_id)
+        and _same_text(latest_transaction.get("event_id"), event_id)
+        and _same_text(latest_transaction.get("outbox_item_id"), outbox_item_id)
+        and _same_text(latest_transaction.get("transaction_id"), transaction_id)
+        and _same_text(latest_transaction.get("transition_event_id"), event_id)
+        and _same_text(latest_transaction.get("outbox_transition_event_id"), event_id)
     )
 
 
@@ -246,6 +274,10 @@ def _text(value: object) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _same_text(value: object, expected: str) -> bool:
+    return _text(value) == expected
 
 
 __all__ = [

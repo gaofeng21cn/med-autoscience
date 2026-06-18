@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib
 
 from tests.provider_admission_current_control_helpers import opl_transition_readback
@@ -94,6 +95,28 @@ def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() 
         "outbox_item_present": False,
     }
     assert module.valid_opl_transition_readback(missing_outbox) is False
+
+    stage_identity_without_run_ref = copy.deepcopy(trusted)
+    stage_identity_without_run_ref["identity"]["stage_run_identity"].pop("stage_run_id")
+    assert module.valid_opl_transition_readback(stage_identity_without_run_ref) is False
+
+    latest_event_mismatch = copy.deepcopy(trusted)
+    latest_event_mismatch["latest_transaction_readback"]["event_id"] = "dpte-stale"
+    assert module.valid_opl_transition_readback(latest_event_mismatch) is False
+
+    latest_transaction_mismatch = copy.deepcopy(trusted)
+    latest_transaction_mismatch["latest_transaction_readback"][
+        "transaction_id"
+    ] = "dptx-stale"
+    assert module.valid_opl_transition_readback(latest_transaction_mismatch) is False
+
+    causality_outbox_mismatch = copy.deepcopy(trusted)
+    causality_outbox_mismatch["causality"]["outbox_item_id"] = "dpto-stale"
+    assert module.valid_opl_transition_readback(causality_outbox_mismatch) is False
+
+    projection_event_mismatch = copy.deepcopy(trusted)
+    projection_event_mismatch["projection_metadata"]["derived_from_event_id"] = "dpte-stale"
+    assert module.valid_opl_transition_readback(projection_event_mismatch) is False
 
 
 def test_legacy_transition_result_and_bare_projection_are_not_trusted() -> None:
@@ -305,3 +328,15 @@ def test_provider_admission_requires_trusted_opl_readback_not_weak_projection() 
     assert live_admitted["opl_domain_progress_transition_live_readback"]["identity"][
         "aggregate_identity"
     ]["study_id"] == STUDY_ID
+
+    stale_event_readback = copy.deepcopy(_live_readback())
+    stale_event_readback["latest_transaction_readback"]["event_id"] = "stale-event"
+    stale_event_pending = identity.provider_admission_current_control_action(
+        {
+            **candidate,
+            "opl_domain_progress_transition_result": stale_event_readback,
+        }
+    )
+    assert stale_event_pending["status"] == "transition_request_pending"
+    assert stale_event_pending["provider_admission_pending"] is False
+    assert stale_event_pending["provider_admission_requires_opl_runtime_result"] is True

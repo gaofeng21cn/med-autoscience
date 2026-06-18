@@ -15,6 +15,7 @@
     "replay_suite_status": "expanded_beyond_first_slice",
     "live_evidence_surface_status": "read_only_acceptance_boundary_recorded",
     "mas_command_event_log_extractor_status": "retired_public_surface",
+    "mas_opl_live_readback_consumer_status": "transaction_consistency_fail_closed",
     "live_paper_progress_claim_allowed": false,
     "dhd_dirty_lane_written": false,
     "yang_workspace_runtime_artifacts_written": false
@@ -189,11 +190,13 @@
   ],
   "remaining_evidence_tails": [
     "OPL outbox and StageRun identity live readback for the same transition request",
+    "fresh live StageRun identity and transaction consistency readback from OPL for current DM002/DM003 transition requests",
     "DHD apply exactly-one live outcome when explicitly delegated",
     "provider admission arbiter fully consuming OPL transition events",
     "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family"
   ],
   "verification_refs": [
+    "tests/test_opl_transition_readback_contract.py",
     "tests/test_paper_progress_transition_replay_fixtures.py",
     "docs/runtime/designs/paper_progress_transition_kernel_target.md",
     "docs/active/mas-ideal-state-gap-plan.md"

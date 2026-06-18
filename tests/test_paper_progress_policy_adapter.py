@@ -21,6 +21,9 @@ OPL_RUNTIME_FIELDS = {
 
 
 def _assert_clean_opl_transition_request(result: dict) -> None:
+    readback_contract = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+    )
     request = result["opl_domain_progress_transition_request"]
     assert request["surface_kind"] == "mas_domain_progress_transition_request"
     assert request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
@@ -28,29 +31,9 @@ def _assert_clean_opl_transition_request(result: dict) -> None:
     assert request["mas_can_create_opl_outbox_record"] is False
     assert request["mas_can_create_opl_event"] is False
     assert request["mas_can_create_opl_stage_run"] is False
-    assert request["provider_admission_requires_opl_readback_shape"] == {
-        "surface_kind": "opl_domain_progress_transition_result",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "DomainProgressTransitionRuntime",
-        "required_sections": [
-            "identity",
-            "causality",
-            "authority_boundary",
-            "exactly_one_outcome",
-            "projection_metadata",
-        ],
-        "required_runtime_refs": [
-            "event_id",
-            "outbox_item_id",
-            "stage_run_identity",
-        ],
-        "accepted_outcome_kind": "provider_admission_pending",
-        "deprecated_projection_fields_not_authority": [
-            "stage_run_id",
-            "event_id_without_causality",
-            "outbox_item_id_without_authority_boundary",
-        ],
-    }
+    assert request["provider_admission_requires_opl_readback_shape"] == (
+        readback_contract.required_opl_transition_readback_shape()
+    )
     assert OPL_RUNTIME_FIELDS.isdisjoint(request)
 
 

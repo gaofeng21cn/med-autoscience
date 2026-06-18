@@ -18,7 +18,7 @@
     "goal_complete": false,
     "completion_claim_allowed": false,
     "classification": "platform_runtime_and_policy_adapter_landed_live_paper_acceptance_open",
-    "current_summary": "OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, terminal closeout currentness, provider-hosted stale admission recovery, terminal handoff fixed-point projection rebuild, consumed terminal-blocker precedence over owner-receipt handoff surfaces, and MAS runtime-health local event append retirement have landed. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, full provider-admission consumption, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present; terminal typed-blocker handoff consumption rebuilds paper_recovery_state and current_executable_owner_action so stale successor actions cannot survive the same refresh; current_execution_surfaces now consume same-identity terminal typed blockers even when the handoff current_work_unit still projects owner_receipt_recorded; and OPL current-control terminal closeout consumption no longer lets identity-bound admissions fall back to weak action/work-unit/fingerprint matching. Legacy default-executor latest wire fallback is now explicit-history-only: current provider admission, current provider handoff export, and current clean-migration recovery readers require canonical owner_callable_adapter_receipts/latest.json and do not consume default_executor_execution/latest.json."
+    "current_summary": "OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, live readback transaction-consistency fail-closed validation, terminal closeout currentness, provider-hosted stale admission recovery, terminal handoff fixed-point projection rebuild, consumed terminal-blocker precedence over owner-receipt handoff surfaces, and MAS runtime-health local event append retirement have landed. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, full provider-admission consumption, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present; terminal typed-blocker handoff consumption rebuilds paper_recovery_state and current_executable_owner_action so stale successor actions cannot survive the same refresh; current_execution_surfaces now consume same-identity terminal typed blockers even when the handoff current_work_unit still projects owner_receipt_recorded; OPL current-control terminal closeout consumption no longer lets identity-bound admissions fall back to weak action/work-unit/fingerprint matching; and MAS OPL transition readback consumer rejects thin StageRun identity or stale event/outbox/transaction refs. Legacy default-executor latest wire fallback is now explicit-history-only: current provider admission, current provider handoff export, and current clean-migration recovery readers require canonical owner_callable_adapter_receipts/latest.json and do not consume default_executor_execution/latest.json."
   },
   "status_values": [
     "done",
@@ -212,7 +212,8 @@
       "completion_percent": 58,
       "evidence": [
         "MAS DHD contracts fail closed request-only transitions without OPL readback.",
-        "Focused tests cover consume-only and live-readback-only admission boundaries."
+        "Focused tests cover consume-only and live-readback-only admission boundaries.",
+        "tests/test_opl_transition_readback_contract.py rejects thin StageRun identity and stale event/outbox/transaction readback refs before provider admission."
       ],
       "open_gap": "Current session did not run DHD apply; fresh live exactly-one apply outcome is still required before completion."
     },
@@ -221,14 +222,15 @@
       "correct_owner": "OPL Runway",
       "target": "Provider admission accepts only OPL transition outbox or StageRun identity, not MAS projection residue.",
       "status": "partial",
-      "completion_percent": 76,
+      "completion_percent": 78,
       "evidence": [
         "OPL current-control and provider-hosted tests cover transition runtime payload, stale admission recovery, and single-flight guards.",
         "MAS arbiter tests require OPL live readback for provider_admission_pending.",
         "Paper recovery state now requires complete OPL live readback before current provider-admission projections can suppress stale parked/operator projections.",
-        "OPL current-control handoff projection preserves runtime-backed provider admission when a stale terminal closeout lacks bound identity, even if action/work-unit/fingerprint match."
+        "OPL current-control handoff projection preserves runtime-backed provider admission when a stale terminal closeout lacks bound identity, even if action/work-unit/fingerprint match.",
+        "MAS OPL transition readback contract tests reject StageRun identity without stage_run_id/stage_run_identity_ref and reject mismatched latest transaction, causality, and projection refs."
       ],
-      "open_gap": "Fresh DM002/DM003 provider admission/running proof remains open; repo evidence now blocks request-only current_work_unit/provider-admission projections and stale unbound terminal closeouts from acting as admission evidence."
+      "open_gap": "Fresh DM002/DM003 provider admission/running proof remains open; repo evidence now blocks request-only current_work_unit/provider-admission projections, stale unbound terminal closeouts, thin StageRun identities, and stale transaction refs from acting as admission evidence."
     },
     {
       "feature_id": "current_work_unit_projection",
@@ -590,7 +592,9 @@
         "tests/test_paper_recovery_state_cases/opl_authorization_cases.py::test_request_only_provider_admission_candidate_does_not_suppress_projection_contradiction",
         "tests/test_paper_recovery_state_cases/opl_authorization_cases.py::test_opl_live_readback_provider_admission_candidate_suppresses_stale_projection",
         "tests/test_paper_recovery_state.py::test_current_work_unit_provider_admission_without_candidate_or_opl_readback_repairs_projection_before_admission",
-        "tests/test_mcp_opl_current_control_state_handoff_projection.py::test_study_progress_opl_current_control_state_handoff_preserves_runtime_backed_admission_when_closeout_identity_is_not_bound"
+        "tests/test_mcp_opl_current_control_state_handoff_projection.py::test_study_progress_opl_current_control_state_handoff_preserves_runtime_backed_admission_when_closeout_identity_is_not_bound",
+        "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape",
+        "tests/test_opl_transition_readback_contract.py::test_provider_admission_requires_trusted_opl_readback_not_weak_projection"
       ],
       "missing_evidence_tails": [
         "OPL outbox and StageRun identity live readback for the same transition request",
@@ -715,6 +719,7 @@
   ],
   "open_evidence_tails": [
     "OPL outbox and StageRun identity live readback for the same transition request",
+    "fresh live StageRun identity and transaction consistency readback from OPL for current DM002/DM003 transition requests",
     "DHD apply exactly-one live outcome when explicitly delegated",
     "provider admission arbiter fully consuming OPL transition events",
     "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
