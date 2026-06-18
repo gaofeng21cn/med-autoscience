@@ -9,6 +9,8 @@ from med_autoscience.controllers import stage_native_next_action_admission
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
+from . import opl_execution_preflight
+from . import opl_owner_callable_proof
 from . import progress_blocking_selection
 
 
@@ -104,6 +106,46 @@ def next_action_matches_dispatch(
     return dispatch_matches_next_action(next_action=current_next_action, dispatch=dispatch)
 
 
+def next_action_has_opl_execution_proof(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+) -> bool:
+    current_next_action = next_action(profile=profile, study_id=study_id)
+    if current_next_action is None:
+        return False
+    return dispatch_matches_next_action_with_opl_proof(
+        next_action=current_next_action,
+        dispatch=dispatch,
+    )
+
+
+def next_action_dispatches_with_opl_proof_only(
+    *,
+    next_action: Mapping[str, Any],
+    dispatches: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        dispatch
+        for dispatch in dispatches
+        if dispatch_matches_next_action_with_opl_proof(
+            next_action=next_action,
+            dispatch=dispatch,
+        )
+    ]
+
+
+def dispatch_matches_next_action_with_opl_proof(
+    *,
+    next_action: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if not dispatch_matches_next_action(next_action=next_action, dispatch=dispatch):
+        return False
+    return dispatch_has_opl_execution_proof(dispatch)
+
+
 def dispatch_matches_next_action(
     *,
     next_action: Mapping[str, Any],
@@ -167,6 +209,15 @@ def dispatch_uses_stage_native_next_action(dispatch: Mapping[str, Any]) -> bool:
     return stage_native_next_action_admission.dispatch_uses_stage_native_next_action(dispatch)
 
 
+def dispatch_has_opl_execution_proof(dispatch: Mapping[str, Any]) -> bool:
+    return (
+        opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
+            dispatch
+        )
+        or opl_owner_callable_proof.trusted_owner_callable_opl_proof(dispatch) is not None
+    )
+
+
 def read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
     try:
         from med_autoscience.controllers import study_progress
@@ -207,10 +258,13 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "dispatch_matches_next_action",
+    "dispatch_has_opl_execution_proof",
     "dispatch_owner_route",
     "dispatch_uses_stage_native_next_action",
     "next_action",
     "next_action_dispatches_only",
+    "next_action_dispatches_with_opl_proof_only",
+    "next_action_has_opl_execution_proof",
     "next_action_matches_dispatch",
     "next_action_superseded_by_current_control",
     "next_action_type",

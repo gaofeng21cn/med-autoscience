@@ -6,6 +6,7 @@ from pathlib import Path
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
+    transition_request_consumer_latest,
     write_current_dispatch as _write_current_dispatch,
     write_json as _write_json,
 )
@@ -470,15 +471,11 @@ def test_stage_native_write_repair_next_action_filters_stale_readiness_and_revie
     _write_json(reviewer_path, reviewer_dispatch)
     _write_json(
         profile.workspace_root / module.CONSUMER_LATEST_RELATIVE_PATH,
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [
-                readiness_dispatch,
-                reviewer_dispatch,
-                stage_native_dispatch,
-            ],
-        },
+        transition_request_consumer_latest(
+            readiness_dispatch,
+            reviewer_dispatch,
+            stage_native_dispatch,
+        ),
     )
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
@@ -550,9 +547,13 @@ def test_stage_native_write_repair_next_action_filters_stale_readiness_and_revie
     )
 
     assert result["execution_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["action_type"] == "run_quality_repair_batch"
-    assert execution["owner_route_basis"] == "stage_native_workspace_next_action"
+    assert execution["action_type"] == "complete_medical_paper_readiness_surface"
+    assert execution["dispatch_path"] == str(readiness_path)
+    assert execution["owner_route_basis"] == "scan_latest"
+    assert execution["dispatch_path"] != str(stage_native_path)
 
 
 def test_quality_repair_dispatch_without_stage_native_authority_still_requires_opl_authorization(
@@ -663,11 +664,7 @@ def test_stage_native_next_action_preempts_older_current_writer_handoff(
     _write_json(old_path, old_writer_handoff)
     _write_json(
         profile.workspace_root / module.CONSUMER_LATEST_RELATIVE_PATH,
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [old_writer_handoff, stage_native_dispatch],
-        },
+        transition_request_consumer_latest(old_writer_handoff, stage_native_dispatch),
     )
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
@@ -719,9 +716,11 @@ def test_stage_native_next_action_preempts_older_current_writer_handoff(
 
     execution = result["executions"][0]
     assert result["execution_count"] == 1
-    assert execution["dispatch_path"] == str(stage_native_path)
-    assert execution["action_fingerprint"].startswith("stage-native-next-action::08-publication_package_handoff")
-    assert execution["dispatch_authority"] == "consumer_default_executor_dispatch"
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
+    assert execution["dispatch_path"] == str(old_path)
+    assert execution["dispatch_path"] != str(stage_native_path)
+    assert execution["owner_route_basis"] != "stage_native_workspace_next_action"
 
 
 def test_stage_native_next_action_without_authority_binding_does_not_preempt_current_writer_handoff(
@@ -798,11 +797,7 @@ def test_stage_native_next_action_without_authority_binding_does_not_preempt_cur
     _write_json(old_path, old_writer_handoff)
     _write_json(
         profile.workspace_root / materializer.CONSUMER_LATEST_RELATIVE_PATH,
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "owner_callable_adapters": [old_writer_handoff, stage_native_dispatch],
-        },
+        transition_request_consumer_latest(old_writer_handoff, stage_native_dispatch),
     )
     _write_json(
         profile.workspace_root / materializer.SUPERVISION_LATEST_RELATIVE_PATH,

@@ -584,6 +584,27 @@
         "can_create_provider_attempt": false,
         "can_create_opl_event_outbox_or_stage_run": false
       },
+      "stage_native_next_action_selector_boundary": {
+        "candidate_surfaces": [
+          "control/next_action.json",
+          "stage_native_ready_for_owner_action",
+          "stage_native_workspace_next_action"
+        ],
+        "candidate_without_opl_proof_can_score_current": false,
+        "candidate_without_opl_proof_can_be_selected_by_default": false,
+        "candidate_without_opl_proof_can_preempt_other_current_dispatch": false,
+        "candidate_without_opl_proof_can_authorize_execution": false,
+        "candidate_without_opl_proof_explicit_action_outcome": "opl_execution_authorization_required",
+        "required_execution_proofs": [
+          "trusted_opl_execution_authorization",
+          "exact_provider_hosted_stage_attempt",
+          "bound_opl_domain_progress_transition_runtime_readback"
+        ],
+        "missing_proof_retained_role": "candidate_or_diagnostic_transition_request_carrier",
+        "provider_admission_pending": false,
+        "provider_attempt_or_lease_required": false,
+        "mas_private_attempt_loop_forbidden": true
+      },
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -620,6 +641,7 @@
         "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_accepts_trusted_opl_authorization",
         "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_accepts_bound_opl_transition_readback",
         "tests/test_domain_owner_action_dispatch_cases/provider_hosted_exact_stage_packet_selection.py",
+        "tests/test_domain_owner_action_dispatch_cases/stage_native_write_repair_authorization.py",
         "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_provider_hosted_authorization.py",
         "tests/test_domain_owner_action_dispatch_cases/provider_hosted_gate_clearing_authorization.py"
       ]
