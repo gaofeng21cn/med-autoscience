@@ -86,6 +86,16 @@ def provider_admission_supervisor_gate(
         }
     decision_kind = _text(decision.get("decision"))
     if decision_kind == READBACK_REQUIRED_DECISION:
+        if _readback_required_projection_satisfied_by_opl_runtime_readback(
+            decision,
+            payload=payload,
+            paper_recovery_state=paper_recovery_state,
+        ):
+            return {
+                "blocked": False,
+                "admission_allowed": True,
+                "supervisor_decision": dict(decision),
+            }
         return _blocked_gate(decision, reason=READBACK_REQUIRED_DECISION)
     if decision_kind != EXECUTE_DECISION:
         if _supervisor_decision_allows_provider_admission_materialization(
@@ -187,6 +197,26 @@ def _payload_has_bound_opl_transition_readback(
     )
 
 
+def _readback_required_projection_satisfied_by_opl_runtime_readback(
+    supervisor_decision: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+    paper_recovery_state: Mapping[str, Any] | None,
+) -> bool:
+    recovery = _mapping(paper_recovery_state) or _mapping(payload.get("paper_recovery_state"))
+    if _text(recovery.get("phase")) != "admission_pending":
+        return False
+    projection_identity = _mapping(supervisor_decision.get("paper_autonomy_obligation_identity"))
+    recovery_obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    obligation = projection_identity or recovery_obligation
+    if not obligation:
+        return False
+    return _payload_has_bound_opl_transition_readback(
+        payload,
+        supervisor_decision={"paper_autonomy_obligation": obligation},
+    )
+
+
 def _candidate_has_matching_opl_readback(
     candidate: Mapping[str, Any],
     *,
@@ -198,14 +228,59 @@ def _candidate_has_matching_opl_readback(
         return False
     result = _mapping(candidate.get("opl_domain_progress_transition_result"))
     identity = _mapping(result.get("identity"))
-    if not identity:
+    aggregate_identity = _mapping(identity.get("aggregate_identity"))
+    if not identity and not aggregate_identity:
+        return False
+    if not _candidate_identity_fields_do_not_conflict(candidate, obligation=obligation):
         return False
     return (
-        _same_text(identity.get("study_id"), obligation.get("study_id"))
+        _same_text(
+            _first_text(
+                identity.get("study_id"),
+                aggregate_identity.get("study_id"),
+                candidate.get("study_id"),
+                candidate.get("quest_id"),
+            ),
+            obligation.get("study_id"),
+        )
         and _same_text(candidate.get("action_type"), obligation.get("action_type"))
-        and _same_text(identity.get("work_unit_id"), obligation.get("work_unit_id"))
-        and _same_text(identity.get("work_unit_fingerprint"), obligation.get("work_unit_fingerprint"))
+        and _same_text(
+            _first_text(identity.get("work_unit_id"), aggregate_identity.get("work_unit_id")),
+            obligation.get("work_unit_id"),
+        )
+        and _same_text(
+            _first_text(
+                identity.get("work_unit_fingerprint"),
+                aggregate_identity.get("work_unit_fingerprint"),
+            ),
+            obligation.get("work_unit_fingerprint"),
+        )
     )
+
+
+def _candidate_identity_fields_do_not_conflict(
+    candidate: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> bool:
+    study_id = _text(obligation.get("study_id"))
+    if study_id is not None:
+        for key in ("study_id", "quest_id"):
+            value = _text(candidate.get(key))
+            if value is not None and value != study_id:
+                return False
+    for key in ("action_type", "work_unit_id"):
+        expected = _text(obligation.get(key))
+        value = _text(candidate.get(key))
+        if expected is not None and value is not None and value != expected:
+            return False
+    expected_fingerprint = _text(obligation.get("work_unit_fingerprint"))
+    if expected_fingerprint is not None:
+        for key in ("work_unit_fingerprint", "action_fingerprint"):
+            value = _text(candidate.get(key))
+            if value is not None and value != expected_fingerprint:
+                return False
+    return True
 
 
 def _payload_has_opl_transition_readback(payload: Mapping[str, Any]) -> bool:
