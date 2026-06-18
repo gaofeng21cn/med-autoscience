@@ -71,10 +71,17 @@ def legacy_execution_history_path(profile: WorkspaceProfile, study_id: str) -> P
     return study_root(profile, study_id) / LEGACY_EXECUTION_HISTORY_RELATIVE_PATH
 
 
-def execution_latest_payload(profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
+def execution_latest_payload(
+    profile: WorkspaceProfile,
+    study_id: str,
+    *,
+    allow_legacy_fallback: bool = False,
+) -> dict[str, Any] | None:
     canonical = read_json_object(execution_latest_path(profile, study_id))
     if canonical is not None:
         return canonical
+    if not allow_legacy_fallback:
+        return None
     return read_json_object(legacy_execution_latest_path(profile, study_id))
 
 

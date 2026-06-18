@@ -503,19 +503,25 @@
         "current_provider_handoff_export_reads_legacy_wire": false,
         "current_recovery_action_reads_legacy_wire": false,
         "canonical_missing_outcome": "no_current_owner_callable_receipt",
-        "legacy_wire_role": "history_replay_and_provenance_only"
+        "legacy_wire_role": "history_replay_and_provenance_only",
+        "default_execution_latest_payload_reads_legacy_wire_by_default": false
       },
       "history_replay_boundary": {
         "default_executor_execution_candidates_reads_legacy_wire": true,
         "legacy_latest_payload_helper_requires_allow_legacy_fallback": true,
         "can_authorize_provider_admission": false,
         "can_generate_current_handoff": false,
-        "can_satisfy_current_recovery_action": false
+        "can_satisfy_current_recovery_action": false,
+        "execution_latest_payload_requires_allow_legacy_fallback": true
       },
       "verified_by": [
         "tests/test_adapter_retirement_boundary.py::test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy",
-        "tests/test_adapter_retirement_boundary.py::test_current_owner_callable_readers_do_not_consume_legacy_latest_wire"
-      ]
+        "tests/test_adapter_retirement_boundary.py::test_current_owner_callable_readers_do_not_consume_legacy_latest_wire",
+        "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in",
+        "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance"
+      ],
+      "legacy_wire_default_reader_fallback_allowed": false,
+      "legacy_wire_history_merge_requires_explicit_opt_in": true
     },
     {
       "active_caller_migrated": true,

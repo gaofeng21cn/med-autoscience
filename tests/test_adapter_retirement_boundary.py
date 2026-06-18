@@ -257,17 +257,21 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert execution_latest["legacy_wire_surface"] == "default_executor_dispatch_execution_study_latest"
     assert execution_latest["legacy_wire_path"] == "artifacts/supervision/consumer/default_executor_execution/latest.json"
     assert execution_latest["legacy_wire_readers_tail_open"] == []
+    assert execution_latest["legacy_wire_default_reader_fallback_allowed"] is False
     assert execution_latest["legacy_wire_current_reader_fallback_allowed"] is False
     assert execution_latest["legacy_wire_history_replay_fallback_requires_explicit_opt_in"] is True
+    assert execution_latest["legacy_wire_history_merge_requires_explicit_opt_in"] is True
     assert execution_latest["current_reader_boundary"] == {
         "current_provider_admission_reads_legacy_wire": False,
         "current_provider_handoff_export_reads_legacy_wire": False,
         "current_recovery_action_reads_legacy_wire": False,
+        "default_execution_latest_payload_reads_legacy_wire_by_default": False,
         "canonical_missing_outcome": "no_current_owner_callable_receipt",
         "legacy_wire_role": "history_replay_and_provenance_only",
     }
     assert execution_latest["history_replay_boundary"] == {
         "default_executor_execution_candidates_reads_legacy_wire": True,
+        "execution_latest_payload_requires_allow_legacy_fallback": True,
         "legacy_latest_payload_helper_requires_allow_legacy_fallback": True,
         "can_authorize_provider_admission": False,
         "can_generate_current_handoff": False,
@@ -585,6 +589,150 @@ def test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_l
     assert payload["executions"][0]["legacy_wire_surface"] == "default_executor_dispatch_execution"
     assert payload["execution_ledger_authority"] is False
     assert payload["attempt_lifecycle_authority"] is False
+
+
+def test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in(
+    tmp_path,
+) -> None:
+    execution_io = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.execution_io"
+    )
+    profiles = importlib.import_module("med_autoscience.profiles")
+    profile = profiles.WorkspaceProfile(
+        name="test",
+        workspace_root=tmp_path,
+        runtime_root=tmp_path / "runtime",
+        studies_root=tmp_path / "studies",
+        portfolio_root=tmp_path / "portfolio",
+        med_deepscientist_runtime_root=tmp_path / "legacy-runtime",
+        med_deepscientist_repo_root=None,
+        default_publication_profile="default",
+        default_citation_style="vancouver",
+        enable_medical_overlay=False,
+        medical_overlay_scope="none",
+        medical_overlay_skills=(),
+        research_route_bias_policy="none",
+        preferred_study_archetypes=(),
+        default_submission_targets=(),
+    )
+    legacy_path = (
+        profile.studies_root
+        / "study-1"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+    legacy_path.parent.mkdir(parents=True)
+    legacy_path.write_text(
+        json.dumps(
+            {
+                "surface": "default_executor_dispatch_execution_study_latest",
+                "executions": [
+                    {
+                        "surface": "default_executor_dispatch_execution",
+                        "execution_status": "blocked",
+                        "action_type": "legacy_action",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert execution_io.execution_latest_payload(profile, "study-1") is None
+
+    legacy_payload = execution_io.execution_latest_payload(
+        profile,
+        "study-1",
+        allow_legacy_fallback=True,
+    )
+
+    assert legacy_payload is not None
+    assert legacy_payload["surface"] == "default_executor_dispatch_execution_study_latest"
+
+
+def test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance(
+    tmp_path,
+) -> None:
+    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    profile = profiles.WorkspaceProfile(
+        name="test",
+        workspace_root=tmp_path,
+        runtime_root=tmp_path / "runtime",
+        studies_root=tmp_path / "studies",
+        portfolio_root=tmp_path / "portfolio",
+        med_deepscientist_runtime_root=tmp_path / "legacy-runtime",
+        med_deepscientist_repo_root=None,
+        default_publication_profile="default",
+        default_citation_style="vancouver",
+        enable_medical_overlay=False,
+        medical_overlay_scope="none",
+        medical_overlay_skills=(),
+        research_route_bias_policy="none",
+        preferred_study_archetypes=(),
+        default_submission_targets=(),
+    )
+    legacy_path = (
+        profile.studies_root
+        / "study-1"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+    legacy_path.parent.mkdir(parents=True)
+    legacy_path.write_text(
+        json.dumps(
+            {
+                "surface": "default_executor_dispatch_execution_study_latest",
+                "executions": [
+                    {
+                        "surface": "default_executor_dispatch_execution",
+                        "execution_status": "blocked",
+                        "action_type": "legacy_action",
+                        "execution_id": "legacy-execution",
+                        "study_id": "study-1",
+                        "quest_id": "study-1",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    written = dispatch_module._persist_study_executions(
+        profile=profile,
+        study_id="study-1",
+        generated_at="2026-06-19T00:00:00+00:00",
+        study_executions=[
+            {
+                "surface": "owner_callable_adapter_receipt",
+                "execution_status": "blocked",
+                "action_type": "canonical_action",
+                "execution_id": "canonical-execution",
+                "study_id": "study-1",
+                "quest_id": "study-1",
+            }
+        ],
+    )
+
+    latest_path = Path(written[0])
+    latest = json.loads(latest_path.read_text(encoding="utf-8"))
+    ledger = {item["execution_id"]: item for item in latest["execution_ledger"]}
+    assert set(ledger) == {"legacy-execution", "canonical-execution"}
+    assert ledger["legacy-execution"]["surface"] == "owner_callable_adapter_receipt"
+    assert ledger["legacy-execution"]["legacy_wire_surface"] == "default_executor_dispatch_execution"
+    assert latest["projection_authority"] is False
+    assert latest["execution_ledger_authority"] is False
+    assert latest["attempt_lifecycle_authority"] is False
+    assert latest["queue_authority"] is False
+    assert latest["executions"][0]["domain_authority_ref_index"]["status"] == (
+        "source_adapter_emitted"
+    )
 
 
 def test_current_owner_callable_readers_do_not_consume_legacy_latest_wire(tmp_path) -> None:

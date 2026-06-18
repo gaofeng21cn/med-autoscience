@@ -98,7 +98,10 @@ def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budge
         legacy_execution_latest_path,
         {
             "surface": "default_executor_dispatch_execution_study_latest",
-            "executions": [{**prior_failure, "execution_id": "execution::first"}],
+            "execution_ledger": [
+                {**prior_failure, "execution_id": "legacy-execution::first"},
+                {**prior_failure, "execution_id": "legacy-execution::second"},
+            ],
         },
     )
     assert legacy_execution_latest_path.is_file()

@@ -205,7 +205,7 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_caller_physical_delete_ref",
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
         "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
-        "legacy_default_executor_carrier_physical_delete_ref",
+        "legacy_default_executor_carrier_opl_stagerun_abi_or_no_active_caller_physical_delete_ref",
     } <= set(physical_gate["missing_evidence_tails"])
     assert (
         "tests/test_domain_owner_action_dispatch_contract.py::"
