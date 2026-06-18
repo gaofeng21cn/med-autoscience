@@ -38,6 +38,41 @@ REQUIRED_RUNTIME_REFS = (
     "stage_run_identity",
 )
 
+LIVE_READBACK_IDENTITY_TRANSACTION_REFS = (
+    "latest_event_id",
+    "latest_outbox_item_id",
+    "latest_transaction_id",
+)
+
+LIVE_READBACK_LATEST_TRANSACTION_REQUIRED_FLAGS = (
+    "command_present",
+    "event_present",
+    "outbox_item_present",
+    "same_transaction_event_and_outbox",
+)
+
+LIVE_READBACK_CAUSALITY_TRANSACTION_REF_FIELDS = (
+    "event_id",
+    "outbox_item_id",
+    "transaction_id",
+)
+
+LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS = (
+    "event_id",
+    "outbox_item_id",
+    "transaction_id",
+    "transition_event_id",
+    "outbox_transition_event_id",
+)
+
+LIVE_READBACK_TRANSACTION_CONSISTENCY = {
+    "identity_latest_refs_match_causality": True,
+    "identity_latest_refs_match_latest_transaction_readback": True,
+    "projection_metadata_derived_from_event_id_matches_identity_latest_event_id": True,
+    "latest_transaction_requires_command_event_outbox": True,
+    "same_transaction_event_and_outbox": True,
+}
+
 FORBIDDEN_MAS_REQUEST_RUNTIME_FIELDS = (
     "current_control_command",
     "current_control_command_outbox_record",
@@ -74,6 +109,15 @@ def required_readback_shape() -> dict[str, Any]:
         "transaction_complete": True,
         "required_sections": list(REQUIRED_READBACK_SECTIONS),
         "required_runtime_refs": list(REQUIRED_RUNTIME_REFS),
+        "identity_transaction_refs": list(LIVE_READBACK_IDENTITY_TRANSACTION_REFS),
+        "latest_transaction_required_flags": list(
+            LIVE_READBACK_LATEST_TRANSACTION_REQUIRED_FLAGS
+        ),
+        "causality_transaction_ref_fields": list(
+            LIVE_READBACK_CAUSALITY_TRANSACTION_REF_FIELDS
+        ),
+        "latest_transaction_ref_fields": list(LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS),
+        "transaction_consistency": live_readback_transaction_consistency(),
         "accepted_outcome_kind": PROVIDER_ADMISSION_OUTCOME,
         "deprecated_projection_fields_not_authority": [
             "opl_domain_progress_transition_result.surface_kind",
@@ -148,6 +192,10 @@ def request_forbidden_runtime_fields() -> list[str]:
     return list(FORBIDDEN_MAS_REQUEST_RUNTIME_FIELDS)
 
 
+def live_readback_transaction_consistency() -> dict[str, bool]:
+    return dict(LIVE_READBACK_TRANSACTION_CONSISTENCY)
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -155,8 +203,13 @@ def _mapping(value: object) -> dict[str, Any]:
 __all__ = [
     "CONTRACT_REF",
     "FORBIDDEN_MAS_REQUEST_RUNTIME_FIELDS",
+    "LIVE_READBACK_CAUSALITY_TRANSACTION_REF_FIELDS",
     "LIVE_READBACK_COMPLETE_STATUS",
+    "LIVE_READBACK_IDENTITY_TRANSACTION_REFS",
+    "LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS",
+    "LIVE_READBACK_LATEST_TRANSACTION_REQUIRED_FLAGS",
     "LIVE_READBACK_SURFACE",
+    "LIVE_READBACK_TRANSACTION_CONSISTENCY",
     "MAS_PROJECTION_CANNOT_REPLACE",
     "PROVIDER_ADMISSION_OUTCOME",
     "REQUIRED_READBACK_SECTIONS",
@@ -165,6 +218,7 @@ __all__ = [
     "RUNTIME_KIND",
     "RUNTIME_OWNER",
     "TRANSITION_KINDS",
+    "live_readback_transaction_consistency",
     "mas_projection_authority_boundary",
     "mas_request_authority_boundary",
     "request_forbidden_runtime_fields",

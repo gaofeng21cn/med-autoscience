@@ -38,6 +38,21 @@ def test_opl_domain_progress_transition_runtime_contract_matches_helper_abi() ->
     assert contract["live_readback_contract"]["required_runtime_refs"] == list(
         helper.REQUIRED_RUNTIME_REFS
     )
+    assert contract["live_readback_contract"]["identity_transaction_refs"] == list(
+        helper.LIVE_READBACK_IDENTITY_TRANSACTION_REFS
+    )
+    assert contract["live_readback_contract"]["latest_transaction_required_flags"] == list(
+        helper.LIVE_READBACK_LATEST_TRANSACTION_REQUIRED_FLAGS
+    )
+    assert contract["live_readback_contract"]["causality_transaction_ref_fields"] == list(
+        helper.LIVE_READBACK_CAUSALITY_TRANSACTION_REF_FIELDS
+    )
+    assert contract["live_readback_contract"]["latest_transaction_ref_fields"] == list(
+        helper.LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS
+    )
+    assert contract["live_readback_contract"]["transaction_consistency"] == (
+        helper.live_readback_transaction_consistency()
+    )
     assert contract["mas_request_contract"]["forbidden_runtime_fields"] == (
         helper.request_forbidden_runtime_fields()
     )

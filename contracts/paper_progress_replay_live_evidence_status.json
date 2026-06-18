@@ -16,8 +16,9 @@
     "replay_suite_status": "expanded_beyond_first_slice",
     "live_evidence_surface_status": "read_only_acceptance_boundary_recorded",
     "mas_command_event_log_extractor_status": "retired_public_surface",
-    "mas_opl_live_readback_consumer_status": "transaction_consistency_fail_closed",
+    "mas_opl_live_readback_consumer_status": "transaction_consistency_fail_closed_single_sourced_contract_helper_consumer",
     "mas_opl_transition_abi_status": "single_sourced_contract_and_helper_landed_not_live_progress",
+    "mas_opl_transition_transaction_consistency_status": "single_sourced_contract_helper_and_readback_validator_not_live_progress",
     "live_paper_progress_claim_allowed": false,
     "dhd_dirty_lane_written": false,
     "yang_workspace_runtime_artifacts_written": false

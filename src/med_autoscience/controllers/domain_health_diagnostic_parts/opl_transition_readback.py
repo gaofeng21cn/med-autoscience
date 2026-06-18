@@ -54,13 +54,14 @@ def _has_live_runtime_refs(result: Mapping[str, Any]) -> bool:
     identity = _mapping(result.get("identity"))
     latest_transaction = _mapping(result.get("latest_transaction_readback"))
     return (
-        _text(identity.get("latest_event_id")) is not None
-        and _text(identity.get("latest_outbox_item_id")) is not None
-        and _text(identity.get("latest_transaction_id")) is not None
-        and latest_transaction.get("command_present") is True
-        and latest_transaction.get("event_present") is True
-        and latest_transaction.get("outbox_item_present") is True
-        and latest_transaction.get("same_transaction_event_and_outbox") is True
+        all(
+            _text(identity.get(key)) is not None
+            for key in transition_contract.LIVE_READBACK_IDENTITY_TRANSACTION_REFS
+        )
+        and all(
+            latest_transaction.get(key) is True
+            for key in transition_contract.LIVE_READBACK_LATEST_TRANSACTION_REQUIRED_FLAGS
+        )
     )
 
 
@@ -143,17 +144,22 @@ def _valid_live_readback_consistency(result: Mapping[str, Any]) -> bool:
     transaction_id = _text(identity.get("latest_transaction_id"))
     if event_id is None or outbox_item_id is None or transaction_id is None:
         return False
+    expected = {
+        "event_id": event_id,
+        "outbox_item_id": outbox_item_id,
+        "transaction_id": transaction_id,
+    }
 
     return (
-        _same_text(causality.get("event_id"), event_id)
-        and _same_text(causality.get("outbox_item_id"), outbox_item_id)
-        and _same_text(causality.get("transaction_id"), transaction_id)
+        all(
+            _same_text(causality.get(key), expected[key])
+            for key in transition_contract.LIVE_READBACK_CAUSALITY_TRANSACTION_REF_FIELDS
+        )
         and _same_text(projection_metadata.get("derived_from_event_id"), event_id)
-        and _same_text(latest_transaction.get("event_id"), event_id)
-        and _same_text(latest_transaction.get("outbox_item_id"), outbox_item_id)
-        and _same_text(latest_transaction.get("transaction_id"), transaction_id)
-        and _same_text(latest_transaction.get("transition_event_id"), event_id)
-        and _same_text(latest_transaction.get("outbox_transition_event_id"), event_id)
+        and all(
+            _same_text(latest_transaction.get(key), expected.get(key, event_id))
+            for key in transition_contract.LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS
+        )
     )
 
 

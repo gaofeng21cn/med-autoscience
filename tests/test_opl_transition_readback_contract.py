@@ -78,6 +78,15 @@ def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() 
 
     assert module.required_opl_transition_readback_shape() == contract.required_readback_shape()
     assert module.required_opl_transition_readback_shape()["surface_kind"] == contract.LIVE_READBACK_SURFACE
+    assert module.required_opl_transition_readback_shape()["transaction_consistency"] == (
+        contract.live_readback_transaction_consistency()
+    )
+    assert module.required_opl_transition_readback_shape()["identity_transaction_refs"] == list(
+        contract.LIVE_READBACK_IDENTITY_TRANSACTION_REFS
+    )
+    assert module.required_opl_transition_readback_shape()["latest_transaction_required_flags"] == list(
+        contract.LIVE_READBACK_LATEST_TRANSACTION_REQUIRED_FLAGS
+    )
     assert module.valid_opl_transition_readback(trusted) is True
     assert module.candidate_opl_transition_readback(
         {"opl_domain_progress_transition_live_readback": trusted}

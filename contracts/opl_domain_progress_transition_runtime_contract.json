@@ -77,6 +77,29 @@
       "outbox_item_id",
       "stage_run_identity"
     ],
+    "identity_transaction_refs": [
+      "latest_event_id",
+      "latest_outbox_item_id",
+      "latest_transaction_id"
+    ],
+    "latest_transaction_required_flags": [
+      "command_present",
+      "event_present",
+      "outbox_item_present",
+      "same_transaction_event_and_outbox"
+    ],
+    "causality_transaction_ref_fields": [
+      "event_id",
+      "outbox_item_id",
+      "transaction_id"
+    ],
+    "latest_transaction_ref_fields": [
+      "event_id",
+      "outbox_item_id",
+      "transaction_id",
+      "transition_event_id",
+      "outbox_transition_event_id"
+    ],
     "accepted_outcome_kind": "provider_admission_enqueued_or_blocked",
     "transaction_consistency": {
       "identity_latest_refs_match_causality": true,
