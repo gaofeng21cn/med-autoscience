@@ -264,7 +264,7 @@ def _sort_items_by_stable_order(
 
 @lru_cache(maxsize=1)
 def _active_template_manifests() -> tuple[DisplayTemplateManifest, ...]:
-    return tuple(load_enabled_local_display_pack_templates(_REPO_ROOT))
+    return tuple(load_enabled_local_display_pack_templates(_REPO_ROOT, inventory_scope="all"))
 
 
 @lru_cache(maxsize=1)
