@@ -878,10 +878,19 @@ def _validate_runtime_health_kernel(
     else:
         if tail.get("surface_kind") != "opl_runtime_health_observability_tail_readback_requirement":
             violations.append(_violation(surface_id, "runtime_health_tail_readback_kind_invalid"))
+        if tail.get("status") != "tail_open":
+            violations.append(_violation(surface_id, "runtime_health_tail_status_not_open"))
         if tail.get("runtime_owner") != GENERIC_RUNTIME_OWNER:
             violations.append(_violation(surface_id, "runtime_health_tail_owner_not_opl"))
         if tail.get("runtime_kind") != "OPL Observability/StageRun/RouteReconciler":
             violations.append(_violation(surface_id, "runtime_health_tail_runtime_kind_invalid"))
+        if (
+            _text(tail.get("required_before_physical_delete"))
+            != "runtime_health_kernel_opl_runtime_health_observability_tail_readback_ref"
+        ):
+            violations.append(
+                _violation(surface_id, "runtime_health_tail_required_before_physical_delete_invalid")
+            )
         required_readbacks = {
             "opl_observability_live_readback",
             "opl_route_reconciler_live_readback",

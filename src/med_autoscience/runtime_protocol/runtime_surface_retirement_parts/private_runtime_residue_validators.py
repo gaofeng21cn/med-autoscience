@@ -181,10 +181,22 @@ def _validate_materializer_projection_tail_readback(
         return [*violations, _violation(surface_id, "materializer_projection_missing_tail_readback")]
     if tail.get("surface_kind") != "opl_materializer_projection_tail_readback_requirement":
         violations.append(_violation(surface_id, "materializer_projection_tail_kind_invalid"))
+    if tail.get("status") != "tail_open":
+        violations.append(_violation(surface_id, "materializer_projection_tail_status_not_open"))
     if tail.get("runtime_owner") != "one-person-lab":
         violations.append(_violation(surface_id, "materializer_projection_tail_owner_not_opl"))
     if tail.get("runtime_kind") != "OPL DomainProgressTransitionRuntime/StageRun":
         violations.append(_violation(surface_id, "materializer_projection_tail_runtime_kind_invalid"))
+    if tail.get("required_before_physical_delete") != (
+        "domain_action_request_materializer_projection_"
+        "opl_runtime_tail_readback_or_no_active_caller_ref"
+    ):
+        violations.append(
+            _violation(
+                surface_id,
+                "materializer_projection_tail_required_before_physical_delete_invalid",
+            )
+        )
     required_readbacks = {
         "opl_domain_progress_transition_runtime_live_readback",
         "opl_stagerun_owner_callable_adapter_readback",
