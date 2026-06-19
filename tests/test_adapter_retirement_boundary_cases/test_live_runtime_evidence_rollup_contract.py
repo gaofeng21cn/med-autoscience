@@ -62,6 +62,30 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
         ],
     }
     assert rollup_contract["live_runtime_readiness_claim_allowed"] is False
+    assert rollup_contract["evidence_record_templates_readback"] == {
+        "surface_kind": "mas_live_runtime_evidence_rollup_evidence_record_templates",
+        "purpose": (
+            "Expose fillable evidence-record templates for every remaining live-tail or "
+            "live-runtime-gap blocker so the next owner can provide canonical evidence "
+            "without relying on docs, tests, queue-empty, dry-run or repo-source "
+            "retirement claims."
+        ),
+        "template_status": "operator_input_required",
+        "templates_are_evidence_records": False,
+        "templates_can_satisfy_work_orders": False,
+        "templates_can_claim_live_runtime_ready": False,
+        "required_template_fields": [
+            "work_order_kind",
+            "next_owner",
+            "record_template",
+            "acceptable_evidence_source_prefixes",
+            "forbidden_evidence_source_prefixes",
+            "concrete_evidence_ref_fields",
+            "transition_identity_ref_fields",
+            "repo_source_retirement_blocked",
+            "live_runtime_readiness_claim_allowed",
+        ],
+    }
     assert rollup_contract["completion_claim_boundary"] == {
         "repo_source_retirement_blocked_by_missing_live_evidence": False,
         "docs_tests_inventory_or_queue_empty_can_satisfy_rollup": False,
@@ -147,6 +171,7 @@ def test_live_runtime_evidence_rollup_fails_closed_when_any_tail_or_gap_is_missi
                         f"{one_tail['surface_id']}:{one_tail['acceptable_evidence_ref_families'][0]}"
                     )
                 ],
+                **_transition_identity_refs(),
             }
         ],
         live_runtime_gap_evidence_records=[
@@ -160,6 +185,7 @@ def test_live_runtime_evidence_rollup_fails_closed_when_any_tail_or_gap_is_missi
                         f"{one_gap['gap_id']}:{one_gap['acceptable_evidence_ref_families'][0]}"
                     )
                 ],
+                **_transition_identity_refs(),
             }
         ],
     )
@@ -204,6 +230,7 @@ def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> N
     assert readback["summary"]["typed_blocker_count"] == 12
     assert readback["summary"]["rollup_result_status"] == "typed_blocker_required"
     assert len(readback["summary"]["typed_blocker_details"]) == 12
+    assert len(readback["summary"]["evidence_record_templates"]) == 12
     runtime_health_detail = next(
         item
         for item in readback["summary"]["typed_blocker_details"]
@@ -217,6 +244,17 @@ def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> N
         "runtime_health_kernel_live_runtime_readiness_evidence_required"
     )
     assert runtime_health_detail["acceptable_evidence_ref_families"]
+    runtime_health_template = next(
+        item
+        for item in readback["summary"]["evidence_record_templates"]
+        if item.get("surface_id") == "runtime_health_kernel"
+    )
+    assert runtime_health_template["work_order_kind"] == "live_tail"
+    assert runtime_health_template["template_status"] == "operator_input_required"
+    assert runtime_health_template["templates_can_satisfy_work_orders"] is False
+    assert runtime_health_template["record_template"]["surface_id"] == "runtime_health_kernel"
+    assert "evidence_refs" in runtime_health_template["record_template"]
+    assert "focused_tests" in runtime_health_template["forbidden_evidence_source_prefixes"]
     dhd_apply_detail = next(
         item
         for item in readback["summary"]["typed_blocker_details"]
@@ -229,6 +267,23 @@ def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> N
     assert "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref" in (
         dhd_apply_detail["acceptable_evidence_ref_families"]
     )
+    dhd_apply_template = next(
+        item
+        for item in readback["summary"]["evidence_record_templates"]
+        if item.get("gap_id") == "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated"
+    )
+    assert dhd_apply_template["work_order_kind"] == "live_runtime_gap"
+    assert dhd_apply_template["record_template"]["gap_id"] == (
+        "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated"
+    )
+    assert dhd_apply_template["templates_are_evidence_records"] is False
+    assert {
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key",
+    } <= set(dhd_apply_template["record_template"])
     assert readback["completion_claim_allowed"] is False
     assert {
         "typed_blocker_required_live_runtime_evidence_rollup",
@@ -258,6 +313,58 @@ def test_live_runtime_evidence_rollup_requires_all_tail_and_gap_records() -> Non
     assert complete["intake_violation_count"] == 0
     assert complete["live_runtime_readiness_claim_allowed"] is True
     assert complete["rollup_result_status"] == "all_work_orders_satisfied"
+
+
+def test_live_runtime_evidence_templates_are_not_evidence_records() -> None:
+    rollup = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+    )
+    tail_contract = _live_tail_contract()
+    gap_contract = _live_gap_contract()
+    summary = rollup.live_runtime_evidence_rollup_summary(
+        live_tail_contract=tail_contract,
+        live_runtime_gap_contract=gap_contract,
+    )
+    templates = summary["evidence_record_templates"]
+
+    template_as_evidence = rollup.live_runtime_evidence_rollup_summary(
+        live_tail_contract=tail_contract,
+        live_runtime_gap_contract=gap_contract,
+        live_tail_evidence_records=[
+            item for item in templates if item["work_order_kind"] == "live_tail"
+        ],
+        live_runtime_gap_evidence_records=[
+            item for item in templates if item["work_order_kind"] == "live_runtime_gap"
+        ],
+    )
+    record_templates_as_evidence = rollup.live_runtime_evidence_rollup_summary(
+        live_tail_contract=tail_contract,
+        live_runtime_gap_contract=gap_contract,
+        live_tail_evidence_records=[
+            item["record_template"]
+            for item in templates
+            if item["work_order_kind"] == "live_tail"
+        ],
+        live_runtime_gap_evidence_records=[
+            item["record_template"]
+            for item in templates
+            if item["work_order_kind"] == "live_runtime_gap"
+        ],
+    )
+
+    assert summary["typed_blocker_count"] == 12
+    assert summary["live_runtime_readiness_claim_allowed"] is False
+    assert all(template["record_template"]["evidence_source"] is None for template in templates)
+    assert all(template["record_template"]["evidence_ref_families"] == [] for template in templates)
+    assert all(template["record_template"]["evidence_refs"] == [] for template in templates)
+    assert template_as_evidence["satisfied_count"] == 0
+    assert template_as_evidence["typed_blocker_count"] == 12
+    assert template_as_evidence["rollup_result_status"] == "typed_blocker_required"
+    assert template_as_evidence["live_runtime_readiness_claim_allowed"] is False
+    assert record_templates_as_evidence["satisfied_count"] == 0
+    assert record_templates_as_evidence["typed_blocker_count"] == 12
+    assert record_templates_as_evidence["rollup_result_status"] == "typed_blocker_required"
+    assert record_templates_as_evidence["live_runtime_readiness_claim_allowed"] is False
 
 
 def test_live_runtime_evidence_rollup_fails_closed_on_unknown_or_duplicate_records() -> None:
@@ -615,6 +722,7 @@ def _satisfying_gap_record(order: dict) -> dict:
         "evidence_source": f"owner_readback:{order['gap_id']}",
         "evidence_ref_families": [ref_family],
         "evidence_refs": [f"live-gap-evidence:{order['gap_id']}:{ref_family}"],
+        **_transition_identity_refs(),
     }
     if ref_family == "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref":
         record["typed_blocker_ref"] = f"typed-blocker:{order['gap_id']}"
@@ -628,4 +736,15 @@ def _satisfying_tail_record(order: dict) -> dict:
         "evidence_source": f"owner_readback:{order['surface_id']}",
         "evidence_ref_families": [ref_family],
         "evidence_refs": [f"live-tail-evidence:{order['surface_id']}:{ref_family}"],
+        **_transition_identity_refs(),
+    }
+
+
+def _transition_identity_refs() -> dict:
+    return {
+        "study_id": "study:dm-cvd-mortality-risk",
+        "work_unit_id": "work-unit:canonical-live-evidence-template",
+        "work_unit_fingerprint": "work-unit-fingerprint:canonical-live-evidence-template",
+        "route_identity_key": "route-identity:canonical-live-evidence-template",
+        "attempt_idempotency_key": "attempt-idempotency:canonical-live-evidence-template",
     }

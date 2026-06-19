@@ -144,6 +144,34 @@ def validate_live_runtime_evidence_rollup_contract(
         violations.append(_violation("<contract>", "typed_blocker_details_tail_identity_mismatch"))
     if typed_blocker_details_mapping.get("live_runtime_gap_identity_field") != "gap_id":
         violations.append(_violation("<contract>", "typed_blocker_details_gap_identity_mismatch"))
+    templates = contract.get("evidence_record_templates_readback")
+    templates_mapping = templates if isinstance(templates, Mapping) else {}
+    if (
+        templates_mapping.get("surface_kind")
+        != "mas_live_runtime_evidence_rollup_evidence_record_templates"
+    ):
+        violations.append(_violation("<contract>", "evidence_templates_surface_kind_mismatch"))
+    if templates_mapping.get("template_status") != "operator_input_required":
+        violations.append(_violation("<contract>", "evidence_templates_status_mismatch"))
+    if templates_mapping.get("templates_are_evidence_records") is not False:
+        violations.append(_violation("<contract>", "evidence_templates_are_records"))
+    if templates_mapping.get("templates_can_satisfy_work_orders") is not False:
+        violations.append(_violation("<contract>", "evidence_templates_can_satisfy"))
+    if templates_mapping.get("templates_can_claim_live_runtime_ready") is not False:
+        violations.append(_violation("<contract>", "evidence_templates_can_claim_ready"))
+    expected_template_fields = [
+        "acceptable_evidence_source_prefixes",
+        "concrete_evidence_ref_fields",
+        "forbidden_evidence_source_prefixes",
+        "live_runtime_readiness_claim_allowed",
+        "next_owner",
+        "record_template",
+        "repo_source_retirement_blocked",
+        "transition_identity_ref_fields",
+        "work_order_kind",
+    ]
+    if _text_list(templates_mapping.get("required_template_fields")) != expected_template_fields:
+        violations.append(_violation("<contract>", "evidence_templates_fields_mismatch"))
 
     expected_tail_ids = _work_order_ids(live_tail_contract, "surface_id")
     expected_gap_ids = _work_order_ids(live_runtime_gap_contract, "gap_id")
@@ -370,6 +398,12 @@ def live_runtime_evidence_rollup_summary(
         live_tail_summary=tail_summary,
         live_runtime_gap_summary=gap_summary,
     )
+    evidence_record_templates = _evidence_record_templates(
+        live_tail_contract=live_tail_contract,
+        live_runtime_gap_contract=live_runtime_gap_contract,
+        live_tail_summary=tail_summary,
+        live_runtime_gap_summary=gap_summary,
+    )
     return {
         "surface_kind": "mas_live_runtime_evidence_rollup_summary",
         "version": VERSION,
@@ -399,6 +433,7 @@ def live_runtime_evidence_rollup_summary(
         "typed_blocker_surface_ids": tail_summary.get("typed_blocker_surface_ids", []),
         "typed_blocker_gap_ids": gap_summary.get("typed_blocker_gap_ids", []),
         "typed_blocker_details": typed_blocker_details,
+        "evidence_record_templates": evidence_record_templates,
         "satisfied_surface_ids": tail_summary.get("satisfied_surface_ids", []),
         "satisfied_gap_ids": gap_summary.get("satisfied_gap_ids", []),
     }
@@ -420,6 +455,131 @@ def _typed_blocker_details(
         _gap_blocker_detail(gap_id, gap_orders.get(gap_id, {}))
         for gap_id in _text_list(live_runtime_gap_summary.get("typed_blocker_gap_ids"))
     ]
+
+
+def _evidence_record_templates(
+    *,
+    live_tail_contract: Mapping[str, Any],
+    live_runtime_gap_contract: Mapping[str, Any],
+    live_tail_summary: Mapping[str, Any],
+    live_runtime_gap_summary: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    tail_orders = _work_orders_by_id(live_tail_contract, "surface_id")
+    gap_orders = _work_orders_by_id(live_runtime_gap_contract, "gap_id")
+    tail_schema = _evidence_record_schema(live_tail_contract)
+    gap_schema = _evidence_record_schema(live_runtime_gap_contract)
+    return [
+        _tail_evidence_record_template(
+            surface_id,
+            tail_orders.get(surface_id, {}),
+            tail_schema,
+        )
+        for surface_id in _text_list(live_tail_summary.get("typed_blocker_surface_ids"))
+    ] + [
+        _gap_evidence_record_template(
+            gap_id,
+            gap_orders.get(gap_id, {}),
+            gap_schema,
+        )
+        for gap_id in _text_list(live_runtime_gap_summary.get("typed_blocker_gap_ids"))
+    ]
+
+
+def _tail_evidence_record_template(
+    surface_id: str,
+    order: Mapping[str, Any],
+    schema: Mapping[str, Any],
+) -> dict[str, Any]:
+    return _evidence_record_template(
+        work_order_kind="live_tail",
+        identity_field="surface_id",
+        identity_value=surface_id,
+        order=order,
+        schema=schema,
+    )
+
+
+def _gap_evidence_record_template(
+    gap_id: str,
+    order: Mapping[str, Any],
+    schema: Mapping[str, Any],
+) -> dict[str, Any]:
+    template = _evidence_record_template(
+        work_order_kind="live_runtime_gap",
+        identity_field="gap_id",
+        identity_value=gap_id,
+        order=order,
+        schema=schema,
+    )
+    template["gap_text"] = _text(order.get("gap_text"))
+    return template
+
+
+def _evidence_record_template(
+    *,
+    work_order_kind: str,
+    identity_field: str,
+    identity_value: str,
+    order: Mapping[str, Any],
+    schema: Mapping[str, Any],
+) -> dict[str, Any]:
+    evidence_families = _text_list(order.get("acceptable_evidence_ref_families"))
+    record_template: dict[str, Any] = {
+        identity_field: identity_value,
+        "evidence_source": None,
+        "evidence_ref_families": [],
+        "evidence_refs": [],
+    }
+    if _families_need_authority_outcome(evidence_families, schema):
+        record_template["typed_blocker_ref"] = None
+    if _families_need_transition_identity(evidence_families, schema):
+        for field in _text_list(schema.get("transition_identity_ref_fields")):
+            record_template[field] = None
+    return {
+        "work_order_kind": work_order_kind,
+        identity_field: identity_value,
+        "next_owner": _text(order.get("next_owner")) or "runtime owner",
+        "typed_blocker": _text(order.get("typed_blocker_when_missing"))
+        or f"{identity_value}_live_runtime_evidence_required",
+        "template_status": "operator_input_required",
+        "record_template": record_template,
+        "acceptable_evidence_source_prefixes": _text_list(
+            schema.get("accepted_evidence_source_prefixes")
+        ),
+        "forbidden_evidence_source_prefixes": _text_list(
+            schema.get("forbidden_evidence_source_prefixes")
+        ),
+        "acceptable_evidence_ref_families": evidence_families,
+        "concrete_evidence_ref_fields": _text_list(
+            schema.get("concrete_evidence_ref_fields")
+        ),
+        "authority_outcome_ref_fields": _text_list(
+            schema.get("authority_outcome_ref_fields")
+        ),
+        "transition_identity_ref_fields": _text_list(
+            schema.get("transition_identity_ref_fields")
+        ),
+        "templates_are_evidence_records": False,
+        "templates_can_satisfy_work_orders": False,
+        "repo_source_retirement_blocked": False,
+        "live_runtime_readiness_claim_allowed": False,
+    }
+
+
+def _families_need_authority_outcome(
+    evidence_families: list[str],
+    schema: Mapping[str, Any],
+) -> bool:
+    required = set(_text_list(schema.get("authority_outcome_ref_required_for_families")))
+    return bool(required.intersection(evidence_families))
+
+
+def _families_need_transition_identity(
+    evidence_families: list[str],
+    schema: Mapping[str, Any],
+) -> bool:
+    required = set(_text_list(schema.get("transition_identity_ref_required_for_families")))
+    return bool(required.intersection(evidence_families))
 
 
 def _repo_source_retirement_completion(contract: Mapping[str, Any]) -> dict[str, Any]:

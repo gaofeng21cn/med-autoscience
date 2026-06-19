@@ -277,3 +277,13 @@ Replacement: `contracts/runtime/mas-live-runtime-evidence-rollup.json` and `med_
 Retained MAS role: MAS still owns minimal medical authority refs, owner receipts, typed blockers, human gates and route-back results. The completion object only states that retired MAS private control-plane source surfaces are no longer live-runtime evidence blockers.
 
 Forbidden interpretation: `repo_source_retirement_completion.status=complete` cannot satisfy live-tail work orders, live-runtime-gap work orders, provider admission, DHD apply, running proof, paper progress, production readiness or live runtime readiness. Missing live evidence still returns `typed_blocker_required` and `completion_claim_allowed=false`.
+
+## live_runtime_evidence_record_templates_readback
+
+Disposition: `readback_only_owner_handoff_template`
+
+Replacement: `med_autoscience.cli doctor live-runtime-evidence-rollup --format json` now projects `evidence_record_templates` for every remaining live-tail and live-runtime-gap blocker.
+
+Retained MAS role: MAS still owns owner receipt, typed blocker, human gate and route-back authority refs. The template readback only shows the canonical evidence-record shape that a responsible MAS or OPL owner must fill with concrete refs.
+
+Forbidden interpretation: evidence templates are not evidence records, action authorization, OPL runtime readback, provider admission, runtime readiness, paper progress or production readiness. Feeding the template objects back into the rollup keeps the result at `typed_blocker_required`.

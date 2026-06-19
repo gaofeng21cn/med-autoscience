@@ -37,6 +37,25 @@
     "live_tail_identity_field": "surface_id",
     "live_runtime_gap_identity_field": "gap_id"
   },
+  "evidence_record_templates_readback": {
+    "surface_kind": "mas_live_runtime_evidence_rollup_evidence_record_templates",
+    "purpose": "Expose fillable evidence-record templates for every remaining live-tail or live-runtime-gap blocker so the next owner can provide canonical evidence without relying on docs, tests, queue-empty, dry-run or repo-source retirement claims.",
+    "template_status": "operator_input_required",
+    "templates_are_evidence_records": false,
+    "templates_can_satisfy_work_orders": false,
+    "templates_can_claim_live_runtime_ready": false,
+    "required_template_fields": [
+      "work_order_kind",
+      "next_owner",
+      "record_template",
+      "acceptable_evidence_source_prefixes",
+      "forbidden_evidence_source_prefixes",
+      "concrete_evidence_ref_fields",
+      "transition_identity_ref_fields",
+      "repo_source_retirement_blocked",
+      "live_runtime_readiness_claim_allowed"
+    ]
+  },
   "live_tail_surface_ids": [
     "agent_tool_arsenal_scientific_capability_registry",
     "domain_health_diagnostic_obligation_actuator",
