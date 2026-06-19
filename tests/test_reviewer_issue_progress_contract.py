@@ -70,6 +70,11 @@ def test_progress_first_policy_turns_repeat_issues_into_work_units_not_global_st
     assert policy["repeat_issue_behavior"] == "typed_repair_work_unit_or_reviewer_route_back"
     assert policy["score_delta_behavior"] == "advisory_progress_signal_only"
     assert policy["stagnation_behavior"] == "route_bias_not_publication_verdict"
+    assert policy["max_automated_review_repair_rounds"] == 3
+    assert policy["after_round_budget_without_hard_blocker"] == "advance_with_residual_user_review"
+    assert policy["residual_user_review_language"] == "zh-CN"
+    assert policy["residual_user_review_surface_kind"] == "bounded_reviewer_repair_residual_user_review"
+    assert policy["residual_user_review_may_block_auto_advance"] is False
     assert policy["may_block_all_agent_progress"] is False
     assert policy["hard_gate_blockers"] == [
         "source_readiness_gate",

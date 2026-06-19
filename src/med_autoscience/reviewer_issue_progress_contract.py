@@ -93,6 +93,11 @@ def build_reviewer_issue_progress_contract() -> dict[str, Any]:
             "repeat_issue_behavior": "typed_repair_work_unit_or_reviewer_route_back",
             "score_delta_behavior": "advisory_progress_signal_only",
             "stagnation_behavior": "route_bias_not_publication_verdict",
+            "max_automated_review_repair_rounds": 3,
+            "after_round_budget_without_hard_blocker": "advance_with_residual_user_review",
+            "residual_user_review_language": "zh-CN",
+            "residual_user_review_surface_kind": "bounded_reviewer_repair_residual_user_review",
+            "residual_user_review_may_block_auto_advance": False,
             "may_block_all_agent_progress": False,
             "hard_gate_blockers": [
                 "source_readiness_gate",

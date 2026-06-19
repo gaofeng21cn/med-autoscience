@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-19：独立 reviewer 修订循环必须有三轮 stop-loss 与中文残留意见面
+
+- 决策：MAS 论文阶段 07 的 independent reviewer / revision loop 继续要求独立 reviewer context、独立 invocation、独立 receipt；但非硬阻塞 reviewer 意见不能无限阻断论文推进。自动 review-repair-recheck 最多三轮；若三轮后仍只剩非硬阻塞、可人工取舍的 reviewer 意见，read model 必须允许进入下一 stage，并生成中文 `residual_reviewer_issues` 人工审阅面供最终投稿包前由用户判断。
+- 决策：没有清晰 actionable reviewer issue 时，不能因为 `overall_verdict` / `primary_claim_status` 的保守文本继续原地卡住；应投影 `accepted_no_clear_actionable_reviewer_issue`，不生成同 identity repair work unit。三轮预算耗尽但仍有非硬阻塞意见时，应投影 `accepted_with_residual_user_review`，并把残留意见写入 inspection package 的 `residual_reviewer_issues.md` / `.json`。这些 artifact 是 human-inspection-only，不是 publication quality authorization、submission authorization、owner receipt、typed blocker closure 或 paper progress receipt。
+- 决策：硬门仍 fail closed，不能被三轮预算绕过。硬门包括 source readiness、publication gate、artifact mutation authority、human/expert gate、forbidden write guard，以及 AI reviewer authority / calibration ref 缺失这类 authority blocker。`publication_eval/latest.json` 仍保持严格 schema；自动修订轮次从 `paper/review/review_ledger.json` 或 `artifacts/controller/quality_repair_batch/latest.json` 等 review/repair evidence surface 读取，不把轮次状态塞进 publication eval 任意字段。
+- 理由：DM002/DM003 长期卡住的一类原因是质量门把“reviewer 总能继续提意见”误当成无限阻塞条件。医学论文需要独立审阅来保证质量，但也必须有 stop-loss：明确硬门继续挡住，普通 reviewer polish / 非终局意见转入用户可读残留清单，保证系统能继续产出下一阶段可审阅结果，而不是反复同一 identity redrive。
+- 影响：这是 reviewer refinement / inspection package / contract 层的 progress-first 机制修复，不执行 live DHD apply、hydrate、tick、redrive、provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。测试绿和文档落地不代表 DM002/DM003 已论文推进、publication-ready 或 submission-ready；真实推进仍必须由 fresh owner receipt、stable typed blocker supersession、human gate、route-back evidence、strict running proof 或 semantic paper/gate/artifact delta 证明。
+
 ## 2026-06-19：repo-source physical retirement 不再等待 live runtime proof
 
 - 决策：MAS 旧 module、alias、wrapper、compat shim、私有 scheduler/log/outbox/projection authority 的 repo-source physical retirement 优先推进，不再把 DM002/DM003 live runtime evidence 作为删除前置条件。只要 active callsites 已迁移到 OPL primitive 或 MAS minimal `PaperProgressPolicyAdapter` / authority adapter，旧入口已物理删除或 tombstone，缺 live proof 的路径 fail closed typed blocker，focused / meta / default verification 通过，并且 docs、contracts、runtime inventory 更新，就可以声明对应 repo-source retirement 条目完成。

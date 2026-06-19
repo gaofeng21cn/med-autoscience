@@ -99,6 +99,84 @@ def test_export_inspection_package_materializes_blocked_draft_without_submission
     assert not any(name.startswith("paper_snapshot/submission_minimal/") for name in names)
 
 
+def test_export_inspection_package_includes_chinese_residual_reviewer_issues(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_inspection_export")
+    reviewer_fixtures = importlib.import_module("tests.test_reviewer_refinement_loop")
+    workspace_root = tmp_path / "repo"
+    study_root = workspace_root / "studies" / "001-risk"
+    paper_root = study_root / "paper"
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile_for_workspace(profile_path, workspace_root=workspace_root)
+    write_text(study_root / "study.yaml", "study_id: 001-risk\n")
+    write_text(paper_root / "draft.md", "# Draft\n\nCurrent style for inspection.\n")
+    write_text(paper_root / "build" / "review_manuscript.md", "# Review\n\nHuman inspection copy.\n")
+    dump_json(paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "status": "blocked"})
+    dump_json(paper_root / "claim_evidence_map.json", {"schema_version": 1})
+    dump_json(paper_root / "evidence_ledger.json", {"schema_version": 1})
+    dump_json(
+        paper_root / "review" / "review_ledger.json",
+        {
+            "schema_version": 1,
+            "status": "open",
+            "review_repair_cycle": {"current_round": 3},
+            "concerns": [
+                {
+                    "concern_id": "claim-strength",
+                    "reviewer_id": "ai_reviewer",
+                    "summary": "Claim strength exceeds the current evidence ledger.",
+                    "severity": "major",
+                    "status": "in_progress",
+                    "owner_action": "bounded_review_repair",
+                    "repeat_count": 3,
+                    "revision_links": [
+                        {
+                            "revision_id": "review-repair-round-3",
+                            "revision_log_path": str(paper_root / "review" / "review_ledger.json"),
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    payload = reviewer_fixtures._blocking_payload(study_root)
+    dump_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+
+    result = module.export_inspection_package(
+        profile=_load_profile(profile_path),
+        profile_ref=profile_path,
+        study_id=study_root.name,
+        source="test",
+    )
+
+    package_root = study_root / "manuscript" / "inspection_package"
+    package_zip = study_root / "manuscript" / "inspection_package.zip"
+    residual_markdown = package_root / "residual_reviewer_issues.md"
+    residual_json = package_root / "residual_reviewer_issues.json"
+    assert result["residual_user_review"]["required"] is True
+    assert result["residual_user_review"]["language"] == "zh-CN"
+    assert result["residual_user_review"]["issue_count"] == 3
+    assert result["residual_user_review_targets"] == {
+        "residual_user_review_markdown": str(residual_markdown.resolve()),
+        "residual_user_review_json": str(residual_json.resolve()),
+    }
+    markdown = residual_markdown.read_text(encoding="utf-8")
+    assert "# 残留 reviewer 意见人工审阅表" in markdown
+    assert "它们不应继续卡住论文进入下一阶段" in markdown
+    payload_json = json.loads(residual_json.read_text(encoding="utf-8"))
+    assert payload_json["status"] == "pending_user_review"
+    with zipfile.ZipFile(package_zip) as archive:
+        names = set(archive.namelist())
+    assert "residual_reviewer_issues.md" in names
+    assert "residual_reviewer_issues.json" in names
+    receipt = json.loads(
+        (study_root / "artifacts" / "inspection_package" / "latest.json").read_text(encoding="utf-8")
+    )
+    assert receipt["residual_user_review"]["required"] is True
+    assert receipt["can_authorize_submission"] is False
+
+
 def test_export_inspection_package_reuses_current_authorized_package_when_current(
     tmp_path: Path,
 ) -> None:

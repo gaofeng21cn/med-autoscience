@@ -4,9 +4,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from med_autoscience.publication_eval_record_parts.validation import (
+    _ALLOWED_GAP_GATE_KINDS,
     _ALLOWED_GAP_SEVERITIES,
     _ALLOWED_GAP_TYPES,
     _GAP_ALLOWED_FIELDS,
+    _optional_text,
     _payload_text,
     _reject_unknown_fields,
     _require_choice,
@@ -23,6 +25,7 @@ class PublicationEvalGap:
     severity: str
     summary: str
     evidence_refs: tuple[str, ...]
+    gate_kind: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "gap_id", _require_text("publication eval gap", "gap_id", self.gap_id))
@@ -37,6 +40,16 @@ class PublicationEvalGap:
             _require_choice("publication eval gap", "severity", self.severity, _ALLOWED_GAP_SEVERITIES),
         )
         object.__setattr__(self, "summary", _require_text("publication eval gap", "summary", self.summary))
+        gate_kind = _optional_text("publication eval gap", "gate_kind", self.gate_kind)
+        object.__setattr__(
+            self,
+            "gate_kind",
+            (
+                _require_choice("publication eval gap", "gate_kind", gate_kind, _ALLOWED_GAP_GATE_KINDS)
+                if gate_kind is not None
+                else None
+            ),
+        )
         object.__setattr__(
             self,
             "evidence_refs",
@@ -46,13 +59,16 @@ class PublicationEvalGap:
             raise ValueError("publication eval gap evidence_refs must not be empty")
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload = {
             "gap_id": self.gap_id,
             "gap_type": self.gap_type,
             "severity": self.severity,
             "summary": self.summary,
             "evidence_refs": list(self.evidence_refs),
         }
+        if self.gate_kind is not None:
+            payload["gate_kind"] = self.gate_kind
+        return payload
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "PublicationEvalGap":
@@ -68,6 +84,7 @@ class PublicationEvalGap:
                 _require_ref_text("publication eval gap", "evidence_ref", item)
                 for item in _require_text_sequence("publication eval gap", "evidence_refs", payload.get("evidence_refs"))
             ),
+            gate_kind=_optional_text("publication eval gap", "gate_kind", payload.get("gate_kind")),
         )
 
 

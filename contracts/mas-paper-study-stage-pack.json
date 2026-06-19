@@ -216,6 +216,26 @@
       "stage_id": "07-independent_review_and_revision",
       "display_name": "Independent Review And Revision",
       "purpose": "Close independent reviewer/auditor quality records and revision action refs through separate invocation evidence.",
+      "bounded_review_repair_policy": {
+        "max_automated_repair_rounds": 3,
+        "independent_reviewer_context_required": true,
+        "auto_advance_when_no_clear_actionable_issue": true,
+        "after_round_budget_without_hard_blocker": "advance_to_next_stage_with_residual_user_review",
+        "residual_user_review_language": "zh-CN",
+        "residual_user_review_artifact_role": "residual_reviewer_issues_user_review",
+        "hard_blockers_still_block": [
+          "source_readiness_gate",
+          "publication_gate",
+          "artifact_mutation_authority_gate",
+          "human_or_expert_gate",
+          "forbidden_write_guard"
+        ],
+        "authority_boundary": {
+          "residual_user_review_can_authorize_quality": false,
+          "residual_user_review_can_authorize_submission": false,
+          "residual_user_review_can_block_auto_advance": false
+        }
+      },
       "next_stage_ids": [
         "08-publication_package_handoff"
       ],
@@ -231,6 +251,10 @@
         {
           "role": "reviewer_quality_receipt",
           "artifact_ref": "artifacts/stage_outputs/07-independent_review_and_revision/reviewer_quality_receipt.json"
+        },
+        {
+          "role": "residual_reviewer_issues_user_review",
+          "artifact_ref": "manuscript/inspection_package/residual_reviewer_issues.md"
         }
       ]
     },

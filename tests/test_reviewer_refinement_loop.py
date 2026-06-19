@@ -19,6 +19,34 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _write_review_repair_round(study_root: Path, *, current_round: int) -> None:
+    _write_json(
+        study_root / "paper" / "review" / "review_ledger.json",
+        {
+            "schema_version": 1,
+            "status": "open",
+            "review_repair_cycle": {"current_round": current_round},
+            "concerns": [
+                {
+                    "concern_id": "claim-strength",
+                    "reviewer_id": "ai_reviewer",
+                    "summary": "Claim strength exceeds the current evidence ledger.",
+                    "severity": "major",
+                    "status": "in_progress",
+                    "owner_action": "bounded_review_repair",
+                    "repeat_count": current_round,
+                    "revision_links": [
+                        {
+                            "revision_id": f"review-repair-round-{current_round}",
+                            "revision_log_path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+
 def _minimal_payload(study_root: Path) -> dict[str, Any]:
     quest_root = study_root.parents[1] / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
     return {
@@ -285,6 +313,7 @@ def test_reviewer_refinement_loop_accepts_only_ai_reviewer_backed_publication_ev
         "source": "ai_reviewer_backed_publication_eval_latest",
         "blockers": [],
         "package_mutation_allowed": False,
+        "bounded_auto_advance": False,
     }
     assert read_model["revert"] == {
         "required": False,
@@ -540,6 +569,94 @@ def test_reviewer_refinement_loop_generates_executable_repair_work_units_for_blo
     assert recheck_unit["required_outputs"] == ["artifacts/publication_eval/latest.json"]
     assert recheck_unit["artifact_delta_predicate"] == "ai_reviewer_judgement_updated"
     assert recheck_unit["gate_replay_target"] == "controller_decisions/latest.json"
+    assert read_model["bounded_review_repair_policy"]["status"] == "repair_round_available"
+    assert read_model["bounded_review_repair_policy"]["current_round"] == 1
+    assert read_model["bounded_review_repair_policy"]["remaining_rounds"] == 2
+    assert read_model["bounded_review_repair_policy"]["auto_advance_allowed"] is False
+    assert read_model["residual_user_review"]["required"] is False
+
+
+def test_reviewer_refinement_loop_caps_non_hard_repair_after_three_rounds_with_residual_user_review(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _blocking_payload(study_root)
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+    _write_review_repair_round(study_root, current_round=3)
+
+    read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
+
+    assert read_model["accept"]["accepted"] is True
+    assert read_model["accept"]["status"] == "accepted_with_residual_user_review"
+    assert read_model["accept"]["bounded_auto_advance"] is True
+    assert read_model["mode"] == "accepted"
+    assert read_model["revert"] == {
+        "required": False,
+        "strategy": "none",
+        "direct_package_mutation_allowed": False,
+        "route_back": None,
+    }
+    policy = read_model["bounded_review_repair_policy"]
+    assert policy["status"] == "auto_advance_with_residual_user_review"
+    assert policy["max_automated_repair_rounds"] == 3
+    assert policy["current_round"] == 3
+    assert policy["remaining_rounds"] == 0
+    assert policy["budget_exhausted"] is True
+    assert policy["residual_user_review_required"] is True
+    assert policy["hard_blockers"] == []
+    assert policy["auto_advance_allowed"] is True
+    assert read_model["repair_work_units"] == []
+    assert read_model["comment_to_action_matrix"] == []
+    assert read_model["repair_loop"]["next_action"] == {
+        "action": "advance_to_next_stage_with_residual_user_review",
+        "reason": "auto_advance_with_residual_user_review",
+    }
+    residual = read_model["residual_user_review"]
+    assert residual["language"] == "zh-CN"
+    assert residual["required"] is True
+    assert residual["status"] == "pending_user_review"
+    assert residual["issue_count"] == 3
+    assert residual["authority_boundary"] == {
+        "human_inspection_only": True,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission": False,
+        "can_mutate_paper_body": False,
+        "does_not_create_owner_receipt": True,
+    }
+    assert {
+        item["issue_id"] for item in residual["issues"]
+    } == {
+        "quality_dimension:evidence_strength",
+        "quality_dimension:medical_journal_prose_quality",
+        "publication_gap:claim-strength",
+    }
+
+
+def test_reviewer_refinement_loop_keeps_hard_reviewer_blocker_after_round_budget(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _blocking_payload(study_root)
+    payload["gaps"][0]["gate_kind"] = "human_or_expert_gate"
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+    _write_review_repair_round(study_root, current_round=3)
+
+    read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
+
+    assert read_model["accept"]["accepted"] is False
+    assert read_model["accept"]["status"] == "blocked"
+    assert read_model["revert"]["required"] is True
+    assert read_model["repair_work_units"] == []
+    assert read_model["repair_loop"]["status"] == "hard_blocked"
+    policy = read_model["bounded_review_repair_policy"]
+    assert policy["status"] == "hard_blocked"
+    assert policy["auto_advance_allowed"] is False
+    assert policy["budget_exhausted"] is False
+    assert policy["residual_user_review_required"] is False
+    assert policy["hard_blockers"] == ["hard_reviewer_gap:claim-strength"]
+    assert read_model["residual_user_review"]["required"] is False
 
 
 def test_reviewer_refinement_loop_batches_multiple_gaps_per_callable_surface(
@@ -631,6 +748,59 @@ def test_reviewer_refinement_loop_work_units_do_not_authorize_package_or_quality
         assert "quality_override" not in json.dumps(unit["required_outputs"], sort_keys=True)
 
 
+def test_reviewer_refinement_loop_auto_advances_when_no_actionable_reviewer_issue_remains(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["verdict"] = {
+        "overall_verdict": "blocked",
+        "primary_claim_status": "partial",
+        "summary": "Reviewer verdict is not accepted, but no actionable reviewer issue was emitted.",
+        "stop_loss_pressure": "watch",
+    }
+    payload["gaps"] = [
+        {
+            "gap_id": "optional-copyedit",
+            "gap_type": "delivery",
+            "severity": "optional",
+            "summary": "Only optional copyediting remains.",
+            "evidence_refs": [str(study_root / "paper" / "manuscript.md")],
+        }
+    ]
+    payload["recommended_actions"] = [
+        {
+            "action_id": "continue-after-optional-copyedit",
+            "action_type": "continue_same_line",
+            "priority": "next",
+            "reason": "No must-fix or important reviewer issue remains.",
+            "route_target": "finalize",
+            "route_key_question": "Are there any non-optional reviewer issues left?",
+            "route_rationale": "Optional copyediting should not block stage advance.",
+            "evidence_refs": [str(study_root / "paper" / "manuscript.md")],
+            "requires_controller_decision": True,
+        }
+    ]
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+
+    read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
+
+    assert read_model["mode"] == "accepted"
+    assert read_model["accept"]["accepted"] is True
+    assert read_model["accept"]["status"] == "accepted_no_clear_actionable_reviewer_issue"
+    assert read_model["accept"]["bounded_auto_advance"] is True
+    assert read_model["repair_work_units"] == []
+    assert read_model["revert"]["required"] is False
+    assert read_model["bounded_review_repair_policy"]["status"] == (
+        "auto_advance_no_clear_actionable_reviewer_issue"
+    )
+    assert read_model["bounded_review_repair_policy"]["residual_issue_count"] == 0
+    assert read_model["residual_user_review"]["required"] is False
+    assert read_model["contract"]["residual_user_review_can_block_auto_advance"] is False
+    assert read_model["contract"]["learning_can_authorize_quality"] is False
+
+
 def test_reviewer_refinement_loop_fails_closed_for_non_ai_reviewer_projection(
     tmp_path: Path,
 ) -> None:
@@ -649,6 +819,7 @@ def test_reviewer_refinement_loop_fails_closed_for_non_ai_reviewer_projection(
     read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
 
     assert read_model["accept"]["accepted"] is False
+    assert read_model["accept"]["bounded_auto_advance"] is False
     assert "publication_eval_not_ai_reviewer_backed" in read_model["accept"]["blockers"]
     assert "publication_eval_still_requires_ai_reviewer" in read_model["accept"]["blockers"]
     assert "publication_eval_policy_not_ai_reviewer_critique" in read_model["accept"]["blockers"]
@@ -658,6 +829,7 @@ def test_reviewer_refinement_loop_fails_closed_for_non_ai_reviewer_projection(
     assert read_model["revert"]["route_back"]["action_type"] == "route_back_same_line"
     assert read_model["repair_loop"]["status"] == "blocked"
     assert read_model["repair_work_units"] == []
+    assert read_model["bounded_review_repair_policy"]["status"] == "authority_blocked"
 
 
 def test_reviewer_refinement_loop_projects_required_learning_calibration_refs(
@@ -704,6 +876,7 @@ def test_reviewer_refinement_loop_projects_required_learning_calibration_refs(
         "missing_reviewer_trace": 1,
     }
     assert read_model["accept"]["accepted"] is False
+    assert read_model["accept"]["bounded_auto_advance"] is False
     assert "required_calibration_ref_missing:coverage_as_quality" in read_model["accept"]["blockers"]
     assert "required_calibration_ref_missing:missing_reviewer_trace" in read_model["accept"]["blockers"]
     assert read_model["revert"]["strategy"] == "same_line_route_back"
@@ -711,6 +884,7 @@ def test_reviewer_refinement_loop_projects_required_learning_calibration_refs(
     assert read_model["contract"]["learning_can_authorize_quality"] is False
     assert read_model["contract"]["learning_can_authorize_submission"] is False
     assert read_model["contract"]["learning_can_authorize_finalize"] is False
+    assert read_model["bounded_review_repair_policy"]["status"] == "authority_blocked"
 
 
 def test_revision_rebuttal_loop_projects_comment_action_matrix_and_repair_routes() -> None:

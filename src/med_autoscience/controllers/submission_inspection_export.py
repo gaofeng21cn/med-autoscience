@@ -8,12 +8,17 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import delivery_inspector
+from med_autoscience.controllers import reviewer_refinement_loop
+from med_autoscience.controllers.reviewer_residual_issue_document import (
+    render_residual_user_review_markdown,
+)
 from med_autoscience.controllers.study_delivery_sync_parts.delivery_io import (
     build_zip_from_directory,
     dump_json,
     replace_directory_atomically,
     reset_directory,
     remap_staging_file_records,
+    remap_staging_path_string,
     utc_now,
     write_text,
 )
@@ -23,6 +28,9 @@ from med_autoscience.profiles import WorkspaceProfile
 INSPECTION_PACKAGE_DIRNAME = "inspection_package"
 INSPECTION_PACKAGE_ZIPNAME = "inspection_package.zip"
 INSPECTION_PACKAGE_MANIFEST = "inspection_package_manifest.json"
+RESIDUAL_REVIEW_ISSUES_BASENAME = "residual_reviewer_issues"
+RESIDUAL_REVIEW_ISSUES_MARKDOWN = f"{RESIDUAL_REVIEW_ISSUES_BASENAME}.md"
+RESIDUAL_REVIEW_ISSUES_JSON = f"{RESIDUAL_REVIEW_ISSUES_BASENAME}.json"
 INSPECTION_ARTIFACT_DIRNAME = "inspection_package"
 INSPECTION_ARTIFACT_MANIFEST = "manifest.json"
 INSPECTION_EXPORT_RECEIPT = "export_receipt.json"
@@ -120,6 +128,12 @@ def export_inspection_package(
     copied_files: list[dict[str, str]] = []
     try:
         _write_inspection_readme(staging_root)
+        residual_user_review = _residual_user_review_payload(resolved_study_root)
+        residual_user_review_targets = _write_residual_user_review_files(
+            target_root=staging_root,
+            residual_user_review=residual_user_review,
+            copied_files=copied_files,
+        )
         _copy_inspection_sources(
             paper_root=paper_root,
             target_root=staging_root,
@@ -134,6 +148,8 @@ def export_inspection_package(
             profile_ref=profile_ref,
             inspection=inspection,
             copied_files=copied_files,
+            residual_user_review=residual_user_review,
+            residual_user_review_targets=residual_user_review_targets,
             source=source,
         )
         dump_json(staging_root / INSPECTION_PACKAGE_MANIFEST, staged_package_manifest)
@@ -147,9 +163,15 @@ def export_inspection_package(
         staging_root=staging_root,
         target_root=package_root,
     )
+    remapped_residual_user_review_targets = _remap_staging_targets(
+        targets=staged_package_manifest.get("residual_user_review_targets"),
+        staging_root=staging_root,
+        target_root=package_root,
+    )
     package_manifest = {
         **staged_package_manifest,
         "copied_files": remapped_copied_files,
+        "residual_user_review_targets": remapped_residual_user_review_targets,
     }
     materialized_manifest = {
         **package_manifest,
@@ -296,6 +318,8 @@ def _package_manifest_payload(
     profile_ref: Path | None,
     inspection: Mapping[str, Any],
     copied_files: list[dict[str, str]],
+    residual_user_review: Mapping[str, Any],
+    residual_user_review_targets: Mapping[str, str],
     source: str,
 ) -> dict[str, Any]:
     return {
@@ -337,6 +361,8 @@ def _package_manifest_payload(
         "copied_files": copied_files,
         "copied_file_count": len(copied_files),
         "delivery_inspection": _compact_delivery_inspection(inspection),
+        "residual_user_review": residual_user_review,
+        "residual_user_review_targets": dict(residual_user_review_targets),
         "inspection_only": True,
         "can_submit": False,
         "can_authorize_publication_quality": False,
@@ -382,6 +408,8 @@ def _receipt_from_manifest(*, manifest: Mapping[str, Any], receipt_path: Path) -
         "authority": authority,
         "source_package_status": manifest.get("source_package_status"),
         "recommended_human_review_path": manifest.get("recommended_human_review_path"),
+        "residual_user_review": manifest.get("residual_user_review"),
+        "residual_user_review_targets": manifest.get("residual_user_review_targets"),
         "targets": targets,
         "receipt_path": str(receipt_path.resolve()),
         "human_inspection_only": True,
@@ -455,6 +483,8 @@ def _write_inspection_artifacts(*, study_root: Path, manifest: Mapping[str, Any]
             "study_id": manifest.get("study_id"),
             "gate_blocked_snapshot": bool(manifest.get("gate_blocked_snapshot")),
             "delivery_inspection": manifest.get("delivery_inspection"),
+            "residual_user_review": manifest.get("residual_user_review"),
+            "residual_user_review_targets": manifest.get("residual_user_review_targets"),
         },
     )
     dump_json(export_receipt_path, receipt)
@@ -500,6 +530,81 @@ def _write_inspection_readme(target_root: Path) -> None:
             ]
         ),
     )
+
+
+def _residual_user_review_payload(study_root: Path) -> dict[str, Any]:
+    try:
+        read_model = reviewer_refinement_loop.build_reviewer_refinement_loop_read_model(
+            study_root=study_root
+        )
+    except (FileNotFoundError, ValueError, json.JSONDecodeError):
+        return {
+            "surface_kind": "bounded_reviewer_repair_residual_user_review",
+            "schema_version": 1,
+            "language": "zh-CN",
+            "required": False,
+            "status": "source_unavailable",
+            "study_id": study_root.name,
+            "issue_count": 0,
+            "issues": [],
+            "authority_boundary": {
+                "human_inspection_only": True,
+                "can_authorize_publication_quality": False,
+                "can_authorize_submission": False,
+                "can_mutate_paper_body": False,
+                "does_not_create_owner_receipt": True,
+            },
+        }
+    payload = read_model.get("residual_user_review")
+    return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _write_residual_user_review_files(
+    *,
+    target_root: Path,
+    residual_user_review: Mapping[str, Any],
+    copied_files: list[dict[str, str]],
+) -> dict[str, str]:
+    if not residual_user_review:
+        return {}
+    markdown_path = target_root / RESIDUAL_REVIEW_ISSUES_MARKDOWN
+    json_path = target_root / RESIDUAL_REVIEW_ISSUES_JSON
+    write_text(markdown_path, render_residual_user_review_markdown(residual_user_review))
+    dump_json(json_path, dict(residual_user_review))
+    for path, category in (
+        (markdown_path, "residual_user_review_markdown"),
+        (json_path, "residual_user_review_json"),
+    ):
+        copied_files.append(
+            {
+                "category": category,
+                "source_path": str(path.resolve()),
+                "target_path": str(path.resolve()),
+            }
+        )
+    return {
+        "residual_user_review_markdown": str(markdown_path.resolve()),
+        "residual_user_review_json": str(json_path.resolve()),
+    }
+
+
+def _remap_staging_targets(
+    *,
+    targets: object,
+    staging_root: Path,
+    target_root: Path,
+) -> dict[str, str]:
+    if not isinstance(targets, Mapping):
+        return {}
+    remapped: dict[str, str] = {}
+    for key, value in targets.items():
+        if isinstance(key, str) and isinstance(value, str) and value.strip():
+            remapped[key] = remap_staging_path_string(
+                value=value,
+                staging_root=staging_root,
+                target_root=target_root,
+            )
+    return remapped
 
 
 def _copy_inspection_sources(

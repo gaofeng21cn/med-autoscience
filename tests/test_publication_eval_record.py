@@ -321,6 +321,17 @@ def test_publication_eval_record_round_trips_specificity_targets() -> None:
     )
 
 
+def test_publication_eval_record_round_trips_gap_gate_kind_without_mutation_authority() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["gaps"][0]["gate_kind"] = "human_or_expert_gate"
+
+    record = module.PublicationEvalRecord.from_payload(payload)
+
+    assert record.gaps[0].gate_kind == "human_or_expert_gate"
+    assert record.to_dict()["gaps"][0]["gate_kind"] == "human_or_expert_gate"
+
+
 def test_publication_eval_record_rejects_incomplete_specificity_target() -> None:
     module = _load_module()
     payload = _minimal_payload()

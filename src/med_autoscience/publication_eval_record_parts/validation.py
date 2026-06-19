@@ -45,7 +45,16 @@ _QUALITY_ASSESSMENT_ALLOWED_FIELDS = frozenset(
         "human_review_readiness",
     }
 )
-_GAP_ALLOWED_FIELDS = frozenset({"gap_id", "gap_type", "severity", "summary", "evidence_refs"})
+_GAP_ALLOWED_FIELDS = frozenset({"gap_id", "gap_type", "severity", "summary", "evidence_refs", "gate_kind"})
+_ALLOWED_GAP_GATE_KINDS = frozenset(
+    {
+        "source_readiness_gate",
+        "publication_gate",
+        "artifact_mutation_authority_gate",
+        "human_or_expert_gate",
+        "forbidden_write_guard",
+    }
+)
 _RECOMMENDED_ACTION_ALLOWED_FIELDS = frozenset(
     {
         "action_id",

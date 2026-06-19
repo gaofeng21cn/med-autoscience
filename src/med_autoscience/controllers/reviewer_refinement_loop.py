@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -22,6 +23,10 @@ from med_autoscience.controllers.reviewer_refinement_loop_parts.repair_work_unit
     EXECUTION_CONTRACT,
     build_repair_work_units,
 )
+from med_autoscience.controllers.reviewer_residual_issue_document import (
+    build_bounded_review_repair_policy,
+    build_residual_user_review_payload,
+)
 
 
 __all__ = ["build_reviewer_refinement_loop_read_model"]
@@ -34,6 +39,8 @@ _ACCEPTABLE_VERDICTS = frozenset({"promising"})
 _ACCEPTABLE_PRIMARY_CLAIM_STATUSES = frozenset({"supported"})
 _BLOCKING_GAP_SEVERITIES = frozenset({"must_fix", "important"})
 _CALIBRATION_LEARNING_PATH = Path("artifacts/publication_eval/ai_reviewer_calibration_learning.json")
+_QUALITY_REPAIR_BATCH_PATH = Path("artifacts/controller/quality_repair_batch/latest.json")
+_REVIEW_LEDGER_FALLBACK_PATH = Path("paper/review/review_ledger.json")
 _REPAIR_PLANNING_MODE = "repair_planning_only"
 _ACCEPTED_MODE = "accepted"
 
@@ -168,10 +175,74 @@ def _read_calibration_learning_model(study_root: Path) -> dict[str, Any]:
     path = study_root / _CALIBRATION_LEARNING_PATH
     if not path.exists():
         return build_ai_reviewer_calibration_learning_read_model()
-    import json
 
     payload = json.loads(path.read_text(encoding="utf-8"))
     return build_ai_reviewer_calibration_learning_read_model(payload)
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _review_ledger_path(
+    *,
+    study_root: Path,
+    publication_eval: Mapping[str, Any],
+) -> Path:
+    reviewer_os = _mapping(publication_eval.get("reviewer_operating_system"))
+    input_bundle = _mapping(reviewer_os.get("input_bundle"))
+    review_ledger_ref = _text(input_bundle.get("review_ledger"))
+    if review_ledger_ref:
+        return Path(review_ledger_ref).expanduser().resolve()
+    return (study_root / _REVIEW_LEDGER_FALLBACK_PATH).resolve()
+
+
+def _round_sources_from_review_ledger(path: Path) -> list[tuple[str, object]]:
+    payload = _read_json_object(path)
+    sources: list[tuple[str, object]] = []
+    for key in ("current_round", "review_round", "repair_round", "round_count", "repeat_count"):
+        sources.append((f"review_ledger.{key}", payload.get(key)))
+    for parent_key in ("review_repair_cycle", "reviewer_refinement_loop", "repair_cycle"):
+        parent = _mapping(payload.get(parent_key))
+        for key in ("current_round", "round_count", "repair_round", "repeat_count"):
+            sources.append((f"review_ledger.{parent_key}.{key}", parent.get(key)))
+    for concern in _list_of_mappings(payload.get("concerns")):
+        for key in ("repeat_count", "repair_round", "review_round"):
+            sources.append((f"review_ledger.concerns[].{key}", concern.get(key)))
+        progress = _mapping(concern.get("review_repair_progress"))
+        for key in ("current_round", "round_count", "repair_round", "repeat_count"):
+            sources.append((f"review_ledger.concerns[].review_repair_progress.{key}", progress.get(key)))
+    return sources
+
+
+def _round_sources_from_quality_repair_batch(path: Path) -> list[tuple[str, object]]:
+    payload = _read_json_object(path)
+    sources: list[tuple[str, object]] = []
+    for key in ("current_round", "review_round", "repair_round", "round_count", "repeat_count"):
+        sources.append((f"quality_repair_batch.{key}", payload.get(key)))
+    for parent_key in ("review_repair_cycle", "reviewer_refinement_loop", "repair_cycle"):
+        parent = _mapping(payload.get(parent_key))
+        for key in ("current_round", "round_count", "repair_round", "repeat_count"):
+            sources.append((f"quality_repair_batch.{parent_key}.{key}", parent.get(key)))
+    return sources
+
+
+def _review_repair_round_sources(
+    *,
+    study_root: Path,
+    publication_eval: Mapping[str, Any],
+) -> list[tuple[str, object]]:
+    review_ledger_path = _review_ledger_path(
+        study_root=study_root,
+        publication_eval=publication_eval,
+    )
+    return [
+        *_round_sources_from_review_ledger(review_ledger_path),
+        *_round_sources_from_quality_repair_batch(study_root / _QUALITY_REPAIR_BATCH_PATH),
+    ]
 
 
 def _required_calibration_ref_blockers(required_refs: list[str]) -> list[str]:
@@ -504,15 +575,48 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         accepted=accepted,
         route_back=route_back,
     )
-    executable_repair_allowed = not accepted and not authority_blockers
+    bounded_review_repair_policy = build_bounded_review_repair_policy(
+        publication_eval=publication_eval,
+        authority_blockers=authority_blockers,
+        accept_blockers=accept_blockers,
+        required_calibration_refs=required_calibration_refs,
+        worklog=worklog,
+        round_sources=_review_repair_round_sources(
+            study_root=resolved_study_root,
+            publication_eval=publication_eval,
+        ),
+    )
+    bounded_auto_advance_allowed = bounded_review_repair_policy["auto_advance_allowed"] is True
+    effective_accepted = accepted or bounded_auto_advance_allowed
+    residual_user_review = build_residual_user_review_payload(
+        study_id=_text(publication_eval.get("study_id")),
+        quest_id=_text(publication_eval.get("quest_id")),
+        publication_eval=publication_eval,
+        publication_eval_path=publication_eval_path,
+        worklog=worklog,
+        bounded_policy=bounded_review_repair_policy,
+    )
+    hard_review_blocked = bounded_review_repair_policy["status"] == "hard_blocked"
+    hard_review_blockers = list(bounded_review_repair_policy["hard_blockers"])
+    executable_repair_allowed = (
+        not effective_accepted
+        and not authority_blockers
+        and not hard_review_blocked
+    )
     repair_loop = _repair_loop_projection(
         publication_eval=publication_eval,
         publication_eval_path=publication_eval_path,
         worklog=worklog,
     ) if executable_repair_allowed else {
-        "mode": _ACCEPTED_MODE,
-        "status": "accepted" if accepted else "blocked",
-        "blockers": [] if accepted else list(authority_blockers),
+        "mode": _REPAIR_PLANNING_MODE if hard_review_blocked else _ACCEPTED_MODE,
+        "status": (
+            "hard_blocked"
+            if hard_review_blocked
+            else "accepted"
+            if accepted
+            else "blocked"
+        ),
+        "blockers": hard_review_blockers if hard_review_blocked else [] if accepted else list(authority_blockers),
         "comment_to_action_matrix": [],
         "repair_work_units": [],
         "repair_plan": {
@@ -523,16 +627,38 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         },
         "execution_contract": dict(EXECUTION_CONTRACT),
         "next_action": {
-            "action": "none",
-            "reason": "reviewer_refinement_accepted",
+            "action": _text(bounded_review_repair_policy.get("next_action"))
+            if hard_review_blocked
+            else "none",
+            "reason": _text(bounded_review_repair_policy.get("status"))
+            if hard_review_blocked
+            else "reviewer_refinement_accepted",
         },
     }
+    if bounded_auto_advance_allowed:
+        repair_loop = {
+            **repair_loop,
+            "status": _text(bounded_review_repair_policy.get("status")),
+            "blockers": [],
+            "comment_to_action_matrix": [],
+            "repair_work_units": [],
+            "repair_plan": {
+                "analysis_repair_required": False,
+                "text_repair_required": False,
+                "ai_reviewer_recheck_required": False,
+                "mechanical_projection_can_authorize_quality": False,
+            },
+            "next_action": {
+                "action": _text(bounded_review_repair_policy.get("next_action")),
+                "reason": _text(bounded_review_repair_policy.get("status")),
+            },
+        }
 
     return {
         "surface": _SURFACE,
         "schema_version": _SCHEMA_VERSION,
         "study_root": str(resolved_study_root),
-        "mode": _ACCEPTED_MODE if accepted else _REPAIR_PLANNING_MODE,
+        "mode": _ACCEPTED_MODE if effective_accepted else _REPAIR_PLANNING_MODE,
         "snapshot": {
             "source_surface": "publication_eval/latest.json",
             "source_eval_id": _text(publication_eval.get("eval_id")),
@@ -543,11 +669,20 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
             "authority_blockers": authority_blockers,
         },
         "accept": {
-            "accepted": accepted,
-            "status": "accepted" if accepted else "blocked",
+            "accepted": effective_accepted,
+            "status": (
+                "accepted"
+                if accepted
+                else "accepted_with_residual_user_review"
+                if bounded_review_repair_policy["residual_user_review_required"] is True
+                else "accepted_no_clear_actionable_reviewer_issue"
+                if bounded_auto_advance_allowed
+                else "blocked"
+            ),
             "source": "ai_reviewer_backed_publication_eval_latest",
             "blockers": accept_blockers,
             "package_mutation_allowed": False,
+            "bounded_auto_advance": bounded_auto_advance_allowed,
         },
         "required_calibration_refs": required_calibration_refs,
         "calibration_learning": calibration_learning,
@@ -555,15 +690,22 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         "repair_work_units": repair_loop["repair_work_units"],
         "repair_loop": repair_loop,
         "revert": {
-            "required": not accepted,
-            "strategy": "same_line_route_back" if not accepted else "none",
+            "required": not effective_accepted,
+            "strategy": "same_line_route_back" if not effective_accepted else "none",
             "direct_package_mutation_allowed": False,
-            "route_back": route_back,
+            "route_back": None if effective_accepted else route_back,
         },
+        "bounded_review_repair_policy": bounded_review_repair_policy,
+        "residual_user_review": residual_user_review,
         "worklog": worklog,
         "contract": {
             "read_model_only": True,
             "mode_when_blocked": _REPAIR_PLANNING_MODE,
+            "max_automated_review_repair_rounds": bounded_review_repair_policy[
+                "max_automated_repair_rounds"
+            ],
+            "residual_user_review_language": residual_user_review["language"],
+            "residual_user_review_can_block_auto_advance": False,
             "required_calibration_refs_must_be_read_before_accept": True,
             "accept_authority": "AI reviewer-backed artifacts/publication_eval/latest.json",
             "revert_authority": "same-line route-back decision surface",
