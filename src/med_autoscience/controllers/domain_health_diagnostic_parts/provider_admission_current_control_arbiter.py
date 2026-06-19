@@ -5,6 +5,9 @@ from typing import Any, Mapping
 from med_autoscience.controllers import (
     opl_domain_progress_transition_contract as transition_contract,
 )
+from med_autoscience.controllers.current_work_unit_parts.stage_packet_blockers import (
+    is_selected_dispatch_stage_packet_blocker as _is_selected_dispatch_stage_packet_blocker,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
     provider_attempt_matches_identity,
@@ -1183,7 +1186,7 @@ def _current_typed_blocker_precedence_evidence_for_candidate(
     if not evidence:
         return {}
     if (
-        _non_empty_text(evidence.get("blocker_type")) == STALE_STAGE_PACKET_BLOCKER
+        _is_selected_dispatch_stage_packet_blocker(_non_empty_text(evidence.get("blocker_type")))
         and _non_empty_text(candidate.get("source"))
         == "opl_current_control_state.study_current_executable_owner_action"
         and _non_empty_text(_mapping(candidate.get("currentness_basis")).get("source"))

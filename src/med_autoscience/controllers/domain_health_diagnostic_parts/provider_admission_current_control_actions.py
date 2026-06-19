@@ -83,6 +83,8 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
     if not current:
         current = _current_action_from_executable_current_work_unit(study)
     if not current:
+        current = _current_action_from_accepted_owner_gate_admission(study)
+    if not current:
         current = _current_action_from_paper_recovery_successor(study)
     if not current:
         return None
@@ -414,6 +416,60 @@ def _current_action_from_paper_recovery_successor(
     }
 
 
+def _current_action_from_accepted_owner_gate_admission(
+    study: Mapping[str, Any],
+) -> dict[str, Any]:
+    recovery = _mapping(study.get("paper_recovery_state"))
+    if _non_empty_text(recovery.get("phase")) != "admission_pending":
+        return {}
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if _non_empty_text(next_safe_action.get("kind")) != "admit_identity_bound_stage_packet":
+        return {}
+    if next_safe_action.get("provider_admission_allowed") is not True:
+        return {}
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    action_type = _non_empty_text(current_work_unit.get("action_type"))
+    work_unit_id = _non_empty_text(current_work_unit.get("work_unit_id"))
+    fingerprint = _non_empty_text(current_work_unit.get("work_unit_fingerprint")) or _non_empty_text(
+        current_work_unit.get("action_fingerprint")
+    )
+    if action_type is None or work_unit_id is None or fingerprint is None:
+        return {}
+    owner = _non_empty_text(next_safe_action.get("owner")) or _non_empty_text(current_work_unit.get("owner"))
+    executable_owner = _current_control_executable_owner(action_type=action_type, owner=owner)
+    if executable_owner is None:
+        return {}
+    currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
+    basis = {
+        **dict(currentness_basis),
+        "source": "paper_recovery_state.accepted_owner_gate_decision",
+        "mas_owner_action_source": "paper_recovery_state.accepted_owner_gate_decision",
+        "truth_epoch": _non_empty_text(currentness_basis.get("truth_epoch")) or fingerprint,
+        "runtime_health_epoch": _non_empty_text(currentness_basis.get("runtime_health_epoch")) or fingerprint,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+    }
+    basis = {key: value for key, value in basis.items() if value is not None}
+    return {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": "paper_recovery_state.accepted_owner_gate_decision",
+        "authority": "paper_recovery_state.accepted_owner_gate_decision",
+        "next_owner": executable_owner,
+        "owner": executable_owner,
+        "action_type": action_type,
+        "allowed_actions": [action_type],
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "source_ref": _first_text(recovery.get("evidence_refs")),
+        "required_output_surface": _required_output_surface(current_work_unit),
+        "owner_route_currentness_basis": basis,
+        "currentness_basis": basis,
+    }
+
+
 def _provider_admission_action_key(action: Mapping[str, Any]) -> tuple[str | None, str | None, str | None]:
     fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(
         action.get("action_fingerprint")
@@ -544,6 +600,10 @@ def _status_with_current_control_study_currentness(
         successor_action = _current_action_from_paper_recovery_successor(study)
         if successor_action:
             payload["current_executable_owner_action"] = successor_action
+    if not _mapping(payload.get("current_executable_owner_action")):
+        owner_gate_action = _current_action_from_accepted_owner_gate_admission(study)
+        if owner_gate_action:
+            payload["current_executable_owner_action"] = owner_gate_action
     return payload
 
 

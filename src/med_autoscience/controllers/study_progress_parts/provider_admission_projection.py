@@ -523,6 +523,8 @@ def _handoff_typed_blocker_consumes_current_action(
 
 
 def _payload_typed_blocker_without_current_action(payload: Mapping[str, Any]) -> bool:
+    if _accepted_owner_gate_admission_pending(payload):
+        return False
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
     execution = _mapping_copy(payload.get("current_execution_envelope"))
     if _mapping_copy(payload.get("current_executable_owner_action")):
@@ -567,17 +569,29 @@ def _current_control_payload_for_provider_admission(
 ) -> dict[str, Any]:
     current_control = _mapping_copy(handoff)
     study_action = _study_current_executable_owner_action(payload)
-    if study_action:
+    if study_action or _accepted_owner_gate_admission_pending(payload):
         studies = [item for item in current_control.get("studies") or [] if isinstance(item, Mapping)]
         study_id = _non_empty_text(payload.get("study_id")) or _non_empty_text(study_action.get("study_id"))
+        study_payload = {**dict(payload), **study_action} if study_action else dict(payload)
         studies = [
-            {**dict(item), **study_action} if _non_empty_text(item.get("study_id")) == study_id else item
+            {**dict(item), **study_payload} if _non_empty_text(item.get("study_id")) == study_id else item
             for item in studies
         ]
         if not any(_non_empty_text(item.get("study_id")) == study_id for item in studies):
-            studies.append(study_action)
+            studies.append(study_payload)
         current_control["studies"] = studies
     return current_control
+
+
+def _accepted_owner_gate_admission_pending(payload: Mapping[str, Any]) -> bool:
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    if _non_empty_text(recovery.get("phase")) != "admission_pending":
+        return False
+    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
+    return (
+        _non_empty_text(next_safe_action.get("kind")) == "admit_identity_bound_stage_packet"
+        and next_safe_action.get("provider_admission_allowed") is True
+    )
 
 
 def _study_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any]:

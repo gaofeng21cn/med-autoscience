@@ -5,6 +5,9 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers import control_identity
 from med_autoscience.controllers import paper_progress_policy_adapter
+from med_autoscience.controllers.current_work_unit_parts.stage_packet_blockers import (
+    is_selected_dispatch_stage_packet_blocker as _is_selected_dispatch_stage_packet_blocker,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
     provider_admission_authority_boundary,
     provider_admission_candidate_with_authority_boundaries,
@@ -690,7 +693,7 @@ def _typed_blocker_envelope_allows_provider_admission(
         or _non_empty_text(blocker.get("reason"))
     )
     if (
-        blocker_reason == "stage_packet_not_current_selected_dispatch"
+        _is_selected_dispatch_stage_packet_blocker(blocker_reason)
         and _owner_gate_route_back_execution_matches_current_action(
             execution,
             current_action_identity=current_action_identity,

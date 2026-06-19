@@ -406,6 +406,132 @@ def test_provider_admission_projection_preserves_complete_opl_readback_under_typ
     assert candidate["work_unit_fingerprint"] == fingerprint
 
 
+def test_provider_admission_projection_materializes_accepted_owner_gate_transition_request(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
+    )
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_ready_quality_repair_dispatch(study_root, study_id=study_id, fingerprint=fingerprint)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    dispatch_payload = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    for key in (
+        "opl_domain_progress_transition_result",
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_transition_readback_source",
+    ):
+        dispatch_payload.pop(key, None)
+    _write_json(dispatch_path, dispatch_payload)
+
+    fields = module.provider_admission_projection_fields(
+        payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "admission_pending",
+                "conditions": [
+                    {
+                        "condition": "accepted_owner_gate_decision",
+                        "decision": "admit_identity_bound_stage_packet",
+                    }
+                ],
+                "evidence_refs": [
+                    "human_gate:owner-gate-decision:0863b0b9a2d94867284fa160",
+                    "owner-gate-decision:0863b0b9a2d94867284fa160",
+                    stage_packet_ref,
+                ],
+                "next_safe_action": {
+                    "kind": "admit_identity_bound_stage_packet",
+                    "owner": "one-person-lab",
+                    "provider_admission_allowed": True,
+                },
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "typed_blocker",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "truth_epoch": fingerprint,
+                    "runtime_health_epoch": fingerprint,
+                },
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                        "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "one-person-lab",
+                "typed_blocker": {
+                    "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                    "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+                    "owner": "one-person-lab",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                },
+            },
+            "current_executable_owner_action": None,
+        },
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "source_path": "/tmp/opl_current_control_state/latest.json",
+            "running_provider_attempt": False,
+            "action_queue": [],
+        },
+        study_root=study_root,
+    )
+
+    assert fields["provider_admission_pending_count"] == 0
+    assert fields["provider_admission_candidates"] == []
+    assert fields["transition_request_pending_count"] == 1
+    candidate = fields["transition_request_candidates"][0]
+    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["provider_admission_pending"] is False
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+    assert candidate["mas_owner_action_source"] == "paper_recovery_state.accepted_owner_gate_decision"
+    assert candidate["action_type"] == "run_quality_repair_batch"
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["work_unit_fingerprint"] == fingerprint
+    assert candidate["currentness_basis"]["source"] == "paper_recovery_state.accepted_owner_gate_decision"
+
+
 def test_provider_admission_projection_emits_candidate_for_current_executable_action(tmp_path) -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
