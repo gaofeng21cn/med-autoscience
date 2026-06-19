@@ -779,6 +779,7 @@ def _validate_runtime_health_kernel(
             str(item) for item in forbidden_claims
         }:
             violations.append(_violation(surface_id, "runtime_health_tail_missing_false_completion_guards"))
+        violations.extend(_validate_runtime_health_active_diagnostic_projection_scan(surface_id, tail))
 
     gate = surface.get("retirement_gate")
     if not isinstance(gate, Mapping):
@@ -788,6 +789,68 @@ def _validate_runtime_health_kernel(
             violations.append(_violation(surface_id, "runtime_health_missing_no_active_caller_physical_delete_gate"))
         if gate.get("runtime_health_live_opl_observability_readback_required") is not True:
             violations.append(_violation(surface_id, "runtime_health_missing_live_opl_observability_gate"))
+    return violations
+
+
+def _validate_runtime_health_active_diagnostic_projection_scan(
+    surface_id: str,
+    tail: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    scan = tail.get("active_diagnostic_projection_caller_scan")
+    if not isinstance(scan, Mapping):
+        return [_violation(surface_id, "runtime_health_active_diagnostic_projection_scan_missing")]
+
+    violations: list[dict[str, str]] = []
+    active_callers = scan.get("active_callers")
+    active_caller_list = active_callers if isinstance(active_callers, list) else []
+    status = _text(scan.get("status"))
+    no_active_proven = scan.get("no_active_diagnostic_projection_caller_proven")
+    physical_delete_allowed = scan.get("physical_delete_allowed")
+    if status == "active_diagnostic_projection_callers_present_tail_open":
+        if not active_caller_list:
+            violations.append(_violation(surface_id, "runtime_health_active_diagnostic_scan_empty"))
+        if no_active_proven is not False:
+            violations.append(
+                _violation(surface_id, "runtime_health_active_diagnostic_scan_must_not_claim_no_active")
+            )
+        if physical_delete_allowed is not False:
+            violations.append(
+                _violation(surface_id, "runtime_health_active_diagnostic_scan_blocks_physical_delete")
+            )
+    if active_caller_list and no_active_proven is True:
+        violations.append(
+            _violation(surface_id, "runtime_health_active_diagnostic_no_active_claim_contradicts_callers")
+        )
+    if active_caller_list and physical_delete_allowed is not False:
+        violations.append(
+            _violation(surface_id, "runtime_health_active_diagnostic_callers_block_physical_delete")
+        )
+    allowed_consumption = scan.get("allowed_consumption")
+    if not isinstance(allowed_consumption, list) or not {
+        "read_runtime_status",
+        "open_monitoring_entry",
+        "identity_bound_opl_readback_requirement_projection",
+    } <= {str(item) for item in allowed_consumption}:
+        violations.append(
+            _violation(surface_id, "runtime_health_active_diagnostic_scan_allowed_consumption_incomplete")
+        )
+    forbidden_claims = scan.get("forbidden_completion_claims")
+    if not isinstance(forbidden_claims, list) or not {
+        "diagnostic_projection_active_callers_as_no_active_caller",
+        "runtime_health_decision_gate_as_no_active_caller",
+        "runtime_health_snapshot_reader_as_opl_observability_readback",
+        "active_diagnostic_projection_scan_as_physical_delete",
+    } <= {str(item) for item in forbidden_claims}:
+        violations.append(
+            _violation(surface_id, "runtime_health_active_diagnostic_scan_missing_false_completion_guard")
+        )
+    if (
+        _text(scan.get("required_before_physical_delete"))
+        != "runtime_health_kernel_no_active_diagnostic_projection_caller_physical_delete_ref"
+    ):
+        violations.append(
+            _violation(surface_id, "runtime_health_active_diagnostic_scan_missing_physical_delete_ref")
+        )
     return violations
 
 
@@ -933,6 +996,11 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     live_owner_consumption_soak = surface.get("live_owner_consumption_soak_boundary")
     obligation_tail = surface.get("opl_obligation_actuator_tail_readback")
     runtime_health_tail = surface.get("opl_runtime_health_observability_tail_readback")
+    runtime_health_active_scan = (
+        runtime_health_tail.get("active_diagnostic_projection_caller_scan")
+        if isinstance(runtime_health_tail, Mapping)
+        else None
+    )
     materializer_tail = surface.get("opl_materializer_projection_tail_readback")
     workbench_tail = surface.get("opl_workbench_shell_readback_tail")
     lifecycle_maintenance_tail = surface.get("opl_runtime_lifecycle_maintenance_tail_readback")
@@ -1089,6 +1157,22 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             len(runtime_health_tail.get("required_active_caller_readbacks"))
             if isinstance(runtime_health_tail, Mapping)
             and isinstance(runtime_health_tail.get("required_active_caller_readbacks"), list)
+            else None
+        ),
+        "runtime_health_active_diagnostic_projection_caller_count": (
+            len(runtime_health_active_scan.get("active_callers"))
+            if isinstance(runtime_health_active_scan, Mapping)
+            and isinstance(runtime_health_active_scan.get("active_callers"), list)
+            else None
+        ),
+        "runtime_health_active_diagnostic_projection_no_active_caller_proven": (
+            runtime_health_active_scan.get("no_active_diagnostic_projection_caller_proven")
+            if isinstance(runtime_health_active_scan, Mapping)
+            else None
+        ),
+        "runtime_health_active_diagnostic_projection_physical_delete_allowed": (
+            runtime_health_active_scan.get("physical_delete_allowed")
+            if isinstance(runtime_health_active_scan, Mapping)
             else None
         ),
         "materializer_projection_tail_status": (

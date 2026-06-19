@@ -487,6 +487,18 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "mas_runtime_health_snapshot_as_opl_observability_readback"
         in runtime_health_tail["forbidden_completion_interpretations"]
     )
+    assert (
+        "runtime_health_kernel_no_active_diagnostic_projection_caller_physical_delete_ref"
+        in runtime_health_tail["required_ref_families"]
+    )
+    assert (
+        "runtime_health_snapshot_reader_as_opl_observability_readback"
+        in runtime_health_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "active_diagnostic_projection_scan_as_physical_delete"
+        in runtime_health_tail["forbidden_completion_interpretations"]
+    )
     workbench_tail = evidence_tails[
         "progress_portal_study_workbench_overview_action_projection"
     ]
@@ -690,6 +702,18 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["runtime_health_kernel"][
         "runtime_health_required_active_caller_readback_count"
     ] == 2
+    runtime_health_active_scan = inventory_surfaces["runtime_health_kernel"][
+        "opl_runtime_health_observability_tail_readback"
+    ]["active_diagnostic_projection_caller_scan"]
+    assert open_surfaces["runtime_health_kernel"][
+        "runtime_health_active_diagnostic_projection_caller_count"
+    ] == len(runtime_health_active_scan["active_callers"])
+    assert open_surfaces["runtime_health_kernel"][
+        "runtime_health_active_diagnostic_projection_no_active_caller_proven"
+    ] is False
+    assert open_surfaces["runtime_health_kernel"][
+        "runtime_health_active_diagnostic_projection_physical_delete_allowed"
+    ] is False
     assert open_surfaces[
         "progress_portal_study_workbench_overview_action_projection"
     ]["authority_status"] == "read_only_workbench_projection_opl_shell_tail_open"
@@ -1285,6 +1309,18 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     runtime_health["opl_runtime_health_observability_tail_readback"][
         "forbidden_completion_claims"
     ] = []
+    runtime_health["opl_runtime_health_observability_tail_readback"][
+        "active_diagnostic_projection_caller_scan"
+    ]["no_active_diagnostic_projection_caller_proven"] = True
+    runtime_health["opl_runtime_health_observability_tail_readback"][
+        "active_diagnostic_projection_caller_scan"
+    ]["physical_delete_allowed"] = True
+    runtime_health["opl_runtime_health_observability_tail_readback"][
+        "active_diagnostic_projection_caller_scan"
+    ]["allowed_consumption"] = []
+    runtime_health["opl_runtime_health_observability_tail_readback"][
+        "active_diagnostic_projection_caller_scan"
+    ]["forbidden_completion_claims"] = []
     runtime_health["retirement_gate"][
         "runtime_health_live_opl_observability_readback_required"
     ] = False
@@ -1380,6 +1416,30 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "runtime_health_kernel",
             "runtime_health_tail_missing_false_completion_guards",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_active_diagnostic_scan_must_not_claim_no_active",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_active_diagnostic_scan_blocks_physical_delete",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_active_diagnostic_no_active_claim_contradicts_callers",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_active_diagnostic_callers_block_physical_delete",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_active_diagnostic_scan_allowed_consumption_incomplete",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_active_diagnostic_scan_missing_false_completion_guard",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in runtime_health_violations}
 

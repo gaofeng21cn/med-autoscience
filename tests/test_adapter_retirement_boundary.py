@@ -658,6 +658,36 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "mas_runtime_health_snapshot_can_satisfy_readback": False,
         "repo_no_authority_guard_can_satisfy_readback": False,
         "focused_tests_can_satisfy_readback": False,
+        "active_diagnostic_projection_caller_scan": {
+            "status": "active_diagnostic_projection_callers_present_tail_open",
+            "no_active_diagnostic_projection_caller_proven": False,
+            "physical_delete_allowed": False,
+            "required_before_physical_delete": (
+                "runtime_health_kernel_no_active_diagnostic_projection_caller_physical_delete_ref"
+            ),
+            "active_callers": [
+                (
+                    "paper_repair_executor_parts.ai_reviewer_currentness::"
+                    "runtime_health_snapshot_path_read"
+                ),
+                (
+                    "study_runtime_decision_parts.runtime_health_dominance::"
+                    "runtime_health_decision_gate_projection"
+                ),
+                "runtime_health_kernel.run_runtime_health_kernel::read_runtime_status_projection",
+            ],
+            "allowed_consumption": [
+                "read_runtime_status",
+                "open_monitoring_entry",
+                "identity_bound_opl_readback_requirement_projection",
+            ],
+            "forbidden_completion_claims": [
+                "diagnostic_projection_active_callers_as_no_active_caller",
+                "runtime_health_decision_gate_as_no_active_caller",
+                "runtime_health_snapshot_reader_as_opl_observability_readback",
+                "active_diagnostic_projection_scan_as_physical_delete",
+            ],
+        },
         "forbidden_completion_claims": [
             "repo_no_authority_guard_as_runtime_health_tail_readback",
             "mas_runtime_health_snapshot_as_opl_observability_readback",

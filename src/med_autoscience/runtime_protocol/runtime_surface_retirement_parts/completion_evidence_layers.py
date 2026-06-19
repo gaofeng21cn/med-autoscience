@@ -81,6 +81,10 @@ def _physical_delete_required_refs(surface: Mapping[str, Any]) -> list[str]:
         ("live_owner_consumption_soak_boundary",),
         ("opl_obligation_actuator_tail_readback",),
         ("opl_runtime_health_observability_tail_readback",),
+        (
+            "opl_runtime_health_observability_tail_readback",
+            "active_diagnostic_projection_caller_scan",
+        ),
         ("opl_materializer_projection_tail_readback",),
         ("opl_workbench_shell_readback_tail",),
         ("opl_runtime_lifecycle_maintenance_tail_readback",),
@@ -267,6 +271,10 @@ def _completion_interpretation_containers(surface: Mapping[str, Any]) -> list[Ma
         ("legacy_stage_run_abi_boundary", "active_stage_run_abi_caller_scan"),
         ("opl_obligation_actuator_tail_readback",),
         ("opl_runtime_health_observability_tail_readback",),
+        (
+            "opl_runtime_health_observability_tail_readback",
+            "active_diagnostic_projection_caller_scan",
+        ),
         ("opl_materializer_projection_tail_readback",),
         ("opl_workbench_shell_readback_tail",),
         ("opl_runtime_lifecycle_maintenance_tail_readback",),
