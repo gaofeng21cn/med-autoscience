@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import importlib.util
+import json
 from pathlib import Path
 import tomllib
 
@@ -13,6 +14,7 @@ from med_autoscience.display_pack_contract import (
 )
 
 _VALID_SOURCE_KINDS = frozenset(("local_dir", "git_repo", "python_package"))
+_VALID_TEMPLATE_INVENTORY_SCOPES = frozenset(("canonical", "all"))
 _DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
 _PACKAGED_DISPLAY_PACK_REPO_ROOT = Path(__file__).resolve().parent / "resources" / "display_pack_repo"
 
@@ -322,34 +324,67 @@ def load_enabled_local_display_template_records(
     repo_root: Path,
     *,
     paper_root: Path | None = None,
+    inventory_scope: str = "canonical",
 ) -> list[LoadedDisplayTemplate]:
+    if inventory_scope not in _VALID_TEMPLATE_INVENTORY_SCOPES:
+        raise ValueError(f"inventory_scope must be one of {sorted(_VALID_TEMPLATE_INVENTORY_SCOPES)!r}")
     records: list[LoadedDisplayTemplate] = []
     for loaded_pack in load_enabled_local_display_pack_records(repo_root, paper_root=paper_root):
+        canonical_ids = _default_visible_template_ids(loaded_pack.pack_root) if inventory_scope == "canonical" else None
         template_paths = sorted((loaded_pack.pack_root / "templates").glob("*/template.toml"))
         for template_path in template_paths:
+            template_manifest = load_display_template_manifest(
+                template_path,
+                expected_pack_id=loaded_pack.pack_manifest.pack_id,
+            )
+            if canonical_ids is not None and template_manifest.template_id not in canonical_ids:
+                continue
             records.append(
                 LoadedDisplayTemplate(
                     pack_root=loaded_pack.pack_root,
                     template_path=template_path,
                     pack_manifest=loaded_pack.pack_manifest,
-                    template_manifest=load_display_template_manifest(
-                        template_path,
-                        expected_pack_id=loaded_pack.pack_manifest.pack_id,
-                    ),
+                    template_manifest=template_manifest,
                     source_config=loaded_pack.source_config,
                 )
             )
     return records
 
 
+def _default_visible_template_ids(pack_root: Path) -> set[str] | None:
+    catalog_path = pack_root / "canonical_template_catalog.json"
+    if not catalog_path.is_file():
+        return None
+    payload = json.loads(catalog_path.read_text(encoding="utf-8"))
+    raw_families = payload.get("families")
+    if not isinstance(raw_families, list):
+        raise ValueError(f"{catalog_path} families must be a list")
+    template_ids: set[str] = set()
+    for index, raw_family in enumerate(raw_families):
+        if not isinstance(raw_family, dict):
+            raise ValueError(f"{catalog_path} families[{index}] must be an object")
+        if raw_family.get("default_visible") is not True:
+            continue
+        template_id = raw_family.get("canonical_template_id")
+        if not isinstance(template_id, str) or not template_id.strip():
+            raise ValueError(f"{catalog_path} families[{index}].canonical_template_id must be a non-empty string")
+        template_ids.add(template_id.strip())
+    return template_ids
+
+
 def load_enabled_local_display_pack_templates(
     repo_root: Path,
     *,
     paper_root: Path | None = None,
+    inventory_scope: str = "canonical",
 ) -> list[DisplayTemplateManifest]:
     return [
         item.template_manifest
-        for item in load_enabled_local_display_template_records(repo_root, paper_root=paper_root)
+        for item in load_enabled_local_display_template_records(
+            repo_root,
+            paper_root=paper_root,
+            inventory_scope=inventory_scope,
+        )
     ]
 
 
@@ -357,5 +392,10 @@ def load_enabled_local_display_pack_template_records(
     repo_root: Path,
     *,
     paper_root: Path | None = None,
+    inventory_scope: str = "canonical",
 ) -> list[LoadedDisplayTemplate]:
-    return load_enabled_local_display_template_records(repo_root, paper_root=paper_root)
+    return load_enabled_local_display_template_records(
+        repo_root,
+        paper_root=paper_root,
+        inventory_scope=inventory_scope,
+    )

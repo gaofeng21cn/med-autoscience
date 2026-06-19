@@ -14,6 +14,12 @@ from med_autoscience.display_pack_loader import (
     LoadedDisplayTemplate,
     load_enabled_local_display_template_records,
 )
+from med_autoscience.display_pack_canonical_catalog import (
+    CanonicalTemplateCatalog,
+    CanonicalTemplateEntry,
+    canonical_catalog_entry_for_template,
+    load_canonical_template_catalog,
+)
 from med_autoscience.display_pack_agent_parts.template_fit import (
     DEFAULT_KIND as _DEFAULT_KIND,
     DEFAULT_RENDERER_PREFERENCE as _DEFAULT_RENDERER_PREFERENCE,
@@ -202,9 +208,46 @@ def _full_template_id(record: LoadedDisplayTemplate) -> str:
     return record.template_manifest.full_template_id
 
 
-def _template_summary(record: LoadedDisplayTemplate) -> dict[str, Any]:
+def _catalogs_by_pack_root(records: list[LoadedDisplayTemplate]) -> dict[Path, CanonicalTemplateCatalog | None]:
+    catalogs: dict[Path, CanonicalTemplateCatalog | None] = {}
+    for record in records:
+        if record.pack_root not in catalogs:
+            catalogs[record.pack_root] = load_canonical_template_catalog(record.pack_root)
+    return catalogs
+
+
+def _migration_index_from_catalogs(
+    catalogs: Mapping[Path, CanonicalTemplateCatalog | None],
+) -> dict[str, CanonicalTemplateEntry]:
+    entries: dict[str, CanonicalTemplateEntry] = {}
+    for catalog in catalogs.values():
+        if catalog is None:
+            continue
+        entries.update(catalog.entries_by_template_id)
+    return entries
+
+
+def _canonical_entry(
+    record: LoadedDisplayTemplate,
+    catalogs: Mapping[Path, CanonicalTemplateCatalog | None] | None = None,
+) -> CanonicalTemplateEntry:
+    manifest = record.template_manifest
+    catalog = catalogs.get(record.pack_root) if catalogs is not None else load_canonical_template_catalog(record.pack_root)
+    return canonical_catalog_entry_for_template(
+        catalog=catalog,
+        template_id=manifest.template_id,
+        category=manifest.audit_family,
+        title=manifest.display_name,
+    )
+
+
+def _template_summary(
+    record: LoadedDisplayTemplate,
+    catalogs: Mapping[Path, CanonicalTemplateCatalog | None] | None = None,
+) -> dict[str, Any]:
     manifest = record.template_manifest
     template_root = record.template_path.parent
+    canonical = _canonical_entry(record, catalogs)
     return {
         "pack_id": record.pack_manifest.pack_id,
         "pack_version": record.pack_manifest.version,
@@ -223,6 +266,15 @@ def _template_summary(record: LoadedDisplayTemplate) -> dict[str, Any]:
         "required_exports": list(manifest.required_exports),
         "allowed_paper_roles": list(manifest.allowed_paper_roles),
         "paper_proven": manifest.paper_proven,
+        "canonical_family_id": canonical.family_id,
+        "canonical_family_title": canonical.family_title,
+        "canonical_family_category": canonical.family_category,
+        "canonical_template_id": canonical.canonical_template_id,
+        "figure_archetype": canonical.figure_archetype,
+        "migration_status": canonical.migration_status,
+        "default_visible": canonical.default_visible,
+        "migrated_alias_template_ids": list(canonical.aliases) if canonical.migration_status == "canonical" else [],
+        "migration_reason": canonical.migration_reason,
         "has_render_r": (template_root / "render.R").is_file(),
         "has_render_candidate": (template_root / "render_candidate.R").is_file(),
         "golden_case_count": len(manifest.golden_case_paths),
@@ -234,11 +286,21 @@ def _inventory_summary(records: list[LoadedDisplayTemplate]) -> dict[str, Any]:
     kinds = Counter(record.template_manifest.kind for record in records)
     renderers = Counter(record.template_manifest.renderer_family for record in records)
     execution_modes = Counter(record.template_manifest.execution_mode for record in records)
+    catalogs = _catalogs_by_pack_root(records)
+    canonical_entries = [_canonical_entry(record, catalogs) for record in records]
+    canonical_template_count = sum(1 for entry in canonical_entries if entry.migration_status == "canonical")
+    legacy_alias_count = sum(1 for entry in canonical_entries if entry.migration_status == "migrated_alias")
+    default_visible_count = sum(1 for entry in canonical_entries if entry.default_visible)
     paper_proven_count = sum(1 for record in records if record.template_manifest.paper_proven)
     golden_template_count = sum(1 for record in records if record.template_manifest.golden_case_paths)
     exemplar_template_count = sum(1 for record in records if record.template_manifest.exemplar_refs)
     return {
         "template_count": len(records),
+        "active_template_count": len(records),
+        "canonical_template_count": canonical_template_count,
+        "legacy_alias_template_count": legacy_alias_count,
+        "default_visible_template_count": default_visible_count,
+        "canonical_family_count": len({entry.family_id for entry in canonical_entries if entry.default_visible}),
         "kind_counts": dict(sorted(kinds.items())),
         "renderer_family_counts": dict(sorted(renderers.items())),
         "execution_mode_counts": dict(sorted(execution_modes.items())),
@@ -285,8 +347,66 @@ def display_pack_capability_discover(
         "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
     }
     if include_templates:
-        payload["templates"] = [_template_summary(record) for record in records]
+        catalogs = _catalogs_by_pack_root(records)
+        payload["templates"] = [
+            _template_summary(record, catalogs)
+            for record in records
+            if _canonical_entry(record, catalogs).default_visible
+        ]
+        payload["template_surface_policy"] = {
+            "default_templates_are_canonical_only": True,
+            "active_inventory_is_canonical_only": True,
+            "legacy_alias_templates_hidden_from_default_discover": True,
+            "migration_inventory_template_count": sum(
+                len(catalog.entries_by_template_id)
+                for catalog in catalogs.values()
+                if catalog is not None
+            )
+            or len(records),
+            "returned_template_count": len(payload["templates"]),
+        }
     return payload
+
+
+def _canonicalized_request(
+    request: Mapping[str, Any],
+    records: list[LoadedDisplayTemplate],
+    catalogs: Mapping[Path, CanonicalTemplateCatalog | None],
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    updated = dict(request)
+    requested_template_id = _text(updated.get("template_id"))
+    if not requested_template_id:
+        return updated, None
+    migration_entry = _migration_index_from_catalogs(catalogs).get(requested_template_id)
+    if migration_entry is None and "::" in requested_template_id:
+        migration_entry = _migration_index_from_catalogs(catalogs).get(requested_template_id.split("::")[-1])
+    if migration_entry is not None and migration_entry.migration_status == "migrated_alias":
+        updated["template_id"] = migration_entry.canonical_template_id
+        return updated, {
+            "status": "migrated_alias_to_canonical",
+            "requested_template_id": requested_template_id,
+            "canonical_template_id": migration_entry.canonical_template_id,
+            "canonical_family_id": migration_entry.family_id,
+            "canonical_family_title": migration_entry.family_title,
+            "migration_reason": migration_entry.migration_reason,
+        }
+    for record in records:
+        manifest = record.template_manifest
+        if requested_template_id not in {manifest.template_id, manifest.full_template_id}:
+            continue
+        canonical = _canonical_entry(record, catalogs)
+        if canonical.migration_status != "migrated_alias":
+            return updated, None
+        updated["template_id"] = canonical.canonical_template_id
+        return updated, {
+            "status": "migrated_alias_to_canonical",
+            "requested_template_id": requested_template_id,
+            "canonical_template_id": canonical.canonical_template_id,
+            "canonical_family_id": canonical.family_id,
+            "canonical_family_title": canonical.family_title,
+            "migration_reason": canonical.migration_reason,
+        }
+    return updated, None
 
 
 def display_pack_figure_plan(
@@ -304,14 +424,22 @@ def display_pack_figure_plan(
         normalized_repo_root,
         paper_root=normalized_paper_root,
     )
+    catalogs = _catalogs_by_pack_root(records)
+    request, template_migration = _canonicalized_request(request, records, catalogs)
     candidates: list[dict[str, Any]] = []
     for record in records:
+        canonical = _canonical_entry(record, catalogs)
+        if not _text(request.get("template_id")) and not canonical.default_visible:
+            continue
         if not hard_compatible(record, request):
             continue
         if not has_semantic_fit_anchor(record, request):
             continue
         score, reasons = score_template(record, request)
-        entry = _template_summary(record)
+        if canonical.default_visible:
+            score += 30
+            reasons.append("canonical_default_visible")
+        entry = _template_summary(record, catalogs)
         entry["recommendation_score"] = score
         entry["recommendation_reasons"] = reasons
         entry.update(template_fit_entry(record, request))
@@ -340,6 +468,12 @@ def display_pack_figure_plan(
         "recommended_template": recommended,
         "recommendations": recommendations,
         "candidate_count": len(candidates),
+        "template_surface_policy": {
+            "default_recommendations_are_canonical_only": True,
+            "legacy_alias_templates_hidden_unless_explicit": True,
+            "explicit_alias_requests_migrate_to_canonical": True,
+        },
+        "requested_template_migration": template_migration,
         "minimum_fit_floor": minimum_fit_floor(),
         "next_callable": "display-pack-preflight" if recommended else "",
         "typed_blocker": blocker,
@@ -491,14 +625,21 @@ def display_pack_preflight(
         normalized_repo_root,
         paper_root=normalized_paper_root,
     )
+    catalogs = _catalogs_by_pack_root(records)
     intent_payload = compile_display_figure_intent(figure_request=figure_request)
     compiled_request = dict(intent_payload["compiled_figure_request"])
     if template_id:
+        selected_request, template_migration = _canonicalized_request(
+            {"template_id": template_id},
+            records,
+            catalogs,
+        )
+        selected_template_id = _text(selected_request.get("template_id"))
         selected_records = [
             record
             for record in records
-            if record.template_manifest.template_id == template_id
-            or record.template_manifest.full_template_id == template_id
+            if record.template_manifest.template_id == selected_template_id
+            or record.template_manifest.full_template_id == selected_template_id
         ]
     else:
         plan = display_pack_figure_plan(
@@ -508,6 +649,7 @@ def display_pack_preflight(
             max_recommendations=1,
         )
         recommended = _mapping(plan.get("recommended_template"))
+        template_migration = _mapping(plan.get("requested_template_migration")) or None
         selected_template = _text(recommended.get("full_template_id") or recommended.get("template_id"))
         selected_records = [
             record
@@ -523,7 +665,7 @@ def display_pack_preflight(
     for record in selected_records:
         manifest = record.template_manifest
         template_root = record.template_path.parent
-        entry = _template_summary(record)
+        entry = _template_summary(record, catalogs)
         entry.update(template_fit_entry(record, compiled_request))
         template_entries.append(entry)
         if manifest.qc_profile_ref not in QC_PROFILE_RUNNERS:
@@ -605,6 +747,7 @@ def display_pack_preflight(
         "figure_intent": intent_payload,
         "figure_request": compiled_request,
         "templates": template_entries,
+        "requested_template_migration": template_migration,
         "r_runtime": r_runtime,
         "style_profile": style_profile_status,
         "blocking_findings": blocking_findings,
@@ -730,6 +873,11 @@ def display_pack_render(
 
     if data_payload_file:
         template_id = _text(request.get("template_id"))
+        records = load_enabled_local_display_template_records(
+            normalized_repo_root,
+            paper_root=normalized_paper_root,
+        )
+        catalogs = _catalogs_by_pack_root(records)
         if not template_id:
             plan = display_pack_figure_plan(
                 repo_root=normalized_repo_root,
@@ -739,6 +887,13 @@ def display_pack_render(
             )
             recommended = _mapping(plan.get("recommended_template"))
             template_id = _text(recommended.get("full_template_id") or recommended.get("template_id"))
+        else:
+            template_request, _template_migration = _canonicalized_request(
+                {"template_id": template_id},
+                records,
+                catalogs,
+            )
+            template_id = _text(template_request.get("template_id"))
         if not template_id:
             return {
                 "schema_version": 1,

@@ -12,6 +12,10 @@ from med_autoscience.display_pack_loader import (
     LoadedDisplayTemplate,
     load_enabled_local_display_template_records,
 )
+from med_autoscience.display_pack_canonical_catalog import (
+    canonical_catalog_entry_for_template,
+    load_canonical_template_catalog,
+)
 from med_autoscience.display_pack_runtime import resolve_display_template_runtime
 from med_autoscience.publication_display_contract import seed_publication_display_contracts_if_missing
 
@@ -77,6 +81,12 @@ def _source_config_entry(record: LoadedDisplayTemplate) -> dict[str, Any]:
 def _template_entry(record: LoadedDisplayTemplate) -> dict[str, Any]:
     manifest = record.template_manifest
     assets = _template_asset_status(record)
+    canonical = canonical_catalog_entry_for_template(
+        catalog=load_canonical_template_catalog(record.pack_root),
+        template_id=manifest.template_id,
+        category=manifest.audit_family,
+        title=manifest.display_name,
+    )
     return {
         "pack_id": record.pack_manifest.pack_id,
         "pack_version": record.pack_manifest.version,
@@ -95,6 +105,12 @@ def _template_entry(record: LoadedDisplayTemplate) -> dict[str, Any]:
         "required_exports": list(manifest.required_exports),
         "allowed_paper_roles": list(manifest.allowed_paper_roles),
         "paper_proven": manifest.paper_proven,
+        "canonical_family_id": canonical.family_id,
+        "canonical_family_title": canonical.family_title,
+        "canonical_family_category": canonical.family_category,
+        "canonical_template_id": canonical.canonical_template_id,
+        "migration_status": canonical.migration_status,
+        "default_visible": canonical.default_visible,
         "has_render_r": assets["render_r"]["status"] == "present",
         "has_render_candidate": assets["render_candidate_r"]["status"] == "present",
         "golden_case_count": assets["golden_case_count"],
@@ -178,6 +194,10 @@ def list_display_pack_templates(
         },
         "total_count": len(filtered_records),
         "inventory_count": len(records),
+        "template_surface_policy": {
+            "default_templates_are_canonical_only": True,
+            "active_inventory_is_canonical_only": True,
+        },
         "templates": [_template_entry(record) for record in filtered_records],
         "authority_boundary": {
             "list_can_authorize_publication_readiness": False,

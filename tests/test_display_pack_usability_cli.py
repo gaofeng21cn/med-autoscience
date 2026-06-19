@@ -37,6 +37,8 @@ def test_cli_display_pack_list_templates_supports_filtering(capsys) -> None:
     assert exit_code == 0
     assert result["schema_version"] == 1
     assert result["total_count"] >= 1
+    assert result["template_surface_policy"]["default_templates_are_canonical_only"] is True
+    assert result["template_surface_policy"]["active_inventory_is_canonical_only"] is True
     assert result["filters"] == {
         "kind": "evidence_figure",
         "renderer_family": "r_ggplot2",
@@ -46,6 +48,8 @@ def test_cli_display_pack_list_templates_supports_filtering(capsys) -> None:
     }
     template_ids = {entry["template_id"] for entry in result["templates"]}
     assert "roc_curve_binary" in template_ids
+    assert "time_dependent_roc_horizon" not in template_ids
+    assert {entry["migration_status"] for entry in result["templates"]} == {"canonical"}
     assert all(entry["renderer_family"] == "r_ggplot2" for entry in result["templates"])
     assert all(entry["kind"] == "evidence_figure" for entry in result["templates"])
 
@@ -209,7 +213,7 @@ def test_cli_display_pack_golden_refresh_and_check_roundtrip(tmp_path: Path, cap
 
 
 def test_all_enabled_display_pack_templates_reference_supported_qc_profiles() -> None:
-    records = load_enabled_local_display_template_records(REPO_ROOT)
+    records = load_enabled_local_display_template_records(REPO_ROOT, inventory_scope="all")
     missing = sorted(
         {
             record.template_manifest.qc_profile_ref

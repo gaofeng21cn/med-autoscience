@@ -11,6 +11,7 @@ from med_autoscience.display_pack_loader import (
     LoadedDisplayTemplate,
     load_enabled_local_display_template_records,
 )
+from med_autoscience.display_pack_canonical_catalog import load_canonical_template_catalog
 
 
 UNIFIED_HOST_MATERIALIZATION_ENTRYPOINT = (
@@ -22,12 +23,14 @@ UNIFIED_HOST_MATERIALIZATION_ENTRYPOINT = (
 def _template_runtime_index(
     repo_root: str,
     paper_root: str | None,
+    inventory_scope: str,
 ) -> dict[str, LoadedDisplayTemplate]:
     normalized_repo_root = Path(repo_root).expanduser().resolve()
     normalized_paper_root = Path(paper_root).expanduser().resolve() if paper_root is not None else None
     records = load_enabled_local_display_template_records(
         normalized_repo_root,
         paper_root=normalized_paper_root,
+        inventory_scope=inventory_scope,
     )
     return {
         record.template_manifest.full_template_id: record
@@ -40,28 +43,52 @@ def resolve_display_template_runtime(
     repo_root: Path,
     template_id: str,
     paper_root: Path | None = None,
+    inventory_scope: str = "canonical",
 ) -> LoadedDisplayTemplate:
     normalized_repo_root = Path(repo_root).expanduser().resolve()
     normalized_paper_root = Path(paper_root).expanduser().resolve() if paper_root is not None else None
     normalized_template_id = str(template_id).strip()
+    runtime_index = _template_runtime_index(
+        str(normalized_repo_root),
+        str(normalized_paper_root) if normalized_paper_root is not None else None,
+        inventory_scope,
+    )
     if "::" not in normalized_template_id:
         matches = [
             full_template_id
-            for full_template_id, record in _template_runtime_index(
-                str(normalized_repo_root),
-                str(normalized_paper_root) if normalized_paper_root is not None else None,
-            ).items()
+            for full_template_id, record in runtime_index.items()
             if record.template_manifest.template_id == normalized_template_id
         ]
         if len(matches) == 1:
             normalized_template_id = matches[0]
+    if normalized_template_id not in runtime_index:
+        normalized_template_id = _canonicalized_runtime_template_id(
+            runtime_index,
+            requested_template_id=normalized_template_id,
+        )
     try:
-        return _template_runtime_index(
-            str(normalized_repo_root),
-            str(normalized_paper_root) if normalized_paper_root is not None else None,
-        )[normalized_template_id]
+        return runtime_index[normalized_template_id]
     except KeyError as exc:
         raise ValueError(f"unknown display template runtime `{template_id}`") from exc
+
+
+def _canonicalized_runtime_template_id(
+    runtime_index: dict[str, LoadedDisplayTemplate],
+    *,
+    requested_template_id: str,
+) -> str:
+    requested_short_id = requested_template_id.split("::")[-1]
+    for record in runtime_index.values():
+        catalog = load_canonical_template_catalog(record.pack_root)
+        if catalog is None:
+            continue
+        entry = catalog.entries_by_template_id.get(requested_short_id)
+        if entry is None or entry.migration_status != "migrated_alias":
+            continue
+        canonical_full_id = f"{record.pack_manifest.pack_id}::{entry.canonical_template_id}"
+        if canonical_full_id in runtime_index:
+            return canonical_full_id
+    return requested_template_id
 
 
 @contextmanager
@@ -96,6 +123,7 @@ def load_python_plugin_callable(
         repo_root=repo_root,
         template_id=template_id,
         paper_root=paper_root,
+        inventory_scope="canonical",
     )
     if runtime.template_manifest.execution_mode != "python_plugin":
         raise ValueError(
@@ -121,6 +149,7 @@ def resolve_python_plugin_callable(
         repo_root=repo_root,
         template_id=template_id,
         paper_root=paper_root,
+        inventory_scope="canonical",
     )
     if runtime.template_manifest.entrypoint == UNIFIED_HOST_MATERIALIZATION_ENTRYPOINT:
         return None

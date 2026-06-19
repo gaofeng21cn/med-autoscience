@@ -172,7 +172,7 @@ def test_source_tree_does_not_keep_packaged_display_pack_projection() -> None:
 
 
 def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
-    records = load_enabled_local_display_pack_template_records(REPO_ROOT)
+    records = load_enabled_local_display_pack_template_records(REPO_ROOT, inventory_scope="all")
     evidence_records = [
         record
         for record in records
@@ -190,8 +190,8 @@ def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
     ]
 
     assert len(evidence_records) == 84
-    assert len(r_records) == 55
-    assert len(python_records) == 29
+    assert len(r_records) == 51
+    assert len(python_records) == 33
     for record in r_records:
         assert record.template_manifest.execution_mode == "subprocess"
         assert record.template_manifest.entrypoint == "Rscript render.R --request {request_json}"
@@ -199,6 +199,23 @@ def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
     for record in python_records:
         assert record.template_manifest.execution_mode == "python_plugin"
         assert record.template_manifest.entrypoint.startswith("fenggaolab_org_medical_display_core.")
+
+
+def test_default_display_pack_template_inventory_is_canonical_only() -> None:
+    default_records = load_enabled_local_display_pack_template_records(REPO_ROOT)
+    full_records = load_enabled_local_display_pack_template_records(REPO_ROOT, inventory_scope="all")
+
+    assert len(default_records) == 21
+    assert len(full_records) == 98
+    assert {record.template_manifest.template_id for record in default_records} < {
+        record.template_manifest.template_id for record in full_records
+    }
+    assert "time_dependent_roc_horizon" not in {
+        record.template_manifest.template_id for record in default_records
+    }
+    assert "roc_curve_binary" in {
+        record.template_manifest.template_id for record in default_records
+    }
 
 
 def test_load_enabled_local_display_pack_templates_reads_enabled_pack_templates(tmp_path: Path) -> None:

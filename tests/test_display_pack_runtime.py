@@ -206,6 +206,23 @@ def test_resolve_display_template_runtime_keeps_pack_root_and_manifest(tmp_path:
     assert runtime.template_manifest.entrypoint == "demo_display_core_repo.renderers:render_template"
 
 
+def test_resolve_display_template_runtime_migrates_aliases_on_default_surface() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+
+    default_runtime = resolve_display_template_runtime(
+        repo_root=repo_root,
+        template_id="time_dependent_roc_horizon",
+    )
+    migration_runtime = resolve_display_template_runtime(
+        repo_root=repo_root,
+        template_id="time_dependent_roc_horizon",
+        inventory_scope="all",
+    )
+
+    assert default_runtime.template_manifest.template_id == "roc_curve_binary"
+    assert migration_runtime.template_manifest.template_id == "time_dependent_roc_horizon"
+
+
 def test_load_python_plugin_callable_imports_pack_local_src(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()

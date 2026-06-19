@@ -870,6 +870,7 @@ def render_display_pack_candidate_asset(
         repo_root=normalized_repo_root,
         paper_root=None,
         template_id=template_id,
+        inventory_scope="all",
     )
     template_manifest = runtime.template_manifest
     candidate_script_path = runtime.template_path.parent / "render_candidate.R"

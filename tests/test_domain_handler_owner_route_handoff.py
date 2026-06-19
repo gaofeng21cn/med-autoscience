@@ -24,10 +24,14 @@ def test_domain_handler_export_exposes_display_pack_agent_capability(tmp_path: P
     capability = export["display_pack_agent_capability"]
     assert capability["surface_kind"] == "display_pack_agent_capability"
     assert capability["status"] == "available"
-    assert capability["inventory"]["template_count"] >= 90
-    assert capability["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 50
+    assert capability["inventory"]["template_count"] == 21
+    assert capability["inventory"]["active_template_count"] == 21
+    assert capability["inventory"]["canonical_template_count"] == 21
+    assert capability["inventory"]["legacy_alias_template_count"] == 0
+    assert capability["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
     assert {item["command"] for item in capability["callable_actions"]} == {
         "display-pack-capability-discover",
+        "display-pack-orchestrate",
         "display-pack-figure-plan",
         "display-pack-preflight",
         "display-pack-render",

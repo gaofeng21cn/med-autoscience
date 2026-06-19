@@ -6,8 +6,8 @@
   "machine_boundary": "This contract records MAS-native learning/adoption status. It is not a publication authority, quality verdict, default skill source, vendor runner, MAS truth writer, or generated prompt loader.",
   "source": {
     "project": "Yuan1z0825/nature-skills",
-    "observed_head": "1cb9070fdd94929d5f267ce6585ac87e2cba60b3",
-    "observed_date": "2026-06-18",
+    "observed_head": "54eadc65d1c0535e90d792a87ab718d848ccbb7a",
+    "observed_date": "2026-06-19",
     "evidence_commands": [
       "git ls-remote https://github.com/Yuan1z0825/nature-skills.git HEAD refs/heads/main",
       "git rev-parse HEAD after shallow clone"
@@ -22,9 +22,15 @@
       "skills/nature-reviewer/SKILL.md",
       "skills/nature-figure/SKILL.md",
       "skills/nature-figure/manifest.yaml",
+      "skills/nature-figure/static/core/contract.md",
+      "skills/nature-figure/static/core/stance.md",
+      "skills/nature-figure/static/fragments/backend/r.md",
       "skills/nature-figure/references/figure-contract.md",
       "skills/nature-figure/references/qa-contract.md",
       "skills/nature-figure/references/backend-selection.md",
+      "skills/nature-figure/references/r-workflow.md",
+      "skills/nature-figure/references/common-patterns.md",
+      "skills/nature-figure/references/design-theory.md",
       "skills/nature-paper2ppt/SKILL.md"
     ]
   },
@@ -39,6 +45,32 @@
     "section_contract_draft_source_map_readback",
     "claim_evidence_citation_support_matrix",
     "reviewer_comment_typed_repair_action_projection"
+  ],
+  "publication_display_external_style_refs": [
+    {
+      "source": "ggplot2 guide_colourbar reference",
+      "url": "https://ggplot2.tidyverse.org/reference/guide_colourbar.html",
+      "observed_status": "http_200_2026-06-19",
+      "landed_as": "R renderer publication_colorbar_guide with explicit bar dimensions, label side, title position, and fewer breaks"
+    },
+    {
+      "source": "colorspace palette guidance",
+      "url": "https://colorspace.r-forge.r-project.org/articles/colorspace.html",
+      "observed_status": "http_200_2026-06-19",
+      "landed_as": "sequential heatmap scale for unsigned matrices and diverging scale only for signed zero-crossing matrices"
+    },
+    {
+      "source": "cowplot theme guidance",
+      "url": "https://wilkelab.org/cowplot/reference/theme_cowplot.html",
+      "observed_status": "http_200_2026-06-19",
+      "landed_as": "clean white theme, thin axes, minimal grid and outside/shared legends"
+    },
+    {
+      "source": "ggsci scientific journal palettes",
+      "url": "https://nanx.me/ggsci/",
+      "observed_status": "http_200_2026-06-19",
+      "landed_as": "journal-palette concept retained as MAS semantic clinical palette rather than a hard Nature clone"
+    }
   ],
   "adoptions": [
     {
@@ -98,6 +130,57 @@
         "artifact_authority",
         "data_or_statistics_mutation_authority",
         "cross_backend_visual_fallback"
+      ]
+    },
+    {
+      "pattern_id": "canonical_figure_family_default_surface",
+      "classification": "adopt_template",
+      "landing_status": "owner_surface_landed",
+      "owner_surfaces": [
+        "display_pack_agent_figure_plan",
+        "display_pack_capability_discover",
+        "display_pack_gallery",
+        "canonical_template_catalog"
+      ],
+      "consumable_surfaces": [
+        "display-packs/fenggaolab.org.medical-display-core/canonical_template_catalog.json",
+        "src/med_autoscience.display_pack_canonical_catalog.load_canonical_template_catalog",
+        "src/med_autoscience.display_pack_agent.display_pack_figure_plan",
+        "docs/delivery/medical-display/examples/ggplot2_template_reference_assets/gallery_manifest.json"
+      ],
+      "gap_status": [
+        "default_application_surface_migrated_to_canonical_inventory",
+        "legacy_template_directories_retained_only_as_migration_index_and_internal_render_audit_input",
+        "physical_template_directory_archive_is_optional_followup_migration"
+      ],
+      "forbidden_authority": [
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "source_or_statistics_mutation_authority"
+      ]
+    },
+    {
+      "pattern_id": "publication_colorbar_and_semantic_palette_governance",
+      "classification": "adopt_template",
+      "landing_status": "owner_surface_landed",
+      "owner_surfaces": [
+        "publication_style_profile",
+        "r_ggplot2_renderer",
+        "display_pack_gallery"
+      ],
+      "consumable_surfaces": [
+        "src/med_autoscience.publication_display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD",
+        "display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R",
+        "display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/candidate_renderer.R"
+      ],
+      "gap_status": [
+        "visual_audit_still_required_for_real_paper_figures",
+        "publication_gate_still_authoritative"
+      ],
+      "forbidden_authority": [
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "visual_audit_replacement"
       ]
     },
     {

@@ -51,9 +51,13 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
 
     assert payload["surface_kind"] == "display_pack_agent_capability"
     assert payload["status"] == "available"
-    assert payload["inventory"]["template_count"] >= 90
-    assert payload["inventory"]["kind_counts"]["evidence_figure"] >= 80
-    assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 50
+    assert payload["inventory"]["template_count"] == 21
+    assert payload["inventory"]["active_template_count"] == 21
+    assert payload["inventory"]["canonical_family_count"] == 21
+    assert payload["inventory"]["canonical_template_count"] == 21
+    assert payload["inventory"]["legacy_alias_template_count"] == 0
+    assert payload["inventory"]["kind_counts"]["evidence_figure"] >= 15
+    assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
     assert {item["command"] for item in payload["callable_actions"]} == {
         "display-pack-capability-discover",
         "display-pack-orchestrate",
@@ -64,6 +68,18 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
     assert payload["authority_boundary"]["can_mutate_data_or_statistics"] is False
     assert payload["authority_boundary"]["can_authorize_publication_readiness"] is False
     assert payload["expected_receipt_refs"]["figure_render_receipt"] == "paper/figure_render_receipt.json"
+
+
+def test_display_pack_capability_discover_templates_defaults_to_canonical_surface() -> None:
+    payload = display_pack_capability_discover(repo_root=REPO_ROOT, include_templates=True)
+
+    assert payload["template_surface_policy"]["default_templates_are_canonical_only"] is True
+    assert payload["template_surface_policy"]["active_inventory_is_canonical_only"] is True
+    assert payload["template_surface_policy"]["migration_inventory_template_count"] >= 90
+    assert payload["template_surface_policy"]["returned_template_count"] == payload["inventory"]["template_count"]
+    assert payload["templates"]
+    assert {item["migration_status"] for item in payload["templates"]} == {"canonical"}
+    assert all(item["default_visible"] is True for item in payload["templates"])
 
 
 def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request() -> None:
@@ -82,8 +98,31 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert payload["status"] == "display_plan_ready"
     assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
     assert payload["recommended_template"]["renderer_family"] == "r_ggplot2"
+    assert payload["recommended_template"]["migration_status"] == "canonical"
+    assert payload["recommended_template"]["canonical_family_id"] == "prediction_curve_panel"
+    assert payload["template_surface_policy"]["default_recommendations_are_canonical_only"] is True
     assert payload["recommended_template"]["adaptation_required"] is False
     assert payload["next_callable"] == "display-pack-preflight"
+
+
+def test_display_pack_figure_plan_migrates_explicit_legacy_alias_to_canonical_template() -> None:
+    payload = display_pack_figure_plan(
+        repo_root=REPO_ROOT,
+        figure_request={
+            "figure_kind": "evidence_figure",
+            "template_id": "time_dependent_roc_horizon",
+            "query": "time dependent roc",
+        },
+        max_recommendations=3,
+    )
+
+    assert payload["surface_kind"] == "display_pack_agent_figure_plan"
+    assert payload["status"] == "display_plan_ready"
+    assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert payload["recommended_template"]["migration_status"] == "canonical"
+    assert payload["requested_template_migration"]["status"] == "migrated_alias_to_canonical"
+    assert payload["requested_template_migration"]["requested_template_id"] == "time_dependent_roc_horizon"
+    assert payload["requested_template_migration"]["canonical_template_id"] == "roc_curve_binary"
 
 
 def test_display_pack_figure_plan_uses_close_template_as_adaptable_baseline() -> None:

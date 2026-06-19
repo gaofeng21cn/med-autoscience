@@ -144,10 +144,11 @@ style_grid_color <- function(display_payload) {
   style_color(display_payload, role_name = "grid_line", palette_key = palette_key, fallback = "#E6EDF2")
 }
 
-publication_legend_guides <- function(display_payload) {
-  typography <- style_typography(display_payload)
+publication_legend_guides <- function(display_payload, labels = NULL) {
+  label_count <- length(unique(as.character(labels %||% character())))
+  row_count <- if (label_count > 3) 2 else 1
   guide_legend(
-    nrow = 1,
+    nrow = row_count,
     byrow = TRUE,
     override.aes = list(linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.0) * 0.42),
     label.position = "right",
@@ -171,16 +172,24 @@ publication_colorbar_guide <- function(display_payload, title = NULL, bar_orient
   )
 }
 
-continuous_scale_breaks <- function(values, max_breaks = 4) {
+continuous_scale_breaks <- function(values, max_breaks = 3) {
   finite_values <- values[is.finite(values)]
   if (length(finite_values) < 1) {
     return(waiver())
   }
   range_values <- range(finite_values, na.rm = TRUE)
-  pretty(range_values, n = max_breaks)
+  if (identical(range_values[[1]], range_values[[2]])) {
+    return(range_values[[1]])
+  }
+  breaks <- pretty(range_values, n = max_breaks)
+  breaks <- breaks[breaks >= range_values[[1]] & breaks <= range_values[[2]]]
+  if (length(breaks) > max_breaks) {
+    breaks <- breaks[round(seq(1, length(breaks), length.out = max_breaks))]
+  }
+  unique(breaks)
 }
 
-heatmap_fill_scale <- function(display_payload, values, name = NULL, limits = NULL, midpoint = NULL) {
+heatmap_scale_components <- function(display_payload, values, name = NULL, limits = NULL, midpoint = NULL) {
   finite_values <- values[is.finite(values)]
   if (length(finite_values) < 1) {
     finite_values <- c(0, 1)
@@ -192,16 +201,27 @@ heatmap_fill_scale <- function(display_payload, values, name = NULL, limits = NU
   }
   breaks <- if (is.null(limits)) continuous_scale_breaks(finite_values) else continuous_scale_breaks(limits)
   guide <- publication_colorbar_guide(display_payload, title = name)
-  if (crosses_zero) {
+  list(
+    finite_values = finite_values,
+    crosses_zero = crosses_zero,
+    midpoint = midpoint,
+    breaks = breaks,
+    guide = guide
+  )
+}
+
+heatmap_fill_scale <- function(display_payload, values, name = NULL, limits = NULL, midpoint = NULL) {
+  components <- heatmap_scale_components(display_payload, values, name = name, limits = limits, midpoint = midpoint)
+  if (components$crosses_zero) {
     return(scale_fill_gradient2(
       low = style_color(display_payload, "heatmap_low", "heatmap_low", "#2166AC"),
       mid = style_color(display_payload, "heatmap_mid", "heatmap_mid", "#F7F7F7"),
       high = style_color(display_payload, "heatmap_high", "heatmap_high", "#B2182B"),
-      midpoint = midpoint,
+      midpoint = components$midpoint,
       limits = limits,
-      breaks = breaks,
+      breaks = components$breaks,
       name = name,
-      guide = guide
+      guide = components$guide
     ))
   }
   scale_fill_gradientn(
@@ -211,9 +231,65 @@ heatmap_fill_scale <- function(display_payload, values, name = NULL, limits = NU
       style_color(display_payload, "heatmap_seq_high", "heatmap_seq_high", "#0B4F6C")
     ),
     limits = limits,
-    breaks = breaks,
+    breaks = components$breaks,
     name = name,
-    guide = guide
+    guide = components$guide
+  )
+}
+
+heatmap_colour_scale <- function(display_payload, values, name = NULL, limits = NULL, midpoint = NULL) {
+  components <- heatmap_scale_components(display_payload, values, name = name, limits = limits, midpoint = midpoint)
+  if (components$crosses_zero) {
+    return(scale_color_gradient2(
+      low = style_color(display_payload, "heatmap_low", "heatmap_low", "#2166AC"),
+      mid = style_color(display_payload, "heatmap_mid", "heatmap_mid", "#F7F7F7"),
+      high = style_color(display_payload, "heatmap_high", "heatmap_high", "#B2182B"),
+      midpoint = components$midpoint,
+      limits = limits,
+      breaks = components$breaks,
+      name = name,
+      guide = components$guide
+    ))
+  }
+  scale_color_gradientn(
+    colours = c(
+      style_color(display_payload, "heatmap_seq_low", "heatmap_seq_low", "#F4F8FA"),
+      style_color(display_payload, "heatmap_seq_mid", "heatmap_seq_mid", "#9DD2D3"),
+      style_color(display_payload, "heatmap_seq_high", "heatmap_seq_high", "#0B4F6C")
+    ),
+    limits = limits,
+    breaks = components$breaks,
+    name = name,
+    guide = components$guide
+  )
+}
+
+heatmap_text_colours <- function(display_payload, values) {
+  finite_values <- values[is.finite(values)]
+  if (length(finite_values) < 1) {
+    return(rep(style_text_color(display_payload), length(values)))
+  }
+  value_range <- range(finite_values, na.rm = TRUE)
+  if (identical(value_range[[1]], value_range[[2]])) {
+    intensity <- rep(0, length(values))
+  } else if (value_range[[1]] < 0 && value_range[[2]] > 0) {
+    max_abs <- max(abs(value_range))
+    intensity <- abs(values) / max_abs
+  } else {
+    intensity <- (values - value_range[[1]]) / (value_range[[2]] - value_range[[1]])
+  }
+  ifelse(is.finite(intensity) & intensity >= 0.72, "#FFFFFF", style_text_color(display_payload))
+}
+
+theme_publication_colorbar <- function(display_payload) {
+  typography <- style_typography(display_payload)
+  text_color <- style_text_color(display_payload)
+  theme(
+    legend.position = "right",
+    legend.box = "vertical",
+    legend.justification = "center",
+    legend.title = element_text(size = style_numeric(typography, "legend_size", 7.2), colour = text_color),
+    legend.text = element_text(size = style_numeric(typography, "legend_size", 7.2), colour = text_color)
   )
 }
 
@@ -222,15 +298,26 @@ style_series_palette <- function(display_payload, labels) {
   if (length(labels) < 1) {
     return(character())
   }
-  role_order <- c("model_curve", "comparator_curve", "reference_line", "highlight_band", "flow_primary_edge", "flow_secondary_edge")
+  role_order <- c(
+    "model_curve",
+    "comparator_curve",
+    "series_3",
+    "series_4",
+    "series_5",
+    "series_6",
+    "reference_line",
+    "highlight_band"
+  )
   palette <- style_palette(display_payload)
   fallback_values <- c(
-    style_color(display_payload, "model_curve", "primary", "#5F766B"),
-    style_color(display_payload, "comparator_curve", "secondary", "#B9AD9C"),
-    style_color(display_payload, "reference_line", "neutral", "#7B8794"),
-    style_color(display_payload, "highlight_band", "light", "#E7E1D8"),
-    style_color(display_payload, palette_key = "contrast", fallback = "#2F5D8A"),
-    style_color(display_payload, palette_key = "audit", fallback = "#B57F7F")
+    style_color(display_payload, "model_curve", "primary", "#0B4F6C"),
+    style_color(display_payload, "comparator_curve", "secondary", "#2A9D8F"),
+    style_color(display_payload, "series_3", "tertiary", "#B84A3A"),
+    style_color(display_payload, "series_4", "quaternary", "#D99A2B"),
+    style_color(display_payload, "series_5", "violet", "#6F63B6"),
+    style_color(display_payload, "series_6", "neutral_mid", "#767676"),
+    style_color(display_payload, "reference_line", "neutral", "#4D4D4D"),
+    style_color(display_payload, "highlight_band", "light", "#F2F5F7")
   )
   values <- vapply(seq_along(labels), function(index) {
     role_name <- role_order[[((index - 1) %% length(role_order)) + 1]]
@@ -249,6 +336,9 @@ style_series_palette <- function(display_payload, labels) {
 }
 
 theme_publication <- function(display_payload = list()) {
+  render_context <- render_context_from_payload(display_payload)
+  layout_override <- render_context$layout_override %||% list()
+  show_figure_title <- style_bool(layout_override, "show_figure_title", TRUE)
   typography <- style_typography(display_payload)
   stroke <- style_stroke(display_payload)
   grid_spec <- style_grid(display_payload)
@@ -282,8 +372,9 @@ theme_publication <- function(display_payload = list()) {
   theme_bw(base_size = base_size, base_family = font_family) +
     theme(
       text = element_text(family = font_family, colour = text_color),
-      plot.title = element_text(face = "bold", colour = text_color, size = title_size),
-      axis.title = element_text(face = "bold", colour = text_color, size = axis_title_size),
+      plot.title = if (show_figure_title) element_text(face = "bold", colour = text_color, size = title_size, hjust = 0, margin = margin(b = 5)) else element_blank(),
+      plot.subtitle = element_text(colour = text_color, size = base_size, margin = margin(b = 4)),
+      axis.title = element_text(face = "plain", colour = text_color, size = axis_title_size),
       axis.text = element_text(colour = text_color, size = tick_size),
       axis.line = element_line(colour = axis_color, linewidth = axis_linewidth),
       axis.ticks = element_line(colour = axis_color, linewidth = axis_linewidth),
@@ -412,7 +503,10 @@ plot_binary_curve <- function(display_payload) {
   plot <- ggplot(curve_df, aes(x = x, y = y, colour = label)) +
     geom_line(linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.2) * 0.42) +
     coord_cartesian(xlim = c(0, 1), ylim = c(min(curve_df$y, 0), max(curve_df$y, 1))) +
-    scale_color_manual(values = style_series_palette(display_payload, unique(curve_df$label))) +
+    scale_color_manual(
+      values = style_series_palette(display_payload, unique(curve_df$label)),
+      guide = publication_legend_guides(display_payload, curve_df$label)
+    ) +
     labs(
       title = trimws(as.character(display_payload$title %||% "")),
       x = trimws(as.character(display_payload$x_label %||% "")),
@@ -455,7 +549,10 @@ plot_kaplan_meier <- function(display_payload) {
   plot <- ggplot(curve_df, aes(x = x, y = y, colour = label)) +
     geom_step(linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.2) * 0.42, direction = "hv") +
     coord_cartesian(xlim = c(0, max(curve_df$x)), ylim = c(0, 1)) +
-    scale_color_manual(values = style_series_palette(display_payload, unique(curve_df$label))) +
+    scale_color_manual(
+      values = style_series_palette(display_payload, unique(curve_df$label)),
+      guide = publication_legend_guides(display_payload, curve_df$label)
+    ) +
     labs(
       title = trimws(as.character(display_payload$title %||% "")),
       x = trimws(as.character(display_payload$x_label %||% "")),
@@ -486,7 +583,10 @@ plot_embedding_scatter <- function(display_payload) {
   point_df <- build_point_dataframe(points_payload)
   plot <- ggplot(point_df, aes(x = x, y = y, colour = group)) +
     geom_point(size = style_numeric(style_stroke(display_payload), "marker_size", 4.5) * 0.62, alpha = 0.9) +
-    scale_color_manual(values = style_series_palette(display_payload, unique(point_df$group))) +
+    scale_color_manual(
+      values = style_series_palette(display_payload, unique(point_df$group)),
+      guide = publication_legend_guides(display_payload, point_df$group)
+    ) +
     labs(
       title = trimws(as.character(display_payload$title %||% "")),
       x = trimws(as.character(display_payload$x_label %||% "")),
@@ -504,21 +604,19 @@ plot_heatmap <- function(display_payload) {
   column_order <- if (is.null(display_payload$column_order)) NULL else extract_label_vector(display_payload$column_order, "column_order")
   row_order <- if (is.null(display_payload$row_order)) NULL else extract_label_vector(display_payload$row_order, "row_order")
   heat_df <- build_heatmap_dataframe(cells_payload, column_order = column_order, row_order = row_order)
+  heat_df$text_colour <- heatmap_text_colours(display_payload, heat_df$value)
   plot <- ggplot(heat_df, aes(x = x, y = y, fill = value)) +
     geom_tile(colour = "white", linewidth = 0.5) +
-    geom_text(aes(label = sprintf("%.2f", value)), size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.31, colour = style_text_color(display_payload)) +
-    scale_fill_gradient2(
-      low = style_color(display_payload, "heatmap_low", "heatmap_low", "#2166AC"),
-      mid = style_color(display_payload, "heatmap_mid", "heatmap_mid", "#FFFFFF"),
-      high = style_color(display_payload, "heatmap_high", "heatmap_high", "#B2182B"),
-      midpoint = 0
-    ) +
+    geom_text(aes(label = sprintf("%.2f", value), colour = text_colour), size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.31, show.legend = FALSE) +
+    scale_colour_identity() +
+    heatmap_fill_scale(display_payload, heat_df$value) +
     labs(
       title = trimws(as.character(display_payload$title %||% "")),
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = trimws(as.character(display_payload$y_label %||% ""))
     ) +
     theme_publication(display_payload) +
+    theme_publication_colorbar(display_payload) +
     theme(axis.text.x = element_text(angle = 25, hjust = 1))
   plot
 }
@@ -535,23 +633,19 @@ plot_performance_heatmap <- function(display_payload) {
   column_order <- if (is.null(display_payload$column_order)) NULL else extract_label_vector(display_payload$column_order, "column_order")
   row_order <- if (is.null(display_payload$row_order)) NULL else extract_label_vector(display_payload$row_order, "row_order")
   heat_df <- build_heatmap_dataframe(cells_payload, column_order = column_order, row_order = row_order)
+  heat_df$text_colour <- heatmap_text_colours(display_payload, heat_df$value)
   plot <- ggplot(heat_df, aes(x = x, y = y, fill = value)) +
     geom_tile(colour = "white", linewidth = 0.5) +
-    geom_text(aes(label = sprintf("%.2f", value)), size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.31, colour = style_text_color(display_payload)) +
-    scale_fill_gradient2(
-      low = style_color(display_payload, "heatmap_low", "heatmap_low", "#2166AC"),
-      mid = style_color(display_payload, "heatmap_mid", "heatmap_mid", "#FFFFFF"),
-      high = style_color(display_payload, "heatmap_high", "heatmap_high", "#B2182B"),
-      midpoint = 0.5,
-      limits = c(0, 1),
-      name = metric_name
-    ) +
+    geom_text(aes(label = sprintf("%.2f", value), colour = text_colour), size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.31, show.legend = FALSE) +
+    scale_colour_identity() +
+    heatmap_fill_scale(display_payload, heat_df$value, name = metric_name, limits = c(0, 1)) +
     labs(
       title = trimws(as.character(display_payload$title %||% "")),
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = trimws(as.character(display_payload$y_label %||% ""))
     ) +
     theme_publication(display_payload) +
+    theme_publication_colorbar(display_payload) +
     theme(axis.text.x = element_text(angle = 25, hjust = 1))
   plot
 }
@@ -572,21 +666,19 @@ plot_confusion_matrix_heatmap <- function(display_payload) {
   column_order <- if (is.null(display_payload$column_order)) NULL else extract_label_vector(display_payload$column_order, "column_order")
   row_order <- if (is.null(display_payload$row_order)) NULL else extract_label_vector(display_payload$row_order, "row_order")
   heat_df <- build_heatmap_dataframe(cells_payload, column_order = column_order, row_order = row_order)
+  heat_df$text_colour <- heatmap_text_colours(display_payload, heat_df$value)
   plot <- ggplot(heat_df, aes(x = x, y = y, fill = value)) +
     geom_tile(colour = "white", linewidth = 0.7) +
-    geom_text(aes(label = sprintf("%.0f%%", value * 100)), size = style_numeric(style_typography(display_payload), "axis_title_size", 11.0) * 0.38, colour = style_text_color(display_payload), fontface = "bold") +
-    scale_fill_gradient(
-      low = style_color(display_payload, "heatmap_mid", "heatmap_mid", "#F7FBFF"),
-      high = style_color(display_payload, "heatmap_low", "heatmap_low", "#2166AC"),
-      limits = c(0, 1),
-      name = metric_name
-    ) +
+    geom_text(aes(label = sprintf("%.0f%%", value * 100), colour = text_colour), size = style_numeric(style_typography(display_payload), "axis_title_size", 11.0) * 0.38, fontface = "bold", show.legend = FALSE) +
+    scale_colour_identity() +
+    heatmap_fill_scale(display_payload, heat_df$value, name = metric_name, limits = c(0, 1)) +
     labs(
       title = trimws(as.character(display_payload$title %||% "")),
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = trimws(as.character(display_payload$y_label %||% ""))
     ) +
     theme_publication(display_payload) +
+    theme_publication_colorbar(display_payload) +
     theme(
       axis.text.x = element_text(angle = 0, hjust = 0.5),
       axis.text.y = element_text(face = "bold"),

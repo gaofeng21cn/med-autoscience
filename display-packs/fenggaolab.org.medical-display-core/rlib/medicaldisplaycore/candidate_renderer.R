@@ -89,7 +89,10 @@ candidate_plot_curve <- function(payload) {
     geom_line(linewidth = style_numeric(style_stroke(payload), "primary_linewidth", 2.2) * 0.42) +
     geom_abline(slope = 1, intercept = 0, colour = palette$reference, linewidth = style_numeric(style_stroke(payload), "reference_linewidth", 1.0) * 0.5, linetype = "dashed") +
     facet_wrap(~panel, scales = "free_y") +
-    scale_color_manual(values = style_series_palette(payload, unique(curve_df$label))) +
+    scale_color_manual(
+      values = style_series_palette(payload, unique(curve_df$label)),
+      guide = publication_legend_guides(payload, curve_df$label)
+    ) +
     labs(
       title = candidate_non_empty(payload$title, "R/ggplot2 candidate curve"),
       x = candidate_non_empty(payload$x_label, "Threshold / horizon"),
@@ -220,16 +223,19 @@ candidate_matrix_df <- function(payload) {
 candidate_plot_matrix <- function(payload) {
   matrix_df <- candidate_matrix_df(payload)
   palette <- candidate_palette(payload)
+  matrix_df$text_colour <- heatmap_text_colours(payload, matrix_df$value)
   ggplot(matrix_df, aes(x = x, y = y, fill = value)) +
     geom_tile(colour = "white", linewidth = 0.45) +
-    geom_text(aes(label = sprintf("%.2f", value)), size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.28, colour = palette$text) +
-    scale_fill_gradient2(low = palette$heatmap_low, mid = palette$heatmap_mid, high = palette$heatmap_high, midpoint = 0) +
+    geom_text(aes(label = sprintf("%.2f", value), colour = text_colour), size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.28, show.legend = FALSE) +
+    scale_colour_identity() +
+    heatmap_fill_scale(payload, matrix_df$value) +
     labs(
       title = candidate_non_empty(payload$title, "R/ggplot2 candidate matrix"),
       x = candidate_non_empty(payload$x_label %||% payload$heatmap_x_label, ""),
       y = candidate_non_empty(payload$y_label %||% payload$heatmap_y_label, "")
     ) +
     candidate_theme(payload) +
+    theme_publication_colorbar(payload) +
     theme(axis.text.x = element_text(angle = 25, hjust = 1))
 }
 
@@ -259,10 +265,9 @@ candidate_dot_df <- function(payload) {
 
 candidate_plot_dot <- function(payload) {
   dot_df <- candidate_dot_df(payload)
-  palette <- candidate_palette(payload)
   ggplot(dot_df, aes(x = x, y = y, colour = value, size = size)) +
     geom_point(alpha = 0.88) +
-    scale_color_gradient2(low = palette$heatmap_low, mid = palette$heatmap_mid, high = palette$heatmap_high, midpoint = 0) +
+    heatmap_colour_scale(payload, dot_df$value) +
     scale_size_continuous(range = c(2.2, 8.5)) +
     labs(
       title = candidate_non_empty(payload$title, "R/ggplot2 candidate dot plot"),
@@ -270,6 +275,7 @@ candidate_plot_dot <- function(payload) {
       y = candidate_non_empty(payload$y_label, "")
     ) +
     candidate_theme(payload) +
+    theme_publication_colorbar(payload) +
     theme(axis.text.x = element_text(angle = 25, hjust = 1))
 }
 
@@ -303,7 +309,10 @@ candidate_plot_volcano <- function(payload) {
     geom_vline(xintercept = c(-abs(candidate_numeric(payload$effect_threshold, 1)), abs(candidate_numeric(payload$effect_threshold, 1))), colour = palette$reference, linetype = "dashed", linewidth = style_numeric(style_stroke(payload), "reference_linewidth", 1.0) * 0.5) +
     geom_hline(yintercept = candidate_numeric(payload$significance_threshold, 1.3), colour = palette$reference, linetype = "dashed", linewidth = style_numeric(style_stroke(payload), "reference_linewidth", 1.0) * 0.5) +
     facet_wrap(~panel) +
-    scale_color_manual(values = c(upregulated = palette$volcano_up, downregulated = palette$volcano_down, background = palette$volcano_background)) +
+    scale_color_manual(
+      values = c(upregulated = palette$volcano_up, downregulated = palette$volcano_down, background = palette$volcano_background),
+      guide = publication_legend_guides(payload, volcano_df$class)
+    ) +
     labs(
       title = candidate_non_empty(payload$title, "R/ggplot2 candidate volcano"),
       x = candidate_non_empty(payload$x_label, "Effect"),
@@ -357,13 +366,14 @@ candidate_plot_shap <- function(payload, mode = "beeswarm") {
   ggplot(shap_df, aes(x = shap_value, y = feature, colour = feature_value)) +
     geom_vline(xintercept = 0, colour = palette$reference, linewidth = style_numeric(style_stroke(payload), "reference_linewidth", 1.0) * 0.6, linetype = "dashed") +
     geom_point(size = style_numeric(style_stroke(payload), "marker_size", 4.5) * 0.56, alpha = 0.9, position = position_jitter(height = 0.12, width = 0)) +
-    scale_color_gradient2(low = palette$heatmap_low, mid = palette$heatmap_mid, high = palette$heatmap_high, midpoint = median(shap_df$feature_value)) +
+    heatmap_colour_scale(payload, shap_df$feature_value, midpoint = median(shap_df$feature_value)) +
     labs(
       title = candidate_non_empty(payload$title, "R/ggplot2 candidate SHAP summary"),
       x = candidate_non_empty(payload$x_label, "SHAP value"),
       y = ""
     ) +
-    candidate_theme(payload)
+    candidate_theme(payload) +
+    theme_publication_colorbar(payload)
 }
 
 build_candidate_evidence_plot <- function(template_id, payload) {

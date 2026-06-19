@@ -1,0 +1,332 @@
+{
+  "schema_version": 1,
+  "catalog_id": "fenggaolab.org.medical-display-core.canonical_template_catalog.v1",
+  "pack_id": "fenggaolab.org.medical-display-core",
+  "owner": "MedAutoScience",
+  "purpose": "Define the small default figure-family surface exposed to agents and human galleries while retaining migrated template ids as aliases for intake and traceability.",
+  "machine_boundary": "This catalog controls Display Pack recommendation and gallery visibility. It is not source truth, statistical truth, artifact authority, visual-audit replacement, or publication-readiness authority.",
+  "default_surface_policy": {
+    "agent_recommendations_use_canonical_templates_by_default": true,
+    "gallery_shows_canonical_families_by_default": true,
+    "migrated_aliases_are_not_default_visible": true,
+    "explicit_alias_requests_may_be_migrated_to_canonical_template": true
+  },
+  "external_learning_refs": {
+    "nature_skills_project": "https://github.com/Yuan1z0825/nature-skills",
+    "nature_skills_observed_head": "54eadc65d1c0535e90d792a87ab718d848ccbb7a",
+    "nature_skills_observed_date": "2026-06-19",
+    "landed_patterns": [
+      "backend-exclusive render and QA",
+      "archetype-first figure families",
+      "shared legend or dedicated legend strategy",
+      "semantic palette reuse across panels",
+      "vector-first export discipline"
+    ]
+  },
+  "families": [
+    {
+      "family_id": "prediction_curve_panel",
+      "category": "Prediction Performance",
+      "title": "Prediction Curves",
+      "figure_archetype": "roc_pr_calibration_or_time_dependent_discrimination_curve",
+      "canonical_template_id": "roc_curve_binary",
+      "default_visible": true,
+      "aliases": [
+        "pr_curve_binary",
+        "calibration_curve_binary",
+        "time_dependent_roc_horizon",
+        "time_dependent_roc_comparison_panel"
+      ],
+      "migration_reason": "ROC, PR, calibration and horizon-discrimination curves share the same curve grammar; keep one canonical curve baseline and adapt labels, axes, reference lines, and horizon annotations."
+    },
+    {
+      "family_id": "clinical_utility_curve_panel",
+      "category": "Clinical Utility",
+      "title": "Clinical Utility Curves",
+      "figure_archetype": "decision_curve_clinical_impact_or_threshold_governance",
+      "canonical_template_id": "binary_calibration_decision_curve_panel",
+      "default_visible": true,
+      "aliases": [
+        "decision_curve_binary",
+        "clinical_impact_curve_binary",
+        "time_to_event_decision_curve",
+        "time_to_event_threshold_governance_panel"
+      ],
+      "migration_reason": "Decision-curve and clinical-impact variants should present as one utility panel family with paper-local threshold and calibration customization."
+    },
+    {
+      "family_id": "survival_curve_panel",
+      "category": "Time-to-Event",
+      "title": "Survival Curves",
+      "figure_archetype": "kaplan_meier_cumulative_incidence_or_stratified_event_curve",
+      "canonical_template_id": "kaplan_meier_grouped",
+      "default_visible": true,
+      "aliases": [
+        "cumulative_incidence_grouped",
+        "time_to_event_stratified_cumulative_incidence_panel"
+      ],
+      "migration_reason": "KM and cumulative-incidence displays share group curve, annotation, axis and legend governance."
+    },
+    {
+      "family_id": "survival_validation_panel",
+      "category": "Time-to-Event",
+      "title": "Survival Validation",
+      "figure_archetype": "time_to_event_discrimination_calibration_risk_summary",
+      "canonical_template_id": "time_to_event_discrimination_calibration_panel",
+      "default_visible": true,
+      "aliases": [
+        "time_to_event_landmark_performance_panel",
+        "time_to_event_multihorizon_calibration_panel",
+        "time_to_event_risk_group_summary",
+        "risk_layering_monotonic_bars"
+      ],
+      "migration_reason": "Time-to-event validation variants should be selected as one validation family, then adapted for landmark, calibration, risk-group, or monotonic layering needs."
+    },
+    {
+      "family_id": "effect_estimate_panel",
+      "category": "Effect Estimate",
+      "title": "Effect Estimates",
+      "figure_archetype": "forest_effect_subgroup_or_heterogeneity_panel",
+      "canonical_template_id": "forest_effect_main",
+      "default_visible": true,
+      "aliases": [
+        "subgroup_forest",
+        "multivariable_forest",
+        "compact_effect_estimate_panel",
+        "broader_heterogeneity_summary_panel",
+        "interaction_effect_summary_panel",
+        "generalizability_subgroup_composite_panel"
+      ],
+      "migration_reason": "Forest, subgroup, multivariable and heterogeneity variants share the same effect-estimate grammar and should not compete as separate default choices."
+    },
+    {
+      "family_id": "coefficient_path_panel",
+      "category": "Effect Estimate",
+      "title": "Coefficient Path",
+      "figure_archetype": "regularization_or_model_step_coefficient_path",
+      "canonical_template_id": "coefficient_path_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Coefficient paths have a distinct ordered-step grammar and remain a separate canonical family."
+    },
+    {
+      "family_id": "embedding_scatter_panel",
+      "category": "Data Geometry",
+      "title": "Embedding Scatter",
+      "figure_archetype": "umap_pca_tsne_phate_or_diffusion_embedding",
+      "canonical_template_id": "umap_scatter_grouped",
+      "default_visible": true,
+      "aliases": [
+        "pca_scatter_grouped",
+        "phate_scatter_grouped",
+        "tsne_scatter_grouped",
+        "diffusion_map_scatter_grouped"
+      ],
+      "migration_reason": "Low-dimensional embedding variants share coordinate, group, legend and axis governance; default selection should expose one embedding family."
+    },
+    {
+      "family_id": "atlas_spatial_panel",
+      "category": "Data Geometry",
+      "title": "Atlas and Spatial Context",
+      "figure_archetype": "single_cell_atlas_spatial_or_trajectory_context_panel",
+      "canonical_template_id": "single_cell_atlas_overview_panel",
+      "default_visible": true,
+      "aliases": [
+        "atlas_spatial_bridge_panel",
+        "atlas_spatial_trajectory_context_support_panel",
+        "atlas_spatial_trajectory_density_coverage_panel",
+        "atlas_spatial_trajectory_multimanifold_context_support_panel",
+        "atlas_spatial_trajectory_storyboard_panel",
+        "spatial_niche_map_panel",
+        "trajectory_progression_panel"
+      ],
+      "migration_reason": "Atlas, spatial and trajectory panels should be approached as one context-rich geometry family instead of many first-choice templates."
+    },
+    {
+      "family_id": "matrix_heatmap_panel",
+      "category": "Matrix Pattern",
+      "title": "Matrix Heatmap",
+      "figure_archetype": "heatmap_correlation_performance_confusion_or_program_matrix",
+      "canonical_template_id": "heatmap_group_comparison",
+      "default_visible": true,
+      "aliases": [
+        "performance_heatmap",
+        "confusion_matrix_heatmap_binary",
+        "correlation_heatmap",
+        "clustered_heatmap",
+        "gsva_ssgsea_heatmap",
+        "celltype_signature_heatmap"
+      ],
+      "migration_reason": "Generic matrix displays share tile, annotation, text-contrast and colorbar governance; keep one canonical heatmap family."
+    },
+    {
+      "family_id": "genomic_landscape_panel",
+      "category": "Matrix Pattern",
+      "title": "Genomic Landscape",
+      "figure_archetype": "oncoplot_cnv_or_multiomic_alteration_landscape",
+      "canonical_template_id": "genomic_alteration_landscape_panel",
+      "default_visible": true,
+      "aliases": [
+        "cnv_recurrence_summary_panel",
+        "oncoplot_mutation_landscape_panel",
+        "genomic_alteration_consequence_panel",
+        "genomic_alteration_multiomic_consequence_panel",
+        "genomic_alteration_pathway_integrated_composite_panel",
+        "genomic_program_governance_summary_panel"
+      ],
+      "migration_reason": "Genomic matrix variants should be grouped under one landscape family, with pathway, CNV and consequence panels handled as paper-local composition variants."
+    },
+    {
+      "family_id": "dot_enrichment_panel",
+      "category": "Matrix Pattern",
+      "title": "Dot and Enrichment Summary",
+      "figure_archetype": "pathway_enrichment_or_marker_dotplot",
+      "canonical_template_id": "pathway_enrichment_dotplot_panel",
+      "default_visible": true,
+      "aliases": [
+        "celltype_marker_dotplot_panel"
+      ],
+      "migration_reason": "Dotplot variants share x/y/category/value/size guide governance."
+    },
+    {
+      "family_id": "volcano_panel",
+      "category": "Data Geometry",
+      "title": "Volcano Plot",
+      "figure_archetype": "omics_effect_significance_volcano",
+      "canonical_template_id": "omics_volcano_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Volcano plots have distinct threshold and label governance and remain a separate canonical family."
+    },
+    {
+      "family_id": "global_explanation_panel",
+      "category": "Model Explanation",
+      "title": "Global Model Explanation",
+      "figure_archetype": "shap_global_importance_beeswarm_dependence_or_waterfall_summary",
+      "canonical_template_id": "shap_summary_beeswarm",
+      "default_visible": true,
+      "aliases": [
+        "shap_bar_importance",
+        "shap_signed_importance_panel",
+        "shap_multicohort_importance_panel",
+        "shap_dependence_panel",
+        "shap_waterfall_local_explanation_panel",
+        "shap_force_like_summary_panel"
+      ],
+      "migration_reason": "Global explanation variants should share ordering, zero-line, colorbar and feature-value governance."
+    },
+    {
+      "family_id": "local_explanation_panel",
+      "category": "Model Explanation",
+      "title": "Local and Support-Domain Explanation",
+      "figure_archetype": "grouped_local_decision_path_or_support_domain_explanation",
+      "canonical_template_id": "shap_grouped_local_support_domain_panel",
+      "default_visible": true,
+      "aliases": [
+        "shap_grouped_decision_path_panel",
+        "shap_grouped_local_explanation_panel",
+        "shap_multigroup_decision_path_panel",
+        "shap_multigroup_decision_path_support_domain_panel",
+        "shap_signed_importance_local_support_domain_panel"
+      ],
+      "migration_reason": "Local explanation, decision path and support-domain panels are one composite explanation family for default selection."
+    },
+    {
+      "family_id": "response_explanation_panel",
+      "category": "Model Explanation",
+      "title": "Feature Response Explanation",
+      "figure_archetype": "pdp_ice_ale_interaction_or_support_response_panel",
+      "canonical_template_id": "partial_dependence_ice_panel",
+      "default_visible": true,
+      "aliases": [
+        "accumulated_local_effects_panel",
+        "feature_response_support_domain_panel",
+        "partial_dependence_interaction_contour_panel",
+        "partial_dependence_interaction_slice_panel",
+        "partial_dependence_subgroup_comparison_panel"
+      ],
+      "migration_reason": "PDP, ICE, ALE, interaction and support-domain response plots share feature-response axis and support governance."
+    },
+    {
+      "family_id": "model_audit_panel",
+      "category": "Model Audit",
+      "title": "Model Audit",
+      "figure_archetype": "complexity_or_diagnostic_audit_panel",
+      "canonical_template_id": "model_complexity_audit_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Model audit remains a separate canonical family because it carries diagnostic rather than result-display semantics."
+    },
+    {
+      "family_id": "generalizability_panel",
+      "category": "Generalizability",
+      "title": "Generalizability and Transportability",
+      "figure_archetype": "multicenter_generalizability_coverage_or_transportability_panel",
+      "canonical_template_id": "multicenter_generalizability_overview",
+      "default_visible": true,
+      "aliases": [
+        "center_transportability_governance_summary_panel",
+        "center_coverage_batch_transportability_panel",
+        "transportability_recalibration_governance_panel"
+      ],
+      "migration_reason": "Center coverage, transportability and recalibration displays should present as one generalizability family."
+    },
+    {
+      "family_id": "cohort_flow_and_design_panel",
+      "category": "Publication Shells and Tables",
+      "title": "Cohort Flow and Design Shell",
+      "figure_archetype": "cohort_flow_design_evidence_or_workflow_fact_sheet",
+      "canonical_template_id": "cohort_flow_figure",
+      "default_visible": true,
+      "aliases": [
+        "design_evidence_composite_shell",
+        "workflow_fact_sheet_panel",
+        "baseline_missingness_qc_panel"
+      ],
+      "migration_reason": "Study design shells should expose one flow/design family and adapt details locally."
+    },
+    {
+      "family_id": "phenotype_treatment_gap_panel",
+      "category": "Publication Shells and Tables",
+      "title": "Phenotype and Treatment Gap",
+      "figure_archetype": "phenotype_gap_site_stability_or_treatment_alignment_panel",
+      "canonical_template_id": "phenotype_gap_structure_figure",
+      "default_visible": true,
+      "aliases": [
+        "site_held_out_stability_figure",
+        "treatment_gap_alignment_figure",
+        "treatment_shift_alignment_figure",
+        "practical_factor_dot_figure",
+        "preferred_class_sensitivity_figure"
+      ],
+      "migration_reason": "Phenotype, site-stability and treatment-gap panels are study-specific shell variants and should not fragment the default chooser."
+    },
+    {
+      "family_id": "submission_summary_panel",
+      "category": "Publication Shells and Tables",
+      "title": "Submission Summary",
+      "figure_archetype": "graphical_abstract_or_submission_summary",
+      "canonical_template_id": "submission_graphical_abstract",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Submission summaries have distinct graphical-abstract semantics and remain separate."
+    },
+    {
+      "family_id": "baseline_table_shell",
+      "category": "Publication Shells and Tables",
+      "title": "Table Shells",
+      "figure_archetype": "baseline_performance_or_interpretation_table",
+      "canonical_template_id": "table1_baseline_characteristics",
+      "default_visible": true,
+      "aliases": [
+        "performance_summary_table_generic",
+        "grouped_risk_event_summary_table",
+        "table2_phenotype_gap_summary",
+        "table2_time_to_event_performance_summary",
+        "table3_clinical_interpretation_summary",
+        "table3_transition_site_support_summary"
+      ],
+      "migration_reason": "Table shells should present as one tabular family in default discovery; exact table numbering is paper-local."
+    }
+  ]
+}
