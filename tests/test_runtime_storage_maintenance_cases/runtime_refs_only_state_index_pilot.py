@@ -255,6 +255,12 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
             "no_active_replay_local_inspection_caller_physical_delete_ref"
         ),
         "active_callers": [],
+        "retired_callers": [
+            (
+                "paper_progress_transition_refs.record_paper_progress_transition_ref::"
+                "persist_authority_refs_index_explicit_opt_in"
+            ),
+        ],
         "allowed_consumption": [
             "explicit_history_replay",
             "explicit_local_refs_inspection",

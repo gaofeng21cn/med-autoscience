@@ -119,6 +119,12 @@ DOMAIN_AUTHORITY_REFS_NO_ACTIVE_LEGACY_HELPER_SCAN = {
         "no_active_replay_local_inspection_caller_physical_delete_ref"
     ),
     "active_callers": [],
+    "retired_callers": [
+        (
+            "paper_progress_transition_refs.record_paper_progress_transition_ref::"
+            "persist_authority_refs_index_explicit_opt_in"
+        ),
+    ],
     "allowed_consumption": [
         "explicit_history_replay",
         "explicit_local_refs_inspection",
@@ -1077,6 +1083,9 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "active_callers"
     ] = ["paper_progress_transition_refs.record_paper_progress_transition_ref::legacy_sqlite"]
     refs_surface["opl_state_index_takeover_bridge"]["legacy_helper_active_caller_scan"][
+        "retired_callers"
+    ] = []
+    refs_surface["opl_state_index_takeover_bridge"]["legacy_helper_active_caller_scan"][
         "physical_delete_allowed"
     ] = True
     refs_surface["retirement_gate"][
@@ -1102,6 +1111,10 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "domain_authority_refs_index",
             "domain_authority_refs_no_active_scan_must_not_allow_physical_delete",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_legacy_helper_retired_caller_missing",
         ),
         (
             "domain_authority_refs_index",
@@ -2313,6 +2326,12 @@ def test_domain_authority_refs_index_no_active_legacy_helper_scan_keeps_physical
         )
     )
     assert scan["active_callers"] == []
+    assert {
+        (
+            "paper_progress_transition_refs.record_paper_progress_transition_ref::"
+            "persist_authority_refs_index_explicit_opt_in"
+        ),
+    } <= set(scan["retired_callers"])
     assert "explicit_history_replay" in scan["allowed_consumption"]
     assert "explicit_local_refs_inspection" in scan["allowed_consumption"]
     assert "legacy_helper_no_active_scan_as_physical_delete" in scan[
@@ -2357,6 +2376,7 @@ def test_domain_authority_refs_index_no_active_legacy_helper_scan_keeps_physical
     bad_scan["active_callers"] = [
         "paper_progress_transition_refs.record_paper_progress_transition_ref::legacy_sqlite"
     ]
+    bad_scan["retired_callers"] = []
     bad_scan["physical_delete_allowed"] = True
     bad_runtime_scan = bad_surface["opl_state_index_takeover_bridge"][
         "runtime_active_private_state_index_caller_scan"
@@ -2407,6 +2427,10 @@ def test_domain_authority_refs_index_no_active_legacy_helper_scan_keeps_physical
         (
             "domain_authority_refs_index",
             "domain_authority_refs_no_active_scan_must_not_allow_physical_delete",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_legacy_helper_retired_caller_missing",
         ),
         (
             "domain_authority_refs_index",

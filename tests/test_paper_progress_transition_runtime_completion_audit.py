@@ -127,11 +127,11 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
             "legacy default-executor carrier OPL DomainProgressTransitionRuntime / outbox / StageRun "
             "live readback or no-active-carrier-caller physical delete proof after OPL StageRun ABI/provenance boundary proof"
         ),
-            (
-                "domain_authority_refs_index live OPL StateIndexKernel takeover or "
-                "owner-approved physical delete proof after no-active replay/local-inspection proof "
-                "and active caller source-adapter migration"
-            ),
+        (
+            "domain_authority_refs_index live OPL StateIndexKernel takeover plus "
+            "physical-delete/tombstone proof after no-active replay/local-inspection proof "
+            "and active caller source-adapter migration"
+        ),
         "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
         "domain_owner_action_dispatch live every-active-caller soak or no-active-caller proof",
     } <= open_tails

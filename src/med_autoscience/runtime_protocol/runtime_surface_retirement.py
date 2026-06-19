@@ -591,6 +591,8 @@ def _validate_domain_authority_refs_index(
 
     active_callers = scan.get("active_callers")
     active_caller_list = active_callers if isinstance(active_callers, list) else []
+    retired_callers = scan.get("retired_callers")
+    retired_caller_list = retired_callers if isinstance(retired_callers, list) else []
     no_active_proven = scan.get("no_active_replay_or_local_inspection_caller_proven")
     physical_delete_allowed = scan.get("physical_delete_allowed")
     status = _text(scan.get("status"))
@@ -633,6 +635,11 @@ def _validate_domain_authority_refs_index(
                     "domain_authority_refs_no_active_scan_must_not_allow_physical_delete",
                 )
             )
+        if (
+            "paper_progress_transition_refs.record_paper_progress_transition_ref::persist_authority_refs_index_explicit_opt_in"
+            not in {str(caller) for caller in retired_caller_list}
+        ):
+            violations.append(_violation(surface_id, "domain_authority_refs_legacy_helper_retired_caller_missing"))
     else:
         violations.append(_violation(surface_id, "domain_authority_refs_legacy_helper_scan_status_invalid"))
     if active_caller_list and no_active_proven is True:
