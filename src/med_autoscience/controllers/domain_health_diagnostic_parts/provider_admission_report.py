@@ -37,6 +37,11 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
+    provider_admission_opl_transition_readback,
+)
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_readback_filters import (
+    filter_transition_requests_consumed_by_provider_readback as _filter_transition_requests_consumed_by_provider_readback,
+    transition_request_only_candidates as _transition_request_only_candidates,
 )
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.controllers.owner_route_handoff_parts.accepted_owner_gate_route_back import (
@@ -170,6 +175,10 @@ def sync_report_provider_admission_current_control_state(
         report=report,
         current_control_state=current_control_state,
     )
+    transition_request_candidates = _filter_transition_requests_consumed_by_provider_readback(
+        transition_request_candidates,
+        provider_candidates=current_control_provider_candidates,
+    )
     transition_request_candidates = _merge_transition_request_candidates(
         transition_request_candidates
     )
@@ -210,21 +219,6 @@ def sync_report_provider_admission_current_control_state(
         if fingerprint is not None and fingerprint not in fingerprints:
             fingerprints.append(fingerprint)
     report["action_fingerprints"] = fingerprints
-
-
-def _transition_request_only_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [
-        dict(candidate)
-        for candidate in candidates
-        if not candidate_opl_transition_readback(candidate)
-        and (
-            _mapping(candidate.get("opl_domain_progress_transition_request"))
-            or _mapping(_mapping(candidate.get("paper_progress_policy_result")).get(
-                "opl_domain_progress_transition_request"
-            ))
-        )
-        and candidate.get("provider_admission_requires_opl_runtime_result") is True
-    ]
 
 
 def _filter_transition_requests_consumed_by_currentness(
@@ -440,6 +434,7 @@ def _filter_candidates_blocked_by_paper_recovery_state(
         dict(item)
         for item in candidates
         if _non_empty_text(item.get("study_id")) not in blocked_studies
+        or provider_admission_opl_transition_readback(item)
         or (allow_transition_requests and not candidate_opl_transition_readback(item))
     ]
 

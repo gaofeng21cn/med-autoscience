@@ -23,6 +23,10 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     route_identity_key as _route_identity_key,
     weak_provider_admission_identity as _weak_provider_admission_identity,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_readback_overrides import (
+    provider_admission_readback_overrides_blocking_closeout,
+    weak_identity_is_opl_authorization_stage_packet_gap,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
     mapping as _mapping,
 )
@@ -93,6 +97,10 @@ def _stage_route_arbiter_decisions(
         accepted_closeout = _matching_accepted_closeout(scanned_study, identity=candidate)
         if (
             accepted_closeout
+            and not _provider_admission_readback_overrides_blocking_closeout(
+                candidate,
+                closeout=accepted_closeout,
+            )
             and not _dry_run_request_only_transition_request_candidate(candidate)
             and not _accepted_owner_gate_transition_request_candidate(candidate)
         ):
@@ -147,21 +155,12 @@ def _stage_route_arbiter_decisions(
             else {}
         )
         if weak_identity:
-            if _unconsumed_closeout_blocks_weak_identity_suppression(
-                scanned_study,
-                identity=candidate,
+            if _weak_identity_is_opl_authorization_stage_packet_gap(
+                candidate,
+                scanned_study=scanned_study,
+                weak_identity=weak_identity,
             ):
-                decisions.append(
-                    _arbiter_decision(
-                        candidate,
-                        decision="opl_transition_readback_required",
-                        effect="suppress_provider_admission_pending",
-                        evidence=_opl_transition_readback_required_evidence(
-                            candidate,
-                            weak_identity=weak_identity,
-                        ),
-                    )
-                )
+                decisions.append(_weak_provider_admission_identity_decision(candidate, weak_identity))
                 continue
             decisions.append(
                 _arbiter_decision(
@@ -180,15 +179,16 @@ def _stage_route_arbiter_decisions(
             candidate=candidate,
         )
         if typed_blocker_precedence:
-            decisions.append(
-                _arbiter_decision(
-                    candidate,
-                    decision="current_typed_blocker_precedes_provider_admission",
-                    effect="suppress_provider_admission_pending",
-                    evidence=typed_blocker_precedence,
+            if not provider_admission_opl_transition_readback(candidate):
+                decisions.append(
+                    _arbiter_decision(
+                        candidate,
+                        decision="current_typed_blocker_precedes_provider_admission",
+                        effect="suppress_provider_admission_pending",
+                        evidence=typed_blocker_precedence,
+                    )
                 )
-            )
-            continue
+                continue
         if readback_required:
             if _unconsumed_closeout_blocks_weak_identity_suppression(
                 scanned_study,
@@ -221,6 +221,31 @@ def _stage_route_arbiter_decisions(
             )
         )
     return decisions
+
+
+def _weak_provider_admission_identity_decision(
+    candidate: Mapping[str, Any],
+    weak_identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    return _arbiter_decision(
+        candidate,
+        decision="weak_provider_admission_identity",
+        effect="suppress_provider_admission_pending",
+        evidence=weak_identity,
+    )
+
+
+def _weak_identity_is_opl_authorization_stage_packet_gap(
+    candidate: Mapping[str, Any],
+    *,
+    scanned_study: Mapping[str, Any],
+    weak_identity: Mapping[str, Any],
+) -> bool:
+    return weak_identity_is_opl_authorization_stage_packet_gap(
+        candidate,
+        scanned_study=scanned_study,
+        weak_identity=weak_identity,
+    )
 
 
 def _arbiter_decision(
@@ -983,6 +1008,8 @@ def _paper_recovery_state_blocks_provider_admission(
     recovery = _mapping(study.get("paper_recovery_state"))
     if not recovery:
         return {}
+    if provider_admission_opl_transition_readback(identity):
+        return {}
     supervisor_gate = provider_admission_supervisor_gate(study, paper_recovery_state=recovery)
     supervisor_decision = _mapping(supervisor_gate.get("supervisor_decision"))
     if supervisor_decision and supervisor_gate.get("blocked") is not True:
@@ -1418,3 +1445,14 @@ def _receipt_has_provider_admission_authorization_blocker(
         typed_blocker.get("blocked_reason"),
     )
     return any(_non_empty_text(value) == STALE_STAGE_PACKET_BLOCKER for value in direct_values)
+
+
+def _provider_admission_readback_overrides_blocking_closeout(
+    candidate: Mapping[str, Any],
+    *,
+    closeout: Mapping[str, Any],
+) -> bool:
+    return provider_admission_readback_overrides_blocking_closeout(
+        candidate,
+        closeout=closeout,
+    )

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers import (
+    opl_domain_progress_transition_contract as transition_contract,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
     provider_admission_authority_boundary,
@@ -13,6 +16,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     text_items as _text_items,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )
 
@@ -304,12 +308,13 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
         _non_empty_text(payload.get("source"))
         == "opl_current_control_state.study_current_executable_owner_action"
     )
-    route_key = route_identity_key(payload)
+    readback_keys = _opl_readback_identity_keys(payload)
+    route_key = _non_empty_text(readback_keys.get("route_identity_key")) or route_identity_key(payload)
     if route_key is None and can_bind_progress_currentness:
         study_id = _non_empty_text(payload.get("study_id"))
         if study_id is not None and fingerprint is not None:
             route_key = f"provider-admission::{study_id}::{fingerprint}"
-    attempt_key = attempt_idempotency_key(payload)
+    attempt_key = _non_empty_text(readback_keys.get("attempt_idempotency_key")) or attempt_idempotency_key(payload)
     if attempt_key is None and can_bind_progress_currentness:
         attempt_key = route_key
     if route_key is not None:
@@ -317,6 +322,13 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
     if attempt_key is not None:
         payload["attempt_idempotency_key"] = attempt_key
         payload.setdefault("idempotency_key", attempt_key)
+    if request_key := _non_empty_text(readback_keys.get("idempotency_key")):
+        payload["idempotency_key"] = request_key
+    if readback_keys:
+        payload["status"] = "provider_admission_pending"
+        payload["provider_admission_pending"] = True
+        payload["provider_attempt_or_lease_required"] = True
+        payload["provider_admission_requires_opl_runtime_result"] = False
     stage_packet_ref = _non_empty_text(payload.get("stage_packet_ref"))
     if stage_packet_ref is not None:
         refs = [
@@ -328,6 +340,65 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
             refs.append(stage_packet_ref)
         payload["stage_packet_refs"] = refs
     return payload
+
+
+def _opl_readback_identity_keys(candidate: Mapping[str, Any]) -> dict[str, str]:
+    readback = candidate_opl_transition_readback(candidate)
+    if not readback or not _readback_has_provider_admission_outcome(readback):
+        return {}
+    if _readback_aggregate_identity_conflicts_candidate(readback, candidate=candidate):
+        return {}
+    identity = _mapping(readback.get("identity"))
+    stage_run_identity = _mapping(identity.get("stage_run_identity"))
+    request_key = _non_empty_text(identity.get("idempotency_key")) or _non_empty_text(
+        identity.get("request_idempotency_key")
+    )
+    if request_key is None:
+        return {}
+    return {
+        key: value
+        for key, value in {
+            "route_identity_key": _non_empty_text(stage_run_identity.get("route_identity_key")),
+            "attempt_idempotency_key": _non_empty_text(
+                stage_run_identity.get("attempt_idempotency_key")
+            ),
+            "idempotency_key": request_key,
+        }.items()
+        if value is not None
+    }
+
+
+def _readback_has_provider_admission_outcome(readback: Mapping[str, Any]) -> bool:
+    outcome = _mapping(readback.get("exactly_one_outcome"))
+    identity = _mapping(readback.get("identity"))
+    outcome_kind = _non_empty_text(outcome.get("outcome_kind")) or _non_empty_text(
+        identity.get("outcome_kind")
+    )
+    return outcome_kind == transition_contract.PROVIDER_ADMISSION_OUTCOME
+
+
+def _readback_aggregate_identity_conflicts_candidate(
+    readback: Mapping[str, Any],
+    *,
+    candidate: Mapping[str, Any],
+) -> bool:
+    aggregate_identity = _mapping(_mapping(readback.get("identity")).get("aggregate_identity"))
+    return any(
+        _non_empty_text(readback_value) is not None
+        and _non_empty_text(candidate_value) is not None
+        and _non_empty_text(readback_value) != _non_empty_text(candidate_value)
+        for readback_value, candidate_value in (
+            (aggregate_identity.get("study_id"), candidate.get("study_id")),
+            (
+                aggregate_identity.get("work_unit_id"),
+                candidate.get("work_unit_id") or candidate.get("next_work_unit"),
+            ),
+            (
+                aggregate_identity.get("work_unit_fingerprint"),
+                candidate.get("work_unit_fingerprint") or candidate.get("action_fingerprint"),
+            ),
+        )
+    )
 
 
 def candidate_with_progress_currentness_identity(

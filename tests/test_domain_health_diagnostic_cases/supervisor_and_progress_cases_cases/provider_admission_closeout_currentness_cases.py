@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from tests.test_domain_health_diagnostic_cases import shared as _shared
+from tests.provider_admission_current_control_helpers import provider_candidate_with_opl_readback
 
 globals().update({
     name: value
@@ -204,6 +205,187 @@ def test_materialized_current_control_retains_record_only_closeout_without_curre
     assert decision["effect"] == "suppress_provider_admission_pending"
     assert decision["work_unit_id"] == work_unit_id
     assert decision["work_unit_fingerprint"] == fingerprint
+
+
+def test_materialized_current_control_keeps_opl_live_readback_over_unsupported_dispatch_closeout(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    candidate = provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        action_type="run_quality_repair_batch",
+        next_executable_owner="write",
+        required_output_surface="canonical manuscript story-surface delta",
+    )
+    candidate["source"] = "opl_current_control_state.study_current_executable_owner_action"
+    candidate["route_identity_key"] = (
+        f"paper-recovery::{study_id}::run_quality_repair_batch::{fingerprint}"
+    )
+    candidate["attempt_idempotency_key"] = candidate["route_identity_key"]
+    candidate["idempotency_key"] = candidate["route_identity_key"]
+    candidate["current_execution_envelope"] = {
+        "state_kind": "executable_owner_action",
+        "owner": "write",
+        "next_work_unit": work_unit_id,
+        "typed_blocker": None,
+        "parked_state": None,
+        "source": "progress_currentness.current_executable_owner_action",
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-19T20:00:58+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "waiting_for_user",
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "accepted_closeout_evidence": [
+                    {
+                        "surface_kind": "stage_attempt_closeout_packet",
+                        "schema_version": 1,
+                        "status": "blocked",
+                        "execution_status": "executed",
+                        "stage_closeout_status": "blocked",
+                        "outcome": "blocked:unsupported_dispatch_surface",
+                        "stage_attempt_id": "sat_ff29f3cd92715d39043b1342",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "typed_blocker": {
+                            "surface_kind": "mas_domain_typed_blocker",
+                            "blocker_id": "unsupported_dispatch_surface",
+                            "owner": "one-person-lab",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                        },
+                        "typed_blocker_ref": (
+                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "sat_ff29f3cd92715d39043b1342.closeout.json#domain_blocker"
+                        ),
+                        "owner_route_currentness_basis": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "truth_epoch": fingerprint,
+                            "runtime_health_epoch": fingerprint,
+                        },
+                    }
+                ],
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "write",
+                    "next_work_unit": work_unit_id,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                    "source": "progress_currentness.current_executable_owner_action",
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert result["transition_request_pending_count"] == 0
+    assert result["transition_request_candidates"] == []
+    [admission] = result["provider_admission_candidates"]
+    assert admission["study_id"] == study_id
+    assert admission["status"] == "provider_admission_pending"
+    assert admission["work_unit_id"] == work_unit_id
+    assert admission["work_unit_fingerprint"] == fingerprint
+    assert admission["provider_admission_requires_opl_runtime_result"] is False
+    assert admission["route_identity_key"] == f"provider-admission::{study_id}::{fingerprint}"
+    assert admission["attempt_idempotency_key"] == f"provider-admission::{study_id}::{fingerprint}"
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "pending_provider_admission"
+    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["evidence_status"] == "opl_transition_consumed"
+    study = result["studies"][0]
+    assert study["provider_admission_pending_count"] == 1
+    assert study["running_provider_attempt"] is False
+    assert result["current_execution_envelopes"][study_id]["state_kind"] == "executable_owner_action"
+
+
+def test_report_current_control_keeps_opl_live_readback_over_blocked_paper_recovery(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    candidate = provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        action_type="run_quality_repair_batch",
+        next_executable_owner="write",
+        required_output_surface="canonical manuscript story-surface delta",
+    )
+
+    result = module._materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        apply=False,
+        report={
+            "scanned_at": "2026-06-19T20:01:58+00:00",
+            "managed_study_opl_provider_admission_candidates": [candidate],
+            "paper_recovery_states": {
+                study_id: {
+                    "phase": "domain_blocked",
+                    "next_safe_action": {"provider_admission_allowed": False},
+                    "suppressed_surfaces": ["provider_admission_candidates"],
+                }
+            },
+            "current_execution_evidence": {"progress_currentness": {}},
+        },
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert result["transition_request_pending_count"] == 0
+    [admission] = result["provider_admission_candidates"]
+    assert admission["study_id"] == study_id
+    assert admission["work_unit_id"] == work_unit_id
+    assert admission["work_unit_fingerprint"] == fingerprint
+    assert admission["provider_admission_requires_opl_runtime_result"] is False
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "pending_provider_admission"
+    assert decision["evidence_status"] == "opl_transition_consumed"
 
 
 def test_materialized_current_control_retains_request_over_closeout_missing_current_source_eval(
