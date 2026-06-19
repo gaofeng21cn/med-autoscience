@@ -176,8 +176,18 @@ def test_transition_runtime_completion_audit_rejects_known_false_completion_clai
 def test_transition_runtime_completion_audit_matches_replay_status_open_tails() -> None:
     audit = _audit()
     replay = _replay_status()
+    helper = __import__(
+        "med_autoscience.controllers.opl_domain_progress_transition_contract",
+        fromlist=["live_readback_evidence_source_contract"],
+    )
 
     assert replay["current_status"]["live_paper_progress_claim_allowed"] is False
+    assert replay["replay_to_live_separation_gate"]["readback_evidence_source_gate"] == (
+        helper.live_readback_evidence_source_contract()
+    )
+    assert audit["completion_evidence_rules"]["live_readback_evidence_source_gate"] == (
+        helper.live_readback_evidence_source_contract()
+    )
     assert set(replay["remaining_evidence_tails"]) <= set(audit["open_evidence_tails"])
     separation_gate = replay["replay_to_live_separation_gate"]
     assert separation_gate["status"] == "evidence_tail_open"
@@ -204,6 +214,7 @@ def test_transition_runtime_completion_audit_matches_replay_status_open_tails() 
         "provider_admission_same_identity_replay_as_fresh_opl_readback",
         "provider_admission_same_identity_replay_as_live_paper_progress",
         "same_identity_readback_consumes_transition_request_as_paper_line_outcome",
+        "valid_opl_readback_shape_without_claimable_evidence_source",
     } <= set(replay["forbidden_completion_interpretations"])
     assert set(replay["forbidden_completion_interpretations"]) & set(
         audit["rejected_completion_claims"]
@@ -212,6 +223,7 @@ def test_transition_runtime_completion_audit_matches_replay_status_open_tails() 
         "provider_admission_same_identity_replay_as_fresh_opl_readback",
         "provider_admission_same_identity_replay_as_live_paper_progress",
         "same_identity_readback_consumes_transition_request_as_paper_line_outcome",
+        "valid_opl_readback_shape_without_claimable_evidence_source",
     } <= set(audit["rejected_completion_claims"])
 
 

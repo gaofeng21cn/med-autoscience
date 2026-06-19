@@ -73,6 +73,19 @@ LIVE_READBACK_READ_MODEL_SECTIONS = (
     "projection_metadata",
 )
 
+LIVE_READBACK_CLAIMABLE_SOURCE_KINDS = (
+    "opl_runtime_live_readback",
+    "opl_current_control_live_readback",
+    "opl_stagerun_live_readback",
+)
+
+LIVE_READBACK_NON_CLAIMABLE_SOURCE_KINDS = (
+    "fixture_or_replay_readback",
+    "unit_test_helper_readback",
+    "mas_projection_payload",
+    "historical_log_extract",
+)
+
 LIVE_READBACK_TRANSACTION_CONSISTENCY = {
     "identity_latest_refs_match_causality": True,
     "identity_latest_refs_match_latest_transaction_readback": True,
@@ -138,6 +151,7 @@ def required_readback_shape() -> dict[str, Any]:
         "latest_transaction_ref_fields": list(LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS),
         "read_model_rebuild_required_sections": list(LIVE_READBACK_READ_MODEL_SECTIONS),
         "transaction_consistency": live_readback_transaction_consistency(),
+        "evidence_source_contract": live_readback_evidence_source_contract(),
         "provider_admission_identity_binding": {
             "required_fields": list(PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS),
             "request_identity_field": PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD,
@@ -225,6 +239,20 @@ def live_readback_transaction_consistency() -> dict[str, bool]:
     return dict(LIVE_READBACK_TRANSACTION_CONSISTENCY)
 
 
+def live_readback_evidence_source_contract() -> dict[str, Any]:
+    return {
+        "claimable_runtime_evidence_source_kinds": list(
+            LIVE_READBACK_CLAIMABLE_SOURCE_KINDS
+        ),
+        "non_claimable_runtime_evidence_source_kinds": list(
+            LIVE_READBACK_NON_CLAIMABLE_SOURCE_KINDS
+        ),
+        "fresh_live_claim_requires_source_kind": True,
+        "missing_source_kind_is_not_fresh_live_claim": True,
+        "valid_shape_can_test_projection_rules_without_live_claim": True,
+    }
+
+
 def live_readback_identity(readback: Mapping[str, Any]) -> dict[str, str | None]:
     identity = _mapping(readback.get("identity"))
     aggregate_identity = _mapping(identity.get("aggregate_identity"))
@@ -281,6 +309,8 @@ __all__ = [
     "LIVE_READBACK_LATEST_TRANSACTION_REF_FIELDS",
     "LIVE_READBACK_LATEST_TRANSACTION_REQUIRED_FLAGS",
     "LIVE_READBACK_READ_MODEL_SECTIONS",
+    "LIVE_READBACK_CLAIMABLE_SOURCE_KINDS",
+    "LIVE_READBACK_NON_CLAIMABLE_SOURCE_KINDS",
     "LIVE_READBACK_SURFACE",
     "LIVE_READBACK_TRANSACTION_CONSISTENCY",
     "MAS_PROJECTION_CANNOT_REPLACE",
@@ -297,6 +327,7 @@ __all__ = [
     "mas_projection_authority_boundary",
     "mas_request_authority_boundary",
     "request_forbidden_runtime_fields",
+    "live_readback_evidence_source_contract",
     "live_readback_identity",
     "required_readback_shape",
     "provider_admission_identity_complete",
