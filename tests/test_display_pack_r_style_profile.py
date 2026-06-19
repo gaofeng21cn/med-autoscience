@@ -29,7 +29,8 @@ payload <- list(
     style_roles = list(model_curve = "#123456", comparator_curve = "#654321", reference_line = "#999999", text = "#111111", grid_line = "#EEEEEE", heatmap_seq_low = "#F4F8FA", heatmap_seq_mid = "#9DD2D3", heatmap_seq_high = "#0B4F6C", heatmap_low = "#2B6CB0", heatmap_mid = "#F7F7F7", heatmap_high = "#B64342"),
     typography = list(font_family = "sans", base_size = 10, title_size = 13, axis_title_size = 11, tick_size = 9, legend_size = 7.2, colorbar_width = 5, colorbar_height = 42),
     stroke = list(primary_linewidth = 2.4, reference_linewidth = 1.2, grid_linewidth = 0.33),
-    grid = list(major = TRUE, minor = FALSE, major_axis = "both", color = "#EEEEEE")
+    grid = list(major = TRUE, minor = FALSE, major_axis = "both", color = "#EEEEEE"),
+    layout_override = list(output_width_in = 5, output_height_in = 5)
   )
 )
 plot <- build_evidence_plot("roc_curve_binary", payload)
@@ -42,6 +43,8 @@ stopifnot(isTRUE(abs(theme_obj$panel.grid.major.x$linewidth - 0.33) < 1e-9))
 layout <- build_layout_sidecar(plot, "roc_curve_binary", payload)
 stopifnot(identical(layout$render_context$style_profile_id, "probe"))
 stopifnot(identical(layout$style_profile$style_profile_sha256, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+stopifnot(render_device_dimension(payload, "output_width_in", "MAS_DISPLAY_OUTPUT_WIDTH_IN", 7.2) == 5)
+stopifnot(render_device_dimension(payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.0) == 5)
 candidate_plot <- build_candidate_evidence_plot("time_to_event_decision_curve", payload)
 candidate_built <- ggplot2::ggplot_build(candidate_plot)
 stopifnot("#123456" %in% candidate_built$data[[1]]$colour)

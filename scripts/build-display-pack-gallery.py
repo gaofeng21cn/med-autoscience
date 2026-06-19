@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass
 import argparse
 import hashlib
@@ -14,17 +14,18 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 from typing import Any
 
 from med_autoscience import publication_display_contract as display_contract
+from med_autoscience.display_pack_gallery_catalog import (
+    TemplateRecord,
+    canonical_records,
+    family_categories,
+    read_template_records,
+)
 from med_autoscience.publication_display_contract import (
     load_publication_style_profile,
     resolve_style_roles,
-)
-from med_autoscience.display_pack_canonical_catalog import (
-    canonical_catalog_entry_for_template,
-    load_canonical_template_catalog,
 )
 
 
@@ -527,32 +528,6 @@ GALLERY_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
 
 
 @dataclass(frozen=True)
-class TemplateRecord:
-    template_id: str
-    full_template_id: str
-    display_name: str
-    kind: str
-    audit_family: str
-    renderer_family: str
-    execution_mode: str
-    entrypoint: str
-    previous_renderer_family: str
-    previous_entrypoint: str
-    paper_proven: bool
-    required_exports: tuple[str, ...]
-    template_dir: Path
-    canonical_family_id: str
-    canonical_family_title: str
-    canonical_family_category: str
-    canonical_template_id: str
-    figure_archetype: str
-    migration_status: str
-    default_visible: bool
-    migrated_alias_template_ids: tuple[str, ...]
-    migration_reason: str
-
-
-@dataclass(frozen=True)
 class RenderedAsset:
     status: str
     image_ref: str = ""
@@ -564,53 +539,6 @@ class RenderedAsset:
     reason: str = ""
     image_size_px: tuple[int, int] = (0, 0)
     preview_image_size_px: tuple[int, int] = (0, 0)
-
-
-def _read_template_records() -> list[TemplateRecord]:
-    records: list[TemplateRecord] = []
-    catalog = load_canonical_template_catalog(PACK_ROOT)
-    catalog_ids = set(catalog.entries_by_template_id) if catalog is not None else set()
-    for template_path in sorted(TEMPLATE_ROOT.glob("*/template.toml")):
-        payload = tomllib.loads(template_path.read_text(encoding="utf-8"))
-        canonical = canonical_catalog_entry_for_template(
-            catalog=catalog,
-            template_id=str(payload["template_id"]),
-            category=str(payload["audit_family"]),
-            title=str(payload["display_name"]),
-        )
-        records.append(
-            TemplateRecord(
-                template_id=str(payload["template_id"]),
-                full_template_id=str(payload["full_template_id"]),
-                display_name=str(payload["display_name"]),
-                kind=str(payload["kind"]),
-                audit_family=str(payload["audit_family"]),
-                renderer_family=str(payload["renderer_family"]),
-                execution_mode=str(payload["execution_mode"]),
-                entrypoint=str(payload.get("entrypoint") or ""),
-                previous_renderer_family=str(payload.get("previous_renderer_family") or ""),
-                previous_entrypoint=str(payload.get("previous_entrypoint") or ""),
-                paper_proven=bool(payload.get("paper_proven", False)),
-                required_exports=tuple(str(item) for item in payload.get("required_exports", ())),
-                template_dir=template_path.parent,
-                canonical_family_id=canonical.family_id,
-                canonical_family_title=canonical.family_title,
-                canonical_family_category=canonical.family_category,
-                canonical_template_id=canonical.canonical_template_id,
-                figure_archetype=canonical.figure_archetype,
-                migration_status=canonical.migration_status,
-                default_visible=canonical.default_visible,
-                migrated_alias_template_ids=canonical.aliases if canonical.migration_status == "canonical" else (),
-                migration_reason=canonical.migration_reason,
-            )
-        )
-    if catalog is not None:
-        template_ids = {record.template_id for record in records}
-        missing = sorted(catalog_ids - template_ids)
-        if missing:
-            raise ValueError(f"canonical template catalog references missing template ids: {missing}")
-    return records
-
 
 def _style_context_for(template_id: str) -> dict[str, Any]:
     payload = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD
@@ -1085,27 +1013,6 @@ def _html_id(value: str) -> str:
     return "".join(ch if ch.isalnum() else "-" for ch in value).strip("-")
 
 
-def _canonical_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
-    return [record for record in records if record.default_visible]
-
-
-def _family_categories(records: list[TemplateRecord]) -> dict[str, list[TemplateRecord]]:
-    categories: dict[str, list[TemplateRecord]] = defaultdict(list)
-    for record in _canonical_records(records):
-        categories[record.canonical_family_category].append(record)
-    return categories
-
-
-def _alias_summary(record: TemplateRecord) -> str:
-    if not record.migrated_alias_template_ids:
-        return ""
-    aliases = "".join(
-        f"<code>{html.escape(item)}</code>"
-        for item in record.migrated_alias_template_ids
-    )
-    return f'<p class="aliases"><span>aliases</span>{aliases}</p>'
-
-
 def _asset_html(asset: RenderedAsset, *, label: str) -> str:
     if asset.status != "rendered":
         return ""
@@ -1132,26 +1039,27 @@ def _render_html(
     rendered: dict[str, RenderedAsset],
     baseline_rendered: dict[str, RenderedAsset],
 ) -> str:
-    categories = _family_categories(records)
+    categories = family_categories(records)
     ordered_categories = [item for item in CATEGORY_ORDER if item in categories]
     ordered_categories.extend(sorted(set(categories) - set(ordered_categories)))
 
     default_style = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD
     palette = default_style["palette"]
-    counts = Counter(record.renderer_family for record in records)
-    canonical_records = _canonical_records(records)
-    rendered_count = sum(1 for asset in rendered.values() if asset.status == "rendered")
-    baseline_count = sum(1 for asset in baseline_rendered.values() if asset.status == "rendered")
+    visible_records = canonical_records(records)
+    rendered_count = sum(1 for record in visible_records if rendered[record.template_id].status == "rendered")
+    baseline_count = sum(
+        1
+        for record in visible_records
+        if baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")).status == "rendered"
+    )
     meta = (
         f'<span class="pill">style_profile_id: {html.escape(default_style["style_profile_id"])}</span>'
         f'<span class="pill">journal_palette_ref: {html.escape(default_style["journal_palette_ref"])}</span>'
-        f'<span class="pill">canonical families: {len(canonical_records)}</span>'
-        f'<span class="pill">migration inventory: {len(records)}</span>'
-        f'<span class="pill">R/ggplot2: {counts["r_ggplot2"]}</span>'
-        f'<span class="pill">Python: {counts["python"]}</span>'
-        f'<span class="pill">n/a tables: {counts["n/a"]}</span>'
+        f'<span class="pill">gallery cards: {len(visible_records)}</span>'
+        f'<span class="pill">R/ggplot2 canonical: {sum(1 for record in visible_records if record.renderer_family == "r_ggplot2")}</span>'
+        f'<span class="pill">Python canonical: {sum(1 for record in visible_records if record.renderer_family == "python")}</span>'
         f'<span class="pill">rendered images: {rendered_count}</span>'
-        f'<span class="pill">legacy Python comparisons: {baseline_count}</span>'
+        f'<span class="pill">Python comparisons: {baseline_count}</span>'
     )
     swatches = "".join(
         (
@@ -1194,7 +1102,6 @@ def _render_html(
     <p><code>{html.escape(record.template_id)}</code></p>
     <p>{html.escape(record.figure_archetype)}</p>
     <div class="tags">{tags}</div>
-    {_alias_summary(record)}
   </div>
 </article>"""
             )
@@ -1247,9 +1154,6 @@ h1{{margin:0 0 8px;font-size:25px;letter-spacing:0}}
 .card-body{{padding:11px 12px}}
 .card h3{{margin:0 0 5px;font-size:15px;line-height:1.28}}
 .card p{{margin:5px 0;font-size:12px;color:#555}}
-.aliases{{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;max-height:54px;overflow:auto}}
-.aliases span{{font-size:11px;color:#777;margin-right:2px}}
-.aliases code{{font-size:10.5px;background:#f7f8fa;border:1px solid #eef1f4;border-radius:999px;padding:1px 5px;color:#555}}
 .tags{{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}}
 .tag{{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:2px 7px;background:#fbfcfd;color:#555}}
 @media(max-width:900px){{header{{position:static}}.layout{{display:block;padding:16px}}.nav{{position:static;margin-bottom:18px}}.cards{{grid-template-columns:1fr}}.panes.compare{{grid-template-columns:1fr}}.figure-pane{{border-right:0;border-bottom:1px solid var(--line)}}}}
@@ -1259,7 +1163,7 @@ h1{{margin:0 0 8px;font-size:25px;letter-spacing:0}}
 <body>
 <header>
   <h1>MAS Display Pack Canonical Gallery</h1>
-  <div class="sub">默认用户面只展示 canonical 图型家族；旧模板 ID 已整体迁移为 aliases，仅在 manifest 的 migration index 中保留。</div>
+  <div class="sub">默认用户面只展示 canonical 图型家族；旧模板 ID 已迁移为 aliases，完整迁移索引只保留在 manifest 中。</div>
   <div class="meta">{meta}</div>
   <div class="palette">{swatches}</div>
 </header>
@@ -1280,11 +1184,14 @@ def _write_reference(
     reference_path: Path,
 ) -> None:
     default_style = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD
-    canonical_records = _canonical_records(records)
-    categories = Counter(record.canonical_family_category for record in canonical_records)
-    counts = Counter(record.renderer_family for record in records)
-    rendered_count = sum(1 for asset in rendered.values() if asset.status == "rendered")
-    baseline_count = sum(1 for asset in baseline_rendered.values() if asset.status == "rendered")
+    visible_records = canonical_records(records)
+    categories = Counter(record.canonical_family_category for record in visible_records)
+    rendered_count = sum(1 for record in visible_records if rendered[record.template_id].status == "rendered")
+    baseline_count = sum(
+        1
+        for record in visible_records
+        if baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")).status == "rendered"
+    )
     category_lines = "\n".join(
         f"| {category} | {categories[category]} |"
         for category in CATEGORY_ORDER
@@ -1302,7 +1209,7 @@ Machine boundary: 人读示例文档。机器真相继续归 display-pack templa
 
 - [PDF Gallery](./ggplot2_template_gallery.pdf)
 
-全量 HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`，不作为 repository canonical evidence 提交。需要重建时运行：
+全量 HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`。需要重建时运行：
 
 ```bash
 ./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs
@@ -1318,12 +1225,11 @@ Machine boundary: 人读示例文档。机器真相继续归 display-pack templa
 
 - `style_profile_id`: `{default_style["style_profile_id"]}`
 - `journal_palette_ref`: `{default_style["journal_palette_ref"]}`
-- renderer inventory: `r_ggplot2={counts["r_ggplot2"]}`, `python={counts["python"]}`, `n/a={counts["n/a"]}`
-- rendered image templates: `{rendered_count}`
-- legacy Python comparisons rendered: `{baseline_count}`
-- excluded legacy Python baselines: {excluded}
-- canonical families: `{len(canonical_records)}`
-- migration inventory templates: `{len(records)}`
+- canonical renderer inventory: `r_ggplot2={sum(1 for record in visible_records if record.renderer_family == "r_ggplot2")}`, `python={sum(1 for record in visible_records if record.renderer_family == "python")}`, `n/a={sum(1 for record in visible_records if record.renderer_family == "n/a")}`
+- canonical rendered image templates: `{rendered_count}`
+- Python comparisons rendered: `{baseline_count}`
+- excluded Python comparisons: {excluded}
+- canonical families: `{len(visible_records)}`
 - upstream nature-skills fresh HEAD checked on `2026-06-19`: `{NATURE_SKILLS_HEAD}`
 
 ## 风格口径
@@ -1411,7 +1317,7 @@ def main() -> int:
     _configure_output_paths(args.output_root)
     if shutil.which("Rscript") is None:
         raise RuntimeError("Rscript is required to rebuild the gallery")
-    records = _read_template_records()
+    records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
     seed_r_payloads = _load_seed_r_payloads(records)
     _clean_assets()
     fixture_payloads = _load_python_payload_fixtures()
@@ -1443,30 +1349,42 @@ def main() -> int:
     _strip_trailing_whitespace(HTML_PATH)
     _write_reference(records, rendered, baseline_rendered, reference_path=REFERENCE_PATH)
     _strip_trailing_whitespace(REFERENCE_PATH)
-    canonical_records = _canonical_records(records)
+    visible_records = canonical_records(records)
+    canonical_rendered_count = sum(
+        1
+        for record in visible_records
+        if rendered[record.template_id].status == "rendered"
+    )
+    internal_rendered_count = sum(
+        1
+        for asset in rendered.values()
+        if asset.status == "rendered"
+    )
+    baseline_rendered_count = sum(1 for asset in baseline_rendered.values() if asset.status == "rendered")
     manifest = {
-        "schema_version": 4,
+        "schema_version": 5,
         "status": "rendered",
         "html_path": str(HTML_PATH),
         "pdf_path": str(PDF_PATH),
         "docs_pdf_path": str(DOCS_PDF_PATH) if args.publish_docs else "",
         "docs_reference_path": str(DOCS_REFERENCE_PATH) if args.publish_docs else "",
-        "template_count": len(canonical_records),
-        "active_template_count": len(canonical_records),
+        "template_count": len(visible_records),
+        "active_template_count": len(visible_records),
         "migration_inventory_template_count": len(records),
-        "canonical_family_count": len({record.canonical_family_id for record in canonical_records}),
+        "canonical_family_count": len({record.canonical_family_id for record in visible_records}),
         "canonical_template_count": sum(1 for record in records if record.migration_status == "canonical"),
-        "default_visible_template_count": len(canonical_records),
+        "default_visible_template_count": len(visible_records),
         "legacy_alias_template_count": sum(1 for record in records if record.migration_status == "migrated_alias"),
-        "rendered_image_template_count": sum(1 for asset in rendered.values() if asset.status == "rendered"),
-        "legacy_python_baseline_rendered_count": sum(1 for asset in baseline_rendered.values() if asset.status == "rendered"),
+        "rendered_image_template_count": canonical_rendered_count,
+        "internal_rendered_image_template_count": internal_rendered_count,
+        "legacy_python_baseline_rendered_count": baseline_rendered_count,
         "renderer_family_counts": dict(sorted(Counter(record.renderer_family for record in records).items())),
         "style_profile_id": display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["style_profile_id"],
         "journal_palette_ref": display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["journal_palette_ref"],
         "preview_device": {"width_in": 5.0, "height_in": 5.0},
         "nature_skills_observed_head": NATURE_SKILLS_HEAD,
         "excluded_legacy_python_baselines": list(LEGACY_PYTHON_BASELINE_EXCLUDED),
-        "categories": dict(Counter(record.canonical_family_category for record in canonical_records)),
+        "categories": dict(Counter(record.canonical_family_category for record in visible_records)),
         "template_surface_policy": {
             "gallery_default_surface": "canonical_families_only",
             "active_inventory_is_canonical_only": True,
@@ -1546,10 +1464,16 @@ def main() -> int:
         json.dumps(
             {
                 "status": "rendered",
-                "active_templates": len(canonical_records),
+                "active_templates": len(visible_records),
                 "migration_inventory_templates": len(records),
                 "rendered_image_templates": manifest["rendered_image_template_count"],
-                "legacy_python_baselines": manifest["legacy_python_baseline_rendered_count"],
+                "internal_rendered_image_templates": manifest["internal_rendered_image_template_count"],
+                "canonical_python_comparisons": sum(
+                    1
+                    for record in visible_records
+                    if baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")).status == "rendered"
+                ),
+                "internal_python_comparisons": manifest["legacy_python_baseline_rendered_count"],
                 "html_path": str(HTML_PATH),
                 "pdf_path": str(PDF_PATH),
                 "docs_pdf_path": str(DOCS_PDF_PATH) if args.publish_docs else "",

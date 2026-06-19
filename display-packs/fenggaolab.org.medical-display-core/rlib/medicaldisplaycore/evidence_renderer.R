@@ -369,7 +369,7 @@ theme_publication <- function(display_payload = list()) {
   } else {
     element_blank()
   }
-  theme_bw(base_size = base_size, base_family = font_family) +
+  theme_classic(base_size = base_size, base_family = font_family) +
     theme(
       text = element_text(family = font_family, colour = text_color),
       plot.title = if (show_figure_title) element_text(face = "bold", colour = text_color, size = title_size, hjust = 0, margin = margin(b = 5)) else element_blank(),
@@ -397,7 +397,11 @@ theme_publication <- function(display_payload = list()) {
       panel.grid.major.x = if (major_axis %in% c("x", "both", "all")) major_grid else element_blank(),
       panel.grid.major.y = if (major_axis %in% c("y", "both", "all")) major_grid else element_blank(),
       panel.grid.minor.x = if (minor_axis %in% c("x", "both", "all")) minor_grid else element_blank(),
-      panel.grid.minor.y = if (minor_axis %in% c("y", "both", "all")) minor_grid else element_blank()
+      panel.grid.minor.y = if (minor_axis %in% c("y", "both", "all")) minor_grid else element_blank(),
+      strip.background = element_blank(),
+      strip.text = element_text(face = "bold", colour = text_color, size = style_numeric(typography, "panel_label_size", axis_title_size)),
+      plot.background = element_rect(fill = style_color(display_payload, role_name = "figure_background", palette_key = "background", fallback = "#FFFFFF"), colour = NA),
+      plot.margin = margin(7, 8, 7, 8)
     )
 }
 
@@ -922,9 +926,28 @@ style_profile_sidecar <- function(display_payload) {
   )
 }
 
+render_device_dimension <- function(display_payload, field_name, env_name, fallback) {
+  render_context <- render_context_from_payload(display_payload)
+  layout_override <- render_context$layout_override %||% list()
+  value <- layout_override[[field_name]]
+  if (is.null(value)) {
+    value <- Sys.getenv(env_name, unset = "")
+  }
+  if (is.null(value) || !nzchar(trimws(as.character(value)))) {
+    return(as.numeric(fallback))
+  }
+  numeric_value <- suppressWarnings(as.numeric(value))
+  if (!is.finite(numeric_value) || numeric_value <= 0) {
+    return(as.numeric(fallback))
+  }
+  numeric_value
+}
+
 build_layout_sidecar <- function(plot, template_id, display_payload) {
   tmp_pdf <- tempfile(fileext = ".pdf")
-  grDevices::pdf(tmp_pdf, width = 7.2, height = 5.0)
+  output_width <- render_device_dimension(display_payload, "output_width_in", "MAS_DISPLAY_OUTPUT_WIDTH_IN", 7.2)
+  output_height <- render_device_dimension(display_payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.0)
+  grDevices::pdf(tmp_pdf, width = output_width, height = output_height)
   on.exit({
     grDevices::dev.off()
     unlink(tmp_pdf)
@@ -1031,8 +1054,10 @@ render_evidence_request <- function(request_path, expected_template_id = NULL) {
   plot <- build_evidence_plot(template_id, payload)
   layout_sidecar <- build_layout_sidecar(plot, template_id, payload)
   write_json(layout_sidecar, output_layout, auto_unbox = TRUE, pretty = TRUE, null = "null")
-  ggsave(output_png, plot = plot, width = 7.2, height = 5.0, dpi = 320, units = "in", bg = "white")
-  ggsave(output_pdf, plot = plot, width = 7.2, height = 5.0, units = "in", bg = "white")
+  output_width <- render_device_dimension(payload, "output_width_in", "MAS_DISPLAY_OUTPUT_WIDTH_IN", 7.2)
+  output_height <- render_device_dimension(payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.0)
+  ggsave(output_png, plot = plot, width = output_width, height = output_height, dpi = 320, units = "in", bg = "white")
+  ggsave(output_pdf, plot = plot, width = output_width, height = output_height, units = "in", bg = "white")
   invisible(list(template_id = template_id, output_png_path = output_png, output_pdf_path = output_pdf, layout_sidecar_path = output_layout))
 }
 
