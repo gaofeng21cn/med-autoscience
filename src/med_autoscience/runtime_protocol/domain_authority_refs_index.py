@@ -152,19 +152,16 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
                         "paper_progress_transition_refs.record_paper_progress_transition_ref::"
                         "persist_authority_refs_index_explicit_opt_in"
                     ),
-                    "opl_domain_pack.family_adoption.build_opl_family_adoption_surface::inspect_authority_refs_index",
-                    "opl_domain_pack.family_adoption.build_product_entry_adoption_projection::sqlite_refs_index_ref",
-                    "opl_domain_pack.adoption_ref_payload.payload_from_authority_refs::legacy_sqlite_payload_projection",
                 ],
                 "allowed_consumption": [
                     "explicit_history_replay",
                     "explicit_local_refs_inspection",
-                    "opl_family_adoption_projection",
                     "tombstone_provenance",
                 ],
                 "forbidden_completion_claims": [
                     "legacy_helper_active_scan_as_physical_delete",
                     "legacy_helper_active_callers_as_no_active_caller",
+                    "opl_family_adoption_sqlite_inspection_as_current_projection",
                     "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
                     "explicit_replay_opt_in_as_live_opl_readback",
                 ],

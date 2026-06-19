@@ -11,6 +11,7 @@ SCHEMA_VERSION = 1
 SOURCE_ADAPTER_STATUS = "opl_state_index_source_adapter_emitted"
 SOURCE_ADAPTER_ROLE = "opl_state_index_source_adapter_for_domain_authority_refs"
 REPLACEMENT_OWNER_SURFACE = "one-person-lab StateIndexKernel"
+STATE_INDEX_SOURCE_ADAPTER_REF = "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
 
 
 def workspace_authority_refs_index_path(workspace_root: Path) -> Path:
@@ -128,11 +129,35 @@ def source_adapter_contract() -> dict[str, Any]:
         "active_caller_retains_surface": False,
         "active_caller_retains_authority": False,
         "active_caller_retains_runtime_authority": False,
+        "source_adapter_manifest_ref": STATE_INDEX_SOURCE_ADAPTER_REF,
         "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
         "live_takeover_required_before_physical_delete": True,
         "legacy_domain_authority_refs_index_role": (
             "explicit_history_replay_or_local_refs_inspection_only"
         ),
+        "authority_boundary": _authority_boundary(),
+    }
+
+
+def source_adapter_manifest() -> dict[str, Any]:
+    contract = source_adapter_contract()
+    return {
+        "surface_kind": SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "status": "source_adapter_manifest_projected",
+        "manifest_ref": STATE_INDEX_SOURCE_ADAPTER_REF,
+        "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,
+        "source_adapter_role": SOURCE_ADAPTER_ROLE,
+        "source_tables": list(domain_authority_refs_index.AUTHORITY_REF_TABLES),
+        "forbidden_legacy_tables": list(domain_authority_refs_index.LEGACY_TABLE_POLICY),
+        "legacy_sqlite_helper": contract["legacy_sqlite_helper"],
+        "legacy_sqlite_helper_role": contract["legacy_domain_authority_refs_index_role"],
+        "sqlite_persistence_allowed": False,
+        "sqlite_persistence_parameter_exposed": False,
+        "sqlite_payload_read": False,
+        "sqlite_inspection_read": False,
+        "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
+        "live_takeover_required_before_physical_delete": True,
         "authority_boundary": _authority_boundary(),
     }
 
@@ -181,6 +206,7 @@ __all__ = [
     "SOURCE_ADAPTER_ROLE",
     "SOURCE_ADAPTER_STATUS",
     "SURFACE_KIND",
+    "STATE_INDEX_SOURCE_ADAPTER_REF",
     "emit_archive_ref_source",
     "emit_dispatch_receipt_source",
     "emit_owner_route_receipt_source",
@@ -188,5 +214,6 @@ __all__ = [
     "emit_stage_artifact_delta_source",
     "quest_authority_refs_index_path",
     "source_adapter_contract",
+    "source_adapter_manifest",
     "workspace_authority_refs_index_path",
 ]

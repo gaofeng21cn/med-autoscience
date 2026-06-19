@@ -8,11 +8,18 @@ from typing import Any
 from med_autoscience.runtime_protocol.domain_authority_refs_index import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
 
-def payload_from_authority_refs(conn: sqlite3.Connection, *, inspection: Mapping[str, Any]) -> dict[str, Any]:
+def legacy_payload_from_authority_refs(
+    conn: sqlite3.Connection,
+    *,
+    inspection: Mapping[str, Any],
+) -> dict[str, Any]:
     owner_route = _latest_owner_route(conn)
     return {
         "persistence": {
             "maps_to_opl_contract": "opl_family_persistence_contract.v1",
+            "legacy_sqlite_helper_role": "explicit_history_replay_or_local_refs_inspection_only",
+            "current_adoption_projection": False,
+            "sqlite_payload_read": True,
             "sqlite_tables": {
                 table: int(_mapping(inspection.get("tables")).get(table) or 0)
                 for table in OPL_FAMILY_ADAPTER_SOURCE_TABLES
@@ -34,6 +41,7 @@ def payload_from_authority_refs(conn: sqlite3.Connection, *, inspection: Mapping
             "ai_reviewer_owner": "MedAutoScience",
             "paper_package_owner": "MedAutoScience",
             "opl_authority": "discovery_and_indexing_only",
+            "legacy_sqlite_payload_can_satisfy_state_index_takeover": False,
         },
     }
 
@@ -46,6 +54,7 @@ def empty_payload(*, inspection: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "persistence": {
             "maps_to_opl_contract": "opl_family_persistence_contract.v1",
+            "current_adoption_projection": True,
             "sqlite_tables": table_counts,
         },
         "lifecycle": {
@@ -66,6 +75,14 @@ def empty_payload(*, inspection: Mapping[str, Any]) -> dict[str, Any]:
             "opl_authority": "discovery_and_indexing_only",
         },
     }
+
+
+def payload_from_authority_refs(
+    conn: sqlite3.Connection,
+    *,
+    inspection: Mapping[str, Any],
+) -> dict[str, Any]:
+    return legacy_payload_from_authority_refs(conn, inspection=inspection)
 
 
 def _latest_owner_route(conn: sqlite3.Connection) -> dict[str, Any]:
@@ -141,4 +158,8 @@ def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
-__all__ = ["empty_payload", "payload_from_authority_refs"]
+__all__ = [
+    "empty_payload",
+    "legacy_payload_from_authority_refs",
+    "payload_from_authority_refs",
+]

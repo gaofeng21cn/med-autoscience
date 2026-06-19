@@ -38,7 +38,7 @@ def _build_family_persistence_policy_surface(
     artifact_inventory: Mapping[str, Any],
 ) -> dict[str, Any]:
     refs = dict(adoption.get("refs") or {})
-    sqlite_refs_index = dict(refs.get("sqlite_refs_index") or {})
+    state_index_source_adapter = dict(refs.get("state_index_source_adapter") or {})
     authority_surfaces = [
         _persistence_surface(
             surface_id="progress_projection",
@@ -81,17 +81,26 @@ def _build_family_persistence_policy_surface(
         ),
     ]
     lifecycle_ref_indexes: list[dict[str, Any]] = []
-    sqlite_ref = _non_empty_text(sqlite_refs_index.get("workspace_relative_path"))
-    if sqlite_ref is not None:
+    state_index_ref = _non_empty_text(
+        state_index_source_adapter.get("workspace_relative_path")
+    )
+    if state_index_ref is not None:
         lifecycle_ref_indexes.append(
             _persistence_surface(
                 surface_id="opl_state_index_source_adapter",
                 surface_role="opl_state_index_source_adapter",
                 storage_role="opl_state_index_source_adapter_ref",
                 owner="one-person-lab",
-                ref=_ref(sqlite_ref, ref_kind="workspace_locator", label="explicit replay/local inspection SQLite helper"),
+                ref=_ref(
+                    state_index_ref,
+                    ref_kind="workspace_locator",
+                    label="OPL StateIndex source adapter manifest",
+                ),
                 rebuild_from_refs=[
-                    _ref("/opl_family_persistence_lifecycle_owner_route_adoption/payload", label="adoption payload"),
+                    _ref(
+                        "/opl_family_persistence_lifecycle_owner_route_adoption/refs/state_index_source_adapter",
+                        label="source adapter manifest",
+                    ),
                 ],
             )
         )
@@ -137,9 +146,11 @@ def _build_family_lifecycle_ledger_surface(
     session_continuity: Mapping[str, Any],
 ) -> dict[str, Any]:
     refs = dict(adoption.get("refs") or {})
-    sqlite_refs_index = dict(refs.get("sqlite_refs_index") or {})
-    sqlite_ref = _non_empty_text(sqlite_refs_index.get("workspace_relative_path")) or (
-        "runtime/artifacts/domain_authority_refs.sqlite"
+    state_index_source_adapter = dict(refs.get("state_index_source_adapter") or {})
+    state_index_ref = _non_empty_text(
+        state_index_source_adapter.get("workspace_relative_path")
+    ) or (
+        "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
     )
     return {
         "surface_kind": "family_lifecycle_ledger",
@@ -156,13 +167,13 @@ def _build_family_lifecycle_ledger_surface(
             {
                 "action_id": "verify_runtime_lifecycle_ref_projection",
                 "action_kind": "verify_projection",
-                "target_ref": _ref(sqlite_ref, ref_kind="workspace_locator"),
+                "target_ref": _ref(state_index_ref, ref_kind="workspace_locator"),
                 "authority_owner": "one-person-lab",
                 "safety_gate": "refs_only_no_domain_truth_write",
                 "result": "projected",
                 "manifest_ref": _ref(
-                    "/opl_family_persistence_lifecycle_owner_route_adoption/refs/sqlite_refs_index",
-                    label="SQLite refs index manifest ref",
+                    "/opl_family_persistence_lifecycle_owner_route_adoption/refs/state_index_source_adapter",
+                    label="OPL StateIndex source adapter manifest ref",
                 ),
                 "sha256": "0" * 64,
                 "restore_ref": _ref(

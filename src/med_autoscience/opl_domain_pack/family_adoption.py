@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path
-import sqlite3
 from typing import Any
 
 from med_autoscience import stage_knowledge_contract
@@ -36,7 +35,7 @@ from .agent_pack_refs import (
     stage_policy_ref,
     stage_prompt_ref,
 )
-from .adoption_ref_payload import empty_payload, payload_from_authority_refs
+from .adoption_ref_payload import empty_payload
 from . import hypothesis_portfolio_pack
 from .family_stage_artifact_index_projection import (
     STAGE_ARTIFACT_INDEX_PROJECTION_REF,
@@ -51,6 +50,7 @@ from .stage_throughput_contracts import (
 )
 from .user_stage_log_contract import USER_STAGE_LOG_CONTRACT
 from med_autoscience.runtime_protocol import domain_authority_refs_index
+from med_autoscience.runtime_protocol import opl_state_index_source_adapter
 from med_autoscience.runtime_protocol.domain_authority_refs_index import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 from med_autoscience.workspace_paths import PUBLICATION_ROUTE_MEMORY_RELPATH
 
@@ -810,14 +810,29 @@ def build_opl_family_adoption_surface(
     db_path: Path | None = None,
 ) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_db_path = Path(
-        db_path or domain_authority_refs_index.workspace_authority_refs_index_path(resolved_workspace_root)
+    legacy_db_path = Path(
+        db_path
+        or domain_authority_refs_index.workspace_authority_refs_index_path(
+            resolved_workspace_root
+        )
     ).expanduser().resolve()
-    inspection = domain_authority_refs_index.inspect_authority_refs_index(resolved_db_path)
+    source_adapter = opl_state_index_source_adapter.source_adapter_manifest()
+    inspection = {
+        "surface_kind": domain_authority_refs_index.SURFACE_KIND,
+        "schema_version": domain_authority_refs_index.SCHEMA_VERSION,
+        "db_path": str(legacy_db_path),
+        "status": "not_read_current_adoption_uses_source_adapter_manifest",
+        "tables": {},
+    }
     payload = empty_payload(inspection=inspection)
-    if resolved_db_path.exists():
-        with sqlite3.connect(resolved_db_path) as conn:
-            payload = payload_from_authority_refs(conn, inspection=inspection)
+    payload["persistence"].update(
+        {
+            "source_adapter_ref": "/refs/state_index_source_adapter",
+            "source_tables": list(OPL_FAMILY_ADAPTER_SOURCE_TABLES),
+            "sqlite_payload_read": False,
+            "sqlite_inspection_read": False,
+        }
+    )
     return {
         "surface_kind": ADOPTION_SURFACE_KIND,
         "schema_version": 1,
@@ -825,11 +840,22 @@ def build_opl_family_adoption_surface(
         "refs": {
             "source_contract": SOURCE_CONTRACT_REF,
             "domain_authority_refs_contract": DOMAIN_AUTHORITY_REFS_CONTRACT_REF,
-            "sqlite_refs_index": {
+            "state_index_source_adapter": {
+                "surface_kind": source_adapter["surface_kind"],
+                "manifest_ref": source_adapter["manifest_ref"],
+                "workspace_relative_path": source_adapter["manifest_ref"],
+                "status": source_adapter["status"],
+                "replacement_owner_surface": source_adapter["replacement_owner_surface"],
+                "source_tables": list(source_adapter["source_tables"]),
+                "sqlite_payload_read": False,
+                "sqlite_inspection_read": False,
+            },
+            "legacy_sqlite_refs_index": {
                 "surface_kind": domain_authority_refs_index.SURFACE_KIND,
-                "workspace_relative_path": _workspace_relative(resolved_db_path, resolved_workspace_root),
-                "db_path": str(resolved_db_path),
-                "status": inspection.get("status") or "missing",
+                "workspace_relative_path": _workspace_relative(legacy_db_path, resolved_workspace_root),
+                "db_path": str(legacy_db_path),
+                "status": "explicit_history_replay_or_local_refs_inspection_only",
+                "current_adoption_projection": False,
             },
             "authority_boundary": {
                 "domain_truth_owner": "MedAutoScience",
@@ -855,9 +881,13 @@ def build_product_entry_adoption_projection(
     db_path: Path | None = None,
 ) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_db_path = Path(
-        db_path or domain_authority_refs_index.workspace_authority_refs_index_path(resolved_workspace_root)
+    legacy_db_path = Path(
+        db_path
+        or domain_authority_refs_index.workspace_authority_refs_index_path(
+            resolved_workspace_root
+        )
     ).resolve()
+    source_adapter = opl_state_index_source_adapter.source_adapter_manifest()
     stage_control_plane_descriptor = build_family_stage_control_plane_descriptor()
     return {
         "surface_kind": ADOPTION_SURFACE_KIND,
@@ -866,10 +896,22 @@ def build_product_entry_adoption_projection(
         "refs": {
             "source_contract": SOURCE_CONTRACT_REF,
             "domain_authority_refs_contract": DOMAIN_AUTHORITY_REFS_CONTRACT_REF,
-            "sqlite_refs_index": {
+            "state_index_source_adapter": {
+                "surface_kind": source_adapter["surface_kind"],
+                "manifest_ref": source_adapter["manifest_ref"],
+                "workspace_relative_path": source_adapter["manifest_ref"],
+                "status": source_adapter["status"],
+                "replacement_owner_surface": source_adapter["replacement_owner_surface"],
+                "source_tables": list(source_adapter["source_tables"]),
+                "sqlite_payload_read": False,
+                "sqlite_inspection_read": False,
+            },
+            "legacy_sqlite_refs_index": {
                 "surface_kind": domain_authority_refs_index.SURFACE_KIND,
-                "workspace_relative_path": _workspace_relative(resolved_db_path, resolved_workspace_root),
-                "db_path": str(resolved_db_path),
+                "workspace_relative_path": _workspace_relative(legacy_db_path, resolved_workspace_root),
+                "db_path": str(legacy_db_path),
+                "status": "explicit_history_replay_or_local_refs_inspection_only",
+                "current_adoption_projection": False,
             },
             "authority_boundary": {
                 "domain_truth_owner": "MedAutoScience",
@@ -881,7 +923,10 @@ def build_product_entry_adoption_projection(
         "payload": {
             "persistence": {
                 "maps_to_opl_contract": "opl_family_persistence_contract.v1",
-                "sqlite_refs_index_ref": "/refs/sqlite_refs_index",
+                "state_index_source_adapter_ref": "/refs/state_index_source_adapter",
+                "legacy_sqlite_refs_index_ref": "/refs/legacy_sqlite_refs_index",
+                "sqlite_payload_read": False,
+                "sqlite_inspection_read": False,
                 "source_tables": list(OPL_FAMILY_ADAPTER_SOURCE_TABLES),
             },
             "lifecycle": {

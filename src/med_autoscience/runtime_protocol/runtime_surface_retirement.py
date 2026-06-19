@@ -455,15 +455,44 @@ def _validate_domain_authority_refs_index(
                 "domain_authority_refs_active_replay_local_inspection_callers_block_physical_delete",
             )
         )
+    forbidden_current_callers = {
+        "opl_domain_pack.family_adoption.build_opl_family_adoption_surface::inspect_authority_refs_index",
+        "opl_domain_pack.family_adoption.build_product_entry_adoption_projection::sqlite_refs_index_ref",
+        "opl_domain_pack.adoption_ref_payload.payload_from_authority_refs::legacy_sqlite_payload_projection",
+    }
+    if forbidden_current_callers & {str(caller) for caller in active_caller_list}:
+        violations.append(
+            _violation(
+                surface_id,
+                "domain_authority_refs_family_adoption_legacy_sqlite_current_caller",
+            )
+        )
     allowed_consumption = scan.get("allowed_consumption")
     if not isinstance(allowed_consumption, list) or "explicit_history_replay" not in allowed_consumption:
         violations.append(_violation(surface_id, "domain_authority_refs_legacy_helper_scan_missing_allowed_consumption"))
+    if isinstance(allowed_consumption, list) and "opl_family_adoption_projection" in allowed_consumption:
+        violations.append(
+            _violation(
+                surface_id,
+                "domain_authority_refs_legacy_sqlite_allowed_for_current_adoption",
+            )
+        )
     forbidden_claims = scan.get("forbidden_completion_claims")
     if (
         not isinstance(forbidden_claims, list)
         or "legacy_helper_active_scan_as_physical_delete" not in forbidden_claims
     ):
         violations.append(_violation(surface_id, "domain_authority_refs_legacy_helper_scan_missing_false_completion_guard"))
+    if (
+        not isinstance(forbidden_claims, list)
+        or "opl_family_adoption_sqlite_inspection_as_current_projection" not in forbidden_claims
+    ):
+        violations.append(
+            _violation(
+                surface_id,
+                "domain_authority_refs_legacy_helper_scan_missing_family_adoption_guard",
+            )
+        )
     if (
         _text(scan.get("required_before_physical_delete"))
         != "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref"

@@ -31,19 +31,16 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
                 "paper_progress_transition_refs.record_paper_progress_transition_ref::"
                 "persist_authority_refs_index_explicit_opt_in"
             ),
-            "opl_domain_pack.family_adoption.build_opl_family_adoption_surface::inspect_authority_refs_index",
-            "opl_domain_pack.family_adoption.build_product_entry_adoption_projection::sqlite_refs_index_ref",
-            "opl_domain_pack.adoption_ref_payload.payload_from_authority_refs::legacy_sqlite_payload_projection",
         ],
         "allowed_consumption": [
             "explicit_history_replay",
             "explicit_local_refs_inspection",
-            "opl_family_adoption_projection",
             "tombstone_provenance",
         ],
         "forbidden_completion_claims": [
             "legacy_helper_active_scan_as_physical_delete",
             "legacy_helper_active_callers_as_no_active_caller",
+            "opl_family_adoption_sqlite_inspection_as_current_projection",
             "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
             "explicit_replay_opt_in_as_live_opl_readback",
         ],
@@ -67,6 +64,10 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         ],
         "completion_claim_requires_live_owner_or_opl_readback": True,
         "default_sqlite_persistence": False,
+        "source_adapter_manifest_ref": (
+            "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
+        ),
+        "family_adoption_reads_legacy_sqlite_helper": False,
         "physical_delete_requires": [
             "opl_state_index_kernel_takeover",
             "no_active_replay_or_local_inspection_caller_scan",
@@ -124,6 +125,11 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
             "opl_state_index_kernel_readback_requirement"
         ),
         "sqlite_persistence_requires_explicit_opt_in": True,
+        "source_adapter_manifest_ref": (
+            "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
+        ),
+        "family_adoption_current_projection": "opl_state_index_source_adapter_manifest",
+        "family_adoption_reads_legacy_sqlite_helper": False,
         "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only",
         "legacy_helper_active_caller_scan": legacy_helper_scan,
     }
@@ -906,9 +912,6 @@ def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_ta
             "paper_progress_transition_refs.record_paper_progress_transition_ref::"
             "persist_authority_refs_index_explicit_opt_in"
         ),
-        "opl_domain_pack.family_adoption.build_opl_family_adoption_surface::inspect_authority_refs_index",
-        "opl_domain_pack.family_adoption.build_product_entry_adoption_projection::sqlite_refs_index_ref",
-        "opl_domain_pack.adoption_ref_payload.payload_from_authority_refs::legacy_sqlite_payload_projection",
     } <= set(scan["active_callers"])
     assert "explicit_history_replay" in scan["allowed_consumption"]
     assert "explicit_local_refs_inspection" in scan["allowed_consumption"]

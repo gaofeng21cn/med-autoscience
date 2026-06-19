@@ -97,7 +97,9 @@
         "default_sqlite_persistence": false,
         "sqlite_persistence_requires_explicit_opt_in": true,
         "active_caller_db_path_does_not_imply_persistence": true,
-        "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only"
+        "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only",
+        "source_adapter_manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
+        "family_adoption_reads_legacy_sqlite_helper": false
       },
       "authority_boundary": {
         "can_authorize_provider_admission": false,
@@ -152,24 +154,24 @@
           "physical_delete_allowed": false,
           "required_before_physical_delete": "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
           "active_callers": [
-            "paper_progress_transition_refs.record_paper_progress_transition_ref::persist_authority_refs_index_explicit_opt_in",
-            "opl_domain_pack.family_adoption.build_opl_family_adoption_surface::inspect_authority_refs_index",
-            "opl_domain_pack.family_adoption.build_product_entry_adoption_projection::sqlite_refs_index_ref",
-            "opl_domain_pack.adoption_ref_payload.payload_from_authority_refs::legacy_sqlite_payload_projection"
+            "paper_progress_transition_refs.record_paper_progress_transition_ref::persist_authority_refs_index_explicit_opt_in"
           ],
           "allowed_consumption": [
             "explicit_history_replay",
             "explicit_local_refs_inspection",
-            "opl_family_adoption_projection",
             "tombstone_provenance"
           ],
           "forbidden_completion_claims": [
             "legacy_helper_active_scan_as_physical_delete",
             "legacy_helper_active_callers_as_no_active_caller",
+            "opl_family_adoption_sqlite_inspection_as_current_projection",
             "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
             "explicit_replay_opt_in_as_live_opl_readback"
           ]
-        }
+        },
+        "source_adapter_manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
+        "family_adoption_current_projection": "opl_state_index_source_adapter_manifest",
+        "family_adoption_reads_legacy_sqlite_helper": false
       },
       "replacement_surface": "OPL StateIndexKernel / Vault refs readback consuming emitted MAS authority receipt refs",
       "retained_mas_role": "explicit_history_replay_or_local_refs_inspection_helper_only",
@@ -186,15 +188,16 @@
       },
       "surface_id": "domain_authority_refs_index",
       "verified_by": [
+        "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_source_adapter_manifest",
+        "tests/test_paper_progress_transition_refs.py::test_transition_ref_default_authority_index_path_is_source_adapter_only",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
         "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sidecar_refs",
         "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox",
         "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies",
         "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
-        "tests/test_paper_progress_transition_refs.py::test_transition_ref_default_authority_index_path_is_source_adapter_only",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_tail_open",
-        "tests/test_domain_owner_action_dispatch_cases/anti_loop_budget.py::test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budget_and_indexes_receipt",
-        "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index"
+        "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
+        "tests/test_domain_owner_action_dispatch_cases/anti_loop_budget.py::test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budget_and_indexes_receipt"
       ]
     },
     {

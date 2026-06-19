@@ -217,7 +217,9 @@ def _assert_family_persistence_lifecycle_owner_route(*, module, payload, profile
     assert policy["lifecycle_ref_indexes"][0]["storage_role"] == "opl_state_index_source_adapter_ref"
     assert policy["lifecycle_ref_indexes"][0]["owner"] == "one-person-lab"
     assert policy["lifecycle_ref_indexes"][0]["surface_role"] == "opl_state_index_source_adapter"
-    assert policy["lifecycle_ref_indexes"][0]["ref"]["ref"] == "runtime/artifacts/domain_authority_refs.sqlite"
+    assert policy["lifecycle_ref_indexes"][0]["ref"]["ref"] == (
+        "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
+    )
     assert policy["projection_caches"][0]["storage_role"] == "projection_cache"
     assert policy["explicit_archive_import_refs"][0]["storage_role"] == "explicit_archive_import_ref_only"
 
@@ -226,7 +228,7 @@ def _assert_family_persistence_lifecycle_owner_route(*, module, payload, profile
     assert ledger["target_domain_id"] == "med-autoscience"
     assert ledger["phase"] == "verify"
     assert ledger["actions"][0]["manifest_ref"]["ref"] == (
-        "/opl_family_persistence_lifecycle_owner_route_adoption/refs/sqlite_refs_index"
+        "/opl_family_persistence_lifecycle_owner_route_adoption/refs/state_index_source_adapter"
     )
     assert ledger["actions"][0]["authority_owner"] == "one-person-lab"
     assert ledger["actions"][0]["safety_gate"] == "refs_only_no_domain_truth_write"

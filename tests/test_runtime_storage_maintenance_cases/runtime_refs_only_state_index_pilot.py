@@ -228,6 +228,34 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
     assert contract["authority_policy"]["outbox_record"] is False
     assert contract["authority_policy"]["can_generate_next_action_authority"] is False
     bridge = contract["opl_state_index_kernel_takeover_bridge"]
+    legacy_helper_scan = bridge.pop("legacy_helper_active_caller_scan")
+    assert legacy_helper_scan == {
+        "status": "active_replay_or_local_inspection_callers_present_tail_open",
+        "no_active_replay_or_local_inspection_caller_proven": False,
+        "physical_delete_allowed": False,
+        "required_before_physical_delete": (
+            "domain_authority_refs_index_live_state_index_takeover_or_"
+            "no_active_replay_local_inspection_caller_physical_delete_ref"
+        ),
+        "active_callers": [
+            (
+                "paper_progress_transition_refs.record_paper_progress_transition_ref::"
+                "persist_authority_refs_index_explicit_opt_in"
+            ),
+        ],
+        "allowed_consumption": [
+            "explicit_history_replay",
+            "explicit_local_refs_inspection",
+            "tombstone_provenance",
+        ],
+        "forbidden_completion_claims": [
+            "legacy_helper_active_scan_as_physical_delete",
+            "legacy_helper_active_callers_as_no_active_caller",
+            "opl_family_adoption_sqlite_inspection_as_current_projection",
+            "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
+            "explicit_replay_opt_in_as_live_opl_readback",
+        ],
+    }
     assert bridge == {
         "surface_kind": "domain_authority_refs_index_state_index_takeover_bridge",
         "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
