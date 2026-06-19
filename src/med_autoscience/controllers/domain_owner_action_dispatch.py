@@ -20,7 +20,6 @@ from .owner_callable_adapter_projection import (
 from .default_executor_stage_log import paper_stage_log_for_default_executor_execution
 from .domain_owner_action_dispatch_parts import action_execution
 from .domain_owner_action_dispatch_parts import action_router
-from .domain_owner_action_dispatch_parts import controller_refresh
 from .domain_owner_action_dispatch_parts import current_dispatch_materialization
 from .domain_owner_action_dispatch_parts import developer_apply_gate
 from .domain_owner_action_dispatch_parts import dispatch_contract
@@ -398,31 +397,14 @@ def _refresh_controller_decision_after_ai_reviewer_eval(
     apply: bool = True,
     source: str = "ai_reviewer_publication_eval_workflow",
 ) -> dict[str, Any]:
+    from .domain_owner_action_dispatch_parts import controller_refresh
+
     return controller_refresh.refresh_controller_decision_after_ai_reviewer_eval(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
         apply=apply,
         source=source,
-    )
-
-
-def refresh_controller_decisions_for_current_publication_eval(
-    *,
-    profile: WorkspaceProfile,
-    study_ids: Iterable[str],
-    mode: str,
-    apply: bool,
-) -> dict[str, Any]:
-    return controller_refresh.refresh_controller_decisions_for_current_publication_eval(
-        profile=profile,
-        study_ids=study_ids,
-        mode=mode,
-        apply=apply,
-        generated_at=_utc_now(),
-        schema_version=SCHEMA_VERSION,
-        resolve_study_ids=_resolve_study_ids,
-        study_root=_study_root,
     )
 
 
@@ -1210,5 +1192,4 @@ __all__ = [
     "SCHEMA_VERSION",
     "SUPPORTED_ACTION_TYPES",
     "dispatch_domain_owner_actions",
-    "refresh_controller_decisions_for_current_publication_eval",
 ]

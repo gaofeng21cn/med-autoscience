@@ -322,18 +322,6 @@ def main(argv: list[str] | None = None) -> int:
     if study_owner_gate_result is not None:
         return study_owner_gate_result
 
-    if args.command == "domain-owner-action-refresh-controller-decisions":
-        profile = load_profile(args.profile)
-        domain_owner_action_dispatch = _load_controller("domain_owner_action_dispatch")
-        result = domain_owner_action_dispatch.refresh_controller_decisions_for_current_publication_eval(
-            profile=profile,
-            study_ids=tuple(args.studies or ()),
-            mode=args.mode,
-            apply=bool(args.apply),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
     if args.command == "stage-artifact-materialize":
         profile = load_profile(args.profile)
         results = []

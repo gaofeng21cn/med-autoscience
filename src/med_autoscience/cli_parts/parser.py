@@ -211,22 +211,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_owner_gate_decision_apply.add_argument("--dry-run", action="store_true")
     study_owner_gate_decision_apply.add_argument("--apply", action="store_true")
 
-    domain_owner_refresh_controller_decisions_parser = subparsers.add_parser(
-        "domain-owner-action-refresh-controller-decisions"
-    )
-    domain_owner_refresh_controller_decisions_parser.add_argument("--profile", required=True)
-    domain_owner_refresh_controller_decisions_parser.add_argument("--studies", nargs="+", required=True)
-    domain_owner_refresh_controller_decisions_parser.add_argument(
-        "--mode",
-        choices=("developer_apply_safe",),
-        required=True,
-    )
-    domain_owner_refresh_controller_decisions_apply = (
-        domain_owner_refresh_controller_decisions_parser.add_mutually_exclusive_group(required=True)
-    )
-    domain_owner_refresh_controller_decisions_apply.add_argument("--dry-run", action="store_true")
-    domain_owner_refresh_controller_decisions_apply.add_argument("--apply", action="store_true")
-
     stage_artifact_materialize_parser = subparsers.add_parser("stage-artifact-materialize")
     stage_artifact_materialize_parser.add_argument("--profile", required=True)
     stage_artifact_materialize_parser.add_argument("--studies", nargs="+", required=True)

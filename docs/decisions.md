@@ -1274,7 +1274,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 ## 2026-05-28：domain-health diagnostic 也必须使用 current domain-transition tick request
 
 - 决策：`domain-health-diagnostic` 构造 outer-loop tick request 时，必须和 controller refresh 一样校验 status `domain_transition` 的 `decision_type`、`route_target`、`next_work_unit.unit_id` 与 controller action。如果 outer-loop tick request 与当前 transition 不一致，必须切换到 `status_domain_transition_tick_request`，避免用旧 write route 覆盖当前 gate replay route。
-- 理由：DM003 暴露出 `domain-owner-action-refresh-controller-decisions` 已能把 `route_target=finalize`、`owner_authorized_publication_gate_replay` 绑定到 `run_gate_clearing_batch`，但随后 `domain-health-diagnostic` 直接使用旧 outer-loop tick request，又把同一个 finalize work unit 写成 `run_quality_repair_batch`。根因是 DHD 入口没有复用 domain-transition currentness resolver。
+- 理由：DM003 暴露出当前 controller decision refresh 能把 `route_target=finalize`、`owner_authorized_publication_gate_replay` 绑定到 `run_gate_clearing_batch`，但随后 `domain-health-diagnostic` 直接使用旧 outer-loop tick request，又把同一个 finalize work unit 写成 `run_quality_repair_batch`。根因是 DHD 入口没有复用 domain-transition currentness resolver。
 - 影响：这是 MAS domain-health/controller currentness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文推进仍通过 MAS owner/controller/runtime path 重新刷新 controller decision、materialize request、dispatch owner action。
 - 跟进：`currentness_basis` 是 DHD tick-request 的诊断上下文字段，只能进入 wakeup audit、stage log 或 work-unit context；不得透传给 `materialize_non_dispatching_outer_loop_decision` 这类严格 controller-decision materializer，否则 DHD 会在真实 workspace 报 `unexpected keyword argument 'currentness_basis'` 并阻断 owner-route 巡检。
 
@@ -1363,7 +1363,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-28：publication gate replay transition 必须压过 stale AI reviewer pending request
 
-- 决策：当 `progress_projection.domain_transition` 已是 `publication_gate_blocker` 且 `controller_action=run_gate_clearing_batch` 时，owner-route 必须把它作为当前更高优先级 owner truth，阻断旧的 pending `return_to_ai_reviewer_workflow` request；`domain-owner-action-refresh-controller-decisions` 也必须能从该 transition 合成 non-dispatching gate replay controller decision，而不依赖旧 outer-loop tick request。
+- 决策：当 `progress_projection.domain_transition` 已是 `publication_gate_blocker` 且 `controller_action=run_gate_clearing_batch` 时，owner-route 必须把它作为当前更高优先级 owner truth，阻断旧的 pending `return_to_ai_reviewer_workflow` request；`current_controller_decision_refresh` 也必须能从该 transition 合成 non-dispatching gate replay controller decision，而不依赖旧 outer-loop tick request。
 - 理由：DM003 暴露出 AI reviewer recheck 已刷新当前 `publication_eval/latest.json` 后，read model 正确进入 `publication_gate_replay`，但稳定 AI reviewer request residue 仍让 owner-route 重复派 `return_to_ai_reviewer_workflow`，controller refresh 也返回 `outer_loop_tick_request_unavailable`。根因是 MAS currentness / route fallback 未覆盖 gate replay transition，不是 OPL queue/provider lifecycle，也不是论文稿件可手工 patch 的内容问题。
 - 影响：gate replay 由 MAS publication gate owner 接管，后续若 gate 把问题 route back 到 write，再由 `run_quality_repair_batch` 修 manuscript/story surfaces；不得让 stale reviewer request 抢占已消费的 reviewer verdict。
 
@@ -2034,7 +2034,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-21：controller refresh 只能产出 OPL runtime-owner handoff
 
-- 决策：`refresh_controller_decisions_for_current_publication_eval` 在物化 current controller decision 后，不再调用 `request_opl_stage_attempt`、不 pause/resume live worker、不写 `last_controller_decision_authorization` 到 `.ds/runtime_state.json`，也不向 `.ds/events.jsonl` 追加 runtime event。它只能返回 refs-only `runtime_owner_handoff`，其中包括 current work unit、fingerprint、proposed runtime-state delta、`queue_owner=one-person-lab` 与 authority boundary。
+- 决策：`current_controller_decision_refresh` 在物化 current controller decision 后，不再调用 `request_opl_stage_attempt`、不 pause/resume live worker、不写 `last_controller_decision_authorization` 到 canonical runtime state，也不追加 MAS-owned runtime event。它只能返回 refs-only `runtime_owner_handoff`，其中包括 current work unit、fingerprint、proposed runtime-state delta、`queue_owner=one-person-lab` 与 authority boundary。旧 `domain-owner-action-refresh-controller-decisions` CLI/public wrapper 已退役；内部测试和 provenance 若仍提到旧名，只能作为 negative guard 或历史语境。
 - 理由：AI reviewer route-back、publication aftercare、domain transition 和 bundle-stage closeout 都是 MAS domain truth / owner-route refs；真正的 queue hydration、provider attempt、retry/dead-letter、pending user message redrive、live prompt refresh 与 worker lifecycle 是 OPL generic runtime 职责。继续由 MAS 写 authorization 或触发 provider resume，会把 MAS 重新变成私有 runtime/control-plane owner。
 - 影响：旧测试中“MAS 写 authorization 后请求 resume”的断言已改为“MAS 不调用 provider lifecycle API、不改 runtime state、只交给 OPL owner route”。`authorization_status` 使用 `owner_handoff_ready` / `pending_user_message_owner_handoff_ready`，`runtime_resume_status=owner_route_required`。论文、publication eval、controller decisions、current package 与 submission package 的权威仍由对应 MAS owner surface 决定。
 

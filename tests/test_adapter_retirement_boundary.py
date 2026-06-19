@@ -2405,6 +2405,53 @@ def test_owner_action_execution_payloads_do_not_recommend_retired_private_cli_al
     assert violations == []
 
 
+def test_domain_owner_controller_refresh_public_wrapper_is_retired() -> None:
+    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    public_surface = importlib.import_module("med_autoscience.cli_public_surface")
+
+    assert not hasattr(dispatch_module, "refresh_controller_decisions_for_current_publication_eval")
+    assert "refresh_controller_decisions_for_current_publication_eval" not in getattr(
+        dispatch_module,
+        "__all__",
+        (),
+    )
+    assert (
+        "runtime",
+        "domain-owner-action-refresh-controller-decisions",
+    ) not in public_surface.GROUPED_COMMAND_ALIASES
+
+
+def test_retired_domain_owner_refresh_controller_command_is_not_active_cli_surface() -> None:
+    retired_command = "domain-owner-action-refresh-controller-decisions"
+    allowed_refs = {
+        "tests/test_adapter_retirement_boundary.py",
+        "tests/test_cli_cases/domain_action_request_materializer_command.py",
+    }
+    violations: list[str] = []
+    for root in (SRC_ROOT, REPO_ROOT / "tests"):
+        for path in sorted(root.rglob("*.py")):
+            text = path.read_text(encoding="utf-8")
+            if retired_command not in text:
+                continue
+            relative_path = str(path.relative_to(REPO_ROOT))
+            if relative_path not in allowed_refs:
+                violations.append(relative_path)
+
+    assert violations == []
+
+
+def test_current_controller_decision_refresh_does_not_emit_legacy_domain_owner_action_surface() -> None:
+    source = (
+        SRC_ROOT
+        / "controllers"
+        / "domain_owner_action_dispatch_parts"
+        / "controller_refresh.py"
+    ).read_text(encoding="utf-8")
+
+    assert "domain_owner_action_controller_decision_refresh" not in source
+    assert 'SURFACE = "current_controller_decision_refresh"' in source
+
+
 def test_paper_recovery_export_consumes_only_canonical_transition_request_preview(
     tmp_path: Path,
 ) -> None:

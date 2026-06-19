@@ -3,7 +3,8 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
-from types import SimpleNamespace
+
+import pytest
 
 from .shared import write_profile
 
@@ -113,67 +114,33 @@ def test_study_owner_gate_decision_command_dry_run_does_not_write(tmp_path: Path
     assert not event_log.exists()
 
 
-def test_domain_owner_refresh_controller_decisions_command_dispatches_controller(
-    monkeypatch,
+def test_domain_owner_refresh_controller_decisions_command_is_retired(
     tmp_path: Path,
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
-    called: dict[str, object] = {}
 
-    def fake_refresh_controller_decisions_for_current_publication_eval(
-        *,
-        profile,
-        study_ids,
-        mode: str,
-        apply: bool,
-    ) -> dict[str, object]:
-        called["profile"] = profile
-        called["study_ids"] = study_ids
-        called["mode"] = mode
-        called["apply"] = apply
-        return {
-            "surface": "domain_owner_action_controller_decision_refresh",
-            "refresh_count": len(study_ids),
-        }
-
-    original_load_controller = cli._load_controller
-    fake_controller = SimpleNamespace(
-        refresh_controller_decisions_for_current_publication_eval=(
-            fake_refresh_controller_decisions_for_current_publication_eval
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "domain-owner-action-refresh-controller-decisions",
+                "--profile",
+                str(profile_path),
+                "--studies",
+                "DM002",
+                "DM003",
+                "--mode",
+                "developer_apply_safe",
+                "--apply",
+            ]
         )
-    )
-
-    def fake_load_controller(module_name: str):
-        if module_name == "domain_owner_action_dispatch":
-            return fake_controller
-        return original_load_controller(module_name)
-
-    monkeypatch.setattr(cli, "_load_controller", fake_load_controller)
-
-    exit_code = cli.main(
-        [
-            "domain-owner-action-refresh-controller-decisions",
-            "--profile",
-            str(profile_path),
-            "--studies",
-            "DM002",
-            "DM003",
-            "--mode",
-            "developer_apply_safe",
-            "--apply",
-        ]
-    )
     captured = capsys.readouterr()
 
-    assert exit_code == 0
-    assert called["profile"].name == "nfpitnet"
-    assert called["study_ids"] == ("DM002", "DM003")
-    assert called["mode"] == "developer_apply_safe"
-    assert called["apply"] is True
-    assert json.loads(captured.out)["surface"] == "domain_owner_action_controller_decision_refresh"
+    assert excinfo.value.code == 2
+    assert "invalid choice" in captured.err
+    assert "domain-owner-action-refresh-controller-decisions" in captured.err
 
 
 def test_medical_paper_readiness_owner_blocker_command_materializes_controller_decision(

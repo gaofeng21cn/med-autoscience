@@ -11,7 +11,8 @@ def test_refresh_controller_decision_uses_status_domain_transition_when_outer_ti
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -76,7 +77,7 @@ def test_refresh_controller_decision_uses_status_domain_transition_when_outer_ti
     }
     calls: dict[str, object] = {}
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: stale_tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**kwargs: object) -> dict[str, object]:
@@ -115,7 +116,8 @@ def test_refresh_controller_decision_routes_finalize_gate_replay_to_gate_clearin
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -175,7 +177,7 @@ def test_refresh_controller_decision_routes_finalize_gate_replay_to_gate_clearin
     }
     calls: dict[str, object] = {}
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: stale_tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**kwargs: object) -> dict[str, object]:
@@ -214,7 +216,8 @@ def test_refresh_controller_decision_rejects_gate_replay_with_stale_write_action
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -275,7 +278,7 @@ def test_refresh_controller_decision_rejects_gate_replay_with_stale_write_action
     }
     calls: dict[str, object] = {}
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: stale_tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**kwargs: object) -> dict[str, object]:
@@ -310,7 +313,8 @@ def test_refresh_controller_decision_does_not_bypass_human_gate_with_status_doma
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -368,7 +372,7 @@ def test_refresh_controller_decision_does_not_bypass_human_gate_with_status_doma
     }
     calls: dict[str, object] = {}
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: stale_tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**kwargs: object) -> dict[str, object]:

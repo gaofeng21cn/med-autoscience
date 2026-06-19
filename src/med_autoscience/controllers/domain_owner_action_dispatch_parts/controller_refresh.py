@@ -16,6 +16,9 @@ from ..owner_route_reconcile_parts import current_controller_authorization, pend
 from ..owner_route_reconcile_parts import opl_pending_user_message_handoff
 
 
+SURFACE = "current_controller_decision_refresh"
+
+
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -108,7 +111,7 @@ def refresh_controller_decisions_for_current_publication_eval(
     developer_mode_payload = developer_mode.to_dict()
     if apply and developer_apply_gate.blocked(developer_mode_payload):
         return {
-            "surface": "domain_owner_action_controller_decision_refresh",
+            "surface": SURFACE,
             "schema_version": schema_version,
             "generated_at": generated_at,
             "workspace_root": str(profile.workspace_root),
@@ -137,13 +140,13 @@ def refresh_controller_decisions_for_current_publication_eval(
                 study_id=study_id,
                 study_root=study_root(profile, study_id),
                 apply=apply,
-                source="domain_owner_action_controller_decision_refresh",
+                source=SURFACE,
             ),
         }
         for study_id in resolved_study_ids
     ]
     return {
-        "surface": "domain_owner_action_controller_decision_refresh",
+        "surface": SURFACE,
         "schema_version": schema_version,
         "generated_at": generated_at,
         "workspace_root": str(profile.workspace_root),
