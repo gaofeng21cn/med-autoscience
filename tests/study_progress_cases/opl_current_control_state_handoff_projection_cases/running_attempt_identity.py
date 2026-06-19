@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .. import shared as _shared
+from tests.provider_admission_current_control_helpers import opl_transition_readback
 
 
 def _module_reexport(module) -> None:
@@ -10,6 +11,121 @@ def _module_reexport(module) -> None:
 
 
 _module_reexport(_shared)
+
+
+def test_running_handoff_without_opl_readback_does_not_consume_current_execution(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    handoff_path = (
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-18T21:00:00+00:00",
+            "authority": "observability_only",
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_status": "active",
+                    "active_run_id": "opl-stage-attempt://sat-live-weak",
+                    "active_stage_attempt_id": "sat-live-weak",
+                    "active_workflow_id": "wf-live-weak",
+                    "running_provider_attempt": True,
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "runtime_health": {
+                        "health_status": "running",
+                        "runtime_liveness_status": "live",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                    },
+                    "next_owner": "write",
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": quest_id,
+            "quest_root": str(profile.runtime_root / quest_id),
+            "quest_status": "active",
+            "decision": "continue",
+            "reason": "owner_action_ready",
+            "active_run_id": None,
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-before-live-attempt",
+                "runtime_liveness_status": "queued",
+                "attempt_state": "queued",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "next_owner": "write",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {"state_kind": "executable_owner_action"},
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": work_unit_id,
+            },
+        },
+    )
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
+
+    result = module.read_study_progress(profile=profile, study_id=study_id)
+
+    handoff = result["opl_current_control_state_handoff"]
+    assert handoff["running_provider_attempt"] is True
+    assert "opl_domain_progress_transition_runtime_live_readback" not in handoff
+    assert result["current_work_unit"]["status"] != "running_provider_attempt"
+    assert result["current_execution_envelope"]["state_kind"] != "running_provider_attempt"
+    admission = result.get("owner_action_admission") or {}
+    assert admission.get("provider_attempt_running_proven") is not True
+    assert admission.get("provider_attempt_proof") in (None, {})
 
 
 def test_opl_current_control_state_handoff_preserves_running_attempt_identity(
@@ -48,6 +164,11 @@ def test_opl_current_control_state_handoff_preserves_running_attempt_identity(
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
                     "action_fingerprint": "publication-blockers::0915410f804b3697",
+                    "opl_domain_progress_transition_runtime_live_readback": opl_transition_readback(
+                        study_id,
+                        action_fingerprint="publication-blockers::0915410f804b3697",
+                        work_unit_id="medical_prose_write_repair",
+                    ),
                     "runtime_health": {
                         "health_status": "running",
                         "runtime_liveness_status": "live",
@@ -348,4 +469,4 @@ def test_study_progress_keeps_unbound_live_attempt_as_observability_only(
     assert monitoring["running_provider_attempt"] is False
     assert monitoring["active_stage_attempt_id"] is None
     assert monitoring["worker_liveness"]["stale_active_run_id"] == "opl-stage-attempt://sat-unbound"
-    assert monitoring["current_executable_owner_action"]["source"] == "stage_artifact_index.next_owner_action"
+    assert monitoring["execution_state_kind"] != "running_provider_attempt"

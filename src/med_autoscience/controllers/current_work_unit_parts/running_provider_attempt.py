@@ -23,6 +23,9 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    provider_admission_opl_transition_readback,
+)
 
 
 def strict_running_provider_attempt(
@@ -34,6 +37,9 @@ def strict_running_provider_attempt(
 ) -> dict[str, Any] | None:
     attempt = mapping(provider_running_proof) or mapping(live_provider_attempt)
     if attempt.get("running_provider_attempt") is not True:
+        return None
+    readback = provider_admission_opl_transition_readback(attempt)
+    if not readback:
         return None
     if attempt_has_matching_terminal_closeout(attempt):
         return None
@@ -54,6 +60,26 @@ def strict_running_provider_attempt(
         "active_run_id": active_run_id,
         "active_workflow_id": active_workflow_id,
         "runtime_health": health,
+        "opl_transition_readback_source": "opl_domain_progress_transition_runtime_live_readback",
+        "opl_transition_readback_identity": running_attempt_readback_identity(readback),
+    }
+
+
+def running_attempt_readback_identity(readback: Mapping[str, Any]) -> dict[str, Any]:
+    identity = mapping(readback.get("identity"))
+    aggregate_identity = mapping(identity.get("aggregate_identity"))
+    stage_run_identity = mapping(identity.get("stage_run_identity"))
+    return {
+        "study_id": text(aggregate_identity.get("study_id")),
+        "work_unit_id": text(aggregate_identity.get("work_unit_id")),
+        "work_unit_fingerprint": text(aggregate_identity.get("work_unit_fingerprint")),
+        "route_identity_key": text(stage_run_identity.get("route_identity_key")),
+        "attempt_idempotency_key": text(stage_run_identity.get("attempt_idempotency_key")),
+        "request_idempotency_key": text(identity.get("idempotency_key"))
+        or text(identity.get("request_idempotency_key")),
+        "event_id": text(identity.get("latest_event_id")) or text(identity.get("event_id")),
+        "outbox_item_id": text(identity.get("latest_outbox_item_id")) or text(identity.get("outbox_item_id")),
+        "transaction_id": text(identity.get("latest_transaction_id")) or text(identity.get("transaction_id")),
     }
 
 
@@ -104,6 +130,11 @@ def provider_attempt_proof_state(running_attempt: Mapping[str, Any]) -> dict[str
         "next_work_unit": work_unit_id(running_attempt.get("next_work_unit"))
         or work_unit_id(health.get("next_work_unit")),
         "runtime_health": mapping(running_attempt.get("runtime_health")) or None,
+        "opl_transition_readback_source": text(running_attempt.get("opl_transition_readback_source")),
+        "opl_transition_readback_identity": mapping(
+            running_attempt.get("opl_transition_readback_identity")
+        )
+        or None,
     }
 
 

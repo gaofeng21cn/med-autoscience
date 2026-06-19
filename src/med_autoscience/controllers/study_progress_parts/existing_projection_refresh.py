@@ -8,6 +8,7 @@ from med_autoscience.controllers.paper_recovery_state import build_paper_recover
 from med_autoscience.controllers import current_execution_envelope, current_work_unit
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     has_opl_transition_readback as _has_opl_transition_readback,
+    provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index
 from med_autoscience.profiles import WorkspaceProfile
@@ -186,8 +187,7 @@ def refresh_existing_projection_current_owner_surfaces(
     current_control_executable_action = current_control_executable_owner_action(handoff)
     if current_control_executable_action and not _handoff_is_active_provider_control(handoff):
         recomputed_action = build_current_executable_owner_action(updated)
-        if recomputed_action is not None:
-            current_control_executable_action = recomputed_action
+        current_control_executable_action = recomputed_action
     currentness_handoff = current_control_executable_currentness_handoff(
         handoff,
         current_control_executable_action=current_control_executable_action,
@@ -232,7 +232,7 @@ def refresh_existing_projection_current_owner_surfaces(
             study_root=study_root,
         )
     current_action = typed_blocker_successor_action
-    if current_action is None and handoff.get("running_provider_attempt") is not True:
+    if current_action is None and not _handoff_is_active_provider_control(handoff):
         updated.update(
             provider_admission_projection_fields(
                 payload=updated,
@@ -401,7 +401,7 @@ def _paper_recovery_state_unless_successor_current(payload: Mapping[str, Any]) -
 
 def _handoff_is_active_provider_control(handoff: Mapping[str, Any]) -> bool:
     if handoff.get("running_provider_attempt") is True:
-        return True
+        return bool(provider_admission_opl_transition_readback(handoff))
     if handoff.get("provider_admission_pending_count") not in (None, 0):
         return _has_opl_transition_readback(handoff) or any(
             _has_opl_transition_readback(item)
@@ -423,6 +423,8 @@ def _handoff_is_active_provider_control(handoff: Mapping[str, Any]) -> bool:
 
 def _handoff_has_bound_running_provider_attempt(handoff: Mapping[str, Any]) -> bool:
     if handoff.get("running_provider_attempt") is not True:
+        return False
+    if not provider_admission_opl_transition_readback(handoff):
         return False
     if _non_empty_text(handoff.get("active_stage_attempt_id")) is None and _non_empty_text(
         handoff.get("active_run_id")

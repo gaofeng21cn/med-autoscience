@@ -9,6 +9,9 @@ from med_autoscience.controllers.current_work_unit_parts.policy_constants import
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
     OPL_RUNTIME_TERMINAL_BLOCKERS,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    provider_admission_opl_transition_readback,
+)
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
     action_supersedes_terminal_selector_residue,
 )
@@ -953,6 +956,8 @@ def _current_action_for_execution_refresh(
 
 def _handoff_has_bound_running_provider_attempt(handoff: Mapping[str, Any]) -> bool:
     if handoff.get("running_provider_attempt") is not True:
+        return False
+    if not provider_admission_opl_transition_readback(handoff):
         return False
     if _non_empty_text(handoff.get("active_stage_attempt_id")) is None and _non_empty_text(
         handoff.get("active_run_id")

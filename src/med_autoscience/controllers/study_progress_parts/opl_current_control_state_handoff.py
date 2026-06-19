@@ -400,6 +400,7 @@ def opl_current_control_state_study_handoff_projection(
         "blocked_reason": _non_empty_text(matching.get("blocked_reason")),
     }
     projection.update(_current_control_currentness_fields(matching))
+    _copy_opl_transition_readback_fields(projection, matching)
     if matching_top_level_provider_admissions:
         projection = _apply_top_level_provider_admissions_to_handoff(
             projection,
@@ -569,6 +570,47 @@ def opl_current_control_state_live_attempt_handoff_projection(
         "next_owner": "supervisor_only/live_provider_attempt",
         "external_supervisor_required": False,
         "blocked_reason": None,
+    }
+
+
+def _copy_opl_transition_readback_fields(
+    projection: dict[str, Any],
+    source: Mapping[str, Any],
+) -> None:
+    readback = candidate_opl_transition_readback(source)
+    if not readback:
+        return
+    projection["opl_domain_progress_transition_runtime_live_readback"] = readback
+    projection["provider_admission_identity"] = _provider_admission_identity_from_readback(readback)
+
+
+def _provider_admission_identity_from_readback(readback: Mapping[str, Any]) -> dict[str, Any]:
+    identity = _observability_mapping(readback.get("identity"))
+    aggregate_identity = _observability_mapping(identity.get("aggregate_identity"))
+    stage_run_identity = _observability_mapping(identity.get("stage_run_identity"))
+    return {
+        key: value
+        for key, value in {
+            "study_id": _non_empty_text(aggregate_identity.get("study_id")),
+            "work_unit_id": _work_unit_identity(aggregate_identity.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(
+                aggregate_identity.get("work_unit_fingerprint")
+            ),
+            "route_identity_key": _non_empty_text(stage_run_identity.get("route_identity_key")),
+            "attempt_idempotency_key": _non_empty_text(
+                stage_run_identity.get("attempt_idempotency_key")
+            ),
+            "request_idempotency_key": _non_empty_text(identity.get("idempotency_key"))
+            or _non_empty_text(identity.get("request_idempotency_key")),
+            "stage_run_id": _non_empty_text(stage_run_identity.get("stage_run_id")),
+            "event_id": _non_empty_text(identity.get("latest_event_id"))
+            or _non_empty_text(identity.get("event_id")),
+            "outbox_item_id": _non_empty_text(identity.get("latest_outbox_item_id"))
+            or _non_empty_text(identity.get("outbox_item_id")),
+            "transaction_id": _non_empty_text(identity.get("latest_transaction_id"))
+            or _non_empty_text(identity.get("transaction_id")),
+        }.items()
+        if value is not None
     }
 
 

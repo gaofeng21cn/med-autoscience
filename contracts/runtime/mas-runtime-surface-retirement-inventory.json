@@ -206,6 +206,10 @@
         "mas_can_create_opl_outbox_event_or_stage_run": false,
         "missing_live_readback_no_progress_signal": "transition_request_waits_for_opl_runtime",
         "provider_admission_readback_requires_opl_live_readback": true,
+        "running_provider_attempt_without_opl_live_readback_is_observability_only": true,
+        "running_provider_attempt_can_consume_provider_admission_only_with_same_identity_opl_live_readback": true,
+        "matching_provider_admission_candidate_may_supply_running_proof_readback": true,
+        "non_matching_provider_admission_candidate_can_supply_running_proof_readback": false,
         "request_without_live_readback_effect": "transition_request_pending_non_advancing_apply_required"
       },
       "compatibility_alias_allowed": false,
@@ -270,6 +274,7 @@
         "mas_can_mark_provider_admission": false,
         "mas_can_mark_provider_running": false,
         "provider_admission_pending": false,
+        "running_provider_attempt_provenance_without_opl_live_readback": "observability_only",
         "provenance_only_until_opl_readback": true,
         "requires_opl_domain_progress_transition_runtime_intake": true,
         "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
@@ -694,6 +699,8 @@
         "running_provider_attempt_selector_boundary": {
           "selector": "scan_route_currentness.live_provider_attempt_owner_route_from_scan_payload",
           "running_provider_attempt_without_opl_proof_can_select_route": false,
+          "running_provider_attempt_without_opl_live_readback_can_select_current_execution": false,
+          "weak_running_handoff_role": "observability_only",
           "accepted_proofs": [
             "trusted_opl_execution_authorization",
             "exact_provider_hosted_stage_attempt",
@@ -707,6 +714,7 @@
         "supported_action_types_ref": "src/med_autoscience/controllers/default_executor_action_policy.py#SUPPORTED_ACTION_TYPES",
         "repo_fail_closed_test_ref": "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
         "request_projection_without_opl_proof_outcome": "opl_execution_authorization_required",
+        "current_execution_running_proof_requires_opl_live_readback": true,
         "repo_covered_action_families": [
           "artifact_display_surface_materialization_required",
           "canonical_paper_inputs_rehydrate_required",
@@ -802,6 +810,9 @@
         "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_requires_opl_execution_proof",
         "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_accepts_trusted_opl_authorization",
         "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_accepts_bound_opl_transition_readback",
+        "tests/study_progress_cases/opl_current_control_state_handoff_projection_cases/running_attempt_identity.py::test_running_handoff_without_opl_readback_does_not_consume_current_execution",
+        "tests/study_progress_cases/provider_admission_projection_cases/opl_running_readback.py::test_provider_admission_projection_consumes_current_identity_running_proof",
+        "tests/test_current_execution_envelope_cases/provider_attempt_priority.py::test_envelope_prefers_running_provider_attempt_over_stale_action_queue",
         "tests/test_domain_owner_action_dispatch_cases/provider_hosted_exact_stage_packet_selection.py",
         "tests/test_domain_owner_action_dispatch_cases/stage_native_write_repair_authorization.py",
         "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_provider_hosted_authorization.py",

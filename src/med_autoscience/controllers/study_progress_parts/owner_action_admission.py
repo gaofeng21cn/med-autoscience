@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     has_opl_transition_readback as _has_opl_transition_readback,
+    provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
 )
 
 from .paper_autonomy_supervisor_decision import provider_admission_supervisor_gate
@@ -202,6 +203,9 @@ def provider_attempt_proof_for_current_action(
 def _provider_attempt_proof(handoff: Mapping[str, Any]) -> dict[str, Any] | None:
     if handoff.get("running_provider_attempt") is not True:
         return None
+    readback = _provider_admission_opl_transition_readback(handoff)
+    if not readback:
+        return None
     if _handoff_has_matching_terminal_closeout(handoff):
         return None
     active_stage_attempt_id = _text(handoff.get("active_stage_attempt_id"))
@@ -214,6 +218,28 @@ def _provider_attempt_proof(handoff: Mapping[str, Any]) -> dict[str, Any] | None
         "active_stage_attempt_id": active_stage_attempt_id,
         "active_run_id": active_run_id,
         "active_workflow_id": active_workflow_id,
+        "opl_transition_readback_source": "opl_domain_progress_transition_runtime_live_readback",
+        "opl_transition_readback_identity": _provider_attempt_readback_identity(readback),
+    }
+
+
+def _provider_attempt_readback_identity(readback: Mapping[str, Any]) -> dict[str, Any]:
+    identity = _mapping(readback.get("identity"))
+    aggregate_identity = _mapping(identity.get("aggregate_identity"))
+    stage_run_identity = _mapping(identity.get("stage_run_identity"))
+    return {
+        "study_id": _text(aggregate_identity.get("study_id")),
+        "work_unit_id": _text(aggregate_identity.get("work_unit_id")),
+        "work_unit_fingerprint": _text(aggregate_identity.get("work_unit_fingerprint")),
+        "route_identity_key": _text(stage_run_identity.get("route_identity_key")),
+        "attempt_idempotency_key": _text(stage_run_identity.get("attempt_idempotency_key")),
+        "request_idempotency_key": _text(identity.get("idempotency_key"))
+        or _text(identity.get("request_idempotency_key")),
+        "event_id": _text(identity.get("latest_event_id")) or _text(identity.get("event_id")),
+        "outbox_item_id": _text(identity.get("latest_outbox_item_id"))
+        or _text(identity.get("outbox_item_id")),
+        "transaction_id": _text(identity.get("latest_transaction_id"))
+        or _text(identity.get("transaction_id")),
     }
 
 

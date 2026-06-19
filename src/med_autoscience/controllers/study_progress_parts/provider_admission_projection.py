@@ -7,6 +7,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts import provider_
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback as _candidate_opl_transition_readback,
     has_opl_transition_readback as _has_opl_transition_readback,
+    provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.current_work_unit import action_supersedes_typed_blocker
 
@@ -229,6 +230,10 @@ def _handoff_running_proof_consumes_provider_admission(
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if not current_action:
         return None
+    handoff = _handoff_with_matching_provider_admission_readback(
+        handoff=handoff,
+        current_action=current_action,
+    )
     proof = provider_attempt_proof_for_current_action(
         handoff=handoff,
         current_action=current_action,
@@ -262,6 +267,28 @@ def _handoff_running_proof_consumes_provider_admission(
             },
         },
     }
+
+
+def _handoff_with_matching_provider_admission_readback(
+    *,
+    handoff: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    if _provider_admission_opl_transition_readback(handoff):
+        return handoff
+    for item in handoff.get("provider_admission_candidates") or []:
+        if not isinstance(item, Mapping):
+            continue
+        if not _same_action_identity(current_action, item):
+            continue
+        readback = _provider_admission_opl_transition_readback(item)
+        if readback:
+            return {
+                **dict(item),
+                **dict(handoff),
+                _OPL_TRANSITION_LIVE_READBACK_SOURCE: readback,
+            }
+    return handoff
 
 
 def _handoff_terminal_closeout_consumes_provider_admission(

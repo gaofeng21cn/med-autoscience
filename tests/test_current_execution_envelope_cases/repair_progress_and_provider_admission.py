@@ -2,6 +2,24 @@ from __future__ import annotations
 
 import importlib
 
+from tests.provider_admission_current_control_helpers import opl_transition_readback
+
+
+STUDY_ID = "003-dpcc-primary-care-phenotype-treatment-gap"
+
+
+def _live_readback(*, work_unit_id: str, fingerprint: str, stage_run_id: str = "sat-live") -> dict[str, object]:
+    route_key = f"provider-admission::{STUDY_ID}::{fingerprint}"
+    return opl_transition_readback(
+        STUDY_ID,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+        stage_run_id=stage_run_id,
+    )
+
 
 def test_envelope_preserves_manifest_backed_stage_typed_blocker_over_handoff_queue() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
@@ -139,34 +157,46 @@ def test_envelope_accepts_materialized_provider_admission_action_over_admission_
 
 def test_envelope_prefers_running_provider_attempt_over_owner_route_reason() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+    work_unit_id = "ai_reviewer_medical_prose_quality_review"
+    fingerprint = "sha256:ai-reviewer-medical-prose-running"
 
     envelope = module.build_current_execution_envelope(
         actions=[
             {
                 "action_type": "return_to_ai_reviewer_workflow",
                 "owner": "ai_reviewer",
-                "next_work_unit": "ai_reviewer_medical_prose_quality_review",
+                "next_work_unit": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
             }
         ],
         blocked_reason="domain_transition_ai_reviewer_re_eval",
         next_owner="ai_reviewer",
         live_provider_attempt={
             "running_provider_attempt": True,
+            "study_id": STUDY_ID,
             "active_stage_attempt_id": "sat-live",
             "active_workflow_id": "wf-live",
             "action_type": "return_to_ai_reviewer_workflow",
-            "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "opl_domain_progress_transition_runtime_live_readback": _live_readback(
+                work_unit_id=work_unit_id,
+                fingerprint=fingerprint,
+            ),
         },
         runtime_health={
             "runtime_liveness_status": "live",
             "provider_status": "running",
-            "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
         },
     )
 
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "ai_reviewer"
-    assert envelope["next_work_unit"] == "ai_reviewer_medical_prose_quality_review"
+    assert envelope["next_work_unit"] == work_unit_id
     assert envelope["typed_blocker"] is None
 
 
@@ -613,6 +643,8 @@ def test_envelope_accepts_repair_progress_ai_reviewer_action_over_stage_readines
 
 def test_envelope_does_not_borrow_next_work_unit_from_stale_action_queue_for_running_attempt() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+    work_unit_id = "current_runtime_attempt_without_queue_borrow"
+    fingerprint = "sha256:current-runtime-attempt-without-queue-borrow"
 
     envelope = module.build_current_execution_envelope(
         actions=[
@@ -620,28 +652,45 @@ def test_envelope_does_not_borrow_next_work_unit_from_stale_action_queue_for_run
                 "action_type": "return_to_ai_reviewer_workflow",
                 "owner": "ai_reviewer",
                 "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "source": "opl_current_control_state_action_queue",
             }
         ],
         blocked_reason=None,
         next_owner="MedAutoScience",
         live_provider_attempt={
             "running_provider_attempt": True,
+            "study_id": STUDY_ID,
             "active_stage_attempt_id": "sat-live",
             "active_workflow_id": "wf-live",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": work_unit_id,
+            "route_identity_key": f"provider-admission::{STUDY_ID}::{fingerprint}",
+            "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{fingerprint}",
+            "idempotency_key": f"provider-admission::{STUDY_ID}::{fingerprint}",
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "opl_domain_progress_transition_runtime_live_readback": _live_readback(
+                work_unit_id=work_unit_id,
+                fingerprint=fingerprint,
+            ),
         },
         runtime_health={
             "runtime_liveness_status": "live",
             "provider_status": "running",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
         },
     )
 
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] == "sat-live"
+    assert envelope["next_work_unit"] == work_unit_id
 
 
 def test_envelope_prefers_running_provider_attempt_over_stale_parked_projection() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+    work_unit_id = "complete_medical_paper_readiness_surface"
+    fingerprint = "sha256:running-over-stale-parked"
 
     envelope = module.build_current_execution_envelope(
         status={
@@ -667,19 +716,35 @@ def test_envelope_prefers_running_provider_attempt_over_stale_parked_projection(
         },
         actions=[
             {
-                "action_type": "complete_medical_paper_readiness_surface",
+                "action_type": work_unit_id,
                 "owner": "MedAutoScience",
-                "next_work_unit": "complete_medical_paper_readiness_surface",
+                "next_work_unit": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
             }
         ],
         next_owner="MedAutoScience",
         live_provider_attempt={
             "running_provider_attempt": True,
+            "study_id": STUDY_ID,
             "active_stage_attempt_id": "sat-live",
             "active_workflow_id": "wf-live",
+            "work_unit_id": work_unit_id,
+            "action_type": work_unit_id,
+            "route_identity_key": f"provider-admission::{STUDY_ID}::{fingerprint}",
+            "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{fingerprint}",
+            "idempotency_key": f"provider-admission::{STUDY_ID}::{fingerprint}",
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "opl_domain_progress_transition_runtime_live_readback": _live_readback(
+                work_unit_id=work_unit_id,
+                fingerprint=fingerprint,
+            ),
             "runtime_health": {
                 "health_status": "running",
                 "runtime_liveness_status": "live",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
             },
         },
         runtime_health={
@@ -690,7 +755,7 @@ def test_envelope_prefers_running_provider_attempt_over_stale_parked_projection(
 
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] == "sat-live"
+    assert envelope["next_work_unit"] == work_unit_id
     assert envelope["parked_state"] is None
 
 

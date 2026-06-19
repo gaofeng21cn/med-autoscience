@@ -4,12 +4,32 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.provider_admission_current_control_helpers import opl_transition_readback
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _opl_transition_live_readback(
+    study_id: str,
+    *,
+    work_unit_id: str,
+    fingerprint: str,
+    stage_run_id: str,
+) -> dict[str, object]:
+    route_key = f"provider-admission::{study_id}::{fingerprint}"
+    return opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+        stage_run_id=stage_run_id,
+    )
 
 
 def test_owner_route_envelope_projects_ai_reviewer_action_past_non_human_explicit_resume_residue(
@@ -253,6 +273,12 @@ def test_study_progress_envelope_prefers_live_opl_attempt_over_handoff_action_qu
                     "active_stage_attempt_id": "sat-live",
                     "active_workflow_id": "wf-live",
                     "running_provider_attempt": True,
+                    "opl_domain_progress_transition_runtime_live_readback": _opl_transition_live_readback(
+                        study_id,
+                        work_unit_id="complete_medical_paper_readiness_surface",
+                        fingerprint="sha256:closed-attempt-current-readiness",
+                        stage_run_id="sat-live",
+                    ),
                     "runtime_health": {
                         "health_status": "running",
                         "runtime_liveness_status": "live",
@@ -436,6 +462,12 @@ def test_study_progress_envelope_prefers_live_attempt_over_readiness_blocker(
                     "active_stage_attempt_id": "sat-live",
                     "active_workflow_id": "wf-live",
                     "running_provider_attempt": True,
+                    "opl_domain_progress_transition_runtime_live_readback": _opl_transition_live_readback(
+                        study_id,
+                        work_unit_id="complete_medical_paper_readiness_surface",
+                        fingerprint="sha256:live-readiness-attempt",
+                        stage_run_id="sat-live",
+                    ),
                     "runtime_health": {
                         "health_status": "running",
                         "runtime_liveness_status": "live",
@@ -747,15 +779,30 @@ def test_study_progress_envelope_treats_handoff_owner_reason_as_running_context(
                     "active_stage_attempt_id": "sat-live",
                     "active_workflow_id": "wf-live",
                     "running_provider_attempt": True,
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "work_unit_fingerprint": "sha256:dpcc-publication-gate-replay-running",
+                    "action_fingerprint": "sha256:dpcc-publication-gate-replay-running",
+                    "opl_domain_progress_transition_runtime_live_readback": _opl_transition_live_readback(
+                        study_id,
+                        work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                        fingerprint="sha256:dpcc-publication-gate-replay-running",
+                        stage_run_id="sat-live",
+                    ),
                     "runtime_health": {
                         "health_status": "running",
                         "runtime_liveness_status": "live",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                        "work_unit_fingerprint": "sha256:dpcc-publication-gate-replay-running",
                     },
                     "action_queue": [
                         {
                             "action_type": "run_gate_clearing_batch",
                             "owner": "gate_clearing_batch",
                             "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                            "work_unit_fingerprint": "sha256:dpcc-publication-gate-replay-running",
+                            "action_fingerprint": "sha256:dpcc-publication-gate-replay-running",
                         }
                     ],
                     "next_owner": "gate_clearing_batch",
@@ -793,7 +840,7 @@ def test_study_progress_envelope_treats_handoff_owner_reason_as_running_context(
     assert result["opl_current_control_state_handoff"]["running_provider_attempt"] is True
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "gate_clearing_batch"
-    assert envelope["next_work_unit"] == "sat-live"
+    assert envelope["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     assert envelope["typed_blocker"] is None
 
 

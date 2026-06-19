@@ -237,9 +237,10 @@
         "MAS OPL transition readback contract tests reject read_model_readback when rebuilt identity refs differ from the top-level live identity readback.",
         "Provider admission now consumes provider_admission_opl_transition_readback, which requires complete OPL live readback plus matching study_id, work_unit_id, work_unit_fingerprint, route_identity_key, attempt_idempotency_key, and request idempotency key.",
         "Paper autonomy supervisor gate now accepts materialize_recovery_action provider admission only when a provider-admission identity-bound OPL live readback matches the current paper autonomy obligation; request-only carriers cannot bypass via admission_pending or provider_admission_requires_opl_runtime_result=false recovery state.",
-        "Provider-admission arbiter pending decisions now expose opl_transition_event_consumption proof with event_id, outbox_item_id, transaction_id, stage_run identity, route identity, attempt idempotency, request idempotency, same-transaction flag, and MAS non-authority flags; request-only event/outbox/StageRun fragments remain transition_request_pending."
+        "Provider-admission arbiter pending decisions now expose opl_transition_event_consumption proof with event_id, outbox_item_id, transaction_id, stage_run identity, route identity, attempt idempotency, request idempotency, same-transaction flag, and MAS non-authority flags; request-only event/outbox/StageRun fragments remain transition_request_pending.",
+        "Provider-admission running-proof consumption now requires provider_admission_opl_transition_readback for the current action identity; a handoff running_provider_attempt flag without same-identity OPL live readback remains observability only, while a matching provider_admission_candidate may supply the readback without authorizing MAS to start the provider."
       ],
-      "open_gap": "Fresh DM002/DM003 provider admission/running proof remains open; repo evidence now blocks request-only current_work_unit/provider-admission projections, request-only paper recovery admission bypasses, stale unbound terminal closeouts, thin StageRun identities, stale transaction refs, stale read-model rebuild sections, cross-identity live readbacks, and bare event/outbox/StageRun fragments from acting as admission evidence."
+      "open_gap": "Fresh DM002/DM003 provider admission/running proof remains open; repo evidence now blocks request-only current_work_unit/provider-admission projections, request-only paper recovery admission bypasses, stale unbound terminal closeouts, thin StageRun identities, stale transaction refs, stale read-model rebuild sections, cross-identity live readbacks, bare event/outbox/StageRun fragments, and weak running_provider_attempt handoffs without OPL live readback from acting as admission evidence."
     },
     {
       "feature_id": "current_work_unit_projection",
@@ -253,7 +254,8 @@
         "Current work unit provider_admission_pending booleans without complete OPL live readback no longer count as provider admission evidence in paper recovery state.",
         "Identity-bound current-control admissions are not cleared by stale terminal closeouts that only match action/work-unit/fingerprint.",
         "Current work unit provider-admission evidence is now checked against the current action identity before provider_admission_pending can become true.",
-        "Paper autonomy supervisor tests prove current request-only provider-admission carriers remain blocked unless the OPL live readback is provider-admission identity-bound to the current obligation."
+        "Paper autonomy supervisor tests prove current request-only provider-admission carriers remain blocked unless the OPL live readback is provider-admission identity-bound to the current obligation.",
+        "Current work unit and current_execution_envelope now require same-identity OPL DomainProgressTransitionRuntime live readback before projecting running_provider_attempt; weak live_provider_attempt and weak handoff running flags stay diagnostic and cannot consume current execution."
       ],
       "open_gap": "Full consume-only derivation from OPL transition event remains tied to live apply/readback closure."
     },
@@ -645,6 +647,12 @@
         "tests/test_opl_transition_readback_contract.py::test_provider_admission_readback_must_match_current_transition_identity",
         "tests/test_current_work_unit_cases/running_provider_attempt_cases.py::test_current_work_unit_rejects_cross_identity_opl_transition_readback",
         "tests/test_opl_domain_progress_transition_runtime_contract.py::test_opl_domain_progress_transition_runtime_contract_matches_helper_abi#provider_admission_identity_binding",
+        "src/med_autoscience/controllers/current_work_unit_parts/running_provider_attempt.py::strict_running_provider_attempt#requires_provider_admission_opl_transition_readback",
+        "src/med_autoscience/controllers/study_progress_parts/owner_action_admission.py::provider_attempt_proof_for_current_action#requires_provider_admission_opl_transition_readback",
+        "src/med_autoscience/controllers/study_progress_parts/provider_admission_projection.py::_handoff_running_proof_consumes_provider_admission#matching_candidate_readback_only",
+        "tests/study_progress_cases/opl_current_control_state_handoff_projection_cases/running_attempt_identity.py::test_running_handoff_without_opl_readback_does_not_consume_current_execution",
+        "tests/study_progress_cases/provider_admission_projection_cases/opl_running_readback.py::test_provider_admission_projection_consumes_current_identity_running_proof",
+        "tests/test_current_execution_envelope_cases/provider_attempt_priority.py::test_envelope_prefers_running_provider_attempt_over_stale_action_queue",
         "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_arbiter.py::_provider_admission_readback_consumption_evidence",
         "tests/test_provider_admission_current_control_arbiter.py::test_provider_admission_current_control_records_retained_pending_arbiter_decision#opl_transition_event_consumption",
         "tests/test_provider_admission_current_control_cases/transition_request_consume_only_cases.py::test_provider_admission_current_control_treats_mas_request_without_opl_readback_as_non_advancing#bare_event_outbox_stage_run_fragment_rejected",
