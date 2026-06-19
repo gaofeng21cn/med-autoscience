@@ -313,6 +313,45 @@
         "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
         "transition_request_pending_only": true
       },
+      "opl_default_executor_carrier_tail_readback": {
+        "surface_kind": "opl_default_executor_carrier_tail_readback_requirement",
+        "status": "tail_open",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime/TransactionalOutbox/StageRun",
+        "required_active_caller_readbacks": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_command_event_outbox_live_readback",
+          "opl_stagerun_owner_callable_adapter_live_readback"
+        ],
+        "required_before_physical_delete": "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref",
+        "physical_delete_requires": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_command_event_outbox_live_readback",
+          "opl_stagerun_owner_callable_adapter_live_readback",
+          "no_active_default_executor_carrier_caller_scan",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "owner_retirement_decision_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "tail_readback_proven": false,
+        "no_active_default_executor_carrier_caller_proven": false,
+        "physical_delete_allowed": false,
+        "legacy_carrier_provenance_can_satisfy_readback": false,
+        "transition_request_pending_can_satisfy_readback": false,
+        "repo_no_authority_guard_can_satisfy_readback": false,
+        "focused_tests_can_satisfy_readback": false,
+        "request_only_carrier_can_authorize_provider_admission": false,
+        "request_only_carrier_can_claim_running_or_progress": false,
+        "forbidden_completion_claims": [
+          "legacy_carrier_provenance_as_default_executor_carrier_tail_readback",
+          "transition_request_pending_as_opl_live_readback",
+          "repo_no_authority_guard_as_default_executor_carrier_tail_readback",
+          "focused_tests_green_as_no_active_default_executor_carrier_caller",
+          "request_only_carrier_as_provider_admission",
+          "request_only_carrier_as_running_or_progress"
+        ]
+      },
       "mas_owner_claim_allowed": false,
       "priority_boundary": "current_control_transition_request_precedes_legacy_dispatch_carrier",
       "projection_counting_boundary": {
@@ -328,6 +367,8 @@
         "no_active_caller_required_before_physical_delete": true,
         "no_active_authority_caller_proven": true,
         "no_forbidden_write_proof_required": true,
+        "opl_default_executor_carrier_tail_readback_required": true,
+        "physical_delete_allowed": false,
         "repo_stage_run_abi_provenance_proven": true,
         "replacement_parity_required": true,
         "tombstone_or_provenance_required": true

@@ -451,14 +451,105 @@ def _validate_legacy_default_executor_carrier(
     else:
         violations.append(_violation(surface_id, "missing_legacy_source_contamination_boundary"))
 
+    violations.extend(_validate_default_executor_carrier_tail_readback(surface_id, surface))
+
     gate = surface.get("retirement_gate")
     if isinstance(gate, Mapping):
         if gate.get("repo_stage_run_abi_provenance_proven") is not True:
             violations.append(_violation(surface_id, "legacy_carrier_repo_stage_run_abi_provenance_not_proven"))
         if gate.get("no_active_authority_caller_proven") is not True:
             violations.append(_violation(surface_id, "legacy_carrier_no_active_authority_caller_not_proven"))
+        if gate.get("opl_default_executor_carrier_tail_readback_required") is not True:
+            violations.append(_violation(surface_id, "legacy_carrier_missing_tail_readback_gate"))
+        if gate.get("physical_delete_allowed") is not False:
+            violations.append(_violation(surface_id, "legacy_carrier_gate_must_not_allow_physical_delete"))
     else:
         violations.append(_violation(surface_id, "missing_legacy_carrier_retirement_gate"))
+    return violations
+
+
+def _validate_default_executor_carrier_tail_readback(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    tail = surface.get("opl_default_executor_carrier_tail_readback")
+    if not isinstance(tail, Mapping):
+        return [_violation(surface_id, "missing_opl_default_executor_carrier_tail_readback")]
+
+    violations: list[dict[str, str]] = []
+    if tail.get("surface_kind") != "opl_default_executor_carrier_tail_readback_requirement":
+        violations.append(_violation(surface_id, "default_executor_carrier_tail_surface_kind_mismatch"))
+    if tail.get("status") != "tail_open":
+        violations.append(_violation(surface_id, "default_executor_carrier_tail_status_not_open"))
+    if tail.get("runtime_owner") != GENERIC_RUNTIME_OWNER:
+        violations.append(_violation(surface_id, "default_executor_carrier_tail_runtime_owner_not_opl"))
+    if tail.get("runtime_kind") != "DomainProgressTransitionRuntime/TransactionalOutbox/StageRun":
+        violations.append(_violation(surface_id, "default_executor_carrier_tail_runtime_kind_mismatch"))
+
+    required_readbacks = tail.get("required_active_caller_readbacks")
+    required_readback_set = (
+        {str(item) for item in required_readbacks}
+        if isinstance(required_readbacks, list)
+        else set()
+    )
+    expected_readbacks = {
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_command_event_outbox_live_readback",
+        "opl_stagerun_owner_callable_adapter_live_readback",
+    }
+    if not expected_readbacks.issubset(required_readback_set):
+        violations.append(_violation(surface_id, "default_executor_carrier_tail_missing_required_readbacks"))
+
+    required_before_physical_delete = _text(tail.get("required_before_physical_delete"))
+    if (
+        required_before_physical_delete
+        != "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref"
+    ):
+        violations.append(_violation(surface_id, "default_executor_carrier_tail_missing_physical_delete_ref"))
+
+    physical_delete_requires = tail.get("physical_delete_requires")
+    required_delete_set = (
+        {str(item) for item in physical_delete_requires}
+        if isinstance(physical_delete_requires, list)
+        else set()
+    )
+    expected_delete_requirements = expected_readbacks | {
+        "no_active_default_executor_carrier_caller_scan",
+        "no_forbidden_write_proof",
+        "replacement_parity_ref",
+        "owner_retirement_decision_ref",
+        "tombstone_or_provenance_ref",
+    }
+    if not expected_delete_requirements.issubset(required_delete_set):
+        violations.append(_violation(surface_id, "default_executor_carrier_tail_missing_physical_delete_requirements"))
+
+    for key in (
+        "tail_readback_proven",
+        "no_active_default_executor_carrier_caller_proven",
+        "physical_delete_allowed",
+        "legacy_carrier_provenance_can_satisfy_readback",
+        "transition_request_pending_can_satisfy_readback",
+        "repo_no_authority_guard_can_satisfy_readback",
+        "focused_tests_can_satisfy_readback",
+        "request_only_carrier_can_authorize_provider_admission",
+        "request_only_carrier_can_claim_running_or_progress",
+    ):
+        if tail.get(key, False) is not False:
+            violations.append(_violation(surface_id, f"default_executor_carrier_tail_forbidden:{key}"))
+
+    forbidden_claims = tail.get("forbidden_completion_claims")
+    expected_forbidden_claims = {
+        "legacy_carrier_provenance_as_default_executor_carrier_tail_readback",
+        "transition_request_pending_as_opl_live_readback",
+        "repo_no_authority_guard_as_default_executor_carrier_tail_readback",
+        "focused_tests_green_as_no_active_default_executor_carrier_caller",
+        "request_only_carrier_as_provider_admission",
+        "request_only_carrier_as_running_or_progress",
+    }
+    if not isinstance(forbidden_claims, list) or not expected_forbidden_claims.issubset(
+        {str(item) for item in forbidden_claims}
+    ):
+        violations.append(_violation(surface_id, "default_executor_carrier_tail_missing_false_completion_guards"))
     return violations
 
 
@@ -1003,6 +1094,7 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     )
     materializer_tail = surface.get("opl_materializer_projection_tail_readback")
     workbench_tail = surface.get("opl_workbench_shell_readback_tail")
+    default_executor_carrier_tail = surface.get("opl_default_executor_carrier_tail_readback")
     lifecycle_maintenance_tail = surface.get("opl_runtime_lifecycle_maintenance_tail_readback")
     storage_maintenance_tail = surface.get("opl_runtime_storage_maintenance_tail_readback")
     return {
@@ -1227,6 +1319,37 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             and isinstance(workbench_tail.get("required_active_caller_readbacks"), list)
             else None
         ),
+        "default_executor_carrier_tail_status": (
+            default_executor_carrier_tail.get("status")
+            if isinstance(default_executor_carrier_tail, Mapping)
+            else None
+        ),
+        "default_executor_carrier_tail_readback_proven": (
+            default_executor_carrier_tail.get("tail_readback_proven")
+            if isinstance(default_executor_carrier_tail, Mapping)
+            else None
+        ),
+        "default_executor_carrier_no_active_caller_proven": (
+            default_executor_carrier_tail.get(
+                "no_active_default_executor_carrier_caller_proven"
+            )
+            if isinstance(default_executor_carrier_tail, Mapping)
+            else None
+        ),
+        "default_executor_carrier_physical_delete_allowed": (
+            default_executor_carrier_tail.get("physical_delete_allowed")
+            if isinstance(default_executor_carrier_tail, Mapping)
+            else None
+        ),
+        "default_executor_carrier_required_active_caller_readback_count": (
+            len(default_executor_carrier_tail.get("required_active_caller_readbacks"))
+            if isinstance(default_executor_carrier_tail, Mapping)
+            and isinstance(
+                default_executor_carrier_tail.get("required_active_caller_readbacks"),
+                list,
+            )
+            else None
+        ),
         "runtime_lifecycle_maintenance_tail_status": (
             lifecycle_maintenance_tail.get("status")
             if isinstance(lifecycle_maintenance_tail, Mapping)
@@ -1402,6 +1525,7 @@ def _physical_delete_gate_open(surface: Mapping[str, Any]) -> bool:
         or gate.get("live_opl_cleanup_policy_takeover_required")
         or gate.get("live_opl_storage_policy_takeover_required")
         or gate.get("owner_retirement_decision_required")
+        or gate.get("opl_default_executor_carrier_tail_readback_required")
         or gate.get("opl_materializer_projection_tail_readback_required")
         or gate.get("opl_workbench_shell_readback_required")
     )

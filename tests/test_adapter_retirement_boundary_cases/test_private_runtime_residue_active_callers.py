@@ -68,6 +68,47 @@ OBLIGATION_ACTUATOR_TAIL_READBACK = {
         "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback",
     ],
 }
+DEFAULT_EXECUTOR_CARRIER_TAIL_READBACK = {
+    "surface_kind": "opl_default_executor_carrier_tail_readback_requirement",
+    "status": "tail_open",
+    "runtime_owner": "one-person-lab",
+    "runtime_kind": "DomainProgressTransitionRuntime/TransactionalOutbox/StageRun",
+    "required_active_caller_readbacks": [
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_command_event_outbox_live_readback",
+        "opl_stagerun_owner_callable_adapter_live_readback",
+    ],
+    "required_before_physical_delete": (
+        "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref"
+    ),
+    "physical_delete_requires": [
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_command_event_outbox_live_readback",
+        "opl_stagerun_owner_callable_adapter_live_readback",
+        "no_active_default_executor_carrier_caller_scan",
+        "no_forbidden_write_proof",
+        "replacement_parity_ref",
+        "owner_retirement_decision_ref",
+        "tombstone_or_provenance_ref",
+    ],
+    "tail_readback_proven": False,
+    "no_active_default_executor_carrier_caller_proven": False,
+    "physical_delete_allowed": False,
+    "legacy_carrier_provenance_can_satisfy_readback": False,
+    "transition_request_pending_can_satisfy_readback": False,
+    "repo_no_authority_guard_can_satisfy_readback": False,
+    "focused_tests_can_satisfy_readback": False,
+    "request_only_carrier_can_authorize_provider_admission": False,
+    "request_only_carrier_can_claim_running_or_progress": False,
+    "forbidden_completion_claims": [
+        "legacy_carrier_provenance_as_default_executor_carrier_tail_readback",
+        "transition_request_pending_as_opl_live_readback",
+        "repo_no_authority_guard_as_default_executor_carrier_tail_readback",
+        "focused_tests_green_as_no_active_default_executor_carrier_caller",
+        "request_only_carrier_as_provider_admission",
+        "request_only_carrier_as_running_or_progress",
+    ],
+}
 
 
 def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only() -> None:
@@ -434,10 +475,45 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "agent_tool_arsenal_scientific_capability_registry_live_owner_consumption_soak_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
+    assert (
+        "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
     evidence_tails = {
         item["surface_id"]: item
         for item in layers["live_soak_or_no_active_caller"]["open_surface_tails"]
     }
+    carrier_tail = evidence_tails["default_executor_dispatch_request"]
+    assert carrier_tail["live_or_no_active_proven"] is False
+    assert carrier_tail["physical_delete_gate_open"] is True
+    assert (
+        "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref"
+        in carrier_tail["required_ref_families"]
+    )
+    assert (
+        "default_executor_dispatch_request_opl_domain_progress_transition_runtime_live_readback_ref"
+        in carrier_tail["required_ref_families"]
+    )
+    assert (
+        "default_executor_dispatch_request_opl_command_event_outbox_live_readback_ref"
+        in carrier_tail["required_ref_families"]
+    )
+    assert (
+        "default_executor_dispatch_request_opl_stagerun_owner_callable_adapter_live_readback_ref"
+        in carrier_tail["required_ref_families"]
+    )
+    assert (
+        "legacy_carrier_provenance_as_default_executor_carrier_tail_readback"
+        in carrier_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "transition_request_pending_as_opl_live_readback"
+        in carrier_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "request_only_carrier_as_provider_admission"
+        in carrier_tail["forbidden_completion_interpretations"]
+    )
     refs_tail = evidence_tails["domain_authority_refs_index"]
     assert refs_tail["live_or_no_active_proven"] is False
     assert refs_tail["physical_delete_gate_open"] is True
@@ -581,6 +657,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert "domain_owner_action_dispatch" in layers["physical_retirement"]["blocked_surface_ids"]
     assert {
         "domain_authority_refs_index",
+        "default_executor_dispatch_request",
         "domain_health_diagnostic_obligation_actuator",
         "runtime_health_kernel",
         "progress_portal_study_workbench_overview_action_projection",
@@ -646,7 +723,26 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["default_executor_dispatch_request"]["allowed_effect"] == (
         "opl_domain_progress_transition_runtime_intake_only"
     )
+    assert open_surfaces["default_executor_dispatch_request"][
+        "default_executor_carrier_tail_status"
+    ] == "tail_open"
+    assert open_surfaces["default_executor_dispatch_request"][
+        "default_executor_carrier_tail_readback_proven"
+    ] is False
+    assert open_surfaces["default_executor_dispatch_request"][
+        "default_executor_carrier_no_active_caller_proven"
+    ] is False
+    assert open_surfaces["default_executor_dispatch_request"][
+        "default_executor_carrier_physical_delete_allowed"
+    ] is False
+    assert open_surfaces["default_executor_dispatch_request"][
+        "default_executor_carrier_required_active_caller_readback_count"
+    ] == 3
     legacy_carrier_inventory = inventory_surfaces["default_executor_dispatch_request"]
+    assert (
+        legacy_carrier_inventory["opl_default_executor_carrier_tail_readback"]
+        == DEFAULT_EXECUTOR_CARRIER_TAIL_READBACK
+    )
     assert legacy_carrier_inventory["legacy_source_contamination_boundary"] == {
         "source_dispatch_claims_are_diagnostic_only": True,
         "source_dispatch_claimed_mas_authority_field": "source_dispatch_claimed_mas_authority",
@@ -1227,6 +1323,22 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     legacy_carrier["legacy_source_contamination_boundary"]["forbidden_source_claims"].remove(
         "provider_admission_pending"
     )
+    legacy_carrier["opl_default_executor_carrier_tail_readback"][
+        "tail_readback_proven"
+    ] = True
+    legacy_carrier["opl_default_executor_carrier_tail_readback"][
+        "transition_request_pending_can_satisfy_readback"
+    ] = True
+    legacy_carrier["opl_default_executor_carrier_tail_readback"][
+        "request_only_carrier_can_authorize_provider_admission"
+    ] = True
+    legacy_carrier["opl_default_executor_carrier_tail_readback"][
+        "forbidden_completion_claims"
+    ].remove("transition_request_pending_as_opl_live_readback")
+    legacy_carrier["retirement_gate"][
+        "opl_default_executor_carrier_tail_readback_required"
+    ] = False
+    legacy_carrier["retirement_gate"]["physical_delete_allowed"] = True
 
     carrier_violations = retirement.validate_runtime_surface_retirement_inventory(
         carrier_bad_inventory
@@ -1262,6 +1374,32 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "default_executor_dispatch_request",
             "legacy_source_boundary_missing_forbidden_source_claims",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "default_executor_carrier_tail_forbidden:tail_readback_proven",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "default_executor_carrier_tail_forbidden:"
+            "transition_request_pending_can_satisfy_readback",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "default_executor_carrier_tail_forbidden:"
+            "request_only_carrier_can_authorize_provider_admission",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "default_executor_carrier_tail_missing_false_completion_guards",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "legacy_carrier_missing_tail_readback_gate",
+        ),
+        (
+            "default_executor_dispatch_request",
+            "legacy_carrier_gate_must_not_allow_physical_delete",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in carrier_violations}
 

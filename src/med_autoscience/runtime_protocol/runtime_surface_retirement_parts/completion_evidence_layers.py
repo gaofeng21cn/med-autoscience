@@ -79,6 +79,7 @@ def _physical_delete_required_refs(surface: Mapping[str, Any]) -> list[str]:
         ("opl_state_index_takeover_bridge", "legacy_helper_active_caller_scan"),
         ("legacy_stage_run_abi_boundary", "active_stage_run_abi_caller_scan"),
         ("live_owner_consumption_soak_boundary",),
+        ("opl_default_executor_carrier_tail_readback",),
         ("opl_obligation_actuator_tail_readback",),
         ("opl_runtime_health_observability_tail_readback",),
         (
@@ -187,6 +188,11 @@ def _surface_live_or_no_active_proven(
             "no_active_stage_run_abi_caller_proven",
         ),
         ("live_owner_consumption_soak_boundary", "no_active_caller_proven"),
+        ("opl_default_executor_carrier_tail_readback", "tail_readback_proven"),
+        (
+            "opl_default_executor_carrier_tail_readback",
+            "no_active_default_executor_carrier_caller_proven",
+        ),
         ("opl_obligation_actuator_tail_readback", "tail_readback_proven"),
         (
             "opl_obligation_actuator_tail_readback",
@@ -269,6 +275,7 @@ def _completion_interpretation_containers(surface: Mapping[str, Any]) -> list[Ma
         ("opl_state_index_takeover_bridge", "runtime_active_private_state_index_caller_scan"),
         ("opl_state_index_takeover_bridge", "legacy_helper_active_caller_scan"),
         ("legacy_stage_run_abi_boundary", "active_stage_run_abi_caller_scan"),
+        ("opl_default_executor_carrier_tail_readback",),
         ("opl_obligation_actuator_tail_readback",),
         ("opl_runtime_health_observability_tail_readback",),
         (
