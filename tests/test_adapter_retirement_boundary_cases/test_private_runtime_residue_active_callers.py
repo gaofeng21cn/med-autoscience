@@ -1806,6 +1806,12 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "mas_portal_projection_can_satisfy_readback"
     ] = True
     workbench["opl_workbench_shell_readback_tail"][
+        "current_owner_delta_projection_can_satisfy_workbench_shell_readback"
+    ] = True
+    workbench["opl_workbench_shell_readback_tail"][
+        "domain_progress_transition_runtime_readback_can_satisfy_action_transport"
+    ] = True
+    workbench["opl_workbench_shell_readback_tail"][
         "operator_intent_refs_can_satisfy_action_transport"
     ] = True
     workbench["opl_workbench_shell_readback_tail"]["forbidden_completion_claims"] = []
@@ -1843,6 +1849,20 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "progress_portal_study_workbench_overview_action_projection",
             "workbench_projection_tail_forbidden:mas_portal_projection_can_satisfy_readback",
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            (
+                "workbench_projection_tail_forbidden:"
+                "current_owner_delta_projection_can_satisfy_workbench_shell_readback"
+            ),
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            (
+                "workbench_projection_tail_forbidden:"
+                "domain_progress_transition_runtime_readback_can_satisfy_action_transport"
+            ),
         ),
         (
             "progress_portal_study_workbench_overview_action_projection",

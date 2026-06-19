@@ -360,6 +360,8 @@ def validate_progress_portal_study_workbench_overview_action_projection(
         if tail.get("physical_delete_allowed") is not False:
             violations.append(_violation(surface_id, "workbench_projection_tail_must_not_allow_physical_delete"))
         for key in (
+            "current_owner_delta_projection_can_satisfy_workbench_shell_readback",
+            "domain_progress_transition_runtime_readback_can_satisfy_action_transport",
             "mas_portal_projection_can_satisfy_readback",
             "mas_next_system_action_summary_can_satisfy_readback",
             "operator_intent_refs_can_satisfy_action_transport",
@@ -374,6 +376,8 @@ def validate_progress_portal_study_workbench_overview_action_projection(
             "mas_next_system_action_summary_as_action_transport_readback",
             "operator_intent_refs_as_workbench_action_transport",
             "current_owner_delta_summary_as_current_control_readback",
+            "current_owner_delta_projection_as_workbench_shell_readback",
+            "domain_progress_transition_runtime_readback_as_workbench_action_transport",
             "repo_no_authority_guard_as_workbench_tail_readback",
             "focused_tests_green_as_no_active_workbench_projection_caller",
         }
