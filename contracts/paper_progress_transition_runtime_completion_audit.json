@@ -343,11 +343,11 @@
       "status": "partial",
       "completion_percent": 50,
       "evidence": [
-        "Fresh read-only study_progress on 2026-06-18 shows DM002 current_work_unit.status=typed_blocker with state.blocker_type=anti_loop_budget_exhausted, owner=one-person-lab, work_unit_id=ai_reviewer_record_gate_consumption, active_run_id=None, provider_attempt_running_proven=None.",
-        "Fresh read-only study_progress on 2026-06-18 shows DM003 current_work_unit.status=executable_owner_action, current_executable_owner_action.source=paper_recovery_state.next_safe_action.successor_owner_action, work_unit_id=medical_prose_write_repair, active_run_id=None, provider_attempt_running_proven=None.",
-        "DM003 owner action ready is a currentness/readiness repair outcome only; it is not strict running proof, OPL outbox/StageRun readback, owner receipt, human gate, route-back evidence, or paper/gate/artifact semantic delta."
+        "Fresh read-only study_progress on 2026-06-19T04:23:50+00:00 at MAS main/origin 05847e4a6 shows DM002 current_work_unit.status=typed_blocker with blocker_type=anti_loop_budget_exhausted, owner=one-person-lab, work_unit_id=ai_reviewer_record_gate_consumption, active_run_id=None, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=None.",
+        "Fresh read-only study_progress on 2026-06-19T04:23:51+00:00 at MAS main/origin 05847e4a6 shows DM003 current_work_unit.status=typed_blocker with blocker_type=no_selected_dispatch_for_authorized_stage_packet, owner=one-person-lab, work_unit_id=medical_prose_write_repair, active_run_id=None, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=None.",
+        "Fresh read-only DHD dry-run on 2026-06-19T04:24:26+00:00 produced action_class=observe_only, will_start_llm=false, provider_admission_pending_count=0, transition_request_pending_count=0, and no supervisor_decisions; this is not DHD apply, OPL outbox/StageRun readback, provider running proof, or paper-line progress."
       ],
-      "open_gap": "DM002 still needs owner resolution or accepted stable blocker closeout for the current anti-loop blocker; DM003 still needs OPL-readback-backed admission/running proof or MAS owner receipt/stable blocker/human gate/route-back/paper semantic delta. queue empty, provider_admission_pending_count=0, transition_request_pending_count=0, and owner-action ready are not live paper progress."
+      "open_gap": "DM002 remains an accepted stable typed blocker for the current anti-loop owner-resolution lane, but it still needs owner resolution, route-back, human gate, semantic paper/gate/artifact delta, or delegated DHD apply exactly-one closure before broader paper-line progress can be claimed. DM003 now also reads as a stable typed blocker (no_selected_dispatch_for_authorized_stage_packet) rather than owner-action-ready; it still needs OPL-readback-backed admission/running proof or MAS owner receipt/stable blocker supersession/human gate/route-back/paper semantic delta. queue empty, DHD observe_only, provider_admission_pending_count=0, transition_request_pending_count=0, and focused tests remain non-progress evidence."
     }
   ],
   "phase_audit": [
@@ -846,13 +846,16 @@
       "observed_refs": [
         "contracts/paper_progress_replay_live_evidence_status.json#/live_evidence_acceptance",
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_to_live_separation_gate",
-        "contracts/paper_progress_replay_live_evidence_status.json#/remaining_evidence_tails"
+        "contracts/paper_progress_replay_live_evidence_status.json#/remaining_evidence_tails",
+        "fresh_read_only:2026-06-19T04:23:50Z:DM002 study_progress typed_blocker anti_loop_budget_exhausted active_run_id=None provider_admission_pending_count=0 transition_request_pending_count=0 current_executable_owner_action=None",
+        "fresh_read_only:2026-06-19T04:23:51Z:DM003 study_progress typed_blocker no_selected_dispatch_for_authorized_stage_packet active_run_id=None provider_admission_pending_count=0 transition_request_pending_count=0 current_executable_owner_action=None",
+        "fresh_read_only:2026-06-19T04:24:26Z:DHD dry-run observe_only will_start_llm=false provider_admission_pending_count=0 transition_request_pending_count=0 supervisor_decisions=None"
       ],
       "missing_evidence_tails": [
-        "DM002 fresh live paper-line outcome per allowed exactly-one family",
-        "DM003 fresh live paper-line outcome per allowed exactly-one family",
+        "DM002 fresh live paper-line outcome beyond the current anti_loop_budget_exhausted stable typed blocker, or accepted owner decision to stop with that blocker",
+        "DM003 fresh live paper-line outcome beyond the current no_selected_dispatch_for_authorized_stage_packet stable typed blocker, or accepted owner decision to stop with that blocker",
         "fresh OPL current-control or StageRun readback for any active provider claim",
-        "fresh MAS owner evidence after transition runtime consumption"
+        "fresh MAS owner evidence after transition runtime consumption or stable blocker supersession"
       ],
       "false_completion_boundary": [
         "repo_tests",
