@@ -74,6 +74,19 @@ def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None
         schema["missing_authority_outcome_ref_blocks_live_runtime_readiness_claim"]
         is True
     )
+    assert schema["concrete_evidence_ref_fields"] == [
+        "evidence_refs",
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref",
+    ]
+    assert schema["missing_concrete_evidence_ref_status"] == "typed_blocker_required"
+    assert schema["accepted_family_without_concrete_ref_can_satisfy_work_order"] is False
+    assert (
+        schema["missing_concrete_evidence_ref_blocks_live_runtime_readiness_claim"]
+        is True
+    )
 
     expected = {
         order["gap_id"]: order
@@ -112,6 +125,13 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
             "evidence_ref_families": [
                 "same_identity_opl_provider_admission_live_readback_ref"
             ],
+            "evidence_refs": [
+                (
+                    "live-gap-evidence:"
+                    f"{provider_readback['gap_id']}:"
+                    "same_identity_opl_provider_admission_live_readback_ref"
+                )
+            ],
         },
     )
     assert accepted["status"] == "satisfied_by_accepted_ref"
@@ -125,6 +145,13 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
             "evidence_source": "replay_fixture",
             "evidence_ref_families": [
                 "same_identity_opl_provider_admission_live_readback_ref"
+            ],
+            "evidence_refs": [
+                (
+                    "live-gap-evidence:"
+                    f"{provider_readback['gap_id']}:"
+                    "same_identity_opl_provider_admission_live_readback_ref"
+                )
             ],
             "evidence_substitutes": [
                 "provider_admission_same_identity_replay_as_fresh_opl_readback"
@@ -147,6 +174,13 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
             "evidence_ref_families": [
                 "same_identity_opl_provider_admission_live_readback_ref"
             ],
+            "evidence_refs": [
+                (
+                    "live-gap-evidence:"
+                    f"{provider_readback['gap_id']}:"
+                    "same_identity_opl_provider_admission_live_readback_ref"
+                )
+            ],
         },
     )
     assert false_ready_claim["status"] == "typed_blocker_required"
@@ -166,6 +200,13 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
             "evidence_source": "opl_live_readback:provider-admission:2026-06-20T00:00:00Z",
             "evidence_ref_families": [
                 "same_identity_opl_provider_admission_live_readback_ref"
+            ],
+            "evidence_refs": [
+                (
+                    "live-gap-evidence:"
+                    f"{provider_readback['gap_id']}:"
+                    "same_identity_opl_provider_admission_live_readback_ref"
+                )
             ],
         },
     )
@@ -216,7 +257,58 @@ def test_live_runtime_gap_evidence_requires_concrete_authority_outcome_ref() -> 
     assert concrete_typed_blocker["authority_outcome_ref_fields_present"] == [
         "typed_blocker_ref"
     ]
+    assert concrete_typed_blocker["missing_concrete_evidence_ref_families"] == []
+    assert concrete_typed_blocker["concrete_evidence_ref_fields_present"] == [
+        "typed_blocker_ref"
+    ]
     assert concrete_typed_blocker["live_runtime_readiness_claim_allowed"] is True
+
+
+def test_live_runtime_gap_evidence_requires_concrete_evidence_ref_for_opl_families() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+    )
+    contract = _contract()
+    provider_readback = next(
+        order
+        for order in contract["work_orders"]
+        if (
+            "same_identity_opl_provider_admission_live_readback_ref"
+            in order["acceptable_evidence_ref_families"]
+        )
+    )
+    ref_family = "same_identity_opl_provider_admission_live_readback_ref"
+
+    family_only = work_orders.evaluate_live_runtime_gap_evidence_record(
+        provider_readback,
+        {
+            "gap_id": provider_readback["gap_id"],
+            "evidence_source": "opl_live_readback:provider-admission:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [ref_family],
+        },
+    )
+
+    assert family_only["status"] == "typed_blocker_required"
+    assert family_only["missing_concrete_evidence_ref_families"] == [ref_family]
+    assert family_only["concrete_evidence_ref_fields_present"] == []
+    assert family_only["live_runtime_readiness_claim_allowed"] is False
+
+    concrete_ref = work_orders.evaluate_live_runtime_gap_evidence_record(
+        provider_readback,
+        {
+            "gap_id": provider_readback["gap_id"],
+            "evidence_source": "opl_live_readback:provider-admission:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [ref_family],
+            "evidence_refs": [
+                f"live-gap-evidence:{provider_readback['gap_id']}:{ref_family}"
+            ],
+        },
+    )
+
+    assert concrete_ref["status"] == "satisfied_by_accepted_ref"
+    assert concrete_ref["missing_concrete_evidence_ref_families"] == []
+    assert concrete_ref["concrete_evidence_ref_fields_present"] == ["evidence_refs"]
+    assert concrete_ref["live_runtime_readiness_claim_allowed"] is True
 
 
 def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
@@ -241,6 +333,13 @@ def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
                 "gap_id": first_order["gap_id"],
                 "evidence_source": f"owner_readback:{first_order['gap_id']}",
                 "evidence_ref_families": [first_order["acceptable_evidence_ref_families"][0]],
+                "evidence_refs": [
+                    (
+                        "live-gap-evidence:"
+                        f"{first_order['gap_id']}:"
+                        f"{first_order['acceptable_evidence_ref_families'][0]}"
+                    )
+                ],
             }
         ],
     )
@@ -256,6 +355,13 @@ def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
                 "claim": "paper progress complete",
                 "evidence_source": f"owner_readback:{first_order['gap_id']}",
                 "evidence_ref_families": [first_order["acceptable_evidence_ref_families"][0]],
+                "evidence_refs": [
+                    (
+                        "live-gap-evidence:"
+                        f"{first_order['gap_id']}:"
+                        f"{first_order['acceptable_evidence_ref_families'][0]}"
+                    )
+                ],
             }
         ],
     )
@@ -331,6 +437,7 @@ def _satisfying_gap_record(order: dict) -> dict:
         "gap_id": order["gap_id"],
         "evidence_source": f"owner_readback:{order['gap_id']}",
         "evidence_ref_families": [ref_family],
+        "evidence_refs": [f"live-gap-evidence:{order['gap_id']}:{ref_family}"],
     }
     if ref_family == "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref":
         record["typed_blocker_ref"] = f"typed-blocker:{order['gap_id']}"

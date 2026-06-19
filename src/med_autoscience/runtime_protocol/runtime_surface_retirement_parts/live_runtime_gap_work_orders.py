@@ -27,6 +27,13 @@ AUTHORITY_OUTCOME_REF_FIELDS = (
     "human_gate_ref",
     "route_back_ref",
 )
+CONCRETE_EVIDENCE_REF_FIELDS = (
+    "evidence_refs",
+    "owner_receipt_ref",
+    "typed_blocker_ref",
+    "human_gate_ref",
+    "route_back_ref",
+)
 
 
 def live_runtime_gap_work_orders_from_completion_audit(
@@ -106,6 +113,23 @@ def validate_live_runtime_gap_work_order_contract(
         violations.append(
             _violation("<contract>", "missing_authority_outcome_ref_does_not_block_live_readiness")
         )
+    if _text_list(schema.get("concrete_evidence_ref_fields")) != sorted(
+        CONCRETE_EVIDENCE_REF_FIELDS
+    ):
+        violations.append(_violation("<contract>", "concrete_evidence_ref_fields_mismatch"))
+    if schema.get("missing_concrete_evidence_ref_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "missing_concrete_evidence_ref_status"))
+    if schema.get("accepted_family_without_concrete_ref_can_satisfy_work_order") is not False:
+        violations.append(
+            _violation("<contract>", "accepted_family_without_concrete_ref_can_satisfy")
+        )
+    if (
+        schema.get("missing_concrete_evidence_ref_blocks_live_runtime_readiness_claim")
+        is not True
+    ):
+        violations.append(
+            _violation("<contract>", "missing_concrete_ref_does_not_block_live_readiness")
+        )
 
     expected = {
         order["gap_id"]: order
@@ -156,6 +180,8 @@ def evaluate_live_runtime_gap_evidence_record(
         matched_refs,
         evidence_record,
     )
+    concrete_ref_fields = _concrete_evidence_ref_fields_present(evidence_record)
+    missing_concrete_evidence_ref_families = matched_refs if not concrete_ref_fields else []
     evidence_source = _text(evidence_record.get("evidence_source"))
     typed_blocker = _text(work_order.get("typed_blocker_when_missing")) or (
         f"{gap_id}_live_runtime_evidence_required"
@@ -165,6 +191,7 @@ def evaluate_live_runtime_gap_evidence_record(
         and not forbidden_matches
         and not forbidden_claim_terms
         and not missing_authority_outcome_refs
+        and not missing_concrete_evidence_ref_families
         and evidence_source is not None
     )
     return {
@@ -177,6 +204,8 @@ def evaluate_live_runtime_gap_evidence_record(
         "authority_outcome_ref_fields_present": _authority_outcome_ref_fields_present(
             evidence_record
         ),
+        "missing_concrete_evidence_ref_families": missing_concrete_evidence_ref_families,
+        "concrete_evidence_ref_fields_present": concrete_ref_fields,
         "typed_blocker": None if satisfied else typed_blocker,
         "live_runtime_readiness_claim_allowed": satisfied,
         "repo_source_retirement_blocked": False,
@@ -381,6 +410,20 @@ def _authority_outcome_ref_fields_present(evidence_record: Mapping[str, Any]) ->
     )
 
 
+def _concrete_evidence_ref_fields_present(evidence_record: Mapping[str, Any]) -> list[str]:
+    return sorted(
+        field
+        for field in CONCRETE_EVIDENCE_REF_FIELDS
+        if _has_concrete_evidence_ref(evidence_record.get(field))
+    )
+
+
+def _has_concrete_evidence_ref(value: Any) -> bool:
+    if isinstance(value, list):
+        return any(_text(item) is not None for item in value)
+    return _text(value) is not None
+
+
 def _missing_authority_outcome_ref_families(
     matched_refs: list[str],
     evidence_record: Mapping[str, Any],
@@ -478,6 +521,7 @@ __all__ = [
     "FORBIDDEN_CLAIM_TERMS",
     "AUTHORITY_OUTCOME_REF_FIELDS",
     "AUTHORITY_OUTCOME_REF_REQUIRED_FAMILIES",
+    "CONCRETE_EVIDENCE_REF_FIELDS",
     "evaluate_live_runtime_gap_evidence_record",
     "live_runtime_gap_evidence_intake_summary",
     "live_runtime_gap_work_orders_from_completion_audit",

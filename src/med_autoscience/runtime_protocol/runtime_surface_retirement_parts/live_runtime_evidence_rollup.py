@@ -185,6 +185,26 @@ def validate_live_runtime_evidence_rollup_contract(
                 "boundary_mismatch:missing_tail_concrete_evidence_ref_result_status",
             )
         )
+    if (
+        boundary_mapping.get("accepted_gap_family_without_concrete_ref_can_satisfy_rollup")
+        is not False
+    ):
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:accepted_gap_family_without_concrete_ref_can_satisfy_rollup",
+            )
+        )
+    if (
+        boundary_mapping.get("missing_gap_concrete_evidence_ref_result_status")
+        != "typed_blocker_required"
+    ):
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:missing_gap_concrete_evidence_ref_result_status",
+            )
+        )
     return violations
 
 

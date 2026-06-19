@@ -223,3 +223,13 @@ Replacement: `contracts/runtime/mas-runtime-live-tail-work-orders.json` requires
 Retained MAS role: MAS may still publish owner receipt, typed blocker, human gate and route-back refs as concrete evidence inputs; OPL-owned runtime tails must provide concrete live readback or no-active-caller/owner-retirement refs.
 
 Forbidden interpretation: a live-tail record that only names an accepted ref family cannot satisfy live takeover, no-active-caller, direct-hosted parity, OPL readback, runtime readiness, provider running, paper progress or production readiness. Missing concrete refs remain `typed_blocker_required`.
+
+## live_runtime_gap_concrete_evidence_refs
+
+Disposition: `fail_closed_live_evidence_intake_guard`
+
+Replacement: `contracts/runtime/mas-live-runtime-gap-work-orders.json` requires concrete evidence refs for every accepted live-runtime gap ref family. Accepted family labels remain taxonomy; proof requires `evidence_refs` or a concrete MAS authority outcome ref.
+
+Retained MAS role: MAS may still publish owner receipt, typed blocker, human gate and route-back refs as concrete evidence inputs; OPL-owned runtime gap evidence must provide concrete command/event/outbox/StageRun/provider-admission/readback refs.
+
+Forbidden interpretation: an OPL outbox, StageRun, provider-admission, DHD apply, paper-line or route-back evidence record that only names an accepted ref family cannot satisfy live-runtime readiness. Missing concrete refs remain `typed_blocker_required`.

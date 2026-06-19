@@ -64,6 +64,8 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
         "missing_authority_outcome_ref_result_status": "typed_blocker_required",
         "accepted_tail_family_without_concrete_ref_can_satisfy_rollup": False,
         "missing_tail_concrete_evidence_ref_result_status": "typed_blocker_required",
+        "accepted_gap_family_without_concrete_ref_can_satisfy_rollup": False,
+        "missing_gap_concrete_evidence_ref_result_status": "typed_blocker_required",
     }
     assert rollup_contract["live_tail_surface_ids"] == sorted(
         order["surface_id"] for order in tail_contract["work_orders"]
@@ -115,6 +117,12 @@ def test_live_runtime_evidence_rollup_fails_closed_when_any_tail_or_gap_is_missi
                 "gap_id": one_gap["gap_id"],
                 "evidence_source": f"owner_readback:{one_gap['gap_id']}",
                 "evidence_ref_families": [one_gap["acceptable_evidence_ref_families"][0]],
+                "evidence_refs": [
+                    (
+                        "live-gap-evidence:"
+                        f"{one_gap['gap_id']}:{one_gap['acceptable_evidence_ref_families'][0]}"
+                    )
+                ],
             }
         ],
     )
@@ -275,6 +283,8 @@ def test_live_runtime_evidence_rollup_rejects_authority_family_without_outcome_r
     assert result["status"] == "typed_blocker_required"
     assert result["missing_authority_outcome_ref_families"] == [authority_family]
     assert result["authority_outcome_ref_fields_present"] == []
+    assert result["missing_concrete_evidence_ref_families"] == [authority_family]
+    assert result["concrete_evidence_ref_fields_present"] == []
     assert summary["rollup_result_status"] == "typed_blocker_required"
     assert summary["live_runtime_readiness_claim_allowed"] is False
 
@@ -304,6 +314,38 @@ def test_live_runtime_evidence_rollup_rejects_tail_family_without_concrete_ref()
 
     assert result["status"] == "typed_blocker_required"
     assert result["missing_concrete_evidence_ref_families"] == first_tail[
+        "evidence_ref_families"
+    ]
+    assert result["concrete_evidence_ref_fields_present"] == []
+    assert summary["rollup_result_status"] == "typed_blocker_required"
+    assert summary["live_runtime_readiness_claim_allowed"] is False
+
+
+def test_live_runtime_evidence_rollup_rejects_gap_family_without_concrete_ref() -> None:
+    rollup = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+    )
+    tail_contract = _live_tail_contract()
+    gap_contract = _live_gap_contract()
+    tail_records = [_satisfying_tail_record(order) for order in tail_contract["work_orders"]]
+    gap_records = [_satisfying_gap_record(order) for order in gap_contract["work_orders"]]
+    first_gap = gap_records[0]
+    first_gap.pop("evidence_refs")
+
+    summary = rollup.live_runtime_evidence_rollup_summary(
+        live_tail_contract=tail_contract,
+        live_runtime_gap_contract=gap_contract,
+        live_tail_evidence_records=tail_records,
+        live_runtime_gap_evidence_records=gap_records,
+    )
+    result = next(
+        item
+        for item in summary["live_runtime_gaps"]["results"]
+        if item["gap_id"] == first_gap["gap_id"]
+    )
+
+    assert result["status"] == "typed_blocker_required"
+    assert result["missing_concrete_evidence_ref_families"] == first_gap[
         "evidence_ref_families"
     ]
     assert result["concrete_evidence_ref_fields_present"] == []
@@ -446,6 +488,7 @@ def _satisfying_gap_record(order: dict) -> dict:
         "gap_id": order["gap_id"],
         "evidence_source": f"owner_readback:{order['gap_id']}",
         "evidence_ref_families": [ref_family],
+        "evidence_refs": [f"live-gap-evidence:{order['gap_id']}:{ref_family}"],
     }
     if ref_family == "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref":
         record["typed_blocker_ref"] = f"typed-blocker:{order['gap_id']}"

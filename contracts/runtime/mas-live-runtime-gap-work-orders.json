@@ -20,6 +20,7 @@
       "optional_fields": [
         "claim",
         "evidence_substitutes",
+        "evidence_refs",
         "owner_receipt_ref",
         "typed_blocker_ref",
         "human_gate_ref",
@@ -58,7 +59,17 @@
       ],
       "missing_authority_outcome_ref_status": "typed_blocker_required",
       "authority_family_without_outcome_ref_can_satisfy_work_order": false,
-      "missing_authority_outcome_ref_blocks_live_runtime_readiness_claim": true
+      "missing_authority_outcome_ref_blocks_live_runtime_readiness_claim": true,
+      "concrete_evidence_ref_fields": [
+        "evidence_refs",
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref"
+      ],
+      "missing_concrete_evidence_ref_status": "typed_blocker_required",
+      "accepted_family_without_concrete_ref_can_satisfy_work_order": false,
+      "missing_concrete_evidence_ref_blocks_live_runtime_readiness_claim": true
     }
   },
   "source_refs": [
