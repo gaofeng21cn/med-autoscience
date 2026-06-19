@@ -320,6 +320,17 @@ def _merge_candidate_payloads(
 
 
 def _arbiter_decision_retains_transition_request(decision: Mapping[str, Any]) -> bool:
+    if _non_empty_text(decision.get("mas_owner_action_source")) == (
+        "paper_recovery_state.accepted_owner_gate_decision"
+    ):
+        return True
+    currentness_basis = _mapping(decision.get("currentness_basis"))
+    if _non_empty_text(currentness_basis.get("source")) == (
+        "paper_recovery_state.accepted_owner_gate_decision"
+    ) or _non_empty_text(currentness_basis.get("mas_owner_action_source")) == (
+        "paper_recovery_state.accepted_owner_gate_decision"
+    ):
+        return True
     evidence = _mapping(decision.get("evidence"))
     weak_identity = _mapping(evidence.get("weak_provider_admission_identity"))
     return not weak_identity

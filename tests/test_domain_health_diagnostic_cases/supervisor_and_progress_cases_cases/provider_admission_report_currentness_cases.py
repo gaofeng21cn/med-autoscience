@@ -852,6 +852,7 @@ def test_domain_health_diagnostic_retains_owner_gate_transition_request_over_acc
                     "action_type": "run_gate_clearing_batch",
                     "work_unit_id": work_unit_id,
                     "work_unit_fingerprint": fingerprint,
+                    "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
                 },
             },
             "conditions": [
@@ -901,8 +902,8 @@ def test_domain_health_diagnostic_retains_owner_gate_transition_request_over_acc
                             "action_fingerprint": fingerprint,
                             "state": {
                                 "typed_blocker": {
-                                    "blocker_type": "stage_packet_not_current_selected_dispatch",
-                                    "reason": "stage_packet_not_current_selected_dispatch",
+                                    "blocker_type": "stale_closeout_consumed_pending",
+                                    "reason": "stale_closeout_consumed_pending",
                                     "action_type": "run_gate_clearing_batch",
                                     "work_unit_id": work_unit_id,
                                     "work_unit_fingerprint": fingerprint,
@@ -981,6 +982,10 @@ def test_domain_health_diagnostic_retains_owner_gate_transition_request_over_acc
     assert (
         control["stage_route_arbiter_decisions"][0]["decision"]
         == "opl_transition_readback_required"
+    )
+    assert (
+        control["stage_route_arbiter_decisions"][0]["mas_owner_action_source"]
+        == "paper_recovery_state.accepted_owner_gate_decision"
     )
 
 

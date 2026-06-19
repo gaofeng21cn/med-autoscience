@@ -492,8 +492,12 @@ def accepted_owner_gate_admission_matches_selected_dispatch_blocker(
     current_work_unit = _mapping(study.get("current_work_unit"))
     if _non_empty_text(current_work_unit.get("status")) != "typed_blocker":
         return False
-    return _is_selected_dispatch_stage_packet_blocker(
-        _selected_dispatch_typed_blocker_reason(study)
+    return any(
+        _is_selected_dispatch_stage_packet_blocker(reason)
+        for reason in _selected_dispatch_typed_blocker_reasons(
+            study,
+            recovery=recovery_payload,
+        )
     )
 
 
@@ -522,13 +526,20 @@ def _recovery_has_owner_gate_stage_packet_ref(recovery: Mapping[str, Any]) -> bo
     return has_owner_gate and has_stage_packet
 
 
-def _selected_dispatch_typed_blocker_reason(study: Mapping[str, Any]) -> str | None:
+def _selected_dispatch_typed_blocker_reasons(
+    study: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+) -> list[str]:
+    reasons: list[str] = []
     current_work_unit = _mapping(study.get("current_work_unit"))
     current_execution = _mapping(study.get("current_execution_envelope"))
+    recovery_obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
     for blocker in (
         _mapping(_mapping(current_work_unit.get("state")).get("typed_blocker")),
         _mapping(current_work_unit.get("typed_blocker")),
         _mapping(current_execution.get("typed_blocker")),
+        recovery_obligation,
         _mapping(current_work_unit.get("state")),
         current_execution,
     ):
@@ -539,8 +550,8 @@ def _selected_dispatch_typed_blocker_reason(study: Mapping[str, Any]) -> str | N
             or _non_empty_text(blocker.get("blocked_reason"))
         )
         if reason is not None:
-            return reason
-    return None
+            reasons.append(reason)
+    return reasons
 
 
 def _provider_admission_action_key(action: Mapping[str, Any]) -> tuple[str | None, str | None, str | None]:

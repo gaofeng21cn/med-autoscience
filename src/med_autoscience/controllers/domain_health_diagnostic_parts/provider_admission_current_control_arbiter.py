@@ -251,6 +251,8 @@ def _arbiter_decision(
         "attempt_idempotency_key": _attempt_idempotency_key(candidate),
         "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
         "dispatch_ref": _non_empty_text(candidate.get("dispatch_ref")),
+        "mas_owner_action_source": _non_empty_text(candidate.get("mas_owner_action_source")),
+        "currentness_basis": dict(_mapping(candidate.get("currentness_basis"))) or None,
         "same_tick_materialization_source": _non_empty_text(
             candidate.get("same_tick_materialization_source")
         ),
@@ -753,6 +755,8 @@ def _candidates_not_covered_by_live_attempt(
         ) and not _unconsumed_closeout_blocks_weak_identity_suppression(
             scanned_study,
             identity=candidate,
+        ) and not _accepted_owner_gate_transition_request_candidate(
+            candidate
         ):
             continue
         if live_attempt and _running_attempt_covers_candidate(live_attempt, candidate=candidate):
@@ -789,11 +793,20 @@ def _candidates_not_covered_by_live_attempt(
             scanned_study,
             candidate=candidate,
         ):
-            if not request_only_transition or _paper_recovery_block_is_hard_blocker(
-                paper_recovery_block
-            ) or not _request_only_transition_can_bypass_current_typed_blocker(
-                scanned_study,
-                candidate=candidate,
+            if (
+                not request_only_transition
+                or _paper_recovery_block_is_hard_blocker(paper_recovery_block)
+                or not (
+                    _request_only_transition_can_bypass_current_typed_blocker(
+                        scanned_study,
+                        candidate=candidate,
+                    )
+                    or _request_only_transition_materializes_accepted_owner_gate_admission(
+                        scanned_study,
+                        identity=candidate,
+                        recovery=_mapping(scanned_study.get("paper_recovery_state")),
+                    )
+                )
             ):
                 continue
         pending.append(dict(candidate))
@@ -1236,6 +1249,12 @@ def _current_typed_blocker_precedence_evidence_for_candidate(
     if (
         _is_selected_dispatch_stage_packet_blocker(_non_empty_text(evidence.get("blocker_type")))
         and _accepted_owner_gate_transition_request_candidate(candidate)
+    ):
+        return {}
+    if _request_only_transition_materializes_accepted_owner_gate_admission(
+        study,
+        identity=candidate,
+        recovery=_mapping(study.get("paper_recovery_state")),
     ):
         return {}
     return evidence
