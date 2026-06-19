@@ -206,7 +206,8 @@
         "src/med_autoscience/controllers/domain_health_diagnostic_parts/opl_transition_readback.py now rejects read_model_readback unless those five sections exactly match the top-level live readback sections.",
         "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape rejects stale read_model_readback identity refs.",
         "src/med_autoscience/controllers/study_progress_parts/opl_supervisor_decision_readback.py consumes OPL SupervisorDecisionEngine readback from family-runtime/paper-autonomy/supervisor/supervisor-decisions.jsonl as a read-only study_progress projection.",
-        "tests/study_progress_cases/opl_supervisor_decision_readback_projection.py proves the consumed supervisor decision readback updates paper_recovery_state and refs without creating provider admission or MAS truth."
+        "tests/study_progress_cases/opl_supervisor_decision_readback_projection.py proves the consumed supervisor decision readback updates paper_recovery_state and refs without creating provider admission or MAS truth.",
+        "domain-handler export and DHD dry-run preview now suppress same-identity stop_with_stable_typed_blocker owner-resolution tasks after OPL supervisor decision readback is consumed; tests/test_cli_cases/owner_route_handoff_command.py and tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases.py cover the suppression while preserving materialize_recovery_action owner-resolution preview."
       ],
       "open_gap": "Workbench and all downstream projections still need fresh live proof of full event-driven rebuild under real paper-line flow."
     },
@@ -350,9 +351,11 @@
       "evidence": [
         "Fresh read-only study_progress on 2026-06-19T04:23:50+00:00 at MAS main/origin 05847e4a6 shows DM002 current_work_unit.status=typed_blocker with blocker_type=anti_loop_budget_exhausted, owner=one-person-lab, work_unit_id=ai_reviewer_record_gate_consumption, active_run_id=None, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=None.",
         "Fresh read-only study_progress on 2026-06-19T04:23:51+00:00 at MAS main/origin 05847e4a6 shows DM003 current_work_unit.status=typed_blocker with blocker_type=no_selected_dispatch_for_authorized_stage_packet, owner=one-person-lab, work_unit_id=medical_prose_write_repair, active_run_id=None, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=None.",
-        "Fresh read-only DHD dry-run on 2026-06-19T04:24:26+00:00 produced action_class=observe_only, will_start_llm=false, provider_admission_pending_count=0, transition_request_pending_count=0, and no supervisor_decisions; this is not DHD apply, OPL outbox/StageRun readback, provider running proof, or paper-line progress."
+        "Fresh read-only DHD dry-run on 2026-06-19T04:24:26+00:00 produced action_class=observe_only, will_start_llm=false, provider_admission_pending_count=0, transition_request_pending_count=0, and no supervisor_decisions; this is not DHD apply, OPL outbox/StageRun readback, provider running proof, or paper-line progress.",
+        "Fresh read-only DHD dry-run on 2026-06-19T05:58:56+00:00 from the stable-blocker-preview-suppression worktree produced DM003 domain_handler_owner_resolution_preview_task_count=0 with action_class=observe_only and no provider/transition pending candidates.",
+        "Fresh domain-handler export on 2026-06-19T05:58:36Z from the same worktree produced no DM003 pending_family_tasks, proving the closed stop_with_stable_typed_blocker readback is no longer re-exported as domain_route/reconcile-apply."
       ],
-      "open_gap": "DM002 remains an accepted stable typed blocker for the current anti-loop owner-resolution lane, but it still needs owner resolution, route-back, human gate, semantic paper/gate/artifact delta, or delegated DHD apply exactly-one closure before broader paper-line progress can be claimed. DM003 now also reads as a stable typed blocker (no_selected_dispatch_for_authorized_stage_packet) rather than owner-action-ready; it still needs OPL-readback-backed admission/running proof or MAS owner receipt/stable blocker supersession/human gate/route-back/paper semantic delta. queue empty, DHD observe_only, provider_admission_pending_count=0, transition_request_pending_count=0, and focused tests remain non-progress evidence."
+      "open_gap": "DM002 remains an accepted stable typed blocker for the current anti-loop owner-resolution lane, but it still needs owner resolution, route-back, human gate, semantic paper/gate/artifact delta, or delegated DHD apply exactly-one closure before broader paper-line progress can be claimed. DM003 now reads as a closed stable typed blocker (no_selected_dispatch_for_authorized_stage_packet) with OPL supervisor decision readback consumed and no longer re-exported as owner-resolution preview; this closes the preview loop but is still not provider running proof or semantic paper/gate/artifact progress. queue empty, DHD observe_only, provider_admission_pending_count=0, transition_request_pending_count=0, and focused tests remain non-progress evidence."
     }
   ],
   "phase_audit": [
@@ -901,7 +904,9 @@
         "contracts/paper_progress_replay_live_evidence_status.json#/remaining_evidence_tails",
         "fresh_read_only:2026-06-19T04:23:50Z:DM002 study_progress typed_blocker anti_loop_budget_exhausted active_run_id=None provider_admission_pending_count=0 transition_request_pending_count=0 current_executable_owner_action=None",
         "fresh_read_only:2026-06-19T04:23:51Z:DM003 study_progress typed_blocker no_selected_dispatch_for_authorized_stage_packet active_run_id=None provider_admission_pending_count=0 transition_request_pending_count=0 current_executable_owner_action=None",
-        "fresh_read_only:2026-06-19T04:24:26Z:DHD dry-run observe_only will_start_llm=false provider_admission_pending_count=0 transition_request_pending_count=0 supervisor_decisions=None"
+        "fresh_read_only:2026-06-19T04:24:26Z:DHD dry-run observe_only will_start_llm=false provider_admission_pending_count=0 transition_request_pending_count=0 supervisor_decisions=None",
+        "fresh_read_only:2026-06-19T05:58:56Z:DM003 DHD dry-run stable blocker owner-resolution preview suppressed task_count=0",
+        "fresh_read_only:2026-06-19T05:58:36Z:DM003 domain-handler export pending_family_tasks=[] after stop_with_stable_typed_blocker readback"
       ],
       "missing_evidence_tails": [
         "DM002 fresh live paper-line outcome beyond the current anti_loop_budget_exhausted stable typed blocker, or accepted owner decision to stop with that blocker",

@@ -363,7 +363,7 @@ def test_domain_handler_export_materializes_mas_dispatch_selection_blocker_resol
     assert task["domain_dispatch_evidence_record_payload"]["task_kind"] == "domain_route/reconcile-apply"
 
 
-def test_domain_handler_export_materializes_supervisor_stable_blocker_owner_resolution_task(
+def test_domain_handler_export_suppresses_supervisor_stable_blocker_owner_resolution_task(
     tmp_path: Path,
     capsys,
     monkeypatch,
@@ -510,32 +510,7 @@ def test_domain_handler_export_materializes_supervisor_stable_blocker_owner_reso
         for task in payload["pending_family_tasks"]
         if task.get("payload", {}).get("study_id") == study_id
     ]
-    assert len(tasks) == 1
-    task = tasks[0]
-    assert task["task_kind"] == "domain_route/reconcile-apply"
-    assert task["reason"] == "current_work_unit_typed_blocker_owner_resolution"
-    assert task["payload"]["paper_autonomy_supervisor_decision"]["decision"] == (
-        "stop_with_stable_typed_blocker"
-    )
-    assert task["payload"]["paper_autonomy_supervisor_decision"]["decision_id"] == decision_id
-    required_owner_action = task["payload"]["required_owner_action"]
-    assert required_owner_action["owner"] == "publication_gate"
-    assert required_owner_action["work_unit_id"] == work_unit_id
-    assert required_owner_action["work_unit_fingerprint"] == work_unit_fingerprint
-    assert required_owner_action["accepted_resolution_shapes"][:5] == [
-        "domain_owner_receipt_ref",
-        "quality_gate_receipt_ref",
-        "typed_blocker_ref",
-        "human_gate_ref",
-        "route_back_evidence_ref",
-    ]
-    assert any(
-        ref["role"] == "paper_autonomy_supervisor_decision" and ref["decision"] == (
-            "stop_with_stable_typed_blocker"
-        )
-        for ref in task["source_refs"]
-    )
-    assert task["domain_dispatch_evidence_record_payload"]["task_kind"] == "domain_route/reconcile-apply"
+    assert tasks == []
 
 
 def test_domain_handler_export_materializes_owner_gate_route_back_dispatch_under_stage_packet_blocker(

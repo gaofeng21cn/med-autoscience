@@ -879,12 +879,12 @@ def _typed_blocker_owner_resolution_supported(
     current_work_unit: Mapping[str, Any],
     supervisor_decision: Mapping[str, Any],
 ) -> bool:
-    if _canonical_owner(owner) == "one-person-lab":
-        return True
     if _supervisor_stop_decision_matches_current_work_unit(
         supervisor_decision=supervisor_decision,
         current_work_unit=current_work_unit,
     ):
+        return False
+    if _canonical_owner(owner) == "one-person-lab":
         return True
     if _canonical_owner(owner) != "MedAutoScience":
         return False
