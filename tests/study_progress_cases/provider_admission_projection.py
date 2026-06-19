@@ -532,6 +532,139 @@ def test_provider_admission_projection_materializes_accepted_owner_gate_transiti
     assert candidate["currentness_basis"]["source"] == "paper_recovery_state.accepted_owner_gate_decision"
 
 
+def test_provider_admission_projection_owner_gate_admission_supersedes_terminal_closeout(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    stage_attempt_id = "sat_08da46bea43329723d2fbbea"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_ready_quality_repair_dispatch(study_root, study_id=study_id, fingerprint=fingerprint)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    dispatch_payload = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    for key in (
+        "opl_domain_progress_transition_result",
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_transition_readback_source",
+    ):
+        dispatch_payload.pop(key, None)
+    _write_json(dispatch_path, dispatch_payload)
+    typed_blocker = {
+        "surface_kind": "mas_domain_typed_blocker",
+        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+        "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+        "stage_attempt_id": stage_attempt_id,
+        "owner": "one-person-lab",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+    }
+
+    fields = module.provider_admission_projection_fields(
+        payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "admission_pending",
+                "conditions": [
+                    {
+                        "condition": "accepted_owner_gate_decision",
+                        "decision": "admit_identity_bound_stage_packet",
+                    }
+                ],
+                "evidence_refs": [
+                    "human_gate:owner-gate-decision:0863b0b9a2d94867284fa160",
+                    "owner-gate-decision:0863b0b9a2d94867284fa160",
+                ],
+                "next_safe_action": {
+                    "kind": "admit_identity_bound_stage_packet",
+                    "owner": "one-person-lab",
+                    "provider_admission_allowed": True,
+                },
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "typed_blocker",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "currentness_basis": {
+                    "source": "study_intervention_event.owner_gate_decision",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+                    "runtime_health_epoch": "runtime-health-event-006980-82d8638211349896",
+                    "stage_attempt_id": stage_attempt_id,
+                },
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "source": "terminal_closeout_typed_blocker",
+                    "typed_blocker": typed_blocker,
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "one-person-lab",
+                "typed_blocker": typed_blocker,
+            },
+            "current_executable_owner_action": None,
+        },
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "source_path": "/tmp/opl_current_control_state/latest.json",
+            "running_provider_attempt": False,
+            "action_queue": [],
+            "provider_admission_terminal_closeout_consumed": {
+                "surface_kind": "provider_admission_terminal_closeout_consumed",
+                "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
+                "stage_attempt_id": stage_attempt_id,
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "typed_blocker": typed_blocker,
+            },
+            "typed_blocker": typed_blocker,
+            "latest_terminal_stage_log": {
+                "stage_attempt_id": stage_attempt_id,
+                "typed_blocker": typed_blocker,
+            },
+        },
+        study_root=study_root,
+    )
+
+    assert "provider_admission_terminal_closeout_consumed" not in fields
+    assert fields["provider_admission_pending_count"] == 0
+    assert fields["provider_admission_candidates"] == []
+    assert fields["transition_request_pending_count"] == 1
+    candidate = fields["transition_request_candidates"][0]
+    assert candidate["status"] == "transition_request_pending"
+    assert candidate["provider_admission_requires_opl_runtime_result"] is True
+    assert candidate["action_type"] == "run_quality_repair_batch"
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["work_unit_fingerprint"] == fingerprint
+    assert candidate["mas_owner_action_source"] == "paper_recovery_state.accepted_owner_gate_decision"
+
+
 def test_provider_admission_projection_emits_candidate_for_current_executable_action(tmp_path) -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.provider_admission_projection"

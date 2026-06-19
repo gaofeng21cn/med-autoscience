@@ -31,24 +31,27 @@ def provider_admission_projection_fields(
     handoff: Mapping[str, Any],
     study_root: Path,
 ) -> dict[str, Any]:
-    consumed_terminal_closeout = _handoff_consumed_terminal_closeout_fields(
-        payload=payload,
-        handoff=handoff,
-    )
-    if consumed_terminal_closeout is not None:
-        return consumed_terminal_closeout
+    accepted_owner_gate_admission = _accepted_owner_gate_admission_pending(payload)
+    if not accepted_owner_gate_admission:
+        consumed_terminal_closeout = _handoff_consumed_terminal_closeout_fields(
+            payload=payload,
+            handoff=handoff,
+        )
+        if consumed_terminal_closeout is not None:
+            return consumed_terminal_closeout
     running_proof = _handoff_running_proof_consumes_provider_admission(
         payload=payload,
         handoff=handoff,
     )
     if running_proof is not None:
         return running_proof
-    terminal_closeout = _handoff_terminal_closeout_consumes_provider_admission(
-        payload=payload,
-        handoff=handoff,
-    )
-    if terminal_closeout is not None:
-        return terminal_closeout
+    if not accepted_owner_gate_admission:
+        terminal_closeout = _handoff_terminal_closeout_consumes_provider_admission(
+            payload=payload,
+            handoff=handoff,
+        )
+        if terminal_closeout is not None:
+            return terminal_closeout
     handoff_fields = _identity_bound_handoff_provider_admission_fields(
         handoff=handoff,
         payload=payload,
