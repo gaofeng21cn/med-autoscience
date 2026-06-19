@@ -9,6 +9,11 @@ from med_autoscience.display_pack_canonical_catalog import (
     canonical_catalog_entry_for_template,
     load_canonical_template_catalog,
 )
+from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
+
+CORE_MEDICAL_FIGURE_FAMILY_CATALOG_REF = "contracts/medical-figure-family-catalog/"
+FIGURE_FAMILY_POLICY_SOURCE = "medical_figure_family_catalog"
+GALLERY_TEMPLATE_FAMILY_SOURCE = "display_pack_canonical_template_catalog"
 
 
 @dataclass(frozen=True)
@@ -92,3 +97,80 @@ def family_categories(records: list[TemplateRecord]) -> dict[str, list[TemplateR
     for record in canonical_records(records):
         categories[record.canonical_family_category].append(record)
     return categories
+
+
+def figure_family_policy() -> dict[str, object]:
+    return {
+        "policy_version": 1,
+        "current_metadata_source": FIGURE_FAMILY_POLICY_SOURCE,
+        "core_catalog_ref": CORE_MEDICAL_FIGURE_FAMILY_CATALOG_REF,
+        "gallery_template_metadata_source": GALLERY_TEMPLATE_FAMILY_SOURCE,
+        "core_catalog_dependency": "loaded_via_medical_figure_family_catalog_loader",
+        "default_gallery_surface": "canonical_families_only",
+        "alias_handling": "hidden_from_gallery_cards_preserved_in_migration_index",
+        "machine_boundary": "core_catalog_and_gallery_metadata_only_not_source_truth_statistical_truth_or_publication_readiness_authority",
+    }
+
+
+def ai_adaptation_policy() -> dict[str, object]:
+    return dict(load_medical_figure_family_catalog().ai_adaptation_policy)
+
+
+def canonical_family_wording(record: TemplateRecord) -> str:
+    return (
+        f"{record.canonical_family_title} "
+        f"({record.canonical_family_category}): {record.figure_archetype}"
+    )
+
+
+def gallery_template_family_ontology(records: list[TemplateRecord]) -> list[dict[str, object]]:
+    seen: set[str] = set()
+    entries: list[dict[str, object]] = []
+    for record in canonical_records(records):
+        if record.canonical_family_id in seen:
+            continue
+        seen.add(record.canonical_family_id)
+        entries.append(
+            {
+                "family_id": record.canonical_family_id,
+                "title": record.canonical_family_title,
+                "category": record.canonical_family_category,
+                "canonical_template_id": record.canonical_template_id,
+                "figure_archetype": record.figure_archetype,
+                "canonical_family_wording": canonical_family_wording(record),
+            }
+        )
+    return entries
+
+
+def canonical_family_ontology() -> list[dict[str, object]]:
+    catalog = load_medical_figure_family_catalog()
+    return [
+        {
+            "family_id": family.family_id,
+            "category_id": family.category_id,
+            "title": family.title,
+            "intent": family.intent,
+            "canonical_variants": list(family.canonical_variants),
+            "template_seed_ids": list(family.template_seed_ids),
+            "style_tokens": list(family.style_tokens),
+            "palette_tokens": list(family.palette_tokens),
+            "qa_gate_ids": list(family.qa_gate_ids),
+            "loose_match_terms": list(family.loose_match_terms),
+            "external_refs": list(family.external_refs),
+        }
+        for family in catalog.families_by_id.values()
+    ]
+
+
+def canonical_category_ontology() -> list[dict[str, object]]:
+    catalog = load_medical_figure_family_catalog()
+    return [
+        {
+            "category_id": category.category_id,
+            "title": category.title,
+            "family_count": len(category.families),
+            "family_ids": [family.family_id for family in category.families],
+        }
+        for category in catalog.categories
+    ]

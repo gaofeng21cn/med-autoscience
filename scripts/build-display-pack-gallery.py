@@ -19,10 +19,17 @@ from typing import Any
 from med_autoscience import publication_display_contract as display_contract
 from med_autoscience.display_pack_gallery_catalog import (
     TemplateRecord,
+    ai_adaptation_policy,
+    canonical_category_ontology,
+    canonical_family_ontology,
+    canonical_family_wording,
     canonical_records,
     family_categories,
+    figure_family_policy,
+    gallery_template_family_ontology,
     read_template_records,
 )
+from med_autoscience.display_pack_gallery_reference import build_gallery_reference_markdown
 from med_autoscience.publication_display_contract import (
     load_publication_style_profile,
     resolve_style_roles,
@@ -1056,6 +1063,7 @@ def _render_html(
         f'<span class="pill">style_profile_id: {html.escape(default_style["style_profile_id"])}</span>'
         f'<span class="pill">journal_palette_ref: {html.escape(default_style["journal_palette_ref"])}</span>'
         f'<span class="pill">gallery cards: {len(visible_records)}</span>'
+        f'<span class="pill">family policy: canonical metadata only</span>'
         f'<span class="pill">R/ggplot2 canonical: {sum(1 for record in visible_records if record.renderer_family == "r_ggplot2")}</span>'
         f'<span class="pill">Python canonical: {sum(1 for record in visible_records if record.renderer_family == "python")}</span>'
         f'<span class="pill">rendered images: {rendered_count}</span>'
@@ -1088,6 +1096,7 @@ def _render_html(
                     "canonical",
                 )
             )
+            family_wording = canonical_family_wording(record)
             panes = _asset_html(asset, label="R / ggplot2" if record.renderer_family == "r_ggplot2" else "Python")
             if baseline.status == "rendered":
                 panes += _asset_html(baseline, label="Legacy Python baseline")
@@ -1100,7 +1109,7 @@ def _render_html(
   <div class="card-body">
     <h3>{html.escape(record.canonical_family_title)}</h3>
     <p><code>{html.escape(record.template_id)}</code></p>
-    <p>{html.escape(record.figure_archetype)}</p>
+    <p>{html.escape(family_wording)}</p>
     <div class="tags">{tags}</div>
   </div>
 </article>"""
@@ -1200,42 +1209,16 @@ def _write_reference(
     excluded = ", ".join(f"`{item}`" for item in LEGACY_PYTHON_BASELINE_EXCLUDED)
     reference_path.parent.mkdir(parents=True, exist_ok=True)
     reference_path.write_text(
-        f"""# MAS Display Pack Gallery
-
-Owner: `MedAutoScience`
-Purpose: `human_readable_gallery_for_builtin_mas_display_templates`
-State: `active_support`
-Machine boundary: 人读示例文档。机器真相继续归 display-pack template descriptor、renderer source、`paper/publication_style_profile.json`、layout sidecar、display lock、publication manifest、tests 和真实论文 artifacts。
-
-- [PDF Gallery](./ggplot2_template_gallery.pdf)
-
-全量 HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`。需要重建时运行：
-
-```bash
-./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs
-```
-
-## 索引
-
-| Category | Templates |
-| --- | ---: |
-{category_lines}
-
-## 当前默认风格
-
-- `style_profile_id`: `{default_style["style_profile_id"]}`
-- `journal_palette_ref`: `{default_style["journal_palette_ref"]}`
-- canonical renderer inventory: `r_ggplot2={sum(1 for record in visible_records if record.renderer_family == "r_ggplot2")}`, `python={sum(1 for record in visible_records if record.renderer_family == "python")}`, `n/a={sum(1 for record in visible_records if record.renderer_family == "n/a")}`
-- canonical rendered image templates: `{rendered_count}`
-- Python comparisons rendered: `{baseline_count}`
-- excluded Python comparisons: {excluded}
-- canonical families: `{len(visible_records)}`
-- upstream nature-skills fresh HEAD checked on `2026-06-19`: `{NATURE_SKILLS_HEAD}`
-
-## 风格口径
-
-MAS 默认不是 Nature 官方模板复刻，也不是 Lancet 专用模板。当前内置默认是 `nature_informed_clinical_publication_v1`：白底、左下轴线、小字号、细轴线、弱网格、统一 clinical palette、sequential heatmap 和右侧短 colorbar。它吸收了 nature-skills 的 archetype-first、backend-exclusive、shared-legend / dedicated-guide 和 vector export discipline，但不引入外部 runner 或 publication authority。默认应用面只展示 canonical 图型家族；旧模板 ID 作为 migration aliases 保留在 manifest 中，不作为用户默认候选。
-""",
+        build_gallery_reference_markdown(
+            category_lines=category_lines,
+            default_style=default_style,
+            renderer_inventory=Counter(record.renderer_family for record in visible_records),
+            rendered_count=rendered_count,
+            baseline_count=baseline_count,
+            excluded_python_comparisons=excluded,
+            canonical_gallery_family_count=len(visible_records),
+            nature_skills_head=NATURE_SKILLS_HEAD,
+        ),
         encoding="utf-8",
     )
 
@@ -1312,43 +1295,13 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main() -> int:
-    args = _parse_args(sys.argv[1:])
-    _configure_output_paths(args.output_root)
-    if shutil.which("Rscript") is None:
-        raise RuntimeError("Rscript is required to rebuild the gallery")
-    records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
-    seed_r_payloads = _load_seed_r_payloads(records)
-    _clean_assets()
-    fixture_payloads = _load_python_payload_fixtures()
-    rendered: dict[str, RenderedAsset] = {}
-    baseline_rendered: dict[str, RenderedAsset] = {}
-    for record in records:
-        if record.renderer_family == "r_ggplot2":
-            rendered[record.template_id] = _render_r_template(record, seed_r_payloads)
-            baseline_payload = _legacy_python_baseline_payload(record, fixture_payloads)
-            baseline_rendered[record.template_id] = _render_legacy_python_baseline(record, baseline_payload)
-        elif record.renderer_family == "python":
-            try:
-                payload = _python_display_payload(record, fixture_payloads)
-                rendered[record.template_id] = _render_python_template(
-                    record,
-                    payload,
-                    output_root=PYTHON_CURRENT_ROOT,
-                    suffix="python",
-                )
-            except Exception as exc:
-                rendered[record.template_id] = RenderedAsset(
-                    status="not_rendered",
-                    reason=f"{type(exc).__name__}: {exc}",
-                )
-        else:
-            rendered[record.template_id] = RenderedAsset(status="not_visual", reason="table_shell_or_non_visual_template")
-
-    HTML_PATH.write_text(_render_html(records, rendered, baseline_rendered), encoding="utf-8")
-    _strip_trailing_whitespace(HTML_PATH)
-    _write_reference(records, rendered, baseline_rendered, reference_path=REFERENCE_PATH)
-    _strip_trailing_whitespace(REFERENCE_PATH)
+def _build_manifest(
+    *,
+    records: list[TemplateRecord],
+    rendered: dict[str, RenderedAsset],
+    baseline_rendered: dict[str, RenderedAsset],
+    publish_docs: bool,
+) -> dict[str, Any]:
     visible_records = canonical_records(records)
     canonical_rendered_count = sum(
         1
@@ -1361,17 +1314,18 @@ def main() -> int:
         if asset.status == "rendered"
     )
     baseline_rendered_count = sum(1 for asset in baseline_rendered.values() if asset.status == "rendered")
-    manifest = {
+    return {
         "schema_version": 5,
         "status": "rendered",
         "html_path": str(HTML_PATH),
         "pdf_path": str(PDF_PATH),
-        "docs_pdf_path": str(DOCS_PDF_PATH) if args.publish_docs else "",
-        "docs_reference_path": str(DOCS_REFERENCE_PATH) if args.publish_docs else "",
+        "docs_pdf_path": str(DOCS_PDF_PATH) if publish_docs else "",
+        "docs_reference_path": str(DOCS_REFERENCE_PATH) if publish_docs else "",
         "template_count": len(visible_records),
         "active_template_count": len(visible_records),
         "migration_inventory_template_count": len(records),
-        "canonical_family_count": len({record.canonical_family_id for record in visible_records}),
+        "canonical_family_count": len(canonical_family_ontology()),
+        "gallery_template_family_count": len({record.canonical_family_id for record in visible_records}),
         "canonical_template_count": sum(1 for record in records if record.migration_status == "canonical"),
         "default_visible_template_count": len(visible_records),
         "legacy_alias_template_count": sum(1 for record in records if record.migration_status == "migrated_alias"),
@@ -1385,6 +1339,11 @@ def main() -> int:
         "nature_skills_observed_head": NATURE_SKILLS_HEAD,
         "excluded_legacy_python_baselines": list(LEGACY_PYTHON_BASELINE_EXCLUDED),
         "categories": dict(Counter(record.canonical_family_category for record in visible_records)),
+        "figure_family_policy": figure_family_policy(),
+        "ai_adaptation_policy": ai_adaptation_policy(),
+        "canonical_category_ontology": canonical_category_ontology(),
+        "canonical_family_ontology": canonical_family_ontology(),
+        "gallery_template_family_ontology": gallery_template_family_ontology(records),
         "template_surface_policy": {
             "gallery_default_surface": "canonical_families_only",
             "active_inventory_is_canonical_only": True,
@@ -1402,6 +1361,7 @@ def main() -> int:
                 "canonical_family_category": record.canonical_family_category,
                 "canonical_template_id": record.canonical_template_id,
                 "figure_archetype": record.figure_archetype,
+                "canonical_family_wording": canonical_family_wording(record),
                 "migration_status": record.migration_status,
                 "default_visible": record.default_visible,
                 "migrated_alias_template_ids": list(record.migrated_alias_template_ids),
@@ -1456,6 +1416,52 @@ def main() -> int:
             for record in records
         ],
     }
+
+
+def main() -> int:
+    args = _parse_args(sys.argv[1:])
+    _configure_output_paths(args.output_root)
+    if shutil.which("Rscript") is None:
+        raise RuntimeError("Rscript is required to rebuild the gallery")
+    records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
+    seed_r_payloads = _load_seed_r_payloads(records)
+    _clean_assets()
+    fixture_payloads = _load_python_payload_fixtures()
+    rendered: dict[str, RenderedAsset] = {}
+    baseline_rendered: dict[str, RenderedAsset] = {}
+    for record in records:
+        if record.renderer_family == "r_ggplot2":
+            rendered[record.template_id] = _render_r_template(record, seed_r_payloads)
+            baseline_payload = _legacy_python_baseline_payload(record, fixture_payloads)
+            baseline_rendered[record.template_id] = _render_legacy_python_baseline(record, baseline_payload)
+        elif record.renderer_family == "python":
+            try:
+                payload = _python_display_payload(record, fixture_payloads)
+                rendered[record.template_id] = _render_python_template(
+                    record,
+                    payload,
+                    output_root=PYTHON_CURRENT_ROOT,
+                    suffix="python",
+                )
+            except Exception as exc:
+                rendered[record.template_id] = RenderedAsset(
+                    status="not_rendered",
+                    reason=f"{type(exc).__name__}: {exc}",
+                )
+        else:
+            rendered[record.template_id] = RenderedAsset(status="not_visual", reason="table_shell_or_non_visual_template")
+
+    HTML_PATH.write_text(_render_html(records, rendered, baseline_rendered), encoding="utf-8")
+    _strip_trailing_whitespace(HTML_PATH)
+    _write_reference(records, rendered, baseline_rendered, reference_path=REFERENCE_PATH)
+    _strip_trailing_whitespace(REFERENCE_PATH)
+    visible_records = canonical_records(records)
+    manifest = _build_manifest(
+        records=records,
+        rendered=rendered,
+        baseline_rendered=baseline_rendered,
+        publish_docs=args.publish_docs,
+    )
     _write_json(MANIFEST_PATH, manifest)
     _export_pdf()
     if args.publish_docs:
