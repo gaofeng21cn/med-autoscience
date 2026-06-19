@@ -258,6 +258,9 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
         [
             "docs/references/example-runtime-note.md",
             "docs/runtime/example-runtime-contract.md",
+            "contracts/runtime/mas-live-runtime-evidence-rollup.json",
+            "contracts/runtime/mas-live-runtime-gap-work-orders.json",
+            "contracts/runtime/mas-runtime-live-tail-work-orders.json",
             "src/med_autoscience/profiles.py",
             "profiles/workspace.profile.template.toml",
             "src/med_autoscience/controllers/study_outer_loop.py",

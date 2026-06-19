@@ -187,6 +187,9 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="runtime_contract_surface",
         exact_paths=(
+            "contracts/runtime/mas-live-runtime-evidence-rollup.json",
+            "contracts/runtime/mas-live-runtime-gap-work-orders.json",
+            "contracts/runtime/mas-runtime-live-tail-work-orders.json",
             "src/med_autoscience/controllers/study_outer_loop.py",
             "src/med_autoscience/controllers/domain_health_diagnostic.py",
             "src/med_autoscience/controllers/study_runtime_decision.py",
