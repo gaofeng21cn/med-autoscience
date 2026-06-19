@@ -6,6 +6,17 @@ from typing import Any
 
 SURFACE_KIND = "mas_live_runtime_gap_work_orders"
 VERSION = "mas-live-runtime-gap-work-orders.v1"
+FORBIDDEN_CLAIM_TERMS = (
+    "domain-ready",
+    "live runtime ready",
+    "paper complete",
+    "paper progress",
+    "provider running",
+    "publication-ready",
+    "ready",
+    "runtime ready",
+    "production-ready",
+)
 
 
 def live_runtime_gap_work_orders_from_completion_audit(
@@ -30,6 +41,11 @@ def validate_live_runtime_gap_work_order_contract(
         violations.append(_violation("<contract>", "repo_source_retirement_blocked"))
     if contract.get("live_runtime_readiness_claim_allowed") is not False:
         violations.append(_violation("<contract>", "live_runtime_claim_allowed"))
+    schema_forbidden_terms = set(
+        _text_list(_evidence_record_schema(contract).get("forbidden_claim_terms"))
+    )
+    if not set(FORBIDDEN_CLAIM_TERMS).issubset(schema_forbidden_terms):
+        violations.append(_violation("<contract>", "missing_forbidden_claim_terms"))
 
     expected = {
         order["gap_id"]: order
@@ -75,16 +91,23 @@ def evaluate_live_runtime_gap_evidence_record(
     provided_substitutes = set(_text_list(evidence_record.get("evidence_substitutes")))
     matched_refs = sorted(accepted_refs & provided_refs)
     forbidden_matches = sorted(forbidden_substitutes & provided_substitutes)
+    forbidden_claim_terms = _forbidden_claim_terms(work_order, evidence_record)
     evidence_source = _text(evidence_record.get("evidence_source"))
     typed_blocker = _text(work_order.get("typed_blocker_when_missing")) or (
         f"{gap_id}_live_runtime_evidence_required"
     )
-    satisfied = bool(matched_refs) and not forbidden_matches and evidence_source is not None
+    satisfied = (
+        bool(matched_refs)
+        and not forbidden_matches
+        and not forbidden_claim_terms
+        and evidence_source is not None
+    )
     return {
         "gap_id": gap_id,
         "status": "satisfied_by_accepted_ref" if satisfied else "typed_blocker_required",
         "matched_evidence_ref_families": matched_refs,
         "forbidden_evidence_substitutes_present": forbidden_matches,
+        "forbidden_claim_terms_present": forbidden_claim_terms,
         "typed_blocker": None if satisfied else typed_blocker,
         "live_runtime_readiness_claim_allowed": satisfied,
         "repo_source_retirement_blocked": False,
@@ -111,8 +134,15 @@ def live_runtime_gap_evidence_intake_summary(
         for record in records_iterable
         if _text(record.get("gap_id")) is not None
     }
+    forbidden_claim_terms = _evidence_record_schema(contract).get("forbidden_claim_terms", [])
     results = [
-        evaluate_live_runtime_gap_evidence_record(order, records.get(gap_id, {}))
+        evaluate_live_runtime_gap_evidence_record(
+            order,
+            {
+                **records.get(gap_id, {}),
+                "_forbidden_claim_terms": forbidden_claim_terms,
+            },
+        )
         for gap_id, order in sorted(orders.items())
     ]
     blocked = [
@@ -237,6 +267,29 @@ def _text(value: Any) -> str | None:
     return text or None
 
 
+def _evidence_record_schema(contract: Mapping[str, Any]) -> Mapping[str, Any]:
+    boundary = contract.get("completion_claim_boundary")
+    if not isinstance(boundary, Mapping):
+        return {}
+    schema = boundary.get("evidence_record_schema")
+    return schema if isinstance(schema, Mapping) else {}
+
+
+def _forbidden_claim_terms(
+    work_order: Mapping[str, Any],
+    evidence_record: Mapping[str, Any],
+) -> list[str]:
+    claim = (_text(evidence_record.get("claim")) or "").casefold()
+    if not claim:
+        return []
+    terms = _text_list(
+        evidence_record.get("_forbidden_claim_terms")
+        or work_order.get("forbidden_claim_terms")
+        or list(FORBIDDEN_CLAIM_TERMS)
+    )
+    return sorted(term for term in terms if term.casefold() in claim)
+
+
 def _violation(gap_id: str, reason: str) -> dict[str, str]:
     return {"gap_id": gap_id, "reason": reason}
 
@@ -244,6 +297,7 @@ def _violation(gap_id: str, reason: str) -> dict[str, str]:
 __all__ = [
     "SURFACE_KIND",
     "VERSION",
+    "FORBIDDEN_CLAIM_TERMS",
     "evaluate_live_runtime_gap_evidence_record",
     "live_runtime_gap_evidence_intake_summary",
     "live_runtime_gap_work_orders_from_completion_audit",

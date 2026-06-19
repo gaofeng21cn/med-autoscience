@@ -32,6 +32,18 @@ def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None
     assert contract["surface_kind"] == "mas_live_runtime_gap_work_orders"
     assert contract["repo_source_retirement_blocked"] is False
     assert contract["live_runtime_readiness_claim_allowed"] is False
+    assert {
+        "ready",
+        "runtime ready",
+        "provider running",
+        "paper progress",
+        "publication-ready",
+        "production-ready",
+    } <= set(
+        contract["completion_claim_boundary"]["evidence_record_schema"][
+            "forbidden_claim_terms"
+        ]
+    )
 
     expected = {
         order["gap_id"]: order
@@ -96,6 +108,26 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
         f"{provider_readback['gap_id']}_live_runtime_evidence_required"
     )
 
+    false_ready_claim = work_orders.evaluate_live_runtime_gap_evidence_record(
+        provider_readback,
+        {
+            "gap_id": provider_readback["gap_id"],
+            "claim": "live runtime ready after provider running readback",
+            "evidence_source": "opl_live_readback:provider-admission:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [
+                "same_identity_opl_provider_admission_live_readback_ref"
+            ],
+        },
+    )
+    assert false_ready_claim["status"] == "typed_blocker_required"
+    assert false_ready_claim["forbidden_claim_terms_present"] == [
+        "live runtime ready",
+        "provider running",
+        "ready",
+        "runtime ready",
+    ]
+    assert false_ready_claim["live_runtime_readiness_claim_allowed"] is False
+
 
 def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
     work_orders = importlib.import_module(
@@ -125,6 +157,25 @@ def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
     assert partial["satisfied_count"] == 1
     assert partial["typed_blocker_count"] == 4
     assert partial["live_runtime_readiness_claim_allowed"] is False
+
+    false_claim = work_orders.live_runtime_gap_evidence_intake_summary(
+        contract,
+        [
+            {
+                "gap_id": first_order["gap_id"],
+                "claim": "paper progress complete",
+                "evidence_source": f"owner_readback:{first_order['gap_id']}",
+                "evidence_ref_families": [first_order["acceptable_evidence_ref_families"][0]],
+            }
+        ],
+    )
+    first_result = next(
+        result for result in false_claim["results"] if result["gap_id"] == first_order["gap_id"]
+    )
+    assert first_result["status"] == "typed_blocker_required"
+    assert first_result["forbidden_claim_terms_present"] == ["paper progress"]
+    assert first_order["gap_id"] in false_claim["typed_blocker_gap_ids"]
+    assert first_order["gap_id"] not in false_claim["satisfied_gap_ids"]
 
     complete_records = [
         {

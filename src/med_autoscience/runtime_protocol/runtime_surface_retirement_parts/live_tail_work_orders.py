@@ -6,6 +6,17 @@ from typing import Any
 
 SURFACE_KIND = "mas_runtime_live_tail_work_orders"
 VERSION = "mas-runtime-live-tail-work-orders.v1"
+FORBIDDEN_CLAIM_TERMS = (
+    "domain-ready",
+    "live runtime ready",
+    "paper complete",
+    "paper progress",
+    "provider running",
+    "publication-ready",
+    "ready",
+    "runtime ready",
+    "production-ready",
+)
 
 
 def live_tail_work_orders_from_audit(audit: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -31,6 +42,10 @@ def validate_live_tail_work_order_contract(
         violations.append(_violation("<contract>", "repo_source_retirement_blocked"))
     if contract.get("live_runtime_readiness_claim_allowed") is not False:
         violations.append(_violation("<contract>", "live_runtime_claim_allowed"))
+    schema = _evidence_record_schema(contract)
+    schema_forbidden_terms = set(_text_list(schema.get("forbidden_claim_terms")))
+    if not set(FORBIDDEN_CLAIM_TERMS).issubset(schema_forbidden_terms):
+        violations.append(_violation("<contract>", "missing_forbidden_claim_terms"))
 
     expected = {
         order["surface_id"]: order
@@ -85,16 +100,23 @@ def evaluate_live_tail_evidence_record(
     matched_refs = sorted(accepted_refs & provided_refs)
     forbidden_matches = sorted(forbidden_substitutes & provided_substitutes)
     claim = _text(evidence_record.get("claim"))
+    forbidden_claim_terms = _forbidden_claim_terms(work_order, evidence_record)
     evidence_source = _text(evidence_record.get("evidence_source"))
     typed_blocker = _text(work_order.get("typed_blocker_when_missing")) or (
         f"{surface_id}_live_runtime_readiness_evidence_required"
     )
-    satisfied = bool(matched_refs) and not forbidden_matches and evidence_source is not None
+    satisfied = (
+        bool(matched_refs)
+        and not forbidden_matches
+        and not forbidden_claim_terms
+        and evidence_source is not None
+    )
     return {
         "surface_id": surface_id,
         "status": "satisfied_by_accepted_ref" if satisfied else "typed_blocker_required",
         "matched_evidence_ref_families": matched_refs,
         "forbidden_evidence_substitutes_present": forbidden_matches,
+        "forbidden_claim_terms_present": forbidden_claim_terms,
         "typed_blocker": None if satisfied else typed_blocker,
         "live_runtime_readiness_claim_allowed": satisfied,
         "repo_source_retirement_blocked": False,
@@ -118,7 +140,15 @@ def live_tail_evidence_intake_summary(
         if isinstance(record, Mapping) and _text(record.get("surface_id")) is not None
     }
     results = [
-        evaluate_live_tail_evidence_record(order, records.get(surface_id, {}))
+        evaluate_live_tail_evidence_record(
+            order,
+            {
+                **records.get(surface_id, {}),
+                "_forbidden_claim_terms": _evidence_record_schema(contract).get(
+                    "forbidden_claim_terms", []
+                ),
+            },
+        )
         for surface_id, order in sorted(orders.items())
     ]
     satisfied = [
@@ -174,11 +204,41 @@ def _text(value: Any) -> str | None:
     return text or None
 
 
+def _text_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [text for item in value if (text := _text(item)) is not None]
+    text = _text(value)
+    return [text] if text is not None else []
+
+
 def _text_set(value: Any) -> set[str]:
     if isinstance(value, list):
         return {text for item in value if (text := _text(item)) is not None}
     text = _text(value)
     return {text} if text is not None else set()
+
+
+def _evidence_record_schema(contract: Mapping[str, Any]) -> Mapping[str, Any]:
+    boundary = contract.get("completion_claim_boundary")
+    if not isinstance(boundary, Mapping):
+        return {}
+    schema = boundary.get("evidence_record_schema")
+    return schema if isinstance(schema, Mapping) else {}
+
+
+def _forbidden_claim_terms(
+    work_order: Mapping[str, Any],
+    evidence_record: Mapping[str, Any],
+) -> list[str]:
+    claim = (_text(evidence_record.get("claim")) or "").casefold()
+    if not claim:
+        return []
+    terms = _text_list(
+        evidence_record.get("_forbidden_claim_terms")
+        or work_order.get("forbidden_claim_terms")
+        or list(FORBIDDEN_CLAIM_TERMS)
+    )
+    return sorted(term for term in terms if term.casefold() in claim)
 
 
 def _violation(surface_id: str, reason: str) -> dict[str, str]:
@@ -188,6 +248,7 @@ def _violation(surface_id: str, reason: str) -> dict[str, str]:
 __all__ = [
     "SURFACE_KIND",
     "VERSION",
+    "FORBIDDEN_CLAIM_TERMS",
     "evaluate_live_tail_evidence_record",
     "live_tail_evidence_intake_summary",
     "live_tail_work_orders_from_audit",

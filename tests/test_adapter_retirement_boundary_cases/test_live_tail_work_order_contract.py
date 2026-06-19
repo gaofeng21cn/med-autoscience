@@ -57,9 +57,18 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
     contract = _contract()
 
     boundary = contract["completion_claim_boundary"]
+    schema = boundary["evidence_record_schema"]
     assert boundary["repo_source_retirement_can_complete_without_these_work_orders"] is True
     assert boundary["these_work_orders_can_claim_live_runtime_ready_without_evidence"] is False
     assert boundary["docs_tests_inventory_or_queue_empty_can_satisfy_work_order"] is False
+    assert {
+        "ready",
+        "runtime ready",
+        "provider running",
+        "paper progress",
+        "publication-ready",
+        "production-ready",
+    } <= set(schema["forbidden_claim_terms"])
     assert {
         "same_identity_opl_live_readback",
         "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
@@ -124,6 +133,24 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
     )
     assert forbidden["repo_source_retirement_blocked"] is False
 
+    false_ready_claim = work_orders.evaluate_live_tail_evidence_record(
+        runtime_health,
+        {
+            "surface_id": "runtime_health_kernel",
+            "claim": "runtime ready from accepted readback",
+            "evidence_source": "runtime_readback:observability:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [
+                "runtime_health_kernel_opl_observability_live_readback_ref"
+            ],
+        },
+    )
+    assert false_ready_claim["status"] == "typed_blocker_required"
+    assert false_ready_claim["forbidden_claim_terms_present"] == [
+        "ready",
+        "runtime ready",
+    ]
+    assert false_ready_claim["live_runtime_readiness_claim_allowed"] is False
+
     missing = work_orders.evaluate_live_tail_evidence_record(runtime_health, {})
     assert missing["status"] == "typed_blocker_required"
     assert missing["matched_evidence_ref_families"] == []
@@ -156,6 +183,28 @@ def test_live_tail_evidence_intake_summary_does_not_claim_ready_until_all_tails_
     assert partial["repo_source_retirement_blocked"] is False
     assert partial["live_runtime_readiness_claim_allowed"] is False
     assert "runtime_health_kernel" in partial["satisfied_surface_ids"]
+
+    false_claim = work_orders.live_tail_evidence_intake_summary(
+        contract,
+        [
+            {
+                **runtime_health_record,
+                "claim": "provider running and paper progress",
+            }
+        ],
+    )
+    runtime_health_result = next(
+        result
+        for result in false_claim["results"]
+        if result["surface_id"] == "runtime_health_kernel"
+    )
+    assert runtime_health_result["status"] == "typed_blocker_required"
+    assert runtime_health_result["forbidden_claim_terms_present"] == [
+        "paper progress",
+        "provider running",
+    ]
+    assert "runtime_health_kernel" in false_claim["typed_blocker_surface_ids"]
+    assert "runtime_health_kernel" not in false_claim["satisfied_surface_ids"]
 
     all_records = [
         {

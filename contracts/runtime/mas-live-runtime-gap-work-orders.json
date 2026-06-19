@@ -25,6 +25,17 @@
         "human_gate_ref",
         "route_back_ref"
       ],
+      "forbidden_claim_terms": [
+        "domain-ready",
+        "live runtime ready",
+        "paper complete",
+        "paper progress",
+        "provider running",
+        "publication-ready",
+        "ready",
+        "runtime ready",
+        "production-ready"
+      ],
       "accepted_result_status": "satisfied_by_accepted_ref",
       "missing_or_forbidden_result_status": "typed_blocker_required",
       "repo_source_retirement_blocked_by_missing_evidence_record": false
