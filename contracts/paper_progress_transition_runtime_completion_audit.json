@@ -126,6 +126,18 @@
         "DHD_dry_run",
         "provider_admission_pending_count=0",
         "transition_request_pending_count=0"
+      ],
+      "live_tail_work_order_refs": [
+        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
+      ],
+      "open_live_runtime_work_order_surface_ids": [
+        "agent_tool_arsenal_scientific_capability_registry",
+        "domain_health_diagnostic_obligation_actuator",
+        "domain_owner_action_dispatch",
+        "progress_portal_study_workbench_overview_action_projection",
+        "runtime_health_kernel",
+        "runtime_lifecycle_payload_retention",
+        "runtime_storage_maintenance"
       ]
     }
   },
@@ -1054,7 +1066,14 @@
         "DHD apply exactly-one live outcome when explicitly delegated",
         "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
         "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
-        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption"
+        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
+        "agent_tool_arsenal_scientific_capability_registry live-tail work order evidence required",
+        "domain_health_diagnostic_obligation_actuator live-tail work order evidence required",
+        "domain_owner_action_dispatch live-tail work order evidence required",
+        "progress_portal_study_workbench_overview_action_projection live-tail work order evidence required",
+        "runtime_health_kernel live-tail work order evidence required",
+        "runtime_lifecycle_payload_retention live-tail work order evidence required",
+        "runtime_storage_maintenance live-tail work order evidence required"
       ],
       "false_completion_boundary": [
         "active_caller_exists_as_retention_reason",
@@ -1135,7 +1154,14 @@
         "DHD apply exactly-one live outcome when explicitly delegated",
         "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
         "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
-        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption"
+        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
+        "agent_tool_arsenal_scientific_capability_registry live-tail work order evidence required",
+        "domain_health_diagnostic_obligation_actuator live-tail work order evidence required",
+        "domain_owner_action_dispatch live-tail work order evidence required",
+        "progress_portal_study_workbench_overview_action_projection live-tail work order evidence required",
+        "runtime_health_kernel live-tail work order evidence required",
+        "runtime_lifecycle_payload_retention live-tail work order evidence required",
+        "runtime_storage_maintenance live-tail work order evidence required"
       ],
       "repo_source_retirement_completion_claim_allowed": true,
       "repo_source_retirement_evidence_refs": [
@@ -1143,6 +1169,18 @@
         "runtime_surface_retirement_audit:repo_source_physical_retirement_complete@8de3658e",
         "runtime_surface_retirement_audit:violation_count=0@8de3658e",
         "commit:8de3658ea Tighten owner dispatch OPL tail guards"
+      ],
+      "live_runtime_work_order_refs": [
+        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
+      ],
+      "live_runtime_work_order_surface_ids": [
+        "agent_tool_arsenal_scientific_capability_registry",
+        "domain_health_diagnostic_obligation_actuator",
+        "domain_owner_action_dispatch",
+        "progress_portal_study_workbench_overview_action_projection",
+        "runtime_health_kernel",
+        "runtime_lifecycle_payload_retention",
+        "runtime_storage_maintenance"
       ]
     },
     {

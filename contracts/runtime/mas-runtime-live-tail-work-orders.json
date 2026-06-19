@@ -1,0 +1,255 @@
+{
+  "surface_kind": "mas_runtime_live_tail_work_orders",
+  "version": "mas-runtime-live-tail-work-orders.v1",
+  "state": "active_live_runtime_evidence_work_order_contract",
+  "owner": "one-person-lab runtime owners plus MAS owner-surface coordinator",
+  "purpose": "Make the remaining MAS private-surface live takeover tails executable and machine-checkable without blocking repo-source physical retirement or restoring MAS private control planes.",
+  "repo_source_retirement_blocked": false,
+  "live_runtime_readiness_claim_allowed": false,
+  "completion_claim_boundary": {
+    "repo_source_retirement_can_complete_without_these_work_orders": true,
+    "these_work_orders_can_claim_live_runtime_ready_without_evidence": false,
+    "docs_tests_inventory_or_queue_empty_can_satisfy_work_order": false,
+    "accepted_outcomes": [
+      "same_identity_opl_live_readback",
+      "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
+      "no_active_production_caller_scan_with_owner_retirement_decision"
+    ]
+  },
+  "source_refs": [
+    "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+    "med_autoscience.runtime_protocol.runtime_surface_retirement.audit_runtime_surface_retirement_inventory",
+    "contracts/paper_progress_transition_runtime_completion_audit.json#/completion_columns/live_runtime_readiness_completion"
+  ],
+  "work_orders": [
+    {
+      "surface_id": "agent_tool_arsenal_scientific_capability_registry",
+      "status": "evidence_required",
+      "next_owner": "one-person-lab Capability Runtime owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "missing_evidence_status": "evidence_required",
+      "typed_blocker_when_missing": "agent_tool_arsenal_scientific_capability_registry_live_runtime_readiness_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "agent_tool_arsenal_direct_hosted_tool_invocation_runtime_parity_ref",
+        "agent_tool_arsenal_explicit_capability_request_resolution_live_readback_ref",
+        "agent_tool_arsenal_live_owner_consumption_soak_and_direct_hosted_parity_ref",
+        "agent_tool_arsenal_live_owner_consumption_soak_current_owner_delta_readback_ref",
+        "agent_tool_arsenal_no_active_registry_projection_caller_scan_ref",
+        "agent_tool_arsenal_scientific_capability_registry_direct_hosted_parity_ref",
+        "agent_tool_arsenal_scientific_capability_registry_live_owner_consumption_soak_ref",
+        "agent_tool_arsenal_scientific_capability_registry_no_active_caller_physical_delete_ref",
+        "agent_tool_arsenal_scientific_capability_registry_no_forbidden_write_proof_ref",
+        "replacement_parity_ref",
+        "tombstone_or_provenance_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "capability_registry_contract_as_live_owner_consumption_soak",
+        "capability_request_projection_as_paper_progress",
+        "hosted_opl_runtime_requirement_as_direct_hosted_parity",
+        "mcp_or_cli_mode_coverage_as_direct_hosted_parity",
+        "registry_projection_no_active_scan_as_physical_delete",
+        "repo_tests_green_as_physical_delete",
+        "wildcard_guard_as_live_owner_consumption_soak"
+      ]
+    },
+    {
+      "surface_id": "domain_health_diagnostic_obligation_actuator",
+      "status": "evidence_required",
+      "next_owner": "one-person-lab RecoveryObligationStore / SupervisorDecisionEngine owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "missing_evidence_status": "evidence_required",
+      "typed_blocker_when_missing": "domain_health_diagnostic_obligation_actuator_live_runtime_readiness_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "domain_health_diagnostic_obligation_actuator_no_active_caller_physical_delete_ref",
+        "domain_health_diagnostic_obligation_actuator_no_active_caller_scan_ref",
+        "domain_health_diagnostic_obligation_actuator_no_active_mas_obligation_actuator_caller_scan_ref",
+        "domain_health_diagnostic_obligation_actuator_no_forbidden_write_proof_ref",
+        "domain_health_diagnostic_obligation_actuator_opl_obligation_actuator_tail_readback_ref",
+        "domain_health_diagnostic_obligation_actuator_opl_recovery_obligation_store_active_caller_readback_ref",
+        "domain_health_diagnostic_obligation_actuator_opl_recovery_obligation_store_active_caller_ref",
+        "domain_health_diagnostic_obligation_actuator_opl_supervisor_decision_engine_active_caller_readback_ref",
+        "domain_health_diagnostic_obligation_actuator_opl_supervisor_decision_engine_active_caller_ref",
+        "domain_health_diagnostic_obligation_actuator_owner_retirement_decision_ref",
+        "domain_health_diagnostic_obligation_actuator_tombstone_or_provenance_ref",
+        "owner_retirement_decision_ref",
+        "replacement_parity_ref",
+        "tombstone_or_provenance_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "focused_tests_green_as_no_active_obligation_actuator_caller",
+        "mas_policy_projection_as_opl_recovery_obligation_store_readback",
+        "mas_transition_request_as_supervisor_decision_engine_readback",
+        "repo_no_authority_guard_as_obligation_actuator_tail_readback",
+        "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback"
+      ]
+    },
+    {
+      "surface_id": "domain_owner_action_dispatch",
+      "status": "evidence_required",
+      "next_owner": "one-person-lab StageRun / execution authorization owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "missing_evidence_status": "evidence_required",
+      "typed_blocker_when_missing": "domain_owner_action_dispatch_live_runtime_readiness_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "domain_owner_action_dispatch_ai_reviewer_authorization_live_readback_ref",
+        "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref",
+        "domain_owner_action_dispatch_execute_dispatch_live_readback_ref",
+        "domain_owner_action_dispatch_gate_clearing_authorization_live_readback_ref",
+        "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
+        "domain_owner_action_dispatch_live_every_active_caller_soak_ref",
+        "domain_owner_action_dispatch_no_active_caller_physical_delete_ref",
+        "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref",
+        "domain_owner_action_dispatch_no_forbidden_write_proof_ref",
+        "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref",
+        "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref",
+        "domain_owner_action_dispatch_study_progress_running_proof_live_readback_ref",
+        "replacement_parity_ref",
+        "tombstone_or_provenance_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "active_caller_migrated_as_no_active_caller_proof",
+        "current_execution_running_proof_without_opl_readback_as_soak",
+        "focused_tests_green_as_physical_delete",
+        "opl_execution_authorization_required_blocker_as_live_soak",
+        "owner_callable_adapter_receipt_projection_as_opl_stage_run_readback",
+        "provider_completion_as_dispatch_retirement",
+        "provider_handoff_or_completion_as_physical_delete",
+        "repo_authorization_coverage_as_live_every_active_caller_soak",
+        "study_progress_running_proof_without_opl_readback_as_soak"
+      ]
+    },
+    {
+      "surface_id": "progress_portal_study_workbench_overview_action_projection",
+      "status": "evidence_required",
+      "next_owner": "one-person-lab Workbench Shell owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "missing_evidence_status": "evidence_required",
+      "typed_blocker_when_missing": "progress_portal_study_workbench_overview_action_projection_live_runtime_readiness_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "progress_portal_study_workbench_overview_action_projection_no_active_caller_physical_delete_ref",
+        "progress_portal_study_workbench_overview_action_projection_no_active_workbench_projection_action_caller_scan_ref",
+        "progress_portal_study_workbench_overview_action_projection_no_forbidden_write_proof_ref",
+        "progress_portal_study_workbench_overview_action_projection_opl_current_control_readback_ref",
+        "progress_portal_study_workbench_overview_action_projection_opl_domain_progress_transition_runtime_readback_ref",
+        "progress_portal_study_workbench_overview_action_projection_opl_workbench_shell_action_transport_readback_ref",
+        "progress_portal_study_workbench_overview_action_projection_opl_workbench_shell_readback_ref",
+        "progress_portal_study_workbench_overview_action_projection_opl_workbench_shell_readback_tail_ref",
+        "replacement_parity_ref",
+        "tombstone_or_provenance_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "current_owner_delta_projection_as_workbench_shell_readback",
+        "current_owner_delta_summary_as_current_control_readback",
+        "domain_progress_transition_runtime_readback_as_workbench_action_transport",
+        "focused_tests_green_as_no_active_workbench_projection_caller",
+        "mas_next_system_action_summary_as_action_transport_readback",
+        "mas_portal_projection_as_opl_workbench_shell_readback",
+        "operator_intent_refs_as_workbench_action_transport",
+        "repo_no_authority_guard_as_workbench_tail_readback"
+      ]
+    },
+    {
+      "surface_id": "runtime_health_kernel",
+      "status": "evidence_required",
+      "next_owner": "one-person-lab Observability / RouteReconciler owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "missing_evidence_status": "evidence_required",
+      "typed_blocker_when_missing": "runtime_health_kernel_live_runtime_readiness_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "replacement_parity_ref",
+        "runtime_health_kernel_live_opl_observability_readback_ref",
+        "runtime_health_kernel_no_active_caller_physical_delete_ref",
+        "runtime_health_kernel_no_active_diagnostic_projection_caller_physical_delete_ref",
+        "runtime_health_kernel_no_active_diagnostic_projection_caller_scan_ref",
+        "runtime_health_kernel_no_forbidden_write_proof_ref",
+        "runtime_health_kernel_opl_observability_live_readback_ref",
+        "runtime_health_kernel_opl_route_reconciler_live_readback_ref",
+        "runtime_health_kernel_opl_runtime_health_observability_tail_readback_ref",
+        "tombstone_or_provenance_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "active_diagnostic_projection_scan_as_physical_delete",
+        "current_control_readback_alone_as_runtime_health_tail",
+        "diagnostic_projection_active_callers_as_no_active_caller",
+        "focused_tests_green_as_no_active_runtime_health_caller",
+        "mas_diagnostic_projection_as_route_reconciler_readback",
+        "mas_runtime_health_snapshot_as_opl_observability_readback",
+        "repo_no_authority_guard_as_runtime_health_tail_readback",
+        "runtime_health_decision_gate_as_no_active_caller",
+        "runtime_health_decision_gate_as_opl_runtime_readback",
+        "runtime_health_snapshot_reader_as_opl_observability_readback",
+        "stage_run_readback_alone_as_runtime_health_tail"
+      ]
+    },
+    {
+      "surface_id": "runtime_lifecycle_payload_retention",
+      "status": "evidence_required",
+      "next_owner": "one-person-lab runtime lifecycle / retention owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "missing_evidence_status": "evidence_required",
+      "typed_blocker_when_missing": "runtime_lifecycle_payload_retention_live_runtime_readiness_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "replacement_parity_ref",
+        "runtime_lifecycle_payload_retention_live_opl_cleanup_policy_takeover_ref",
+        "runtime_lifecycle_payload_retention_no_active_caller_physical_delete_ref",
+        "runtime_lifecycle_payload_retention_no_active_lifecycle_maintenance_adapter_caller_scan_ref",
+        "runtime_lifecycle_payload_retention_no_forbidden_write_proof_ref",
+        "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_cleanup_policy_live_readback_ref",
+        "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_maintenance_tail_readback_ref",
+        "runtime_lifecycle_payload_retention_opl_runtime_retention_policy_live_readback_ref",
+        "tombstone_or_provenance_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "cold_payload_externalization_receipt_as_physical_delete",
+        "opl_maintenance_authorization_as_live_cleanup_policy_takeover",
+        "payload_retention_plan_as_live_takeover",
+        "repo_tests_green_as_runtime_lifecycle_physical_delete",
+        "runtime_lifecycle_apply_gate_as_live_takeover",
+        "runtime_lifecycle_dry_run_plan_as_live_takeover",
+        "runtime_lifecycle_receipt_as_physical_delete",
+        "sqlite_sidecar_repair_receipt_as_live_takeover"
+      ]
+    },
+    {
+      "surface_id": "runtime_storage_maintenance",
+      "status": "evidence_required",
+      "next_owner": "one-person-lab runtime storage / restore-retention owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "missing_evidence_status": "evidence_required",
+      "typed_blocker_when_missing": "runtime_storage_maintenance_live_runtime_readiness_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "replacement_parity_ref",
+        "runtime_storage_maintenance_live_opl_storage_policy_takeover_ref",
+        "runtime_storage_maintenance_no_active_caller_physical_delete_ref",
+        "runtime_storage_maintenance_no_active_storage_maintenance_adapter_caller_scan_ref",
+        "runtime_storage_maintenance_no_forbidden_write_proof_ref",
+        "runtime_storage_maintenance_opl_restore_retention_shell_live_readback_ref",
+        "runtime_storage_maintenance_opl_runtime_storage_maintenance_tail_readback_ref",
+        "runtime_storage_maintenance_opl_runtime_storage_policy_live_readback_ref",
+        "runtime_storage_maintenance_opl_state_index_storage_ref_readback_ref",
+        "tombstone_or_provenance_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "archive_retention_plan_as_live_takeover",
+        "attempt_evidence_capsule_plan_as_storage_takeover",
+        "opl_storage_maintenance_authorization_as_live_storage_policy_takeover",
+        "refs_only_state_index_projection_as_storage_takeover",
+        "repo_tests_green_as_runtime_storage_physical_delete",
+        "report_retention_plan_as_live_takeover",
+        "restore_proof_canary_as_live_takeover",
+        "runtime_storage_apply_gate_as_live_takeover",
+        "runtime_storage_dry_run_projection_as_live_takeover",
+        "semantic_process_retention_plan_as_live_takeover",
+        "storage_maintenance_receipt_as_physical_delete",
+        "workspace_root_git_retirement_receipt_as_physical_delete"
+      ]
+    }
+  ]
+}
