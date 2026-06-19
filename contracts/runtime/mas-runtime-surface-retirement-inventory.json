@@ -1039,6 +1039,18 @@
         "attempt_state_is_diagnostic_hint": true,
         "provider_readiness_is_diagnostic_hint": true
       },
+      "diagnostic_consumer_gate_boundary": {
+        "consumer_gate": "runtime_health_decision_gate",
+        "decision_authority_owner": "one-person-lab",
+        "mas_role": "read_only_diagnostic_consumer",
+        "identity_bound_opl_readback_required": true,
+        "unbound_opl_ref_can_authorize_decision": false,
+        "runtime_health_snapshot_authority_can_authorize_decision": false,
+        "canonical_runtime_action_hint_can_authorize_recovery": false,
+        "worker_liveness_hint_can_authorize_recovery": false,
+        "allowed_decision_source": "opl_runtime_readback",
+        "missing_or_cross_identity_readback_outcome": "opl_runtime_readback_required_for_runtime_health_decision"
+      },
       "read_only_actions": [
         "read_runtime_status",
         "open_monitoring_entry"

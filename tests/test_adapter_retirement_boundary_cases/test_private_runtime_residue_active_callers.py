@@ -649,6 +649,15 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     runtime_health["diagnostic_projection_boundary"][
         "canonical_runtime_action_is_diagnostic_hint"
     ] = False
+    runtime_health["diagnostic_consumer_gate_boundary"][
+        "unbound_opl_ref_can_authorize_decision"
+    ] = True
+    runtime_health["diagnostic_consumer_gate_boundary"][
+        "identity_bound_opl_readback_required"
+    ] = False
+    runtime_health["diagnostic_consumer_gate_boundary"][
+        "canonical_runtime_action_hint_can_authorize_recovery"
+    ] = True
     runtime_health["retirement_gate"][
         "runtime_health_live_opl_observability_readback_required"
     ] = False
@@ -698,6 +707,27 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
             (
                 "runtime_health_missing_diagnostic_hint_boundary:"
                 "canonical_runtime_action_is_diagnostic_hint"
+            ),
+        ),
+        (
+            "runtime_health_kernel",
+            (
+                "runtime_health_consumer_gate_forbidden:"
+                "unbound_opl_ref_can_authorize_decision"
+            ),
+        ),
+        (
+            "runtime_health_kernel",
+            (
+                "runtime_health_consumer_gate_missing:"
+                "identity_bound_opl_readback_required"
+            ),
+        ),
+        (
+            "runtime_health_kernel",
+            (
+                "runtime_health_consumer_gate_forbidden:"
+                "canonical_runtime_action_hint_can_authorize_recovery"
             ),
         ),
         (

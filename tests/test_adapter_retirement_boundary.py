@@ -489,6 +489,20 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert runtime_health["diagnostic_projection_boundary"][
         "canonical_runtime_action_is_diagnostic_hint"
     ] is True
+    assert runtime_health["diagnostic_consumer_gate_boundary"] == {
+        "consumer_gate": "runtime_health_decision_gate",
+        "decision_authority_owner": "one-person-lab",
+        "mas_role": "read_only_diagnostic_consumer",
+        "identity_bound_opl_readback_required": True,
+        "unbound_opl_ref_can_authorize_decision": False,
+        "runtime_health_snapshot_authority_can_authorize_decision": False,
+        "canonical_runtime_action_hint_can_authorize_recovery": False,
+        "worker_liveness_hint_can_authorize_recovery": False,
+        "allowed_decision_source": "opl_runtime_readback",
+        "missing_or_cross_identity_readback_outcome": (
+            "opl_runtime_readback_required_for_runtime_health_decision"
+        ),
+    }
     assert runtime_health["retirement_gate"][
         "runtime_health_live_opl_observability_readback_required"
     ] is True

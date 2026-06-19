@@ -766,7 +766,12 @@
         "src/med_autoscience/opl_domain_pack/family_adoption.py::build_opl_family_adoption_surface#state_index_source_adapter",
         "src/med_autoscience/controllers/product_entry_parts/family_lifecycle_surfaces.py::_build_family_persistence_policy_surface#state_index_source_adapter",
         "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_source_adapter_manifest",
-        "tests/test_opl_family_persistence_adapter.py::test_legacy_authority_refs_payload_helper_is_history_replay_only"
+        "tests/test_opl_family_persistence_adapter.py::test_legacy_authority_refs_payload_helper_is_history_replay_only",
+        "src/med_autoscience/controllers/study_runtime_decision_parts/runtime_health_dominance.py::_runtime_health_recovery_authorization_details#identity_bound_opl_readback_required",
+        "tests/test_study_runtime_typed_surface_cases/runtime_health_decision_gate_cases.py::test_runtime_health_recovery_decision_rejects_cross_identity_opl_readback",
+        "tests/test_study_runtime_typed_surface_cases/runtime_health_decision_gate_cases.py::test_runtime_health_recovery_decision_rejects_top_level_opl_readback_claim",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_health_kernel#diagnostic_consumer_gate_boundary",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_runtime_health_kernel#diagnostic_consumer_gate_boundary"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
@@ -791,7 +796,10 @@
         "legacy_helper_active_scan_as_physical_delete",
         "legacy_helper_active_callers_as_no_active_caller",
         "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
-        "explicit_replay_opt_in_as_live_opl_readback"
+        "explicit_replay_opt_in_as_live_opl_readback",
+        "runtime_health_unbound_opl_ref_as_recovery_authority",
+        "runtime_health_cross_identity_readback_as_recovery_authority",
+        "runtime_health_top_level_read_model_claim_as_opl_readback"
       ]
     },
     {
