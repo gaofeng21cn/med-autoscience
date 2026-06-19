@@ -175,24 +175,6 @@
         },
         {
           "can_block_current_owner_action": false,
-          "candidate_ref": "scientific-capability:evo_scientist_progress_sidecar:run_quality_repair_batch",
-          "capability_family": "progress_accelerator",
-          "capability_id": "evo_scientist_progress_sidecar",
-          "invocation_kind": "evo_scientist_sidecar",
-          "refs_only": true,
-          "requires_explicit_invoke": true
-        },
-        {
-          "can_block_current_owner_action": false,
-          "candidate_ref": "scientific-capability:light_external_skill_content_advisory:run_quality_repair_batch",
-          "capability_family": "light_advisory",
-          "capability_id": "light_external_skill_content_advisory",
-          "invocation_kind": "light_advisory_materializer",
-          "refs_only": true,
-          "requires_explicit_invoke": true
-        },
-        {
-          "can_block_current_owner_action": false,
           "candidate_ref": "scientific-capability:co_scientist_current_owner_affordance:run_quality_repair_batch",
           "capability_family": "hypothesis_review_affordance",
           "capability_id": "co_scientist_current_owner_affordance",
@@ -228,7 +210,7 @@
           "requires_explicit_invoke": true
         }
       ],
-      "selected_count": 7,
+      "selected_count": 5,
       "status": "resolved"
     },
     "status": "ready_for_hosted_consumption",

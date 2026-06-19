@@ -214,7 +214,7 @@ def _plan_digest(plan: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _capability_digest(capability: Mapping[str, Any]) -> dict[str, Any]:
-    return {
+    digest = {
         "capability_id": _text(capability.get("capability_id")),
         "capability_family": _text(capability.get("capability_family")),
         "invocation_kind": _text(capability.get("invocation_kind")),
@@ -225,6 +225,16 @@ def _capability_digest(capability: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "requires_explicit_invoke": bool(capability.get("requires_explicit_invoke")),
     }
+    wildcard_policy = _mapping(capability.get("wildcard_action_trigger_policy"))
+    if wildcard_policy:
+        digest["wildcard_action_trigger_policy"] = {
+            "auto_select": bool(wildcard_policy.get("auto_select")),
+            "requires_explicit_capability_request": bool(
+                wildcard_policy.get("requires_explicit_capability_request")
+            ),
+            "reason": _text(wildcard_policy.get("reason")),
+        }
+    return digest
 
 
 def _owner_consumption_digest(evidence: Mapping[str, Any]) -> dict[str, Any]:

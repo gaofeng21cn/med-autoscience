@@ -185,6 +185,8 @@ def build_scientific_capability_registry() -> dict[str, Any]:
             "external_runtime_dependency": False,
             "always_on_scan": False,
             "second_route_table": False,
+            "wildcard_action_triggers_auto_select": False,
+            "wildcard_action_triggers_require_explicit_capability_request": True,
         },
         "capability_count": len(capabilities),
         "capabilities": capabilities,
@@ -594,6 +596,12 @@ def _capability(
     if invocation_kind == "descriptor_only_current_owner_input_refs":
         payload["descriptor_only"] = True
         payload["external_runner_invocation_allowed"] = False
+    if "*" in action_triggers:
+        payload["wildcard_action_trigger_policy"] = {
+            "auto_select": False,
+            "requires_explicit_capability_request": True,
+            "reason": "support_or_diagnostic_wildcards_must_not_become_mas_private_selectors",
+        }
     return payload
 
 
@@ -603,7 +611,7 @@ def _resolution_candidate(
     action_type: str,
     current_owner_delta: Mapping[str, Any],
 ) -> dict[str, Any]:
-    return {
+    candidate = {
         "capability_id": capability["capability_id"],
         "capability_family": capability["capability_family"],
         "source_frameworks": list(capability.get("source_frameworks") or []),
@@ -625,6 +633,10 @@ def _resolution_candidate(
         "readback": _capability_readback(capability),
         "authority_boundary": _authority_boundary(),
     }
+    wildcard_policy = _mapping(capability.get("wildcard_action_trigger_policy"))
+    if wildcard_policy:
+        candidate["wildcard_action_trigger_policy"] = dict(wildcard_policy)
+    return candidate
 
 
 def _capability_matches(
@@ -638,7 +650,7 @@ def _capability_matches(
     if family in requested_families or _text(capability.get("capability_id")) in requested_families:
         return True
     triggers = set(_text_list(capability.get("action_triggers")))
-    if "*" in triggers or action_type in triggers:
+    if action_type in triggers:
         return True
     return _current_delta_declares_terms(
         current_owner_delta,

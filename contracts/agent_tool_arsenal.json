@@ -8377,7 +8377,12 @@
           "EvoScientist",
           "EvoSkills"
         ],
-        "trigger": "current_delta_declares_or_implies_affordance_need"
+        "trigger": "current_delta_declares_or_implies_affordance_need",
+        "wildcard_action_trigger_policy": {
+          "auto_select": false,
+          "reason": "support_or_diagnostic_wildcards_must_not_become_mas_private_selectors",
+          "requires_explicit_capability_request": true
+        }
       },
       {
         "action_triggers": [
@@ -8415,7 +8420,12 @@
         "source_frameworks": [
           "Light"
         ],
-        "trigger": "current_delta_declares_or_implies_affordance_need"
+        "trigger": "current_delta_declares_or_implies_affordance_need",
+        "wildcard_action_trigger_policy": {
+          "auto_select": false,
+          "reason": "support_or_diagnostic_wildcards_must_not_become_mas_private_selectors",
+          "requires_explicit_capability_request": true
+        }
       },
       {
         "action_triggers": [
@@ -8747,7 +8757,9 @@
       "fail_open": true,
       "mainline_waits_for_capability": false,
       "missing_capability_blocks_owner_action": false,
-      "second_route_table": false
+      "second_route_table": false,
+      "wildcard_action_triggers_auto_select": false,
+      "wildcard_action_triggers_require_explicit_capability_request": true
     },
     "default_trigger": "current_delta_declares_or_implies_affordance_need",
     "ordinary_planning_root": "current_owner_delta",

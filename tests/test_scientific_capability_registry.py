@@ -29,6 +29,11 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
     assert registry["surface_kind"] == "mas_scientific_capability_registry"
     assert registry["default_policy"]["fail_open"] is True
     assert registry["default_policy"]["always_on_scan"] is False
+    assert registry["default_policy"]["wildcard_action_triggers_auto_select"] is False
+    assert (
+        registry["default_policy"]["wildcard_action_triggers_require_explicit_capability_request"]
+        is True
+    )
     assert registry["owner_consumption_evidence_schema"][
         "standard_agent_feedback_loop_tail"
     ] == {
@@ -71,6 +76,78 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
     )
     assert all(item["refs_only"] is True for item in selected.values())
     assert all(item["can_block_current_owner_action"] is False for item in selected.values())
+    wildcard_capabilities = {
+        item["capability_id"]: item
+        for item in registry["capabilities"]
+        if "*" in item["action_triggers"]
+    }
+    assert wildcard_capabilities["evo_scientist_progress_sidecar"][
+        "wildcard_action_trigger_policy"
+    ] == {
+        "auto_select": False,
+        "requires_explicit_capability_request": True,
+        "reason": "support_or_diagnostic_wildcards_must_not_become_mas_private_selectors",
+    }
+
+
+def test_scientific_capability_registry_wildcard_sidecars_require_explicit_capability_request() -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+
+    implicit_resolution = module.resolve_scientific_capabilities(
+        current_owner_delta={
+            "action_type": "unknown_owner_action",
+            "work_unit_id": "unknown-work",
+        }
+    )
+    implicit_ids = {
+        item["capability_id"]
+        for item in implicit_resolution["selected_capabilities"]
+    }
+
+    assert implicit_resolution["status"] == "no_matching_capability"
+    assert "evo_scientist_progress_sidecar" not in implicit_ids
+    assert "light_external_skill_content_advisory" not in implicit_ids
+    assert implicit_resolution["authority_boundary"]["can_authorize_owner_action"] is False
+
+    explicit_family_resolution = module.resolve_scientific_capabilities(
+        current_owner_delta={
+            "action_type": "unknown_owner_action",
+            "capability_families": ["progress_accelerator"],
+            "work_unit_id": "unknown-work",
+        }
+    )
+    explicit_family_ids = {
+        item["capability_id"]: item
+        for item in explicit_family_resolution["selected_capabilities"]
+    }
+    assert "evo_scientist_progress_sidecar" in explicit_family_ids
+    assert explicit_family_ids["evo_scientist_progress_sidecar"][
+        "wildcard_action_trigger_policy"
+    ] == {
+        "auto_select": False,
+        "requires_explicit_capability_request": True,
+        "reason": "support_or_diagnostic_wildcards_must_not_become_mas_private_selectors",
+    }
+
+    explicit_id_resolution = module.resolve_scientific_capabilities(
+        current_owner_delta={
+            "action_type": "unknown_owner_action",
+            "capability_families": ["light_external_skill_content_advisory"],
+            "work_unit_id": "unknown-work",
+        }
+    )
+    explicit_id_ids = {
+        item["capability_id"]: item
+        for item in explicit_id_resolution["selected_capabilities"]
+    }
+    assert "light_external_skill_content_advisory" in explicit_id_ids
+    assert explicit_id_ids["light_external_skill_content_advisory"][
+        "wildcard_action_trigger_policy"
+    ] == {
+        "auto_select": False,
+        "requires_explicit_capability_request": True,
+        "reason": "support_or_diagnostic_wildcards_must_not_become_mas_private_selectors",
+    }
 
 
 def test_scientific_capability_registry_resolves_nature_figure_display_refs_only_descriptor(

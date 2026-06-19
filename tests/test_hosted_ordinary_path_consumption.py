@@ -76,7 +76,27 @@ def test_hosted_ordinary_path_consumption_evidence_uses_agent_hot_path_surfaces(
         for item in evidence["scientific_capability_resolution"]["selected_capabilities"]
     }
     assert "external_learning_authoring_advisory" in selected_ids
-    assert "light_external_skill_content_advisory" in selected_ids
+    assert "light_external_skill_content_advisory" not in selected_ids
+    assert "evo_scientist_progress_sidecar" not in selected_ids
+    explicit_evidence = module.build_hosted_ordinary_path_consumption_evidence(
+        current_owner_delta={
+            **_delta(),
+            "capability_families": ["light_external_skill_content_advisory"],
+        }
+    )
+    explicit_selected = {
+        item["capability_id"]: item
+        for item in explicit_evidence["scientific_capability_resolution"][
+            "selected_capabilities"
+        ]
+    }
+    assert explicit_selected["light_external_skill_content_advisory"][
+        "wildcard_action_trigger_policy"
+    ] == {
+        "auto_select": False,
+        "requires_explicit_capability_request": True,
+        "reason": "support_or_diagnostic_wildcards_must_not_become_mas_private_selectors",
+    }
     assert evidence["owner_consumption_evidence"] is None
 
 
