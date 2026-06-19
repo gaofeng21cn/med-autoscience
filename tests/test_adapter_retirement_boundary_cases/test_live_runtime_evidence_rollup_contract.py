@@ -112,6 +112,31 @@ def test_live_runtime_evidence_rollup_fails_closed_when_any_tail_or_gap_is_missi
     assert one_gap["gap_id"] in partial["satisfied_gap_ids"]
 
 
+def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> None:
+    rollup = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+    )
+
+    readback = rollup.live_runtime_evidence_rollup_readback(repo_root=REPO_ROOT)
+
+    assert readback["surface_kind"] == "mas_live_runtime_evidence_rollup_readback"
+    assert readback["repo_source_retirement_blocked"] is False
+    assert readback["contract_validation"] == {
+        "status": "passed",
+        "violation_count": 0,
+        "violations": [],
+    }
+    assert readback["summary"]["total_work_order_count"] == 12
+    assert readback["summary"]["typed_blocker_count"] == 12
+    assert readback["summary"]["rollup_result_status"] == "typed_blocker_required"
+    assert readback["completion_claim_allowed"] is False
+    assert {
+        "typed_blocker_required_live_runtime_evidence_rollup",
+        "repo_source_retirement_complete_as_live_runtime_ready",
+        "docs_tests_inventory_or_queue_empty_as_live_runtime_ready",
+    } <= set(readback["false_completion_boundary"])
+
+
 def test_live_runtime_evidence_rollup_requires_all_tail_and_gap_records() -> None:
     rollup = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
@@ -146,3 +171,77 @@ def test_live_runtime_evidence_rollup_requires_all_tail_and_gap_records() -> Non
     assert complete["typed_blocker_count"] == 0
     assert complete["live_runtime_readiness_claim_allowed"] is True
     assert complete["rollup_result_status"] == "all_work_orders_satisfied"
+
+
+def test_live_runtime_evidence_rollup_cli_outputs_readback_json(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(
+        [
+            "doctor",
+            "live-runtime-evidence-rollup",
+            "--repo-root",
+            str(REPO_ROOT),
+            "--format",
+            "json",
+        ]
+    )
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert output["surface_kind"] == "mas_live_runtime_evidence_rollup_readback"
+    assert output["contract_refs"] == {
+        "live_tail_work_orders": "contracts/runtime/mas-runtime-live-tail-work-orders.json",
+        "live_runtime_gap_work_orders": "contracts/runtime/mas-live-runtime-gap-work-orders.json",
+        "live_runtime_evidence_rollup": "contracts/runtime/mas-live-runtime-evidence-rollup.json",
+    }
+    assert output["contract_validation"]["status"] == "passed"
+    assert output["summary"]["rollup_result_status"] == "typed_blocker_required"
+    assert output["completion_claim_allowed"] is False
+
+
+def test_live_runtime_evidence_rollup_cli_consumes_evidence_files(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    tail_contract = _live_tail_contract()
+    gap_contract = _live_gap_contract()
+    tail_records = [
+        {
+            "surface_id": order["surface_id"],
+            "evidence_source": f"owner_readback:{order['surface_id']}",
+            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
+        }
+        for order in tail_contract["work_orders"]
+    ]
+    gap_records = [
+        {
+            "gap_id": order["gap_id"],
+            "evidence_source": f"owner_readback:{order['gap_id']}",
+            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
+        }
+        for order in gap_contract["work_orders"]
+    ]
+    tail_file = tmp_path / "tail-evidence.json"
+    gap_file = tmp_path / "gap-evidence.json"
+    tail_file.write_text(json.dumps(tail_records), encoding="utf-8")
+    gap_file.write_text(json.dumps(gap_records), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "doctor",
+            "live-runtime-evidence-rollup",
+            "--repo-root",
+            str(REPO_ROOT),
+            "--tail-evidence-file",
+            str(tail_file),
+            "--gap-evidence-file",
+            str(gap_file),
+            "--format",
+            "json",
+        ]
+    )
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert output["summary"]["rollup_result_status"] == "all_work_orders_satisfied"
+    assert output["summary"]["typed_blocker_count"] == 0
+    assert output["completion_claim_allowed"] is True

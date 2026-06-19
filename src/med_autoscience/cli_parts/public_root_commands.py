@@ -82,6 +82,19 @@ def handle_public_root_command(
         _print_json(result)
         return 0
 
+    if args.command == "live-runtime-evidence-rollup":
+        from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup import (
+            live_runtime_evidence_rollup_readback,
+        )
+
+        result = live_runtime_evidence_rollup_readback(
+            repo_root=Path(args.repo_root).resolve(),
+            live_tail_evidence_records=_load_optional_json_list(args.tail_evidence_file),
+            live_runtime_gap_evidence_records=_load_optional_json_list(args.gap_evidence_file),
+        )
+        _print_json(result)
+        return 0
+
     return None
 
 
@@ -118,6 +131,20 @@ def _handle_preflight_changes_command(
 
 def _print_json(payload: object) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def _load_optional_json_list(path_value: str | None) -> list[dict[str, Any]] | None:
+    if path_value is None:
+        return None
+    payload = json.loads(Path(path_value).read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise TypeError(f"{path_value} must contain a JSON list")
+    records: list[dict[str, Any]] = []
+    for index, item in enumerate(payload):
+        if not isinstance(item, dict):
+            raise TypeError(f"{path_value}[{index}] must contain a JSON object")
+        records.append(item)
+    return records
 
 
 __all__ = ["handle_public_root_command"]

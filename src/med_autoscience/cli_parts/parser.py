@@ -74,6 +74,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     preflight_contract_report_parser = subparsers.add_parser("preflight-contract-report")
     preflight_contract_report_parser.add_argument("--format", choices=("json",), default="json")
 
+    live_runtime_rollup_parser = subparsers.add_parser("live-runtime-evidence-rollup")
+    live_runtime_rollup_parser.add_argument("--repo-root", default=".")
+    live_runtime_rollup_parser.add_argument("--tail-evidence-file")
+    live_runtime_rollup_parser.add_argument("--gap-evidence-file")
+    live_runtime_rollup_parser.add_argument("--format", choices=("json",), default="json")
+
     seed_parser = subparsers.add_parser("publication-route-memory-apply-seed")
     seed_parser.add_argument("--workspace-root", required=True)
     seed_source = seed_parser.add_mutually_exclusive_group(required=True)

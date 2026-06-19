@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import json
+from pathlib import Path
 from typing import Any
 
 from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders import (
@@ -13,6 +15,63 @@ from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail
 
 SURFACE_KIND = "mas_live_runtime_evidence_rollup"
 VERSION = "mas-live-runtime-evidence-rollup.v1"
+LIVE_TAIL_CONTRACT_PATH = Path("contracts/runtime/mas-runtime-live-tail-work-orders.json")
+LIVE_RUNTIME_GAP_CONTRACT_PATH = Path("contracts/runtime/mas-live-runtime-gap-work-orders.json")
+LIVE_RUNTIME_EVIDENCE_ROLLUP_CONTRACT_PATH = Path(
+    "contracts/runtime/mas-live-runtime-evidence-rollup.json"
+)
+
+
+def live_runtime_evidence_rollup_readback(
+    *,
+    repo_root: Path,
+    live_tail_evidence_records: list[Mapping[str, Any]] | None = None,
+    live_runtime_gap_evidence_records: list[Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    live_tail_contract = _load_json_object(repo_root / LIVE_TAIL_CONTRACT_PATH)
+    live_runtime_gap_contract = _load_json_object(repo_root / LIVE_RUNTIME_GAP_CONTRACT_PATH)
+    rollup_contract = _load_json_object(repo_root / LIVE_RUNTIME_EVIDENCE_ROLLUP_CONTRACT_PATH)
+    contract_violations = validate_live_runtime_evidence_rollup_contract(
+        rollup_contract,
+        live_tail_contract=live_tail_contract,
+        live_runtime_gap_contract=live_runtime_gap_contract,
+    )
+    summary = live_runtime_evidence_rollup_summary(
+        live_tail_contract=live_tail_contract,
+        live_runtime_gap_contract=live_runtime_gap_contract,
+        live_tail_evidence_records=live_tail_evidence_records,
+        live_runtime_gap_evidence_records=live_runtime_gap_evidence_records,
+    )
+    return {
+        "surface_kind": "mas_live_runtime_evidence_rollup_readback",
+        "version": VERSION,
+        "repo_root": str(repo_root),
+        "contract_refs": {
+            "live_tail_work_orders": str(LIVE_TAIL_CONTRACT_PATH),
+            "live_runtime_gap_work_orders": str(LIVE_RUNTIME_GAP_CONTRACT_PATH),
+            "live_runtime_evidence_rollup": str(LIVE_RUNTIME_EVIDENCE_ROLLUP_CONTRACT_PATH),
+        },
+        "contract_validation": {
+            "status": "passed" if not contract_violations else "failed",
+            "violation_count": len(contract_violations),
+            "violations": contract_violations,
+        },
+        "summary": summary,
+        "completion_claim_boundary": rollup_contract.get("completion_claim_boundary", {}),
+        "completion_claim_allowed": (
+            not contract_violations
+            and summary.get("rollup_result_status") == "all_work_orders_satisfied"
+            and summary.get("live_runtime_readiness_claim_allowed") is True
+        ),
+        "repo_source_retirement_blocked": False,
+        "false_completion_boundary": [
+            "contract_validation_failed_means_rollup_untrusted",
+            "typed_blocker_required_live_runtime_evidence_rollup",
+            "partial_live_runtime_evidence_rollup",
+            "repo_source_retirement_complete_as_live_runtime_ready",
+            "docs_tests_inventory_or_queue_empty_as_live_runtime_ready",
+        ],
+    }
 
 
 def validate_live_runtime_evidence_rollup_contract(
@@ -126,13 +185,24 @@ def _text(value: Any) -> str | None:
     return text or None
 
 
+def _load_json_object(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise TypeError(f"{path} must contain a JSON object")
+    return payload
+
+
 def _violation(item_id: str, reason: str) -> dict[str, str]:
     return {"item_id": item_id, "reason": reason}
 
 
 __all__ = [
+    "LIVE_RUNTIME_EVIDENCE_ROLLUP_CONTRACT_PATH",
+    "LIVE_RUNTIME_GAP_CONTRACT_PATH",
+    "LIVE_TAIL_CONTRACT_PATH",
     "SURFACE_KIND",
     "VERSION",
+    "live_runtime_evidence_rollup_readback",
     "live_runtime_evidence_rollup_summary",
     "validate_live_runtime_evidence_rollup_contract",
 ]
