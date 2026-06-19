@@ -88,7 +88,11 @@ def _stage_route_arbiter_decisions(
             continue
         readback_required = _opl_transition_readback_required_evidence(candidate)
         accepted_closeout = _matching_accepted_closeout(scanned_study, identity=candidate)
-        if accepted_closeout and not _dry_run_request_only_transition_request_candidate(candidate):
+        if (
+            accepted_closeout
+            and not _dry_run_request_only_transition_request_candidate(candidate)
+            and not _accepted_owner_gate_transition_request_candidate(candidate)
+        ):
             decisions.append(
                 _arbiter_decision(
                     candidate,
@@ -865,6 +869,25 @@ def _request_only_transition_request_candidate(candidate: Mapping[str, Any]) -> 
     ) == "transition_request_pending"
 
 
+def _accepted_owner_gate_transition_request_candidate(candidate: Mapping[str, Any]) -> bool:
+    if not _request_only_transition_request_candidate(candidate):
+        return False
+    if (
+        _non_empty_text(candidate.get("source"))
+        != "opl_current_control_state.study_current_executable_owner_action"
+    ):
+        return False
+    basis = _mapping(candidate.get("currentness_basis"))
+    return (
+        _non_empty_text(basis.get("source")) == ACCEPTED_OWNER_GATE_DECISION_SOURCE
+        or _non_empty_text(basis.get("mas_owner_action_source"))
+        == ACCEPTED_OWNER_GATE_DECISION_SOURCE
+        or _non_empty_text(candidate.get("mas_owner_action_source"))
+        == ACCEPTED_OWNER_GATE_DECISION_SOURCE
+        or _non_empty_text(candidate.get("authority")) == ACCEPTED_OWNER_GATE_DECISION_SOURCE
+    )
+
+
 def _dry_run_request_only_transition_request_candidate(candidate: Mapping[str, Any]) -> bool:
     return (
         _request_only_transition_request_candidate(candidate)
@@ -1187,10 +1210,7 @@ def _current_typed_blocker_precedence_evidence_for_candidate(
         return {}
     if (
         _is_selected_dispatch_stage_packet_blocker(_non_empty_text(evidence.get("blocker_type")))
-        and _non_empty_text(candidate.get("source"))
-        == "opl_current_control_state.study_current_executable_owner_action"
-        and _non_empty_text(_mapping(candidate.get("currentness_basis")).get("source"))
-        == ACCEPTED_OWNER_GATE_DECISION_SOURCE
+        and _accepted_owner_gate_transition_request_candidate(candidate)
     ):
         return {}
     return evidence
