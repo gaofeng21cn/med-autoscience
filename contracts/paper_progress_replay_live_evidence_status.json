@@ -6,7 +6,7 @@
   "purpose": "Machine-readable status for DM002/DM003 paper progress transition replay coverage and read-only live-evidence acceptance boundaries.",
   "machine_boundary": "This surface records replay and live-evidence acceptance status only. It does not create OPL events, OPL outbox items, StageRun identity, provider attempts, MAS owner receipts, typed blockers, human gates, route-back evidence, paper deltas, publication verdicts, artifact mutations, current package freshness, or production readiness.",
   "source_of_truth": {
-    "target_design": "docs/active/mas-ideal-state-gap-plan.md#opl-domain-progress-transition-runtime--mas-paper-policy-adapter",
+    "target_design": "human_doc:opl_domain_progress_transition_runtime_target_design_for_mas",
     "active_plan": "docs/active/mas-ideal-state-gap-plan.md",
     "transition_runtime_contract": "contracts/opl_domain_progress_transition_runtime_contract.json",
     "runtime_truth_skill": "mas-runtime-truth-audit",
@@ -279,7 +279,7 @@
     "tests/test_opl_transition_readback_contract.py",
     "tests/test_opl_domain_progress_transition_runtime_contract.py",
     "tests/test_paper_progress_transition_replay_fixtures.py",
-    "docs/active/mas-ideal-state-gap-plan.md#opl-domain-progress-transition-runtime--mas-paper-policy-adapter",
+    "human_doc:opl_domain_progress_transition_runtime_target_design_for_mas",
     "docs/active/mas-ideal-state-gap-plan.md"
   ]
 }

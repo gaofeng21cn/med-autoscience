@@ -6,7 +6,7 @@
   "purpose": "Machine-readable completion audit for the OPL DomainProgressTransitionRuntime and MAS PaperProgressPolicyAdapter target chain.",
   "machine_boundary": "This audit records completion evidence and open tails only. It does not create OPL commands, events, outbox items, StageRun identity, provider attempts, MAS owner receipts, typed blockers, human gates, route-back evidence, paper deltas, publication verdicts, artifact mutations, current package freshness, production readiness, or live paper progress.",
   "source_of_truth": {
-    "target_design": "docs/active/mas-ideal-state-gap-plan.md#opl-domain-progress-transition-runtime--mas-paper-policy-adapter",
+    "target_design": "human_doc:opl_domain_progress_transition_runtime_target_design_for_mas",
     "active_plan": "docs/active/mas-ideal-state-gap-plan.md",
     "transition_runtime_contract": "contracts/opl_domain_progress_transition_runtime_contract.json",
     "replay_status": "contracts/paper_progress_replay_live_evidence_status.json",
@@ -583,7 +583,7 @@
       "target_role": "Define transition taxonomy, aggregate identity, projection metadata, fixed-point postcondition, and forbidden interpretations.",
       "status": "satisfied_with_repo_evidence",
       "required_evidence_refs": [
-        "docs/active/mas-ideal-state-gap-plan.md#opl-domain-progress-transition-runtime--mas-paper-policy-adapter",
+        "human_doc:opl_domain_progress_transition_runtime_target_design_for_mas",
         "contracts/opl_domain_progress_transition_runtime_contract.json",
         "contracts/paper_autonomy_supervisor_contract.json",
         "contracts/paper_progress_replay_live_evidence_status.json",
@@ -591,7 +591,7 @@
         "tests/test_paper_progress_transition_replay_fixtures.py"
       ],
       "observed_refs": [
-        "docs/decisions.md#opl-domain-progress-transition-runtime",
+        "human_doc:opl_domain_progress_transition_runtime_target_design_for_mas#Transition-types",
         "contracts/opl_domain_progress_transition_runtime_contract.json",
         "tests/test_opl_domain_progress_transition_runtime_contract.py::test_opl_domain_progress_transition_runtime_contract_matches_helper_abi",
         "tests/test_opl_domain_progress_transition_runtime_contract.py::test_helper_shapes_are_single_source_for_existing_runtime_consumers",
