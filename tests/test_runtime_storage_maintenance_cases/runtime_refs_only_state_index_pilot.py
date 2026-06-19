@@ -229,6 +229,23 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
     assert contract["authority_policy"]["can_generate_next_action_authority"] is False
     bridge = contract["opl_state_index_kernel_takeover_bridge"]
     legacy_helper_scan = bridge.pop("legacy_helper_active_caller_scan")
+    runtime_active_scan = bridge.pop("runtime_active_private_state_index_caller_scan")
+    assert runtime_active_scan == {
+        "status": "no_runtime_active_private_state_index_callers",
+        "no_runtime_active_private_state_index_caller_proven": True,
+        "runtime_active_caller_count": 0,
+        "active_runtime_callers": [],
+        "current_runtime_caller_route": (
+            "med_autoscience.runtime_protocol.opl_state_index_source_adapter"
+        ),
+        "legacy_helper_status": "history_replay_or_local_inspection_only_tail_open",
+        "physical_delete_allowed": False,
+        "forbidden_completion_claims": [
+            "runtime_active_no_private_caller_as_physical_delete",
+            "history_replay_opt_in_as_runtime_active_caller",
+            "source_adapter_manifest_as_live_opl_state_index_readback",
+        ],
+    }
     assert legacy_helper_scan == {
         "status": "active_replay_or_local_inspection_callers_present_tail_open",
         "no_active_replay_or_local_inspection_caller_proven": False,
@@ -345,6 +362,15 @@ def test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox(t
     )
     assert adapter_contract["active_caller_effect"] == (
         "opl_state_index_source_adapter_emitted_no_sqlite_persistence"
+    )
+    assert adapter_contract["runtime_active_private_state_index_caller_scan"][
+        "no_runtime_active_private_state_index_caller_proven"
+    ] is True
+    assert (
+        adapter_contract["runtime_active_private_state_index_caller_scan"][
+            "runtime_active_caller_count"
+        ]
+        == 0
     )
     assert adapter_contract["live_takeover_required_before_physical_delete"] is True
     assert adapter_contract["legacy_domain_authority_refs_index_role"] == (

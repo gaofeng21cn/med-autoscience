@@ -132,6 +132,7 @@ def source_adapter_contract() -> dict[str, Any]:
         "source_adapter_manifest_ref": STATE_INDEX_SOURCE_ADAPTER_REF,
         "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
         "live_takeover_required_before_physical_delete": True,
+        "runtime_active_private_state_index_caller_scan": _runtime_active_private_state_index_caller_scan(),
         "legacy_domain_authority_refs_index_role": (
             "explicit_history_replay_or_local_refs_inspection_only"
         ),
@@ -158,6 +159,9 @@ def source_adapter_manifest() -> dict[str, Any]:
         "sqlite_inspection_read": False,
         "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
         "live_takeover_required_before_physical_delete": True,
+        "runtime_active_private_state_index_caller_scan": (
+            _runtime_active_private_state_index_caller_scan()
+        ),
         "authority_boundary": _authority_boundary(),
     }
 
@@ -197,6 +201,25 @@ def _authority_boundary() -> dict[str, Any]:
         "can_authorize_publication_ready": False,
         "mas_state_index_authority": False,
         "state_index_owner": "one-person-lab",
+    }
+
+
+def _runtime_active_private_state_index_caller_scan() -> dict[str, Any]:
+    return {
+        "status": "no_runtime_active_private_state_index_callers",
+        "no_runtime_active_private_state_index_caller_proven": True,
+        "runtime_active_caller_count": 0,
+        "active_runtime_callers": [],
+        "current_runtime_caller_route": (
+            "med_autoscience.runtime_protocol.opl_state_index_source_adapter"
+        ),
+        "legacy_helper_status": "history_replay_or_local_inspection_only_tail_open",
+        "physical_delete_allowed": False,
+        "forbidden_completion_claims": [
+            "runtime_active_no_private_caller_as_physical_delete",
+            "history_replay_opt_in_as_runtime_active_caller",
+            "source_adapter_manifest_as_live_opl_state_index_readback",
+        ],
     }
 
 

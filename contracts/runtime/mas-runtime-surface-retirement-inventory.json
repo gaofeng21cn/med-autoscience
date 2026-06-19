@@ -99,7 +99,21 @@
         "active_caller_db_path_does_not_imply_persistence": true,
         "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only",
         "source_adapter_manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
-        "family_adoption_reads_legacy_sqlite_helper": false
+        "family_adoption_reads_legacy_sqlite_helper": false,
+        "runtime_active_private_state_index_caller_scan": {
+          "status": "no_runtime_active_private_state_index_callers",
+          "no_runtime_active_private_state_index_caller_proven": true,
+          "runtime_active_caller_count": 0,
+          "active_runtime_callers": [],
+          "current_runtime_caller_route": "med_autoscience.runtime_protocol.opl_state_index_source_adapter",
+          "legacy_helper_status": "history_replay_or_local_inspection_only_tail_open",
+          "physical_delete_allowed": false,
+          "forbidden_completion_claims": [
+            "runtime_active_no_private_caller_as_physical_delete",
+            "history_replay_opt_in_as_runtime_active_caller",
+            "source_adapter_manifest_as_live_opl_state_index_readback"
+          ]
+        }
       },
       "authority_boundary": {
         "can_authorize_provider_admission": false,
@@ -171,7 +185,21 @@
         },
         "source_adapter_manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
         "family_adoption_current_projection": "opl_state_index_source_adapter_manifest",
-        "family_adoption_reads_legacy_sqlite_helper": false
+        "family_adoption_reads_legacy_sqlite_helper": false,
+        "runtime_active_private_state_index_caller_scan": {
+          "status": "no_runtime_active_private_state_index_callers",
+          "no_runtime_active_private_state_index_caller_proven": true,
+          "runtime_active_caller_count": 0,
+          "active_runtime_callers": [],
+          "current_runtime_caller_route": "med_autoscience.runtime_protocol.opl_state_index_source_adapter",
+          "legacy_helper_status": "history_replay_or_local_inspection_only_tail_open",
+          "physical_delete_allowed": false,
+          "forbidden_completion_claims": [
+            "runtime_active_no_private_caller_as_physical_delete",
+            "history_replay_opt_in_as_runtime_active_caller",
+            "source_adapter_manifest_as_live_opl_state_index_readback"
+          ]
+        }
       },
       "replacement_surface": "OPL StateIndexKernel / Vault refs readback consuming emitted MAS authority receipt refs",
       "retained_mas_role": "explicit_history_replay_or_local_refs_inspection_helper_only",
@@ -184,7 +212,8 @@
         "physical_delete_allowed": false,
         "repo_replacement_parity_proven": true,
         "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true
+        "tombstone_or_provenance_required": true,
+        "no_runtime_active_private_state_index_caller_proven": true
       },
       "surface_id": "domain_authority_refs_index",
       "verified_by": [
@@ -197,7 +226,8 @@
         "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_tail_open",
         "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
-        "tests/test_domain_owner_action_dispatch_cases/anti_loop_budget.py::test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budget_and_indexes_receipt"
+        "tests/test_domain_owner_action_dispatch_cases/anti_loop_budget.py::test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budget_and_indexes_receipt",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed"
       ]
     },
     {

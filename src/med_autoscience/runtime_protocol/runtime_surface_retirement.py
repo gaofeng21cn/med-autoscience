@@ -457,6 +457,30 @@ def _validate_domain_authority_refs_index(
     scan = bridge.get("legacy_helper_active_caller_scan")
     if not isinstance(scan, Mapping):
         return [_violation(surface_id, "domain_authority_refs_legacy_helper_scan_missing")]
+    runtime_scan = bridge.get("runtime_active_private_state_index_caller_scan")
+    if not isinstance(runtime_scan, Mapping):
+        violations.append(_violation(surface_id, "domain_authority_refs_runtime_active_scan_missing"))
+    else:
+        runtime_status = _text(runtime_scan.get("status"))
+        runtime_callers = runtime_scan.get("active_runtime_callers")
+        runtime_caller_list = runtime_callers if isinstance(runtime_callers, list) else []
+        if runtime_status != "no_runtime_active_private_state_index_callers":
+            violations.append(_violation(surface_id, "domain_authority_refs_runtime_active_scan_not_clear"))
+        if runtime_scan.get("no_runtime_active_private_state_index_caller_proven") is not True:
+            violations.append(_violation(surface_id, "domain_authority_refs_runtime_active_no_private_caller_not_proven"))
+        if runtime_scan.get("runtime_active_caller_count") != 0:
+            violations.append(_violation(surface_id, "domain_authority_refs_runtime_active_caller_count_not_zero"))
+        if runtime_caller_list:
+            violations.append(_violation(surface_id, "domain_authority_refs_runtime_active_private_callers_present"))
+        if runtime_scan.get("physical_delete_allowed") is not False:
+            violations.append(_violation(surface_id, "domain_authority_refs_runtime_active_scan_must_not_allow_physical_delete"))
+        runtime_forbidden_claims = runtime_scan.get("forbidden_completion_claims")
+        if (
+            not isinstance(runtime_forbidden_claims, list)
+            or "runtime_active_no_private_caller_as_physical_delete"
+            not in runtime_forbidden_claims
+        ):
+            violations.append(_violation(surface_id, "domain_authority_refs_runtime_active_scan_missing_false_completion_guard"))
 
     active_callers = scan.get("active_callers")
     active_caller_list = active_callers if isinstance(active_callers, list) else []
@@ -786,6 +810,11 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
         if isinstance(state_index_bridge, Mapping)
         else None
     )
+    state_index_runtime_scan = (
+        state_index_bridge.get("runtime_active_private_state_index_caller_scan")
+        if isinstance(state_index_bridge, Mapping)
+        else None
+    )
     legacy_stage_run_boundary = surface.get("legacy_stage_run_abi_boundary")
     legacy_stage_run_scan = (
         legacy_stage_run_boundary.get("active_stage_run_abi_caller_scan")
@@ -876,6 +905,18 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
         "domain_authority_refs_no_active_replay_local_inspection_caller_proven": (
             state_index_scan.get("no_active_replay_or_local_inspection_caller_proven")
             if isinstance(state_index_scan, Mapping)
+            else None
+        ),
+        "domain_authority_refs_no_runtime_active_private_state_index_caller_proven": (
+            state_index_runtime_scan.get(
+                "no_runtime_active_private_state_index_caller_proven"
+            )
+            if isinstance(state_index_runtime_scan, Mapping)
+            else None
+        ),
+        "domain_authority_refs_runtime_active_private_state_index_caller_count": (
+            state_index_runtime_scan.get("runtime_active_caller_count")
+            if isinstance(state_index_runtime_scan, Mapping)
             else None
         ),
         "domain_authority_refs_physical_delete_allowed": (

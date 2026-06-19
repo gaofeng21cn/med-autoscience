@@ -139,6 +139,24 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
             "no_active_caller_required_before_physical_delete": True,
             "tombstone_or_provenance_required_before_physical_delete": True,
             "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
+            "runtime_active_private_state_index_caller_scan": {
+                "status": "no_runtime_active_private_state_index_callers",
+                "no_runtime_active_private_state_index_caller_proven": True,
+                "runtime_active_caller_count": 0,
+                "active_runtime_callers": [],
+                "current_runtime_caller_route": (
+                    "med_autoscience.runtime_protocol.opl_state_index_source_adapter"
+                ),
+                "legacy_helper_status": (
+                    "history_replay_or_local_inspection_only_tail_open"
+                ),
+                "physical_delete_allowed": False,
+                "forbidden_completion_claims": [
+                    "runtime_active_no_private_caller_as_physical_delete",
+                    "history_replay_opt_in_as_runtime_active_caller",
+                    "source_adapter_manifest_as_live_opl_state_index_readback",
+                ],
+            },
             "legacy_helper_active_caller_scan": {
                 "status": "active_replay_or_local_inspection_callers_present_tail_open",
                 "no_active_replay_or_local_inspection_caller_proven": False,

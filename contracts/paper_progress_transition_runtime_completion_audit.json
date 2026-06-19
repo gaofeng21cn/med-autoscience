@@ -333,7 +333,8 @@
         "Legacy default_executor_dispatch_request now has a machine-readable legacy_source_contamination_boundary: polluted source claims for MAS dispatch authority, OPL event/outbox/StageRun writes, or provider_admission_pending must remain diagnostic-only; receipt projections must force authority and provider-admission flags false, and runtime_surface_retirement rejects regressions that let polluted carrier payloads authorize provider admission or satisfy OPL readback.",
         "owner_callable_adapter_projection.owner_callable_adapters is retired as an active body reader; current consumers must read domain_progress_transition_requests, and legacy diagnostics can only read body-free identity refs via legacy_owner_callable_adapter_refs / legacy_owner_callable_adapter_diagnostics.",
         "Agent Tool Arsenal / Scientific Capability Registry is now tracked as an OPL Capability Runtime projection in the runtime surface retirement inventory; wildcard sidecar action triggers cannot auto-select without explicit capability_families / route_required_ref_families and runtime_surface_retirement rejects MAS selector or wildcard auto-select regressions.",
-        "runtime_surface_retirement_no_authority_audit now exposes completion_evidence_layers that separate repo_no_authority_guard=satisfied_with_repo_evidence from live_soak_or_no_active_caller=evidence_required and physical_retirement=evidence_required; completion_claim_allowed remains false."
+        "runtime_surface_retirement_no_authority_audit now exposes completion_evidence_layers that separate repo_no_authority_guard=satisfied_with_repo_evidence from live_soak_or_no_active_caller=evidence_required and physical_retirement=evidence_required; completion_claim_allowed remains false.",
+        "domain_authority_refs_index now separates runtime-active private StateIndex caller proof from replay/local-inspection helper tails: runtime_active_private_state_index_caller_count=0 is repo-side evidence only, physical_delete_allowed remains false, and live OPL StateIndexKernel takeover or no-active replay/local-inspection proof remains open."
       ],
       "open_gap": "Remaining live dispatcher soak/no-active-caller proof, DHD obligation actuator physical retirement, domain_authority_refs_index live OPL StateIndexKernel takeover or no-active-replay/local-inspection-caller physical delete proof, OPL cleanup/retention policy live takeover for runtime lifecycle payload retention, OPL storage policy live takeover for runtime_storage_maintenance, Agent Tool Arsenal live owner-consumption soak / direct-hosted parity, and full legacy carrier physical delete evidence still require closeout; default legacy latest fallback retirement, legacy carrier StageRun ABI/provenance no-authority proof, request_tasks alias retirement, OPL-family adoption source-adapter manifest consumption, runtime_lifecycle/runtime_storage apply gating, Tool Arsenal wildcard selector hardening, and runtime-surface no-authority guards are repo-level authority-boundary cleanup, not OPL live takeover or physical retirement of every legacy carrier."
     },
@@ -439,7 +440,8 @@
         "default_executor_dispatch_request legacy_source_contamination_boundary is now enforced by tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py and src/med_autoscience/runtime_protocol/runtime_surface_retirement.py, so source payloads claiming MAS authority or OPL writes cannot be reinterpreted as admission, execution, or readback authority.",
         "runtime_surface_retirement_parts/private_runtime_residue_validators.py now has dedicated fail-closed validators for domain_owner_action_dispatch and domain_health_diagnostic_obligation_actuator, rejecting weak owner-dispatch selection/execution authority, MAS supervisor decision engine revival, MAS recovery obligation store mutation, request-projection success, and actuator-private blocker writes.",
         "DHD obligation actuator MAS-domain authority readback now requires a trusted domain_authority_boundary, rejects paper_recovery_state.evidence_refs as a success proof source, and consumes owner-gate/human-gate/route-back authority payload refs preserved by paper_recovery_state instead of reinterpreting read-model evidence refs.",
-        "domain_authority_refs_index legacy helper active-caller scan no longer lists OPL family adoption SQLite inspection/payload consumers; current OPL family adoption reads the source-adapter manifest while legacy SQLite helper remains explicit replay/local-inspection only."
+        "domain_authority_refs_index legacy helper active-caller scan no longer lists OPL family adoption SQLite inspection/payload consumers; current OPL family adoption reads the source-adapter manifest while legacy SQLite helper remains explicit replay/local-inspection only.",
+        "domain_authority_refs_index runtime-active private StateIndex caller scan is now machine-read by runtime_surface_retirement and test-addressable; it proves current runtime callers use the OPL state-index source adapter without turning source-adapter manifests into live StateIndexKernel takeover."
       ],
       "open_gap": "Live OPL StateIndexKernel takeover or no-active replay/local-inspection caller proof, dispatcher live every-active-caller soak/no-active-caller proof, obligation-actuator physical retirement, runtime lifecycle/storage live takeover, legacy StageRun ABI no-active-caller proof, and final physical delete/tombstone/provenance gates remain open."
     },
@@ -804,7 +806,10 @@
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#owner_dispatch_active_caller_soak_false_completion_guard",
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::audit_runtime_surface_retirement_inventory#completion_evidence_layers",
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement_parts/completion_evidence_layers.py::completion_evidence_layers",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#completion_evidence_layers"
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#completion_evidence_layers",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_authority_refs_index#opl_state_index_takeover_bridge.runtime_active_private_state_index_caller_scan",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_domain_authority_refs_index#runtime_active_private_state_index_caller_scan",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
@@ -834,7 +839,10 @@
         "runtime_health_unbound_opl_ref_as_recovery_authority",
         "runtime_health_cross_identity_readback_as_recovery_authority",
         "runtime_health_top_level_read_model_claim_as_opl_readback",
-        "repo_no_authority_guard_satisfied_without_live_soak"
+        "repo_no_authority_guard_satisfied_without_live_soak",
+        "runtime_active_no_private_caller_as_physical_delete",
+        "source_adapter_manifest_as_live_opl_state_index_readback",
+        "history_replay_opt_in_as_runtime_active_caller"
       ]
     },
     {
