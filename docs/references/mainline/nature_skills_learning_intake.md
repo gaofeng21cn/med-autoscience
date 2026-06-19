@@ -16,8 +16,8 @@ Machine-readable adoption record: `contracts/nature_skills_learning_adoption.jso
 
 本轮证据来自 `Yuan1z0825/nature-skills` 远端 `main` / `HEAD`：
 
-- `git ls-remote https://github.com/Yuan1z0825/nature-skills.git HEAD refs/heads/main` 确认 `HEAD` 与 `refs/heads/main` 都是 `1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547`。
-- 浅克隆同一远端后 `git rev-parse HEAD` 读回 `1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547`。
+- `git ls-remote https://github.com/Yuan1z0825/nature-skills.git HEAD refs/heads/main` 确认 `HEAD` 与 `refs/heads/main` 都是 `1cb9070fdd94929d5f267ce6585ac87e2cba60b3`。
+- 浅克隆同一远端后 `git rev-parse HEAD` 读回 `1cb9070fdd94929d5f267ce6585ac87e2cba60b3`。
 - 已检查 `skills/nature-writing`、`nature-polishing`、`nature-reader`、`nature-academic-search`、`nature-citation`、`nature-response`、`nature-reviewer`、`nature-figure`、`nature-paper2ppt` 的 `SKILL.md` 与 `manifest.yaml`，以及对应 `static/`、`references/` 目录形态。
 
 2026-06-18 版本新增或强化的可学习结构不是外部 runner，而是 skill authoring / prompt loading pattern：

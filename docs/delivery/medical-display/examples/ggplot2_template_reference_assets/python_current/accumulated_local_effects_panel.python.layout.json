@@ -1,0 +1,337 @@
+{
+  "template_id": "accumulated_local_effects_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.028617021276595746,
+      "y0": 0.36025,
+      "x1": 0.04138297872340427,
+      "y1": 0.6597500000000001
+    },
+    {
+      "box_id": "legend_box",
+      "box_type": "legend_box",
+      "x0": 0.3201979905437352,
+      "y0": 0.056388888888888884,
+      "x1": 0.6798020094562648,
+      "y1": 0.09661111111111112
+    },
+    {
+      "box_id": "panel_title_A",
+      "box_type": "panel_title",
+      "x0": 0.2817770156774916,
+      "y0": 0.8937777777777779,
+      "x1": 0.3066440369540873,
+      "y1": 0.9177777777777778
+    },
+    {
+      "box_id": "x_axis_title_A",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.2581732922732362,
+      "y0": 0.17344444444444443,
+      "x1": 0.33024776035834263,
+      "y1": 0.19744444444444442
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.11600000000000002,
+      "y0": 0.8170000000000001,
+      "x1": 0.12982978723404257,
+      "y1": 0.853
+    },
+    {
+      "box_id": "reference_label_A",
+      "box_type": "ale_reference_label",
+      "x0": 0.26109882418812985,
+      "y0": 0.8252058823529411,
+      "x1": 0.327322228443449,
+      "y1": 0.8472058823529411
+    },
+    {
+      "box_id": "panel_title_B",
+      "box_type": "panel_title",
+      "x0": 0.738462346024636,
+      "y0": 0.8937777777777779,
+      "x1": 0.7931166013437849,
+      "y1": 0.9177777777777778
+    },
+    {
+      "box_id": "x_axis_title_B",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.7166538353863381,
+      "y0": 0.17344444444444443,
+      "x1": 0.8149251119820828,
+      "y1": 0.19744444444444442
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.587578947368421,
+      "y0": 0.8170000000000001,
+      "x1": 0.599015117581187,
+      "y1": 0.853
+    },
+    {
+      "box_id": "reference_label_B",
+      "box_type": "ale_reference_label",
+      "x0": 0.7576906028368793,
+      "y0": 0.8252058823529411,
+      "x1": 0.8506427304964538,
+      "y1": 0.8472058823529411
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_A",
+      "box_type": "panel",
+      "x0": 0.11000000000000001,
+      "y0": 0.25,
+      "x1": 0.47842105263157886,
+      "y1": 0.87
+    },
+    {
+      "box_id": "panel_B",
+      "box_type": "panel",
+      "x0": 0.581578947368421,
+      "y0": 0.25,
+      "x1": 0.9499999999999998,
+      "y1": 0.87
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "reference_line_A",
+      "box_type": "ale_reference_line",
+      "x0": 0.2932894736842106,
+      "y0": 0.25,
+      "x1": 0.2951315789473684,
+      "y1": 0.87
+    },
+    {
+      "box_id": "ale_bin_A_1",
+      "box_type": "local_effect_bin",
+      "x0": 0.1407017543859649,
+      "y0": 0.5274369747899159,
+      "x1": 0.21745614035087718,
+      "y1": 0.5599999999999999
+    },
+    {
+      "box_id": "ale_bin_A_2",
+      "box_type": "local_effect_bin",
+      "x0": 0.21745614035087718,
+      "y0": 0.5274369747899159,
+      "x1": 0.2942105263157894,
+      "y1": 0.6088445378151259
+    },
+    {
+      "box_id": "ale_bin_A_3",
+      "box_type": "local_effect_bin",
+      "x0": 0.2942105263157894,
+      "y0": 0.5274369747899159,
+      "x1": 0.3709649122807017,
+      "y1": 0.592563025210084
+    },
+    {
+      "box_id": "ale_bin_A_4",
+      "box_type": "local_effect_bin",
+      "x0": 0.3709649122807017,
+      "y0": 0.5274369747899159,
+      "x1": 0.44771929824561396,
+      "y1": 0.6088445378151259
+    },
+    {
+      "box_id": "reference_line_B",
+      "box_type": "ale_reference_line",
+      "x0": 0.8032456140350877,
+      "y0": 0.25,
+      "x1": 0.8050877192982455,
+      "y1": 0.87
+    },
+    {
+      "box_id": "ale_bin_B_1",
+      "box_type": "local_effect_bin",
+      "x0": 0.612280701754386,
+      "y0": 0.47859243697478987,
+      "x1": 0.6890350877192983,
+      "y1": 0.5274369747899159
+    },
+    {
+      "box_id": "ale_bin_B_2",
+      "box_type": "local_effect_bin",
+      "x0": 0.6890350877192983,
+      "y0": 0.4623109243697478,
+      "x1": 0.7657894736842105,
+      "y1": 0.5274369747899159
+    },
+    {
+      "box_id": "ale_bin_B_3",
+      "box_type": "local_effect_bin",
+      "x0": 0.7657894736842105,
+      "y0": 0.47859243697478987,
+      "x1": 0.8425438596491227,
+      "y1": 0.5274369747899159
+    },
+    {
+      "box_id": "ale_bin_B_4",
+      "box_type": "local_effect_bin",
+      "x0": 0.8425438596491227,
+      "y0": 0.49487394957983183,
+      "x1": 0.919298245614035,
+      "y1": 0.5274369747899159
+    }
+  ],
+  "metrics": {
+    "figure_height_inches": 5.0,
+    "figure_width_inches": 9.4,
+    "legend_labels": [
+      "Accumulated local effect",
+      "Local effect per bin"
+    ],
+    "panels": [
+      {
+        "panel_id": "age_ale",
+        "panel_label": "A",
+        "title": "Age",
+        "x_label": "Age (years)",
+        "feature": "Age",
+        "reference_value": 60.0,
+        "reference_label": "Median age",
+        "panel_box_id": "panel_A",
+        "reference_line_box_id": "reference_line_A",
+        "reference_label_box_id": "reference_label_A",
+        "ale_points": [
+          {
+            "feature_value": 45.0,
+            "response_value": 0.02,
+            "x": 0.17907894736842106,
+            "y": 0.5599999999999999
+          },
+          {
+            "feature_value": 55.0,
+            "response_value": 0.07,
+            "x": 0.2558333333333333,
+            "y": 0.6414075630252101
+          },
+          {
+            "feature_value": 65.0,
+            "response_value": 0.11,
+            "x": 0.3325877192982456,
+            "y": 0.706533613445378
+          },
+          {
+            "feature_value": 75.0,
+            "response_value": 0.16,
+            "x": 0.4093421052631578,
+            "y": 0.7879411764705881
+          }
+        ],
+        "local_effect_bins": [
+          {
+            "bin_id": "age_bin_1",
+            "bin_box_id": "ale_bin_A_1",
+            "bin_center": 45.0,
+            "local_effect": 0.02,
+            "support_count": 84
+          },
+          {
+            "bin_id": "age_bin_2",
+            "bin_box_id": "ale_bin_A_2",
+            "bin_center": 55.0,
+            "local_effect": 0.05,
+            "support_count": 91
+          },
+          {
+            "bin_id": "age_bin_3",
+            "bin_box_id": "ale_bin_A_3",
+            "bin_center": 65.0,
+            "local_effect": 0.04,
+            "support_count": 88
+          },
+          {
+            "bin_id": "age_bin_4",
+            "bin_box_id": "ale_bin_A_4",
+            "bin_center": 75.0,
+            "local_effect": 0.05,
+            "support_count": 73
+          }
+        ]
+      },
+      {
+        "panel_id": "albumin_ale",
+        "panel_label": "B",
+        "title": "Albumin",
+        "x_label": "Albumin (g/dL)",
+        "feature": "Albumin",
+        "reference_value": 3.8,
+        "reference_label": "Median albumin",
+        "panel_box_id": "panel_B",
+        "reference_line_box_id": "reference_line_B",
+        "reference_label_box_id": "reference_label_B",
+        "ale_points": [
+          {
+            "feature_value": 3.0,
+            "response_value": -0.03,
+            "x": 0.6506578947368421,
+            "y": 0.47859243697478987
+          },
+          {
+            "feature_value": 3.4,
+            "response_value": -0.07,
+            "x": 0.7274122807017543,
+            "y": 0.41346638655462176
+          },
+          {
+            "feature_value": 3.8,
+            "response_value": -0.1,
+            "x": 0.8041666666666665,
+            "y": 0.3646218487394957
+          },
+          {
+            "feature_value": 4.2,
+            "response_value": -0.12,
+            "x": 0.8809210526315789,
+            "y": 0.33205882352941174
+          }
+        ],
+        "local_effect_bins": [
+          {
+            "bin_id": "alb_bin_1",
+            "bin_box_id": "ale_bin_B_1",
+            "bin_center": 3.0,
+            "local_effect": -0.03,
+            "support_count": 81
+          },
+          {
+            "bin_id": "alb_bin_2",
+            "bin_box_id": "ale_bin_B_2",
+            "bin_center": 3.4,
+            "local_effect": -0.04,
+            "support_count": 87
+          },
+          {
+            "bin_id": "alb_bin_3",
+            "bin_box_id": "ale_bin_B_3",
+            "bin_center": 3.8,
+            "local_effect": -0.03,
+            "support_count": 96
+          },
+          {
+            "bin_id": "alb_bin_4",
+            "bin_box_id": "ale_bin_B_4",
+            "bin_center": 4.2,
+            "local_effect": -0.02,
+            "support_count": 78
+          }
+        ]
+      }
+    ]
+  }
+}

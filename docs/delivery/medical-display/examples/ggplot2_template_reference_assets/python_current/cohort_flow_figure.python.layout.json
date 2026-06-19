@@ -1,0 +1,410 @@
+{
+  "template_id": "cohort_flow_figure",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "step_screened",
+      "box_type": "main_step",
+      "x0": 0.034722222222222224,
+      "y0": 0.7130609146421174,
+      "x1": 0.3250487163156059,
+      "y1": 0.9175425943199207
+    },
+    {
+      "box_id": "step_eligible",
+      "box_type": "main_step",
+      "x0": 0.034722222222222224,
+      "y0": 0.4481147222764003,
+      "x1": 0.3250487163156059,
+      "y1": 0.6525964019542035
+    },
+    {
+      "box_id": "exclusion_missing_followup",
+      "box_type": "exclusion_box",
+      "x0": 0.3437125623644663,
+      "y0": 0.2873599816281755,
+      "x1": 0.571826236294982,
+      "y1": 0.42020802411274777
+    },
+    {
+      "box_id": "step_included",
+      "box_type": "main_step",
+      "x0": 0.034722222222222224,
+      "y0": 0.054971603786719635,
+      "x1": 0.3250487163156059,
+      "y1": 0.25945328346452295
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.034722222222222224,
+      "y0": 0.9412586961633495,
+      "x1": 0.04359714023853934,
+      "y1": 0.9725141981066402
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.608590942177335,
+      "y0": 0.9412586961633495,
+      "x1": 0.6155587780355762,
+      "y1": 0.9725141981066402
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "subfigure_panel_A",
+      "box_type": "subfigure_panel",
+      "x0": 0.024353418861744237,
+      "y0": 0.04580966982226631,
+      "x1": 0.5821950396554599,
+      "y1": 0.9862570990533202
+    },
+    {
+      "box_id": "subfigure_panel_B",
+      "box_type": "subfigure_panel",
+      "x0": 0.5982221388168569,
+      "y0": 0.04580966982226631,
+      "x1": 0.9756465811382558,
+      "y1": 0.9862570990533202
+    },
+    {
+      "box_id": "flow_panel",
+      "box_type": "flow_panel",
+      "x0": 0.034722222222222224,
+      "y0": 0.054971603786719635,
+      "x1": 0.571826236294982,
+      "y1": 0.9175425943199207
+    },
+    {
+      "box_id": "secondary_panel_split",
+      "box_type": "secondary_panel",
+      "x0": 0.608590942177335,
+      "y0": 0.6664195197779328,
+      "x1": 0.9652777777777778,
+      "y1": 0.9175425943199207
+    },
+    {
+      "box_id": "secondary_panel_review",
+      "box_type": "secondary_panel",
+      "x0": 0.608590942177335,
+      "y0": 0.373436397990466,
+      "x1": 0.9652777777777778,
+      "y1": 0.6245594725324539
+    },
+    {
+      "box_id": "secondary_panel_endpoint_inventory",
+      "box_type": "secondary_panel",
+      "x0": 0.6231072668820041,
+      "y0": 0.07115104348178175,
+      "x1": 0.9507614530731086,
+      "y1": 0.32227411802376965
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "flow_spine_screened_to_eligible",
+      "box_type": "flow_connector",
+      "x0": 0.17801908466402802,
+      "y0": 0.6525964019542035,
+      "x1": 0.18175185387380008,
+      "y1": 0.7130609146421174
+    },
+    {
+      "box_id": "flow_spine_eligible_to_included",
+      "box_type": "flow_connector",
+      "x0": 0.17801908466402802,
+      "y0": 0.25945328346452295,
+      "x1": 0.18175185387380008,
+      "y1": 0.4481147222764003
+    },
+    {
+      "box_id": "flow_branch_missing_followup",
+      "box_type": "flow_branch_connector",
+      "x0": 0.17988546926891405,
+      "y0": 0.34959799814591375,
+      "x1": 0.3437125623644663,
+      "y1": 0.3579700075950095
+    },
+    {
+      "box_id": "hierarchy_connector_wide_top_to_wide_bottom",
+      "box_type": "hierarchy_connector",
+      "x0": 0.7850679753726703,
+      "y0": 0.6245594725324539,
+      "x1": 0.7888007445824424,
+      "y1": 0.6664195197779328
+    }
+  ],
+  "metrics": {
+    "steps": [
+      {
+        "step_id": "screened",
+        "label": "Patients screened",
+        "detail": "Consecutive eligible records",
+        "n": 186,
+        "columns": null,
+        "role": "",
+        "role_label": ""
+      },
+      {
+        "step_id": "eligible",
+        "label": "Eligible after criteria review",
+        "detail": "Complete baseline variables",
+        "n": 142,
+        "columns": null,
+        "role": "",
+        "role_label": ""
+      },
+      {
+        "step_id": "included",
+        "label": "Included in analysis",
+        "detail": "Primary analytic cohort",
+        "n": 128,
+        "columns": null,
+        "role": "",
+        "role_label": ""
+      }
+    ],
+    "exclusions": [
+      {
+        "exclusion_id": "missing_followup",
+        "from_step_id": "eligible",
+        "label": "Missing follow-up",
+        "detail": "Excluded before model evaluation",
+        "n": 14
+      }
+    ],
+    "endpoint_inventory": [
+      {
+        "endpoint_id": "primary",
+        "label": "Primary endpoint",
+        "detail": "Cardiovascular event",
+        "n": 31
+      },
+      {
+        "endpoint_id": "secondary",
+        "label": "Secondary endpoint",
+        "detail": "Hospitalization",
+        "n": 44
+      }
+    ],
+    "design_panels": [
+      {
+        "panel_id": "split",
+        "layout_role": "wide_top",
+        "style_role": "primary",
+        "title": "Analysis split",
+        "lines": [
+          {
+            "label": "Training",
+            "detail": "70% temporal derivation"
+          },
+          {
+            "label": "Validation",
+            "detail": "30% locked holdout"
+          }
+        ]
+      },
+      {
+        "panel_id": "review",
+        "layout_role": "wide_bottom",
+        "style_role": "context",
+        "title": "Review boundary",
+        "lines": [
+          {
+            "label": "Outcome adjudication",
+            "detail": "Source ledger required"
+          },
+          {
+            "label": "Publication surface",
+            "detail": "Figure catalog controlled"
+          }
+        ]
+      }
+    ],
+    "flow_nodes": [
+      {
+        "box_id": "step_screened",
+        "box_type": "main_step",
+        "line_count": 3,
+        "max_line_chars": 28,
+        "rendered_height_pt": 89.27446125290021,
+        "rendered_width_pt": 284.28770301624127,
+        "padding_pt": 11.16844547563805
+      },
+      {
+        "box_id": "step_eligible",
+        "box_type": "main_step",
+        "line_count": 3,
+        "max_line_chars": 30,
+        "rendered_height_pt": 89.27446125290021,
+        "rendered_width_pt": 284.28770301624127,
+        "padding_pt": 11.16844547563805
+      },
+      {
+        "box_id": "step_included",
+        "box_type": "main_step",
+        "line_count": 3,
+        "max_line_chars": 23,
+        "rendered_height_pt": 89.27446125290022,
+        "rendered_width_pt": 284.28770301624127,
+        "padding_pt": 11.16844547563805
+      },
+      {
+        "box_id": "exclusion_missing_followup",
+        "box_type": "exclusion_box",
+        "line_count": 2,
+        "max_line_chars": 32,
+        "rendered_height_pt": 58.0,
+        "rendered_width_pt": 223.36890951276098,
+        "padding_pt": 8.122505800464037
+      }
+    ]
+  },
+  "render_context": {
+    "style_profile_id": "paper_neutral_clinical_v1",
+    "style_profile_ref": "human_reference_default_publication_style_profile",
+    "style_profile_sha256": "81a4f0415f43faf78a632738f43f0af4eafaa7e422acba2923037d92e3aa669b",
+    "journal_palette_ref": "nature_informed_clinical_publication_v1",
+    "palette": {
+      "primary": "#0F4D92",
+      "secondary": "#33B5A5",
+      "tertiary": "#D24B40",
+      "quaternary": "#E28E2C",
+      "violet": "#7C6CCF",
+      "neutral": "#4D4D4D",
+      "neutral_mid": "#767676",
+      "neutral_light": "#D8D8D8",
+      "light": "#F2F5F7",
+      "primary_soft": "#DCEAF7",
+      "secondary_soft": "#DDF3F0",
+      "tertiary_soft": "#F6CFCB",
+      "quaternary_soft": "#F7E7D0",
+      "violet_soft": "#E7E1F5",
+      "audit": "#B64342",
+      "audit_soft": "#F6CFCB",
+      "text": "#272727",
+      "axis": "#272727",
+      "grid": "#ECEFF2",
+      "background": "#FFFFFF",
+      "heatmap_low": "#2B6CB0",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B64342",
+      "volcano_up": "#B64342",
+      "volcano_down": "#2B6CB0",
+      "volcano_background": "#B8B8B8"
+    },
+    "semantic_roles": {
+      "model_curve": "primary",
+      "comparator_curve": "secondary",
+      "reference_line": "neutral_mid",
+      "highlight_band": "light",
+      "text": "text",
+      "axis_line": "axis",
+      "grid_line": "grid",
+      "figure_background": "background",
+      "series_1": "primary",
+      "series_2": "secondary",
+      "series_3": "tertiary",
+      "series_4": "quaternary",
+      "series_5": "violet",
+      "series_6": "neutral_mid",
+      "heatmap_low": "heatmap_low",
+      "heatmap_mid": "heatmap_mid",
+      "heatmap_high": "heatmap_high",
+      "volcano_up": "volcano_up",
+      "volcano_down": "volcano_down",
+      "volcano_background": "volcano_background",
+      "flow_main_fill": "light",
+      "flow_main_edge": "neutral_mid",
+      "flow_exclusion_fill": "audit_soft",
+      "flow_exclusion_edge": "audit",
+      "flow_primary_fill": "primary_soft",
+      "flow_primary_edge": "primary",
+      "flow_secondary_fill": "secondary_soft",
+      "flow_secondary_edge": "secondary",
+      "flow_context_fill": "violet_soft",
+      "flow_context_edge": "violet",
+      "flow_audit_fill": "audit_soft",
+      "flow_audit_edge": "audit",
+      "flow_title_text": "neutral",
+      "flow_body_text": "neutral",
+      "flow_panel_label": "neutral",
+      "flow_connector": "neutral"
+    },
+    "style_roles": {
+      "model_curve": "#0F4D92",
+      "comparator_curve": "#33B5A5",
+      "reference_line": "#767676",
+      "highlight_band": "#F2F5F7",
+      "text": "#272727",
+      "axis_line": "#272727",
+      "grid_line": "#ECEFF2",
+      "figure_background": "#FFFFFF",
+      "series_1": "#0F4D92",
+      "series_2": "#33B5A5",
+      "series_3": "#D24B40",
+      "series_4": "#E28E2C",
+      "series_5": "#7C6CCF",
+      "series_6": "#767676",
+      "heatmap_low": "#2B6CB0",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B64342",
+      "volcano_up": "#B64342",
+      "volcano_down": "#2B6CB0",
+      "volcano_background": "#B8B8B8",
+      "flow_main_fill": "#F2F5F7",
+      "flow_main_edge": "#767676",
+      "flow_exclusion_fill": "#F6CFCB",
+      "flow_exclusion_edge": "#B64342",
+      "flow_primary_fill": "#DCEAF7",
+      "flow_primary_edge": "#0F4D92",
+      "flow_secondary_fill": "#DDF3F0",
+      "flow_secondary_edge": "#33B5A5",
+      "flow_context_fill": "#E7E1F5",
+      "flow_context_edge": "#7C6CCF",
+      "flow_audit_fill": "#F6CFCB",
+      "flow_audit_edge": "#B64342",
+      "flow_title_text": "#4D4D4D",
+      "flow_body_text": "#4D4D4D",
+      "flow_panel_label": "#4D4D4D",
+      "flow_connector": "#4D4D4D"
+    },
+    "typography": {
+      "font_family": "sans",
+      "base_size": 9.0,
+      "title_size": 10.0,
+      "axis_title_size": 9.0,
+      "tick_size": 8.0,
+      "legend_size": 7.8,
+      "panel_label_size": 9.2
+    },
+    "stroke": {
+      "axis_linewidth": 0.35,
+      "primary_linewidth": 2.0,
+      "secondary_linewidth": 1.55,
+      "reference_linewidth": 0.9,
+      "grid_linewidth": 0.18,
+      "marker_size": 3.4
+    },
+    "grid": {
+      "major": true,
+      "minor": false,
+      "major_axis": "y",
+      "minor_axis": "none",
+      "color": "#ECEFF2",
+      "linetype": "solid"
+    },
+    "layout_override": {
+      "output_width_in": 5.0,
+      "output_height_in": 5.0,
+      "show_figure_title": false
+    },
+    "readability_override": {}
+  }
+}

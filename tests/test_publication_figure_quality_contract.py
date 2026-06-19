@@ -207,7 +207,7 @@ def test_load_figure_render_receipt_requires_backend_export_and_source_boundarie
             "schema_version": 1,
             "receipt_id": "render-receipt-20260618",
             "source_project": "nature-skills",
-            "source_commit": "1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+            "source_commit": "1cb9070fdd94929d5f267ce6585ac87e2cba60b3",
             "figures": [
                 {
                     "figure_id": "F1",

@@ -1,638 +1,1735 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MAS R/ggplot2 模板全量 Gallery</title><style>
-:root{--ink:#13293d;--muted:#607080;--line:#dfe7ee;--bg:#f7f9fb;--card:#fff;--primary:#5f766b;--secondary:#b9ad9c;}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.45}a{color:#1f5f85;text-decoration:none}a:hover{text-decoration:underline}header{padding:28px 36px 18px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:3}h1{margin:0 0 8px;font-size:28px;letter-spacing:0}.sub{max-width:1120px;color:var(--muted);font-size:14px}.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-size:12px;color:#334}.layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:22px;padding:22px 28px 38px}.nav{position:sticky;top:116px;align-self:start;background:#fff;border:1px solid var(--line);padding:14px;border-radius:8px}.nav h2{font-size:13px;margin:0 0 8px;color:#425466}.nav a{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #eef3f6;font-size:13px;color:#21384d}.nav a:first-of-type{border-top:0}.section{margin:0 0 28px}.section h2{margin:0 0 8px;font-size:22px}.section-note{margin:0 0 14px;color:var(--muted);font-size:14px}.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;break-inside:avoid}.card img{display:block;width:100%;height:auto;background:white;border-bottom:1px solid var(--line)}.card-body{padding:12px 14px}.card h3{font-size:16px;margin:0 0 6px}.caption{font-size:13px;color:#425466;margin:0 0 8px}.tags{display:flex;flex-wrap:wrap;gap:6px}.tag{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:3px 7px;background:#fbfdff;color:#4b5d6e}.summary{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:18px}.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.metric{border:1px solid #eef3f6;border-radius:8px;padding:10px}.metric strong{display:block;font-size:23px}.metric span{font-size:12px;color:var(--muted)}.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.swatch{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 8px;font-size:12px}.box{width:18px;height:18px;border-radius:4px;border:1px solid rgba(0,0,0,.12)}.table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}.table th,.table td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}.table th{background:#f3f6f8}.note{font-size:13px;color:var(--muted)}@media(max-width:900px){header{position:static}.layout{display:block;padding:16px}.nav{position:static;margin-bottom:18px}.cards{grid-template-columns:1fr}}@media print{header{position:static}.layout{display:block}.nav{display:none}.cards{grid-template-columns:repeat(2,1fr)}.summary,.section{break-after:auto}.card{break-inside:avoid}body{background:#fff}}
-</style></head>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MAS Display Pack Full Gallery</title>
+<style>
+:root{--ink:#272727;--muted:#666;--line:#e4e7eb;--bg:#f7f8fa;--card:#fff;}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.42}
+a{color:#0f4d92;text-decoration:none}a:hover{text-decoration:underline}
+header{padding:22px 30px 16px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+h1{margin:0 0 8px;font-size:25px;letter-spacing:0}
+.sub{max-width:1080px;color:var(--muted);font-size:14px}
+.meta,.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pill,.swatch{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-size:12px;color:#333}
+.swatch{display:inline-flex;align-items:center;gap:7px}
+.box{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.14)}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px;padding:22px 28px 40px}
+.nav{position:sticky;top:118px;align-self:start;background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}
+.nav h2{font-size:13px;margin:0 0 8px;color:#555}
+.nav a{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #eef1f4;font-size:13px;color:#333}
+.nav a:first-of-type{border-top:0}
+.section{margin:0 0 28px}
+.section h2{margin:0 0 12px;font-size:21px}.section h2 span{font-size:13px;color:var(--muted);font-weight:500}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;break-inside:avoid}
+.panes{display:grid;grid-template-columns:1fr;background:#fff;border-bottom:1px solid var(--line)}
+.panes.compare{grid-template-columns:1fr 1fr}
+.figure-pane{min-width:0;border-right:1px solid var(--line)}
+.figure-pane:last-child{border-right:0}
+.pane-label{font-size:11px;color:#555;padding:7px 9px;border-bottom:1px solid #eef1f4;background:#fbfcfd}
+.image-link{display:block;background:#fff}
+.image-link img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;background:#fff}
+.asset-links{font-size:11px;color:#555;padding:7px 9px;border-top:1px solid #eef1f4}
+.placeholder{height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;text-align:center;background:#fff;border-bottom:1px solid var(--line);color:#555}
+.placeholder strong{color:#333}.placeholder span,.placeholder em{font-size:12px}
+.card-body{padding:11px 12px}
+.card h3{margin:0 0 5px;font-size:15px;line-height:1.28}
+.card p{margin:5px 0;font-size:12px;color:#555}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.tag{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:2px 7px;background:#fbfcfd;color:#555}
+@media(max-width:900px){header{position:static}.layout{display:block;padding:16px}.nav{position:static;margin-bottom:18px}.cards{grid-template-columns:1fr}.panes.compare{grid-template-columns:1fr}.figure-pane{border-right:0;border-bottom:1px solid var(--line)}}
+@media print{@page{size:A4;margin:10mm}header{position:static}.layout{display:block;padding:0}.nav{display:none}.cards{grid-template-columns:repeat(2,1fr);gap:10px}body{background:#fff}.card{break-inside:avoid}}
+</style>
+</head>
 <body>
-<header><h1>MAS R/ggplot2 模板全量 Gallery</h1><div class="sub">全量展示当前 core Display Pack 中 renderer_family 为 <code>r_ggplot2</code> 的 55 个模板。图片由当前仓库 R helper 直接渲染，使用默认 <code>paper_neutral_clinical_v1</code> style token。本文档是人读参考，不构成 publication readiness、artifact authority 或 owner receipt。</div><div class="meta"><span class="pill">style_profile_id: paper_neutral_clinical_v1</span><span class="pill">journal_palette_ref: large_journal_safe_lancet_like_v1</span><span class="pill">rendered templates: 55</span></div></header>
-<div class="layout"><nav class="nav"><h2>分类导航</h2><a href="#family-Prediction-Performance"><span>Prediction Performance</span><strong>3</strong></a>
+<header>
+  <h1>MAS Display Pack Full Gallery</h1>
+  <div class="sub">全量模板预览：当前 R/ggplot2、当前 Python、table shell 占位，以及已迁移 R 模板的可渲染 legacy Python baseline 对比。报错的 legacy Python baseline 已从可视 Gallery 排除，仅在 manifest 中记录。</div>
+  <div class="meta"><span class="pill">style_profile_id: paper_neutral_clinical_v1</span><span class="pill">journal_palette_ref: nature_informed_clinical_publication_v1</span><span class="pill">templates: 98</span><span class="pill">R/ggplot2: 55</span><span class="pill">Python: 36</span><span class="pill">n/a tables: 7</span><span class="pill">rendered images: 91</span><span class="pill">legacy Python comparisons: 28</span></div>
+  <div class="palette"><span class="swatch"><span class="box" style="background:#0F4D92"></span><code>primary</code></span><span class="swatch"><span class="box" style="background:#33B5A5"></span><code>secondary</code></span><span class="swatch"><span class="box" style="background:#D24B40"></span><code>tertiary</code></span><span class="swatch"><span class="box" style="background:#E28E2C"></span><code>quaternary</code></span><span class="swatch"><span class="box" style="background:#7C6CCF"></span><code>violet</code></span><span class="swatch"><span class="box" style="background:#4D4D4D"></span><code>neutral</code></span><span class="swatch"><span class="box" style="background:#2B6CB0"></span><code>heatmap_low</code></span><span class="swatch"><span class="box" style="background:#B64342"></span><code>heatmap_high</code></span></div>
+</header>
+<div class="layout">
+<nav class="nav"><h2>索引</h2><a href="#family-Prediction-Performance"><span>Prediction Performance</span><strong>3</strong></a>
 <a href="#family-Clinical-Utility"><span>Clinical Utility</span><strong>5</strong></a>
 <a href="#family-Time-to-Event"><span>Time-to-Event</span><strong>10</strong></a>
 <a href="#family-Effect-Estimate"><span>Effect Estimate</span><strong>7</strong></a>
-<a href="#family-Generalizability"><span>Generalizability</span><strong>1</strong></a>
-<a href="#family-Data-Geometry"><span>Data Geometry</span><strong>7</strong></a>
+<a href="#family-Generalizability"><span>Generalizability</span><strong>3</strong></a>
+<a href="#family-Data-Geometry"><span>Data Geometry</span><strong>15</strong></a>
 <a href="#family-Matrix-Pattern"><span>Matrix Pattern</span><strong>15</strong></a>
-<a href="#family-Model-Explanation"><span>Model Explanation</span><strong>6</strong></a>
-<a href="#family-Model-Audit"><span>Model Audit</span><strong>1</strong></a></nav><main><section class="summary"><h2>怎么读</h2><p>先看左侧分类，再打开每张卡片图片判断默认视觉效果。卡片显示具体图类型、template id、renderer/execution mode、是否 paper-proven，以及对应 payload/layout sidecar。HTML 使用相对本地图片，适合 Codex 内置浏览器直接打开。</p>
-<div class="summary-grid">
-  <div class="metric"><strong>55</strong><span>R/ggplot2 templates rendered</span></div>
-  <div class="metric"><strong>55</strong><span>r_ggplot2 descriptors</span></div>
-  <div class="metric"><strong>36</strong><span>python descriptors still present</span></div>
-  <div class="metric"><strong>7</strong><span>table / non-figure descriptors</span></div>
-</div>
-<div class="palette"><div class="swatch"><span class="box" style="background:#5F766B"></span><code>primary</code><span>model_curve</span></div>
-<div class="swatch"><span class="box" style="background:#B9AD9C"></span><code>secondary</code><span>comparator_curve</span></div>
-<div class="swatch"><span class="box" style="background:#7B8794"></span><code>neutral</code><span>reference_line</span></div>
-<div class="swatch"><span class="box" style="background:#2F5D8A"></span><code>contrast</code><span>context/accent</span></div>
-<div class="swatch"><span class="box" style="background:#B57F7F"></span><code>audit</code><span>audit/exclusion</span></div>
-<div class="swatch"><span class="box" style="background:#2166AC"></span><code>heatmap_low</code><span>low heatmap</span></div>
-<div class="swatch"><span class="box" style="background:#B2182B"></span><code>heatmap_high</code><span>high heatmap</span></div>
-<div class="swatch"><span class="box" style="background:#13293D"></span><code>text</code><span>text</span></div>
-<div class="swatch"><span class="box" style="background:#E6EDF2"></span><code>grid</code><span>grid</span></div></div></section><section class="summary"><h2>Renderer 覆盖边界</h2><p>当前 MAS 是 R/ggplot2-first，不是 R/ggplot2-only。agent planner 默认偏好 <code>r_ggplot2</code>，但命中仍为 Python 的模板时仍会走 Python renderer。</p><table class="table"><thead><tr><th>renderer_family</th><th>count</th></tr></thead><tbody><tr><td><code>n/a</code></td><td>7</td></tr>
-<tr><td><code>python</code></td><td>36</td></tr>
-<tr><td><code>r_ggplot2</code></td><td>55</td></tr></tbody></table></section>
+<a href="#family-Model-Explanation"><span>Model Explanation</span><strong>19</strong></a>
+<a href="#family-Model-Audit"><span>Model Audit</span><strong>1</strong></a>
+<a href="#family-Publication-Shells-and-Tables"><span>Publication Shells and Tables</span><strong>20</strong></a></nav>
+<main>
 <section class="section" id="family-Prediction-Performance">
-  <h2>Prediction Performance <span class="note">3 templates</span></h2>
-  <p class="section-note">Prediction Performance category, rendered with the same default publication style profile.</p>
+  <h2>Prediction Performance <span>3</span></h2>
   <div class="cards">
 <article class="card" id="template-calibration_curve_binary">
-  <a href="ggplot2_template_reference_assets/calibration_curve_binary.png"><img src="ggplot2_template_reference_assets/calibration_curve_binary.png" alt="Calibration Curve (Binary Outcome)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/calibration_curve_binary.png">
+    <img src="ggplot2_template_reference_assets/calibration_curve_binary.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/calibration_curve_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/calibration_curve_binary.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/calibration_curve_binary.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Calibration Curve (Binary Outcome)</h3>
-    <p class="caption"><code>calibration_curve_binary</code></p>
+    <p><code>calibration_curve_binary</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/calibration_curve_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/calibration_curve_binary.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
 <article class="card" id="template-pr_curve_binary">
-  <a href="ggplot2_template_reference_assets/pr_curve_binary.png"><img src="ggplot2_template_reference_assets/pr_curve_binary.png" alt="Precision-Recall Curve (Binary Outcome)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/pr_curve_binary.png">
+    <img src="ggplot2_template_reference_assets/pr_curve_binary.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/pr_curve_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/pr_curve_binary.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/pr_curve_binary.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Precision-Recall Curve (Binary Outcome)</h3>
-    <p class="caption"><code>pr_curve_binary</code></p>
+    <p><code>pr_curve_binary</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/pr_curve_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/pr_curve_binary.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
 <article class="card" id="template-roc_curve_binary">
-  <a href="ggplot2_template_reference_assets/roc_curve_binary.png"><img src="ggplot2_template_reference_assets/roc_curve_binary.png" alt="ROC Curve (Binary Outcome)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/roc_curve_binary.png">
+    <img src="ggplot2_template_reference_assets/roc_curve_binary.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/roc_curve_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/roc_curve_binary.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/roc_curve_binary.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>ROC Curve (Binary Outcome)</h3>
-    <p class="caption"><code>roc_curve_binary</code></p>
+    <p><code>roc_curve_binary</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/roc_curve_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/roc_curve_binary.layout.json">layout sidecar</a></p>
   </div>
 </article>
-</div>
+  </div>
 </section>
-
 <section class="section" id="family-Clinical-Utility">
-  <h2>Clinical Utility <span class="note">5 templates</span></h2>
-  <p class="section-note">Clinical Utility category, rendered with the same default publication style profile.</p>
+  <h2>Clinical Utility <span>5</span></h2>
   <div class="cards">
 <article class="card" id="template-binary_calibration_decision_curve_panel">
-  <a href="ggplot2_template_reference_assets/binary_calibration_decision_curve_panel.png"><img src="ggplot2_template_reference_assets/binary_calibration_decision_curve_panel.png" alt="Binary Calibration and Decision Curve Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/binary_calibration_decision_curve_panel.png">
+    <img src="ggplot2_template_reference_assets/binary_calibration_decision_curve_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/binary_calibration_decision_curve_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/binary_calibration_decision_curve_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/binary_calibration_decision_curve_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/binary_calibration_decision_curve_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/binary_calibration_decision_curve_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/binary_calibration_decision_curve_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/binary_calibration_decision_curve_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/binary_calibration_decision_curve_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/binary_calibration_decision_curve_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Binary Calibration and Decision Curve Panel</h3>
-    <p class="caption"><code>binary_calibration_decision_curve_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/binary_calibration_decision_curve_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/binary_calibration_decision_curve_panel.layout.json">layout sidecar</a></p>
+    <p><code>binary_calibration_decision_curve_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-clinical_impact_curve_binary">
-  <a href="ggplot2_template_reference_assets/clinical_impact_curve_binary.png"><img src="ggplot2_template_reference_assets/clinical_impact_curve_binary.png" alt="Clinical Impact Curve (Binary Outcome)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/clinical_impact_curve_binary.png">
+    <img src="ggplot2_template_reference_assets/clinical_impact_curve_binary.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/clinical_impact_curve_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/clinical_impact_curve_binary.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/clinical_impact_curve_binary.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Clinical Impact Curve (Binary Outcome)</h3>
-    <p class="caption"><code>clinical_impact_curve_binary</code></p>
+    <p><code>clinical_impact_curve_binary</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/clinical_impact_curve_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/clinical_impact_curve_binary.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
 <article class="card" id="template-decision_curve_binary">
-  <a href="ggplot2_template_reference_assets/decision_curve_binary.png"><img src="ggplot2_template_reference_assets/decision_curve_binary.png" alt="Decision Curve (Binary Outcome)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/decision_curve_binary.png">
+    <img src="ggplot2_template_reference_assets/decision_curve_binary.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/decision_curve_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/decision_curve_binary.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/decision_curve_binary.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Decision Curve (Binary Outcome)</h3>
-    <p class="caption"><code>decision_curve_binary</code></p>
+    <p><code>decision_curve_binary</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/decision_curve_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/decision_curve_binary.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
 <article class="card" id="template-time_to_event_decision_curve">
-  <a href="ggplot2_template_reference_assets/time_to_event_decision_curve.png"><img src="ggplot2_template_reference_assets/time_to_event_decision_curve.png" alt="Decision Curve (Time-to-Event Horizon)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/time_to_event_decision_curve.png">
+    <img src="ggplot2_template_reference_assets/time_to_event_decision_curve.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/time_to_event_decision_curve.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_decision_curve.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/time_to_event_decision_curve.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Decision Curve (Time-to-Event Horizon)</h3>
-    <p class="caption"><code>time_to_event_decision_curve</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/time_to_event_decision_curve.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_decision_curve.layout.json">layout sidecar</a></p>
+    <p><code>time_to_event_decision_curve</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-time_to_event_threshold_governance_panel">
-  <a href="ggplot2_template_reference_assets/time_to_event_threshold_governance_panel.png"><img src="ggplot2_template_reference_assets/time_to_event_threshold_governance_panel.png" alt="Time-to-Event Threshold Governance Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/time_to_event_threshold_governance_panel.png">
+    <img src="ggplot2_template_reference_assets/time_to_event_threshold_governance_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/time_to_event_threshold_governance_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_threshold_governance_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/time_to_event_threshold_governance_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/time_to_event_threshold_governance_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/time_to_event_threshold_governance_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/time_to_event_threshold_governance_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_threshold_governance_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_threshold_governance_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_threshold_governance_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Time-to-Event Threshold Governance Panel</h3>
-    <p class="caption"><code>time_to_event_threshold_governance_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/time_to_event_threshold_governance_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_threshold_governance_panel.layout.json">layout sidecar</a></p>
+    <p><code>time_to_event_threshold_governance_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span></div>
   </div>
 </article>
-</div>
+  </div>
 </section>
-
 <section class="section" id="family-Time-to-Event">
-  <h2>Time-to-Event <span class="note">10 templates</span></h2>
-  <p class="section-note">Time-to-Event category, rendered with the same default publication style profile.</p>
+  <h2>Time-to-Event <span>10</span></h2>
   <div class="cards">
 <article class="card" id="template-cumulative_incidence_grouped">
-  <a href="ggplot2_template_reference_assets/cumulative_incidence_grouped.png"><img src="ggplot2_template_reference_assets/cumulative_incidence_grouped.png" alt="Cumulative Incidence Curve (Grouped)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/cumulative_incidence_grouped.png">
+    <img src="ggplot2_template_reference_assets/cumulative_incidence_grouped.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/cumulative_incidence_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/cumulative_incidence_grouped.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/cumulative_incidence_grouped.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Cumulative Incidence Curve (Grouped)</h3>
-    <p class="caption"><code>cumulative_incidence_grouped</code></p>
+    <p><code>cumulative_incidence_grouped</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/cumulative_incidence_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/cumulative_incidence_grouped.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
 <article class="card" id="template-kaplan_meier_grouped">
-  <a href="ggplot2_template_reference_assets/kaplan_meier_grouped.png"><img src="ggplot2_template_reference_assets/kaplan_meier_grouped.png" alt="Kaplan-Meier Curve (Grouped)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/kaplan_meier_grouped.png">
+    <img src="ggplot2_template_reference_assets/kaplan_meier_grouped.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/kaplan_meier_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/kaplan_meier_grouped.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/kaplan_meier_grouped.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Kaplan-Meier Curve (Grouped)</h3>
-    <p class="caption"><code>kaplan_meier_grouped</code></p>
+    <p><code>kaplan_meier_grouped</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/kaplan_meier_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/kaplan_meier_grouped.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
-<article class="card" id="template-time_to_event_landmark_performance_panel">
-  <a href="ggplot2_template_reference_assets/time_to_event_landmark_performance_panel.png"><img src="ggplot2_template_reference_assets/time_to_event_landmark_performance_panel.png" alt="Landmark Performance Summary Panel (Time-to-Event)"></a>
-  <div class="card-body">
-    <h3>Landmark Performance Summary Panel (Time-to-Event)</h3>
-    <p class="caption"><code>time_to_event_landmark_performance_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/time_to_event_landmark_performance_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_landmark_performance_panel.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
 <article class="card" id="template-risk_layering_monotonic_bars">
-  <a href="ggplot2_template_reference_assets/risk_layering_monotonic_bars.png"><img src="ggplot2_template_reference_assets/risk_layering_monotonic_bars.png" alt="Monotonic Risk Layering Bars"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/risk_layering_monotonic_bars.png">
+    <img src="ggplot2_template_reference_assets/risk_layering_monotonic_bars.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/risk_layering_monotonic_bars.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/risk_layering_monotonic_bars.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/risk_layering_monotonic_bars.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/risk_layering_monotonic_bars.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/risk_layering_monotonic_bars.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/risk_layering_monotonic_bars.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/risk_layering_monotonic_bars.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/risk_layering_monotonic_bars.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/risk_layering_monotonic_bars.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Monotonic Risk Layering Bars</h3>
-    <p class="caption"><code>risk_layering_monotonic_bars</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/risk_layering_monotonic_bars.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/risk_layering_monotonic_bars.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
-<article class="card" id="template-time_to_event_multihorizon_calibration_panel">
-  <a href="ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.png"><img src="ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.png" alt="Multi-Horizon Grouped Calibration Panel (Time-to-Event)"></a>
-  <div class="card-body">
-    <h3>Multi-Horizon Grouped Calibration Panel (Time-to-Event)</h3>
-    <p class="caption"><code>time_to_event_multihorizon_calibration_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
-<article class="card" id="template-time_to_event_risk_group_summary">
-  <a href="ggplot2_template_reference_assets/time_to_event_risk_group_summary.png"><img src="ggplot2_template_reference_assets/time_to_event_risk_group_summary.png" alt="Risk-Group Summary (Time-to-Event)"></a>
-  <div class="card-body">
-    <h3>Risk-Group Summary (Time-to-Event)</h3>
-    <p class="caption"><code>time_to_event_risk_group_summary</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/time_to_event_risk_group_summary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_risk_group_summary.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
-<article class="card" id="template-time_to_event_stratified_cumulative_incidence_panel">
-  <a href="ggplot2_template_reference_assets/time_to_event_stratified_cumulative_incidence_panel.png"><img src="ggplot2_template_reference_assets/time_to_event_stratified_cumulative_incidence_panel.png" alt="Stratified Cumulative Incidence Panel"></a>
-  <div class="card-body">
-    <h3>Stratified Cumulative Incidence Panel</h3>
-    <p class="caption"><code>time_to_event_stratified_cumulative_incidence_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/time_to_event_stratified_cumulative_incidence_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_stratified_cumulative_incidence_panel.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
-<article class="card" id="template-time_dependent_roc_horizon">
-  <a href="ggplot2_template_reference_assets/time_dependent_roc_horizon.png"><img src="ggplot2_template_reference_assets/time_dependent_roc_horizon.png" alt="Time-Dependent ROC (Horizon)"></a>
-  <div class="card-body">
-    <h3>Time-Dependent ROC (Horizon)</h3>
-    <p class="caption"><code>time_dependent_roc_horizon</code></p>
+    <p><code>risk_layering_monotonic_bars</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/time_dependent_roc_horizon.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_dependent_roc_horizon.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
 <article class="card" id="template-time_dependent_roc_comparison_panel">
-  <a href="ggplot2_template_reference_assets/time_dependent_roc_comparison_panel.png"><img src="ggplot2_template_reference_assets/time_dependent_roc_comparison_panel.png" alt="Time-Dependent ROC Comparison Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/time_dependent_roc_comparison_panel.png">
+    <img src="ggplot2_template_reference_assets/time_dependent_roc_comparison_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/time_dependent_roc_comparison_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_dependent_roc_comparison_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/time_dependent_roc_comparison_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/time_dependent_roc_comparison_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/time_dependent_roc_comparison_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/time_dependent_roc_comparison_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_dependent_roc_comparison_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_dependent_roc_comparison_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_dependent_roc_comparison_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Time-Dependent ROC Comparison Panel</h3>
-    <p class="caption"><code>time_dependent_roc_comparison_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/time_dependent_roc_comparison_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_dependent_roc_comparison_panel.layout.json">layout sidecar</a></p>
+    <p><code>time_dependent_roc_comparison_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
+<article class="card" id="template-time_dependent_roc_horizon">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/time_dependent_roc_horizon.png">
+    <img src="ggplot2_template_reference_assets/time_dependent_roc_horizon.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/time_dependent_roc_horizon.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_dependent_roc_horizon.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/time_dependent_roc_horizon.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Time-Dependent ROC (Horizon)</h3>
+    <p><code>time_dependent_roc_horizon</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
 <article class="card" id="template-time_to_event_discrimination_calibration_panel">
-  <a href="ggplot2_template_reference_assets/time_to_event_discrimination_calibration_panel.png"><img src="ggplot2_template_reference_assets/time_to_event_discrimination_calibration_panel.png" alt="Validation Discrimination and Grouped Calibration (Time-to-Event)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/time_to_event_discrimination_calibration_panel.png">
+    <img src="ggplot2_template_reference_assets/time_to_event_discrimination_calibration_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/time_to_event_discrimination_calibration_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_discrimination_calibration_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/time_to_event_discrimination_calibration_panel.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Validation Discrimination and Grouped Calibration (Time-to-Event)</h3>
-    <p class="caption"><code>time_to_event_discrimination_calibration_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/time_to_event_discrimination_calibration_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_discrimination_calibration_panel.layout.json">layout sidecar</a></p>
+    <p><code>time_to_event_discrimination_calibration_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span></div>
   </div>
 </article>
+<article class="card" id="template-time_to_event_landmark_performance_panel">
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/time_to_event_landmark_performance_panel.png">
+    <img src="ggplot2_template_reference_assets/time_to_event_landmark_performance_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/time_to_event_landmark_performance_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_landmark_performance_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/time_to_event_landmark_performance_panel.pdf">PDF</a></div>
 </div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/time_to_event_landmark_performance_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/time_to_event_landmark_performance_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/time_to_event_landmark_performance_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_landmark_performance_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_landmark_performance_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_landmark_performance_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Landmark Performance Summary Panel (Time-to-Event)</h3>
+    <p><code>time_to_event_landmark_performance_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-time_to_event_multihorizon_calibration_panel">
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.png">
+    <img src="ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/time_to_event_multihorizon_calibration_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/time_to_event_multihorizon_calibration_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/time_to_event_multihorizon_calibration_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_multihorizon_calibration_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_multihorizon_calibration_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_multihorizon_calibration_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Multi-Horizon Grouped Calibration Panel (Time-to-Event)</h3>
+    <p><code>time_to_event_multihorizon_calibration_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-time_to_event_risk_group_summary">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/time_to_event_risk_group_summary.png">
+    <img src="ggplot2_template_reference_assets/time_to_event_risk_group_summary.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/time_to_event_risk_group_summary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_risk_group_summary.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/time_to_event_risk_group_summary.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Risk-Group Summary (Time-to-Event)</h3>
+    <p><code>time_to_event_risk_group_summary</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-time_to_event_stratified_cumulative_incidence_panel">
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/time_to_event_stratified_cumulative_incidence_panel.png">
+    <img src="ggplot2_template_reference_assets/time_to_event_stratified_cumulative_incidence_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/time_to_event_stratified_cumulative_incidence_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/time_to_event_stratified_cumulative_incidence_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/time_to_event_stratified_cumulative_incidence_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/time_to_event_stratified_cumulative_incidence_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/time_to_event_stratified_cumulative_incidence_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/time_to_event_stratified_cumulative_incidence_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_stratified_cumulative_incidence_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_stratified_cumulative_incidence_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/time_to_event_stratified_cumulative_incidence_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Stratified Cumulative Incidence Panel</h3>
+    <p><code>time_to_event_stratified_cumulative_incidence_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+  </div>
 </section>
-
 <section class="section" id="family-Effect-Estimate">
-  <h2>Effect Estimate <span class="note">7 templates</span></h2>
-  <p class="section-note">Effect Estimate category, rendered with the same default publication style profile.</p>
+  <h2>Effect Estimate <span>7</span></h2>
   <div class="cards">
 <article class="card" id="template-broader_heterogeneity_summary_panel">
-  <a href="ggplot2_template_reference_assets/broader_heterogeneity_summary_panel.png"><img src="ggplot2_template_reference_assets/broader_heterogeneity_summary_panel.png" alt="Broader Heterogeneity Summary Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/broader_heterogeneity_summary_panel.png">
+    <img src="ggplot2_template_reference_assets/broader_heterogeneity_summary_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/broader_heterogeneity_summary_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/broader_heterogeneity_summary_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/broader_heterogeneity_summary_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/broader_heterogeneity_summary_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/broader_heterogeneity_summary_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/broader_heterogeneity_summary_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/broader_heterogeneity_summary_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/broader_heterogeneity_summary_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/broader_heterogeneity_summary_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Broader Heterogeneity Summary Panel</h3>
-    <p class="caption"><code>broader_heterogeneity_summary_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/broader_heterogeneity_summary_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/broader_heterogeneity_summary_panel.layout.json">layout sidecar</a></p>
+    <p><code>broader_heterogeneity_summary_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-coefficient_path_panel">
-  <a href="ggplot2_template_reference_assets/coefficient_path_panel.png"><img src="ggplot2_template_reference_assets/coefficient_path_panel.png" alt="Coefficient Path Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/coefficient_path_panel.png">
+    <img src="ggplot2_template_reference_assets/coefficient_path_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/coefficient_path_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/coefficient_path_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/coefficient_path_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/coefficient_path_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/coefficient_path_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/coefficient_path_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/coefficient_path_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/coefficient_path_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/coefficient_path_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Coefficient Path Panel</h3>
-    <p class="caption"><code>coefficient_path_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/coefficient_path_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/coefficient_path_panel.layout.json">layout sidecar</a></p>
+    <p><code>coefficient_path_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-compact_effect_estimate_panel">
-  <a href="ggplot2_template_reference_assets/compact_effect_estimate_panel.png"><img src="ggplot2_template_reference_assets/compact_effect_estimate_panel.png" alt="Compact Effect Estimate Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/compact_effect_estimate_panel.png">
+    <img src="ggplot2_template_reference_assets/compact_effect_estimate_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/compact_effect_estimate_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/compact_effect_estimate_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/compact_effect_estimate_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/compact_effect_estimate_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/compact_effect_estimate_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/compact_effect_estimate_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/compact_effect_estimate_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/compact_effect_estimate_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/compact_effect_estimate_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Compact Effect Estimate Panel</h3>
-    <p class="caption"><code>compact_effect_estimate_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/compact_effect_estimate_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/compact_effect_estimate_panel.layout.json">layout sidecar</a></p>
+    <p><code>compact_effect_estimate_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-forest_effect_main">
-  <a href="ggplot2_template_reference_assets/forest_effect_main.png"><img src="ggplot2_template_reference_assets/forest_effect_main.png" alt="Forest Plot (Main Effects)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/forest_effect_main.png">
+    <img src="ggplot2_template_reference_assets/forest_effect_main.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/forest_effect_main.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/forest_effect_main.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/forest_effect_main.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Forest Plot (Main Effects)</h3>
-    <p class="caption"><code>forest_effect_main</code></p>
+    <p><code>forest_effect_main</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/forest_effect_main.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/forest_effect_main.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
-<article class="card" id="template-multivariable_forest">
-  <a href="ggplot2_template_reference_assets/multivariable_forest.png"><img src="ggplot2_template_reference_assets/multivariable_forest.png" alt="Forest Plot (Multivariable Model)"></a>
-  <div class="card-body">
-    <h3>Forest Plot (Multivariable Model)</h3>
-    <p class="caption"><code>multivariable_forest</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/multivariable_forest.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/multivariable_forest.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
-<article class="card" id="template-subgroup_forest">
-  <a href="ggplot2_template_reference_assets/subgroup_forest.png"><img src="ggplot2_template_reference_assets/subgroup_forest.png" alt="Forest Plot (Subgroup Effects)"></a>
-  <div class="card-body">
-    <h3>Forest Plot (Subgroup Effects)</h3>
-    <p class="caption"><code>subgroup_forest</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/subgroup_forest.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/subgroup_forest.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
 <article class="card" id="template-interaction_effect_summary_panel">
-  <a href="ggplot2_template_reference_assets/interaction_effect_summary_panel.png"><img src="ggplot2_template_reference_assets/interaction_effect_summary_panel.png" alt="Interaction Effect Summary Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/interaction_effect_summary_panel.png">
+    <img src="ggplot2_template_reference_assets/interaction_effect_summary_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/interaction_effect_summary_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/interaction_effect_summary_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/interaction_effect_summary_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/interaction_effect_summary_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/interaction_effect_summary_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/interaction_effect_summary_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/interaction_effect_summary_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/interaction_effect_summary_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/interaction_effect_summary_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Interaction Effect Summary Panel</h3>
-    <p class="caption"><code>interaction_effect_summary_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/interaction_effect_summary_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/interaction_effect_summary_panel.layout.json">layout sidecar</a></p>
+    <p><code>interaction_effect_summary_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-</div>
+<article class="card" id="template-multivariable_forest">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/multivariable_forest.png">
+    <img src="ggplot2_template_reference_assets/multivariable_forest.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/multivariable_forest.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/multivariable_forest.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/multivariable_forest.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Forest Plot (Multivariable Model)</h3>
+    <p><code>multivariable_forest</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-subgroup_forest">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/subgroup_forest.png">
+    <img src="ggplot2_template_reference_assets/subgroup_forest.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/subgroup_forest.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/subgroup_forest.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/subgroup_forest.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Forest Plot (Subgroup Effects)</h3>
+    <p><code>subgroup_forest</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+  </div>
 </section>
-
 <section class="section" id="family-Generalizability">
-  <h2>Generalizability <span class="note">1 templates</span></h2>
-  <p class="section-note">Generalizability category, rendered with the same default publication style profile.</p>
+  <h2>Generalizability <span>3</span></h2>
   <div class="cards">
+<article class="card" id="template-center_transportability_governance_summary_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/center_transportability_governance_summary_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/center_transportability_governance_summary_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/center_transportability_governance_summary_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/center_transportability_governance_summary_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/center_transportability_governance_summary_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/center_transportability_governance_summary_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Center Transportability Governance Summary Panel</h3>
+    <p><code>center_transportability_governance_summary_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-multicenter_generalizability_overview">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/multicenter_generalizability_overview.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/multicenter_generalizability_overview.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/multicenter_generalizability_overview.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/multicenter_generalizability_overview.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/multicenter_generalizability_overview.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/multicenter_generalizability_overview.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Multicenter Generalizability Overview</h3>
+    <p><code>multicenter_generalizability_overview</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">paper_proven</span></div>
+  </div>
+</article>
 <article class="card" id="template-generalizability_subgroup_composite_panel">
-  <a href="ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.png"><img src="ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.png" alt="Generalizability and Subgroup Composite Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.png">
+    <img src="ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/generalizability_subgroup_composite_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/generalizability_subgroup_composite_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/generalizability_subgroup_composite_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/generalizability_subgroup_composite_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/generalizability_subgroup_composite_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/generalizability_subgroup_composite_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Generalizability and Subgroup Composite Panel</h3>
-    <p class="caption"><code>generalizability_subgroup_composite_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.layout.json">layout sidecar</a></p>
+    <p><code>generalizability_subgroup_composite_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-</div>
+  </div>
 </section>
-
 <section class="section" id="family-Data-Geometry">
-  <h2>Data Geometry <span class="note">7 templates</span></h2>
-  <p class="section-note">Data Geometry category, rendered with the same default publication style profile.</p>
+  <h2>Data Geometry <span>15</span></h2>
   <div class="cards">
+<article class="card" id="template-atlas_spatial_bridge_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/atlas_spatial_bridge_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/atlas_spatial_bridge_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/atlas_spatial_bridge_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_bridge_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_bridge_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_bridge_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Atlas-Spatial Bridge Panel</h3>
+    <p><code>atlas_spatial_bridge_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-atlas_spatial_trajectory_context_support_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_context_support_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_context_support_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_context_support_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_context_support_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_context_support_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_context_support_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Atlas-Spatial Trajectory Context Support Panel</h3>
+    <p><code>atlas_spatial_trajectory_context_support_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-atlas_spatial_trajectory_density_coverage_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_density_coverage_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_density_coverage_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_density_coverage_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_density_coverage_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_density_coverage_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_density_coverage_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Atlas-Spatial Trajectory Density Coverage Panel</h3>
+    <p><code>atlas_spatial_trajectory_density_coverage_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-atlas_spatial_trajectory_multimanifold_context_support_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_multimanifold_context_support_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_multimanifold_context_support_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_multimanifold_context_support_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_multimanifold_context_support_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_multimanifold_context_support_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_multimanifold_context_support_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Atlas-Spatial Trajectory Multimanifold Context Support Panel</h3>
+    <p><code>atlas_spatial_trajectory_multimanifold_context_support_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-atlas_spatial_trajectory_storyboard_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_storyboard_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_storyboard_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_storyboard_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_storyboard_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_storyboard_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/atlas_spatial_trajectory_storyboard_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Atlas-Spatial Trajectory Storyboard Panel</h3>
+    <p><code>atlas_spatial_trajectory_storyboard_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-single_cell_atlas_overview_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/single_cell_atlas_overview_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/single_cell_atlas_overview_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/single_cell_atlas_overview_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/single_cell_atlas_overview_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/single_cell_atlas_overview_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/single_cell_atlas_overview_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Single-Cell Atlas Overview Panel</h3>
+    <p><code>single_cell_atlas_overview_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-spatial_niche_map_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/spatial_niche_map_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/spatial_niche_map_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/spatial_niche_map_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/spatial_niche_map_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/spatial_niche_map_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/spatial_niche_map_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Spatial Niche Map Panel</h3>
+    <p><code>spatial_niche_map_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-trajectory_progression_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/trajectory_progression_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/trajectory_progression_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/trajectory_progression_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/trajectory_progression_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/trajectory_progression_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/trajectory_progression_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Trajectory Progression Panel</h3>
+    <p><code>trajectory_progression_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
 <article class="card" id="template-celltype_signature_heatmap">
-  <a href="ggplot2_template_reference_assets/celltype_signature_heatmap.png"><img src="ggplot2_template_reference_assets/celltype_signature_heatmap.png" alt="Cell-Type Embedding and Signature Heatmap"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/celltype_signature_heatmap.png">
+    <img src="ggplot2_template_reference_assets/celltype_signature_heatmap.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/celltype_signature_heatmap.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/celltype_signature_heatmap.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/celltype_signature_heatmap.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Cell-Type Embedding and Signature Heatmap</h3>
-    <p class="caption"><code>celltype_signature_heatmap</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/celltype_signature_heatmap.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/celltype_signature_heatmap.layout.json">layout sidecar</a></p>
+    <p><code>celltype_signature_heatmap</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-diffusion_map_scatter_grouped">
-  <a href="ggplot2_template_reference_assets/diffusion_map_scatter_grouped.png"><img src="ggplot2_template_reference_assets/diffusion_map_scatter_grouped.png" alt="Diffusion Map Scatter (Grouped)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/diffusion_map_scatter_grouped.png">
+    <img src="ggplot2_template_reference_assets/diffusion_map_scatter_grouped.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/diffusion_map_scatter_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/diffusion_map_scatter_grouped.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/diffusion_map_scatter_grouped.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Diffusion Map Scatter (Grouped)</h3>
-    <p class="caption"><code>diffusion_map_scatter_grouped</code></p>
+    <p><code>diffusion_map_scatter_grouped</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/diffusion_map_scatter_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/diffusion_map_scatter_grouped.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
 <article class="card" id="template-omics_volcano_panel">
-  <a href="ggplot2_template_reference_assets/omics_volcano_panel.png"><img src="ggplot2_template_reference_assets/omics_volcano_panel.png" alt="Omics Volcano Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/omics_volcano_panel.png">
+    <img src="ggplot2_template_reference_assets/omics_volcano_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/omics_volcano_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/omics_volcano_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/omics_volcano_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/omics_volcano_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/omics_volcano_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/omics_volcano_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/omics_volcano_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/omics_volcano_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/omics_volcano_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Omics Volcano Panel</h3>
-    <p class="caption"><code>omics_volcano_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/omics_volcano_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/omics_volcano_panel.layout.json">layout sidecar</a></p>
+    <p><code>omics_volcano_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-pca_scatter_grouped">
-  <a href="ggplot2_template_reference_assets/pca_scatter_grouped.png"><img src="ggplot2_template_reference_assets/pca_scatter_grouped.png" alt="PCA Scatter (Grouped)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/pca_scatter_grouped.png">
+    <img src="ggplot2_template_reference_assets/pca_scatter_grouped.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/pca_scatter_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/pca_scatter_grouped.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/pca_scatter_grouped.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>PCA Scatter (Grouped)</h3>
-    <p class="caption"><code>pca_scatter_grouped</code></p>
+    <p><code>pca_scatter_grouped</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/pca_scatter_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/pca_scatter_grouped.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
 <article class="card" id="template-phate_scatter_grouped">
-  <a href="ggplot2_template_reference_assets/phate_scatter_grouped.png"><img src="ggplot2_template_reference_assets/phate_scatter_grouped.png" alt="PHATE Scatter (Grouped)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/phate_scatter_grouped.png">
+    <img src="ggplot2_template_reference_assets/phate_scatter_grouped.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/phate_scatter_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/phate_scatter_grouped.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/phate_scatter_grouped.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>PHATE Scatter (Grouped)</h3>
-    <p class="caption"><code>phate_scatter_grouped</code></p>
+    <p><code>phate_scatter_grouped</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/phate_scatter_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/phate_scatter_grouped.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
-<article class="card" id="template-umap_scatter_grouped">
-  <a href="ggplot2_template_reference_assets/umap_scatter_grouped.png"><img src="ggplot2_template_reference_assets/umap_scatter_grouped.png" alt="UMAP Scatter (Grouped)"></a>
-  <div class="card-body">
-    <h3>UMAP Scatter (Grouped)</h3>
-    <p class="caption"><code>umap_scatter_grouped</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/umap_scatter_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/umap_scatter_grouped.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
 <article class="card" id="template-tsne_scatter_grouped">
-  <a href="ggplot2_template_reference_assets/tsne_scatter_grouped.png"><img src="ggplot2_template_reference_assets/tsne_scatter_grouped.png" alt="t-SNE Scatter (Grouped)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/tsne_scatter_grouped.png">
+    <img src="ggplot2_template_reference_assets/tsne_scatter_grouped.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/tsne_scatter_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/tsne_scatter_grouped.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/tsne_scatter_grouped.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>t-SNE Scatter (Grouped)</h3>
-    <p class="caption"><code>tsne_scatter_grouped</code></p>
+    <p><code>tsne_scatter_grouped</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/tsne_scatter_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/tsne_scatter_grouped.layout.json">layout sidecar</a></p>
   </div>
 </article>
-</div>
+<article class="card" id="template-umap_scatter_grouped">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/umap_scatter_grouped.png">
+    <img src="ggplot2_template_reference_assets/umap_scatter_grouped.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/umap_scatter_grouped.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/umap_scatter_grouped.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/umap_scatter_grouped.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>UMAP Scatter (Grouped)</h3>
+    <p><code>umap_scatter_grouped</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+  </div>
 </section>
-
 <section class="section" id="family-Matrix-Pattern">
-  <h2>Matrix Pattern <span class="note">15 templates</span></h2>
-  <p class="section-note">Matrix Pattern category, rendered with the same default publication style profile.</p>
+  <h2>Matrix Pattern <span>15</span></h2>
   <div class="cards">
-<article class="card" id="template-confusion_matrix_heatmap_binary">
-  <a href="ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.png"><img src="ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.png" alt="Binary Confusion Matrix Heatmap"></a>
-  <div class="card-body">
-    <h3>Binary Confusion Matrix Heatmap</h3>
-    <p class="caption"><code>confusion_matrix_heatmap_binary</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
-<article class="card" id="template-cnv_recurrence_summary_panel">
-  <a href="ggplot2_template_reference_assets/cnv_recurrence_summary_panel.png"><img src="ggplot2_template_reference_assets/cnv_recurrence_summary_panel.png" alt="CNV Recurrence Summary Panel"></a>
-  <div class="card-body">
-    <h3>CNV Recurrence Summary Panel</h3>
-    <p class="caption"><code>cnv_recurrence_summary_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/cnv_recurrence_summary_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/cnv_recurrence_summary_panel.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
 <article class="card" id="template-celltype_marker_dotplot_panel">
-  <a href="ggplot2_template_reference_assets/celltype_marker_dotplot_panel.png"><img src="ggplot2_template_reference_assets/celltype_marker_dotplot_panel.png" alt="Cell-Type Marker Dotplot Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/celltype_marker_dotplot_panel.png">
+    <img src="ggplot2_template_reference_assets/celltype_marker_dotplot_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/celltype_marker_dotplot_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/celltype_marker_dotplot_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/celltype_marker_dotplot_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/celltype_marker_dotplot_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/celltype_marker_dotplot_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/celltype_marker_dotplot_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/celltype_marker_dotplot_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/celltype_marker_dotplot_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/celltype_marker_dotplot_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Cell-Type Marker Dotplot Panel</h3>
-    <p class="caption"><code>celltype_marker_dotplot_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/celltype_marker_dotplot_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/celltype_marker_dotplot_panel.layout.json">layout sidecar</a></p>
+    <p><code>celltype_marker_dotplot_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-clustered_heatmap">
-  <a href="ggplot2_template_reference_assets/clustered_heatmap.png"><img src="ggplot2_template_reference_assets/clustered_heatmap.png" alt="Clustered Heatmap (Precomputed Ordering)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/clustered_heatmap.png">
+    <img src="ggplot2_template_reference_assets/clustered_heatmap.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/clustered_heatmap.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/clustered_heatmap.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/clustered_heatmap.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Clustered Heatmap (Precomputed Ordering)</h3>
-    <p class="caption"><code>clustered_heatmap</code></p>
+    <p><code>clustered_heatmap</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/clustered_heatmap.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/clustered_heatmap.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
+<article class="card" id="template-cnv_recurrence_summary_panel">
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/cnv_recurrence_summary_panel.png">
+    <img src="ggplot2_template_reference_assets/cnv_recurrence_summary_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/cnv_recurrence_summary_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/cnv_recurrence_summary_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/cnv_recurrence_summary_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/cnv_recurrence_summary_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/cnv_recurrence_summary_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/cnv_recurrence_summary_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/cnv_recurrence_summary_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/cnv_recurrence_summary_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/cnv_recurrence_summary_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>CNV Recurrence Summary Panel</h3>
+    <p><code>cnv_recurrence_summary_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-confusion_matrix_heatmap_binary">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.png">
+    <img src="ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Binary Confusion Matrix Heatmap</h3>
+    <p><code>confusion_matrix_heatmap_binary</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
 <article class="card" id="template-correlation_heatmap">
-  <a href="ggplot2_template_reference_assets/correlation_heatmap.png"><img src="ggplot2_template_reference_assets/correlation_heatmap.png" alt="Correlation Heatmap"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/correlation_heatmap.png">
+    <img src="ggplot2_template_reference_assets/correlation_heatmap.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/correlation_heatmap.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/correlation_heatmap.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/correlation_heatmap.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Correlation Heatmap</h3>
-    <p class="caption"><code>correlation_heatmap</code></p>
+    <p><code>correlation_heatmap</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/correlation_heatmap.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/correlation_heatmap.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
-<article class="card" id="template-gsva_ssgsea_heatmap">
-  <a href="ggplot2_template_reference_assets/gsva_ssgsea_heatmap.png"><img src="ggplot2_template_reference_assets/gsva_ssgsea_heatmap.png" alt="GSVA/ssGSEA Heatmap"></a>
-  <div class="card-body">
-    <h3>GSVA/ssGSEA Heatmap</h3>
-    <p class="caption"><code>gsva_ssgsea_heatmap</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/gsva_ssgsea_heatmap.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/gsva_ssgsea_heatmap.layout.json">layout sidecar</a></p>
-  </div>
-</article>
-
 <article class="card" id="template-genomic_alteration_consequence_panel">
-  <a href="ggplot2_template_reference_assets/genomic_alteration_consequence_panel.png"><img src="ggplot2_template_reference_assets/genomic_alteration_consequence_panel.png" alt="Genomic Alteration Consequence Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/genomic_alteration_consequence_panel.png">
+    <img src="ggplot2_template_reference_assets/genomic_alteration_consequence_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/genomic_alteration_consequence_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_consequence_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_consequence_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_consequence_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/genomic_alteration_consequence_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_consequence_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_consequence_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_consequence_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_consequence_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Genomic Alteration Consequence Panel</h3>
-    <p class="caption"><code>genomic_alteration_consequence_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/genomic_alteration_consequence_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_consequence_panel.layout.json">layout sidecar</a></p>
+    <p><code>genomic_alteration_consequence_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-genomic_alteration_landscape_panel">
-  <a href="ggplot2_template_reference_assets/genomic_alteration_landscape_panel.png"><img src="ggplot2_template_reference_assets/genomic_alteration_landscape_panel.png" alt="Genomic Alteration Landscape Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/genomic_alteration_landscape_panel.png">
+    <img src="ggplot2_template_reference_assets/genomic_alteration_landscape_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/genomic_alteration_landscape_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_landscape_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_landscape_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_landscape_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/genomic_alteration_landscape_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_landscape_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_landscape_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_landscape_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_landscape_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Genomic Alteration Landscape Panel</h3>
-    <p class="caption"><code>genomic_alteration_landscape_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/genomic_alteration_landscape_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_landscape_panel.layout.json">layout sidecar</a></p>
+    <p><code>genomic_alteration_landscape_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-genomic_alteration_multiomic_consequence_panel">
-  <a href="ggplot2_template_reference_assets/genomic_alteration_multiomic_consequence_panel.png"><img src="ggplot2_template_reference_assets/genomic_alteration_multiomic_consequence_panel.png" alt="Genomic Alteration Multiomic Consequence Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/genomic_alteration_multiomic_consequence_panel.png">
+    <img src="ggplot2_template_reference_assets/genomic_alteration_multiomic_consequence_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/genomic_alteration_multiomic_consequence_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_multiomic_consequence_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_multiomic_consequence_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_multiomic_consequence_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/genomic_alteration_multiomic_consequence_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_multiomic_consequence_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_multiomic_consequence_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_multiomic_consequence_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_multiomic_consequence_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Genomic Alteration Multiomic Consequence Panel</h3>
-    <p class="caption"><code>genomic_alteration_multiomic_consequence_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/genomic_alteration_multiomic_consequence_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_multiomic_consequence_panel.layout.json">layout sidecar</a></p>
+    <p><code>genomic_alteration_multiomic_consequence_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-genomic_alteration_pathway_integrated_composite_panel">
-  <a href="ggplot2_template_reference_assets/genomic_alteration_pathway_integrated_composite_panel.png"><img src="ggplot2_template_reference_assets/genomic_alteration_pathway_integrated_composite_panel.png" alt="Genomic Alteration Pathway-Integrated Composite Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/genomic_alteration_pathway_integrated_composite_panel.png">
+    <img src="ggplot2_template_reference_assets/genomic_alteration_pathway_integrated_composite_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/genomic_alteration_pathway_integrated_composite_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_pathway_integrated_composite_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_pathway_integrated_composite_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_pathway_integrated_composite_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/genomic_alteration_pathway_integrated_composite_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_pathway_integrated_composite_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_pathway_integrated_composite_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_pathway_integrated_composite_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_alteration_pathway_integrated_composite_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Genomic Alteration Pathway-Integrated Composite Panel</h3>
-    <p class="caption"><code>genomic_alteration_pathway_integrated_composite_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/genomic_alteration_pathway_integrated_composite_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/genomic_alteration_pathway_integrated_composite_panel.layout.json">layout sidecar</a></p>
+    <p><code>genomic_alteration_pathway_integrated_composite_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-genomic_program_governance_summary_panel">
-  <a href="ggplot2_template_reference_assets/genomic_program_governance_summary_panel.png"><img src="ggplot2_template_reference_assets/genomic_program_governance_summary_panel.png" alt="Genomic Program Governance Summary Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/genomic_program_governance_summary_panel.png">
+    <img src="ggplot2_template_reference_assets/genomic_program_governance_summary_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/genomic_program_governance_summary_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/genomic_program_governance_summary_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/genomic_program_governance_summary_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/genomic_program_governance_summary_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/genomic_program_governance_summary_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/genomic_program_governance_summary_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_program_governance_summary_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_program_governance_summary_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/genomic_program_governance_summary_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Genomic Program Governance Summary Panel</h3>
-    <p class="caption"><code>genomic_program_governance_summary_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/genomic_program_governance_summary_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/genomic_program_governance_summary_panel.layout.json">layout sidecar</a></p>
+    <p><code>genomic_program_governance_summary_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
+<article class="card" id="template-gsva_ssgsea_heatmap">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/gsva_ssgsea_heatmap.png">
+    <img src="ggplot2_template_reference_assets/gsva_ssgsea_heatmap.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/gsva_ssgsea_heatmap.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/gsva_ssgsea_heatmap.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/gsva_ssgsea_heatmap.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>GSVA/ssGSEA Heatmap</h3>
+    <p><code>gsva_ssgsea_heatmap</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
 <article class="card" id="template-heatmap_group_comparison">
-  <a href="ggplot2_template_reference_assets/heatmap_group_comparison.png"><img src="ggplot2_template_reference_assets/heatmap_group_comparison.png" alt="Heatmap (Group Comparison)"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/heatmap_group_comparison.png">
+    <img src="ggplot2_template_reference_assets/heatmap_group_comparison.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/heatmap_group_comparison.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/heatmap_group_comparison.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/heatmap_group_comparison.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Heatmap (Group Comparison)</h3>
-    <p class="caption"><code>heatmap_group_comparison</code></p>
+    <p><code>heatmap_group_comparison</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/heatmap_group_comparison.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/heatmap_group_comparison.layout.json">layout sidecar</a></p>
   </div>
 </article>
-
 <article class="card" id="template-oncoplot_mutation_landscape_panel">
-  <a href="ggplot2_template_reference_assets/oncoplot_mutation_landscape_panel.png"><img src="ggplot2_template_reference_assets/oncoplot_mutation_landscape_panel.png" alt="Oncoplot Mutation Landscape Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/oncoplot_mutation_landscape_panel.png">
+    <img src="ggplot2_template_reference_assets/oncoplot_mutation_landscape_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/oncoplot_mutation_landscape_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/oncoplot_mutation_landscape_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/oncoplot_mutation_landscape_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/oncoplot_mutation_landscape_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/oncoplot_mutation_landscape_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/oncoplot_mutation_landscape_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/oncoplot_mutation_landscape_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/oncoplot_mutation_landscape_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/oncoplot_mutation_landscape_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Oncoplot Mutation Landscape Panel</h3>
-    <p class="caption"><code>oncoplot_mutation_landscape_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/oncoplot_mutation_landscape_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/oncoplot_mutation_landscape_panel.layout.json">layout sidecar</a></p>
+    <p><code>oncoplot_mutation_landscape_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-pathway_enrichment_dotplot_panel">
-  <a href="ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.png"><img src="ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.png" alt="Pathway Enrichment Dotplot Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.png">
+    <img src="ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/pathway_enrichment_dotplot_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/pathway_enrichment_dotplot_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/pathway_enrichment_dotplot_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/pathway_enrichment_dotplot_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/pathway_enrichment_dotplot_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/pathway_enrichment_dotplot_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Pathway Enrichment Dotplot Panel</h3>
-    <p class="caption"><code>pathway_enrichment_dotplot_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.layout.json">layout sidecar</a></p>
+    <p><code>pathway_enrichment_dotplot_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-performance_heatmap">
-  <a href="ggplot2_template_reference_assets/performance_heatmap.png"><img src="ggplot2_template_reference_assets/performance_heatmap.png" alt="Performance Heatmap"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/performance_heatmap.png">
+    <img src="ggplot2_template_reference_assets/performance_heatmap.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/performance_heatmap.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/performance_heatmap.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/performance_heatmap.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Performance Heatmap</h3>
-    <p class="caption"><code>performance_heatmap</code></p>
+    <p><code>performance_heatmap</code></p>
     <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/performance_heatmap.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/performance_heatmap.layout.json">layout sidecar</a></p>
   </div>
 </article>
-</div>
+  </div>
 </section>
-
 <section class="section" id="family-Model-Explanation">
-  <h2>Model Explanation <span class="note">6 templates</span></h2>
-  <p class="section-note">Model Explanation category, rendered with the same default publication style profile.</p>
+  <h2>Model Explanation <span>19</span></h2>
   <div class="cards">
+<article class="card" id="template-accumulated_local_effects_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/accumulated_local_effects_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/accumulated_local_effects_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/accumulated_local_effects_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/accumulated_local_effects_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/accumulated_local_effects_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/accumulated_local_effects_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Accumulated Local Effects Panel</h3>
+    <p><code>accumulated_local_effects_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-feature_response_support_domain_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/feature_response_support_domain_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/feature_response_support_domain_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/feature_response_support_domain_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/feature_response_support_domain_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/feature_response_support_domain_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/feature_response_support_domain_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Feature Response Support Domain Panel</h3>
+    <p><code>feature_response_support_domain_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-partial_dependence_ice_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/partial_dependence_ice_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/partial_dependence_ice_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/partial_dependence_ice_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_ice_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_ice_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_ice_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Partial Dependence and ICE Panel</h3>
+    <p><code>partial_dependence_ice_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-partial_dependence_interaction_contour_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_contour_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_contour_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_contour_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_contour_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_contour_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_contour_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Partial Dependence Interaction Contour Panel</h3>
+    <p><code>partial_dependence_interaction_contour_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-partial_dependence_interaction_slice_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_slice_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_slice_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_slice_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_slice_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_slice_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_interaction_slice_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Partial Dependence Interaction Slice Panel</h3>
+    <p><code>partial_dependence_interaction_slice_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-partial_dependence_subgroup_comparison_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/partial_dependence_subgroup_comparison_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/partial_dependence_subgroup_comparison_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/partial_dependence_subgroup_comparison_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_subgroup_comparison_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_subgroup_comparison_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/partial_dependence_subgroup_comparison_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Partial Dependence Subgroup Comparison Panel</h3>
+    <p><code>partial_dependence_subgroup_comparison_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-shap_grouped_decision_path_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/shap_grouped_decision_path_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/shap_grouped_decision_path_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/shap_grouped_decision_path_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/shap_grouped_decision_path_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/shap_grouped_decision_path_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/shap_grouped_decision_path_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>SHAP Grouped Decision Path Panel</h3>
+    <p><code>shap_grouped_decision_path_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-shap_grouped_local_explanation_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/shap_grouped_local_explanation_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/shap_grouped_local_explanation_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/shap_grouped_local_explanation_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/shap_grouped_local_explanation_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/shap_grouped_local_explanation_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/shap_grouped_local_explanation_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>SHAP Grouped Local Explanation Panel</h3>
+    <p><code>shap_grouped_local_explanation_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-shap_grouped_local_support_domain_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/shap_grouped_local_support_domain_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/shap_grouped_local_support_domain_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/shap_grouped_local_support_domain_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/shap_grouped_local_support_domain_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/shap_grouped_local_support_domain_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/shap_grouped_local_support_domain_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>SHAP Grouped Local Support-Domain Panel</h3>
+    <p><code>shap_grouped_local_support_domain_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-shap_multigroup_decision_path_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>SHAP Multigroup Decision Path Panel</h3>
+    <p><code>shap_multigroup_decision_path_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-shap_multigroup_decision_path_support_domain_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_support_domain_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_support_domain_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_support_domain_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_support_domain_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_support_domain_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/shap_multigroup_decision_path_support_domain_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>SHAP Multigroup Decision Path Support-Domain Panel</h3>
+    <p><code>shap_multigroup_decision_path_support_domain_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-shap_signed_importance_local_support_domain_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/shap_signed_importance_local_support_domain_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/shap_signed_importance_local_support_domain_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/shap_signed_importance_local_support_domain_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/shap_signed_importance_local_support_domain_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/shap_signed_importance_local_support_domain_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/shap_signed_importance_local_support_domain_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>SHAP Signed Importance Local Support-Domain Panel</h3>
+    <p><code>shap_signed_importance_local_support_domain_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-shap_signed_importance_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/shap_signed_importance_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/shap_signed_importance_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/shap_signed_importance_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/shap_signed_importance_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/shap_signed_importance_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/shap_signed_importance_panel.python.pdf">PDF</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>SHAP Signed Importance Panel</h3>
+    <p><code>shap_signed_importance_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
 <article class="card" id="template-shap_bar_importance">
-  <a href="ggplot2_template_reference_assets/shap_bar_importance.png"><img src="ggplot2_template_reference_assets/shap_bar_importance.png" alt="SHAP Bar Importance Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/shap_bar_importance.png">
+    <img src="ggplot2_template_reference_assets/shap_bar_importance.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/shap_bar_importance.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_bar_importance.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/shap_bar_importance.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/shap_bar_importance.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/shap_bar_importance.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/shap_bar_importance.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_bar_importance.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_bar_importance.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_bar_importance.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>SHAP Bar Importance Panel</h3>
-    <p class="caption"><code>shap_bar_importance</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/shap_bar_importance.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_bar_importance.layout.json">layout sidecar</a></p>
+    <p><code>shap_bar_importance</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-shap_dependence_panel">
-  <a href="ggplot2_template_reference_assets/shap_dependence_panel.png"><img src="ggplot2_template_reference_assets/shap_dependence_panel.png" alt="SHAP Dependence Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/shap_dependence_panel.png">
+    <img src="ggplot2_template_reference_assets/shap_dependence_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/shap_dependence_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_dependence_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/shap_dependence_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/shap_dependence_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/shap_dependence_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/shap_dependence_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_dependence_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_dependence_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_dependence_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>SHAP Dependence Panel</h3>
-    <p class="caption"><code>shap_dependence_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/shap_dependence_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_dependence_panel.layout.json">layout sidecar</a></p>
+    <p><code>shap_dependence_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-shap_force_like_summary_panel">
-  <a href="ggplot2_template_reference_assets/shap_force_like_summary_panel.png"><img src="ggplot2_template_reference_assets/shap_force_like_summary_panel.png" alt="SHAP Force-like Summary Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/shap_force_like_summary_panel.png">
+    <img src="ggplot2_template_reference_assets/shap_force_like_summary_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/shap_force_like_summary_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_force_like_summary_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/shap_force_like_summary_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/shap_force_like_summary_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/shap_force_like_summary_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/shap_force_like_summary_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_force_like_summary_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_force_like_summary_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_force_like_summary_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>SHAP Force-like Summary Panel</h3>
-    <p class="caption"><code>shap_force_like_summary_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/shap_force_like_summary_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_force_like_summary_panel.layout.json">layout sidecar</a></p>
+    <p><code>shap_force_like_summary_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-shap_multicohort_importance_panel">
-  <a href="ggplot2_template_reference_assets/shap_multicohort_importance_panel.png"><img src="ggplot2_template_reference_assets/shap_multicohort_importance_panel.png" alt="SHAP Multicohort Importance Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/shap_multicohort_importance_panel.png">
+    <img src="ggplot2_template_reference_assets/shap_multicohort_importance_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/shap_multicohort_importance_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_multicohort_importance_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/shap_multicohort_importance_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/shap_multicohort_importance_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/shap_multicohort_importance_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/shap_multicohort_importance_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_multicohort_importance_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_multicohort_importance_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_multicohort_importance_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>SHAP Multicohort Importance Panel</h3>
-    <p class="caption"><code>shap_multicohort_importance_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/shap_multicohort_importance_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_multicohort_importance_panel.layout.json">layout sidecar</a></p>
+    <p><code>shap_multicohort_importance_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-shap_summary_beeswarm">
-  <a href="ggplot2_template_reference_assets/shap_summary_beeswarm.png"><img src="ggplot2_template_reference_assets/shap_summary_beeswarm.png" alt="SHAP Summary Beeswarm"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/shap_summary_beeswarm.png">
+    <img src="ggplot2_template_reference_assets/shap_summary_beeswarm.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/shap_summary_beeswarm.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_summary_beeswarm.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/shap_summary_beeswarm.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/shap_summary_beeswarm.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/shap_summary_beeswarm.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/shap_summary_beeswarm.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_summary_beeswarm.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_summary_beeswarm.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_summary_beeswarm.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>SHAP Summary Beeswarm</h3>
-    <p class="caption"><code>shap_summary_beeswarm</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/shap_summary_beeswarm.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_summary_beeswarm.layout.json">layout sidecar</a></p>
+    <p><code>shap_summary_beeswarm</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-
 <article class="card" id="template-shap_waterfall_local_explanation_panel">
-  <a href="ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.png"><img src="ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.png" alt="SHAP Waterfall Local Explanation Panel"></a>
+  <div class="panes compare">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.png">
+    <img src="ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.pdf">PDF</a></div>
+</div>
+<div class="figure-pane">
+  <div class="pane-label">Legacy Python baseline</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_baseline/shap_waterfall_local_explanation_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_baseline/shap_waterfall_local_explanation_panel.python.gallery.png" alt="Legacy Python baseline">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_baseline/shap_waterfall_local_explanation_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_waterfall_local_explanation_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_waterfall_local_explanation_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_baseline/shap_waterfall_local_explanation_panel.python.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>SHAP Waterfall Local Explanation Panel</h3>
-    <p class="caption"><code>shap_waterfall_local_explanation_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.layout.json">layout sidecar</a></p>
+    <p><code>shap_waterfall_local_explanation_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-</div>
+  </div>
 </section>
-
 <section class="section" id="family-Model-Audit">
-  <h2>Model Audit <span class="note">1 templates</span></h2>
-  <p class="section-note">Model Audit category, rendered with the same default publication style profile.</p>
+  <h2>Model Audit <span>1</span></h2>
   <div class="cards">
 <article class="card" id="template-model_complexity_audit_panel">
-  <a href="ggplot2_template_reference_assets/model_complexity_audit_panel.png"><img src="ggplot2_template_reference_assets/model_complexity_audit_panel.png" alt="Model Complexity Audit Panel"></a>
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">R / ggplot2</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/model_complexity_audit_panel.png">
+    <img src="ggplot2_template_reference_assets/model_complexity_audit_panel.png" alt="R / ggplot2">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/model_complexity_audit_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/model_complexity_audit_panel.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/model_complexity_audit_panel.pdf">PDF</a></div>
+</div></div>
   <div class="card-body">
     <h3>Model Complexity Audit Panel</h3>
-    <p class="caption"><code>model_complexity_audit_panel</code></p>
-    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span><span class="tag">previous:python</span><span class="tag">candidate_helper</span></div>
-    <p class="caption"><a href="ggplot2_template_reference_assets/model_complexity_audit_panel.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/model_complexity_audit_panel.layout.json">layout sidecar</a></p>
+    <p><code>model_complexity_audit_panel</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">r_ggplot2</span><span class="tag">subprocess</span><span class="tag">not_paper_proven</span></div>
   </div>
 </article>
-</div>
+  </div>
 </section>
-</main></div>
-</body></html>
+<section class="section" id="family-Publication-Shells-and-Tables">
+  <h2>Publication Shells and Tables <span>20</span></h2>
+  <div class="cards">
+<article class="card" id="template-phenotype_gap_structure_figure">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/phenotype_gap_structure_figure.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/phenotype_gap_structure_figure.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/phenotype_gap_structure_figure.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/phenotype_gap_structure_figure.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/phenotype_gap_structure_figure.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/phenotype_gap_structure_figure.python.pdf">PDF</a> · <a href="ggplot2_template_reference_assets/python_current/phenotype_gap_structure_figure.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Phenotype Gap Structure Figure</h3>
+    <p><code>phenotype_gap_structure_figure</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-practical_factor_dot_figure">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/practical_factor_dot_figure.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/practical_factor_dot_figure.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/practical_factor_dot_figure.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/practical_factor_dot_figure.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/practical_factor_dot_figure.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/practical_factor_dot_figure.python.pdf">PDF</a> · <a href="ggplot2_template_reference_assets/python_current/practical_factor_dot_figure.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Practical Factor Dot Figure</h3>
+    <p><code>practical_factor_dot_figure</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-preferred_class_sensitivity_figure">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/preferred_class_sensitivity_figure.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/preferred_class_sensitivity_figure.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/preferred_class_sensitivity_figure.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/preferred_class_sensitivity_figure.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/preferred_class_sensitivity_figure.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/preferred_class_sensitivity_figure.python.pdf">PDF</a> · <a href="ggplot2_template_reference_assets/python_current/preferred_class_sensitivity_figure.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Preferred Class Sensitivity Figure</h3>
+    <p><code>preferred_class_sensitivity_figure</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-site_held_out_stability_figure">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/site_held_out_stability_figure.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/site_held_out_stability_figure.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/site_held_out_stability_figure.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/site_held_out_stability_figure.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/site_held_out_stability_figure.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/site_held_out_stability_figure.python.pdf">PDF</a> · <a href="ggplot2_template_reference_assets/python_current/site_held_out_stability_figure.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Site-Held-Out Stability Figure</h3>
+    <p><code>site_held_out_stability_figure</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-treatment_gap_alignment_figure">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/treatment_gap_alignment_figure.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/treatment_gap_alignment_figure.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/treatment_gap_alignment_figure.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/treatment_gap_alignment_figure.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/treatment_gap_alignment_figure.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/treatment_gap_alignment_figure.python.pdf">PDF</a> · <a href="ggplot2_template_reference_assets/python_current/treatment_gap_alignment_figure.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Treatment Gap Alignment Figure</h3>
+    <p><code>treatment_gap_alignment_figure</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-treatment_shift_alignment_figure">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/treatment_shift_alignment_figure.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/treatment_shift_alignment_figure.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/treatment_shift_alignment_figure.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/treatment_shift_alignment_figure.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/treatment_shift_alignment_figure.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/treatment_shift_alignment_figure.python.pdf">PDF</a> · <a href="ggplot2_template_reference_assets/python_current/treatment_shift_alignment_figure.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Treatment Shift Alignment Figure</h3>
+    <p><code>treatment_shift_alignment_figure</code></p>
+    <div class="tags"><span class="tag">evidence_figure</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-baseline_missingness_qc_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/baseline_missingness_qc_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/baseline_missingness_qc_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/baseline_missingness_qc_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/baseline_missingness_qc_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/baseline_missingness_qc_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/baseline_missingness_qc_panel.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Baseline Missingness QC Panel</h3>
+    <p><code>baseline_missingness_qc_panel</code></p>
+    <div class="tags"><span class="tag">illustration_shell</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-center_coverage_batch_transportability_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/center_coverage_batch_transportability_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/center_coverage_batch_transportability_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/center_coverage_batch_transportability_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/center_coverage_batch_transportability_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/center_coverage_batch_transportability_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/center_coverage_batch_transportability_panel.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Center Coverage Batch Transportability Panel</h3>
+    <p><code>center_coverage_batch_transportability_panel</code></p>
+    <div class="tags"><span class="tag">illustration_shell</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-cohort_flow_figure">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/cohort_flow_figure.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/cohort_flow_figure.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/cohort_flow_figure.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/cohort_flow_figure.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/cohort_flow_figure.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/cohort_flow_figure.python.pdf">PDF</a> · <a href="ggplot2_template_reference_assets/python_current/cohort_flow_figure.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Cohort Flow Figure</h3>
+    <p><code>cohort_flow_figure</code></p>
+    <div class="tags"><span class="tag">illustration_shell</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-design_evidence_composite_shell">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/design_evidence_composite_shell.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/design_evidence_composite_shell.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/design_evidence_composite_shell.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/design_evidence_composite_shell.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/design_evidence_composite_shell.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/design_evidence_composite_shell.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Design Evidence Composite Shell</h3>
+    <p><code>design_evidence_composite_shell</code></p>
+    <div class="tags"><span class="tag">illustration_shell</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-submission_graphical_abstract">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/submission_graphical_abstract.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/submission_graphical_abstract.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/submission_graphical_abstract.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/submission_graphical_abstract.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/submission_graphical_abstract.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/submission_graphical_abstract.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Submission Graphical Abstract</h3>
+    <p><code>submission_graphical_abstract</code></p>
+    <div class="tags"><span class="tag">illustration_shell</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-transportability_recalibration_governance_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/transportability_recalibration_governance_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/transportability_recalibration_governance_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/transportability_recalibration_governance_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/transportability_recalibration_governance_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/transportability_recalibration_governance_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/transportability_recalibration_governance_panel.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Transportability Recalibration Governance Panel</h3>
+    <p><code>transportability_recalibration_governance_panel</code></p>
+    <div class="tags"><span class="tag">illustration_shell</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-workflow_fact_sheet_panel">
+  <div class="panes">
+<div class="figure-pane">
+  <div class="pane-label">Python</div>
+  <a class="image-link" href="ggplot2_template_reference_assets/python_current/workflow_fact_sheet_panel.python.gallery.png">
+    <img src="ggplot2_template_reference_assets/python_current/workflow_fact_sheet_panel.python.gallery.png" alt="Python">
+  </a>
+  <div class="asset-links"><a href="ggplot2_template_reference_assets/python_current/workflow_fact_sheet_panel.python.payload.json">payload</a> · <a href="ggplot2_template_reference_assets/python_current/workflow_fact_sheet_panel.python.layout.json">layout</a> · <a href="ggplot2_template_reference_assets/python_current/workflow_fact_sheet_panel.python.png">raw PNG</a> · <a href="ggplot2_template_reference_assets/python_current/workflow_fact_sheet_panel.python.svg">SVG</a></div>
+</div></div>
+  <div class="card-body">
+    <h3>Workflow Fact Sheet Panel</h3>
+    <p><code>workflow_fact_sheet_panel</code></p>
+    <div class="tags"><span class="tag">illustration_shell</span><span class="tag">python</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-grouped_risk_event_summary_table">
+  <div class="panes"><div class="placeholder"><strong>Grouped Risk Event Summary Table</strong><span>table_shell · n/a</span><em>table_shell_or_non_visual_template</em></div></div>
+  <div class="card-body">
+    <h3>Grouped Risk Event Summary Table</h3>
+    <p><code>grouped_risk_event_summary_table</code></p>
+    <div class="tags"><span class="tag">table_shell</span><span class="tag">n/a</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-performance_summary_table_generic">
+  <div class="panes"><div class="placeholder"><strong>Performance Summary Table (Generic)</strong><span>table_shell · n/a</span><em>table_shell_or_non_visual_template</em></div></div>
+  <div class="card-body">
+    <h3>Performance Summary Table (Generic)</h3>
+    <p><code>performance_summary_table_generic</code></p>
+    <div class="tags"><span class="tag">table_shell</span><span class="tag">n/a</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-table1_baseline_characteristics">
+  <div class="panes"><div class="placeholder"><strong>Table 1 Baseline Characteristics</strong><span>table_shell · n/a</span><em>table_shell_or_non_visual_template</em></div></div>
+  <div class="card-body">
+    <h3>Table 1 Baseline Characteristics</h3>
+    <p><code>table1_baseline_characteristics</code></p>
+    <div class="tags"><span class="tag">table_shell</span><span class="tag">n/a</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-table2_phenotype_gap_summary">
+  <div class="panes"><div class="placeholder"><strong>Table 2 Phenotype Gap Summary</strong><span>table_shell · n/a</span><em>table_shell_or_non_visual_template</em></div></div>
+  <div class="card-body">
+    <h3>Table 2 Phenotype Gap Summary</h3>
+    <p><code>table2_phenotype_gap_summary</code></p>
+    <div class="tags"><span class="tag">table_shell</span><span class="tag">n/a</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-table2_time_to_event_performance_summary">
+  <div class="panes"><div class="placeholder"><strong>Table 2 Time-to-Event Performance Summary</strong><span>table_shell · n/a</span><em>table_shell_or_non_visual_template</em></div></div>
+  <div class="card-body">
+    <h3>Table 2 Time-to-Event Performance Summary</h3>
+    <p><code>table2_time_to_event_performance_summary</code></p>
+    <div class="tags"><span class="tag">table_shell</span><span class="tag">n/a</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-table3_clinical_interpretation_summary">
+  <div class="panes"><div class="placeholder"><strong>Table 3 Clinical Interpretation Summary</strong><span>table_shell · n/a</span><em>table_shell_or_non_visual_template</em></div></div>
+  <div class="card-body">
+    <h3>Table 3 Clinical Interpretation Summary</h3>
+    <p><code>table3_clinical_interpretation_summary</code></p>
+    <div class="tags"><span class="tag">table_shell</span><span class="tag">n/a</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+<article class="card" id="template-table3_transition_site_support_summary">
+  <div class="panes"><div class="placeholder"><strong>Table 3 Transition Site Support Summary</strong><span>table_shell · n/a</span><em>table_shell_or_non_visual_template</em></div></div>
+  <div class="card-body">
+    <h3>Table 3 Transition Site Support Summary</h3>
+    <p><code>table3_transition_site_support_summary</code></p>
+    <div class="tags"><span class="tag">table_shell</span><span class="tag">n/a</span><span class="tag">python_plugin</span><span class="tag">not_paper_proven</span></div>
+  </div>
+</article>
+  </div>
+</section></main>
+</div>
+</body>
+</html>

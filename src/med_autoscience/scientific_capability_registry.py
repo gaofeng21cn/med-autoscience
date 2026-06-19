@@ -47,7 +47,7 @@ _STANDARD_AGENT_FALSE_COMPLETION_BLOCKERS = (
     "hosted_consumption_packet_without_live_owner_answer",
     "domain_local_selector_or_always_on_sidecar",
 )
-NATURE_SKILLS_SOURCE_HEAD = "1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547"
+NATURE_SKILLS_SOURCE_HEAD = "1cb9070fdd94929d5f267ce6585ac87e2cba60b3"
 NATURE_FIGURE_CONTRACT_REFS = (
     (
         "external:nature-skills@"

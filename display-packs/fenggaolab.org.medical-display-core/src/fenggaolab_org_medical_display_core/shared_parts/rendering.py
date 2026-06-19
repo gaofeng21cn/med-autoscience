@@ -28,7 +28,12 @@ def _prepare_python_illustration_output_paths(
 
 
 def _apply_publication_axes_style(axes) -> None:
-    axes.grid(axis="x", color="#e6edf2", linewidth=0.4)
-    axes.grid(axis="y", visible=False)
+    axes.grid(axis="x", visible=False)
+    axes.grid(axis="y", color="#eceff2", linewidth=0.35, linestyle="-", zorder=0)
     axes.spines["top"].set_visible(False)
     axes.spines["right"].set_visible(False)
+    for spine_name in ("left", "bottom"):
+        axes.spines[spine_name].set_visible(True)
+        axes.spines[spine_name].set_color("#272727")
+        axes.spines[spine_name].set_linewidth(0.6)
+    axes.tick_params(axis="both", colors="#272727", width=0.6)

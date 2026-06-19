@@ -1,0 +1,166 @@
+{
+  "template_id": "site_held_out_stability_figure",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.23360714285714268,
+      "y0": 0.9448000000000001,
+      "x1": 0.24023593073593055,
+      "y1": 0.9648000000000001
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.6260714285714285,
+      "y0": 0.9448000000000001,
+      "x1": 0.6316585497835497,
+      "y1": 0.9648000000000001
+    },
+    {
+      "box_id": "transition_panel_title",
+      "box_type": "subplot_title",
+      "x0": 0.2617889610389609,
+      "y0": 0.9305555555555555,
+      "x1": 0.3952169913419912,
+      "y1": 0.9505555555555555
+    },
+    {
+      "box_id": "site_support_panel_title",
+      "box_type": "subplot_title",
+      "x0": 0.6564285714285714,
+      "y0": 0.9305555555555555,
+      "x1": 0.7766937229437227,
+      "y1": 0.9505555555555555
+    },
+    {
+      "box_id": "transition_x_axis_title",
+      "box_type": "x_axis_title",
+      "x0": 0.36178896103896097,
+      "y0": 0.16801329459580985,
+      "x1": 0.44360714285714276,
+      "y1": 0.18801329459580984
+    },
+    {
+      "box_id": "transition_y_axis_title",
+      "box_type": "y_axis_title",
+      "x0": 0.17729822029822012,
+      "y0": 0.5190625,
+      "x1": 0.18638912938912922,
+      "y1": 0.7009375
+    },
+    {
+      "box_id": "site_support_x_axis_title",
+      "box_type": "x_axis_title",
+      "x0": 0.7447199675324674,
+      "y0": 0.14375726385187218,
+      "x1": 0.8717086038961037,
+      "y1": 0.16375726385187217
+    },
+    {
+      "box_id": "site_support_y_axis_title",
+      "box_type": "y_axis_title",
+      "x0": 0.6224113155363155,
+      "y0": 0.5332291666666668,
+      "x1": 0.6315022246272246,
+      "y1": 0.6867708333333333
+    },
+    {
+      "box_id": "transition_colorbar_title",
+      "box_type": "colorbar_title",
+      "x0": 0.5908386844636843,
+      "y0": 0.47718750000000004,
+      "x1": 0.5999295935545934,
+      "y1": 0.7428125000000001
+    },
+    {
+      "box_id": "site_support_note",
+      "box_type": "annotation_block",
+      "x0": 0.6624999999999999,
+      "y0": 0.8814,
+      "x1": 0.7902462121212122,
+      "y1": 0.9013999999999999
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_transition_heatmap",
+      "box_type": "transition_heatmap_panel",
+      "x0": 0.2617889610389609,
+      "y0": 0.3,
+      "x1": 0.5436071428571427,
+      "y1": 0.92
+    },
+    {
+      "box_id": "panel_site_support",
+      "box_type": "site_support_panel",
+      "x0": 0.6564285714285714,
+      "y0": 0.3,
+      "x1": 0.9599999999999999,
+      "y1": 0.92
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "transition_colorbar",
+      "box_type": "colorbar",
+      "x0": 0.5518214285714285,
+      "y0": 0.3,
+      "x1": 0.5659123376623375,
+      "y1": 0.92
+    }
+  ],
+  "metrics": {
+    "transition_rows": [
+      {
+        "source_phenotype_label": "Phenotype A",
+        "target_phenotype_label": "Phenotype A",
+        "patient_count": 84,
+        "share_of_transition_patients": 0.62
+      },
+      {
+        "source_phenotype_label": "Phenotype A",
+        "target_phenotype_label": "Phenotype B",
+        "patient_count": 51,
+        "share_of_transition_patients": 0.38
+      },
+      {
+        "source_phenotype_label": "Phenotype B",
+        "target_phenotype_label": "Phenotype B",
+        "patient_count": 93,
+        "share_of_transition_patients": 0.67
+      },
+      {
+        "source_phenotype_label": "Phenotype B",
+        "target_phenotype_label": "Phenotype A",
+        "patient_count": 45,
+        "share_of_transition_patients": 0.33
+      }
+    ],
+    "site_fold_rows": [
+      {
+        "fold_id": "fold_1",
+        "index_patients": 120,
+        "share_of_index_patients": 0.34
+      },
+      {
+        "fold_id": "fold_2",
+        "index_patients": 111,
+        "share_of_index_patients": 0.31
+      },
+      {
+        "fold_id": "pooled_small_site",
+        "index_patients": 121,
+        "share_of_index_patients": 0.35
+      }
+    ],
+    "visit_coverage": 0.83,
+    "eligible_site_count": 6
+  }
+}

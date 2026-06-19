@@ -6,7 +6,7 @@
   "machine_boundary": "This contract records MAS-native learning/adoption status. It is not a publication authority, quality verdict, default skill source, vendor runner, MAS truth writer, or generated prompt loader.",
   "source": {
     "project": "Yuan1z0825/nature-skills",
-    "observed_head": "1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+    "observed_head": "1cb9070fdd94929d5f267ce6585ac87e2cba60b3",
     "observed_date": "2026-06-18",
     "evidence_commands": [
       "git ls-remote https://github.com/Yuan1z0825/nature-skills.git HEAD refs/heads/main",

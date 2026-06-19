@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 NATURE_SKILLS_ADOPTION_CONTRACT = (
     REPO_ROOT / "contracts/nature_skills_learning_adoption.json"
 )
-UPSTREAM_HEAD_2026_06_18 = "1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547"
+UPSTREAM_HEAD_2026_06_18 = "1cb9070fdd94929d5f267ce6585ac87e2cba60b3"
 
 
 def _load_nature_skills_adoption_contract() -> dict[str, object]:

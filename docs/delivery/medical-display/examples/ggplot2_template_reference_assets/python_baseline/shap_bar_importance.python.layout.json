@@ -1,0 +1,162 @@
+{
+  "template_id": "shap_bar_importance",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "x_axis_title",
+      "box_type": "x_axis_title",
+      "x0": 0.5268918918918919,
+      "y0": 0.056787439613526565,
+      "x1": 0.7431081081081081,
+      "y1": 0.0828743961352657
+    },
+    {
+      "box_id": "feature_label_1",
+      "box_type": "feature_label",
+      "x0": 0.2549174174174174,
+      "y0": 0.8190683229813664,
+      "x1": 0.284984984984985,
+      "y1": 0.8451552795031055
+    },
+    {
+      "box_id": "feature_label_2",
+      "box_type": "feature_label",
+      "x0": 0.21927552552552554,
+      "y0": 0.6262111801242235,
+      "x1": 0.284984984984985,
+      "y1": 0.6522981366459627
+    },
+    {
+      "box_id": "feature_label_3",
+      "box_type": "feature_label",
+      "x0": 0.19714714714714715,
+      "y0": 0.43335403726708066,
+      "x1": 0.284984984984985,
+      "y1": 0.4594409937888198
+    },
+    {
+      "box_id": "feature_label_4",
+      "box_type": "feature_label",
+      "x0": 0.1778903903903904,
+      "y0": 0.24049689440993782,
+      "x1": 0.284984984984985,
+      "y1": 0.26658385093167697
+    },
+    {
+      "box_id": "importance_bar_1",
+      "box_type": "importance_bar",
+      "x0": 0.30000000000000004,
+      "y0": 0.7783571428571427,
+      "x1": 0.7703189378910424,
+      "y1": 0.8902142857142856
+    },
+    {
+      "box_id": "importance_bar_2",
+      "box_type": "importance_bar",
+      "x0": 0.30000000000000004,
+      "y0": 0.5855,
+      "x1": 0.6399587974973295,
+      "y1": 0.6973571428571429
+    },
+    {
+      "box_id": "importance_bar_3",
+      "box_type": "importance_bar",
+      "x0": 0.30000000000000004,
+      "y0": 0.39264285714285707,
+      "x1": 0.545383793682283,
+      "y1": 0.5045
+    },
+    {
+      "box_id": "importance_bar_4",
+      "box_type": "importance_bar",
+      "x0": 0.30000000000000004,
+      "y0": 0.19978571428571418,
+      "x1": 0.4814817640775218,
+      "y1": 0.31164285714285705
+    },
+    {
+      "box_id": "value_label_1",
+      "box_type": "value_label",
+      "x0": 0.8086601556538991,
+      "y0": 0.8212422360248447,
+      "x1": 0.8534236691674127,
+      "y1": 0.8473291925465839
+    },
+    {
+      "box_id": "value_label_2",
+      "box_type": "value_label",
+      "x0": 0.6783000152601864,
+      "y0": 0.6283850931677017,
+      "x1": 0.7227256909358621,
+      "y1": 0.654472049689441
+    },
+    {
+      "box_id": "value_label_3",
+      "box_type": "value_label",
+      "x0": 0.5837250114451398,
+      "y0": 0.43552795031055896,
+      "x1": 0.6284885249586533,
+      "y1": 0.46161490683229806
+    },
+    {
+      "box_id": "value_label_4",
+      "box_type": "value_label",
+      "x0": 0.5198229818403785,
+      "y0": 0.2426708074534161,
+      "x1": 0.564586495353892,
+      "y1": 0.2687577639751552
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel",
+      "box_type": "panel",
+      "x0": 0.30000000000000004,
+      "y0": 0.14,
+      "x1": 0.97,
+      "y1": 0.9500000000000001
+    }
+  ],
+  "guide_boxes": [],
+  "metrics": {
+    "bars": [
+      {
+        "rank": 1,
+        "feature": "Age",
+        "importance_value": 0.184,
+        "bar_box_id": "importance_bar_1",
+        "feature_label_box_id": "feature_label_1",
+        "value_label_box_id": "value_label_1"
+      },
+      {
+        "rank": 2,
+        "feature": "Albumin",
+        "importance_value": 0.133,
+        "bar_box_id": "importance_bar_2",
+        "feature_label_box_id": "feature_label_2",
+        "value_label_box_id": "value_label_2"
+      },
+      {
+        "rank": 3,
+        "feature": "Tumor size",
+        "importance_value": 0.096,
+        "bar_box_id": "importance_bar_3",
+        "feature_label_box_id": "feature_label_3",
+        "value_label_box_id": "value_label_3"
+      },
+      {
+        "rank": 4,
+        "feature": "Platelet count",
+        "importance_value": 0.071,
+        "bar_box_id": "importance_bar_4",
+        "feature_label_box_id": "feature_label_4",
+        "value_label_box_id": "value_label_4"
+      }
+    ]
+  }
+}

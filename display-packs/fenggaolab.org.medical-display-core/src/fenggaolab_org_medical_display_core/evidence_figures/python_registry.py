@@ -27,6 +27,7 @@ from .clinical_time_to_event import (
     _render_python_time_to_event_stratified_cumulative_incidence_panel,
     _render_python_time_to_event_threshold_governance_panel,
 )
+from .descriptive_display import _render_python_descriptive_display_figure
 from .effect_generalizability import (
     _render_python_broader_heterogeneity_summary_panel,
     _render_python_center_transportability_governance_summary_panel,
@@ -138,6 +139,9 @@ _PYTHON_EVIDENCE_RENDERERS = {
     "time_to_event_decision_curve": _render_python_time_to_event_decision_curve,
     "time_to_event_discrimination_calibration_panel": _render_python_time_to_event_discrimination_calibration_panel,
     "multicenter_generalizability_overview": _render_python_multicenter_generalizability_overview,
+    "treatment_shift_alignment_figure": _render_python_descriptive_display_figure,
+    "practical_factor_dot_figure": _render_python_descriptive_display_figure,
+    "preferred_class_sensitivity_figure": _render_python_descriptive_display_figure,
 }
 
 

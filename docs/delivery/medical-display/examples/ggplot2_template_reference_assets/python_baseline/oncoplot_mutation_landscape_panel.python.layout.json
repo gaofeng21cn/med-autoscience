@@ -1,0 +1,374 @@
+{
+  "template_id": "oncoplot_mutation_landscape_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.13670634920634922,
+      "y0": 0.3293264654308618,
+      "x1": 0.1509920634920635,
+      "y1": 0.4683889654308618
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.20700000000000005,
+      "y0": 0.8578571428571429,
+      "x1": 0.22202976190476195,
+      "y1": 0.89
+    },
+    {
+      "box_id": "annotation_track_label_cohort",
+      "box_type": "annotation_track_label",
+      "x0": 0.13882738095238098,
+      "y0": 0.6879004437446321,
+      "x1": 0.18600000000000003,
+      "y1": 0.7093290151732036
+    },
+    {
+      "box_id": "annotation_track_label_response",
+      "box_type": "annotation_track_label",
+      "x0": 0.12037500000000002,
+      "y0": 0.6214675780131693,
+      "x1": 0.18600000000000003,
+      "y1": 0.6428961494417408
+    },
+    {
+      "box_id": "burden_bar_D1",
+      "box_type": "bar",
+      "x0": 0.21553323434361082,
+      "y0": 0.7530811623246494,
+      "x1": 0.3039531836841646,
+      "y1": 0.8930038648726023
+    },
+    {
+      "box_id": "burden_bar_D2",
+      "box_type": "bar",
+      "x0": 0.33501965237138615,
+      "y0": 0.7530811623246494,
+      "x1": 0.42343960171194,
+      "y1": 0.8930038648726023
+    },
+    {
+      "box_id": "burden_bar_V1",
+      "box_type": "bar",
+      "x0": 0.4545060703991616,
+      "y0": 0.7530811623246494,
+      "x1": 0.5429260197397154,
+      "y1": 0.8930038648726023
+    },
+    {
+      "box_id": "burden_bar_V2",
+      "box_type": "bar",
+      "x0": 0.573992488426937,
+      "y0": 0.7530811623246494,
+      "x1": 0.6624124377674907,
+      "y1": 0.8930038648726023
+    },
+    {
+      "box_id": "freq_bar_TP53",
+      "box_type": "bar",
+      "x0": 0.7250484758494192,
+      "y0": 0.4739779559118237,
+      "x1": 0.8750111867344813,
+      "y1": 0.5622144288577154
+    },
+    {
+      "box_id": "freq_bar_KRAS",
+      "box_type": "bar",
+      "x0": 0.7250484758494192,
+      "y0": 0.3547394789579159,
+      "x1": 0.8000298312919503,
+      "y1": 0.4429759519038077
+    },
+    {
+      "box_id": "freq_bar_EGFR",
+      "box_type": "bar",
+      "x0": 0.7250484758494192,
+      "y0": 0.2355010020040081,
+      "x1": 0.8000298312919503,
+      "y1": 0.3237374749498999
+    },
+    {
+      "box_id": "annotation_cohort_D1",
+      "box_type": "annotation_cell",
+      "x0": 0.2,
+      "y0": 0.6653982965931864,
+      "x1": 0.3194864180277754,
+      "y1": 0.7318311623246494
+    },
+    {
+      "box_id": "annotation_cohort_D2",
+      "box_type": "annotation_cell",
+      "x0": 0.3194864180277754,
+      "y0": 0.6653982965931864,
+      "x1": 0.4389728360555507,
+      "y1": 0.7318311623246494
+    },
+    {
+      "box_id": "annotation_cohort_V1",
+      "box_type": "annotation_cell",
+      "x0": 0.43897283605555076,
+      "y0": 0.6653982965931864,
+      "x1": 0.5584592540833262,
+      "y1": 0.7318311623246494
+    },
+    {
+      "box_id": "annotation_cohort_V2",
+      "box_type": "annotation_cell",
+      "x0": 0.5584592540833262,
+      "y0": 0.6653982965931864,
+      "x1": 0.6779456721111016,
+      "y1": 0.7318311623246494
+    },
+    {
+      "box_id": "annotation_response_D1",
+      "box_type": "annotation_cell",
+      "x0": 0.2,
+      "y0": 0.5989654308617235,
+      "x1": 0.3194864180277754,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "annotation_response_D2",
+      "box_type": "annotation_cell",
+      "x0": 0.3194864180277754,
+      "y0": 0.5989654308617235,
+      "x1": 0.4389728360555507,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "annotation_response_V1",
+      "box_type": "annotation_cell",
+      "x0": 0.43897283605555076,
+      "y0": 0.5989654308617235,
+      "x1": 0.5584592540833262,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "annotation_response_V2",
+      "box_type": "annotation_cell",
+      "x0": 0.5584592540833262,
+      "y0": 0.5989654308617235,
+      "x1": 0.6779456721111016,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "mutation_TP53_D1",
+      "box_type": "mutation_cell",
+      "x0": 0.2,
+      "y0": 0.45847695390781573,
+      "x1": 0.3194864180277754,
+      "y1": 0.5777154308617235
+    },
+    {
+      "box_id": "mutation_TP53_V1",
+      "box_type": "mutation_cell",
+      "x0": 0.43897283605555076,
+      "y0": 0.45847695390781573,
+      "x1": 0.5584592540833262,
+      "y1": 0.5777154308617235
+    },
+    {
+      "box_id": "mutation_KRAS_D2",
+      "box_type": "mutation_cell",
+      "x0": 0.3194864180277754,
+      "y0": 0.33923847695390785,
+      "x1": 0.4389728360555507,
+      "y1": 0.4584769539078156
+    },
+    {
+      "box_id": "mutation_EGFR_V2",
+      "box_type": "mutation_cell",
+      "x0": 0.5584592540833262,
+      "y0": 0.22000000000000006,
+      "x1": 0.6779456721111016,
+      "y1": 0.33923847695390785
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_burden",
+      "box_type": "panel",
+      "x0": 0.2,
+      "y0": 0.7530811623246494,
+      "x1": 0.6779456721111016,
+      "y1": 0.9
+    },
+    {
+      "box_id": "panel_annotations",
+      "box_type": "panel",
+      "x0": 0.2,
+      "y0": 0.5989654308617235,
+      "x1": 0.6779456721111016,
+      "y1": 0.7318311623246494
+    },
+    {
+      "box_id": "panel_matrix",
+      "box_type": "panel",
+      "x0": 0.2,
+      "y0": 0.22000000000000008,
+      "x1": 0.6779456721111016,
+      "y1": 0.5777154308617235
+    },
+    {
+      "box_id": "panel_frequency",
+      "box_type": "panel",
+      "x0": 0.7250484758494192,
+      "y0": 0.22000000000000008,
+      "x1": 0.92,
+      "y1": 0.5777154308617235
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "legend",
+      "box_type": "legend",
+      "x0": 0.28833333333333344,
+      "y0": 0.030168650793650796,
+      "x1": 0.7716666666666668,
+      "y1": 0.09767857142857143
+    }
+  ],
+  "metrics": {
+    "mutation_legend_title": "Alteration",
+    "sample_ids": [
+      "D1",
+      "D2",
+      "V1",
+      "V2"
+    ],
+    "gene_labels": [
+      "TP53",
+      "KRAS",
+      "EGFR"
+    ],
+    "annotation_tracks": [
+      {
+        "track_id": "cohort",
+        "track_label": "Cohort",
+        "track_label_box_id": "annotation_track_label_cohort",
+        "cells": [
+          {
+            "sample_id": "D1",
+            "category_label": "Discovery",
+            "box_id": "annotation_cohort_D1"
+          },
+          {
+            "sample_id": "D2",
+            "category_label": "Discovery",
+            "box_id": "annotation_cohort_D2"
+          },
+          {
+            "sample_id": "V1",
+            "category_label": "Validation",
+            "box_id": "annotation_cohort_V1"
+          },
+          {
+            "sample_id": "V2",
+            "category_label": "Validation",
+            "box_id": "annotation_cohort_V2"
+          }
+        ]
+      },
+      {
+        "track_id": "response",
+        "track_label": "Response",
+        "track_label_box_id": "annotation_track_label_response",
+        "cells": [
+          {
+            "sample_id": "D1",
+            "category_label": "Responder",
+            "box_id": "annotation_response_D1"
+          },
+          {
+            "sample_id": "D2",
+            "category_label": "Non-responder",
+            "box_id": "annotation_response_D2"
+          },
+          {
+            "sample_id": "V1",
+            "category_label": "Responder",
+            "box_id": "annotation_response_V1"
+          },
+          {
+            "sample_id": "V2",
+            "category_label": "Non-responder",
+            "box_id": "annotation_response_V2"
+          }
+        ]
+      }
+    ],
+    "sample_burdens": [
+      {
+        "sample_id": "D1",
+        "altered_gene_count": 1,
+        "bar_box_id": "burden_bar_D1"
+      },
+      {
+        "sample_id": "D2",
+        "altered_gene_count": 1,
+        "bar_box_id": "burden_bar_D2"
+      },
+      {
+        "sample_id": "V1",
+        "altered_gene_count": 1,
+        "bar_box_id": "burden_bar_V1"
+      },
+      {
+        "sample_id": "V2",
+        "altered_gene_count": 1,
+        "bar_box_id": "burden_bar_V2"
+      }
+    ],
+    "gene_altered_frequencies": [
+      {
+        "gene_label": "TP53",
+        "altered_fraction": 0.5,
+        "bar_box_id": "freq_bar_TP53"
+      },
+      {
+        "gene_label": "KRAS",
+        "altered_fraction": 0.25,
+        "bar_box_id": "freq_bar_KRAS"
+      },
+      {
+        "gene_label": "EGFR",
+        "altered_fraction": 0.25,
+        "bar_box_id": "freq_bar_EGFR"
+      }
+    ],
+    "altered_cells": [
+      {
+        "sample_id": "D1",
+        "gene_label": "TP53",
+        "alteration_class": "missense",
+        "box_id": "mutation_TP53_D1"
+      },
+      {
+        "sample_id": "V1",
+        "gene_label": "TP53",
+        "alteration_class": "truncating",
+        "box_id": "mutation_TP53_V1"
+      },
+      {
+        "sample_id": "D2",
+        "gene_label": "KRAS",
+        "alteration_class": "amplification",
+        "box_id": "mutation_KRAS_D2"
+      },
+      {
+        "sample_id": "V2",
+        "gene_label": "EGFR",
+        "alteration_class": "fusion",
+        "box_id": "mutation_EGFR_V2"
+      }
+    ]
+  }
+}

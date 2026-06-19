@@ -110,11 +110,11 @@ def test_scientific_capability_registry_resolves_nature_figure_display_refs_only
     assert candidate["authority_boundary"]["can_write_publication_eval"] is False
     assert candidate["authority_boundary"]["can_authorize_quality_verdict"] is False
     assert {
-        "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/SKILL.md",
-        "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/manifest.yaml",
-        "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/figure-contract.md",
-        "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/qa-contract.md",
-        "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/backend-selection.md",
+        "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/SKILL.md",
+        "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/manifest.yaml",
+        "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/references/figure-contract.md",
+        "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/references/qa-contract.md",
+        "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/references/backend-selection.md",
     } == set(candidate["contract_refs"])
     assert candidate["readback"] == {
         "surface_kind": "mas_scientific_capability_readback",

@@ -33,9 +33,9 @@ def test_builds_refs_only_reviewer_repair_action_projection() -> None:
     assert result["typed_blocker_candidates"] == []
     assert result["source_refs"] == {
         "external_skill_refs": [
-            "nature-skills@1609daf:skills/nature-response",
-            "nature-skills@1609daf:skills/nature-reader",
-            "nature-skills@1609daf:skills/nature-reviewer",
+            "nature-skills@1cb9070:skills/nature-response",
+            "nature-skills@1cb9070:skills/nature-reader",
+            "nature-skills@1cb9070:skills/nature-reviewer",
         ],
         "mas_contract_refs": [
             "journal_response_pack",

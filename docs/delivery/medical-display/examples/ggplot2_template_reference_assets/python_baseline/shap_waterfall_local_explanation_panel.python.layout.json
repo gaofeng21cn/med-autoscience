@@ -1,0 +1,422 @@
+{
+  "template_id": "shap_waterfall_local_explanation_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "panel_title_A",
+      "box_type": "panel_title",
+      "x0": 0.30775740563784043,
+      "y0": 0.8947685185185185,
+      "x1": 0.5078947682752031,
+      "y1": 0.9197685185185185
+    },
+    {
+      "box_id": "x_axis_title_A",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.2813150979455327,
+      "y0": 0.10025462962962965,
+      "x1": 0.5343370759675108,
+      "y1": 0.12525462962962966
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.25220000000000004,
+      "y0": 0.8155,
+      "x1": 0.2664857142857143,
+      "y1": 0.853
+    },
+    {
+      "box_id": "case_label_A",
+      "box_type": "case_label",
+      "x0": 0.30730434782608695,
+      "y0": 0.8208500000000001,
+      "x1": 0.4717274247491639,
+      "y1": 0.8458500000000001
+    },
+    {
+      "box_id": "baseline_label_A",
+      "box_type": "baseline_label",
+      "x0": 0.26591304347826084,
+      "y0": 0.7677333333333334,
+      "x1": 0.3476438127090301,
+      "y1": 0.79065
+    },
+    {
+      "box_id": "prediction_label_A",
+      "box_type": "prediction_label",
+      "x0": 0.45674462494027723,
+      "y0": 0.7677333333333334,
+      "x1": 0.5497391304347827,
+      "y1": 0.79065
+    },
+    {
+      "box_id": "feature_label_A_1",
+      "box_type": "feature_label",
+      "x0": 0.1555128205128205,
+      "y0": 0.693927304964539,
+      "x1": 0.25084249084249083,
+      "y1": 0.718927304964539
+    },
+    {
+      "box_id": "feature_label_A_2",
+      "box_type": "feature_label",
+      "x0": 0.12694139194139192,
+      "y0": 0.5471187943262412,
+      "x1": 0.25084249084249083,
+      "y1": 0.5721187943262412
+    },
+    {
+      "box_id": "feature_label_A_3",
+      "box_type": "feature_label",
+      "x0": 0.09589743589743588,
+      "y0": 0.4003102836879433,
+      "x1": 0.25084249084249083,
+      "y1": 0.42531028368794327
+    },
+    {
+      "box_id": "feature_label_A_4",
+      "box_type": "feature_label",
+      "x0": 0.12021062271062269,
+      "y0": 0.25350177304964544,
+      "x1": 0.25084249084249083,
+      "y1": 0.2785017730496454
+    },
+    {
+      "box_id": "contribution_bar_A_1",
+      "box_type": "contribution_bar",
+      "x0": 0.3034782608695652,
+      "y0": 0.664468085106383,
+      "x1": 0.4078260869565217,
+      "y1": 0.7525531914893617
+    },
+    {
+      "box_id": "contribution_label_A_1",
+      "box_type": "contribution_label",
+      "x0": 0.41698359611403085,
+      "y0": 0.697052304964539,
+      "x1": 0.4548956840261188,
+      "y1": 0.7199689716312057
+    },
+    {
+      "box_id": "contribution_bar_A_2",
+      "box_type": "contribution_bar",
+      "x0": 0.4078260869565217,
+      "y0": 0.5176595744680851,
+      "x1": 0.4773913043478261,
+      "y1": 0.6057446808510638
+    },
+    {
+      "box_id": "contribution_label_A_2",
+      "box_type": "contribution_label",
+      "x0": 0.4865488135053353,
+      "y0": 0.5502437943262412,
+      "x1": 0.5244609014174232,
+      "y1": 0.5731604609929078
+    },
+    {
+      "box_id": "contribution_bar_A_3",
+      "box_type": "contribution_bar",
+      "x0": 0.45130434782608697,
+      "y0": 0.3708510638297873,
+      "x1": 0.4773913043478261,
+      "y1": 0.458936170212766
+    },
+    {
+      "box_id": "contribution_label_A_3",
+      "box_type": "contribution_label",
+      "x0": 0.4069820035037427,
+      "y0": 0.4034352836879433,
+      "x1": 0.44214683866857785,
+      "y1": 0.42635195035460993
+    },
+    {
+      "box_id": "contribution_bar_A_4",
+      "box_type": "contribution_bar",
+      "x0": 0.45130434782608697,
+      "y0": 0.22404255319148936,
+      "x1": 0.48608695652173917,
+      "y1": 0.3121276595744681
+    },
+    {
+      "box_id": "contribution_label_A_4",
+      "box_type": "contribution_label",
+      "x0": 0.49524446567924835,
+      "y0": 0.25662677304964543,
+      "x1": 0.5330191909539737,
+      "y1": 0.27954343971631207
+    },
+    {
+      "box_id": "panel_title_B",
+      "box_type": "panel_title",
+      "x0": 0.6888085284280938,
+      "y0": 0.8947685185185185,
+      "x1": 0.895539297658863,
+      "y1": 0.9197685185185185
+    },
+    {
+      "box_id": "x_axis_title_B",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.6656629240324894,
+      "y0": 0.10025462962962965,
+      "x1": 0.9186849020544674,
+      "y1": 0.12525462962962966
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.6365478260869565,
+      "y0": 0.8155,
+      "x1": 0.6483610129001433,
+      "y1": 0.853
+    },
+    {
+      "box_id": "case_label_B",
+      "box_type": "case_label",
+      "x0": 0.6916521739130436,
+      "y0": 0.8208500000000001,
+      "x1": 0.8558005255613952,
+      "y1": 0.8458500000000001
+    },
+    {
+      "box_id": "baseline_label_B",
+      "box_type": "baseline_label",
+      "x0": 0.6502608695652174,
+      "y0": 0.7677333333333334,
+      "x1": 0.731854276158624,
+      "y1": 0.79065
+    },
+    {
+      "box_id": "prediction_label_B",
+      "box_type": "prediction_label",
+      "x0": 0.8409550883898711,
+      "y0": 0.7677333333333334,
+      "x1": 0.9340869565217392,
+      "y1": 0.79065
+    },
+    {
+      "box_id": "feature_label_B_1",
+      "box_type": "feature_label",
+      "x0": 0.5398606465997771,
+      "y0": 0.6502815315315315,
+      "x1": 0.6351903169294474,
+      "y1": 0.6752815315315315
+    },
+    {
+      "box_id": "feature_label_B_2",
+      "box_type": "feature_label",
+      "x0": 0.5111518553909858,
+      "y0": 0.46379504504504504,
+      "x1": 0.6351903169294474,
+      "y1": 0.488795045045045
+    },
+    {
+      "box_id": "feature_label_B_3",
+      "box_type": "feature_label",
+      "x0": 0.49288262462175503,
+      "y0": 0.2773085585585585,
+      "x1": 0.6351903169294474,
+      "y1": 0.30230855855855854
+    },
+    {
+      "box_id": "contribution_bar_B_1",
+      "box_type": "contribution_bar",
+      "x0": 0.8008695652173914,
+      "y0": 0.6089189189189189,
+      "x1": 0.896521739130435,
+      "y1": 0.7208108108108108
+    },
+    {
+      "box_id": "contribution_label_B_1",
+      "box_type": "contribution_label",
+      "x0": 0.7565472208950471,
+      "y0": 0.6534065315315315,
+      "x1": 0.7917120560598823,
+      "y1": 0.6763231981981981
+    },
+    {
+      "box_id": "contribution_bar_B_2",
+      "box_type": "contribution_bar",
+      "x0": 0.7400000000000001,
+      "y0": 0.4224324324324324,
+      "x1": 0.8008695652173914,
+      "y1": 0.5343243243243242
+    },
+    {
+      "box_id": "contribution_label_B_2",
+      "box_type": "contribution_label",
+      "x0": 0.6958150183150184,
+      "y0": 0.46692004504504503,
+      "x1": 0.7308424908424909,
+      "y1": 0.48983671171171167
+    },
+    {
+      "box_id": "contribution_bar_B_3",
+      "box_type": "contribution_bar",
+      "x0": 0.7400000000000001,
+      "y0": 0.23594594594594595,
+      "x1": 0.7747826086956523,
+      "y1": 0.3478378378378378
+    },
+    {
+      "box_id": "contribution_label_B_3",
+      "box_type": "contribution_label",
+      "x0": 0.7839401178531615,
+      "y0": 0.28043355855855856,
+      "x1": 0.8217148431278868,
+      "y1": 0.3033502252252252
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_A",
+      "box_type": "panel",
+      "x0": 0.26,
+      "y0": 0.18000000000000005,
+      "x1": 0.5556521739130436,
+      "y1": 0.87
+    },
+    {
+      "box_id": "panel_B",
+      "box_type": "panel",
+      "x0": 0.6443478260869565,
+      "y0": 0.18000000000000005,
+      "x1": 0.9400000000000001,
+      "y1": 0.87
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "baseline_marker_A",
+      "box_type": "baseline_marker",
+      "x0": 0.30130434782608695,
+      "y0": 0.18734042553191496,
+      "x1": 0.30565217391304345,
+      "y1": 0.8479787234042553
+    },
+    {
+      "box_id": "prediction_marker_A",
+      "box_type": "prediction_marker",
+      "x0": 0.4839130434782609,
+      "y0": 0.18734042553191496,
+      "x1": 0.48826086956521747,
+      "y1": 0.8479787234042553
+    },
+    {
+      "box_id": "baseline_marker_B",
+      "box_type": "baseline_marker",
+      "x0": 0.8943478260869567,
+      "y0": 0.18932432432432436,
+      "x1": 0.8986956521739132,
+      "y1": 0.842027027027027
+    },
+    {
+      "box_id": "prediction_marker_B",
+      "box_type": "prediction_marker",
+      "x0": 0.772608695652174,
+      "y0": 0.18932432432432436,
+      "x1": 0.7769565217391305,
+      "y1": 0.842027027027027
+    }
+  ],
+  "metrics": {
+    "figure_height_inches": 4.8,
+    "figure_width_inches": 9.1,
+    "panels": [
+      {
+        "panel_id": "case_a",
+        "panel_label": "A",
+        "title": "Representative high-risk case",
+        "case_label": "Case 1 · 1-year mortality",
+        "baseline_value": 0.18,
+        "predicted_value": 0.39,
+        "panel_box_id": "panel_A",
+        "baseline_marker_box_id": "baseline_marker_A",
+        "prediction_marker_box_id": "prediction_marker_A",
+        "contributions": [
+          {
+            "feature": "Age",
+            "feature_value_text": "74 years",
+            "shap_value": 0.12,
+            "start_value": 0.18,
+            "end_value": 0.3,
+            "bar_box_id": "contribution_bar_A_1",
+            "label_box_id": "feature_label_A_1"
+          },
+          {
+            "feature": "Albumin",
+            "feature_value_text": "3.1 g/dL",
+            "shap_value": 0.08,
+            "start_value": 0.3,
+            "end_value": 0.38,
+            "bar_box_id": "contribution_bar_A_2",
+            "label_box_id": "feature_label_A_2"
+          },
+          {
+            "feature": "Platelets",
+            "feature_value_text": "210 ×10^9/L",
+            "shap_value": -0.03,
+            "start_value": 0.38,
+            "end_value": 0.35,
+            "bar_box_id": "contribution_bar_A_3",
+            "label_box_id": "feature_label_A_3"
+          },
+          {
+            "feature": "Tumor size",
+            "feature_value_text": "9.4 cm",
+            "shap_value": 0.04,
+            "start_value": 0.35,
+            "end_value": 0.39,
+            "bar_box_id": "contribution_bar_A_4",
+            "label_box_id": "feature_label_A_4"
+          }
+        ]
+      },
+      {
+        "panel_id": "case_b",
+        "panel_label": "B",
+        "title": "Representative lower-risk case",
+        "case_label": "Case 2 · 1-year mortality",
+        "baseline_value": 0.42,
+        "predicted_value": 0.28,
+        "panel_box_id": "panel_B",
+        "baseline_marker_box_id": "baseline_marker_B",
+        "prediction_marker_box_id": "prediction_marker_B",
+        "contributions": [
+          {
+            "feature": "Age",
+            "feature_value_text": "49 years",
+            "shap_value": -0.11,
+            "start_value": 0.42,
+            "end_value": 0.31,
+            "bar_box_id": "contribution_bar_B_1",
+            "label_box_id": "feature_label_B_1"
+          },
+          {
+            "feature": "Albumin",
+            "feature_value_text": "4.5 g/dL",
+            "shap_value": -0.07,
+            "start_value": 0.31,
+            "end_value": 0.24,
+            "bar_box_id": "contribution_bar_B_2",
+            "label_box_id": "feature_label_B_2"
+          },
+          {
+            "feature": "Tumor stage",
+            "feature_value_text": "Stage II",
+            "shap_value": 0.04,
+            "start_value": 0.24,
+            "end_value": 0.28,
+            "bar_box_id": "contribution_bar_B_3",
+            "label_box_id": "feature_label_B_3"
+          }
+        ]
+      }
+    ]
+  }
+}

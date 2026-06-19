@@ -1,0 +1,520 @@
+{
+  "template_id": "coefficient_path_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "panel_title_A",
+      "box_type": "panel_title",
+      "x0": 0.35595288326300983,
+      "y0": 0.9293333333333332,
+      "x1": 0.5587306610407876,
+      "y1": 0.9533333333333333
+    },
+    {
+      "box_id": "panel_title_B",
+      "box_type": "panel_title",
+      "x0": 0.8097144573370839,
+      "y0": 0.9293333333333332,
+      "x1": 0.9105246425222692,
+      "y1": 0.9533333333333333
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.226,
+      "y0": 0.847,
+      "x1": 0.23803703703703707,
+      "y1": 0.883
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.756239099859353,
+      "y0": 0.847,
+      "x1": 0.7661928035630567,
+      "y1": 0.883
+    },
+    {
+      "box_id": "x_axis_title_A",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.41098760548523205,
+      "y0": 0.16344444444444442,
+      "x1": 0.5036959388185654,
+      "y1": 0.18744444444444444
+    },
+    {
+      "box_id": "step_legend_title",
+      "box_type": "legend_title",
+      "x0": 0.3335159465020576,
+      "y0": 0.11382222222222223,
+      "x1": 0.3982150205761317,
+      "y1": 0.13782222222222223
+    },
+    {
+      "box_id": "step_legend_unadjusted",
+      "box_type": "legend_label",
+      "x0": 0.25395061728395063,
+      "y0": 0.0776,
+      "x1": 0.31656635802469135,
+      "y1": 0.1016
+    },
+    {
+      "box_id": "step_legend_adjusted",
+      "box_type": "legend_label",
+      "x0": 0.3595704732510288,
+      "y0": 0.0776,
+      "x1": 0.4086445473251029,
+      "y1": 0.1016
+    },
+    {
+      "box_id": "step_legend_sensitivity",
+      "box_type": "legend_label",
+      "x0": 0.45164866255144037,
+      "y0": 0.0776,
+      "x1": 0.5072042181069959,
+      "y1": 0.1016
+    },
+    {
+      "box_id": "coefficient_row_age_ge_65",
+      "box_type": "coefficient_row_label",
+      "x0": 0.12462523441162682,
+      "y0": 0.76425,
+      "x1": 0.20575949367088608,
+      "y1": 0.78825
+    },
+    {
+      "box_id": "marker_age_ge_65_unadjusted",
+      "box_type": "coefficient_marker",
+      "x0": 0.4019398645534163,
+      "y0": 0.80203125,
+      "x1": 0.418560436832961,
+      "y1": 0.84121875
+    },
+    {
+      "box_id": "interval_age_ge_65_unadjusted",
+      "box_type": "coefficient_interval",
+      "x0": 0.3326874800553133,
+      "y0": 0.8154375,
+      "x1": 0.4878128213310641,
+      "y1": 0.8278125000000001
+    },
+    {
+      "box_id": "marker_age_ge_65_adjusted",
+      "box_type": "coefficient_marker",
+      "x0": 0.3631585292344786,
+      "y0": 0.75665625,
+      "x1": 0.37977910151402333,
+      "y1": 0.7958437500000001
+    },
+    {
+      "box_id": "interval_age_ge_65_adjusted",
+      "box_type": "coefficient_interval",
+      "x0": 0.30498652625607203,
+      "y0": 0.7700625,
+      "x1": 0.44349129525227815,
+      "y1": 0.7824375
+    },
+    {
+      "box_id": "marker_age_ge_65_sensitivity",
+      "box_type": "coefficient_marker",
+      "x0": 0.34653795695493383,
+      "y0": 0.71128125,
+      "x1": 0.3631585292344786,
+      "y1": 0.75046875
+    },
+    {
+      "box_id": "interval_age_ge_65_sensitivity",
+      "box_type": "coefficient_interval",
+      "x0": 0.282825763216679,
+      "y0": 0.7246875,
+      "x1": 0.4213305322128852,
+      "y1": 0.7370625000000001
+    },
+    {
+      "box_id": "coefficient_row_female",
+      "box_type": "coefficient_row_label",
+      "x0": 0.16675486404125645,
+      "y0": 0.558,
+      "x1": 0.20575949367088608,
+      "y1": 0.582
+    },
+    {
+      "box_id": "marker_female_unadjusted",
+      "box_type": "coefficient_marker",
+      "x0": 0.49058291671098825,
+      "y0": 0.59578125,
+      "x1": 0.507203488990533,
+      "y1": 0.63496875
+    },
+    {
+      "box_id": "interval_female_unadjusted",
+      "box_type": "coefficient_interval",
+      "x0": 0.41579034145303695,
+      "y0": 0.6091875,
+      "x1": 0.5819960642484843,
+      "y1": 0.6215625
+    },
+    {
+      "box_id": "marker_female_adjusted",
+      "box_type": "coefficient_marker",
+      "x0": 0.4518015813920505,
+      "y0": 0.55040625,
+      "x1": 0.4684221536715953,
+      "y1": 0.58959375
+    },
+    {
+      "box_id": "interval_female_adjusted",
+      "box_type": "coefficient_interval",
+      "x0": 0.3770090061340992,
+      "y0": 0.5638125,
+      "x1": 0.5376745381696982,
+      "y1": 0.5761875
+    },
+    {
+      "box_id": "marker_female_sensitivity",
+      "box_type": "coefficient_marker",
+      "x0": 0.4241006275928093,
+      "y0": 0.50503125,
+      "x1": 0.440721199872354,
+      "y1": 0.54421875
+    },
+    {
+      "box_id": "interval_female_sensitivity",
+      "box_type": "coefficient_interval",
+      "x0": 0.35484824309470625,
+      "y0": 0.5184375,
+      "x1": 0.509973584370457,
+      "y1": 0.5308125
+    },
+    {
+      "box_id": "coefficient_row_high_risk",
+      "box_type": "coefficient_row_label",
+      "x0": 0.0967317158931083,
+      "y0": 0.35175,
+      "x1": 0.20575949367088608,
+      "y1": 0.37575000000000003
+    },
+    {
+      "box_id": "marker_high_risk_unadjusted",
+      "box_type": "coefficient_marker",
+      "x0": 0.5293642520299259,
+      "y0": 0.38953125,
+      "x1": 0.5459848243094706,
+      "y1": 0.42871875
+    },
+    {
+      "box_id": "interval_high_risk_unadjusted",
+      "box_type": "coefficient_interval",
+      "x0": 0.44349129525227815,
+      "y0": 0.4029375,
+      "x1": 0.6318577810871184,
+      "y1": 0.41531250000000003
+    },
+    {
+      "box_id": "marker_high_risk_adjusted",
+      "box_type": "coefficient_marker",
+      "x0": 0.48504272595114,
+      "y0": 0.34415624999999994,
+      "x1": 0.5016632982306848,
+      "y1": 0.38334375
+    },
+    {
+      "box_id": "interval_high_risk_adjusted",
+      "box_type": "coefficient_interval",
+      "x0": 0.3991697691734922,
+      "y0": 0.35756250000000006,
+      "x1": 0.5819960642484843,
+      "y1": 0.36993750000000003
+    },
+    {
+      "box_id": "marker_high_risk_sensitivity",
+      "box_type": "coefficient_marker",
+      "x0": 0.462881962911747,
+      "y0": 0.29878124999999994,
+      "x1": 0.4795025351912917,
+      "y1": 0.33796875
+    },
+    {
+      "box_id": "interval_high_risk_sensitivity",
+      "box_type": "coefficient_interval",
+      "x0": 0.3714688153742509,
+      "y0": 0.3121875,
+      "x1": 0.5653754919689395,
+      "y1": 0.3245625
+    },
+    {
+      "box_id": "summary_label_age",
+      "box_type": "summary_card_label",
+      "x0": 0.7722151898734178,
+      "y0": 0.761688,
+      "x1": 0.853349449132677,
+      "y1": 0.785688
+    },
+    {
+      "box_id": "summary_value_age",
+      "box_type": "summary_card_value",
+      "x0": 0.7722151898734178,
+      "y0": 0.714168,
+      "x1": 0.8561272269104547,
+      "y1": 0.738168
+    },
+    {
+      "box_id": "summary_detail_age",
+      "box_type": "summary_card_detail",
+      "x0": 0.7722151898734178,
+      "y0": 0.6493840000000001,
+      "x1": 0.9455948195030474,
+      "y1": 0.696984
+    },
+    {
+      "box_id": "summary_label_female",
+      "box_type": "summary_card_label",
+      "x0": 0.7722151898734178,
+      "y0": 0.580188,
+      "x1": 0.8112198195030473,
+      "y1": 0.604188
+    },
+    {
+      "box_id": "summary_value_female",
+      "box_type": "summary_card_value",
+      "x0": 0.7722151898734178,
+      "y0": 0.504668,
+      "x1": 0.8670068565400844,
+      "y1": 0.556668
+    },
+    {
+      "box_id": "summary_detail_female",
+      "box_type": "summary_card_detail",
+      "x0": 0.7722151898734178,
+      "y0": 0.4678839999999999,
+      "x1": 0.9370300046882326,
+      "y1": 0.5154839999999999
+    },
+    {
+      "box_id": "summary_label_high_risk",
+      "box_type": "summary_card_label",
+      "x0": 0.7722151898734178,
+      "y0": 0.398688,
+      "x1": 0.8812429676511955,
+      "y1": 0.422688
+    },
+    {
+      "box_id": "summary_value_high_risk",
+      "box_type": "summary_card_value",
+      "x0": 0.7722151898734178,
+      "y0": 0.35116800000000004,
+      "x1": 0.9045068565400844,
+      "y1": 0.375168
+    },
+    {
+      "box_id": "summary_detail_high_risk",
+      "box_type": "summary_card_detail",
+      "x0": 0.7722151898734178,
+      "y0": 0.286384,
+      "x1": 0.94131241209564,
+      "y1": 0.333984
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "path_panel",
+      "box_type": "panel",
+      "x0": 0.22,
+      "y0": 0.24,
+      "x1": 0.6946835443037975,
+      "y1": 0.9
+    },
+    {
+      "box_id": "summary_panel",
+      "box_type": "panel",
+      "x0": 0.750239099859353,
+      "y0": 0.24,
+      "x1": 0.97,
+      "y1": 0.9
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "reference_line",
+      "box_type": "reference_line",
+      "x0": 0.3091026663830089,
+      "y0": 0.260625,
+      "x1": 0.3119507676488317,
+      "y1": 0.879375
+    }
+  ],
+  "metrics": {
+    "reference_value": 0.0,
+    "path_panel": {
+      "panel_box_id": "path_panel",
+      "panel_label_box_id": "panel_label_A",
+      "panel_title_box_id": "panel_title_A",
+      "x_axis_title_box_id": "x_axis_title_A",
+      "reference_line_box_id": "reference_line"
+    },
+    "summary_panel": {
+      "panel_box_id": "summary_panel",
+      "panel_label_box_id": "panel_label_B",
+      "panel_title_box_id": "panel_title_B"
+    },
+    "step_legend_title_box_id": "step_legend_title",
+    "steps": [
+      {
+        "step_id": "unadjusted",
+        "step_label": "Unadjusted",
+        "step_order": 1,
+        "legend_label_box_id": "step_legend_unadjusted"
+      },
+      {
+        "step_id": "adjusted",
+        "step_label": "Adjusted",
+        "step_order": 2,
+        "legend_label_box_id": "step_legend_adjusted"
+      },
+      {
+        "step_id": "sensitivity",
+        "step_label": "Sensitivity",
+        "step_order": 3,
+        "legend_label_box_id": "step_legend_sensitivity"
+      }
+    ],
+    "coefficient_rows": [
+      {
+        "row_id": "age_ge_65",
+        "row_label": "Age ≥65 years",
+        "label_box_id": "coefficient_row_age_ge_65",
+        "points": [
+          {
+            "step_id": "unadjusted",
+            "estimate": 0.18,
+            "lower": 0.04,
+            "upper": 0.32,
+            "marker_box_id": "marker_age_ge_65_unadjusted",
+            "interval_box_id": "interval_age_ge_65_unadjusted",
+            "support_n": 184
+          },
+          {
+            "step_id": "adjusted",
+            "estimate": 0.11,
+            "lower": -0.01,
+            "upper": 0.24,
+            "marker_box_id": "marker_age_ge_65_adjusted",
+            "interval_box_id": "interval_age_ge_65_adjusted",
+            "support_n": 184
+          },
+          {
+            "step_id": "sensitivity",
+            "estimate": 0.08,
+            "lower": -0.05,
+            "upper": 0.2,
+            "marker_box_id": "marker_age_ge_65_sensitivity",
+            "interval_box_id": "interval_age_ge_65_sensitivity",
+            "support_n": 184
+          }
+        ]
+      },
+      {
+        "row_id": "female",
+        "row_label": "Female",
+        "label_box_id": "coefficient_row_female",
+        "points": [
+          {
+            "step_id": "unadjusted",
+            "estimate": 0.34,
+            "lower": 0.19,
+            "upper": 0.49,
+            "marker_box_id": "marker_female_unadjusted",
+            "interval_box_id": "interval_female_unadjusted",
+            "support_n": 201
+          },
+          {
+            "step_id": "adjusted",
+            "estimate": 0.27,
+            "lower": 0.12,
+            "upper": 0.41,
+            "marker_box_id": "marker_female_adjusted",
+            "interval_box_id": "interval_female_adjusted",
+            "support_n": 201
+          },
+          {
+            "step_id": "sensitivity",
+            "estimate": 0.22,
+            "lower": 0.08,
+            "upper": 0.36,
+            "marker_box_id": "marker_female_sensitivity",
+            "interval_box_id": "interval_female_sensitivity",
+            "support_n": 201
+          }
+        ]
+      },
+      {
+        "row_id": "high_risk",
+        "row_label": "High-risk subgroup",
+        "label_box_id": "coefficient_row_high_risk",
+        "points": [
+          {
+            "step_id": "unadjusted",
+            "estimate": 0.41,
+            "lower": 0.24,
+            "upper": 0.58,
+            "marker_box_id": "marker_high_risk_unadjusted",
+            "interval_box_id": "interval_high_risk_unadjusted",
+            "support_n": 96
+          },
+          {
+            "step_id": "adjusted",
+            "estimate": 0.33,
+            "lower": 0.16,
+            "upper": 0.49,
+            "marker_box_id": "marker_high_risk_adjusted",
+            "interval_box_id": "interval_high_risk_adjusted",
+            "support_n": 96
+          },
+          {
+            "step_id": "sensitivity",
+            "estimate": 0.29,
+            "lower": 0.11,
+            "upper": 0.46,
+            "marker_box_id": "marker_high_risk_sensitivity",
+            "interval_box_id": "interval_high_risk_sensitivity",
+            "support_n": 96
+          }
+        ]
+      }
+    ],
+    "summary_cards": [
+      {
+        "card_id": "age",
+        "label": "Age ≥65 years",
+        "value": "Stable positive",
+        "label_box_id": "summary_label_age",
+        "value_box_id": "summary_value_age",
+        "detail": "Direction stays positive across all 3 model steps.",
+        "detail_box_id": "summary_detail_age"
+      },
+      {
+        "card_id": "female",
+        "label": "Female",
+        "value": "Attenuated after adjustment",
+        "label_box_id": "summary_label_female",
+        "value_box_id": "summary_value_female",
+        "detail": "Magnitude shrinks after covariate adjustment but remains positive.",
+        "detail_box_id": "summary_detail_female"
+      },
+      {
+        "card_id": "high_risk",
+        "label": "High-risk subgroup",
+        "value": "Largest retained signal",
+        "label_box_id": "summary_label_high_risk",
+        "value_box_id": "summary_value_high_risk",
+        "detail": "The widest positive effect survives all prespecified sensitivity steps.",
+        "detail_box_id": "summary_detail_high_risk"
+      }
+    ]
+  }
+}

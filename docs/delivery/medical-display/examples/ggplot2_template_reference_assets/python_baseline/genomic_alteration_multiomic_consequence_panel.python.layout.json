@@ -1,0 +1,805 @@
+{
+  "template_id": "genomic_alteration_multiomic_consequence_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.11808201058201061,
+      "y0": 0.34795902262040423,
+      "x1": 0.12760582010582014,
+      "y1": 0.4497564082413193
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.17700000000000002,
+      "y0": 0.866470588235294,
+      "x1": 0.18701984126984128,
+      "y1": 0.8899999999999998
+    },
+    {
+      "box_id": "annotation_track_label_cohort",
+      "box_type": "annotation_track_label",
+      "x0": 0.1245515873015873,
+      "y0": 0.690771592204016,
+      "x1": 0.156,
+      "y1": 0.7064578667138198
+    },
+    {
+      "box_id": "annotation_track_label_response",
+      "box_type": "annotation_track_label",
+      "x0": 0.11225,
+      "y0": 0.624338726472553,
+      "x1": 0.156,
+      "y1": 0.6400250009823569
+    },
+    {
+      "box_id": "burden_bar_D1",
+      "box_type": "bar",
+      "x0": 0.18137563155849204,
+      "y0": 0.7530811623246493,
+      "x1": 0.2461292265837544,
+      "y1": 0.8230425135986259
+    },
+    {
+      "box_id": "burden_bar_D2",
+      "box_type": "bar",
+      "x0": 0.26888048970073847,
+      "y0": 0.7530811623246493,
+      "x1": 0.3336340847260008,
+      "y1": 0.8230425135986259
+    },
+    {
+      "box_id": "burden_bar_V1",
+      "box_type": "bar",
+      "x0": 0.35638534784298487,
+      "y0": 0.7530811623246493,
+      "x1": 0.4211389428682472,
+      "y1": 0.8930038648726023
+    },
+    {
+      "box_id": "burden_bar_V2",
+      "box_type": "bar",
+      "x0": 0.4438902059852312,
+      "y0": 0.7530811623246493,
+      "x1": 0.5086438010104936,
+      "y1": 0.8230425135986259
+    },
+    {
+      "box_id": "freq_bar_TP53",
+      "box_type": "bar",
+      "x0": 0.5580917217256122,
+      "y0": 0.49991232464929863,
+      "x1": 0.6608302191395856,
+      "y1": 0.5660896793587175
+    },
+    {
+      "box_id": "freq_bar_KRAS",
+      "box_type": "bar",
+      "x0": 0.5580917217256122,
+      "y0": 0.4104834669338678,
+      "x1": 0.609460970432599,
+      "y1": 0.4766608216432866
+    },
+    {
+      "box_id": "freq_bar_EGFR",
+      "box_type": "bar",
+      "x0": 0.5580917217256122,
+      "y0": 0.3210546092184369,
+      "x1": 0.609460970432599,
+      "y1": 0.3872319639278558
+    },
+    {
+      "box_id": "freq_bar_PIK3CA",
+      "box_type": "bar",
+      "x0": 0.5580917217256122,
+      "y0": 0.23162575150300604,
+      "x1": 0.609460970432599,
+      "y1": 0.2978031062124249
+    },
+    {
+      "box_id": "annotation_cohort_D1",
+      "box_type": "annotation_cell",
+      "x0": 0.17000000000000004,
+      "y0": 0.6653982965931864,
+      "x1": 0.25750485814224644,
+      "y1": 0.7318311623246493
+    },
+    {
+      "box_id": "annotation_cohort_D2",
+      "box_type": "annotation_cell",
+      "x0": 0.25750485814224644,
+      "y0": 0.6653982965931864,
+      "x1": 0.3450097162844928,
+      "y1": 0.7318311623246493
+    },
+    {
+      "box_id": "annotation_cohort_V1",
+      "box_type": "annotation_cell",
+      "x0": 0.34500971628449284,
+      "y0": 0.6653982965931864,
+      "x1": 0.4325145744267393,
+      "y1": 0.7318311623246493
+    },
+    {
+      "box_id": "annotation_cohort_V2",
+      "box_type": "annotation_cell",
+      "x0": 0.4325145744267392,
+      "y0": 0.6653982965931864,
+      "x1": 0.5200194325689855,
+      "y1": 0.7318311623246493
+    },
+    {
+      "box_id": "annotation_response_D1",
+      "box_type": "annotation_cell",
+      "x0": 0.17000000000000004,
+      "y0": 0.5989654308617235,
+      "x1": 0.25750485814224644,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "annotation_response_D2",
+      "box_type": "annotation_cell",
+      "x0": 0.25750485814224644,
+      "y0": 0.5989654308617235,
+      "x1": 0.3450097162844928,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "annotation_response_V1",
+      "box_type": "annotation_cell",
+      "x0": 0.34500971628449284,
+      "y0": 0.5989654308617235,
+      "x1": 0.4325145744267393,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "annotation_response_V2",
+      "box_type": "annotation_cell",
+      "x0": 0.4325145744267392,
+      "y0": 0.5989654308617235,
+      "x1": 0.5200194325689855,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "overlay_TP53_D1",
+      "box_type": "alteration_overlay",
+      "x0": 0.1953764088612515,
+      "y0": 0.5043837675350701,
+      "x1": 0.23212844928099496,
+      "y1": 0.5616182364729458
+    },
+    {
+      "box_id": "overlay_EGFR_V2",
+      "box_type": "alteration_overlay",
+      "x0": 0.45789098328799066,
+      "y0": 0.32552605210420843,
+      "x1": 0.49464302370773416,
+      "y1": 0.3827605210420842
+    },
+    {
+      "box_id": "alteration_TP53_D1",
+      "box_type": "alteration_cell",
+      "x0": 0.17000000000000004,
+      "y0": 0.4882865731462926,
+      "x1": 0.25750485814224644,
+      "y1": 0.5777154308617234
+    },
+    {
+      "box_id": "alteration_TP53_V1",
+      "box_type": "alteration_cell",
+      "x0": 0.34500971628449284,
+      "y0": 0.4882865731462926,
+      "x1": 0.4325145744267393,
+      "y1": 0.5777154308617234
+    },
+    {
+      "box_id": "alteration_KRAS_D2",
+      "box_type": "alteration_cell",
+      "x0": 0.25750485814224644,
+      "y0": 0.39885771543086174,
+      "x1": 0.3450097162844928,
+      "y1": 0.4882865731462926
+    },
+    {
+      "box_id": "alteration_EGFR_V2",
+      "box_type": "alteration_cell",
+      "x0": 0.4325145744267392,
+      "y0": 0.30942885771543094,
+      "x1": 0.5200194325689855,
+      "y1": 0.39885771543086174
+    },
+    {
+      "box_id": "alteration_PIK3CA_V1",
+      "box_type": "alteration_cell",
+      "x0": 0.34500971628449284,
+      "y0": 0.22000000000000008,
+      "x1": 0.4325145744267393,
+      "y1": 0.30942885771543094
+    },
+    {
+      "box_id": "consequence_title_A",
+      "box_type": "panel_title",
+      "x0": 0.7888600446332181,
+      "y0": 0.9155410312273057,
+      "x1": 0.9008640128871863,
+      "y1": 0.9312273057371097
+    },
+    {
+      "box_id": "consequence_x_axis_title_A",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.8173322668554404,
+      "y0": 0.6563380741393521,
+      "x1": 0.8723917906649642,
+      "y1": 0.6746387277341234
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.7357240575204043,
+      "y0": 0.856470588235294,
+      "x1": 0.7442558035521503,
+      "y1": 0.8799999999999999
+    },
+    {
+      "box_id": "consequence_label_proteome_TP53",
+      "box_type": "annotation_label",
+      "x0": 0.8951029554226031,
+      "y0": 0.860672314486821,
+      "x1": 0.9171267649464127,
+      "y1": 0.8750513994541412
+    },
+    {
+      "box_id": "consequence_label_proteome_EGFR",
+      "box_type": "annotation_label",
+      "x0": 0.7801558846224388,
+      "y0": 0.841785810257557,
+      "x1": 0.8019812814478356,
+      "y1": 0.8561648952248773
+    },
+    {
+      "box_id": "consequence_point_proteome_TP53",
+      "box_type": "scatter_point",
+      "x0": 0.9224909679608942,
+      "y0": 0.8430936750410302,
+      "x1": 0.9293992462352821,
+      "y1": 0.8564644615578841
+    },
+    {
+      "box_id": "consequence_point_proteome_EGFR",
+      "box_type": "scatter_point",
+      "x0": 0.7678834033335694,
+      "y0": 0.8242071708117662,
+      "x1": 0.7747916816079573,
+      "y1": 0.8375779573286202
+    },
+    {
+      "box_id": "consequence_title_B",
+      "box_type": "panel_title",
+      "x0": 0.7677290922522657,
+      "y0": 0.6710466492048339,
+      "x1": 0.9219949652681387,
+      "y1": 0.6867329237146378
+    },
+    {
+      "box_id": "consequence_x_axis_title_B",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.8173322668554404,
+      "y0": 0.4118436921168802,
+      "x1": 0.8723917906649642,
+      "y1": 0.43014434571165144
+    },
+    {
+      "box_id": "panel_label_C",
+      "box_type": "panel_label",
+      "x0": 0.7357240575204043,
+      "y0": 0.6119762062128222,
+      "x1": 0.7459423114886582,
+      "y1": 0.6355056179775281
+    },
+    {
+      "box_id": "consequence_label_phosphoproteome_TP53",
+      "box_type": "annotation_label",
+      "x0": 0.9115944289828511,
+      "y0": 0.6363521528910628,
+      "x1": 0.9336182385066606,
+      "y1": 0.6507312378583832
+    },
+    {
+      "box_id": "consequence_label_phosphoproteome_EGFR",
+      "box_type": "annotation_label",
+      "x0": 0.7684744241839299,
+      "y0": 0.6123147838719997,
+      "x1": 0.7902998210093267,
+      "y1": 0.6266938688393199
+    },
+    {
+      "box_id": "consequence_point_phosphoproteome_TP53",
+      "box_type": "scatter_point",
+      "x0": 0.9389824415211421,
+      "y0": 0.6187735134452721,
+      "x1": 0.94589071979553,
+      "y1": 0.6321442999621261
+    },
+    {
+      "box_id": "consequence_point_phosphoproteome_EGFR",
+      "box_type": "scatter_point",
+      "x0": 0.7562019428950605,
+      "y0": 0.5947361444262088,
+      "x1": 0.7631102211694484,
+      "y1": 0.6081069309430628
+    },
+    {
+      "box_id": "consequence_title_C",
+      "box_type": "panel_title",
+      "x0": 0.7752687747919482,
+      "y0": 0.42655226718236205,
+      "x1": 0.9144552827284562,
+      "y1": 0.442238541692166
+    },
+    {
+      "box_id": "consequence_x_axis_title_C",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.8173322668554404,
+      "y0": 0.16734931009440834,
+      "x1": 0.8723917906649642,
+      "y1": 0.18564996368917958
+    },
+    {
+      "box_id": "panel_label_D",
+      "box_type": "panel_label",
+      "x0": 0.7357240575204043,
+      "y0": 0.36748182419035036,
+      "x1": 0.7468351686315153,
+      "y1": 0.3910112359550562
+    },
+    {
+      "box_id": "consequence_label_glycoproteome_TP53",
+      "box_type": "annotation_label",
+      "x0": 0.886857218642479,
+      "y0": 0.3558017173399962,
+      "x1": 0.9088810281662886,
+      "y1": 0.3701808023073165
+    },
+    {
+      "box_id": "consequence_label_glycoproteome_EGFR",
+      "box_type": "annotation_label",
+      "x0": 0.7884016214025629,
+      "y0": 0.3351982581807991,
+      "x1": 0.8102270182279596,
+      "y1": 0.3495773431481194
+    },
+    {
+      "box_id": "consequence_point_glycoproteome_TP53",
+      "box_type": "scatter_point",
+      "x0": 0.9142452311807702,
+      "y0": 0.3382230778942054,
+      "x1": 0.9211535094551581,
+      "y1": 0.3515938644110594
+    },
+    {
+      "box_id": "consequence_point_glycoproteome_EGFR",
+      "box_type": "scatter_point",
+      "x0": 0.7761291401136934,
+      "y0": 0.3176196187350084,
+      "x1": 0.7830374183880813,
+      "y1": 0.3309904052518623
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_burden",
+      "box_type": "panel",
+      "x0": 0.17,
+      "y0": 0.7530811623246493,
+      "x1": 0.5200194325689856,
+      "y1": 0.8999999999999999
+    },
+    {
+      "box_id": "panel_annotations",
+      "box_type": "panel",
+      "x0": 0.17,
+      "y0": 0.5989654308617235,
+      "x1": 0.5200194325689856,
+      "y1": 0.7318311623246493
+    },
+    {
+      "box_id": "panel_matrix",
+      "box_type": "panel",
+      "x0": 0.17,
+      "y0": 0.22000000000000008,
+      "x1": 0.5200194325689856,
+      "y1": 0.5777154308617234
+    },
+    {
+      "box_id": "panel_frequency",
+      "box_type": "panel",
+      "x0": 0.5580917217256122,
+      "y0": 0.22000000000000008,
+      "x1": 0.6916517683637777,
+      "y1": 0.5777154308617234
+    },
+    {
+      "box_id": "panel_consequence_A",
+      "box_type": "panel",
+      "x0": 0.7297240575204043,
+      "y0": 0.7089887640449438,
+      "x1": 0.9600000000000001,
+      "y1": 0.8999999999999999
+    },
+    {
+      "box_id": "panel_consequence_B",
+      "box_type": "panel",
+      "x0": 0.7297240575204043,
+      "y0": 0.46449438202247206,
+      "x1": 0.9600000000000001,
+      "y1": 0.6555056179775282
+    },
+    {
+      "box_id": "panel_consequence_C",
+      "box_type": "panel",
+      "x0": 0.7297240575204043,
+      "y0": 0.2200000000000002,
+      "x1": 0.9600000000000001,
+      "y1": 0.4110112359550563
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "legend_alteration",
+      "box_type": "legend",
+      "x0": 0.17788359788359787,
+      "y0": 0.02726216412490922,
+      "x1": 0.48211640211640217,
+      "y1": 0.09785039941902686
+    },
+    {
+      "box_id": "legend_consequence",
+      "box_type": "legend",
+      "x0": 0.6647156084656084,
+      "y0": 0.02726216412490922,
+      "x1": 0.9352843915343915,
+      "y1": 0.07620915032679737
+    },
+    {
+      "box_id": "proteome_threshold_left",
+      "box_type": "reference_line",
+      "x0": 0.7751168384949869,
+      "y0": 0.7089887640449438,
+      "x1": 0.7771782726900179,
+      "y1": 0.8999999999999999
+    },
+    {
+      "box_id": "proteome_threshold_right",
+      "box_type": "reference_line",
+      "x0": 0.9125457848303867,
+      "y0": 0.7089887640449438,
+      "x1": 0.9146072190254176,
+      "y1": 0.8999999999999999
+    },
+    {
+      "box_id": "proteome_significance_threshold",
+      "box_type": "reference_line",
+      "x0": 0.7317854917154353,
+      "y0": 0.7931195556116651,
+      "x1": 0.9579385658049692,
+      "y1": 0.7965534654715314
+    },
+    {
+      "box_id": "phosphoproteome_threshold_left",
+      "box_type": "reference_line",
+      "x0": 0.7751168384949869,
+      "y0": 0.46449438202247206,
+      "x1": 0.7771782726900179,
+      "y1": 0.6555056179775282
+    },
+    {
+      "box_id": "phosphoproteome_threshold_right",
+      "box_type": "reference_line",
+      "x0": 0.9125457848303867,
+      "y0": 0.46449438202247206,
+      "x1": 0.9146072190254176,
+      "y1": 0.6555056179775282
+    },
+    {
+      "box_id": "phosphoproteome_significance_threshold",
+      "box_type": "reference_line",
+      "x0": 0.7317854917154353,
+      "y0": 0.5486251735891934,
+      "x1": 0.9579385658049692,
+      "y1": 0.5520590834490595
+    },
+    {
+      "box_id": "glycoproteome_threshold_left",
+      "box_type": "reference_line",
+      "x0": 0.7751168384949869,
+      "y0": 0.2200000000000002,
+      "x1": 0.7771782726900179,
+      "y1": 0.4110112359550563
+    },
+    {
+      "box_id": "glycoproteome_threshold_right",
+      "box_type": "reference_line",
+      "x0": 0.9125457848303867,
+      "y0": 0.2200000000000002,
+      "x1": 0.9146072190254176,
+      "y1": 0.4110112359550563
+    },
+    {
+      "box_id": "glycoproteome_significance_threshold",
+      "box_type": "reference_line",
+      "x0": 0.7317854917154353,
+      "y0": 0.30413079156672157,
+      "x1": 0.9579385658049692,
+      "y1": 0.3075647014265877
+    }
+  ],
+  "metrics": {
+    "alteration_legend_title": "Genomic alteration",
+    "consequence_legend_title": "Consequence class",
+    "effect_threshold": 1.0,
+    "significance_threshold": 2.0,
+    "sample_ids": [
+      "D1",
+      "D2",
+      "V1",
+      "V2"
+    ],
+    "gene_labels": [
+      "TP53",
+      "KRAS",
+      "EGFR",
+      "PIK3CA"
+    ],
+    "driver_gene_labels": [
+      "TP53",
+      "EGFR"
+    ],
+    "annotation_tracks": [
+      {
+        "track_id": "cohort",
+        "track_label": "Cohort",
+        "track_label_box_id": "annotation_track_label_cohort",
+        "cells": [
+          {
+            "sample_id": "D1",
+            "category_label": "Discovery",
+            "box_id": "annotation_cohort_D1"
+          },
+          {
+            "sample_id": "D2",
+            "category_label": "Discovery",
+            "box_id": "annotation_cohort_D2"
+          },
+          {
+            "sample_id": "V1",
+            "category_label": "Validation",
+            "box_id": "annotation_cohort_V1"
+          },
+          {
+            "sample_id": "V2",
+            "category_label": "Validation",
+            "box_id": "annotation_cohort_V2"
+          }
+        ]
+      },
+      {
+        "track_id": "response",
+        "track_label": "Response",
+        "track_label_box_id": "annotation_track_label_response",
+        "cells": [
+          {
+            "sample_id": "D1",
+            "category_label": "Responder",
+            "box_id": "annotation_response_D1"
+          },
+          {
+            "sample_id": "D2",
+            "category_label": "Non-responder",
+            "box_id": "annotation_response_D2"
+          },
+          {
+            "sample_id": "V1",
+            "category_label": "Responder",
+            "box_id": "annotation_response_V1"
+          },
+          {
+            "sample_id": "V2",
+            "category_label": "Non-responder",
+            "box_id": "annotation_response_V2"
+          }
+        ]
+      }
+    ],
+    "sample_burdens": [
+      {
+        "sample_id": "D1",
+        "altered_gene_count": 1,
+        "bar_box_id": "burden_bar_D1"
+      },
+      {
+        "sample_id": "D2",
+        "altered_gene_count": 1,
+        "bar_box_id": "burden_bar_D2"
+      },
+      {
+        "sample_id": "V1",
+        "altered_gene_count": 2,
+        "bar_box_id": "burden_bar_V1"
+      },
+      {
+        "sample_id": "V2",
+        "altered_gene_count": 1,
+        "bar_box_id": "burden_bar_V2"
+      }
+    ],
+    "gene_alteration_frequencies": [
+      {
+        "gene_label": "TP53",
+        "altered_fraction": 0.5,
+        "bar_box_id": "freq_bar_TP53"
+      },
+      {
+        "gene_label": "KRAS",
+        "altered_fraction": 0.25,
+        "bar_box_id": "freq_bar_KRAS"
+      },
+      {
+        "gene_label": "EGFR",
+        "altered_fraction": 0.25,
+        "bar_box_id": "freq_bar_EGFR"
+      },
+      {
+        "gene_label": "PIK3CA",
+        "altered_fraction": 0.25,
+        "bar_box_id": "freq_bar_PIK3CA"
+      }
+    ],
+    "alteration_cells": [
+      {
+        "sample_id": "D1",
+        "gene_label": "TP53",
+        "box_id": "alteration_TP53_D1",
+        "mutation_class": "missense",
+        "cnv_state": "loss",
+        "overlay_box_id": "overlay_TP53_D1"
+      },
+      {
+        "sample_id": "V1",
+        "gene_label": "TP53",
+        "box_id": "alteration_TP53_V1",
+        "mutation_class": "truncating"
+      },
+      {
+        "sample_id": "D2",
+        "gene_label": "KRAS",
+        "box_id": "alteration_KRAS_D2",
+        "cnv_state": "amplification"
+      },
+      {
+        "sample_id": "V2",
+        "gene_label": "EGFR",
+        "box_id": "alteration_EGFR_V2",
+        "mutation_class": "fusion",
+        "cnv_state": "amplification",
+        "overlay_box_id": "overlay_EGFR_V2"
+      },
+      {
+        "sample_id": "V1",
+        "gene_label": "PIK3CA",
+        "box_id": "alteration_PIK3CA_V1",
+        "cnv_state": "gain"
+      }
+    ],
+    "consequence_panels": [
+      {
+        "panel_id": "proteome",
+        "panel_title": "Proteome consequence",
+        "panel_label": "B",
+        "panel_box_id": "panel_consequence_A",
+        "panel_label_box_id": "panel_label_B",
+        "panel_title_box_id": "consequence_title_A",
+        "x_axis_title_box_id": "consequence_x_axis_title_A",
+        "effect_threshold_left_box_id": "proteome_threshold_left",
+        "effect_threshold_right_box_id": "proteome_threshold_right",
+        "significance_threshold_box_id": "proteome_significance_threshold",
+        "points": [
+          {
+            "gene_label": "TP53",
+            "x": 0.9259451070980881,
+            "y": 0.8497790682994572,
+            "effect_value": 1.18,
+            "significance_value": 3.28,
+            "regulation_class": "upregulated",
+            "point_box_id": "consequence_point_proteome_TP53",
+            "label_box_id": "consequence_label_proteome_TP53"
+          },
+          {
+            "gene_label": "EGFR",
+            "x": 0.7713375424707634,
+            "y": 0.8308925640701932,
+            "effect_value": -1.07,
+            "significance_value": 2.84,
+            "regulation_class": "downregulated",
+            "point_box_id": "consequence_point_proteome_EGFR",
+            "label_box_id": "consequence_label_proteome_EGFR"
+          }
+        ]
+      },
+      {
+        "panel_id": "phosphoproteome",
+        "panel_title": "Phosphoproteome consequence",
+        "panel_label": "C",
+        "panel_box_id": "panel_consequence_B",
+        "panel_label_box_id": "panel_label_C",
+        "panel_title_box_id": "consequence_title_B",
+        "x_axis_title_box_id": "consequence_x_axis_title_B",
+        "effect_threshold_left_box_id": "phosphoproteome_threshold_left",
+        "effect_threshold_right_box_id": "phosphoproteome_threshold_right",
+        "significance_threshold_box_id": "phosphoproteome_significance_threshold",
+        "points": [
+          {
+            "gene_label": "TP53",
+            "x": 0.9424365806583361,
+            "y": 0.6254589067036991,
+            "effect_value": 1.42,
+            "significance_value": 3.75,
+            "regulation_class": "upregulated",
+            "point_box_id": "consequence_point_phosphoproteome_TP53",
+            "label_box_id": "consequence_label_phosphoproteome_TP53"
+          },
+          {
+            "gene_label": "EGFR",
+            "x": 0.7596560820322544,
+            "y": 0.6014215376846358,
+            "effect_value": -1.24,
+            "significance_value": 3.19,
+            "regulation_class": "downregulated",
+            "point_box_id": "consequence_point_phosphoproteome_EGFR",
+            "label_box_id": "consequence_label_phosphoproteome_EGFR"
+          }
+        ]
+      },
+      {
+        "panel_id": "glycoproteome",
+        "panel_title": "Glycoproteome consequence",
+        "panel_label": "D",
+        "panel_box_id": "panel_consequence_C",
+        "panel_label_box_id": "panel_label_D",
+        "panel_title_box_id": "consequence_title_C",
+        "x_axis_title_box_id": "consequence_x_axis_title_C",
+        "effect_threshold_left_box_id": "glycoproteome_threshold_left",
+        "effect_threshold_right_box_id": "glycoproteome_threshold_right",
+        "significance_threshold_box_id": "glycoproteome_significance_threshold",
+        "points": [
+          {
+            "gene_label": "TP53",
+            "x": 0.917699370317964,
+            "y": 0.3449084711526324,
+            "effect_value": 1.06,
+            "significance_value": 2.91,
+            "regulation_class": "upregulated",
+            "point_box_id": "consequence_point_glycoproteome_TP53",
+            "label_box_id": "consequence_label_glycoproteome_TP53"
+          },
+          {
+            "gene_label": "EGFR",
+            "x": 0.7795832792508873,
+            "y": 0.32430501199343537,
+            "effect_value": -0.95,
+            "significance_value": 2.43,
+            "regulation_class": "background",
+            "point_box_id": "consequence_point_glycoproteome_EGFR",
+            "label_box_id": "consequence_label_glycoproteome_EGFR"
+          }
+        ]
+      }
+    ]
+  }
+}

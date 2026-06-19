@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "shell_id": "fenggaolab.org.medical-display-core::workflow_fact_sheet_panel",
+  "display_id": "Figure2",
+  "title": "Study workflow fact sheet",
+  "caption": "Structured study-design and workflow summary for the audited manuscript-facing surface.",
+  "sections": [
+    {
+      "section_id": "cohort",
+      "panel_label": "A",
+      "title": "Cohort and window",
+      "layout_role": "top_left",
+      "facts": [
+        {
+          "fact_id": "cohort_n",
+          "label": "Cohort",
+          "value": "n = 409",
+          "detail": "Primary analysis cohort"
+        }
+      ]
+    },
+    {
+      "section_id": "endpoint",
+      "panel_label": "B",
+      "title": "Endpoint and target",
+      "layout_role": "top_right",
+      "facts": [
+        {
+          "fact_id": "target",
+          "label": "Target",
+          "value": "Early residual / non-GTR",
+          "detail": "Formal audited endpoint"
+        }
+      ]
+    },
+    {
+      "section_id": "workflow",
+      "panel_label": "C",
+      "title": "Model workflow",
+      "layout_role": "bottom_left",
+      "facts": [
+        {
+          "fact_id": "family",
+          "label": "Model family",
+          "value": "Gradient boosting",
+          "detail": "Structured preoperative model"
+        }
+      ]
+    },
+    {
+      "section_id": "validation",
+      "panel_label": "D",
+      "title": "Validation and boundary",
+      "layout_role": "bottom_right",
+      "facts": [
+        {
+          "fact_id": "validation_scheme",
+          "label": "Validation",
+          "value": "Repeated nested CV",
+          "detail": "5 outer folds x 20 repeats"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,759 @@
+{
+  "template_id": "shap_grouped_local_support_domain_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "support_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.03933962264150943,
+      "y0": 0.21048701548187582,
+      "x1": 0.05066037735849057,
+      "y1": 0.43597127698308646
+    },
+    {
+      "box_id": "support_legend_box",
+      "box_type": "legend_box",
+      "x0": 0.36189203354297694,
+      "y0": 0.02689400053806833,
+      "x1": 0.798107966457023,
+      "y1": 0.09529593758407318
+    },
+    {
+      "box_id": "support_legend_title",
+      "box_type": "legend_title",
+      "x0": 0.528997641509434,
+      "y0": 0.07283158461124563,
+      "x1": 0.631002358490566,
+      "y1": 0.0897807371536185
+    },
+    {
+      "box_id": "panel_title_A",
+      "box_type": "panel_title",
+      "x0": 0.35180374133204323,
+      "y0": 0.9243933279526502,
+      "x1": 0.47161506208676024,
+      "y1": 0.9389211729889698
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.26330000000000003,
+      "y0": 0.8822082324455207,
+      "x1": 0.27544622641509436,
+      "y1": 0.9040000000000001
+    },
+    {
+      "box_id": "group_label_A",
+      "box_type": "group_label",
+      "x0": 0.37698062812449606,
+      "y0": 0.8851412846308486,
+      "x1": 0.4464381752943074,
+      "y1": 0.8996691296671682
+    },
+    {
+      "box_id": "baseline_label_A",
+      "box_type": "baseline_label",
+      "x0": 0.26606837606837613,
+      "y0": 0.862738520480259,
+      "x1": 0.3362334704079987,
+      "y1": 0.876055711763552
+    },
+    {
+      "box_id": "prediction_label_A",
+      "box_type": "prediction_label",
+      "x0": 0.47751552169005007,
+      "y0": 0.862738520480259,
+      "x1": 0.5573504273504274,
+      "y1": 0.876055711763552
+    },
+    {
+      "box_id": "x_axis_title_A",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.3429004394452508,
+      "y0": 0.5684911408806134,
+      "x1": 0.4805183639735527,
+      "y1": 0.583018985916933
+    },
+    {
+      "box_id": "feature_label_A_1",
+      "box_type": "feature_label",
+      "x0": 0.22876310272536693,
+      "y0": 0.8398485859208614,
+      "x1": 0.249517819706499,
+      "y1": 0.854376430957181
+    },
+    {
+      "box_id": "feature_label_A_2",
+      "box_type": "feature_label",
+      "x0": 0.2041168763102726,
+      "y0": 0.7517388176237867,
+      "x1": 0.249517819706499,
+      "y1": 0.7662666626601062
+    },
+    {
+      "box_id": "feature_label_A_3",
+      "box_type": "feature_label",
+      "x0": 0.1887866876310273,
+      "y0": 0.6636290493267117,
+      "x1": 0.249517819706499,
+      "y1": 0.6781568943630314
+    },
+    {
+      "box_id": "contribution_bar_A_1",
+      "box_type": "contribution_bar",
+      "x0": 0.41170940170940173,
+      "y0": 0.822771329385896,
+      "x1": 0.5234952766531714,
+      "y1": 0.8738749949981995
+    },
+    {
+      "box_id": "value_label_A_1",
+      "box_type": "value_label",
+      "x0": 0.5394646873594242,
+      "y0": 0.8410592396738881,
+      "x1": 0.5721297816990469,
+      "y1": 0.8555870847102076
+    },
+    {
+      "box_id": "contribution_bar_A_2",
+      "box_type": "contribution_bar",
+      "x0": 0.3717858749437697,
+      "y0": 0.7346615610888213,
+      "x1": 0.41170940170940173,
+      "y1": 0.7857652267011248
+    },
+    {
+      "box_id": "value_label_A_2",
+      "box_type": "value_label",
+      "x0": 0.3176430796391075,
+      "y0": 0.7529494713768133,
+      "x1": 0.3478317588843905,
+      "y1": 0.7674773164131329
+    },
+    {
+      "box_id": "contribution_bar_A_3",
+      "box_type": "contribution_bar",
+      "x0": 0.41170940170940173,
+      "y0": 0.6465517927917465,
+      "x1": 0.43566351776878093,
+      "y1": 0.6976554584040499
+    },
+    {
+      "box_id": "value_label_A_3",
+      "box_type": "value_label",
+      "x0": 0.4596176338281602,
+      "y0": 0.6648397030797384,
+      "x1": 0.4921648036394809,
+      "y1": 0.679367548116058
+    },
+    {
+      "box_id": "panel_title_B",
+      "box_type": "panel_title",
+      "x0": 0.7547882398000323,
+      "y0": 0.9243933279526502,
+      "x1": 0.8817929567811643,
+      "y1": 0.9389211729889698
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.6698811965811965,
+      "y0": 0.8822082324455207,
+      "x1": 0.6800227060151587,
+      "y1": 0.9040000000000001
+    },
+    {
+      "box_id": "group_label_B",
+      "box_type": "group_label",
+      "x0": 0.7836797492339945,
+      "y0": 0.8851412846308486,
+      "x1": 0.8529014473472021,
+      "y1": 0.8996691296671682
+    },
+    {
+      "box_id": "baseline_label_B",
+      "box_type": "baseline_label",
+      "x0": 0.6726495726495726,
+      "y0": 0.862738520480259,
+      "x1": 0.7428146669891952,
+      "y1": 0.876055711763552
+    },
+    {
+      "box_id": "prediction_label_B",
+      "box_type": "prediction_label",
+      "x0": 0.8839787937429446,
+      "y0": 0.862738520480259,
+      "x1": 0.9639316239316239,
+      "y1": 0.876055711763552
+    },
+    {
+      "box_id": "x_axis_title_B",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.7494816360264474,
+      "y0": 0.5684911408806134,
+      "x1": 0.8870995605547493,
+      "y1": 0.583018985916933
+    },
+    {
+      "box_id": "feature_label_B_1",
+      "box_type": "feature_label",
+      "x0": 0.6353442993065634,
+      "y0": 0.8398485859208614,
+      "x1": 0.6560990162876955,
+      "y1": 0.854376430957181
+    },
+    {
+      "box_id": "feature_label_B_2",
+      "box_type": "feature_label",
+      "x0": 0.610698072891469,
+      "y0": 0.7517388176237867,
+      "x1": 0.6560990162876955,
+      "y1": 0.7662666626601062
+    },
+    {
+      "box_id": "feature_label_B_3",
+      "box_type": "feature_label",
+      "x0": 0.5953678842122238,
+      "y0": 0.6636290493267117,
+      "x1": 0.6560990162876955,
+      "y1": 0.6781568943630314
+    },
+    {
+      "box_id": "contribution_bar_B_1",
+      "box_type": "contribution_bar",
+      "x0": 0.7623976608187134,
+      "y0": 0.822771329385896,
+      "x1": 0.8182905982905984,
+      "y1": 0.8738749949981995
+    },
+    {
+      "box_id": "value_label_B_1",
+      "box_type": "value_label",
+      "x0": 0.7081369409857493,
+      "y0": 0.8410592396738881,
+      "x1": 0.7384435447593343,
+      "y1": 0.8555870847102076
+    },
+    {
+      "box_id": "contribution_bar_B_2",
+      "box_type": "contribution_bar",
+      "x0": 0.8182905982905984,
+      "y0": 0.7346615610888213,
+      "x1": 0.8342600089968512,
+      "y1": 0.7857652267011248
+    },
+    {
+      "box_id": "value_label_B_2",
+      "box_type": "value_label",
+      "x0": 0.8582141250562304,
+      "y0": 0.7529494713768133,
+      "x1": 0.890879219395853,
+      "y1": 0.7674773164131329
+    },
+    {
+      "box_id": "contribution_bar_B_3",
+      "box_type": "contribution_bar",
+      "x0": 0.810305892937472,
+      "y0": 0.6465517927917465,
+      "x1": 0.8182905982905984,
+      "y1": 0.6976554584040499
+    },
+    {
+      "box_id": "value_label_B_3",
+      "box_type": "value_label",
+      "x0": 0.7560451731045077,
+      "y0": 0.6648397030797384,
+      "x1": 0.7863517768780927,
+      "y1": 0.679367548116058
+    },
+    {
+      "box_id": "panel_title_C",
+      "box_type": "panel_title",
+      "x0": 0.34814808095468475,
+      "y0": 0.4908516204176122,
+      "x1": 0.4752707224641187,
+      "y1": 0.5053794654539319
+    },
+    {
+      "box_id": "x_axis_title_C",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.3797518545395904,
+      "y0": 0.12365886467581388,
+      "x1": 0.44366694887921304,
+      "y1": 0.13818670971213348
+    },
+    {
+      "box_id": "panel_label_C",
+      "box_type": "panel_label",
+      "x0": 0.266,
+      "y0": 0.44866652491048287,
+      "x1": 0.27826415094339624,
+      "y1": 0.4704582924649623
+    },
+    {
+      "box_id": "reference_label_C",
+      "box_type": "support_domain_reference_label",
+      "x0": 0.3823461941622319,
+      "y0": 0.4509524190949946,
+      "x1": 0.44107260925657155,
+      "y1": 0.4642696103782876
+    },
+    {
+      "box_id": "support_label_C_1",
+      "box_type": "support_label",
+      "x0": 0.290803030239839,
+      "y0": 0.2190610938974376,
+      "x1": 0.33643982269266914,
+      "y1": 0.2323782851807306
+    },
+    {
+      "box_id": "support_label_C_2",
+      "box_type": "support_label",
+      "x0": 0.3621445894433046,
+      "y0": 0.2190610938974376,
+      "x1": 0.4089606271791536,
+      "y1": 0.2323782851807306
+    },
+    {
+      "box_id": "support_label_C_3",
+      "box_type": "support_label",
+      "x0": 0.45011350713733606,
+      "y0": 0.2190610938974376,
+      "x1": 0.4648540731750719,
+      "y1": 0.2323782851807306
+    },
+    {
+      "box_id": "support_label_C_4",
+      "box_type": "support_label",
+      "x0": 0.4840252545473756,
+      "y0": 0.2190610938974376,
+      "x1": 0.5486478960568096,
+      "y1": 0.2323782851807306
+    },
+    {
+      "box_id": "panel_title_D",
+      "box_type": "panel_title",
+      "x0": 0.74152173036607,
+      "y0": 0.4908516204176122,
+      "x1": 0.8950594662151267,
+      "y1": 0.5053794654539319
+    },
+    {
+      "box_id": "x_axis_title_D",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.7747174850830512,
+      "y0": 0.12365886467581388,
+      "x1": 0.8618637114981456,
+      "y1": 0.13818670971213348
+    },
+    {
+      "box_id": "panel_label_D",
+      "box_type": "panel_label",
+      "x0": 0.6725811965811965,
+      "y0": 0.44866652491048287,
+      "x1": 0.6859066682793097,
+      "y1": 0.4704582924649623
+    },
+    {
+      "box_id": "reference_label_D",
+      "box_type": "support_domain_reference_label",
+      "x0": 0.7916075275369626,
+      "y0": 0.4509524190949946,
+      "x1": 0.8740367728199815,
+      "y1": 0.4642696103782876
+    },
+    {
+      "box_id": "support_label_D_1",
+      "box_type": "support_label",
+      "x0": 0.7082828907369407,
+      "y0": 0.2190610938974376,
+      "x1": 0.753919683189771,
+      "y1": 0.2323782851807306
+    },
+    {
+      "box_id": "support_label_D_2",
+      "box_type": "support_label",
+      "x0": 0.8254518671596041,
+      "y0": 0.2190610938974376,
+      "x1": 0.8401924331973399,
+      "y1": 0.2323782851807306
+    },
+    {
+      "box_id": "support_label_D_3",
+      "box_type": "support_label",
+      "x0": 0.8877001407509975,
+      "y0": 0.2190610938974376,
+      "x1": 0.9523227822604314,
+      "y1": 0.2323782851807306
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_A",
+      "box_type": "panel",
+      "x0": 0.26,
+      "y0": 0.6148322762047995,
+      "x1": 0.5634188034188035,
+      "y1": 0.9100000000000001
+    },
+    {
+      "box_id": "panel_B",
+      "box_type": "panel",
+      "x0": 0.6665811965811965,
+      "y0": 0.6148322762047995,
+      "x1": 0.9700000000000001,
+      "y1": 0.9100000000000001
+    },
+    {
+      "box_id": "panel_C",
+      "box_type": "panel",
+      "x0": 0.26,
+      "y0": 0.17000000000000007,
+      "x1": 0.5634188034188035,
+      "y1": 0.47645829246496224
+    },
+    {
+      "box_id": "panel_D",
+      "box_type": "panel",
+      "x0": 0.6665811965811965,
+      "y0": 0.17000000000000007,
+      "x1": 0.9700000000000001,
+      "y1": 0.47645829246496224
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "zero_line_A",
+      "box_type": "zero_line",
+      "x0": 0.40372469635627534,
+      "y0": 0.6148322762047995,
+      "x1": 0.4196941070625282,
+      "y1": 0.9100000000000001
+    },
+    {
+      "box_id": "zero_line_B",
+      "box_type": "zero_line",
+      "x0": 0.810305892937472,
+      "y0": 0.6148322762047995,
+      "x1": 0.8262753036437247,
+      "y1": 0.9100000000000001
+    },
+    {
+      "box_id": "reference_line_C",
+      "box_type": "support_domain_reference_line",
+      "x0": 0.4109246979074566,
+      "y0": 0.17000000000000007,
+      "x1": 0.41249410551134696,
+      "y1": 0.47645829246496224
+    },
+    {
+      "box_id": "support_segment_C_1",
+      "box_type": "support_domain_segment",
+      "x0": 0.2809254347185382,
+      "y0": 0.2048248059619276,
+      "x1": 0.34631741821397005,
+      "y1": 0.24661457311624063
+    },
+    {
+      "box_id": "support_segment_C_2",
+      "box_type": "support_domain_segment",
+      "x0": 0.34631741821397005,
+      "y0": 0.2048248059619276,
+      "x1": 0.4247877984084881,
+      "y1": 0.24661457311624063
+    },
+    {
+      "box_id": "support_segment_C_3",
+      "box_type": "support_domain_segment",
+      "x0": 0.4247877984084881,
+      "y0": 0.2048248059619276,
+      "x1": 0.4901797819039199,
+      "y1": 0.24661457311624063
+    },
+    {
+      "box_id": "support_segment_C_4",
+      "box_type": "support_domain_segment",
+      "x0": 0.4901797819039199,
+      "y0": 0.2048248059619276,
+      "x1": 0.5424933687002653,
+      "y1": 0.24661457311624063
+    },
+    {
+      "box_id": "reference_line_D",
+      "box_type": "support_domain_reference_line",
+      "x0": 0.8320374463765269,
+      "y0": 0.17000000000000007,
+      "x1": 0.8336068539804171,
+      "y1": 0.47645829246496224
+    },
+    {
+      "box_id": "support_segment_D_1",
+      "box_type": "support_domain_segment",
+      "x0": 0.6875066312997347,
+      "y0": 0.2048248059619276,
+      "x1": 0.774695942626977,
+      "y1": 0.24661457311624063
+    },
+    {
+      "box_id": "support_segment_D_2",
+      "box_type": "support_domain_segment",
+      "x0": 0.774695942626977,
+      "y0": 0.2048248059619276,
+      "x1": 0.8909483577299669,
+      "y1": 0.24661457311624063
+    },
+    {
+      "box_id": "support_segment_D_3",
+      "box_type": "support_domain_segment",
+      "x0": 0.8909483577299669,
+      "y0": 0.2048248059619276,
+      "x1": 0.9490745652814618,
+      "y1": 0.24661457311624063
+    }
+  ],
+  "metrics": {
+    "figure_height_inches": 8.26,
+    "figure_width_inches": 10.6,
+    "local_shared_feature_order": [],
+    "local_panels": [
+      {
+        "panel_id": "high_risk",
+        "panel_label": "A",
+        "title": "High-risk phenotype",
+        "group_label": "Phenotype 1",
+        "baseline_value": 0.22,
+        "predicted_value": 0.34,
+        "panel_box_id": "panel_A",
+        "zero_line_box_id": "zero_line_A",
+        "contributions": [
+          {
+            "rank": 1,
+            "feature": "Age",
+            "shap_value": 0.14,
+            "bar_box_id": "contribution_bar_A_1",
+            "feature_label_box_id": "feature_label_A_1",
+            "value_label_box_id": "value_label_A_1"
+          },
+          {
+            "rank": 2,
+            "feature": "Albumin",
+            "shap_value": -0.05,
+            "bar_box_id": "contribution_bar_A_2",
+            "feature_label_box_id": "feature_label_A_2",
+            "value_label_box_id": "value_label_A_2"
+          },
+          {
+            "rank": 3,
+            "feature": "Tumor size",
+            "shap_value": 0.03,
+            "bar_box_id": "contribution_bar_A_3",
+            "feature_label_box_id": "feature_label_A_3",
+            "value_label_box_id": "value_label_A_3"
+          }
+        ]
+      },
+      {
+        "panel_id": "low_risk",
+        "panel_label": "B",
+        "title": "Lower-risk phenotype",
+        "group_label": "Phenotype 2",
+        "baseline_value": 0.18,
+        "predicted_value": 0.12,
+        "panel_box_id": "panel_B",
+        "zero_line_box_id": "zero_line_B",
+        "contributions": [
+          {
+            "rank": 1,
+            "feature": "Age",
+            "shap_value": -0.07,
+            "bar_box_id": "contribution_bar_B_1",
+            "feature_label_box_id": "feature_label_B_1",
+            "value_label_box_id": "value_label_B_1"
+          },
+          {
+            "rank": 2,
+            "feature": "Albumin",
+            "shap_value": 0.02,
+            "bar_box_id": "contribution_bar_B_2",
+            "feature_label_box_id": "feature_label_B_2",
+            "value_label_box_id": "value_label_B_2"
+          },
+          {
+            "rank": 3,
+            "feature": "Tumor size",
+            "shap_value": -0.01,
+            "bar_box_id": "contribution_bar_B_3",
+            "feature_label_box_id": "feature_label_B_3",
+            "value_label_box_id": "value_label_B_3"
+          }
+        ]
+      }
+    ],
+    "support_panels": [
+      {
+        "panel_id": "age_support",
+        "panel_label": "C",
+        "title": "Age response support",
+        "x_label": "Age (years)",
+        "feature": "Age",
+        "reference_value": 60.0,
+        "reference_label": "Median age",
+        "panel_box_id": "panel_C",
+        "reference_line_box_id": "reference_line_C",
+        "reference_label_box_id": "reference_label_C",
+        "response_points": [
+          {
+            "feature_value": 40.0,
+            "response_value": 0.18,
+            "x": 0.2809254347185382,
+            "y": 0.28143937907816813
+          },
+          {
+            "feature_value": 50.0,
+            "response_value": 0.22,
+            "x": 0.34631741821397005,
+            "y": 0.30929922384771014
+          },
+          {
+            "feature_value": 60.0,
+            "response_value": 0.29,
+            "x": 0.41170940170940173,
+            "y": 0.35805395219440866
+          },
+          {
+            "feature_value": 70.0,
+            "response_value": 0.35,
+            "x": 0.4771013852048336,
+            "y": 0.3998437193487217
+          },
+          {
+            "feature_value": 80.0,
+            "response_value": 0.41,
+            "x": 0.5424933687002653,
+            "y": 0.44163348650303474
+          }
+        ],
+        "support_segments": [
+          {
+            "segment_id": "age_observed",
+            "segment_label": "Observed",
+            "support_kind": "observed_support",
+            "domain_start": 40.0,
+            "domain_end": 50.0,
+            "segment_box_id": "support_segment_C_1",
+            "label_box_id": "support_label_C_1"
+          },
+          {
+            "segment_id": "age_subgroup",
+            "segment_label": "Subgroup",
+            "support_kind": "subgroup_support",
+            "domain_start": 50.0,
+            "domain_end": 62.0,
+            "segment_box_id": "support_segment_C_2",
+            "label_box_id": "support_label_C_2"
+          },
+          {
+            "segment_id": "age_bin",
+            "segment_label": "Bin",
+            "support_kind": "bin_support",
+            "domain_start": 62.0,
+            "domain_end": 72.0,
+            "segment_box_id": "support_segment_C_3",
+            "label_box_id": "support_label_C_3"
+          },
+          {
+            "segment_id": "age_extrapolation",
+            "segment_label": "Extrapolation",
+            "support_kind": "extrapolation_warning",
+            "domain_start": 72.0,
+            "domain_end": 80.0,
+            "segment_box_id": "support_segment_C_4",
+            "label_box_id": "support_label_C_4"
+          }
+        ]
+      },
+      {
+        "panel_id": "albumin_support",
+        "panel_label": "D",
+        "title": "Albumin response support",
+        "x_label": "Albumin (g/dL)",
+        "feature": "Albumin",
+        "reference_value": 3.8,
+        "reference_label": "Median albumin",
+        "panel_box_id": "panel_D",
+        "reference_line_box_id": "reference_line_D",
+        "reference_label_box_id": "reference_label_D",
+        "response_points": [
+          {
+            "feature_value": 2.8,
+            "response_value": 0.39,
+            "x": 0.6875066312997347,
+            "y": 0.4277035641182637
+          },
+          {
+            "feature_value": 3.4,
+            "response_value": 0.31,
+            "x": 0.774695942626977,
+            "y": 0.3719838745791797
+          },
+          {
+            "feature_value": 4.0,
+            "response_value": 0.25,
+            "x": 0.8618852539542196,
+            "y": 0.33019410742486666
+          },
+          {
+            "feature_value": 4.6,
+            "response_value": 0.2,
+            "x": 0.9490745652814618,
+            "y": 0.29536930146293916
+          }
+        ],
+        "support_segments": [
+          {
+            "segment_id": "albumin_observed",
+            "segment_label": "Observed",
+            "support_kind": "observed_support",
+            "domain_start": 2.8,
+            "domain_end": 3.4,
+            "segment_box_id": "support_segment_D_1",
+            "label_box_id": "support_label_D_1"
+          },
+          {
+            "segment_id": "albumin_bin",
+            "segment_label": "Bin",
+            "support_kind": "bin_support",
+            "domain_start": 3.4,
+            "domain_end": 4.2,
+            "segment_box_id": "support_segment_D_2",
+            "label_box_id": "support_label_D_2"
+          },
+          {
+            "segment_id": "albumin_extrapolation",
+            "segment_label": "Extrapolation",
+            "support_kind": "extrapolation_warning",
+            "domain_start": 4.2,
+            "domain_end": 4.6,
+            "segment_box_id": "support_segment_D_3",
+            "label_box_id": "support_label_D_3"
+          }
+        ]
+      }
+    ],
+    "support_legend_labels": [
+      "Response curve",
+      "Observed support",
+      "Subgroup support",
+      "Bin support",
+      "Extrapolation reminder"
+    ],
+    "support_legend_title": "Support domain",
+    "support_legend_title_box_id": "support_legend_title",
+    "support_y_axis_title_box_id": "support_y_axis_title"
+  }
+}

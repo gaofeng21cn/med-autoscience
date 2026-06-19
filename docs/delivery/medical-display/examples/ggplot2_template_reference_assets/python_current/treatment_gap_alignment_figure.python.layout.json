@@ -1,0 +1,224 @@
+{
+  "template_id": "treatment_gap_alignment_figure",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.039821428571428584,
+      "y0": 0.9640869565217391,
+      "x1": 0.046450216450216464,
+      "y1": 0.9787211028632026
+    },
+    {
+      "box_id": "gap_count_title_A",
+      "box_type": "subplot_title",
+      "x0": 0.2441504329004329,
+      "y0": 0.9577235772357724,
+      "x1": 0.31763528138528135,
+      "y1": 0.9894308943089432
+    },
+    {
+      "box_id": "gap_count_y_axis_title_A",
+      "box_type": "y_axis_title",
+      "x0": 0.04598274410774411,
+      "y0": 0.7444160922587486,
+      "x1": 0.0550736531986532,
+      "y1": 0.8034099946977731
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.5380357142857143,
+      "y0": 0.9640869565217391,
+      "x1": 0.5436228354978354,
+      "y1": 0.9787211028632026
+    },
+    {
+      "box_id": "gap_count_title_B",
+      "box_type": "subplot_title",
+      "x0": 0.7275446428571428,
+      "y0": 0.9577235772357724,
+      "x1": 0.8306696428571428,
+      "y1": 0.9894308943089432
+    },
+    {
+      "box_id": "gap_count_y_axis_title_B",
+      "box_type": "y_axis_title",
+      "x0": 0.5441970298220299,
+      "y0": 0.7444160922587486,
+      "x1": 0.5532879389129389,
+      "y1": 0.8034099946977731
+    },
+    {
+      "box_id": "panel_label_C",
+      "box_type": "panel_label",
+      "x0": 0.039821428571428584,
+      "y0": 0.5062608695652173,
+      "x1": 0.046450216450216464,
+      "y1": 0.5208950159066807
+    },
+    {
+      "box_id": "gap_count_title_C",
+      "box_type": "subplot_title",
+      "x0": 0.23520156926406924,
+      "y0": 0.4998974902792505,
+      "x1": 0.326584145021645,
+      "y1": 0.5316048073524212
+    },
+    {
+      "box_id": "gap_count_y_axis_title_C",
+      "box_type": "y_axis_title",
+      "x0": 0.04598274410774411,
+      "y0": 0.28659000530222684,
+      "x1": 0.0550736531986532,
+      "y1": 0.34558390774125125
+    },
+    {
+      "box_id": "panel_label_D",
+      "box_type": "panel_label",
+      "x0": 0.5380357142857143,
+      "y0": 0.5062608695652173,
+      "x1": 0.5453273809523809,
+      "y1": 0.5208950159066807
+    },
+    {
+      "box_id": "gap_count_title_D",
+      "box_type": "subplot_title",
+      "x0": 0.7388135822510823,
+      "y0": 0.4998974902792505,
+      "x1": 0.8194007034632035,
+      "y1": 0.5316048073524212
+    },
+    {
+      "box_id": "gap_count_y_axis_title_D",
+      "box_type": "y_axis_title",
+      "x0": 0.5441970298220299,
+      "y0": 0.28659000530222684,
+      "x1": 0.5532879389129389,
+      "y1": 0.34558390774125125
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_gap_count_A",
+      "box_type": "gap_count_panel",
+      "x0": 0.08,
+      "y0": 0.5978260869565217,
+      "x1": 0.48178571428571426,
+      "y1": 0.9500000000000001
+    },
+    {
+      "box_id": "panel_gap_count_B",
+      "box_type": "gap_count_panel",
+      "x0": 0.5782142857142857,
+      "y0": 0.5978260869565217,
+      "x1": 0.98,
+      "y1": 0.9500000000000001
+    },
+    {
+      "box_id": "panel_gap_count_C",
+      "box_type": "gap_count_panel",
+      "x0": 0.08,
+      "y0": 0.1399999999999999,
+      "x1": 0.48178571428571426,
+      "y1": 0.4921739130434782
+    },
+    {
+      "box_id": "panel_gap_count_D",
+      "box_type": "gap_count_panel",
+      "x0": 0.5782142857142857,
+      "y0": 0.1399999999999999,
+      "x1": 0.98,
+      "y1": 0.4921739130434782
+    }
+  ],
+  "guide_boxes": [],
+  "metrics": {
+    "rows": [
+      {
+        "phenotype_label": "Phenotype A",
+        "index_patients": 320,
+        "severe_glycemia_low_intensity_gap_patients": 44,
+        "uncontrolled_glycemia_no_drug_gap_patients": 61,
+        "hypertension_no_antihypertensive_gap_patients": 37,
+        "dyslipidemia_no_lipid_lowering_gap_patients": 72
+      },
+      {
+        "phenotype_label": "Phenotype B",
+        "index_patients": 280,
+        "severe_glycemia_low_intensity_gap_patients": 29,
+        "uncontrolled_glycemia_no_drug_gap_patients": 41,
+        "hypertension_no_antihypertensive_gap_patients": 18,
+        "dyslipidemia_no_lipid_lowering_gap_patients": 56
+      }
+    ],
+    "panels": [
+      {
+        "panel_id": "A",
+        "gap_field": "severe_glycemia_low_intensity_gap_patients",
+        "gap_label": "Severe glycemia\nlow-intensity",
+        "counts": [
+          {
+            "phenotype_label": "Phenotype A",
+            "patient_count": 44
+          },
+          {
+            "phenotype_label": "Phenotype B",
+            "patient_count": 29
+          }
+        ]
+      },
+      {
+        "panel_id": "B",
+        "gap_field": "uncontrolled_glycemia_no_drug_gap_patients",
+        "gap_label": "Uncontrolled glycemia\nno drug",
+        "counts": [
+          {
+            "phenotype_label": "Phenotype A",
+            "patient_count": 61
+          },
+          {
+            "phenotype_label": "Phenotype B",
+            "patient_count": 41
+          }
+        ]
+      },
+      {
+        "panel_id": "C",
+        "gap_field": "hypertension_no_antihypertensive_gap_patients",
+        "gap_label": "Hypertension\nno antihypertensive",
+        "counts": [
+          {
+            "phenotype_label": "Phenotype A",
+            "patient_count": 37
+          },
+          {
+            "phenotype_label": "Phenotype B",
+            "patient_count": 18
+          }
+        ]
+      },
+      {
+        "panel_id": "D",
+        "gap_field": "dyslipidemia_no_lipid_lowering_gap_patients",
+        "gap_label": "Dyslipidemia\nno lipid-lowering",
+        "counts": [
+          {
+            "phenotype_label": "Phenotype A",
+            "patient_count": 72
+          },
+          {
+            "phenotype_label": "Phenotype B",
+            "patient_count": 56
+          }
+        ]
+      }
+    ]
+  }
+}

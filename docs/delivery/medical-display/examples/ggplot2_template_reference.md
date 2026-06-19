@@ -1,39 +1,39 @@
-# MAS R/ggplot2 模板风格参考
+# MAS Display Pack Gallery
 
 Owner: `MedAutoScience`
-Purpose: `human_readable_reference_for_builtin_mas_r_ggplot2_medical_display_style`
+Purpose: `human_readable_gallery_for_builtin_mas_display_templates`
 State: `active_support`
 Machine boundary: 人读示例文档。机器真相继续归 display-pack template descriptor、renderer source、`paper/publication_style_profile.json`、layout sidecar、display lock、publication manifest、tests 和真实论文 artifacts。
 
-Codex 内置 Markdown 浏览器对相对图片不稳定；全量图请直接打开 HTML gallery，或使用同目录生成的 PDF：
+- [HTML Gallery](./ggplot2_template_gallery.html)
+- [PDF Gallery](./ggplot2_template_gallery.pdf)
+- [Gallery manifest](./ggplot2_template_reference_assets/gallery_manifest.json)
 
-- [MAS R/ggplot2 模板全量 Gallery](./ggplot2_template_gallery.html)
-- [MAS R/ggplot2 模板全量 Gallery PDF](./ggplot2_template_gallery.pdf)
+## 索引
 
-## 结论
-
-- 当前 core pack 模板库存共 `98` 个：`r_ggplot2` `55` 个，`python` `36` 个，table/非图形 `n/a` `7` 个。
-- HTML gallery 已全量渲染所有 `r_ggplot2` 模板，并按医学展示大类分组展示具体图类型。
-- 默认风格不是 Nature 专用模板；当前 `journal_palette_ref` 是 `large_journal_safe_lancet_like_v1`，整体是中性临床论文风格。
-- MAS 现在是 `R/ggplot2-first`，不是 `R/ggplot2-only`；命中 Python 模板时仍可能输出 Python 风格图。
-
-## 分类覆盖
-
-| Category | Rendered templates |
+| Category | Templates |
 | --- | ---: |
 | Prediction Performance | 3 |
 | Clinical Utility | 5 |
 | Time-to-Event | 10 |
 | Effect Estimate | 7 |
-| Generalizability | 1 |
-| Data Geometry | 7 |
+| Generalizability | 3 |
+| Data Geometry | 15 |
 | Matrix Pattern | 15 |
-| Model Explanation | 6 |
+| Model Explanation | 19 |
 | Model Audit | 1 |
+| Publication Shells and Tables | 20 |
 
-## 默认风格 Token
+## 当前默认风格
 
 - `style_profile_id`: `paper_neutral_clinical_v1`
-- `journal_palette_ref`: `large_journal_safe_lancet_like_v1`
-- typography: `font_family=sans`, `base_size=11.0`, `title_size=12.5`
-- primary: `#5F766B`; secondary: `#B9AD9C`; text: `#13293D`; grid: `#E6EDF2`
+- `journal_palette_ref`: `nature_informed_clinical_publication_v1`
+- renderer inventory: `r_ggplot2=55`, `python=36`, `n/a=7`
+- rendered image templates: `91`
+- legacy Python comparisons rendered: `28`
+- excluded legacy Python baselines: `celltype_signature_heatmap`, `model_complexity_audit_panel`, `time_to_event_decision_curve`, `time_to_event_discrimination_calibration_panel`, `time_to_event_risk_group_summary`
+- upstream nature-skills fresh HEAD checked on `2026-06-18`: `1cb9070fdd94929d5f267ce6585ac87e2cba60b3`
+
+## 风格口径
+
+MAS 默认不是 Nature 官方模板复刻，也不是 Lancet 专用模板。当前内置默认是 `nature_informed_clinical_publication_v1`：白底、`theme_classic` / 左下轴线、小字号、细轴线、弱网格、蓝/青/红/橙/紫/中性语义色板。它吸收了 nature-skills 的 R/ggplot2 workflow、语义 palette、backend-exclusive 和 publication export discipline，但不引入外部 runner 或 publication authority。

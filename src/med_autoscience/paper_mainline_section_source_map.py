@@ -113,19 +113,19 @@ def _external_provenance_refs() -> list[dict[str, object]]:
     return [
         {
             "source_project": "nature-skills",
-            "source_ref": "nature-skills@1609daf:skills/nature-writing",
+            "source_ref": "nature-skills@1cb9070:skills/nature-writing",
             "absorbed_as": "section_contract_to_draft_block_ref_pattern",
             "copied_upstream_text": False,
         },
         {
             "source_project": "nature-skills",
-            "source_ref": "nature-skills@1609daf:skills/nature-polishing",
+            "source_ref": "nature-skills@1cb9070:skills/nature-polishing",
             "absorbed_as": "section_aware_claim_boundary_and_overclaim_ref_pattern",
             "copied_upstream_text": False,
         },
         {
             "source_project": "nature-skills",
-            "source_ref": "nature-skills@1609daf:skills/nature-reader",
+            "source_ref": "nature-skills@1cb9070:skills/nature-reader",
             "absorbed_as": "source_map_and_reader_anchor_ref_pattern",
             "copied_upstream_text": False,
         },

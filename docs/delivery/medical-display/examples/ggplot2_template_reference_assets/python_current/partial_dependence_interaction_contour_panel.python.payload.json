@@ -1,0 +1,294 @@
+{
+  "display_id": "Figure41",
+  "template_id": "fenggaolab.org.medical-display-core::partial_dependence_interaction_contour_panel",
+  "title": "Partial dependence interaction contour panel for joint feature-response surfaces",
+  "caption": "Bounded pairwise partial dependence contours summarize how coupled feature regimes move the audited model prediction across clinically plausible combinations.",
+  "colorbar_label": "Predicted response probability",
+  "panels": [
+    {
+      "panel_id": "age_albumin",
+      "panel_label": "A",
+      "title": "Age x Albumin",
+      "x_label": "Age (years)",
+      "y_label": "Albumin (g/dL)",
+      "x_feature": "Age",
+      "y_feature": "Albumin",
+      "reference_x_value": 60.0,
+      "reference_y_value": 3.8,
+      "reference_label": "Median profile",
+      "x_grid": [
+        40.0,
+        50.0,
+        60.0,
+        70.0
+      ],
+      "y_grid": [
+        2.8,
+        3.4,
+        4.0,
+        4.6
+      ],
+      "response_grid": [
+        [
+          0.44,
+          0.37,
+          0.31,
+          0.27
+        ],
+        [
+          0.35,
+          0.29,
+          0.24,
+          0.2
+        ],
+        [
+          0.28,
+          0.23,
+          0.19,
+          0.16
+        ],
+        [
+          0.24,
+          0.2,
+          0.17,
+          0.14
+        ]
+      ],
+      "observed_points": [
+        {
+          "point_id": "case_1",
+          "x": 43.0,
+          "y": 3.0
+        },
+        {
+          "point_id": "case_2",
+          "x": 51.0,
+          "y": 3.5
+        },
+        {
+          "point_id": "case_3",
+          "x": 60.0,
+          "y": 3.8
+        },
+        {
+          "point_id": "case_4",
+          "x": 67.0,
+          "y": 4.2
+        }
+      ]
+    },
+    {
+      "panel_id": "tumor_platelet",
+      "panel_label": "B",
+      "title": "Tumor size x Platelets",
+      "x_label": "Tumor size (cm)",
+      "y_label": "Platelets (10^9/L)",
+      "x_feature": "Tumor size",
+      "y_feature": "Platelet count",
+      "reference_x_value": 6.0,
+      "reference_y_value": 160.0,
+      "reference_label": "Reference profile",
+      "x_grid": [
+        2.0,
+        4.0,
+        6.0,
+        8.0
+      ],
+      "y_grid": [
+        80.0,
+        120.0,
+        160.0,
+        200.0
+      ],
+      "response_grid": [
+        [
+          0.18,
+          0.21,
+          0.25,
+          0.29
+        ],
+        [
+          0.22,
+          0.27,
+          0.31,
+          0.36
+        ],
+        [
+          0.27,
+          0.33,
+          0.39,
+          0.45
+        ],
+        [
+          0.31,
+          0.38,
+          0.45,
+          0.52
+        ]
+      ],
+      "observed_points": [
+        {
+          "point_id": "case_5",
+          "x": 2.6,
+          "y": 92.0
+        },
+        {
+          "point_id": "case_6",
+          "x": 4.8,
+          "y": 138.0
+        },
+        {
+          "point_id": "case_7",
+          "x": 6.1,
+          "y": 164.0
+        },
+        {
+          "point_id": "case_8",
+          "x": 7.5,
+          "y": 188.0
+        }
+      ]
+    }
+  ],
+  "render_context": {
+    "style_profile_id": "paper_neutral_clinical_v1",
+    "style_profile_ref": "human_reference_default_publication_style_profile",
+    "style_profile_sha256": "81a4f0415f43faf78a632738f43f0af4eafaa7e422acba2923037d92e3aa669b",
+    "journal_palette_ref": "nature_informed_clinical_publication_v1",
+    "palette": {
+      "primary": "#0F4D92",
+      "secondary": "#33B5A5",
+      "tertiary": "#D24B40",
+      "quaternary": "#E28E2C",
+      "violet": "#7C6CCF",
+      "neutral": "#4D4D4D",
+      "neutral_mid": "#767676",
+      "neutral_light": "#D8D8D8",
+      "light": "#F2F5F7",
+      "primary_soft": "#DCEAF7",
+      "secondary_soft": "#DDF3F0",
+      "tertiary_soft": "#F6CFCB",
+      "quaternary_soft": "#F7E7D0",
+      "violet_soft": "#E7E1F5",
+      "audit": "#B64342",
+      "audit_soft": "#F6CFCB",
+      "text": "#272727",
+      "axis": "#272727",
+      "grid": "#ECEFF2",
+      "background": "#FFFFFF",
+      "heatmap_low": "#2B6CB0",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B64342",
+      "volcano_up": "#B64342",
+      "volcano_down": "#2B6CB0",
+      "volcano_background": "#B8B8B8"
+    },
+    "semantic_roles": {
+      "model_curve": "primary",
+      "comparator_curve": "secondary",
+      "reference_line": "neutral_mid",
+      "highlight_band": "light",
+      "text": "text",
+      "axis_line": "axis",
+      "grid_line": "grid",
+      "figure_background": "background",
+      "series_1": "primary",
+      "series_2": "secondary",
+      "series_3": "tertiary",
+      "series_4": "quaternary",
+      "series_5": "violet",
+      "series_6": "neutral_mid",
+      "heatmap_low": "heatmap_low",
+      "heatmap_mid": "heatmap_mid",
+      "heatmap_high": "heatmap_high",
+      "volcano_up": "volcano_up",
+      "volcano_down": "volcano_down",
+      "volcano_background": "volcano_background",
+      "flow_main_fill": "light",
+      "flow_main_edge": "neutral_mid",
+      "flow_exclusion_fill": "audit_soft",
+      "flow_exclusion_edge": "audit",
+      "flow_primary_fill": "primary_soft",
+      "flow_primary_edge": "primary",
+      "flow_secondary_fill": "secondary_soft",
+      "flow_secondary_edge": "secondary",
+      "flow_context_fill": "violet_soft",
+      "flow_context_edge": "violet",
+      "flow_audit_fill": "audit_soft",
+      "flow_audit_edge": "audit",
+      "flow_title_text": "neutral",
+      "flow_body_text": "neutral",
+      "flow_panel_label": "neutral",
+      "flow_connector": "neutral"
+    },
+    "style_roles": {
+      "model_curve": "#0F4D92",
+      "comparator_curve": "#33B5A5",
+      "reference_line": "#767676",
+      "highlight_band": "#F2F5F7",
+      "text": "#272727",
+      "axis_line": "#272727",
+      "grid_line": "#ECEFF2",
+      "figure_background": "#FFFFFF",
+      "series_1": "#0F4D92",
+      "series_2": "#33B5A5",
+      "series_3": "#D24B40",
+      "series_4": "#E28E2C",
+      "series_5": "#7C6CCF",
+      "series_6": "#767676",
+      "heatmap_low": "#2B6CB0",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B64342",
+      "volcano_up": "#B64342",
+      "volcano_down": "#2B6CB0",
+      "volcano_background": "#B8B8B8",
+      "flow_main_fill": "#F2F5F7",
+      "flow_main_edge": "#767676",
+      "flow_exclusion_fill": "#F6CFCB",
+      "flow_exclusion_edge": "#B64342",
+      "flow_primary_fill": "#DCEAF7",
+      "flow_primary_edge": "#0F4D92",
+      "flow_secondary_fill": "#DDF3F0",
+      "flow_secondary_edge": "#33B5A5",
+      "flow_context_fill": "#E7E1F5",
+      "flow_context_edge": "#7C6CCF",
+      "flow_audit_fill": "#F6CFCB",
+      "flow_audit_edge": "#B64342",
+      "flow_title_text": "#4D4D4D",
+      "flow_body_text": "#4D4D4D",
+      "flow_panel_label": "#4D4D4D",
+      "flow_connector": "#4D4D4D"
+    },
+    "typography": {
+      "font_family": "sans",
+      "base_size": 9.0,
+      "title_size": 10.0,
+      "axis_title_size": 9.0,
+      "tick_size": 8.0,
+      "legend_size": 7.8,
+      "panel_label_size": 9.2
+    },
+    "stroke": {
+      "axis_linewidth": 0.35,
+      "primary_linewidth": 2.0,
+      "secondary_linewidth": 1.55,
+      "reference_linewidth": 0.9,
+      "grid_linewidth": 0.18,
+      "marker_size": 3.4
+    },
+    "grid": {
+      "major": true,
+      "minor": false,
+      "major_axis": "y",
+      "minor_axis": "none",
+      "color": "#ECEFF2",
+      "linetype": "solid"
+    },
+    "layout_override": {
+      "output_width_in": 5.0,
+      "output_height_in": 5.0,
+      "show_figure_title": false
+    },
+    "readability_override": {}
+  }
+}

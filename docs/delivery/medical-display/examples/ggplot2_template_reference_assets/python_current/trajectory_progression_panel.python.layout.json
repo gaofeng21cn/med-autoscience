@@ -1,0 +1,293 @@
+{
+  "template_id": "trajectory_progression_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "trajectory_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.13267598343685302,
+      "y0": 0.8726666666666668,
+      "x1": 0.23303830227743272,
+      "y1": 0.8966666666666667
+    },
+    {
+      "box_id": "trajectory_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.15378105590062113,
+      "y0": 0.16344444444444442,
+      "x1": 0.2119332298136646,
+      "y1": 0.18744444444444444
+    },
+    {
+      "box_id": "trajectory_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.020849436392914648,
+      "y0": 0.46975,
+      "x1": 0.02954508856682769,
+      "y1": 0.63025
+    },
+    {
+      "box_id": "composition_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.41388288342092694,
+      "y0": 0.8726666666666668,
+      "x1": 0.5755676660296226,
+      "y1": 0.8966666666666667
+    },
+    {
+      "box_id": "composition_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.45097527472527477,
+      "y0": 0.16344444444444442,
+      "x1": 0.5384752747252748,
+      "y1": 0.18744444444444444
+    },
+    {
+      "box_id": "composition_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.3462341402558795,
+      "y0": 0.455625,
+      "x1": 0.35492979242979256,
+      "y1": 0.644375
+    },
+    {
+      "box_id": "heatmap_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.7572235825768434,
+      "y0": 0.8726666666666668,
+      "x1": 0.825248944895684,
+      "y1": 0.8966666666666667
+    },
+    {
+      "box_id": "heatmap_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.7570424231565536,
+      "y0": 0.15528907900856992,
+      "x1": 0.8254301043159739,
+      "y1": 0.17928907900856994
+    },
+    {
+      "box_id": "heatmap_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.5959343313691141,
+      "y0": 0.44725000000000004,
+      "x1": 0.6046299835430271,
+      "y1": 0.65275
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.066,
+      "y0": 0.809,
+      "x1": 0.07560144927536232,
+      "y1": 0.845
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.38731868131868147,
+      "y0": 0.809,
+      "x1": 0.3952896958114351,
+      "y1": 0.845
+    },
+    {
+      "box_id": "panel_label_C",
+      "box_type": "panel_label",
+      "x0": 0.6897362637362638,
+      "y0": 0.809,
+      "x1": 0.6993377130116262,
+      "y1": 0.845
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_trajectory",
+      "box_type": "panel",
+      "x0": 0.06,
+      "y0": 0.24,
+      "x1": 0.3057142857142857,
+      "y1": 0.86
+    },
+    {
+      "box_id": "panel_composition",
+      "box_type": "composition_panel",
+      "x0": 0.3813186813186814,
+      "y0": 0.24,
+      "x1": 0.6081318681318681,
+      "y1": 0.86
+    },
+    {
+      "box_id": "panel_heatmap",
+      "box_type": "heatmap_tile_region",
+      "x0": 0.6837362637362638,
+      "y0": 0.24,
+      "x1": 0.8987362637362638,
+      "y1": 0.86
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "legend",
+      "box_type": "legend",
+      "x0": 0.07503220611916264,
+      "y0": 0.033888888888888885,
+      "x1": 0.24517109500805154,
+      "y1": 0.08411111111111112
+    },
+    {
+      "box_id": "colorbar",
+      "box_type": "colorbar",
+      "x0": 0.9081868131868134,
+      "y0": 0.24,
+      "x1": 0.9194186972447844,
+      "y1": 0.86
+    }
+  ],
+  "metrics": {
+    "points": [
+      {
+        "x": 0.07116883116883119,
+        "y": 0.8318181818181818,
+        "branch_label": "Branch A",
+        "state_label": "Stem-like",
+        "pseudotime": 0.08
+      },
+      {
+        "x": 0.11855175127902402,
+        "y": 0.6909090909090909,
+        "branch_label": "Branch A",
+        "state_label": "Intermediate",
+        "pseudotime": 0.36
+      },
+      {
+        "x": 0.17270365997638726,
+        "y": 0.4795454545454545,
+        "branch_label": "Branch A",
+        "state_label": "Effector",
+        "pseudotime": 0.74
+      },
+      {
+        "x": 0.29454545454545455,
+        "y": 0.7965909090909091,
+        "branch_label": "Branch B",
+        "state_label": "Stem-like",
+        "pseudotime": 0.12
+      },
+      {
+        "x": 0.2607005116096025,
+        "y": 0.55,
+        "branch_label": "Branch B",
+        "state_label": "Intermediate",
+        "pseudotime": 0.48
+      },
+      {
+        "x": 0.23362455726092088,
+        "y": 0.26818181818181813,
+        "branch_label": "Branch B",
+        "state_label": "Terminal",
+        "pseudotime": 0.86
+      }
+    ],
+    "branch_labels": [
+      "Branch A",
+      "Branch B"
+    ],
+    "bin_labels": [
+      "Early",
+      "Mid",
+      "Late"
+    ],
+    "row_labels": [
+      "Interferon module",
+      "EMT module"
+    ],
+    "progression_bins": [
+      {
+        "bin_label": "Early",
+        "bin_order": 1,
+        "pseudotime_start": 0.0,
+        "pseudotime_end": 0.33,
+        "branch_weights": [
+          {
+            "branch_label": "Branch A",
+            "proportion": 0.56
+          },
+          {
+            "branch_label": "Branch B",
+            "proportion": 0.44
+          }
+        ]
+      },
+      {
+        "bin_label": "Mid",
+        "bin_order": 2,
+        "pseudotime_start": 0.33,
+        "pseudotime_end": 0.67,
+        "branch_weights": [
+          {
+            "branch_label": "Branch A",
+            "proportion": 0.49
+          },
+          {
+            "branch_label": "Branch B",
+            "proportion": 0.51
+          }
+        ]
+      },
+      {
+        "bin_label": "Late",
+        "bin_order": 3,
+        "pseudotime_start": 0.67,
+        "pseudotime_end": 1.0,
+        "branch_weights": [
+          {
+            "branch_label": "Branch A",
+            "proportion": 0.38
+          },
+          {
+            "branch_label": "Branch B",
+            "proportion": 0.62
+          }
+        ]
+      }
+    ],
+    "matrix_cells": [
+      {
+        "x": "Early",
+        "y": "Interferon module",
+        "value": 0.72
+      },
+      {
+        "x": "Mid",
+        "y": "Interferon module",
+        "value": 0.28
+      },
+      {
+        "x": "Late",
+        "y": "Interferon module",
+        "value": -0.18
+      },
+      {
+        "x": "Early",
+        "y": "EMT module",
+        "value": -0.31
+      },
+      {
+        "x": "Mid",
+        "y": "EMT module",
+        "value": 0.22
+      },
+      {
+        "x": "Late",
+        "y": "EMT module",
+        "value": 0.68
+      }
+    ],
+    "score_method": "GSVA"
+  }
+}

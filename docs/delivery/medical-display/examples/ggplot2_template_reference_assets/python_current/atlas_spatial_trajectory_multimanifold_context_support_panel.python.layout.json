@@ -1,0 +1,658 @@
+{
+  "template_id": "atlas_spatial_trajectory_multimanifold_context_support_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "atlas_A_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.1653271349862259,
+      "y0": 0.8871969696969698,
+      "x1": 0.24616046831955923,
+      "y1": 0.9008333333333335
+    },
+    {
+      "box_id": "atlas_A_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.19272296831955923,
+      "y0": 0.5503072390572392,
+      "x1": 0.2187646349862259,
+      "y1": 0.5639436026936029
+    },
+    {
+      "box_id": "atlas_A_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.08998456790123457,
+      "y0": 0.7102688341750844,
+      "x1": 0.09665123456790124,
+      "y1": 0.7635358796296298
+    },
+    {
+      "box_id": "atlas_B_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.38535210055096414,
+      "y0": 0.8871969696969698,
+      "x1": 0.4651437672176308,
+      "y1": 0.9008333333333335
+    },
+    {
+      "box_id": "atlas_B_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.4110118227731863,
+      "y0": 0.5503072390572392,
+      "x1": 0.43948404499540855,
+      "y1": 0.5639436026936029
+    },
+    {
+      "box_id": "atlas_B_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.30948870013263957,
+      "y0": 0.7077830387205388,
+      "x1": 0.3161553667993062,
+      "y1": 0.7660216750841752
+    },
+    {
+      "box_id": "spatial_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.6035367883379247,
+      "y0": 0.8871969696969698,
+      "x1": 0.6859673438934802,
+      "y1": 0.9008333333333335
+    },
+    {
+      "box_id": "spatial_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.6113492883379247,
+      "y0": 0.5503072390572392,
+      "x1": 0.6781548438934802,
+      "y1": 0.5639436026936029
+    },
+    {
+      "box_id": "spatial_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.5339233879195999,
+      "y0": 0.6692176978114479,
+      "x1": 0.5405900545862666,
+      "y1": 0.8045870159932661
+    },
+    {
+      "box_id": "trajectory_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.8257839761248852,
+      "y0": 0.8871969696969698,
+      "x1": 0.9027284205693296,
+      "y1": 0.9008333333333335
+    },
+    {
+      "box_id": "trajectory_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.8438742539026629,
+      "y0": 0.5503072390572392,
+      "x1": 0.8846381427915518,
+      "y1": 0.5639436026936029
+    },
+    {
+      "box_id": "trajectory_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.7484969645954493,
+      "y0": 0.6952120159932661,
+      "x1": 0.7551636312621159,
+      "y1": 0.7785926978114479
+    },
+    {
+      "box_id": "composition_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.1827083333333333,
+      "y0": 0.4876683501683503,
+      "x1": 0.2878472222222222,
+      "y1": 0.5013047138047139
+    },
+    {
+      "box_id": "composition_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.2048958333333333,
+      "y0": 0.15650252525252534,
+      "x1": 0.26565972222222217,
+      "y1": 0.17013888888888898
+    },
+    {
+      "box_id": "composition_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.06018518518518518,
+      "y0": 0.3164430765993267,
+      "x1": 0.06685185185185184,
+      "y1": 0.364028303872054
+    },
+    {
+      "box_id": "heatmap_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.5064930555555556,
+      "y0": 0.4876683501683503,
+      "x1": 0.5635069444444445,
+      "y1": 0.5013047138047139
+    },
+    {
+      "box_id": "heatmap_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.5087847222222223,
+      "y0": 0.15350826113674784,
+      "x1": 0.5612152777777778,
+      "y1": 0.16714462477311148
+    },
+    {
+      "box_id": "heatmap_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.36824074074074076,
+      "y0": 0.2818550084175085,
+      "x1": 0.3749074074074074,
+      "y1": 0.3986163720538721
+    },
+    {
+      "box_id": "support_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.7831458333333333,
+      "y0": 0.4876683501683503,
+      "x1": 0.8701597222222222,
+      "y1": 0.5013047138047139
+    },
+    {
+      "box_id": "support_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.8132499999999999,
+      "y0": 0.12502075696780737,
+      "x1": 0.8400555555555556,
+      "y1": 0.138657120604171
+    },
+    {
+      "box_id": "support_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.6774768518518518,
+      "y0": 0.3078493265993267,
+      "x1": 0.6841435185185185,
+      "y1": 0.37262205387205394
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.126,
+      "y0": 0.8515454545454548,
+      "x1": 0.13336111111111112,
+      "y1": 0.8720000000000002
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.345504132231405,
+      "y0": 0.8515454545454548,
+      "x1": 0.3516152433425161,
+      "y1": 0.8720000000000002
+    },
+    {
+      "box_id": "panel_label_C",
+      "box_type": "panel_label",
+      "x0": 0.5650082644628098,
+      "y0": 0.8515454545454548,
+      "x1": 0.5723693755739209,
+      "y1": 0.8720000000000002
+    },
+    {
+      "box_id": "panel_label_D",
+      "box_type": "panel_label",
+      "x0": 0.7845123966942149,
+      "y0": 0.8515454545454548,
+      "x1": 0.7924985078053259,
+      "y1": 0.8720000000000002
+    },
+    {
+      "box_id": "panel_label_E",
+      "box_type": "panel_label",
+      "x0": 0.126,
+      "y0": 0.45201683501683515,
+      "x1": 0.1317638888888889,
+      "y1": 0.4724713804713806
+    },
+    {
+      "box_id": "panel_label_F",
+      "box_type": "panel_label",
+      "x0": 0.4257222222222222,
+      "y0": 0.45201683501683515,
+      "x1": 0.4314166666666666,
+      "y1": 0.4724713804713806
+    },
+    {
+      "box_id": "panel_label_G",
+      "box_type": "panel_label",
+      "x0": 0.7254444444444444,
+      "y0": 0.45201683501683515,
+      "x1": 0.7331527777777778,
+      "y1": 0.4724713804713806
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_atlas_A",
+      "box_type": "panel",
+      "x0": 0.12,
+      "y0": 0.5938047138047139,
+      "x1": 0.2914876033057851,
+      "y1": 0.8800000000000001
+    },
+    {
+      "box_id": "panel_atlas_B",
+      "box_type": "panel",
+      "x0": 0.33950413223140496,
+      "y0": 0.5938047138047139,
+      "x1": 0.51099173553719,
+      "y1": 0.8800000000000001
+    },
+    {
+      "box_id": "panel_spatial",
+      "box_type": "panel",
+      "x0": 0.5590082644628098,
+      "y0": 0.5938047138047139,
+      "x1": 0.730495867768595,
+      "y1": 0.8800000000000001
+    },
+    {
+      "box_id": "panel_trajectory",
+      "box_type": "panel",
+      "x0": 0.7785123966942148,
+      "y0": 0.5938047138047139,
+      "x1": 0.9499999999999998,
+      "y1": 0.8800000000000001
+    },
+    {
+      "box_id": "panel_composition",
+      "box_type": "composition_panel",
+      "x0": 0.12,
+      "y0": 0.2000000000000001,
+      "x1": 0.3505555555555555,
+      "y1": 0.48047138047138055
+    },
+    {
+      "box_id": "panel_heatmap",
+      "box_type": "heatmap_tile_region",
+      "x0": 0.4197222222222222,
+      "y0": 0.2000000000000001,
+      "x1": 0.6502777777777777,
+      "y1": 0.48047138047138055
+    },
+    {
+      "box_id": "panel_support",
+      "box_type": "heatmap_tile_region",
+      "x0": 0.7194444444444444,
+      "y0": 0.2000000000000001,
+      "x1": 0.933861111111111,
+      "y1": 0.48047138047138055
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "legend",
+      "box_type": "legend",
+      "x0": 0.053858024691358024,
+      "y0": 0.027891414141414137,
+      "x1": 0.24876543209876542,
+      "y1": 0.05642676767676767
+    },
+    {
+      "box_id": "colorbar",
+      "box_type": "colorbar",
+      "x0": 0.9407777777777777,
+      "y0": 0.2000000000000001,
+      "x1": 0.9476337448559671,
+      "y1": 0.48047138047138055
+    }
+  ],
+  "metrics": {
+    "atlas_manifold_panels": [
+      {
+        "panel_id": "atlas_umap",
+        "panel_label": "A",
+        "manifold_method": "umap",
+        "points": [
+          {
+            "x": 0.12779489105935385,
+            "y": 0.8669911233547598,
+            "state_label": "Stem-like"
+          },
+          {
+            "x": 0.14728211870773852,
+            "y": 0.8344689317416593,
+            "state_label": "Stem-like"
+          },
+          {
+            "x": 0.22035922238918107,
+            "y": 0.688119069482706,
+            "state_label": "Cycling"
+          },
+          {
+            "x": 0.2836927122464312,
+            "y": 0.6068135904499542,
+            "state_label": "Effector"
+          }
+        ]
+      },
+      {
+        "panel_id": "atlas_phate",
+        "panel_label": "B",
+        "manifold_method": "phate",
+        "points": [
+          {
+            "x": 0.3472990232907588,
+            "y": 0.8669911233547598,
+            "state_label": "Stem-like"
+          },
+          {
+            "x": 0.37652986476333583,
+            "y": 0.7802652790531579,
+            "state_label": "Stem-like"
+          },
+          {
+            "x": 0.4349915477084898,
+            "y": 0.7108846036118763,
+            "state_label": "Cycling"
+          },
+          {
+            "x": 0.5031968444778362,
+            "y": 0.6068135904499542,
+            "state_label": "Effector"
+          }
+        ]
+      }
+    ],
+    "atlas_points": [
+      {
+        "x": 0.12779489105935385,
+        "y": 0.8669911233547598,
+        "state_label": "Stem-like"
+      },
+      {
+        "x": 0.14728211870773852,
+        "y": 0.8344689317416593,
+        "state_label": "Stem-like"
+      },
+      {
+        "x": 0.22035922238918107,
+        "y": 0.688119069482706,
+        "state_label": "Cycling"
+      },
+      {
+        "x": 0.2836927122464312,
+        "y": 0.6068135904499542,
+        "state_label": "Effector"
+      }
+    ],
+    "spatial_points": [
+      {
+        "x": 0.5668031555221636,
+        "y": 0.8669911233547597,
+        "state_label": "Stem-like",
+        "region_label": "Tumor core"
+      },
+      {
+        "x": 0.5801658259096275,
+        "y": 0.8418126524284882,
+        "state_label": "Stem-like",
+        "region_label": "Tumor core"
+      },
+      {
+        "x": 0.6603418482344101,
+        "y": 0.7243131214392212,
+        "state_label": "Cycling",
+        "region_label": "Invasive margin"
+      },
+      {
+        "x": 0.7227009767092412,
+        "y": 0.6068135904499542,
+        "state_label": "Effector",
+        "region_label": "Invasive margin"
+      }
+    ],
+    "trajectory_points": [
+      {
+        "x": 0.7863072877535686,
+        "y": 0.8669911233547597,
+        "state_label": "Stem-like",
+        "branch_label": "Branch A",
+        "pseudotime": 0.08
+      },
+      {
+        "x": 0.825281743050338,
+        "y": 0.7802652790531579,
+        "state_label": "Cycling",
+        "branch_label": "Branch A",
+        "pseudotime": 0.34
+      },
+      {
+        "x": 0.8593843914350111,
+        "y": 0.6761942658912357,
+        "state_label": "Effector",
+        "branch_label": "Branch A",
+        "pseudotime": 0.76
+      },
+      {
+        "x": 0.942205108940646,
+        "y": 0.8496459544944394,
+        "state_label": "Stem-like",
+        "branch_label": "Branch B",
+        "pseudotime": 0.12
+      },
+      {
+        "x": 0.9227178812922614,
+        "y": 0.7455749413325171,
+        "state_label": "Cycling",
+        "branch_label": "Branch B",
+        "pseudotime": 0.52
+      },
+      {
+        "x": 0.9032306536438767,
+        "y": 0.6068135904499542,
+        "state_label": "Effector",
+        "branch_label": "Branch B",
+        "pseudotime": 0.88
+      }
+    ],
+    "state_labels": [
+      "Stem-like",
+      "Cycling",
+      "Effector"
+    ],
+    "branch_labels": [
+      "Branch A",
+      "Branch B"
+    ],
+    "bin_labels": [
+      "Early",
+      "Mid",
+      "Late"
+    ],
+    "row_labels": [
+      "IFN response",
+      "EMT module"
+    ],
+    "context_labels": [
+      "Atlas density",
+      "Spatial coverage",
+      "Trajectory coverage"
+    ],
+    "context_kinds": [
+      "atlas_density",
+      "spatial_coverage",
+      "trajectory_coverage"
+    ],
+    "composition_groups": [
+      {
+        "group_label": "Tumor core",
+        "group_order": 1,
+        "state_proportions": [
+          {
+            "state_label": "Stem-like",
+            "proportion": 0.48
+          },
+          {
+            "state_label": "Cycling",
+            "proportion": 0.32
+          },
+          {
+            "state_label": "Effector",
+            "proportion": 0.2
+          }
+        ]
+      },
+      {
+        "group_label": "Invasive margin",
+        "group_order": 2,
+        "state_proportions": [
+          {
+            "state_label": "Stem-like",
+            "proportion": 0.18
+          },
+          {
+            "state_label": "Cycling",
+            "proportion": 0.34
+          },
+          {
+            "state_label": "Effector",
+            "proportion": 0.48
+          }
+        ]
+      }
+    ],
+    "progression_bins": [
+      {
+        "bin_label": "Early",
+        "bin_order": 1,
+        "pseudotime_start": 0.0,
+        "pseudotime_end": 0.33,
+        "branch_weights": [
+          {
+            "branch_label": "Branch A",
+            "proportion": 0.58
+          },
+          {
+            "branch_label": "Branch B",
+            "proportion": 0.42
+          }
+        ]
+      },
+      {
+        "bin_label": "Mid",
+        "bin_order": 2,
+        "pseudotime_start": 0.33,
+        "pseudotime_end": 0.67,
+        "branch_weights": [
+          {
+            "branch_label": "Branch A",
+            "proportion": 0.46
+          },
+          {
+            "branch_label": "Branch B",
+            "proportion": 0.54
+          }
+        ]
+      },
+      {
+        "bin_label": "Late",
+        "bin_order": 3,
+        "pseudotime_start": 0.67,
+        "pseudotime_end": 1.0,
+        "branch_weights": [
+          {
+            "branch_label": "Branch A",
+            "proportion": 0.39
+          },
+          {
+            "branch_label": "Branch B",
+            "proportion": 0.61
+          }
+        ]
+      }
+    ],
+    "matrix_cells": [
+      {
+        "x": "Early",
+        "y": "IFN response",
+        "value": 0.74
+      },
+      {
+        "x": "Mid",
+        "y": "IFN response",
+        "value": 0.26
+      },
+      {
+        "x": "Late",
+        "y": "IFN response",
+        "value": -0.14
+      },
+      {
+        "x": "Early",
+        "y": "EMT module",
+        "value": -0.28
+      },
+      {
+        "x": "Mid",
+        "y": "EMT module",
+        "value": 0.18
+      },
+      {
+        "x": "Late",
+        "y": "EMT module",
+        "value": 0.72
+      }
+    ],
+    "support_cells": [
+      {
+        "x": "Atlas density",
+        "y": "Stem-like",
+        "value": 0.84
+      },
+      {
+        "x": "Spatial coverage",
+        "y": "Stem-like",
+        "value": 0.73
+      },
+      {
+        "x": "Trajectory coverage",
+        "y": "Stem-like",
+        "value": 0.58
+      },
+      {
+        "x": "Atlas density",
+        "y": "Cycling",
+        "value": 0.49
+      },
+      {
+        "x": "Spatial coverage",
+        "y": "Cycling",
+        "value": 0.61
+      },
+      {
+        "x": "Trajectory coverage",
+        "y": "Cycling",
+        "value": 0.66
+      },
+      {
+        "x": "Atlas density",
+        "y": "Effector",
+        "value": 0.31
+      },
+      {
+        "x": "Spatial coverage",
+        "y": "Effector",
+        "value": 0.54
+      },
+      {
+        "x": "Trajectory coverage",
+        "y": "Effector",
+        "value": 0.81
+      }
+    ],
+    "score_method": "GSVA",
+    "support_scale_label": "Coverage fraction"
+  }
+}

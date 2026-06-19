@@ -1,0 +1,484 @@
+{
+  "template_id": "cnv_recurrence_summary_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.1128968253968254,
+      "y0": 0.3192372533846572,
+      "x1": 0.12718253968253967,
+      "y1": 0.47847817747706645
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.20700000000000005,
+      "y0": 0.8602970297029704,
+      "x1": 0.22202976190476195,
+      "y1": 0.89
+    },
+    {
+      "box_id": "annotation_track_label_cohort",
+      "box_type": "annotation_track_label",
+      "x0": 0.13882738095238098,
+      "y0": 0.688713739359908,
+      "x1": 0.18600000000000003,
+      "y1": 0.7085157195579278
+    },
+    {
+      "box_id": "annotation_track_label_response",
+      "box_type": "annotation_track_label",
+      "x0": 0.12037500000000002,
+      "y0": 0.622280873628445,
+      "x1": 0.18600000000000003,
+      "y1": 0.6420828538264648
+    },
+    {
+      "box_id": "burden_bar_D1",
+      "box_type": "bar",
+      "x0": 0.2153194562446899,
+      "y0": 0.7530811623246494,
+      "x1": 0.3025225148683093,
+      "y1": 0.8930038648726024
+    },
+    {
+      "box_id": "burden_bar_D2",
+      "box_type": "bar",
+      "x0": 0.333161427357689,
+      "y0": 0.7530811623246494,
+      "x1": 0.42036448598130843,
+      "y1": 0.8930038648726024
+    },
+    {
+      "box_id": "burden_bar_V1",
+      "box_type": "bar",
+      "x0": 0.4510033984706882,
+      "y0": 0.7530811623246494,
+      "x1": 0.5382064570943076,
+      "y1": 0.8930038648726024
+    },
+    {
+      "box_id": "burden_bar_V2",
+      "box_type": "bar",
+      "x0": 0.5688453695836874,
+      "y0": 0.7530811623246494,
+      "x1": 0.6560484282073068,
+      "y1": 0.8930038648726024
+    },
+    {
+      "box_id": "freq_gain_TP53",
+      "box_type": "bar",
+      "x0": 0.8245624468988955,
+      "y0": 0.5186923847695393,
+      "x1": 0.8998749848282558,
+      "y1": 0.5473096192384771
+    },
+    {
+      "box_id": "freq_loss_TP53",
+      "box_type": "bar",
+      "x0": 0.7492499089695352,
+      "y0": 0.5186923847695393,
+      "x1": 0.8245624468988955,
+      "y1": 0.5473096192384771
+    },
+    {
+      "box_id": "freq_gain_MYC",
+      "box_type": "bar",
+      "x0": 0.8245624468988955,
+      "y0": 0.4292635270541083,
+      "x1": 0.8998749848282558,
+      "y1": 0.4578807615230462
+    },
+    {
+      "box_id": "freq_loss_MYC",
+      "box_type": "bar",
+      "x0": 0.7492499089695352,
+      "y0": 0.4292635270541083,
+      "x1": 0.8245624468988955,
+      "y1": 0.4578807615230462
+    },
+    {
+      "box_id": "freq_gain_EGFR",
+      "box_type": "bar",
+      "x0": 0.8245624468988955,
+      "y0": 0.3398346693386775,
+      "x1": 0.8998749848282558,
+      "y1": 0.3684519038076154
+    },
+    {
+      "box_id": "freq_loss_EGFR",
+      "box_type": "bar",
+      "x0": 0.7492499089695352,
+      "y0": 0.3398346693386775,
+      "x1": 0.8245624468988955,
+      "y1": 0.3684519038076154
+    },
+    {
+      "box_id": "freq_gain_CDKN2A",
+      "box_type": "bar",
+      "x0": 0.8245624468988955,
+      "y0": 0.25040581162324665,
+      "x1": 0.8998749848282558,
+      "y1": 0.2790230460921845
+    },
+    {
+      "box_id": "freq_loss_CDKN2A",
+      "box_type": "bar",
+      "x0": 0.7492499089695352,
+      "y0": 0.25040581162324665,
+      "x1": 0.8245624468988955,
+      "y1": 0.2790230460921845
+    },
+    {
+      "box_id": "annotation_cohort_D1",
+      "box_type": "annotation_cell",
+      "x0": 0.2,
+      "y0": 0.6653982965931864,
+      "x1": 0.3178419711129991,
+      "y1": 0.7318311623246494
+    },
+    {
+      "box_id": "annotation_cohort_D2",
+      "box_type": "annotation_cell",
+      "x0": 0.3178419711129991,
+      "y0": 0.6653982965931864,
+      "x1": 0.43568394222599827,
+      "y1": 0.7318311623246494
+    },
+    {
+      "box_id": "annotation_cohort_V1",
+      "box_type": "annotation_cell",
+      "x0": 0.4356839422259983,
+      "y0": 0.6653982965931864,
+      "x1": 0.5535259133389975,
+      "y1": 0.7318311623246494
+    },
+    {
+      "box_id": "annotation_cohort_V2",
+      "box_type": "annotation_cell",
+      "x0": 0.5535259133389974,
+      "y0": 0.6653982965931864,
+      "x1": 0.6713678844519966,
+      "y1": 0.7318311623246494
+    },
+    {
+      "box_id": "annotation_response_D1",
+      "box_type": "annotation_cell",
+      "x0": 0.2,
+      "y0": 0.5989654308617235,
+      "x1": 0.3178419711129991,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "annotation_response_D2",
+      "box_type": "annotation_cell",
+      "x0": 0.3178419711129991,
+      "y0": 0.5989654308617235,
+      "x1": 0.43568394222599827,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "annotation_response_V1",
+      "box_type": "annotation_cell",
+      "x0": 0.4356839422259983,
+      "y0": 0.5989654308617235,
+      "x1": 0.5535259133389975,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "annotation_response_V2",
+      "box_type": "annotation_cell",
+      "x0": 0.5535259133389974,
+      "y0": 0.5989654308617235,
+      "x1": 0.6713678844519966,
+      "y1": 0.6653982965931865
+    },
+    {
+      "box_id": "cnv_TP53_D1",
+      "box_type": "cnv_cell",
+      "x0": 0.2,
+      "y0": 0.4882865731462927,
+      "x1": 0.3178419711129991,
+      "y1": 0.5777154308617235
+    },
+    {
+      "box_id": "cnv_TP53_D2",
+      "box_type": "cnv_cell",
+      "x0": 0.3178419711129991,
+      "y0": 0.4882865731462927,
+      "x1": 0.43568394222599827,
+      "y1": 0.5777154308617235
+    },
+    {
+      "box_id": "cnv_MYC_D1",
+      "box_type": "cnv_cell",
+      "x0": 0.2,
+      "y0": 0.3988577154308619,
+      "x1": 0.3178419711129991,
+      "y1": 0.48828657314629276
+    },
+    {
+      "box_id": "cnv_MYC_V1",
+      "box_type": "cnv_cell",
+      "x0": 0.4356839422259983,
+      "y0": 0.3988577154308619,
+      "x1": 0.5535259133389975,
+      "y1": 0.48828657314629276
+    },
+    {
+      "box_id": "cnv_EGFR_D2",
+      "box_type": "cnv_cell",
+      "x0": 0.3178419711129991,
+      "y0": 0.309428857715431,
+      "x1": 0.43568394222599827,
+      "y1": 0.39885771543086185
+    },
+    {
+      "box_id": "cnv_EGFR_V2",
+      "box_type": "cnv_cell",
+      "x0": 0.5535259133389974,
+      "y0": 0.309428857715431,
+      "x1": 0.6713678844519966,
+      "y1": 0.39885771543086185
+    },
+    {
+      "box_id": "cnv_CDKN2A_V1",
+      "box_type": "cnv_cell",
+      "x0": 0.4356839422259983,
+      "y0": 0.22000000000000014,
+      "x1": 0.5535259133389975,
+      "y1": 0.309428857715431
+    },
+    {
+      "box_id": "cnv_CDKN2A_V2",
+      "box_type": "cnv_cell",
+      "x0": 0.5535259133389974,
+      "y0": 0.22000000000000014,
+      "x1": 0.6713678844519966,
+      "y1": 0.309428857715431
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_burden",
+      "box_type": "panel",
+      "x0": 0.2,
+      "y0": 0.7530811623246494,
+      "x1": 0.6713678844519966,
+      "y1": 0.9
+    },
+    {
+      "box_id": "panel_annotations",
+      "box_type": "panel",
+      "x0": 0.2,
+      "y0": 0.5989654308617235,
+      "x1": 0.6713678844519966,
+      "y1": 0.7318311623246494
+    },
+    {
+      "box_id": "panel_matrix",
+      "box_type": "panel",
+      "x0": 0.2,
+      "y0": 0.22000000000000008,
+      "x1": 0.6713678844519966,
+      "y1": 0.5777154308617235
+    },
+    {
+      "box_id": "panel_frequency",
+      "box_type": "panel",
+      "x0": 0.719124893797791,
+      "y0": 0.22000000000000008,
+      "x1": 0.93,
+      "y1": 0.5777154308617235
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "legend",
+      "box_type": "legend",
+      "x0": 0.31444940476190486,
+      "y0": 0.0293967730106344,
+      "x1": 0.7455505952380954,
+      "y1": 0.0917821782178218
+    }
+  ],
+  "metrics": {
+    "cnv_legend_title": "CNV state",
+    "sample_ids": [
+      "D1",
+      "D2",
+      "V1",
+      "V2"
+    ],
+    "region_labels": [
+      "TP53",
+      "MYC",
+      "EGFR",
+      "CDKN2A"
+    ],
+    "annotation_tracks": [
+      {
+        "track_id": "cohort",
+        "track_label": "Cohort",
+        "track_label_box_id": "annotation_track_label_cohort",
+        "cells": [
+          {
+            "sample_id": "D1",
+            "category_label": "Discovery",
+            "box_id": "annotation_cohort_D1"
+          },
+          {
+            "sample_id": "D2",
+            "category_label": "Discovery",
+            "box_id": "annotation_cohort_D2"
+          },
+          {
+            "sample_id": "V1",
+            "category_label": "Validation",
+            "box_id": "annotation_cohort_V1"
+          },
+          {
+            "sample_id": "V2",
+            "category_label": "Validation",
+            "box_id": "annotation_cohort_V2"
+          }
+        ]
+      },
+      {
+        "track_id": "response",
+        "track_label": "Response",
+        "track_label_box_id": "annotation_track_label_response",
+        "cells": [
+          {
+            "sample_id": "D1",
+            "category_label": "Responder",
+            "box_id": "annotation_response_D1"
+          },
+          {
+            "sample_id": "D2",
+            "category_label": "Non-responder",
+            "box_id": "annotation_response_D2"
+          },
+          {
+            "sample_id": "V1",
+            "category_label": "Responder",
+            "box_id": "annotation_response_V1"
+          },
+          {
+            "sample_id": "V2",
+            "category_label": "Non-responder",
+            "box_id": "annotation_response_V2"
+          }
+        ]
+      }
+    ],
+    "sample_burdens": [
+      {
+        "sample_id": "D1",
+        "altered_region_count": 2,
+        "bar_box_id": "burden_bar_D1"
+      },
+      {
+        "sample_id": "D2",
+        "altered_region_count": 2,
+        "bar_box_id": "burden_bar_D2"
+      },
+      {
+        "sample_id": "V1",
+        "altered_region_count": 2,
+        "bar_box_id": "burden_bar_V1"
+      },
+      {
+        "sample_id": "V2",
+        "altered_region_count": 2,
+        "bar_box_id": "burden_bar_V2"
+      }
+    ],
+    "region_gain_loss_frequencies": [
+      {
+        "region_label": "TP53",
+        "gain_fraction": 0.25,
+        "loss_fraction": 0.25,
+        "gain_bar_box_id": "freq_gain_TP53",
+        "loss_bar_box_id": "freq_loss_TP53"
+      },
+      {
+        "region_label": "MYC",
+        "gain_fraction": 0.25,
+        "loss_fraction": 0.25,
+        "gain_bar_box_id": "freq_gain_MYC",
+        "loss_bar_box_id": "freq_loss_MYC"
+      },
+      {
+        "region_label": "EGFR",
+        "gain_fraction": 0.25,
+        "loss_fraction": 0.25,
+        "gain_bar_box_id": "freq_gain_EGFR",
+        "loss_bar_box_id": "freq_loss_EGFR"
+      },
+      {
+        "region_label": "CDKN2A",
+        "gain_fraction": 0.25,
+        "loss_fraction": 0.25,
+        "gain_bar_box_id": "freq_gain_CDKN2A",
+        "loss_bar_box_id": "freq_loss_CDKN2A"
+      }
+    ],
+    "cnv_cells": [
+      {
+        "sample_id": "D1",
+        "region_label": "TP53",
+        "cnv_state": "amplification",
+        "box_id": "cnv_TP53_D1"
+      },
+      {
+        "sample_id": "D2",
+        "region_label": "TP53",
+        "cnv_state": "loss",
+        "box_id": "cnv_TP53_D2"
+      },
+      {
+        "sample_id": "D1",
+        "region_label": "MYC",
+        "cnv_state": "gain",
+        "box_id": "cnv_MYC_D1"
+      },
+      {
+        "sample_id": "V1",
+        "region_label": "MYC",
+        "cnv_state": "loss",
+        "box_id": "cnv_MYC_V1"
+      },
+      {
+        "sample_id": "D2",
+        "region_label": "EGFR",
+        "cnv_state": "gain",
+        "box_id": "cnv_EGFR_D2"
+      },
+      {
+        "sample_id": "V2",
+        "region_label": "EGFR",
+        "cnv_state": "loss",
+        "box_id": "cnv_EGFR_V2"
+      },
+      {
+        "sample_id": "V1",
+        "region_label": "CDKN2A",
+        "cnv_state": "deep_loss",
+        "box_id": "cnv_CDKN2A_V1"
+      },
+      {
+        "sample_id": "V2",
+        "region_label": "CDKN2A",
+        "cnv_state": "gain",
+        "box_id": "cnv_CDKN2A_V2"
+      }
+    ]
+  }
+}

@@ -1,0 +1,356 @@
+{
+  "template_id": "atlas_spatial_trajectory_density_coverage_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "atlas_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.16410475394171042,
+      "y0": 0.8879166666666666,
+      "x1": 0.22116997133301478,
+      "y1": 0.9029166666666666
+    },
+    {
+      "box_id": "atlas_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.1756536669851887,
+      "y0": 0.5345337301587302,
+      "x1": 0.2096210582895365,
+      "y1": 0.5495337301587302
+    },
+    {
+      "box_id": "atlas_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.040849436392914655,
+      "y0": 0.7018936011904762,
+      "x1": 0.0495450885668277,
+      "y1": 0.7604873511904762
+    },
+    {
+      "box_id": "spatial_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.42736413043478255,
+      "y0": 0.8879166666666666,
+      "x1": 0.5526358695652174,
+      "y1": 0.9029166666666666
+    },
+    {
+      "box_id": "spatial_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.4464311594202898,
+      "y0": 0.5345337301587302,
+      "x1": 0.5335688405797101,
+      "y1": 0.5495337301587302
+    },
+    {
+      "box_id": "spatial_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.34464323317584183,
+      "y0": 0.6567373511904763,
+      "x1": 0.3533388853497549,
+      "y1": 0.8056436011904762
+    },
+    {
+      "box_id": "trajectory_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.7160311156235067,
+      "y0": 0.8879166666666666,
+      "x1": 0.8586941591017677,
+      "y1": 0.9029166666666666
+    },
+    {
+      "box_id": "trajectory_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.760777492435101,
+      "y0": 0.5345337301587302,
+      "x1": 0.8139477822901735,
+      "y1": 0.5495337301587302
+    },
+    {
+      "box_id": "trajectory_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.6355747111181894,
+      "y0": 0.6853311011904762,
+      "x1": 0.6442703632921024,
+      "y1": 0.7770498511904762
+    },
+    {
+      "box_id": "support_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.4070118115942028,
+      "y0": 0.48172619047619053,
+      "x1": 0.520508188405797,
+      "y1": 0.49672619047619054
+    },
+    {
+      "box_id": "support_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.4462781159420289,
+      "y0": 0.11752283266458796,
+      "x1": 0.4812418840579709,
+      "y1": 0.13252283266458798
+    },
+    {
+      "box_id": "support_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.025259661835748792,
+      "y0": 0.3012797619047619,
+      "x1": 0.033955314009661834,
+      "y1": 0.3725297619047619
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.08600000000000001,
+      "y0": 0.8495,
+      "x1": 0.09560144927536232,
+      "y1": 0.872
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.3833626373626374,
+      "y0": 0.8495,
+      "x1": 0.39133365185539104,
+      "y1": 0.872
+    },
+    {
+      "box_id": "panel_label_C",
+      "box_type": "panel_label",
+      "x0": 0.6807252747252747,
+      "y0": 0.8495,
+      "x1": 0.690326724000637,
+      "y1": 0.872
+    },
+    {
+      "box_id": "panel_label_D",
+      "box_type": "panel_label",
+      "x0": 0.08921024,
+      "y0": 0.44330952380952376,
+      "x1": 0.09962690666666668,
+      "y1": 0.4658095238095238
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_atlas",
+      "box_type": "panel",
+      "x0": 0.08,
+      "y0": 0.5823809523809524,
+      "x1": 0.30527472527472527,
+      "y1": 0.88
+    },
+    {
+      "box_id": "panel_spatial",
+      "box_type": "panel",
+      "x0": 0.37736263736263737,
+      "y0": 0.5823809523809524,
+      "x1": 0.6026373626373626,
+      "y1": 0.88
+    },
+    {
+      "box_id": "panel_trajectory",
+      "box_type": "panel",
+      "x0": 0.6747252747252747,
+      "y0": 0.5823809523809524,
+      "x1": 0.8999999999999998,
+      "y1": 0.88
+    },
+    {
+      "box_id": "panel_support",
+      "box_type": "heatmap_tile_region",
+      "x0": 0.08,
+      "y0": 0.19999999999999996,
+      "x1": 0.8475199999999999,
+      "y1": 0.4738095238095238
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "legend",
+      "box_type": "legend",
+      "x0": 0.06503220611916263,
+      "y0": 0.028680555555555553,
+      "x1": 0.31925925925925924,
+      "y1": 0.060069444444444446
+    },
+    {
+      "box_id": "colorbar",
+      "box_type": "colorbar",
+      "x0": 0.87212,
+      "y0": 0.19999999999999996,
+      "x1": 0.8800565079365077,
+      "y1": 0.4738095238095238
+    }
+  ],
+  "metrics": {
+    "atlas_points": [
+      {
+        "x": 0.09023976023976026,
+        "y": 0.8664718614718615,
+        "state_label": "Stem-like"
+      },
+      {
+        "x": 0.11583916083916086,
+        "y": 0.8326515151515151,
+        "state_label": "Stem-like"
+      },
+      {
+        "x": 0.21183691308691308,
+        "y": 0.6804599567099566,
+        "state_label": "Cycling"
+      },
+      {
+        "x": 0.295034965034965,
+        "y": 0.5959090909090909,
+        "state_label": "Effector"
+      }
+    ],
+    "spatial_points": [
+      {
+        "x": 0.38760239760239756,
+        "y": 0.8664718614718615,
+        "state_label": "Stem-like",
+        "region_label": "Tumor core"
+      },
+      {
+        "x": 0.4051562722991294,
+        "y": 0.8402883675464321,
+        "state_label": "Stem-like",
+        "region_label": "Tumor core"
+      },
+      {
+        "x": 0.5104795204795205,
+        "y": 0.7180987292277615,
+        "state_label": "Cycling",
+        "region_label": "Invasive margin"
+      },
+      {
+        "x": 0.5923976023976023,
+        "y": 0.5959090909090909,
+        "state_label": "Effector",
+        "region_label": "Invasive margin"
+      }
+    ],
+    "trajectory_points": [
+      {
+        "x": 0.6849650349650349,
+        "y": 0.8664718614718615,
+        "state_label": "Stem-like",
+        "branch_label": "Branch A",
+        "pseudotime": 0.08
+      },
+      {
+        "x": 0.7361638361638361,
+        "y": 0.7762842712842714,
+        "state_label": "Cycling",
+        "branch_label": "Branch A",
+        "pseudotime": 0.34
+      },
+      {
+        "x": 0.7809627872127871,
+        "y": 0.6680591630591631,
+        "state_label": "Effector",
+        "branch_label": "Branch A",
+        "pseudotime": 0.76
+      },
+      {
+        "x": 0.8897602397602397,
+        "y": 0.8484343434343434,
+        "state_label": "Stem-like",
+        "branch_label": "Branch B",
+        "pseudotime": 0.12
+      },
+      {
+        "x": 0.864160839160839,
+        "y": 0.7402092352092352,
+        "state_label": "Cycling",
+        "branch_label": "Branch B",
+        "pseudotime": 0.52
+      },
+      {
+        "x": 0.8385614385614384,
+        "y": 0.5959090909090909,
+        "state_label": "Effector",
+        "branch_label": "Branch B",
+        "pseudotime": 0.88
+      }
+    ],
+    "state_labels": [
+      "Stem-like",
+      "Cycling",
+      "Effector"
+    ],
+    "region_labels": [
+      "Tumor core",
+      "Invasive margin"
+    ],
+    "branch_labels": [
+      "Branch A",
+      "Branch B"
+    ],
+    "context_labels": [
+      "Atlas density",
+      "Spatial coverage",
+      "Trajectory coverage"
+    ],
+    "context_kinds": [
+      "atlas_density",
+      "spatial_coverage",
+      "trajectory_coverage"
+    ],
+    "support_scale_label": "Coverage fraction",
+    "support_cells": [
+      {
+        "x": "Atlas density",
+        "y": "Stem-like",
+        "value": 0.84
+      },
+      {
+        "x": "Spatial coverage",
+        "y": "Stem-like",
+        "value": 0.73
+      },
+      {
+        "x": "Trajectory coverage",
+        "y": "Stem-like",
+        "value": 0.58
+      },
+      {
+        "x": "Atlas density",
+        "y": "Cycling",
+        "value": 0.49
+      },
+      {
+        "x": "Spatial coverage",
+        "y": "Cycling",
+        "value": 0.61
+      },
+      {
+        "x": "Trajectory coverage",
+        "y": "Cycling",
+        "value": 0.66
+      },
+      {
+        "x": "Atlas density",
+        "y": "Effector",
+        "value": 0.31
+      },
+      {
+        "x": "Spatial coverage",
+        "y": "Effector",
+        "value": 0.54
+      },
+      {
+        "x": "Trajectory coverage",
+        "y": "Effector",
+        "value": 0.81
+      }
+    ]
+  }
+}

@@ -1,0 +1,297 @@
+{
+  "template_id": "time_to_event_landmark_performance_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "panel_title_A",
+      "box_type": "panel_title",
+      "x0": 0.29150632022471906,
+      "y0": 0.9047685185185185,
+      "x1": 0.3633813202247191,
+      "y1": 0.9297685185185185
+    },
+    {
+      "box_id": "x_axis_title_A",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.2809720460311707,
+      "y0": 0.12025462962962967,
+      "x1": 0.37391559441826744,
+      "y1": 0.14525462962962968
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.226,
+      "y0": 0.8244999999999999,
+      "x1": 0.23587903225806453,
+      "y1": 0.8619999999999999
+    },
+    {
+      "box_id": "metric_marker_1",
+      "box_type": "metric_marker",
+      "x0": 0.2646305099394987,
+      "y0": 0.71425,
+      "x1": 0.2910782195332756,
+      "y1": 0.7907500000000001
+    },
+    {
+      "box_id": "metric_marker_2",
+      "box_type": "metric_marker",
+      "x0": 0.31421996542783054,
+      "y0": 0.50175,
+      "x1": 0.3406676750216076,
+      "y1": 0.5782500000000002
+    },
+    {
+      "box_id": "metric_marker_3",
+      "box_type": "metric_marker",
+      "x0": 0.3638094209161623,
+      "y0": 0.28925000000000006,
+      "x1": 0.39025713050993943,
+      "y1": 0.3657500000000001
+    },
+    {
+      "box_id": "panel_title_B",
+      "box_type": "panel_title",
+      "x0": 0.5639919354838709,
+      "y0": 0.9047685185185185,
+      "x1": 0.641008064516129,
+      "y1": 0.9297685185185185
+    },
+    {
+      "box_id": "x_axis_title_B",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.5762399193548388,
+      "y0": 0.12025462962962967,
+      "x1": 0.6287600806451613,
+      "y1": 0.14525462962962968
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.5010561797752808,
+      "y0": 0.8244999999999999,
+      "x1": 0.509221502355926,
+      "y1": 0.8619999999999999
+    },
+    {
+      "box_id": "metric_marker_4",
+      "box_type": "metric_marker",
+      "x0": 0.6388656006914434,
+      "y0": 0.71425,
+      "x1": 0.6653133102852203,
+      "y1": 0.7907500000000001
+    },
+    {
+      "box_id": "metric_marker_5",
+      "box_type": "metric_marker",
+      "x0": 0.5892761452031114,
+      "y0": 0.50175,
+      "x1": 0.6157238547968885,
+      "y1": 0.5782500000000002
+    },
+    {
+      "box_id": "metric_marker_6",
+      "box_type": "metric_marker",
+      "x0": 0.5396866897147795,
+      "y0": 0.28925000000000006,
+      "x1": 0.5661343993085567,
+      "y1": 0.3657500000000001
+    },
+    {
+      "box_id": "panel_title_C",
+      "box_type": "panel_title",
+      "x0": 0.8505400507430229,
+      "y0": 0.9047685185185185,
+      "x1": 0.904572308807539,
+      "y1": 0.9297685185185185
+    },
+    {
+      "box_id": "x_axis_title_C",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.8357215023559261,
+      "y0": 0.12025462962962967,
+      "x1": 0.9193908571946358,
+      "y1": 0.14525462962962968
+    },
+    {
+      "box_id": "panel_label_C",
+      "box_type": "panel_label",
+      "x0": 0.7761123595505618,
+      "y0": 0.8244999999999999,
+      "x1": 0.7859913918086263,
+      "y1": 0.8619999999999999
+    },
+    {
+      "box_id": "metric_marker_7",
+      "box_type": "metric_marker",
+      "x0": 0.9197927160015499,
+      "y0": 0.71425,
+      "x1": 0.9316485858194498,
+      "y1": 0.7907500000000001
+    },
+    {
+      "box_id": "metric_marker_8",
+      "box_type": "metric_marker",
+      "x0": 0.8605133669120494,
+      "y0": 0.50175,
+      "x1": 0.8723692367299495,
+      "y1": 0.5782500000000002
+    },
+    {
+      "box_id": "metric_marker_9",
+      "box_type": "metric_marker",
+      "x0": 0.8234637737311119,
+      "y0": 0.28925000000000006,
+      "x1": 0.835319643549012,
+      "y1": 0.3657500000000001
+    },
+    {
+      "box_id": "y_axis_title_A",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.12217293906810038,
+      "y0": 0.42463541666666677,
+      "x1": 0.13185035842293907,
+      "y1": 0.6553645833333335
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_A",
+      "box_type": "metric_panel",
+      "x0": 0.22,
+      "y0": 0.20000000000000007,
+      "x1": 0.4348876404494382,
+      "y1": 0.8799999999999999
+    },
+    {
+      "box_id": "panel_B",
+      "box_type": "metric_panel",
+      "x0": 0.4950561797752809,
+      "y0": 0.20000000000000007,
+      "x1": 0.7099438202247191,
+      "y1": 0.8799999999999999
+    },
+    {
+      "box_id": "panel_C",
+      "box_type": "metric_panel",
+      "x0": 0.7701123595505618,
+      "y0": 0.20000000000000007,
+      "x1": 0.9850000000000001,
+      "y1": 0.8799999999999999
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "reference_line_1",
+      "box_type": "reference_line",
+      "x0": 0.8768151879116621,
+      "y0": 0.23187500000000008,
+      "x1": 0.8857070902750871,
+      "y1": 0.848125
+    }
+  ],
+  "metrics": {
+    "metric_panels": [
+      {
+        "panel_id": "discrimination_panel",
+        "panel_label": "A",
+        "metric_kind": "c_index",
+        "title": "Discrimination",
+        "x_label": "Validation C-index",
+        "rows": [
+          {
+            "label": "3→12 months",
+            "analysis_window_label": "3-month landmark predicting 12-month recurrence",
+            "landmark_months": 3,
+            "prediction_months": 12,
+            "value": 0.78,
+            "annotation": "Baseline postoperative window"
+          },
+          {
+            "label": "6→15 months",
+            "analysis_window_label": "6-month landmark predicting 15-month recurrence",
+            "landmark_months": 6,
+            "prediction_months": 15,
+            "value": 0.81
+          },
+          {
+            "label": "9→18 months",
+            "analysis_window_label": "9-month landmark predicting 18-month recurrence",
+            "landmark_months": 9,
+            "prediction_months": 18,
+            "value": 0.84
+          }
+        ]
+      },
+      {
+        "panel_id": "error_panel",
+        "panel_label": "B",
+        "metric_kind": "brier_score",
+        "title": "Prediction error",
+        "x_label": "Brier score",
+        "rows": [
+          {
+            "label": "3→12 months",
+            "analysis_window_label": "3-month landmark predicting 12-month recurrence",
+            "landmark_months": 3,
+            "prediction_months": 12,
+            "value": 0.18,
+            "annotation": "Baseline postoperative window"
+          },
+          {
+            "label": "6→15 months",
+            "analysis_window_label": "6-month landmark predicting 15-month recurrence",
+            "landmark_months": 6,
+            "prediction_months": 15,
+            "value": 0.15
+          },
+          {
+            "label": "9→18 months",
+            "analysis_window_label": "9-month landmark predicting 18-month recurrence",
+            "landmark_months": 9,
+            "prediction_months": 18,
+            "value": 0.12
+          }
+        ]
+      },
+      {
+        "panel_id": "calibration_panel",
+        "panel_label": "C",
+        "metric_kind": "calibration_slope",
+        "title": "Calibration",
+        "x_label": "Calibration slope",
+        "reference_value": 1.0,
+        "rows": [
+          {
+            "label": "3→12 months",
+            "analysis_window_label": "3-month landmark predicting 12-month recurrence",
+            "landmark_months": 3,
+            "prediction_months": 12,
+            "value": 1.06,
+            "annotation": "Baseline postoperative window"
+          },
+          {
+            "label": "6→15 months",
+            "analysis_window_label": "6-month landmark predicting 15-month recurrence",
+            "landmark_months": 6,
+            "prediction_months": 15,
+            "value": 0.98
+          },
+          {
+            "label": "9→18 months",
+            "analysis_window_label": "9-month landmark predicting 18-month recurrence",
+            "landmark_months": 9,
+            "prediction_months": 18,
+            "value": 0.93
+          }
+        ]
+      }
+    ]
+  }
+}

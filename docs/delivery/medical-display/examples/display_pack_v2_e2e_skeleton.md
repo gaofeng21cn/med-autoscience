@@ -255,43 +255,67 @@ medautosci publication display-pack-golden check \
 {
   "schema_version": 1,
   "style_profile_id": "paper_neutral_clinical_v1",
-  "journal_palette_ref": "large_journal_safe_lancet_like_v1",
+  "journal_palette_ref": "nature_informed_clinical_publication_v1",
   "palette": {
-    "primary": "#245A6B",
-    "secondary": "#B89A6D",
-    "neutral": "#6B7280",
-    "text": "#102A43",
-    "grid": "#D9E2EC"
+    "primary": "#0F4D92",
+    "secondary": "#33B5A5",
+    "tertiary": "#D24B40",
+    "quaternary": "#E28E2C",
+    "violet": "#7C6CCF",
+    "neutral": "#4D4D4D",
+    "neutral_mid": "#767676",
+    "neutral_light": "#D8D8D8",
+    "light": "#F2F5F7",
+    "primary_soft": "#DCEAF7",
+    "secondary_soft": "#DDF3F0",
+    "tertiary_soft": "#F6CFCB",
+    "quaternary_soft": "#F7E7D0",
+    "violet_soft": "#E7E1F5",
+    "audit": "#B64342",
+    "audit_soft": "#F6CFCB",
+    "text": "#272727",
+    "axis": "#272727",
+    "grid": "#ECEFF2",
+    "background": "#FFFFFF"
   },
   "semantic_roles": {
     "model_curve": "primary",
     "comparator_curve": "secondary",
-    "reference_line": "neutral",
+    "reference_line": "neutral_mid",
     "text": "text",
-    "grid_line": "grid"
+    "axis_line": "axis",
+    "grid_line": "grid",
+    "figure_background": "background",
+    "series_1": "primary",
+    "series_2": "secondary",
+    "series_3": "tertiary",
+    "series_4": "quaternary",
+    "series_5": "violet",
+    "series_6": "neutral_mid"
   },
   "typography": {
     "font_family": "sans",
-    "base_size": 10.5,
-    "title_size": 12.0,
-    "axis_title_size": 10.8,
-    "tick_size": 9.5,
-    "legend_size": 9.2,
-    "panel_label_size": 10.8
+    "base_size": 9.0,
+    "title_size": 10.0,
+    "axis_title_size": 9.0,
+    "tick_size": 8.0,
+    "legend_size": 7.8,
+    "panel_label_size": 9.2
   },
   "stroke": {
+    "axis_linewidth": 0.35,
     "primary_linewidth": 2.0,
-    "secondary_linewidth": 1.6,
-    "reference_linewidth": 1.1,
-    "grid_linewidth": 0.35,
-    "marker_size": 4.2
+    "secondary_linewidth": 1.55,
+    "reference_linewidth": 0.9,
+    "grid_linewidth": 0.18,
+    "marker_size": 3.4
   },
   "grid": {
     "major": true,
     "minor": false,
-    "major_axis": "both",
+    "major_axis": "y",
     "minor_axis": "none",
-    "color": "#D9E2EC",
+    "color": "#ECEFF2",
     "linetype": "solid"
   }
 }

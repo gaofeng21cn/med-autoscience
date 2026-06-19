@@ -1,0 +1,295 @@
+{
+  "template_id": "shap_force_like_summary_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "panel_title_A",
+      "box_type": "panel_title",
+      "x0": 0.20148503051106023,
+      "y0": 0.8942630385487529,
+      "x1": 0.37132198703279934,
+      "y1": 0.9187528344671203
+    },
+    {
+      "box_id": "x_axis_title_A",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.18518068268497329,
+      "y0": 0.1118820861678005,
+      "x1": 0.3876263348588863,
+      "y1": 0.13637188208616785
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.106,
+      "y0": 0.818265306122449,
+      "x1": 0.12040217391304346,
+      "y1": 0.855
+    },
+    {
+      "box_id": "case_label_A",
+      "box_type": "case_label",
+      "x0": 0.2019605739893211,
+      "y0": 0.8217102040816326,
+      "x1": 0.37084644355453844,
+      "y1": 0.8462
+    },
+    {
+      "box_id": "baseline_label_A",
+      "box_type": "baseline_label",
+      "x0": 0.10745614035087718,
+      "y0": 0.7693510204081634,
+      "x1": 0.18829853165522498,
+      "y1": 0.7918000000000001
+    },
+    {
+      "box_id": "prediction_label_A",
+      "box_type": "prediction_label",
+      "x0": 0.37323131197559106,
+      "y0": 0.7693510204081634,
+      "x1": 0.46535087719298235,
+      "y1": 0.7918000000000001
+    },
+    {
+      "box_id": "positive_force_segment_A_1",
+      "box_type": "positive_force_segment",
+      "x0": 0.16504705774853798,
+      "y0": 0.53,
+      "x1": 0.2439287509137426,
+      "y1": 0.6077142857142857
+    },
+    {
+      "box_id": "force_label_A_1",
+      "box_type": "force_feature_label",
+      "x0": 0.16501779563548813,
+      "y0": 0.5576326530612246,
+      "x1": 0.24395801302679246,
+      "y1": 0.5800816326530613
+    },
+    {
+      "box_id": "negative_force_segment_A_2",
+      "box_type": "negative_force_segment",
+      "x0": 0.14077576754385962,
+      "y0": 0.3454285714285715,
+      "x1": 0.16504705774853798,
+      "y1": 0.42314285714285715
+    },
+    {
+      "box_id": "force_label_A_2",
+      "box_type": "force_feature_label",
+      "x0": 0.11534347786359013,
+      "y0": 0.36,
+      "x1": 0.1904793474288075,
+      "y1": 0.40857142857142853
+    },
+    {
+      "box_id": "panel_title_B",
+      "box_type": "panel_title",
+      "x0": 0.66203399122807,
+      "y0": 0.8942630385487529,
+      "x1": 0.86515899122807,
+      "y1": 0.9187528344671203
+    },
+    {
+      "box_id": "x_axis_title_B",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.6623736651411135,
+      "y0": 0.1118820861678005,
+      "x1": 0.8648193173150265,
+      "y1": 0.13637188208616785
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.5831929824561402,
+      "y0": 0.818265306122449,
+      "x1": 0.5951495041952706,
+      "y1": 0.855
+    },
+    {
+      "box_id": "case_label_B",
+      "box_type": "case_label",
+      "x0": 0.6791535564454614,
+      "y0": 0.8217102040816326,
+      "x1": 0.8480394260106787,
+      "y1": 0.8462
+    },
+    {
+      "box_id": "baseline_label_B",
+      "box_type": "baseline_label",
+      "x0": 0.5846491228070174,
+      "y0": 0.7693510204081634,
+      "x1": 0.6652197749809304,
+      "y1": 0.7918000000000001
+    },
+    {
+      "box_id": "prediction_label_B",
+      "box_type": "prediction_label",
+      "x0": 0.8505601639969488,
+      "y0": 0.7693510204081634,
+      "x1": 0.9425438596491227,
+      "y1": 0.7918000000000001
+    },
+    {
+      "box_id": "negative_force_segment_B_1",
+      "box_type": "negative_force_segment",
+      "x0": 0.7453930235745613,
+      "y0": 0.3454285714285715,
+      "x1": 0.8546138294956139,
+      "y1": 0.42314285714285715
+    },
+    {
+      "box_id": "force_label_B_1",
+      "box_type": "force_feature_label",
+      "x0": 0.7614164700133486,
+      "y0": 0.36,
+      "x1": 0.8385903830568268,
+      "y1": 0.40857142857142853
+    },
+    {
+      "box_id": "positive_force_segment_B_2",
+      "box_type": "positive_force_segment",
+      "x0": 0.8546138294956139,
+      "y0": 0.53,
+      "x1": 0.9092242324561401,
+      "y1": 0.6077142857142857
+    },
+    {
+      "box_id": "force_label_B_2",
+      "box_type": "force_feature_label",
+      "x0": 0.8443510961932683,
+      "y0": 0.5445714285714287,
+      "x1": 0.9194869657584858,
+      "y1": 0.5931428571428572
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_A",
+      "box_type": "panel",
+      "x0": 0.09999999999999999,
+      "y0": 0.19000000000000006,
+      "x1": 0.4728070175438595,
+      "y1": 0.87
+    },
+    {
+      "box_id": "panel_B",
+      "box_type": "panel",
+      "x0": 0.5771929824561403,
+      "y0": 0.19000000000000006,
+      "x1": 0.9499999999999998,
+      "y1": 0.87
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "baseline_marker_A",
+      "box_type": "baseline_marker",
+      "x0": 0.1635301021107456,
+      "y0": 0.24828571428571433,
+      "x1": 0.1665640133863304,
+      "y1": 0.772857142857143
+    },
+    {
+      "box_id": "prediction_marker_A",
+      "box_type": "prediction_marker",
+      "x0": 0.2181405050712719,
+      "y0": 0.24828571428571433,
+      "x1": 0.22117441634685667,
+      "y1": 0.772857142857143
+    },
+    {
+      "box_id": "baseline_marker_B",
+      "box_type": "baseline_marker",
+      "x0": 0.8530968738578215,
+      "y0": 0.24828571428571433,
+      "x1": 0.8561307851334063,
+      "y1": 0.772857142857143
+    },
+    {
+      "box_id": "prediction_marker_B",
+      "box_type": "prediction_marker",
+      "x0": 0.7984864708972953,
+      "y0": 0.24828571428571433,
+      "x1": 0.80152038217288,
+      "y1": 0.772857142857143
+    }
+  ],
+  "metrics": {
+    "figure_height_inches": 4.9,
+    "figure_width_inches": 9.200000000000001,
+    "panels": [
+      {
+        "panel_id": "case_a",
+        "panel_label": "A",
+        "title": "Representative responder",
+        "case_label": "Case 1 · durable response",
+        "baseline_value": 0.22,
+        "predicted_value": 0.31,
+        "panel_box_id": "panel_A",
+        "baseline_marker_box_id": "baseline_marker_A",
+        "prediction_marker_box_id": "prediction_marker_A",
+        "contributions": [
+          {
+            "feature": "Age",
+            "feature_value_text": "74 years",
+            "shap_value": 0.13,
+            "direction": "positive",
+            "start_value": 0.22,
+            "end_value": 0.35,
+            "segment_box_id": "positive_force_segment_A_1",
+            "label_box_id": "force_label_A_1"
+          },
+          {
+            "feature": "Albumin",
+            "feature_value_text": "3.1 g/dL",
+            "shap_value": -0.04,
+            "direction": "negative",
+            "start_value": 0.22,
+            "end_value": 0.18,
+            "segment_box_id": "negative_force_segment_A_2",
+            "label_box_id": "force_label_A_2"
+          }
+        ]
+      },
+      {
+        "panel_id": "case_b",
+        "panel_label": "B",
+        "title": "Representative non-responder",
+        "case_label": "Case 2 · early progression",
+        "baseline_value": 0.57,
+        "predicted_value": 0.48,
+        "panel_box_id": "panel_B",
+        "baseline_marker_box_id": "baseline_marker_B",
+        "prediction_marker_box_id": "prediction_marker_B",
+        "contributions": [
+          {
+            "feature": "Tumor stage",
+            "feature_value_text": "Stage III",
+            "shap_value": -0.18,
+            "direction": "negative",
+            "start_value": 0.57,
+            "end_value": 0.38999999999999996,
+            "segment_box_id": "negative_force_segment_B_1",
+            "label_box_id": "force_label_B_1"
+          },
+          {
+            "feature": "Albumin",
+            "feature_value_text": "4.6 g/dL",
+            "shap_value": 0.09,
+            "direction": "positive",
+            "start_value": 0.57,
+            "end_value": 0.6599999999999999,
+            "segment_box_id": "positive_force_segment_B_2",
+            "label_box_id": "force_label_B_2"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,292 @@
+{
+  "display_id": "Figure51",
+  "template_id": "fenggaolab.org.medical-display-core::genomic_program_governance_summary_panel",
+  "title": "Genomic program governance summary for manuscript-facing driver-to-program synthesis",
+  "caption": "One bounded summary aligns alteration-linked multiomic support with row-level program priority, verdict, and manuscript action.",
+  "evidence_panel_title": "Cross-layer genomic evidence",
+  "summary_panel_title": "Program governance summary",
+  "effect_scale_label": "Direction and magnitude",
+  "support_scale_label": "Support fraction",
+  "layer_order": [
+    {
+      "layer_id": "alteration",
+      "layer_label": "Alteration"
+    },
+    {
+      "layer_id": "proteome",
+      "layer_label": "Proteome"
+    },
+    {
+      "layer_id": "phosphoproteome",
+      "layer_label": "Phosphoproteome"
+    },
+    {
+      "layer_id": "glycoproteome",
+      "layer_label": "Glycoproteome"
+    },
+    {
+      "layer_id": "pathway",
+      "layer_label": "Pathway"
+    }
+  ],
+  "programs": [
+    {
+      "program_id": "pi3k_growth",
+      "program_label": "PI3K growth program",
+      "lead_driver_label": "EGFR",
+      "dominant_pathway_label": "PI3K-AKT signaling",
+      "pathway_hit_count": 8,
+      "priority_rank": 1,
+      "priority_band": "high_priority",
+      "verdict": "convergent",
+      "action": "Promote to manuscript main-text synthesis",
+      "detail": "Every declared layer supports the same activating direction.",
+      "layer_supports": [
+        {
+          "layer_id": "alteration",
+          "effect_value": 0.88,
+          "support_fraction": 0.82
+        },
+        {
+          "layer_id": "proteome",
+          "effect_value": 1.21,
+          "support_fraction": 0.74
+        },
+        {
+          "layer_id": "phosphoproteome",
+          "effect_value": 1.48,
+          "support_fraction": 0.86
+        },
+        {
+          "layer_id": "glycoproteome",
+          "effect_value": 0.93,
+          "support_fraction": 0.69
+        },
+        {
+          "layer_id": "pathway",
+          "effect_value": 1.34,
+          "support_fraction": 0.78
+        }
+      ]
+    },
+    {
+      "program_id": "cell_cycle_stress",
+      "program_label": "Cell-cycle stress program",
+      "lead_driver_label": "TP53",
+      "dominant_pathway_label": "Cell cycle",
+      "pathway_hit_count": 6,
+      "priority_rank": 2,
+      "priority_band": "monitor",
+      "verdict": "layer_specific",
+      "action": "Keep as support-domain evidence",
+      "detail": "Signal concentrates in proteome and pathway layers with weaker glycoproteome carry-through.",
+      "layer_supports": [
+        {
+          "layer_id": "alteration",
+          "effect_value": 0.76,
+          "support_fraction": 0.67
+        },
+        {
+          "layer_id": "proteome",
+          "effect_value": 1.02,
+          "support_fraction": 0.72
+        },
+        {
+          "layer_id": "phosphoproteome",
+          "effect_value": 1.16,
+          "support_fraction": 0.75
+        },
+        {
+          "layer_id": "glycoproteome",
+          "effect_value": 0.41,
+          "support_fraction": 0.44
+        },
+        {
+          "layer_id": "pathway",
+          "effect_value": 1.08,
+          "support_fraction": 0.71
+        }
+      ]
+    },
+    {
+      "program_id": "immune_suppression",
+      "program_label": "Immune suppression program",
+      "lead_driver_label": "PIK3CA",
+      "dominant_pathway_label": "Immune signaling",
+      "pathway_hit_count": 4,
+      "priority_rank": 3,
+      "priority_band": "watchlist",
+      "verdict": "context_dependent",
+      "action": "Retain for supplementary context only",
+      "detail": "Direction flips across layers and remains weaker than the top two programs.",
+      "layer_supports": [
+        {
+          "layer_id": "alteration",
+          "effect_value": 0.22,
+          "support_fraction": 0.36
+        },
+        {
+          "layer_id": "proteome",
+          "effect_value": 0.58,
+          "support_fraction": 0.49
+        },
+        {
+          "layer_id": "phosphoproteome",
+          "effect_value": -0.34,
+          "support_fraction": 0.41
+        },
+        {
+          "layer_id": "glycoproteome",
+          "effect_value": -0.27,
+          "support_fraction": 0.38
+        },
+        {
+          "layer_id": "pathway",
+          "effect_value": 0.43,
+          "support_fraction": 0.47
+        }
+      ]
+    }
+  ],
+  "render_context": {
+    "style_profile_id": "paper_neutral_clinical_v1",
+    "style_profile_ref": "human_reference_default_publication_style_profile",
+    "style_profile_sha256": "81a4f0415f43faf78a632738f43f0af4eafaa7e422acba2923037d92e3aa669b",
+    "journal_palette_ref": "nature_informed_clinical_publication_v1",
+    "palette": {
+      "primary": "#0F4D92",
+      "secondary": "#33B5A5",
+      "tertiary": "#D24B40",
+      "quaternary": "#E28E2C",
+      "violet": "#7C6CCF",
+      "neutral": "#4D4D4D",
+      "neutral_mid": "#767676",
+      "neutral_light": "#D8D8D8",
+      "light": "#F2F5F7",
+      "primary_soft": "#DCEAF7",
+      "secondary_soft": "#DDF3F0",
+      "tertiary_soft": "#F6CFCB",
+      "quaternary_soft": "#F7E7D0",
+      "violet_soft": "#E7E1F5",
+      "audit": "#B64342",
+      "audit_soft": "#F6CFCB",
+      "text": "#272727",
+      "axis": "#272727",
+      "grid": "#ECEFF2",
+      "background": "#FFFFFF",
+      "heatmap_low": "#2B6CB0",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B64342",
+      "volcano_up": "#B64342",
+      "volcano_down": "#2B6CB0",
+      "volcano_background": "#B8B8B8"
+    },
+    "semantic_roles": {
+      "model_curve": "primary",
+      "comparator_curve": "secondary",
+      "reference_line": "neutral_mid",
+      "highlight_band": "light",
+      "text": "text",
+      "axis_line": "axis",
+      "grid_line": "grid",
+      "figure_background": "background",
+      "series_1": "primary",
+      "series_2": "secondary",
+      "series_3": "tertiary",
+      "series_4": "quaternary",
+      "series_5": "violet",
+      "series_6": "neutral_mid",
+      "heatmap_low": "heatmap_low",
+      "heatmap_mid": "heatmap_mid",
+      "heatmap_high": "heatmap_high",
+      "volcano_up": "volcano_up",
+      "volcano_down": "volcano_down",
+      "volcano_background": "volcano_background",
+      "flow_main_fill": "light",
+      "flow_main_edge": "neutral_mid",
+      "flow_exclusion_fill": "audit_soft",
+      "flow_exclusion_edge": "audit",
+      "flow_primary_fill": "primary_soft",
+      "flow_primary_edge": "primary",
+      "flow_secondary_fill": "secondary_soft",
+      "flow_secondary_edge": "secondary",
+      "flow_context_fill": "violet_soft",
+      "flow_context_edge": "violet",
+      "flow_audit_fill": "audit_soft",
+      "flow_audit_edge": "audit",
+      "flow_title_text": "neutral",
+      "flow_body_text": "neutral",
+      "flow_panel_label": "neutral",
+      "flow_connector": "neutral"
+    },
+    "style_roles": {
+      "model_curve": "#0F4D92",
+      "comparator_curve": "#33B5A5",
+      "reference_line": "#767676",
+      "highlight_band": "#F2F5F7",
+      "text": "#272727",
+      "axis_line": "#272727",
+      "grid_line": "#ECEFF2",
+      "figure_background": "#FFFFFF",
+      "series_1": "#0F4D92",
+      "series_2": "#33B5A5",
+      "series_3": "#D24B40",
+      "series_4": "#E28E2C",
+      "series_5": "#7C6CCF",
+      "series_6": "#767676",
+      "heatmap_low": "#2B6CB0",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B64342",
+      "volcano_up": "#B64342",
+      "volcano_down": "#2B6CB0",
+      "volcano_background": "#B8B8B8",
+      "flow_main_fill": "#F2F5F7",
+      "flow_main_edge": "#767676",
+      "flow_exclusion_fill": "#F6CFCB",
+      "flow_exclusion_edge": "#B64342",
+      "flow_primary_fill": "#DCEAF7",
+      "flow_primary_edge": "#0F4D92",
+      "flow_secondary_fill": "#DDF3F0",
+      "flow_secondary_edge": "#33B5A5",
+      "flow_context_fill": "#E7E1F5",
+      "flow_context_edge": "#7C6CCF",
+      "flow_audit_fill": "#F6CFCB",
+      "flow_audit_edge": "#B64342",
+      "flow_title_text": "#4D4D4D",
+      "flow_body_text": "#4D4D4D",
+      "flow_panel_label": "#4D4D4D",
+      "flow_connector": "#4D4D4D"
+    },
+    "typography": {
+      "font_family": "sans",
+      "base_size": 9.0,
+      "title_size": 10.0,
+      "axis_title_size": 9.0,
+      "tick_size": 8.0,
+      "legend_size": 7.8,
+      "panel_label_size": 9.2
+    },
+    "stroke": {
+      "axis_linewidth": 0.35,
+      "primary_linewidth": 2.0,
+      "secondary_linewidth": 1.55,
+      "reference_linewidth": 0.9,
+      "grid_linewidth": 0.18,
+      "marker_size": 3.4
+    },
+    "grid": {
+      "major": true,
+      "minor": false,
+      "major_axis": "y",
+      "minor_axis": "none",
+      "color": "#ECEFF2",
+      "linetype": "solid"
+    },
+    "layout_override": {
+      "output_width_in": 5.0,
+      "output_height_in": 5.0,
+      "show_figure_title": false
+    },
+    "readability_override": {}
+  }
+}

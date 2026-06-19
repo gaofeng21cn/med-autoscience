@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "shell_id": "fenggaolab.org.medical-display-core::submission_graphical_abstract",
+  "display_id": "submission_graphical_abstract",
+  "catalog_id": "GA1",
+  "paper_role": "submission_companion",
+  "title": "Submission companion overview",
+  "caption": "Synthetic graphical abstract preview for the Display Pack Gallery.",
+  "panels": [
+    {
+      "panel_id": "cohort_split",
+      "panel_label": "A",
+      "title": "Cohort and split",
+      "subtitle": "Locked analysis cohort",
+      "rows": [
+        {
+          "cards": [
+            {
+              "card_id": "analytic",
+              "title": "Analytic cohort",
+              "value": "15,787",
+              "detail": "eligible patients",
+              "accent_role": "primary"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "panel_id": "primary_endpoint",
+      "panel_label": "B",
+      "title": "Primary endpoint",
+      "subtitle": "Cardiovascular mortality",
+      "rows": [
+        {
+          "cards": [
+            {
+              "card_id": "c_index",
+              "title": "Validation C-index",
+              "value": "0.857",
+              "detail": "locked split",
+              "accent_role": "secondary"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "footer_pills": [
+    {
+      "pill_id": "p1",
+      "panel_id": "cohort_split",
+      "label": "Internal validation",
+      "style_role": "primary"
+    },
+    {
+      "pill_id": "p2",
+      "panel_id": "primary_endpoint",
+      "label": "Supportive endpoint",
+      "style_role": "secondary"
+    }
+  ]
+}

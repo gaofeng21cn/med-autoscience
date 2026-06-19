@@ -1,0 +1,391 @@
+{
+  "template_id": "partial_dependence_ice_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.02847826086956521,
+      "y0": 0.32375,
+      "x1": 0.0415217391304348,
+      "y1": 0.69625
+    },
+    {
+      "box_id": "legend_box",
+      "box_type": "legend_box",
+      "x0": 0.3847977053140097,
+      "y0": 0.06138888888888889,
+      "x1": 0.6152022946859904,
+      "y1": 0.10161111111111111
+    },
+    {
+      "box_id": "panel_title_A",
+      "box_type": "panel_title",
+      "x0": 0.28150672196796334,
+      "y0": 0.8937777777777779,
+      "x1": 0.3069143306636155,
+      "y1": 0.9177777777777778
+    },
+    {
+      "box_id": "x_axis_title_A",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.2573898741418764,
+      "y0": 0.17344444444444443,
+      "x1": 0.3310311784897025,
+      "y1": 0.19744444444444442
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.11600000000000002,
+      "y0": 0.8170000000000001,
+      "x1": 0.13013043478260872,
+      "y1": 0.853
+    },
+    {
+      "box_id": "reference_label_A",
+      "box_type": "pdp_reference_label",
+      "x0": 0.3115485952199339,
+      "y0": 0.8252058823529412,
+      "x1": 0.3792116386981948,
+      "y1": 0.8472058823529413
+    },
+    {
+      "box_id": "panel_title_B",
+      "box_type": "panel_title",
+      "x0": 0.7378682780320366,
+      "y0": 0.8937777777777779,
+      "x1": 0.7937106693363845,
+      "y1": 0.9177777777777778
+    },
+    {
+      "box_id": "x_axis_title_B",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.7155856693363845,
+      "y0": 0.17344444444444443,
+      "x1": 0.8159932780320366,
+      "y1": 0.19744444444444442
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.5875789473684212,
+      "y0": 0.8170000000000001,
+      "x1": 0.5992637299771169,
+      "y1": 0.853
+    },
+    {
+      "box_id": "reference_label_B",
+      "box_type": "pdp_reference_label",
+      "x0": 0.7353595908551571,
+      "y0": 0.8252058823529412,
+      "x1": 0.8303324169421137,
+      "y1": 0.8472058823529413
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_A",
+      "box_type": "panel",
+      "x0": 0.11000000000000001,
+      "y0": 0.25,
+      "x1": 0.47842105263157886,
+      "y1": 0.87
+    },
+    {
+      "box_id": "panel_B",
+      "box_type": "panel",
+      "x0": 0.5815789473684211,
+      "y0": 0.25,
+      "x1": 0.95,
+      "y1": 0.87
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "reference_line_A",
+      "box_type": "pdp_reference_line",
+      "x0": 0.34445906432748535,
+      "y0": 0.25,
+      "x1": 0.3463011695906432,
+      "y1": 0.87
+    },
+    {
+      "box_id": "reference_line_B",
+      "box_type": "pdp_reference_line",
+      "x0": 0.7819249512670565,
+      "y0": 0.25,
+      "x1": 0.7837670565302143,
+      "y1": 0.87
+    }
+  ],
+  "metrics": {
+    "figure_height_inches": 5.0,
+    "figure_width_inches": 9.2,
+    "legend_labels": [
+      "ICE curves",
+      "PDP mean"
+    ],
+    "panels": [
+      {
+        "panel_id": "age_panel",
+        "panel_label": "A",
+        "title": "Age",
+        "x_label": "Age (years)",
+        "feature": "Age",
+        "reference_value": 60.0,
+        "reference_label": "Median age",
+        "panel_box_id": "panel_A",
+        "reference_line_box_id": "reference_line_A",
+        "reference_label_box_id": "reference_label_A",
+        "pdp_points": [
+          {
+            "feature_value": 40.0,
+            "response_value": 0.16,
+            "x": 0.14070175438596494,
+            "y": 0.3658278867102397
+          },
+          {
+            "feature_value": 50.0,
+            "response_value": 0.21,
+            "x": 0.2430409356725146,
+            "y": 0.4502505446623094
+          },
+          {
+            "feature_value": 60.0,
+            "response_value": 0.27,
+            "x": 0.34538011695906434,
+            "y": 0.551557734204793
+          },
+          {
+            "feature_value": 70.0,
+            "response_value": 0.34,
+            "x": 0.447719298245614,
+            "y": 0.6697494553376907
+          }
+        ],
+        "ice_curves": [
+          {
+            "curve_id": "age_case_1",
+            "points": [
+              {
+                "feature_value": 40.0,
+                "response_value": 0.14,
+                "x": 0.14070175438596494,
+                "y": 0.3320588235294118
+              },
+              {
+                "feature_value": 50.0,
+                "response_value": 0.19,
+                "x": 0.2430409356725146,
+                "y": 0.4164814814814815
+              },
+              {
+                "feature_value": 60.0,
+                "response_value": 0.25,
+                "x": 0.34538011695906434,
+                "y": 0.5177886710239652
+              },
+              {
+                "feature_value": 70.0,
+                "response_value": 0.33,
+                "x": 0.447719298245614,
+                "y": 0.6528649237472769
+              }
+            ]
+          },
+          {
+            "curve_id": "age_case_2",
+            "points": [
+              {
+                "feature_value": 40.0,
+                "response_value": 0.17,
+                "x": 0.14070175438596494,
+                "y": 0.38271241830065356
+              },
+              {
+                "feature_value": 50.0,
+                "response_value": 0.22,
+                "x": 0.2430409356725146,
+                "y": 0.4671350762527234
+              },
+              {
+                "feature_value": 60.0,
+                "response_value": 0.29,
+                "x": 0.34538011695906434,
+                "y": 0.5853267973856209
+              },
+              {
+                "feature_value": 70.0,
+                "response_value": 0.36,
+                "x": 0.447719298245614,
+                "y": 0.7035185185185187
+              }
+            ]
+          },
+          {
+            "curve_id": "age_case_3",
+            "points": [
+              {
+                "feature_value": 40.0,
+                "response_value": 0.18,
+                "x": 0.14070175438596494,
+                "y": 0.39959694989106753
+              },
+              {
+                "feature_value": 50.0,
+                "response_value": 0.23,
+                "x": 0.2430409356725146,
+                "y": 0.48401960784313736
+              },
+              {
+                "feature_value": 60.0,
+                "response_value": 0.28,
+                "x": 0.34538011695906434,
+                "y": 0.5684422657952071
+              },
+              {
+                "feature_value": 70.0,
+                "response_value": 0.35,
+                "x": 0.447719298245614,
+                "y": 0.6866339869281046
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "panel_id": "albumin_panel",
+        "panel_label": "B",
+        "title": "Albumin",
+        "x_label": "Albumin (g/dL)",
+        "feature": "Albumin",
+        "reference_value": 3.8,
+        "reference_label": "Median albumin",
+        "panel_box_id": "panel_B",
+        "reference_line_box_id": "reference_line_B",
+        "reference_label_box_id": "reference_label_B",
+        "pdp_points": [
+          {
+            "feature_value": 2.8,
+            "response_value": 0.39,
+            "x": 0.612280701754386,
+            "y": 0.7541721132897605
+          },
+          {
+            "feature_value": 3.4,
+            "response_value": 0.31,
+            "x": 0.7146198830409356,
+            "y": 0.6190958605664489
+          },
+          {
+            "feature_value": 4.0,
+            "response_value": 0.25,
+            "x": 0.8169590643274854,
+            "y": 0.5177886710239652
+          },
+          {
+            "feature_value": 4.6,
+            "response_value": 0.2,
+            "x": 0.919298245614035,
+            "y": 0.43336601307189554
+          }
+        ],
+        "ice_curves": [
+          {
+            "curve_id": "alb_case_1",
+            "points": [
+              {
+                "feature_value": 2.8,
+                "response_value": 0.41,
+                "x": 0.612280701754386,
+                "y": 0.7879411764705884
+              },
+              {
+                "feature_value": 3.4,
+                "response_value": 0.33,
+                "x": 0.7146198830409356,
+                "y": 0.6528649237472769
+              },
+              {
+                "feature_value": 4.0,
+                "response_value": 0.26,
+                "x": 0.8169590643274854,
+                "y": 0.5346732026143792
+              },
+              {
+                "feature_value": 4.6,
+                "response_value": 0.21,
+                "x": 0.919298245614035,
+                "y": 0.4502505446623094
+              }
+            ]
+          },
+          {
+            "curve_id": "alb_case_2",
+            "points": [
+              {
+                "feature_value": 2.8,
+                "response_value": 0.37,
+                "x": 0.612280701754386,
+                "y": 0.7204030501089326
+              },
+              {
+                "feature_value": 3.4,
+                "response_value": 0.3,
+                "x": 0.7146198830409356,
+                "y": 0.6022113289760349
+              },
+              {
+                "feature_value": 4.0,
+                "response_value": 0.24,
+                "x": 0.8169590643274854,
+                "y": 0.5009041394335513
+              },
+              {
+                "feature_value": 4.6,
+                "response_value": 0.18,
+                "x": 0.919298245614035,
+                "y": 0.39959694989106753
+              }
+            ]
+          },
+          {
+            "curve_id": "alb_case_3",
+            "points": [
+              {
+                "feature_value": 2.8,
+                "response_value": 0.4,
+                "x": 0.612280701754386,
+                "y": 0.7710566448801746
+              },
+              {
+                "feature_value": 3.4,
+                "response_value": 0.32,
+                "x": 0.7146198830409356,
+                "y": 0.6359803921568629
+              },
+              {
+                "feature_value": 4.0,
+                "response_value": 0.27,
+                "x": 0.8169590643274854,
+                "y": 0.551557734204793
+              },
+              {
+                "feature_value": 4.6,
+                "response_value": 0.22,
+                "x": 0.919298245614035,
+                "y": 0.4671350762527234
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

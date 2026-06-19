@@ -1,0 +1,306 @@
+{
+  "template_id": "atlas_spatial_bridge_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "atlas_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.24422673531655223,
+      "y0": 0.8877235772357723,
+      "x1": 0.3154223874904653,
+      "y1": 0.9023577235772358
+    },
+    {
+      "box_id": "atlas_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.26284086575133486,
+      "y0": 0.5249225675841216,
+      "x1": 0.29680825705568264,
+      "y1": 0.539556713925585
+    },
+    {
+      "box_id": "atlas_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.05568639291465378,
+      "y0": 0.697219075119974,
+      "x1": 0.06438204508856682,
+      "y1": 0.7543837092663156
+    },
+    {
+      "box_id": "spatial_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.6864163806254768,
+      "y0": 0.8877235772357723,
+      "x1": 0.7939344965675058,
+      "y1": 0.9023577235772358
+    },
+    {
+      "box_id": "spatial_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.6966065980167812,
+      "y0": 0.5249225675841216,
+      "x1": 0.7837442791762015,
+      "y1": 0.539556713925585
+    },
+    {
+      "box_id": "spatial_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.5276314730061871,
+      "y0": 0.6531641970711936,
+      "x1": 0.5363271251801001,
+      "y1": 0.7984385873150961
+    },
+    {
+      "box_id": "composition_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.21125572082379862,
+      "y0": 0.4776169599126602,
+      "x1": 0.3483934019832189,
+      "y1": 0.4922511062541236
+    },
+    {
+      "box_id": "composition_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.22923579328756674,
+      "y0": 0.13331978319783203,
+      "x1": 0.3304133295194508,
+      "y1": 0.14795392953929543
+    },
+    {
+      "box_id": "composition_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.021980676328502414,
+      "y0": 0.2994131547530781,
+      "x1": 0.030676328502415456,
+      "y1": 0.35048022792380984
+    },
+    {
+      "box_id": "heatmap_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.6642539092295957,
+      "y0": 0.4776169599126602,
+      "x1": 0.7837285469107552,
+      "y1": 0.4922511062541236
+    },
+    {
+      "box_id": "heatmap_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.7033390541571319,
+      "y0": 0.12086628845987736,
+      "x1": 0.744643401983219,
+      "y1": 0.13550043480134077
+    },
+    {
+      "box_id": "heatmap_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.4703750317823545,
+      "y0": 0.2583308376799074,
+      "x1": 0.47907068395626756,
+      "y1": 0.39156254499698057
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.106,
+      "y0": 0.8500487804878049,
+      "x1": 0.11560144927536233,
+      "y1": 0.872
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.5663508771929825,
+      "y0": 0.8500487804878049,
+      "x1": 0.5743218916857361,
+      "y1": 0.872
+    },
+    {
+      "box_id": "panel_label_C",
+      "box_type": "panel_label",
+      "x0": 0.106,
+      "y0": 0.4399421631646927,
+      "x1": 0.11560144927536233,
+      "y1": 0.46189338267688784
+    },
+    {
+      "box_id": "panel_label_D",
+      "box_type": "panel_label",
+      "x0": 0.5663508771929825,
+      "y0": 0.4399421631646927,
+      "x1": 0.5767675438596491,
+      "y1": 0.46189338267688784
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_atlas",
+      "box_type": "panel",
+      "x0": 0.1,
+      "y0": 0.5716027843862896,
+      "x1": 0.45964912280701753,
+      "y1": 0.88
+    },
+    {
+      "box_id": "panel_spatial",
+      "box_type": "panel",
+      "x0": 0.5603508771929825,
+      "y0": 0.5716027843862896,
+      "x1": 0.9200000000000002,
+      "y1": 0.88
+    },
+    {
+      "box_id": "panel_composition",
+      "box_type": "composition_panel",
+      "x0": 0.1,
+      "y0": 0.18000000000000005,
+      "x1": 0.45964912280701753,
+      "y1": 0.46989338267688785
+    },
+    {
+      "box_id": "panel_heatmap",
+      "box_type": "heatmap_tile_region",
+      "x0": 0.5603508771929825,
+      "y0": 0.18000000000000005,
+      "x1": 0.8876315789473685,
+      "y1": 0.46989338267688785
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "legend",
+      "box_type": "legend",
+      "x0": 0.15503220611916266,
+      "y0": 0.028468834688346885,
+      "x1": 0.3091384863123993,
+      "y1": 0.059092140921409214
+    },
+    {
+      "box_id": "colorbar",
+      "box_type": "colorbar",
+      "x0": 0.902017543859649,
+      "y0": 0.18000000000000005,
+      "x1": 0.9106303182725132,
+      "y1": 0.46989338267688785
+    }
+  ],
+  "metrics": {
+    "atlas_points": [
+      {
+        "x": 0.11634768740031899,
+        "y": 0.8659819447448315,
+        "state_label": "T cells",
+        "group_label": "Tumor"
+      },
+      {
+        "x": 0.14149797570850206,
+        "y": 0.8217144018337725,
+        "state_label": "T cells",
+        "group_label": "Adjacent"
+      },
+      {
+        "x": 0.4013842882263935,
+        "y": 0.6298883825525171,
+        "state_label": "Myeloid",
+        "group_label": "Tumor"
+      },
+      {
+        "x": 0.44330143540669864,
+        "y": 0.5856208396414582,
+        "state_label": "Myeloid",
+        "group_label": "Adjacent"
+      }
+    ],
+    "spatial_points": [
+      {
+        "x": 0.5766985645933015,
+        "y": 0.8659819447448315,
+        "state_label": "T cells",
+        "region_label": "Tumor core"
+      },
+      {
+        "x": 0.6130267588162325,
+        "y": 0.8286004640643817,
+        "state_label": "T cells",
+        "region_label": "Tumor core"
+      },
+      {
+        "x": 0.86732411837675,
+        "y": 0.623002320321908,
+        "state_label": "Myeloid",
+        "region_label": "Invasive margin"
+      },
+      {
+        "x": 0.903652312599681,
+        "y": 0.5856208396414583,
+        "state_label": "Myeloid",
+        "region_label": "Invasive margin"
+      }
+    ],
+    "state_labels": [
+      "T cells",
+      "Myeloid"
+    ],
+    "row_labels": [
+      "CXCL13 program",
+      "TGF-beta program"
+    ],
+    "composition_groups": [
+      {
+        "group_label": "Tumor core",
+        "group_order": 1,
+        "state_proportions": [
+          {
+            "state_label": "T cells",
+            "proportion": 0.64
+          },
+          {
+            "state_label": "Myeloid",
+            "proportion": 0.36
+          }
+        ]
+      },
+      {
+        "group_label": "Invasive margin",
+        "group_order": 2,
+        "state_proportions": [
+          {
+            "state_label": "T cells",
+            "proportion": 0.42
+          },
+          {
+            "state_label": "Myeloid",
+            "proportion": 0.58
+          }
+        ]
+      }
+    ],
+    "matrix_cells": [
+      {
+        "x": "T cells",
+        "y": "CXCL13 program",
+        "value": 0.78
+      },
+      {
+        "x": "Myeloid",
+        "y": "CXCL13 program",
+        "value": -0.14
+      },
+      {
+        "x": "T cells",
+        "y": "TGF-beta program",
+        "value": -0.21
+      },
+      {
+        "x": "Myeloid",
+        "y": "TGF-beta program",
+        "value": 0.66
+      }
+    ],
+    "score_method": "AUCell"
+  }
+}

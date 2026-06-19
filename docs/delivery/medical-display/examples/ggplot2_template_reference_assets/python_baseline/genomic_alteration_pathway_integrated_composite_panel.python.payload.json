@@ -1,0 +1,443 @@
+{
+  "display_id": "Figure41",
+  "template_id": "fenggaolab.org.medical-display-core::genomic_alteration_pathway_integrated_composite_panel",
+  "title": "Driver-linked genomic alteration landscape with multiomic and pathway-integrated consequence panels",
+  "caption": "One audited composite binds the alteration landscape to three-layer gene-level consequence and three-layer pathway-level enrichment evidence.",
+  "y_label": "Altered gene",
+  "burden_axis_label": "Altered genes",
+  "frequency_axis_label": "Altered samples (%)",
+  "alteration_legend_title": "Genomic alteration",
+  "gene_order": [
+    {
+      "label": "TP53"
+    },
+    {
+      "label": "KRAS"
+    },
+    {
+      "label": "EGFR"
+    },
+    {
+      "label": "PIK3CA"
+    }
+  ],
+  "sample_order": [
+    {
+      "sample_id": "D1"
+    },
+    {
+      "sample_id": "D2"
+    },
+    {
+      "sample_id": "V1"
+    },
+    {
+      "sample_id": "V2"
+    }
+  ],
+  "annotation_tracks": [
+    {
+      "track_id": "cohort",
+      "track_label": "Cohort",
+      "values": [
+        {
+          "sample_id": "D1",
+          "category_label": "Discovery"
+        },
+        {
+          "sample_id": "D2",
+          "category_label": "Discovery"
+        },
+        {
+          "sample_id": "V1",
+          "category_label": "Validation"
+        },
+        {
+          "sample_id": "V2",
+          "category_label": "Validation"
+        }
+      ]
+    },
+    {
+      "track_id": "response",
+      "track_label": "Response",
+      "values": [
+        {
+          "sample_id": "D1",
+          "category_label": "Responder"
+        },
+        {
+          "sample_id": "D2",
+          "category_label": "Non-responder"
+        },
+        {
+          "sample_id": "V1",
+          "category_label": "Responder"
+        },
+        {
+          "sample_id": "V2",
+          "category_label": "Non-responder"
+        }
+      ]
+    }
+  ],
+  "alteration_records": [
+    {
+      "sample_id": "D1",
+      "gene_label": "TP53",
+      "mutation_class": "missense",
+      "cnv_state": "loss"
+    },
+    {
+      "sample_id": "D2",
+      "gene_label": "KRAS",
+      "cnv_state": "amplification"
+    },
+    {
+      "sample_id": "V1",
+      "gene_label": "TP53",
+      "mutation_class": "truncating"
+    },
+    {
+      "sample_id": "V1",
+      "gene_label": "PIK3CA",
+      "cnv_state": "gain"
+    },
+    {
+      "sample_id": "V2",
+      "gene_label": "EGFR",
+      "mutation_class": "fusion",
+      "cnv_state": "amplification"
+    }
+  ],
+  "consequence_x_label": "Effect size",
+  "consequence_y_label": "-log10 adjusted P",
+  "consequence_legend_title": "Consequence class",
+  "effect_threshold": 1.0,
+  "significance_threshold": 2.0,
+  "driver_gene_order": [
+    {
+      "label": "TP53"
+    },
+    {
+      "label": "EGFR"
+    }
+  ],
+  "consequence_panel_order": [
+    {
+      "panel_id": "proteome",
+      "panel_title": "Proteome consequence"
+    },
+    {
+      "panel_id": "phosphoproteome",
+      "panel_title": "Phosphoproteome consequence"
+    },
+    {
+      "panel_id": "glycoproteome",
+      "panel_title": "Glycoproteome consequence"
+    }
+  ],
+  "consequence_points": [
+    {
+      "panel_id": "proteome",
+      "gene_label": "TP53",
+      "effect_value": 1.18,
+      "significance_value": 3.28,
+      "regulation_class": "upregulated"
+    },
+    {
+      "panel_id": "proteome",
+      "gene_label": "EGFR",
+      "effect_value": -1.07,
+      "significance_value": 2.84,
+      "regulation_class": "downregulated"
+    },
+    {
+      "panel_id": "phosphoproteome",
+      "gene_label": "TP53",
+      "effect_value": 1.42,
+      "significance_value": 3.75,
+      "regulation_class": "upregulated"
+    },
+    {
+      "panel_id": "phosphoproteome",
+      "gene_label": "EGFR",
+      "effect_value": -1.24,
+      "significance_value": 3.19,
+      "regulation_class": "downregulated"
+    },
+    {
+      "panel_id": "glycoproteome",
+      "gene_label": "TP53",
+      "effect_value": 1.06,
+      "significance_value": 2.91,
+      "regulation_class": "upregulated"
+    },
+    {
+      "panel_id": "glycoproteome",
+      "gene_label": "EGFR",
+      "effect_value": -0.95,
+      "significance_value": 2.43,
+      "regulation_class": "background"
+    }
+  ],
+  "pathway_x_label": "Normalized enrichment score",
+  "pathway_y_label": "Pathway",
+  "pathway_effect_scale_label": "Enrichment direction",
+  "pathway_size_scale_label": "Hit count",
+  "pathway_order": [
+    {
+      "label": "PI3K-AKT signaling"
+    },
+    {
+      "label": "Cell cycle"
+    },
+    {
+      "label": "DNA damage response"
+    },
+    {
+      "label": "Immune signaling"
+    }
+  ],
+  "pathway_panel_order": [
+    {
+      "panel_id": "proteome",
+      "panel_title": "Proteome pathways"
+    },
+    {
+      "panel_id": "phosphoproteome",
+      "panel_title": "Phosphoproteome pathways"
+    },
+    {
+      "panel_id": "glycoproteome",
+      "panel_title": "Glycoproteome pathways"
+    }
+  ],
+  "pathway_points": [
+    {
+      "panel_id": "proteome",
+      "pathway_label": "PI3K-AKT signaling",
+      "x_value": 1.48,
+      "effect_value": 1.48,
+      "size_value": 36.0
+    },
+    {
+      "panel_id": "proteome",
+      "pathway_label": "Cell cycle",
+      "x_value": 1.22,
+      "effect_value": 1.22,
+      "size_value": 30.0
+    },
+    {
+      "panel_id": "proteome",
+      "pathway_label": "DNA damage response",
+      "x_value": -1.06,
+      "effect_value": -1.06,
+      "size_value": 24.0
+    },
+    {
+      "panel_id": "proteome",
+      "pathway_label": "Immune signaling",
+      "x_value": 0.82,
+      "effect_value": 0.82,
+      "size_value": 20.0
+    },
+    {
+      "panel_id": "phosphoproteome",
+      "pathway_label": "PI3K-AKT signaling",
+      "x_value": 1.61,
+      "effect_value": 1.61,
+      "size_value": 38.0
+    },
+    {
+      "panel_id": "phosphoproteome",
+      "pathway_label": "Cell cycle",
+      "x_value": 1.34,
+      "effect_value": 1.34,
+      "size_value": 33.0
+    },
+    {
+      "panel_id": "phosphoproteome",
+      "pathway_label": "DNA damage response",
+      "x_value": -0.94,
+      "effect_value": -0.94,
+      "size_value": 25.0
+    },
+    {
+      "panel_id": "phosphoproteome",
+      "pathway_label": "Immune signaling",
+      "x_value": 0.71,
+      "effect_value": 0.71,
+      "size_value": 18.0
+    },
+    {
+      "panel_id": "glycoproteome",
+      "pathway_label": "PI3K-AKT signaling",
+      "x_value": 1.18,
+      "effect_value": 1.18,
+      "size_value": 31.0
+    },
+    {
+      "panel_id": "glycoproteome",
+      "pathway_label": "Cell cycle",
+      "x_value": 0.93,
+      "effect_value": 0.93,
+      "size_value": 27.0
+    },
+    {
+      "panel_id": "glycoproteome",
+      "pathway_label": "DNA damage response",
+      "x_value": -0.76,
+      "effect_value": -0.76,
+      "size_value": 22.0
+    },
+    {
+      "panel_id": "glycoproteome",
+      "pathway_label": "Immune signaling",
+      "x_value": 0.58,
+      "effect_value": 0.58,
+      "size_value": 16.0
+    }
+  ],
+  "render_context": {
+    "style_profile_id": "paper_neutral_clinical_v1",
+    "style_profile_ref": "human_reference_default_publication_style_profile",
+    "style_profile_sha256": "81a4f0415f43faf78a632738f43f0af4eafaa7e422acba2923037d92e3aa669b",
+    "journal_palette_ref": "nature_informed_clinical_publication_v1",
+    "palette": {
+      "primary": "#0F4D92",
+      "secondary": "#33B5A5",
+      "tertiary": "#D24B40",
+      "quaternary": "#E28E2C",
+      "violet": "#7C6CCF",
+      "neutral": "#4D4D4D",
+      "neutral_mid": "#767676",
+      "neutral_light": "#D8D8D8",
+      "light": "#F2F5F7",
+      "primary_soft": "#DCEAF7",
+      "secondary_soft": "#DDF3F0",
+      "tertiary_soft": "#F6CFCB",
+      "quaternary_soft": "#F7E7D0",
+      "violet_soft": "#E7E1F5",
+      "audit": "#B64342",
+      "audit_soft": "#F6CFCB",
+      "text": "#272727",
+      "axis": "#272727",
+      "grid": "#ECEFF2",
+      "background": "#FFFFFF",
+      "heatmap_low": "#2B6CB0",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B64342",
+      "volcano_up": "#B64342",
+      "volcano_down": "#2B6CB0",
+      "volcano_background": "#B8B8B8"
+    },
+    "semantic_roles": {
+      "model_curve": "primary",
+      "comparator_curve": "secondary",
+      "reference_line": "neutral_mid",
+      "highlight_band": "light",
+      "text": "text",
+      "axis_line": "axis",
+      "grid_line": "grid",
+      "figure_background": "background",
+      "series_1": "primary",
+      "series_2": "secondary",
+      "series_3": "tertiary",
+      "series_4": "quaternary",
+      "series_5": "violet",
+      "series_6": "neutral_mid",
+      "heatmap_low": "heatmap_low",
+      "heatmap_mid": "heatmap_mid",
+      "heatmap_high": "heatmap_high",
+      "volcano_up": "volcano_up",
+      "volcano_down": "volcano_down",
+      "volcano_background": "volcano_background",
+      "flow_main_fill": "light",
+      "flow_main_edge": "neutral_mid",
+      "flow_exclusion_fill": "audit_soft",
+      "flow_exclusion_edge": "audit",
+      "flow_primary_fill": "primary_soft",
+      "flow_primary_edge": "primary",
+      "flow_secondary_fill": "secondary_soft",
+      "flow_secondary_edge": "secondary",
+      "flow_context_fill": "violet_soft",
+      "flow_context_edge": "violet",
+      "flow_audit_fill": "audit_soft",
+      "flow_audit_edge": "audit",
+      "flow_title_text": "neutral",
+      "flow_body_text": "neutral",
+      "flow_panel_label": "neutral",
+      "flow_connector": "neutral"
+    },
+    "style_roles": {
+      "model_curve": "#0F4D92",
+      "comparator_curve": "#33B5A5",
+      "reference_line": "#767676",
+      "highlight_band": "#F2F5F7",
+      "text": "#272727",
+      "axis_line": "#272727",
+      "grid_line": "#ECEFF2",
+      "figure_background": "#FFFFFF",
+      "series_1": "#0F4D92",
+      "series_2": "#33B5A5",
+      "series_3": "#D24B40",
+      "series_4": "#E28E2C",
+      "series_5": "#7C6CCF",
+      "series_6": "#767676",
+      "heatmap_low": "#2B6CB0",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B64342",
+      "volcano_up": "#B64342",
+      "volcano_down": "#2B6CB0",
+      "volcano_background": "#B8B8B8",
+      "flow_main_fill": "#F2F5F7",
+      "flow_main_edge": "#767676",
+      "flow_exclusion_fill": "#F6CFCB",
+      "flow_exclusion_edge": "#B64342",
+      "flow_primary_fill": "#DCEAF7",
+      "flow_primary_edge": "#0F4D92",
+      "flow_secondary_fill": "#DDF3F0",
+      "flow_secondary_edge": "#33B5A5",
+      "flow_context_fill": "#E7E1F5",
+      "flow_context_edge": "#7C6CCF",
+      "flow_audit_fill": "#F6CFCB",
+      "flow_audit_edge": "#B64342",
+      "flow_title_text": "#4D4D4D",
+      "flow_body_text": "#4D4D4D",
+      "flow_panel_label": "#4D4D4D",
+      "flow_connector": "#4D4D4D"
+    },
+    "typography": {
+      "font_family": "sans",
+      "base_size": 9.0,
+      "title_size": 10.0,
+      "axis_title_size": 9.0,
+      "tick_size": 8.0,
+      "legend_size": 7.8,
+      "panel_label_size": 9.2
+    },
+    "stroke": {
+      "axis_linewidth": 0.35,
+      "primary_linewidth": 2.0,
+      "secondary_linewidth": 1.55,
+      "reference_linewidth": 0.9,
+      "grid_linewidth": 0.18,
+      "marker_size": 3.4
+    },
+    "grid": {
+      "major": true,
+      "minor": false,
+      "major_axis": "y",
+      "minor_axis": "none",
+      "color": "#ECEFF2",
+      "linetype": "solid"
+    },
+    "layout_override": {
+      "output_width_in": 5.0,
+      "output_height_in": 5.0,
+      "show_figure_title": false
+    },
+    "readability_override": {}
+  }
+}

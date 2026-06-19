@@ -1,0 +1,66 @@
+{
+  "template_id": "treatment_shift_alignment_figure",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "title",
+      "box_type": "title",
+      "x0": 0.29008620689655173,
+      "y0": 0.9558333333333333,
+      "x1": 0.7099137931034483,
+      "y1": 0.985
+    },
+    {
+      "box_id": "panel_1_title",
+      "box_type": "subtitle",
+      "x0": 0.5899999999999999,
+      "y0": 0.897361111111111,
+      "x1": 0.5899999999999999,
+      "y1": 0.897361111111111
+    },
+    {
+      "box_id": "panel_1_x_axis_title",
+      "box_type": "x_axis_title",
+      "x0": 0.5009913793103447,
+      "y0": 0.04025462962962961,
+      "x1": 0.6790086206896551,
+      "y1": 0.06525462962962962
+    },
+    {
+      "box_id": "panel_1_y_axis_title",
+      "box_type": "y_axis_title",
+      "x0": 0.05572796934865898,
+      "y0": 0.4339843749999999,
+      "x1": 0.07641762452107277,
+      "y1": 0.566015625
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_1",
+      "box_type": "panel",
+      "x0": 0.21999999999999997,
+      "y0": 0.11999999999999998,
+      "x1": 0.9599999999999999,
+      "y1": 0.8799999999999999
+    }
+  ],
+  "guide_boxes": [],
+  "metrics": {
+    "display_id": "Figure5",
+    "panel_count": 1,
+    "panels": [
+      {
+        "panel_id": "phenotype_shift",
+        "title": "Treatment shift by phenotype",
+        "mark_count": 3,
+        "has_comparison_values": true
+      }
+    ]
+  }
+}

@@ -238,8 +238,8 @@ def _text(value: object) -> str | None:
 def _source_refs() -> dict[str, list[str]]:
     return {
         "external_skill_refs": [
-            "nature-skills@1609daf:skills/nature-academic-search",
-            "nature-skills@1609daf:skills/nature-citation",
+            "nature-skills@1cb9070:skills/nature-academic-search",
+            "nature-skills@1cb9070:skills/nature-citation",
         ],
         "mas_contract_refs": ["citation_integrity_pack"],
     }

@@ -8488,11 +8488,11 @@
         "capability_id": "nature_figure_display_contract_refs",
         "capability_ref": "scientific-capability:nature_figure_display_contract_refs",
         "contract_refs": [
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/SKILL.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/manifest.yaml",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/figure-contract.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/qa-contract.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/backend-selection.md"
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/SKILL.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/manifest.yaml",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/references/figure-contract.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/references/qa-contract.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/references/backend-selection.md"
         ],
         "current_delta_trigger_reason": "current_delta_declared_figure_display_need",
         "current_delta_trigger_terms": [
@@ -8509,16 +8509,16 @@
         "invocation_kind": "descriptor_only_current_owner_input_refs",
         "mainline_waits_for_capability": false,
         "output_refs": [
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/SKILL.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/manifest.yaml",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/figure-contract.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/qa-contract.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-figure/references/backend-selection.md"
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/SKILL.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/manifest.yaml",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/references/figure-contract.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/references/qa-contract.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-figure/references/backend-selection.md"
         ],
         "refs_only": true,
         "role": "nature_skills_figure_display_router_manifest_and_stable_plotting_refs",
         "source_frameworks": [
-          "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+          "Yuan1z0825/nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3",
           "Nature Figure skill"
         ],
         "trigger": "current_delta_declares_or_implies_affordance_need"
@@ -8550,9 +8550,9 @@
         "capability_id": "nature_paper_section_source_map_readback",
         "capability_ref": "scientific-capability:nature_paper_section_source_map_readback",
         "contract_refs": [
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-writing/SKILL.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-polishing/SKILL.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-reader/SKILL.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-writing/SKILL.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-polishing/SKILL.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-reader/SKILL.md",
           "med_autoscience.paper_mainline_section_source_map.build_paper_section_source_map_readback"
         ],
         "current_delta_trigger_reason": "current_delta_declared_paper_mainline_section_need",
@@ -8578,7 +8578,7 @@
         "refs_only": true,
         "role": "section_contract_draft_block_source_map_reviewer_repair_refs_readback",
         "source_frameworks": [
-          "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+          "Yuan1z0825/nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3",
           "Nature Writing / Polishing / Reader skills"
         ],
         "trigger": "current_delta_declares_or_implies_affordance_need"
@@ -8610,8 +8610,8 @@
         "capability_id": "nature_claim_citation_support_matrix",
         "capability_ref": "scientific-capability:nature_claim_citation_support_matrix",
         "contract_refs": [
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-academic-search/SKILL.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-citation/SKILL.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-academic-search/SKILL.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-citation/SKILL.md",
           "med_autoscience.paper_mainline_claim_support.build_claim_citation_support_matrix"
         ],
         "current_delta_trigger_reason": "current_delta_declared_claim_support_need",
@@ -8635,7 +8635,7 @@
         "refs_only": true,
         "role": "claim_evidence_citation_support_grade_refs_only_matrix",
         "source_frameworks": [
-          "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+          "Yuan1z0825/nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3",
           "Nature Academic Search / Citation skills"
         ],
         "trigger": "current_delta_declares_or_implies_affordance_need"
@@ -8667,9 +8667,9 @@
         "capability_id": "nature_reviewer_repair_action_projection",
         "capability_ref": "scientific-capability:nature_reviewer_repair_action_projection",
         "contract_refs": [
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-response/SKILL.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-reviewer/SKILL.md",
-          "external:nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547:skills/nature-reader/SKILL.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-response/SKILL.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-reviewer/SKILL.md",
+          "external:nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3:skills/nature-reader/SKILL.md",
           "med_autoscience.paper_mainline_reviewer_repair.build_reviewer_repair_action_projection"
         ],
         "current_delta_trigger_reason": "current_delta_declared_reviewer_repair_need",
@@ -8692,7 +8692,7 @@
         "refs_only": true,
         "role": "ai_reviewer_comment_to_typed_repair_action_candidate_projection",
         "source_frameworks": [
-          "Yuan1z0825/nature-skills@1609daf66ca7a851fab6b2f2c3ecd2b0c0ae5547",
+          "Yuan1z0825/nature-skills@1cb9070fdd94929d5f267ce6585ac87e2cba60b3",
           "Nature Response / Reviewer / Reader skills"
         ],
         "trigger": "current_delta_declares_or_implies_affordance_need"

@@ -1,0 +1,339 @@
+{
+  "template_id": "generalizability_subgroup_composite_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "panel_title_A",
+      "box_type": "panel_title",
+      "x0": 0.19509492864424058,
+      "y0": 0.9647685185185185,
+      "x1": 0.41940048419979614,
+      "y1": 0.9897685185185185
+    },
+    {
+      "box_id": "panel_title_B",
+      "box_type": "panel_title",
+      "x0": 0.6729219452795201,
+      "y0": 0.9647685185185185,
+      "x1": 0.9327599082424831,
+      "y1": 0.9897685185185185
+    },
+    {
+      "box_id": "x_axis_title_A",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.2870509471627591,
+      "y0": 0.06025462962962963,
+      "x1": 0.3274444656812776,
+      "y1": 0.08525462962962964
+    },
+    {
+      "box_id": "x_axis_title_B",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.7826441675017424,
+      "y0": 0.06025462962962963,
+      "x1": 0.8230376860202608,
+      "y1": 0.08525462962962964
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.116,
+      "y0": 0.8855,
+      "x1": 0.12826851851851853,
+      "y1": 0.9229999999999999
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.641681853522003,
+      "y0": 0.8855,
+      "x1": 0.6518670387071882,
+      "y1": 0.9229999999999999
+    },
+    {
+      "box_id": "overview_row_label_1",
+      "box_type": "overview_row_label",
+      "x0": 0.04702314814814816,
+      "y0": 0.7627941176470587,
+      "x1": 0.10200000000000001,
+      "y1": 0.7877941176470588
+    },
+    {
+      "box_id": "overview_row_label_2",
+      "box_type": "overview_row_label",
+      "x0": 0.04829629629629631,
+      "y0": 0.5275,
+      "x1": 0.10200000000000001,
+      "y1": 0.5525
+    },
+    {
+      "box_id": "overview_row_label_3",
+      "box_type": "overview_row_label",
+      "x0": 0.05118981481481483,
+      "y0": 0.2922058823529412,
+      "x1": 0.10200000000000001,
+      "y1": 0.3172058823529412
+    },
+    {
+      "box_id": "overview_support_label_1",
+      "box_type": "support_label",
+      "x0": 0.2864271151885827,
+      "y0": 0.7638357843137255,
+      "x1": 0.31987618926265676,
+      "y1": 0.7867524509803921
+    },
+    {
+      "box_id": "overview_support_label_2",
+      "box_type": "support_label",
+      "x0": 0.2864271151885827,
+      "y0": 0.5285416666666667,
+      "x1": 0.31987618926265676,
+      "y1": 0.5514583333333333
+    },
+    {
+      "box_id": "overview_support_label_3",
+      "box_type": "support_label",
+      "x0": 0.2864271151885827,
+      "y0": 0.29324754901960787,
+      "x1": 0.31987618926265676,
+      "y1": 0.31616421568627456
+    },
+    {
+      "box_id": "overview_metric_marker_1",
+      "box_type": "overview_metric_marker",
+      "x0": 0.2600712613735038,
+      "y0": 0.7677709694989107,
+      "x1": 0.26675850417185765,
+      "y1": 0.7828172657952068
+    },
+    {
+      "box_id": "overview_metric_marker_2",
+      "box_type": "overview_metric_marker",
+      "x0": 0.172405614074829,
+      "y0": 0.5324768518518518,
+      "x1": 0.1790928568731829,
+      "y1": 0.5475231481481481
+    },
+    {
+      "box_id": "overview_metric_marker_3",
+      "box_type": "overview_metric_marker",
+      "x0": 0.21623843772416648,
+      "y0": 0.2971827342047931,
+      "x1": 0.22292568052252038,
+      "y1": 0.31222903050108936
+    },
+    {
+      "box_id": "overview_comparator_marker_1",
+      "box_type": "overview_comparator_marker",
+      "x0": 0.194450626722543,
+      "y0": 0.7680603213507625,
+      "x1": 0.20088066787480638,
+      "y1": 0.7825279139433551
+    },
+    {
+      "box_id": "overview_comparator_marker_2",
+      "box_type": "overview_comparator_marker",
+      "x0": 0.194450626722543,
+      "y0": 0.5327662037037036,
+      "x1": 0.20088066787480638,
+      "y1": 0.5472337962962963
+    },
+    {
+      "box_id": "overview_comparator_marker_3",
+      "box_type": "overview_comparator_marker",
+      "x0": 0.194450626722543,
+      "y0": 0.2974720860566449,
+      "x1": 0.20088066787480638,
+      "y1": 0.31193967864923755
+    },
+    {
+      "box_id": "subgroup_row_label_1",
+      "box_type": "subgroup_row_label",
+      "x0": 0.5492096312997807,
+      "y0": 0.7627941176470587,
+      "x1": 0.627681853522003,
+      "y1": 0.7877941176470588
+    },
+    {
+      "box_id": "subgroup_row_label_2",
+      "box_type": "subgroup_row_label",
+      "x0": 0.5899503720405215,
+      "y0": 0.5275,
+      "x1": 0.627681853522003,
+      "y1": 0.5525
+    },
+    {
+      "box_id": "subgroup_row_label_3",
+      "box_type": "subgroup_row_label",
+      "x0": 0.5325429646331141,
+      "y0": 0.2922058823529412,
+      "x1": 0.627681853522003,
+      "y1": 0.3172058823529412
+    },
+    {
+      "box_id": "subgroup_ci_1",
+      "box_type": "ci_segment",
+      "x0": 0.7359772974654023,
+      "y0": 0.7752941176470588,
+      "x1": 0.8697045560566011,
+      "y1": 0.7752941176470588
+    },
+    {
+      "box_id": "subgroup_ci_2",
+      "box_type": "ci_segment",
+      "x0": 0.6858295754937026,
+      "y0": 0.5399999999999999,
+      "x1": 0.8195568340849014,
+      "y1": 0.5399999999999999
+    },
+    {
+      "box_id": "subgroup_ci_3",
+      "box_type": "ci_segment",
+      "x0": 0.752693204789302,
+      "y0": 0.3047058823529412,
+      "x1": 0.9198522780283006,
+      "y1": 0.3047058823529412
+    },
+    {
+      "box_id": "subgroup_estimate_1",
+      "box_type": "estimate_marker",
+      "x0": 0.7997545070079151,
+      "y0": 0.7683496732026144,
+      "x1": 0.8059273465140879,
+      "y1": 0.7822385620915032
+    },
+    {
+      "box_id": "subgroup_estimate_2",
+      "box_type": "estimate_marker",
+      "x0": 0.7496067850362156,
+      "y0": 0.5330555555555555,
+      "x1": 0.7557796245423885,
+      "y1": 0.5469444444444443
+    },
+    {
+      "box_id": "subgroup_estimate_3",
+      "box_type": "estimate_marker",
+      "x0": 0.8331863216557148,
+      "y0": 0.29776143790849674,
+      "x1": 0.8393591611618878,
+      "y1": 0.3116503267973857
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "overview_panel",
+      "box_type": "panel",
+      "x0": 0.11,
+      "y0": 0.14,
+      "x1": 0.5044954128440368,
+      "y1": 0.94
+    },
+    {
+      "box_id": "subgroup_panel",
+      "box_type": "panel",
+      "x0": 0.6356818535220029,
+      "y0": 0.14,
+      "x1": 0.9700000000000002,
+      "y1": 0.94
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "legend",
+      "box_type": "legend",
+      "x0": 0.3478973765432099,
+      "y0": 0.020000000000000004,
+      "x1": 0.65210262345679,
+      "y1": 0.11594907407407408
+    }
+  ],
+  "metrics": {
+    "metric_family": "discrimination",
+    "primary_label": "Locked model",
+    "comparator_label": "Derivation cohort",
+    "legend_title": "Model context",
+    "legend_labels": [
+      "Locked model",
+      "Derivation cohort"
+    ],
+    "overview_rows": [
+      {
+        "cohort_id": "external_a",
+        "cohort_label": "External A",
+        "support_count": 184,
+        "metric_value": 0.82,
+        "label_box_id": "overview_row_label_1",
+        "support_label_box_id": "overview_support_label_1",
+        "metric_marker_box_id": "overview_metric_marker_1",
+        "event_count": 29,
+        "comparator_metric_value": 0.79,
+        "comparator_marker_box_id": "overview_comparator_marker_1"
+      },
+      {
+        "cohort_id": "external_b",
+        "cohort_label": "External B",
+        "support_count": 163,
+        "metric_value": 0.78,
+        "label_box_id": "overview_row_label_2",
+        "support_label_box_id": "overview_support_label_2",
+        "metric_marker_box_id": "overview_metric_marker_2",
+        "event_count": 21,
+        "comparator_metric_value": 0.79,
+        "comparator_marker_box_id": "overview_comparator_marker_2"
+      },
+      {
+        "cohort_id": "temporal",
+        "cohort_label": "Temporal",
+        "support_count": 142,
+        "metric_value": 0.8,
+        "label_box_id": "overview_row_label_3",
+        "support_label_box_id": "overview_support_label_3",
+        "metric_marker_box_id": "overview_metric_marker_3",
+        "event_count": 18,
+        "comparator_metric_value": 0.79,
+        "comparator_marker_box_id": "overview_comparator_marker_3"
+      }
+    ],
+    "subgroup_reference_value": 0.8,
+    "subgroup_rows": [
+      {
+        "subgroup_id": "age_ge_65",
+        "subgroup_label": "Age ≥65 years",
+        "estimate": 0.82,
+        "lower": 0.78,
+        "upper": 0.86,
+        "label_box_id": "subgroup_row_label_1",
+        "ci_box_id": "subgroup_ci_1",
+        "estimate_box_id": "subgroup_estimate_1",
+        "group_n": 201
+      },
+      {
+        "subgroup_id": "female",
+        "subgroup_label": "Female",
+        "estimate": 0.79,
+        "lower": 0.75,
+        "upper": 0.83,
+        "label_box_id": "subgroup_row_label_2",
+        "ci_box_id": "subgroup_ci_2",
+        "estimate_box_id": "subgroup_estimate_2",
+        "group_n": 173
+      },
+      {
+        "subgroup_id": "high_risk",
+        "subgroup_label": "High-risk surgery",
+        "estimate": 0.84,
+        "lower": 0.79,
+        "upper": 0.89,
+        "label_box_id": "subgroup_row_label_3",
+        "ci_box_id": "subgroup_ci_3",
+        "estimate_box_id": "subgroup_estimate_3",
+        "group_n": 96
+      }
+    ]
+  }
+}

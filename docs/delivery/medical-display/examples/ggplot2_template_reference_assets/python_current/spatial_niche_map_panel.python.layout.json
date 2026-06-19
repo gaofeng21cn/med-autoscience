@@ -1,0 +1,240 @@
+{
+  "template_id": "spatial_niche_map_panel",
+  "device": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  },
+  "layout_boxes": [
+    {
+      "box_id": "spatial_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.1264702360933979,
+      "y0": 0.8729251700680272,
+      "x1": 0.23777538315222138,
+      "y1": 0.8974149659863945
+    },
+    {
+      "box_id": "spatial_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.13791325079928024,
+      "y0": 0.16188208616780045,
+      "x1": 0.22633236844633903,
+      "y1": 0.18637188208616778
+    },
+    {
+      "box_id": "spatial_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.026799428104575154,
+      "y0": 0.42844387755102037,
+      "x1": 0.035622957516339857,
+      "y1": 0.6715561224489796
+    },
+    {
+      "box_id": "composition_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.4217144178357414,
+      "y0": 0.8729251700680272,
+      "x1": 0.5630747119533884,
+      "y1": 0.8974149659863945
+    },
+    {
+      "box_id": "composition_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.4506666237180943,
+      "y0": 0.16188208616780045,
+      "x1": 0.5341225060710355,
+      "y1": 0.18637188208616778
+    },
+    {
+      "box_id": "composition_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.3006833481833482,
+      "y0": 0.5072704081632653,
+      "x1": 0.30950687759511286,
+      "y1": 0.5927295918367346
+    },
+    {
+      "box_id": "heatmap_panel_title",
+      "box_type": "panel_title",
+      "x0": 0.7288804044226836,
+      "y0": 0.8729251700680272,
+      "x1": 0.8501120220697426,
+      "y1": 0.8974149659863945
+    },
+    {
+      "box_id": "heatmap_x_axis_title",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.7644962132462131,
+      "y0": 0.11437949304432544,
+      "x1": 0.8144962132462131,
+      "y1": 0.1388692889626928
+    },
+    {
+      "box_id": "heatmap_y_axis_title",
+      "box_type": "subplot_y_axis_title",
+      "x0": 0.5892444909356673,
+      "y0": 0.43852040816326526,
+      "x1": 0.598068020347432,
+      "y1": 0.6614795918367347
+    },
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.066,
+      "y0": 0.808265306122449,
+      "x1": 0.07574264705882353,
+      "y1": 0.845
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.3858500148500148,
+      "y0": 0.808265306122449,
+      "x1": 0.3939382501441324,
+      "y1": 0.845
+    },
+    {
+      "box_id": "panel_label_C",
+      "box_type": "panel_label",
+      "x0": 0.6865435105435105,
+      "y0": 0.808265306122449,
+      "x1": 0.696286157602334,
+      "y1": 0.845
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "panel_spatial",
+      "box_type": "panel",
+      "x0": 0.06,
+      "y0": 0.24,
+      "x1": 0.30424561924561927,
+      "y1": 0.86
+    },
+    {
+      "box_id": "panel_composition",
+      "box_type": "composition_panel",
+      "x0": 0.3798500148500148,
+      "y0": 0.24,
+      "x1": 0.604939114939115,
+      "y1": 0.86
+    },
+    {
+      "box_id": "panel_heatmap",
+      "box_type": "heatmap_tile_region",
+      "x0": 0.6805435105435105,
+      "y0": 0.24,
+      "x1": 0.8984489159489157,
+      "y1": 0.86
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "legend",
+      "box_type": "legend",
+      "x0": 0.0751062091503268,
+      "y0": 0.03417233560090703,
+      "x1": 0.2994015522875817,
+      "y1": 0.08541950113378684
+    },
+    {
+      "box_id": "colorbar",
+      "box_type": "colorbar",
+      "x0": 0.9080271755271754,
+      "y0": 0.24,
+      "x1": 0.9191962931742342,
+      "y1": 0.86
+    }
+  ],
+  "metrics": {
+    "points": [
+      {
+        "x": 0.0711020736020736,
+        "y": 0.8318181818181818,
+        "niche_label": "Immune niche",
+        "region_label": "Tumor core"
+      },
+      {
+        "x": 0.09577334827334828,
+        "y": 0.7566666666666666,
+        "niche_label": "Immune niche",
+        "region_label": "Tumor core"
+      },
+      {
+        "x": 0.26847227097227105,
+        "y": 0.3433333333333333,
+        "niche_label": "Stromal niche",
+        "region_label": "Invasive margin"
+      },
+      {
+        "x": 0.29314354564354567,
+        "y": 0.2681818181818182,
+        "niche_label": "Stromal niche",
+        "region_label": "Invasive margin"
+      }
+    ],
+    "niche_labels": [
+      "Immune niche",
+      "Stromal niche"
+    ],
+    "row_labels": [
+      "CXCL13 program",
+      "TGF-beta program"
+    ],
+    "composition_groups": [
+      {
+        "group_label": "Tumor core",
+        "group_order": 1,
+        "niche_proportions": [
+          {
+            "niche_label": "Immune niche",
+            "proportion": 0.64
+          },
+          {
+            "niche_label": "Stromal niche",
+            "proportion": 0.36
+          }
+        ]
+      },
+      {
+        "group_label": "Invasive margin",
+        "group_order": 2,
+        "niche_proportions": [
+          {
+            "niche_label": "Immune niche",
+            "proportion": 0.42
+          },
+          {
+            "niche_label": "Stromal niche",
+            "proportion": 0.58
+          }
+        ]
+      }
+    ],
+    "matrix_cells": [
+      {
+        "x": "Immune niche",
+        "y": "CXCL13 program",
+        "value": 0.78
+      },
+      {
+        "x": "Stromal niche",
+        "y": "CXCL13 program",
+        "value": -0.14
+      },
+      {
+        "x": "Immune niche",
+        "y": "TGF-beta program",
+        "value": -0.21
+      },
+      {
+        "x": "Stromal niche",
+        "y": "TGF-beta program",
+        "value": 0.66
+      }
+    ],
+    "score_method": "AUCell"
+  }
+}

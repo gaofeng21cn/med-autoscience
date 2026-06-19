@@ -32,8 +32,8 @@ def test_builds_refs_only_progress_first_claim_citation_support_matrix() -> None
     assert result["missing_required_refs"] == []
     assert result["typed_blocker_candidates"] == []
     assert result["source_refs"]["external_skill_refs"] == [
-        "nature-skills@1609daf:skills/nature-academic-search",
-        "nature-skills@1609daf:skills/nature-citation",
+        "nature-skills@1cb9070:skills/nature-academic-search",
+        "nature-skills@1cb9070:skills/nature-citation",
     ]
     assert result["source_refs"]["mas_contract_refs"] == ["citation_integrity_pack"]
     assert result["authority_boundary"] == {
