@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-19：repo-source physical retirement 不再等待 live runtime proof
+
+- 决策：MAS 旧 module、alias、wrapper、compat shim、私有 scheduler/log/outbox/projection authority 的 repo-source physical retirement 优先推进，不再把 DM002/DM003 live runtime evidence 作为删除前置条件。只要 active callsites 已迁移到 OPL primitive 或 MAS minimal `PaperProgressPolicyAdapter` / authority adapter，旧入口已物理删除或 tombstone，缺 live proof 的路径 fail closed typed blocker，focused / meta / default verification 通过，并且 docs、contracts、runtime inventory 更新，就可以声明对应 repo-source retirement 条目完成。
+- 决策：`contracts/paper_progress_transition_runtime_completion_audit.json` 的完成度审计拆成两栏：`repo_source_retirement_completion` 只管代码、合同、测试、文档和物理退役；`live_runtime_readiness_completion` 只管 OPL live readback、DHD apply exactly-one、provider running proof 与 DM002/DM003 live paper-line outcome。前者不被后者阻塞；后者仍是 runtime / paper acceptance 的最终证据。
+- 理由：此前把 live OPL readback、provider running proof 或 DM002/DM003 论文结果写成 source deletion prerequisite，会反向保留 MAS 私有控制面，导致旧面因“还没 live proof”继续存在。正确边界是：源码层先删除或 tombstone 旧 authority，缺 live proof 时 fail closed；live readiness 作为独立尾项继续追。
+- 影响：这是完成口径和 repo-source retirement gate 更新，不执行 live DHD apply、hydrate、tick、redrive、provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。repo-source retirement 完成不能被解释为 OPL runtime ready、paper progress、publication-ready、domain-ready 或 production-ready。
+
 ## 2026-06-18：本地 clean verification 默认复用 checkout 外缓存
 
 - 决策：`scripts/run-pytest-clean.sh`、本地 `scripts/verify.sh` 与本地直接调用的 `scripts/run-python-clean.sh` 默认启用 checkout 外 clean-runner reuse env。可复用对象只能位于 checkout 外，包含 venv、uv cache、pycache、egg-info 与 sync marker，且必须继续拒绝 checkout 内 `.venv`、`.uv-cache`、`__pycache__`、`.pytest_cache` 或 `*.egg-info`。
