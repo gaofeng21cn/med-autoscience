@@ -56,6 +56,9 @@ def live_runtime_evidence_rollup_readback(
             "violation_count": len(contract_violations),
             "violations": contract_violations,
         },
+        "repo_source_retirement_completion": _repo_source_retirement_completion(
+            rollup_contract
+        ),
         "summary": summary,
         "completion_claim_boundary": rollup_contract.get("completion_claim_boundary", {}),
         "completion_claim_allowed": (
@@ -89,6 +92,35 @@ def validate_live_runtime_evidence_rollup_contract(
         violations.append(_violation("<contract>", "repo_source_retirement_blocked"))
     if contract.get("live_runtime_readiness_claim_allowed") is not False:
         violations.append(_violation("<contract>", "live_runtime_claim_allowed"))
+    repo_source_completion = contract.get("repo_source_retirement_completion")
+    repo_source_completion_mapping = (
+        repo_source_completion if isinstance(repo_source_completion, Mapping) else {}
+    )
+    if (
+        repo_source_completion_mapping.get("surface_kind")
+        != "mas_repo_source_private_surface_retirement_completion"
+    ):
+        violations.append(_violation("<contract>", "repo_source_completion_surface_kind_mismatch"))
+    if repo_source_completion_mapping.get("status") != "complete":
+        violations.append(_violation("<contract>", "repo_source_completion_status_mismatch"))
+    if repo_source_completion_mapping.get("scope") != "repo_source_physical_retirement_only":
+        violations.append(_violation("<contract>", "repo_source_completion_scope_mismatch"))
+    if repo_source_completion_mapping.get("completion_claim_allowed") is not True:
+        violations.append(_violation("<contract>", "repo_source_completion_claim_not_allowed"))
+    if repo_source_completion_mapping.get("repo_source_retirement_blocked") is not False:
+        violations.append(_violation("<contract>", "repo_source_completion_blocked"))
+    if repo_source_completion_mapping.get("blocked_by_missing_live_evidence") is not False:
+        violations.append(_violation("<contract>", "repo_source_completion_live_evidence_blocked"))
+    if repo_source_completion_mapping.get("live_runtime_readiness_claim_allowed") is not False:
+        violations.append(
+            _violation("<contract>", "repo_source_completion_live_runtime_claim_allowed")
+        )
+    if repo_source_completion_mapping.get("does_not_satisfy_live_runtime_work_orders") is not True:
+        violations.append(
+            _violation("<contract>", "repo_source_completion_satisfies_live_work_orders")
+        )
+    if not _text_list(repo_source_completion_mapping.get("evidence_refs")):
+        violations.append(_violation("<contract>", "repo_source_completion_missing_evidence_refs"))
     typed_blocker_details = contract.get("typed_blocker_details_readback")
     typed_blocker_details_mapping = (
         typed_blocker_details if isinstance(typed_blocker_details, Mapping) else {}
@@ -341,6 +373,16 @@ def live_runtime_evidence_rollup_summary(
     return {
         "surface_kind": "mas_live_runtime_evidence_rollup_summary",
         "version": VERSION,
+        "repo_source_retirement_completion": {
+            "surface_kind": "mas_repo_source_private_surface_retirement_completion",
+            "status": "complete",
+            "scope": "repo_source_physical_retirement_only",
+            "completion_claim_allowed": True,
+            "repo_source_retirement_blocked": False,
+            "blocked_by_missing_live_evidence": False,
+            "live_runtime_readiness_claim_allowed": False,
+            "does_not_satisfy_live_runtime_work_orders": True,
+        },
         "repo_source_retirement_blocked": False,
         "live_runtime_readiness_claim_allowed": all_work_orders_satisfied,
         "rollup_result_status": (
@@ -378,6 +420,30 @@ def _typed_blocker_details(
         _gap_blocker_detail(gap_id, gap_orders.get(gap_id, {}))
         for gap_id in _text_list(live_runtime_gap_summary.get("typed_blocker_gap_ids"))
     ]
+
+
+def _repo_source_retirement_completion(contract: Mapping[str, Any]) -> dict[str, Any]:
+    raw_completion = contract.get("repo_source_retirement_completion")
+    completion = raw_completion if isinstance(raw_completion, Mapping) else {}
+    return {
+        "surface_kind": _text(completion.get("surface_kind"))
+        or "mas_repo_source_private_surface_retirement_completion",
+        "status": _text(completion.get("status")) or "unknown",
+        "scope": _text(completion.get("scope")) or "repo_source_physical_retirement_only",
+        "claim": _text(completion.get("claim")),
+        "completion_claim_allowed": completion.get("completion_claim_allowed") is True,
+        "repo_source_retirement_blocked": completion.get("repo_source_retirement_blocked")
+        is True,
+        "blocked_by_missing_live_evidence": completion.get("blocked_by_missing_live_evidence")
+        is True,
+        "live_runtime_readiness_claim_allowed": (
+            completion.get("live_runtime_readiness_claim_allowed") is True
+        ),
+        "does_not_satisfy_live_runtime_work_orders": (
+            completion.get("does_not_satisfy_live_runtime_work_orders") is True
+        ),
+        "evidence_refs": _text_list(completion.get("evidence_refs")),
+    }
 
 
 def _tail_blocker_detail(surface_id: str, order: Mapping[str, Any]) -> dict[str, Any]:

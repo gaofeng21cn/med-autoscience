@@ -38,6 +38,29 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
     ) == []
     assert rollup_contract["surface_kind"] == "mas_live_runtime_evidence_rollup"
     assert rollup_contract["repo_source_retirement_blocked"] is False
+    assert rollup_contract["repo_source_retirement_completion"] == {
+        "surface_kind": "mas_repo_source_private_surface_retirement_completion",
+        "status": "complete",
+        "scope": "repo_source_physical_retirement_only",
+        "claim": (
+            "MAS private control-plane modules, aliases, wrappers and compatibility shims "
+            "have been physically retired or guarded at the repo-source boundary; remaining "
+            "live-tail work orders are live-runtime readiness evidence gates, not repo-source "
+            "deletion blockers."
+        ),
+        "completion_claim_allowed": True,
+        "repo_source_retirement_blocked": False,
+        "blocked_by_missing_live_evidence": False,
+        "live_runtime_readiness_claim_allowed": False,
+        "does_not_satisfy_live_runtime_work_orders": True,
+        "evidence_refs": [
+            "docs/history/runtime/mas-private-surface-retirement.md",
+            (
+                "med_autoscience.cli doctor live-runtime-evidence-rollup --format json#/"
+                "repo_source_retirement_completion"
+            ),
+        ],
+    }
     assert rollup_contract["live_runtime_readiness_claim_allowed"] is False
     assert rollup_contract["completion_claim_boundary"] == {
         "repo_source_retirement_blocked_by_missing_live_evidence": False,
@@ -94,6 +117,16 @@ def test_live_runtime_evidence_rollup_fails_closed_when_any_tail_or_gap_is_missi
     assert empty["total_work_order_count"] == 12
     assert empty["satisfied_count"] == 0
     assert empty["typed_blocker_count"] == 12
+    assert empty["repo_source_retirement_completion"] == {
+        "surface_kind": "mas_repo_source_private_surface_retirement_completion",
+        "status": "complete",
+        "scope": "repo_source_physical_retirement_only",
+        "completion_claim_allowed": True,
+        "repo_source_retirement_blocked": False,
+        "blocked_by_missing_live_evidence": False,
+        "live_runtime_readiness_claim_allowed": False,
+        "does_not_satisfy_live_runtime_work_orders": True,
+    }
     assert empty["repo_source_retirement_blocked"] is False
     assert empty["live_runtime_readiness_claim_allowed"] is False
     assert empty["rollup_result_status"] == "typed_blocker_required"
@@ -152,6 +185,21 @@ def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> N
         "violation_count": 0,
         "violations": [],
     }
+    assert readback["repo_source_retirement_completion"]["status"] == "complete"
+    assert readback["repo_source_retirement_completion"]["completion_claim_allowed"] is True
+    assert (
+        readback["repo_source_retirement_completion"]["blocked_by_missing_live_evidence"]
+        is False
+    )
+    assert (
+        readback["repo_source_retirement_completion"][
+            "does_not_satisfy_live_runtime_work_orders"
+        ]
+        is True
+    )
+    assert readback["repo_source_retirement_completion"][
+        "live_runtime_readiness_claim_allowed"
+    ] is False
     assert readback["summary"]["total_work_order_count"] == 12
     assert readback["summary"]["typed_blocker_count"] == 12
     assert readback["summary"]["rollup_result_status"] == "typed_blocker_required"
@@ -448,6 +496,12 @@ def test_live_runtime_evidence_rollup_cli_outputs_readback_json(capsys) -> None:
         "live_runtime_evidence_rollup": "contracts/runtime/mas-live-runtime-evidence-rollup.json",
     }
     assert output["contract_validation"]["status"] == "passed"
+    assert output["repo_source_retirement_completion"]["status"] == "complete"
+    assert output["repo_source_retirement_completion"]["completion_claim_allowed"] is True
+    assert (
+        output["repo_source_retirement_completion"]["live_runtime_readiness_claim_allowed"]
+        is False
+    )
     assert output["summary"]["rollup_result_status"] == "typed_blocker_required"
     assert output["completion_claim_allowed"] is False
 

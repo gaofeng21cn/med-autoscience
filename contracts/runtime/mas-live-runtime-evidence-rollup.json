@@ -5,6 +5,21 @@
   "owner": "MAS owner-surface coordinator plus one-person-lab runtime owners",
   "purpose": "Provide one machine-checkable intake and rollup surface for all remaining live-tail and live-runtime-gap evidence, without blocking repo-source physical retirement or restoring MAS private control planes.",
   "repo_source_retirement_blocked": false,
+  "repo_source_retirement_completion": {
+    "surface_kind": "mas_repo_source_private_surface_retirement_completion",
+    "status": "complete",
+    "scope": "repo_source_physical_retirement_only",
+    "claim": "MAS private control-plane modules, aliases, wrappers and compatibility shims have been physically retired or guarded at the repo-source boundary; remaining live-tail work orders are live-runtime readiness evidence gates, not repo-source deletion blockers.",
+    "completion_claim_allowed": true,
+    "repo_source_retirement_blocked": false,
+    "blocked_by_missing_live_evidence": false,
+    "live_runtime_readiness_claim_allowed": false,
+    "does_not_satisfy_live_runtime_work_orders": true,
+    "evidence_refs": [
+      "docs/history/runtime/mas-private-surface-retirement.md",
+      "med_autoscience.cli doctor live-runtime-evidence-rollup --format json#/repo_source_retirement_completion"
+    ]
+  },
   "live_runtime_readiness_claim_allowed": false,
   "live_tail_work_order_ref": "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders",
   "live_runtime_gap_work_order_ref": "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders",

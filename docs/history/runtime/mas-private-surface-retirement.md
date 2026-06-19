@@ -267,3 +267,13 @@ Replacement: `med_autoscience.cli doctor live-runtime-evidence-rollup --format j
 Retained MAS role: MAS still owns typed blockers and authority refs. The rollup only echoes work-order owner and acceptable evidence metadata from existing contracts.
 
 Forbidden interpretation: blocker details are not action authorization, provider admission, runtime readiness or paper progress. They only make the fail-closed owner/evidence gate explicit so operators do not treat docs, focused tests, queue-empty, dry-run or repo-source retirement as live evidence.
+
+## repo_source_retirement_completion_readback
+
+Disposition: `repo_source_completion_separate_from_live_runtime_readiness`
+
+Replacement: `contracts/runtime/mas-live-runtime-evidence-rollup.json` and `med_autoscience.cli doctor live-runtime-evidence-rollup --format json` now expose `repo_source_retirement_completion` as a machine-readable repo-source-only completion object.
+
+Retained MAS role: MAS still owns minimal medical authority refs, owner receipts, typed blockers, human gates and route-back results. The completion object only states that retired MAS private control-plane source surfaces are no longer live-runtime evidence blockers.
+
+Forbidden interpretation: `repo_source_retirement_completion.status=complete` cannot satisfy live-tail work orders, live-runtime-gap work orders, provider admission, DHD apply, running proof, paper progress, production readiness or live runtime readiness. Missing live evidence still returns `typed_blocker_required` and `completion_claim_allowed=false`.
