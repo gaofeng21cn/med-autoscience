@@ -25,6 +25,18 @@ CONCRETE_EVIDENCE_REF_FIELDS = (
     "human_gate_ref",
     "route_back_ref",
 )
+AUTHORITY_OUTCOME_REQUIRED_OUTCOMES = (
+    "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
+)
+AUTHORITY_OUTCOME_REF_REQUIRED_FAMILIES = (
+    "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref",
+)
+AUTHORITY_OUTCOME_REF_FIELDS = (
+    "owner_receipt_ref",
+    "typed_blocker_ref",
+    "human_gate_ref",
+    "route_back_ref",
+)
 
 
 def live_tail_work_orders_from_audit(audit: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -99,6 +111,35 @@ def validate_live_tail_work_order_contract(
         violations.append(
             _violation("<contract>", "missing_concrete_ref_does_not_block_live_readiness")
         )
+    accepted_outcomes = set(
+        _text_list(_completion_claim_boundary(contract).get("accepted_outcomes"))
+    )
+    if accepted_outcomes & set(AUTHORITY_OUTCOME_REQUIRED_OUTCOMES):
+        if (
+            _text_list(schema.get("authority_outcome_ref_required_for_families"))
+            != sorted(AUTHORITY_OUTCOME_REF_REQUIRED_FAMILIES)
+        ):
+            violations.append(_violation("<contract>", "authority_outcome_ref_families_mismatch"))
+        if _text_list(schema.get("authority_outcome_ref_fields")) != list(
+            AUTHORITY_OUTCOME_REF_FIELDS
+        ):
+            violations.append(_violation("<contract>", "authority_outcome_ref_fields_mismatch"))
+        if schema.get("missing_authority_outcome_ref_status") != "typed_blocker_required":
+            violations.append(_violation("<contract>", "missing_authority_outcome_ref_status"))
+        if schema.get("authority_family_without_outcome_ref_can_satisfy_work_order") is not False:
+            violations.append(
+                _violation("<contract>", "authority_family_without_outcome_ref_can_satisfy")
+            )
+        if (
+            schema.get("missing_authority_outcome_ref_blocks_live_runtime_readiness_claim")
+            is not True
+        ):
+            violations.append(
+                _violation(
+                    "<contract>",
+                    "missing_authority_outcome_ref_does_not_block_live_readiness",
+                )
+            )
 
     expected = {
         order["surface_id"]: order
@@ -155,6 +196,10 @@ def evaluate_live_tail_evidence_record(
     claim = _text(evidence_record.get("claim"))
     forbidden_claim_terms = _forbidden_claim_terms(work_order, evidence_record)
     concrete_ref_fields = _concrete_evidence_ref_fields_present(evidence_record)
+    missing_authority_outcome_refs = _missing_authority_outcome_ref_families(
+        matched_refs,
+        evidence_record,
+    )
     missing_concrete_evidence_ref_families = matched_refs if not concrete_ref_fields else []
     evidence_source = _text(evidence_record.get("evidence_source"))
     typed_blocker = _text(work_order.get("typed_blocker_when_missing")) or (
@@ -164,6 +209,7 @@ def evaluate_live_tail_evidence_record(
         bool(matched_refs)
         and not forbidden_matches
         and not forbidden_claim_terms
+        and not missing_authority_outcome_refs
         and not missing_concrete_evidence_ref_families
         and evidence_source is not None
     )
@@ -173,6 +219,10 @@ def evaluate_live_tail_evidence_record(
         "matched_evidence_ref_families": matched_refs,
         "forbidden_evidence_substitutes_present": forbidden_matches,
         "forbidden_claim_terms_present": forbidden_claim_terms,
+        "missing_authority_outcome_ref_families": missing_authority_outcome_refs,
+        "authority_outcome_ref_fields_present": _authority_outcome_ref_fields_present(
+            evidence_record
+        ),
         "missing_concrete_evidence_ref_families": missing_concrete_evidence_ref_families,
         "concrete_evidence_ref_fields_present": concrete_ref_fields,
         "typed_blocker": None if satisfied else typed_blocker,
@@ -332,6 +382,28 @@ def _has_concrete_evidence_ref(value: Any) -> bool:
     return _text(value) is not None
 
 
+def _authority_outcome_ref_fields_present(evidence_record: Mapping[str, Any]) -> list[str]:
+    return sorted(
+        field
+        for field in AUTHORITY_OUTCOME_REF_FIELDS
+        if _text(evidence_record.get(field)) is not None
+    )
+
+
+def _missing_authority_outcome_ref_families(
+    matched_refs: list[str],
+    evidence_record: Mapping[str, Any],
+) -> list[str]:
+    matched_required_families = sorted(
+        set(AUTHORITY_OUTCOME_REF_REQUIRED_FAMILIES) & set(matched_refs)
+    )
+    if not matched_required_families:
+        return []
+    if _authority_outcome_ref_fields_present(evidence_record):
+        return []
+    return matched_required_families
+
+
 def _undeclared_concrete_evidence_ref_fields(schema: Mapping[str, Any]) -> list[str]:
     declared_fields = set(_text_list(schema.get("required_fields"))) | set(
         _text_list(schema.get("optional_fields"))
@@ -382,11 +454,16 @@ def _malformed_record_indexes(evidence_records: list[Any]) -> list[int]:
 
 
 def _evidence_record_schema(contract: Mapping[str, Any]) -> Mapping[str, Any]:
+    boundary = _completion_claim_boundary(contract)
+    schema = boundary.get("evidence_record_schema")
+    return schema if isinstance(schema, Mapping) else {}
+
+
+def _completion_claim_boundary(contract: Mapping[str, Any]) -> Mapping[str, Any]:
     boundary = contract.get("completion_claim_boundary")
     if not isinstance(boundary, Mapping):
         return {}
-    schema = boundary.get("evidence_record_schema")
-    return schema if isinstance(schema, Mapping) else {}
+    return boundary
 
 
 def _forbidden_claim_terms(

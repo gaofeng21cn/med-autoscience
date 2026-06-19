@@ -97,6 +97,21 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
         schema["missing_concrete_evidence_ref_blocks_live_runtime_readiness_claim"]
         is True
     )
+    assert schema["authority_outcome_ref_required_for_families"] == [
+        "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
+    ]
+    assert schema["authority_outcome_ref_fields"] == [
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref",
+    ]
+    assert schema["missing_authority_outcome_ref_status"] == "typed_blocker_required"
+    assert schema["authority_family_without_outcome_ref_can_satisfy_work_order"] is False
+    assert (
+        schema["missing_authority_outcome_ref_blocks_live_runtime_readiness_claim"]
+        is True
+    )
     assert {
         "same_identity_opl_live_readback",
         "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
@@ -134,6 +149,27 @@ def test_live_tail_contract_rejects_undeclared_concrete_evidence_ref_fields() ->
     assert {
         "surface_id": "<contract>",
         "reason": "undeclared_concrete_evidence_ref_fields",
+    } in violations
+
+
+def test_live_tail_contract_rejects_missing_authority_outcome_schema() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+    )
+    contract = _contract()
+    audit = _audit()
+    bad_contract = json.loads(json.dumps(contract))
+    schema = bad_contract["completion_claim_boundary"]["evidence_record_schema"]
+    schema.pop("authority_outcome_ref_required_for_families")
+
+    violations = work_orders.validate_live_tail_work_order_contract(
+        bad_contract,
+        audit,
+    )
+
+    assert {
+        "surface_id": "<contract>",
+        "reason": "authority_outcome_ref_families_mismatch",
     } in violations
 
 
@@ -274,6 +310,58 @@ def test_live_tail_evidence_record_requires_concrete_evidence_ref() -> None:
     assert concrete_ref["missing_concrete_evidence_ref_families"] == []
     assert concrete_ref["concrete_evidence_ref_fields_present"] == ["evidence_refs"]
     assert concrete_ref["live_runtime_readiness_claim_allowed"] is True
+
+
+def test_live_tail_authority_outcome_family_requires_authority_ref() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+    )
+    authority_family = (
+        "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
+    )
+    order = {
+        "surface_id": "future_tail_authority_outcome",
+        "acceptable_evidence_ref_families": [authority_family],
+        "forbidden_evidence_substitutes": [],
+        "typed_blocker_when_missing": "future_tail_authority_outcome_required",
+    }
+
+    family_with_generic_ref = work_orders.evaluate_live_tail_evidence_record(
+        order,
+        {
+            "surface_id": "future_tail_authority_outcome",
+            "evidence_source": "mas_owner_gate:typed-blocker-recorded",
+            "evidence_ref_families": [authority_family],
+            "evidence_refs": ["generic-live-tail-evidence:future-tail"],
+        },
+    )
+
+    assert family_with_generic_ref["status"] == "typed_blocker_required"
+    assert family_with_generic_ref["missing_authority_outcome_ref_families"] == [
+        authority_family
+    ]
+    assert family_with_generic_ref["authority_outcome_ref_fields_present"] == []
+    assert family_with_generic_ref["concrete_evidence_ref_fields_present"] == [
+        "evidence_refs"
+    ]
+    assert family_with_generic_ref["live_runtime_readiness_claim_allowed"] is False
+
+    typed_blocker_ref = work_orders.evaluate_live_tail_evidence_record(
+        order,
+        {
+            "surface_id": "future_tail_authority_outcome",
+            "evidence_source": "mas_owner_gate:typed-blocker-recorded",
+            "evidence_ref_families": [authority_family],
+            "typed_blocker_ref": "typed-blocker:future-tail",
+        },
+    )
+
+    assert typed_blocker_ref["status"] == "satisfied_by_accepted_ref"
+    assert typed_blocker_ref["missing_authority_outcome_ref_families"] == []
+    assert typed_blocker_ref["authority_outcome_ref_fields_present"] == [
+        "typed_blocker_ref"
+    ]
+    assert typed_blocker_ref["live_runtime_readiness_claim_allowed"] is True
 
 
 def test_live_tail_evidence_intake_summary_does_not_claim_ready_until_all_tails_satisfied() -> None:

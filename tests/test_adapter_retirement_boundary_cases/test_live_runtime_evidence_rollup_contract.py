@@ -62,6 +62,8 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
         "missing_or_malformed_evidence_records_result_status": "typed_blocker_required",
         "authority_family_without_outcome_ref_can_satisfy_rollup": False,
         "missing_authority_outcome_ref_result_status": "typed_blocker_required",
+        "tail_authority_family_without_outcome_ref_can_satisfy_rollup": False,
+        "missing_tail_authority_outcome_ref_result_status": "typed_blocker_required",
         "accepted_tail_family_without_concrete_ref_can_satisfy_rollup": False,
         "missing_tail_concrete_evidence_ref_result_status": "typed_blocker_required",
         "accepted_gap_family_without_concrete_ref_can_satisfy_rollup": False,

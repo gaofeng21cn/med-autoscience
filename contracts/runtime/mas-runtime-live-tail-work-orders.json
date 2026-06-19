@@ -62,7 +62,19 @@
       ],
       "missing_concrete_evidence_ref_status": "typed_blocker_required",
       "accepted_family_without_concrete_ref_can_satisfy_work_order": false,
-      "missing_concrete_evidence_ref_blocks_live_runtime_readiness_claim": true
+      "missing_concrete_evidence_ref_blocks_live_runtime_readiness_claim": true,
+      "authority_outcome_ref_required_for_families": [
+        "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
+      ],
+      "authority_outcome_ref_fields": [
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref"
+      ],
+      "missing_authority_outcome_ref_status": "typed_blocker_required",
+      "authority_family_without_outcome_ref_can_satisfy_work_order": false,
+      "missing_authority_outcome_ref_blocks_live_runtime_readiness_claim": true
     }
   },
   "source_refs": [

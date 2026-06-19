@@ -44,7 +44,9 @@
     "accepted_tail_family_without_concrete_ref_can_satisfy_rollup": false,
     "missing_tail_concrete_evidence_ref_result_status": "typed_blocker_required",
     "accepted_gap_family_without_concrete_ref_can_satisfy_rollup": false,
-    "missing_gap_concrete_evidence_ref_result_status": "typed_blocker_required"
+    "missing_gap_concrete_evidence_ref_result_status": "typed_blocker_required",
+    "tail_authority_family_without_outcome_ref_can_satisfy_rollup": false,
+    "missing_tail_authority_outcome_ref_result_status": "typed_blocker_required"
   },
   "source_refs": [
     "contracts/runtime/mas-runtime-live-tail-work-orders.json",

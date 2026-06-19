@@ -228,6 +228,8 @@ Schema note: `evidence_refs` is an explicit optional evidence-record field and o
 
 Validator note: concrete proof fields must be declared as required or optional evidence-record fields. The contract validator rejects undeclared concrete proof fields so producers cannot satisfy live-tail work orders through hidden payload keys.
 
+Authority outcome note: live-tail work orders may accept MAS owner receipt, stable typed blocker, human gate or route-back outcomes, but those outcomes must arrive through `owner_receipt_ref`, `typed_blocker_ref`, `human_gate_ref` or `route_back_ref`. A generic `evidence_refs` payload cannot stand in for a MAS authority outcome ref.
+
 ## live_runtime_gap_concrete_evidence_refs
 
 Disposition: `fail_closed_live_evidence_intake_guard`

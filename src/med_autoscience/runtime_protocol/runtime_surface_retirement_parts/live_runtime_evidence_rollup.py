@@ -166,6 +166,26 @@ def validate_live_runtime_evidence_rollup_contract(
             )
         )
     if (
+        boundary_mapping.get("tail_authority_family_without_outcome_ref_can_satisfy_rollup")
+        is not False
+    ):
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:tail_authority_family_without_outcome_ref_can_satisfy_rollup",
+            )
+        )
+    if (
+        boundary_mapping.get("missing_tail_authority_outcome_ref_result_status")
+        != "typed_blocker_required"
+    ):
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:missing_tail_authority_outcome_ref_result_status",
+            )
+        )
+    if (
         boundary_mapping.get("accepted_tail_family_without_concrete_ref_can_satisfy_rollup")
         is not False
     ):
