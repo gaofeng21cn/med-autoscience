@@ -81,12 +81,17 @@ def live_runtime_evidence_rollup_summary(
     total_work_order_count = int(tail_summary.get("total_work_order_count") or 0) + int(
         gap_summary.get("total_work_order_count") or 0
     )
+    all_work_orders_satisfied = bool(total_work_order_count) and total_blocker_count == 0
     return {
         "surface_kind": "mas_live_runtime_evidence_rollup_summary",
         "version": VERSION,
         "repo_source_retirement_blocked": False,
-        "live_runtime_readiness_claim_allowed": bool(total_work_order_count)
-        and total_blocker_count == 0,
+        "live_runtime_readiness_claim_allowed": all_work_orders_satisfied,
+        "rollup_result_status": (
+            "all_work_orders_satisfied"
+            if all_work_orders_satisfied
+            else "typed_blocker_required"
+        ),
         "total_work_order_count": total_work_order_count,
         "satisfied_count": tail_satisfied_count + gap_satisfied_count,
         "typed_blocker_count": total_blocker_count,

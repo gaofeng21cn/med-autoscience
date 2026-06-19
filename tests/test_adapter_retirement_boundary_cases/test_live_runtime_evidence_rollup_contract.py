@@ -39,6 +39,24 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
     assert rollup_contract["surface_kind"] == "mas_live_runtime_evidence_rollup"
     assert rollup_contract["repo_source_retirement_blocked"] is False
     assert rollup_contract["live_runtime_readiness_claim_allowed"] is False
+    assert rollup_contract["completion_claim_boundary"] == {
+        "repo_source_retirement_blocked_by_missing_live_evidence": False,
+        "docs_tests_inventory_or_queue_empty_can_satisfy_rollup": False,
+        "partial_rollup_can_claim_live_runtime_ready": False,
+        "live_runtime_readiness_claim_requires_all_tail_and_gap_work_orders_satisfied": True,
+        "accepted_record_families": [
+            (
+                "contracts/runtime/mas-runtime-live-tail-work-orders.json#/"
+                "completion_claim_boundary/evidence_record_schema"
+            ),
+            (
+                "contracts/runtime/mas-live-runtime-gap-work-orders.json#/"
+                "completion_claim_boundary/evidence_record_schema"
+            ),
+        ],
+        "accepted_rollup_result_status": "all_work_orders_satisfied",
+        "missing_or_forbidden_result_status": "typed_blocker_required",
+    }
     assert rollup_contract["live_tail_surface_ids"] == sorted(
         order["surface_id"] for order in tail_contract["work_orders"]
     )
@@ -64,6 +82,7 @@ def test_live_runtime_evidence_rollup_fails_closed_when_any_tail_or_gap_is_missi
     assert empty["typed_blocker_count"] == 12
     assert empty["repo_source_retirement_blocked"] is False
     assert empty["live_runtime_readiness_claim_allowed"] is False
+    assert empty["rollup_result_status"] == "typed_blocker_required"
 
     one_tail = tail_contract["work_orders"][0]
     one_gap = gap_contract["work_orders"][0]
@@ -88,6 +107,7 @@ def test_live_runtime_evidence_rollup_fails_closed_when_any_tail_or_gap_is_missi
     assert partial["satisfied_count"] == 2
     assert partial["typed_blocker_count"] == 10
     assert partial["live_runtime_readiness_claim_allowed"] is False
+    assert partial["rollup_result_status"] == "typed_blocker_required"
     assert one_tail["surface_id"] in partial["satisfied_surface_ids"]
     assert one_gap["gap_id"] in partial["satisfied_gap_ids"]
 
@@ -125,3 +145,4 @@ def test_live_runtime_evidence_rollup_requires_all_tail_and_gap_records() -> Non
     assert complete["satisfied_count"] == 12
     assert complete["typed_blocker_count"] == 0
     assert complete["live_runtime_readiness_claim_allowed"] is True
+    assert complete["rollup_result_status"] == "all_work_orders_satisfied"
