@@ -158,14 +158,31 @@ publication_legend_guides <- function(display_payload, labels = NULL) {
 
 publication_colorbar_guide <- function(display_payload, title = NULL, bar_orientation = "vertical") {
   typography <- style_typography(display_payload)
+  horizontal <- identical(bar_orientation, "horizontal")
+  default_barwidth <- if (horizontal) 96.0 else 5.0
+  default_barheight <- if (horizontal) 5.0 else 42.0
   guide_colourbar(
     title = title,
     title.position = "top",
     title.hjust = 0.5,
-    label.position = if (identical(bar_orientation, "horizontal")) "bottom" else "right",
-    label.hjust = if (identical(bar_orientation, "horizontal")) 0.5 else 0,
-    barwidth = unit(style_numeric(typography, "colorbar_width", 5.0), "pt"),
-    barheight = unit(style_numeric(typography, "colorbar_height", 42.0), "pt"),
+    label.position = if (horizontal) "bottom" else "right",
+    label.hjust = if (horizontal) 0.5 else 0,
+    barwidth = unit(
+      style_numeric(
+        typography,
+        if (horizontal) "colorbar_horizontal_width" else "colorbar_width",
+        default_barwidth
+      ),
+      "pt"
+    ),
+    barheight = unit(
+      style_numeric(
+        typography,
+        if (horizontal) "colorbar_horizontal_height" else "colorbar_height",
+        default_barheight
+      ),
+      "pt"
+    ),
     ticks = TRUE,
     frame.colour = NA,
     nbin = 80
@@ -200,7 +217,7 @@ heatmap_scale_components <- function(display_payload, values, name = NULL, limit
     midpoint <- if (crosses_zero) 0 else mean(value_range)
   }
   breaks <- if (is.null(limits)) continuous_scale_breaks(finite_values) else continuous_scale_breaks(limits)
-  guide <- publication_colorbar_guide(display_payload, title = name)
+  guide <- publication_colorbar_guide(display_payload, title = name, bar_orientation = "horizontal")
   list(
     finite_values = finite_values,
     crosses_zero = crosses_zero,
@@ -285,11 +302,12 @@ theme_publication_colorbar <- function(display_payload) {
   typography <- style_typography(display_payload)
   text_color <- style_text_color(display_payload)
   theme(
-    legend.position = "right",
-    legend.box = "vertical",
+    legend.position = "bottom",
+    legend.box = "horizontal",
     legend.justification = "center",
     legend.title = element_text(size = style_numeric(typography, "legend_size", 7.2), colour = text_color),
-    legend.text = element_text(size = style_numeric(typography, "legend_size", 7.2), colour = text_color)
+    legend.text = element_text(size = style_numeric(typography, "legend_size", 7.2), colour = text_color),
+    legend.box.spacing = unit(6, "pt")
   )
 }
 

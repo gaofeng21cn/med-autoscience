@@ -92,9 +92,25 @@ def canonical_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
     return [record for record in records if record.default_visible]
 
 
+def visual_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return [
+        record
+        for record in canonical_records(records)
+        if record.renderer_family != "n/a" and record.kind != "table_shell"
+    ]
+
+
+def non_visual_canonical_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return [
+        record
+        for record in canonical_records(records)
+        if record.renderer_family == "n/a" or record.kind == "table_shell"
+    ]
+
+
 def family_categories(records: list[TemplateRecord]) -> dict[str, list[TemplateRecord]]:
     categories: dict[str, list[TemplateRecord]] = defaultdict(list)
-    for record in canonical_records(records):
+    for record in visual_gallery_records(records):
         categories[record.canonical_family_category].append(record)
     return categories
 
@@ -106,8 +122,9 @@ def figure_family_policy() -> dict[str, object]:
         "core_catalog_ref": CORE_MEDICAL_FIGURE_FAMILY_CATALOG_REF,
         "gallery_template_metadata_source": GALLERY_TEMPLATE_FAMILY_SOURCE,
         "core_catalog_dependency": "loaded_via_medical_figure_family_catalog_loader",
-        "default_gallery_surface": "canonical_families_only",
+        "default_gallery_surface": "visual_canonical_families_only",
         "alias_handling": "hidden_from_gallery_cards_preserved_in_migration_index",
+        "non_visual_handling": "kept_in_manifest_inventory_hidden_from_image_gallery_cards",
         "machine_boundary": "core_catalog_and_gallery_metadata_only_not_source_truth_statistical_truth_or_publication_readiness_authority",
     }
 
@@ -126,7 +143,7 @@ def canonical_family_wording(record: TemplateRecord) -> str:
 def gallery_template_family_ontology(records: list[TemplateRecord]) -> list[dict[str, object]]:
     seen: set[str] = set()
     entries: list[dict[str, object]] = []
-    for record in canonical_records(records):
+    for record in visual_gallery_records(records):
         if record.canonical_family_id in seen:
             continue
         seen.add(record.canonical_family_id)

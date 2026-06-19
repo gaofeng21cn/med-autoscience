@@ -22,6 +22,7 @@ State: `active_support`
 Machine boundary: 人读示例文档。机器真相继续归 display-pack template descriptor、renderer source、`paper/publication_style_profile.json`、layout sidecar、display lock、publication manifest、tests 和真实论文 artifacts。
 
 - [PDF Gallery](./ggplot2_template_gallery.pdf)
+- [Quality Audit](./display_pack_gallery_quality_audit.md)
 
 全量 HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`。需要重建时运行：
 
@@ -43,7 +44,7 @@ Machine boundary: 人读示例文档。机器真相继续归 display-pack templa
 - canonical rendered image templates: `{rendered_count}`
 - Python comparisons rendered: `{baseline_count}`
 - excluded Python comparisons: {excluded_python_comparisons}
-- canonical gallery families: `{canonical_gallery_family_count}`
+- visual canonical gallery families: `{canonical_gallery_family_count}`
 - core medical figure families: sourced from `contracts/medical-figure-family-catalog/`
 - figure family policy: `core_catalog_bound_metadata_only`
 - AI adaptation policy: `canonical_family_baseline_then_paper_local_adaptation`
@@ -51,5 +52,5 @@ Machine boundary: 人读示例文档。机器真相继续归 display-pack templa
 
 ## 风格口径
 
-MAS 默认不是 Nature 官方模板复刻，也不是 Lancet 专用模板。当前内置默认是 `nature_informed_clinical_publication_v1`：白底、左下轴线、小字号、细轴线、弱网格、统一 clinical palette、sequential heatmap 和右侧短 colorbar。它吸收了 nature-skills 的 archetype-first、backend-exclusive、shared-legend / dedicated-guide 和 vector export discipline，但不引入外部 runner 或 publication authority。默认应用面只展示 canonical 图型家族；旧模板 ID 作为 migration aliases 保留在 manifest 中，不作为用户默认候选。Gallery manifest 的医学图型 ontology 来自 `contracts/medical-figure-family-catalog/`，当前模板展示面由 pack-local canonical template catalog 提供代表模板和 migration aliases。
+MAS 默认不是 Nature 官方模板复刻，也不是 Lancet 专用模板。当前内置默认是 `nature_informed_clinical_publication_v1`：白底、左下轴线、小字号、细轴线、弱网格、统一 clinical palette、sequential heatmap 和水平短 colorbar。它吸收了 nature-skills 的 archetype-first、backend-exclusive、shared-legend / dedicated-guide 和 vector export discipline，但不引入外部 runner 或 publication authority。默认应用面只展示可视化 canonical 图型家族；表格 shell 保留在 manifest 的 non-visual inventory，旧模板 ID 作为 migration aliases 保留在 manifest 中，不作为用户默认候选。Gallery manifest 的医学图型 ontology 来自 `contracts/medical-figure-family-catalog/`，当前模板展示面由 pack-local canonical template catalog 提供代表模板和 migration aliases。
 """
