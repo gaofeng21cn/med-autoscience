@@ -13,6 +13,9 @@ def build_gallery_reference_markdown(
     excluded_python_comparisons: str,
     canonical_gallery_family_count: int,
     nature_skills_head: str,
+    r_evidence_count: int,
+    python_evidence_count: int,
+    illustration_shell_count: int,
 ) -> str:
     return f"""# MAS Display Pack Gallery
 
@@ -41,6 +44,9 @@ Machine boundary: 人读示例文档。机器真相继续归 display-pack templa
 - `style_profile_id`: `{default_style["style_profile_id"]}`
 - `journal_palette_ref`: `{default_style["journal_palette_ref"]}`
 - canonical renderer inventory: `r_ggplot2={renderer_inventory.get("r_ggplot2", 0)}`, `python={renderer_inventory.get("python", 0)}`, `n/a={renderer_inventory.get("n/a", 0)}`
+- default R/ggplot2 evidence templates: `{r_evidence_count}`
+- default Python evidence templates: `{python_evidence_count}`
+- default Python design / flow shells: `{illustration_shell_count}`
 - canonical rendered image templates: `{rendered_count}`
 - Python comparisons rendered: `{baseline_count}`
 - excluded Python comparisons: {excluded_python_comparisons}
@@ -52,5 +58,5 @@ Machine boundary: 人读示例文档。机器真相继续归 display-pack templa
 
 ## 风格口径
 
-MAS 默认不是 Nature 官方模板复刻，也不是 Lancet 专用模板。当前内置默认是 `nature_informed_clinical_publication_v1`：白底、左下轴线、小字号、细轴线、弱网格、统一 clinical palette、sequential heatmap 和水平短 colorbar。它吸收了 nature-skills 的 archetype-first、backend-exclusive、shared-legend / dedicated-guide 和 vector export discipline，但不引入外部 runner 或 publication authority。默认应用面只展示可视化 canonical 图型家族；表格 shell 保留在 manifest 的 non-visual inventory，旧模板 ID 作为 migration aliases 保留在 manifest 中，不作为用户默认候选。Gallery manifest 的医学图型 ontology 来自 `contracts/medical-figure-family-catalog/`，当前模板展示面由 pack-local canonical template catalog 提供代表模板和 migration aliases。
+MAS 默认不是 Nature 官方模板复刻，也不是 Lancet 专用模板。当前内置默认是 `nature_informed_clinical_publication_v1`：白底、左下轴线、小字号、细轴线、弱网格、统一 clinical palette、sequential/diverging heatmap palette 和水平短 colorbar。数据分析产生的 evidence figure 默认以 R/ggplot2 为第一公民；Python evidence 模板只有在有明确优势证明或显式纸稿需求时才作为非默认迁移输入。设计、流程和 graphical abstract shell 可以用 SVG、Python composition 或 imagegen-assisted art direction，但不承担统计证据权威。旧模板 ID 作为 migration aliases 保留在 manifest 中，不作为用户默认候选。Gallery manifest 的医学图型 ontology 来自 `contracts/medical-figure-family-catalog/`，当前模板展示面由 pack-local canonical template catalog 提供代表模板和 migration aliases。
 """

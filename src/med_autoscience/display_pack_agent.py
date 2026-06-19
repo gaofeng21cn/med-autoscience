@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 import json
 import shutil
@@ -30,6 +31,11 @@ from med_autoscience.display_pack_agent_parts.template_fit import (
     template_fit_entry,
     template_sort_key,
 )
+from med_autoscience.display_pack_renderer_policy import (
+    default_surface_renderer_policy,
+    renderer_policy_completion,
+    renderer_policy_payload,
+)
 from med_autoscience.display_pack_usability import scaffold_display_pack_render
 from med_autoscience.publication_display_contract import load_publication_style_profile
 
@@ -52,6 +58,16 @@ DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY = {
 
 _DEFAULT_REVIEWER_HASH = "0" * 64
 _DEFAULT_AUDIT_FAMILY = "Prediction Performance"
+
+
+@dataclass(frozen=True)
+class _RendererPolicyProjection:
+    kind: str
+    renderer_family: str
+    default_visible: bool
+    canonical_family_id: str
+    canonical_template_id: str
+    template_id: str
 
 
 def _normal_repo_root(repo_root: Path | str | None) -> Path:
@@ -241,6 +257,21 @@ def _canonical_entry(
     )
 
 
+def _renderer_policy_projection(
+    record: LoadedDisplayTemplate,
+    canonical: CanonicalTemplateEntry,
+) -> _RendererPolicyProjection:
+    manifest = record.template_manifest
+    return _RendererPolicyProjection(
+        kind=manifest.kind,
+        renderer_family=manifest.renderer_family,
+        default_visible=canonical.default_visible,
+        canonical_family_id=canonical.family_id,
+        canonical_template_id=canonical.canonical_template_id,
+        template_id=manifest.template_id,
+    )
+
+
 def _template_summary(
     record: LoadedDisplayTemplate,
     catalogs: Mapping[Path, CanonicalTemplateCatalog | None] | None = None,
@@ -275,6 +306,7 @@ def _template_summary(
         "default_visible": canonical.default_visible,
         "migrated_alias_template_ids": list(canonical.aliases) if canonical.migration_status == "canonical" else [],
         "migration_reason": canonical.migration_reason,
+        "renderer_policy": renderer_policy_payload(_renderer_policy_projection(record, canonical)),
         "has_render_r": (template_root / "render.R").is_file(),
         "has_render_candidate": (template_root / "render_candidate.R").is_file(),
         "golden_case_count": len(manifest.golden_case_paths),
@@ -288,6 +320,10 @@ def _inventory_summary(records: list[LoadedDisplayTemplate]) -> dict[str, Any]:
     execution_modes = Counter(record.template_manifest.execution_mode for record in records)
     catalogs = _catalogs_by_pack_root(records)
     canonical_entries = [_canonical_entry(record, catalogs) for record in records]
+    renderer_policy_records = [
+        _renderer_policy_projection(record, canonical)
+        for record, canonical in zip(records, canonical_entries, strict=True)
+    ]
     canonical_template_count = sum(1 for entry in canonical_entries if entry.migration_status == "canonical")
     legacy_alias_count = sum(1 for entry in canonical_entries if entry.migration_status == "migrated_alias")
     default_visible_count = sum(1 for entry in canonical_entries if entry.default_visible)
@@ -307,6 +343,7 @@ def _inventory_summary(records: list[LoadedDisplayTemplate]) -> dict[str, Any]:
         "paper_proven_template_count": paper_proven_count,
         "golden_template_count": golden_template_count,
         "exemplar_template_count": exemplar_template_count,
+        "renderer_policy_completion": renderer_policy_completion(renderer_policy_records),
     }
 
 
@@ -329,6 +366,7 @@ def display_pack_capability_discover(
         "repo_root": str(normalized_repo_root),
         "paper_root": str(normalized_paper_root) if normalized_paper_root is not None else "",
         "inventory": _inventory_summary(records),
+        "renderer_policy": default_surface_renderer_policy(),
         "callable_actions": [
             {
                 "command": action,
@@ -356,6 +394,9 @@ def display_pack_capability_discover(
         payload["template_surface_policy"] = {
             "default_templates_are_canonical_only": True,
             "active_inventory_is_canonical_only": True,
+            "evidence_figures_default_to_r_ggplot2": True,
+            "python_evidence_templates_hidden_from_default_discover": True,
+            "python_illustration_shells_may_be_default_visible": True,
             "legacy_alias_templates_hidden_from_default_discover": True,
             "migration_inventory_template_count": sum(
                 len(catalog.entries_by_template_id)
@@ -470,6 +511,9 @@ def display_pack_figure_plan(
         "candidate_count": len(candidates),
         "template_surface_policy": {
             "default_recommendations_are_canonical_only": True,
+            "evidence_figures_default_to_r_ggplot2": True,
+            "python_evidence_templates_hidden_unless_explicit": True,
+            "python_illustration_shells_may_be_default_visible": True,
             "legacy_alias_templates_hidden_unless_explicit": True,
             "explicit_alias_requests_migrate_to_canonical": True,
         },

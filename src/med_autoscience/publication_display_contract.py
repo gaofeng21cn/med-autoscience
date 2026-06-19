@@ -6,9 +6,30 @@ from pathlib import Path
 from typing import Any
 
 
+_HEATMAP_STYLE_ROLES: tuple[str, ...] = (
+    "heatmap_seq_low",
+    "heatmap_seq_mid",
+    "heatmap_seq_high",
+    "heatmap_low",
+    "heatmap_mid",
+    "heatmap_high",
+)
+
 _REQUIRED_STYLE_ROLES_BY_TEMPLATE: dict[str, tuple[str, ...]] = {
     "binary_calibration_decision_curve_panel": ("model_curve", "comparator_curve", "reference_line"),
+    "celltype_signature_heatmap": _HEATMAP_STYLE_ROLES,
+    "clustered_heatmap": _HEATMAP_STYLE_ROLES,
+    "confusion_matrix_heatmap_binary": _HEATMAP_STYLE_ROLES,
+    "correlation_heatmap": _HEATMAP_STYLE_ROLES,
+    "genomic_alteration_landscape_panel": _HEATMAP_STYLE_ROLES,
+    "genomic_alteration_multiomic_consequence_panel": _HEATMAP_STYLE_ROLES,
+    "genomic_alteration_pathway_integrated_composite_panel": _HEATMAP_STYLE_ROLES,
+    "genomic_program_governance_summary_panel": _HEATMAP_STYLE_ROLES,
+    "gsva_ssgsea_heatmap": _HEATMAP_STYLE_ROLES,
+    "heatmap_group_comparison": _HEATMAP_STYLE_ROLES,
     "model_complexity_audit_panel": ("model_curve", "comparator_curve", "reference_line"),
+    "oncoplot_mutation_landscape_panel": _HEATMAP_STYLE_ROLES,
+    "performance_heatmap": _HEATMAP_STYLE_ROLES,
     "risk_layering_monotonic_bars": ("model_curve", "comparator_curve"),
     "time_dependent_roc_comparison_panel": ("model_curve", "comparator_curve", "reference_line"),
     "time_to_event_discrimination_calibration_panel": ("model_curve", "comparator_curve", "reference_line"),
@@ -148,7 +169,7 @@ _DEFAULT_STYLE_PROFILE_PAYLOAD: dict[str, Any] = {
         "legend_key_spacing_y": 3.5,
         "colorbar_width": 5.0,
         "colorbar_height": 42.0,
-        "colorbar_horizontal_width": 96.0,
+        "colorbar_horizontal_width": 132.0,
         "colorbar_horizontal_height": 5.0,
     },
     "stroke": {

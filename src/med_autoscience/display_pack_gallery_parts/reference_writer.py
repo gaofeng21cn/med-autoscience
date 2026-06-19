@@ -21,6 +21,17 @@ def _write_reference(
     visible_records = visual_gallery_records(records)
     categories = Counter(record.canonical_family_category for record in visible_records)
     rendered_count = sum(1 for record in visible_records if rendered[record.template_id].status == "rendered")
+    r_evidence_count = sum(
+        1
+        for record in visible_records
+        if record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
+    )
+    python_evidence_count = sum(
+        1
+        for record in visible_records
+        if record.kind == "evidence_figure" and record.renderer_family == "python"
+    )
+    illustration_shell_count = sum(1 for record in visible_records if record.kind == "illustration_shell")
     baseline_count = sum(
         1
         for record in visible_records
@@ -43,6 +54,9 @@ def _write_reference(
             excluded_python_comparisons=excluded,
             canonical_gallery_family_count=len(visible_records),
             nature_skills_head=paths.NATURE_SKILLS_HEAD,
+            r_evidence_count=r_evidence_count,
+            python_evidence_count=python_evidence_count,
+            illustration_shell_count=illustration_shell_count,
         ),
         encoding="utf-8",
     )

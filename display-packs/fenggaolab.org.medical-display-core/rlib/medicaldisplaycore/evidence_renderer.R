@@ -159,7 +159,7 @@ publication_legend_guides <- function(display_payload, labels = NULL) {
 publication_colorbar_guide <- function(display_payload, title = NULL, bar_orientation = "vertical") {
   typography <- style_typography(display_payload)
   horizontal <- identical(bar_orientation, "horizontal")
-  default_barwidth <- if (horizontal) 96.0 else 5.0
+  default_barwidth <- if (horizontal) 132.0 else 5.0
   default_barheight <- if (horizontal) 5.0 else 42.0
   guide_colourbar(
     title = title,
@@ -184,6 +184,8 @@ publication_colorbar_guide <- function(display_payload, title = NULL, bar_orient
       "pt"
     ),
     ticks = TRUE,
+    draw.llim = TRUE,
+    draw.ulim = TRUE,
     frame.colour = NA,
     nbin = 80
   )
@@ -301,13 +303,16 @@ heatmap_text_colours <- function(display_payload, values) {
 theme_publication_colorbar <- function(display_payload) {
   typography <- style_typography(display_payload)
   text_color <- style_text_color(display_payload)
+  legend_size <- style_numeric(typography, "legend_size", 7.2)
+  colorbar_text_size <- min(legend_size, 6.2)
   theme(
     legend.position = "bottom",
     legend.box = "horizontal",
     legend.justification = "center",
-    legend.title = element_text(size = style_numeric(typography, "legend_size", 7.2), colour = text_color),
-    legend.text = element_text(size = style_numeric(typography, "legend_size", 7.2), colour = text_color),
-    legend.box.spacing = unit(6, "pt")
+    legend.title = element_text(size = colorbar_text_size, colour = text_color, margin = margin(b = 1, unit = "pt")),
+    legend.text = element_text(size = colorbar_text_size, colour = text_color, margin = margin(t = 1, unit = "pt")),
+    legend.margin = margin(1, 2, 1, 2, unit = "pt"),
+    legend.box.spacing = unit(8, "pt")
   )
 }
 

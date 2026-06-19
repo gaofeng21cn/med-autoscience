@@ -296,10 +296,21 @@ def test_build_display_pack_lock_payload_projects_canonical_default_renderers() 
         and item["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
     ]
 
-    assert len(template_entries) == 21
-    assert len(r_ggplot2_default_templates) == 13
-    assert len(r_ggplot2_default_templates_with_candidate) == 8
+    assert len(template_entries) == 19
+    assert len(r_ggplot2_default_templates) == 16
+    assert len(r_ggplot2_default_templates_with_candidate) == 11
     assert "time_to_event_risk_group_summary" not in template_entries
+    assert "partial_dependence_ice_panel" not in template_entries
+    assert "single_cell_atlas_overview_panel" not in template_entries
+    assert "phenotype_gap_structure_figure" not in template_entries
+    assert "shap_dependence_panel" in template_entries
+    assert "shap_waterfall_local_explanation_panel" in template_entries
+    assert "generalizability_subgroup_composite_panel" in template_entries
+    assert not [
+        item["template_id"]
+        for item in template_entries.values()
+        if item["kind"] == "evidence_figure" and item["renderer_family"] == "python"
+    ]
     assert template_entries["time_to_event_discrimination_calibration_panel"]["renderer_family"] == "r_ggplot2"
     assert template_entries["time_to_event_discrimination_calibration_panel"]["execution_mode"] == "subprocess"
     assert template_entries["time_to_event_discrimination_calibration_panel"]["entrypoint"] == (
@@ -320,10 +331,6 @@ def test_build_display_pack_lock_payload_projects_canonical_default_renderers() 
     assert template_entries["shap_summary_beeswarm"]["render_script_path"].endswith(
         "templates/shap_summary_beeswarm/render.R"
     )
-    assert template_entries["partial_dependence_ice_panel"]["renderer_family"] == "python"
-    assert template_entries["partial_dependence_ice_panel"]["execution_mode"] == "python_plugin"
-    assert template_entries["partial_dependence_ice_panel"]["render_script_path"] is None
-    assert template_entries["partial_dependence_ice_panel"]["candidate_render_script_path"] is None
     assert template_entries["table1_baseline_characteristics"]["kind"] == "table_shell"
     assert template_entries["table1_baseline_characteristics"]["entrypoint"] == (
         "fenggaolab_org_medical_display_core.table_shells:render_table_shell"

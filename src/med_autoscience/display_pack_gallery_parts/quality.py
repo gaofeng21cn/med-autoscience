@@ -5,6 +5,11 @@ from typing import Any
 
 from med_autoscience.display_pack_gallery_catalog import TemplateRecord
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
+from med_autoscience.display_pack_renderer_policy import (
+    R_GGPLOT2_RENDERER,
+    renderer_policy_completion,
+    renderer_policy_payload,
+)
 
 
 EXTERNAL_QUALITY_REFERENCES: tuple[dict[str, str], ...] = (
@@ -72,6 +77,8 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
         warnings.append("vector_export_missing")
     if record.renderer_family == "python":
         warnings.append("python_renderer_style_alignment_required")
+        if record.kind == "evidence_figure":
+            blockers.append("python_evidence_not_default_first_class")
     if baseline.status == "rendered":
         warnings.append("legacy_python_comparison_available")
     if baseline.status == "excluded":
@@ -92,6 +99,7 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
         "canonical_family_title": record.canonical_family_title,
         "category": record.canonical_family_category,
         "renderer_family": record.renderer_family,
+        "renderer_policy": renderer_policy_payload(record),
         "status": status,
         "publication_ready_claim_authorized": False,
         "quality_gates": _baseline_quality_gates(record, asset),
@@ -121,8 +129,10 @@ def recommended_next_actions(record: TemplateRecord, blockers: list[str], warnin
 
 def build_quality_audit(
     *,
+    records: list[TemplateRecord],
     visual_records: list[TemplateRecord],
     non_visual_records: list[TemplateRecord],
+    default_surface_excluded_records: list[TemplateRecord],
     rendered: dict[str, RenderedAsset],
     baseline_rendered: dict[str, RenderedAsset],
 ) -> dict[str, Any]:
@@ -145,6 +155,12 @@ def build_quality_audit(
         for warning in audit["warnings"]
     )
     ready_like_count = sum(1 for audit in template_audits if not audit["blockers"])
+    completion_by_category = _category_completion(
+        records=records,
+        visual_records=visual_records,
+        non_visual_records=non_visual_records,
+        default_surface_excluded_records=default_surface_excluded_records,
+    )
     return {
         "schema_version": 1,
         "overall_status": "not_publication_ready",
@@ -154,6 +170,10 @@ def build_quality_audit(
         "non_visual_template_count": len(non_visual_records),
         "lower_bound_review_required_count": ready_like_count,
         "blocked_template_count": len(template_audits) - ready_like_count,
+        "renderer_policy_completion": renderer_policy_completion(
+            records
+        ),
+        "completion_by_category": completion_by_category,
         "blocker_counts": dict(sorted(blocker_counts.items())),
         "warning_counts": dict(sorted(warning_counts.items())),
         "quality_policy": {
@@ -181,7 +201,95 @@ def build_quality_audit(
             }
             for record in non_visual_records
         ],
+        "default_surface_excluded_inventory": [
+            {
+                "template_id": record.template_id,
+                "canonical_family_id": record.canonical_family_id,
+                "canonical_family_title": record.canonical_family_title,
+                "category": record.canonical_family_category,
+                "kind": record.kind,
+                "renderer_family": record.renderer_family,
+                "status": "kept_out_of_default_gallery",
+                "reason": renderer_policy_payload(record)["default_surface_reason"],
+            }
+            for record in default_surface_excluded_records
+        ],
     }
+
+
+def _category_completion(
+    *,
+    records: list[TemplateRecord],
+    visual_records: list[TemplateRecord],
+    non_visual_records: list[TemplateRecord],
+    default_surface_excluded_records: list[TemplateRecord],
+) -> list[dict[str, Any]]:
+    categories = sorted(
+        {
+            record.canonical_family_category
+            for record in records
+        }
+    )
+    rows: list[dict[str, Any]] = []
+    for category in categories:
+        visible = [record for record in visual_records if record.canonical_family_category == category]
+        explicit_default_excluded = [
+            record
+            for record in default_surface_excluded_records
+            if record.canonical_family_category == category
+        ]
+        default_r_family_ids = {
+            record.canonical_family_id
+            for record in visible
+            if record.kind == "evidence_figure" and record.renderer_family == R_GGPLOT2_RENDERER
+        }
+        python_only_family_ids = sorted(
+            {
+                record.canonical_family_id
+                for record in records
+                if record.canonical_family_category == category
+                and record.kind == "evidence_figure"
+                and record.renderer_family == "python"
+                and record.canonical_family_id not in default_r_family_ids
+            }
+        )
+        excluded_templates = [
+            record
+            for record in records
+            if record.canonical_family_category == category
+            and record.kind == "evidence_figure"
+            and record.renderer_family == "python"
+            and record.canonical_family_id in python_only_family_ids
+        ]
+        non_visual = [
+            record
+            for record in non_visual_records
+            if record.canonical_family_category == category
+        ]
+        evidence = [record for record in visible if record.kind == "evidence_figure"]
+        r_evidence = [record for record in evidence if record.renderer_family == R_GGPLOT2_RENDERER]
+        status = "done"
+        if explicit_default_excluded or excluded_templates:
+            status = "partial"
+        if visible or non_visual:
+            completion_percent = 100 if not excluded_templates else round(
+                100 * len(visible) / (len(visible) + len(python_only_family_ids))
+            )
+        else:
+            completion_percent = 0
+        rows.append(
+            {
+                "category": category,
+                "status": status,
+                "completion_percent": completion_percent,
+                "default_visual_families": len(visible),
+                "default_r_ggplot2_evidence_families": len(r_evidence),
+                "default_non_visual_families": len(non_visual),
+                "non_default_python_evidence_families": len(python_only_family_ids),
+                "non_default_python_evidence_template_ids": [record.template_id for record in excluded_templates],
+            }
+        )
+    return rows
 
 
 def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
@@ -196,6 +304,21 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
         )
         for item in audit["templates"]
     )
+    completion_lines = "\n".join(
+        (
+            f"| {item['category']} | `{item['status']}` | {item['completion_percent']}% | "
+            f"{item['default_visual_families']} | {item['default_r_ggplot2_evidence_families']} | "
+            f"{item['non_default_python_evidence_families']} |"
+        )
+        for item in audit["completion_by_category"]
+    )
+    excluded_lines = "\n".join(
+        (
+            f"| `{item['template_id']}` | {item['category']} | {item['kind']} | "
+            f"{item['renderer_family']} | `{item['reason']}` |"
+        )
+        for item in audit["default_surface_excluded_inventory"]
+    ) or "| none | none | none | none | none |"
     reference_lines = "\n".join(
         f"- [{item['ref_id']}]({item['url']}): {item['lesson']}"
         for item in audit["external_quality_references"]
@@ -235,6 +358,18 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | Template | Category | Renderer | Status | Blockers |
 | --- | --- | --- | --- | --- |
 {template_lines}
+
+## 分类完成度
+
+| Category | Status | Completion | Default visual | R/ggplot2 evidence | Non-default Python evidence |
+| --- | --- | ---: | ---: | ---: | ---: |
+{completion_lines}
+
+## 默认面排除的 Python Evidence
+
+| Template | Category | Kind | Renderer | Reason |
+| --- | --- | --- | --- | --- |
+{excluded_lines}
 
 ## 外部准则
 

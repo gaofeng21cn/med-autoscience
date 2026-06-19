@@ -9,6 +9,11 @@ from med_autoscience.display_pack_canonical_catalog import (
     canonical_catalog_entry_for_template,
     load_canonical_template_catalog,
 )
+from med_autoscience.display_pack_renderer_policy import (
+    default_surface_allowed_for,
+    default_surface_renderer_policy,
+    renderer_policy_payload,
+)
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
 
 CORE_MEDICAL_FIGURE_FAMILY_CATALOG_REF = "contracts/medical-figure-family-catalog/"
@@ -89,7 +94,25 @@ def read_template_records(pack_root: Path, template_root: Path) -> list[Template
 
 
 def canonical_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return [
+        record
+        for record in records
+        if record.default_visible
+        and default_surface_allowed_for(kind=record.kind, renderer_family=record.renderer_family)
+    ]
+
+
+def canonical_catalog_default_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
     return [record for record in records if record.default_visible]
+
+
+def default_surface_excluded_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return [
+        record
+        for record in records
+        if record.default_visible
+        and not default_surface_allowed_for(kind=record.kind, renderer_family=record.renderer_family)
+    ]
 
 
 def visual_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
@@ -117,14 +140,15 @@ def family_categories(records: list[TemplateRecord]) -> dict[str, list[TemplateR
 
 def figure_family_policy() -> dict[str, object]:
     return {
-        "policy_version": 1,
+        "policy_version": 2,
         "current_metadata_source": FIGURE_FAMILY_POLICY_SOURCE,
         "core_catalog_ref": CORE_MEDICAL_FIGURE_FAMILY_CATALOG_REF,
         "gallery_template_metadata_source": GALLERY_TEMPLATE_FAMILY_SOURCE,
         "core_catalog_dependency": "loaded_via_medical_figure_family_catalog_loader",
-        "default_gallery_surface": "visual_canonical_families_only",
+        "default_gallery_surface": "r_first_evidence_canonical_families_plus_design_shells",
         "alias_handling": "hidden_from_gallery_cards_preserved_in_migration_index",
         "non_visual_handling": "kept_in_manifest_inventory_hidden_from_image_gallery_cards",
+        "renderer_policy": default_surface_renderer_policy(),
         "machine_boundary": "core_catalog_and_gallery_metadata_only_not_source_truth_statistical_truth_or_publication_readiness_authority",
     }
 
@@ -155,6 +179,7 @@ def gallery_template_family_ontology(records: list[TemplateRecord]) -> list[dict
                 "canonical_template_id": record.canonical_template_id,
                 "figure_archetype": record.figure_archetype,
                 "canonical_family_wording": canonical_family_wording(record),
+                "renderer_policy": renderer_policy_payload(record),
             }
         )
     return entries

@@ -44,7 +44,14 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
     fixture_payloads = _load_python_payload_fixtures()
     rendered: dict[str, RenderedAsset] = {}
     baseline_rendered: dict[str, RenderedAsset] = {}
+    visible_template_ids = {record.template_id for record in visual_gallery_records(records)}
     for record in records:
+        if record.template_id not in visible_template_ids:
+            rendered[record.template_id] = RenderedAsset(
+                status="not_default",
+                reason="hidden_from_default_gallery_or_non_visual_inventory",
+            )
+            continue
         if record.renderer_family == "r_ggplot2":
             rendered[record.template_id] = _render_r_template(record, seed_r_payloads)
             baseline_payload = _legacy_python_baseline_payload(record, fixture_payloads)

@@ -357,6 +357,91 @@ def test_resolve_style_roles_rejects_missing_required_time_dependent_roc_panel_r
         raise AssertionError("expected missing time-dependent ROC panel style role to be rejected")
 
 
+def test_resolve_style_roles_rejects_missing_required_heatmap_palette_roles(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.publication_display_contract")
+    path = tmp_path / "publication_style_profile.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "style_profile_id": "paper_neutral_clinical_v1",
+                "palette": {
+                    "primary": "#5F766B",
+                    "secondary": "#B9AD9C",
+                    "neutral": "#7B8794",
+                    "heatmap_seq_low": "#F4F8FA",
+                    "heatmap_seq_mid": "#9DD2D3",
+                },
+                "semantic_roles": {
+                    "model_curve": "primary",
+                    "comparator_curve": "secondary",
+                    "heatmap_seq_low": "heatmap_seq_low",
+                    "heatmap_seq_mid": "heatmap_seq_mid",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    style_profile = module.load_publication_style_profile(path)
+
+    try:
+        module.resolve_style_roles(
+            style_profile=style_profile,
+            template_id="heatmap_group_comparison",
+        )
+    except ValueError as exc:
+        assert "heatmap_seq_high" in str(exc)
+        assert "heatmap_low" in str(exc)
+        assert "heatmap_high" in str(exc)
+    else:
+        raise AssertionError("expected missing heatmap palette style roles to be rejected")
+
+
+def test_resolve_style_roles_accepts_complete_heatmap_palette_roles(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.publication_display_contract")
+    path = tmp_path / "publication_style_profile.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "style_profile_id": "paper_neutral_clinical_v1",
+                "palette": {
+                    "primary": "#5F766B",
+                    "secondary": "#B9AD9C",
+                    "neutral": "#7B8794",
+                    "heatmap_seq_low": "#F4F8FA",
+                    "heatmap_seq_mid": "#9DD2D3",
+                    "heatmap_seq_high": "#0B4F6C",
+                    "heatmap_low": "#2B6CB0",
+                    "heatmap_mid": "#F7F7F7",
+                    "heatmap_high": "#B64342",
+                },
+                "semantic_roles": {
+                    "model_curve": "primary",
+                    "comparator_curve": "secondary",
+                    "heatmap_seq_low": "heatmap_seq_low",
+                    "heatmap_seq_mid": "heatmap_seq_mid",
+                    "heatmap_seq_high": "heatmap_seq_high",
+                    "heatmap_low": "heatmap_low",
+                    "heatmap_mid": "heatmap_mid",
+                    "heatmap_high": "heatmap_high",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    style_profile = module.load_publication_style_profile(path)
+    style_roles = module.resolve_style_roles(
+        style_profile=style_profile,
+        template_id="confusion_matrix_heatmap_binary",
+    )
+
+    assert style_roles["heatmap_seq_high"] == "#0B4F6C"
+    assert style_roles["heatmap_high"] == "#B64342"
+
+
 def test_figure_semantics_manifest_rejects_evidence_renderer_contract_without_display_to_claim_fields() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 

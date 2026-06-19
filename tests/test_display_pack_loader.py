@@ -205,7 +205,7 @@ def test_default_display_pack_template_inventory_is_canonical_only() -> None:
     default_records = load_enabled_local_display_pack_template_records(REPO_ROOT)
     full_records = load_enabled_local_display_pack_template_records(REPO_ROOT, inventory_scope="all")
 
-    assert len(default_records) == 21
+    assert len(default_records) == 19
     assert len(full_records) == 98
     assert {record.template_manifest.template_id for record in default_records} < {
         record.template_manifest.template_id for record in full_records
@@ -216,6 +216,18 @@ def test_default_display_pack_template_inventory_is_canonical_only() -> None:
     assert "roc_curve_binary" in {
         record.template_manifest.template_id for record in default_records
     }
+    assert not [
+        record.template_manifest.template_id
+        for record in default_records
+        if record.template_manifest.kind == "evidence_figure"
+        and record.template_manifest.renderer_family == "python"
+    ]
+    assert {
+        record.template_manifest.template_id
+        for record in default_records
+        if record.template_manifest.kind == "illustration_shell"
+        and record.template_manifest.renderer_family == "python"
+    } == {"cohort_flow_figure", "submission_graphical_abstract"}
 
 
 def test_load_enabled_local_display_pack_templates_reads_enabled_pack_templates(tmp_path: Path) -> None:

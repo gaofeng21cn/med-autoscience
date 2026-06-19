@@ -50,6 +50,17 @@ def _render_html(
     palette = default_style["palette"]
     visible_records = visual_gallery_records(records)
     rendered_count = sum(1 for record in visible_records if rendered[record.template_id].status == "rendered")
+    r_evidence_count = sum(
+        1
+        for record in visible_records
+        if record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
+    )
+    python_evidence_count = sum(
+        1
+        for record in visible_records
+        if record.kind == "evidence_figure" and record.renderer_family == "python"
+    )
+    illustration_count = sum(1 for record in visible_records if record.kind == "illustration_shell")
     baseline_count = sum(
         1
         for record in visible_records
@@ -59,9 +70,10 @@ def _render_html(
         f'<span class="pill">style_profile_id: {html.escape(default_style["style_profile_id"])}</span>'
         f'<span class="pill">journal_palette_ref: {html.escape(default_style["journal_palette_ref"])}</span>'
         f'<span class="pill">gallery cards: {len(visible_records)}</span>'
-        f'<span class="pill">family policy: canonical metadata only</span>'
-        f'<span class="pill">R/ggplot2 canonical: {sum(1 for record in visible_records if record.renderer_family == "r_ggplot2")}</span>'
-        f'<span class="pill">Python canonical: {sum(1 for record in visible_records if record.renderer_family == "python")}</span>'
+        f'<span class="pill">family policy: R-first evidence + design shells</span>'
+        f'<span class="pill">R/ggplot2 evidence: {r_evidence_count}</span>'
+        f'<span class="pill">Python evidence: {python_evidence_count}</span>'
+        f'<span class="pill">Python design shells: {illustration_count}</span>'
         f'<span class="pill">rendered images: {rendered_count}</span>'
         f'<span class="pill">Python comparisons: {baseline_count}</span>'
     )
@@ -93,7 +105,11 @@ def _render_html(
                 )
             )
             family_wording = canonical_family_wording(record)
-            panes = _asset_html(asset, label="R / ggplot2" if record.renderer_family == "r_ggplot2" else "Python")
+            if record.kind == "illustration_shell":
+                pane_label = "Python / SVG composition shell"
+            else:
+                pane_label = "R / ggplot2 evidence" if record.renderer_family == "r_ggplot2" else "Python evidence"
+            panes = _asset_html(asset, label=pane_label)
             if baseline.status == "rendered":
                 panes += _asset_html(baseline, label="Legacy Python baseline")
             if asset.status != "rendered":
@@ -168,7 +184,7 @@ h1{{margin:0 0 8px;font-size:25px;letter-spacing:0}}
 <body>
 <header>
   <h1>MAS Display Pack Canonical Gallery</h1>
-  <div class="sub">默认只展示可视化 canonical 图型家族；旧模板 ID 作为 aliases 保留在 manifest 中，表格 shell 保留在 non-visual inventory。</div>
+  <div class="sub">默认展示 R/ggplot2 数据证据图和设计/流程类 composition shell；Python evidence 模板保留为迁移库存或显式请求，不作为默认图卡。</div>
   <div class="meta">{meta}</div>
   <div class="palette">{swatches}</div>
 </header>

@@ -12,6 +12,7 @@ from med_autoscience.display_pack_contract import (
     load_display_pack_manifest,
     load_display_template_manifest,
 )
+from med_autoscience.display_pack_renderer_policy import default_surface_allowed_for
 
 _VALID_SOURCE_KINDS = frozenset(("local_dir", "git_repo", "python_package"))
 _VALID_TEMPLATE_INVENTORY_SCOPES = frozenset(("canonical", "all"))
@@ -338,6 +339,11 @@ def load_enabled_local_display_template_records(
                 expected_pack_id=loaded_pack.pack_manifest.pack_id,
             )
             if canonical_ids is not None and template_manifest.template_id not in canonical_ids:
+                continue
+            if canonical_ids is not None and not default_surface_allowed_for(
+                kind=template_manifest.kind,
+                renderer_family=template_manifest.renderer_family,
+            ):
                 continue
             records.append(
                 LoadedDisplayTemplate(

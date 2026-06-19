@@ -51,13 +51,15 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
 
     assert payload["surface_kind"] == "display_pack_agent_capability"
     assert payload["status"] == "available"
-    assert payload["inventory"]["template_count"] == 21
-    assert payload["inventory"]["active_template_count"] == 21
-    assert payload["inventory"]["canonical_family_count"] == 21
-    assert payload["inventory"]["canonical_template_count"] == 21
+    assert payload["inventory"]["template_count"] == 19
+    assert payload["inventory"]["active_template_count"] == 19
+    assert payload["inventory"]["canonical_family_count"] == 19
+    assert payload["inventory"]["canonical_template_count"] == 19
     assert payload["inventory"]["legacy_alias_template_count"] == 0
     assert payload["inventory"]["kind_counts"]["evidence_figure"] >= 15
     assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
+    assert payload["inventory"]["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
+    assert payload["renderer_policy"]["data_evidence_first_class_renderer"] == "r_ggplot2"
     assert {item["command"] for item in payload["callable_actions"]} == {
         "display-pack-capability-discover",
         "display-pack-orchestrate",
@@ -75,11 +77,18 @@ def test_display_pack_capability_discover_templates_defaults_to_canonical_surfac
 
     assert payload["template_surface_policy"]["default_templates_are_canonical_only"] is True
     assert payload["template_surface_policy"]["active_inventory_is_canonical_only"] is True
+    assert payload["template_surface_policy"]["evidence_figures_default_to_r_ggplot2"] is True
+    assert payload["template_surface_policy"]["python_evidence_templates_hidden_from_default_discover"] is True
     assert payload["template_surface_policy"]["migration_inventory_template_count"] >= 90
     assert payload["template_surface_policy"]["returned_template_count"] == payload["inventory"]["template_count"]
     assert payload["templates"]
     assert {item["migration_status"] for item in payload["templates"]} == {"canonical"}
     assert all(item["default_visible"] is True for item in payload["templates"])
+    assert not [
+        item["template_id"]
+        for item in payload["templates"]
+        if item["kind"] == "evidence_figure" and item["renderer_family"] == "python"
+    ]
 
 
 def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request() -> None:

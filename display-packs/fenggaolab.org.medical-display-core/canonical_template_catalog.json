@@ -8,6 +8,11 @@
   "default_surface_policy": {
     "agent_recommendations_use_canonical_templates_by_default": true,
     "gallery_shows_canonical_families_by_default": true,
+    "evidence_figures_default_to_r_ggplot2": true,
+    "python_evidence_figures_require_explicit_justification_before_default_visibility": true,
+    "python_illustration_shells_may_be_default_visible": true,
+    "data_evidence_figures_require_programmatic_renderer": true,
+    "design_and_flow_shells_may_use_svg_or_imagegen_assisted_composition": true,
     "migrated_aliases_are_not_default_visible": true,
     "explicit_alias_requests_may_be_migrated_to_canonical_template": true
   },
@@ -94,8 +99,7 @@
         "multivariable_forest",
         "compact_effect_estimate_panel",
         "broader_heterogeneity_summary_panel",
-        "interaction_effect_summary_panel",
-        "generalizability_subgroup_composite_panel"
+        "interaction_effect_summary_panel"
       ],
       "migration_reason": "Forest, subgroup, multivariable and heterogeneity variants share the same effect-estimate grammar and should not compete as separate default choices."
     },
@@ -130,7 +134,7 @@
       "title": "Atlas and Spatial Context",
       "figure_archetype": "single_cell_atlas_spatial_or_trajectory_context_panel",
       "canonical_template_id": "single_cell_atlas_overview_panel",
-      "default_visible": true,
+      "default_visible": false,
       "aliases": [
         "atlas_spatial_bridge_panel",
         "atlas_spatial_trajectory_context_support_panel",
@@ -140,7 +144,7 @@
         "spatial_niche_map_panel",
         "trajectory_progression_panel"
       ],
-      "migration_reason": "Atlas, spatial and trajectory panels should be approached as one context-rich geometry family instead of many first-choice templates."
+      "migration_reason": "Atlas, spatial and trajectory panels remain an identified evidence family, but the current default representative is Python-only and does not yet satisfy the R/ggplot2-first evidence policy."
     },
     {
       "family_id": "matrix_heatmap_panel",
@@ -209,8 +213,6 @@
         "shap_bar_importance",
         "shap_signed_importance_panel",
         "shap_multicohort_importance_panel",
-        "shap_dependence_panel",
-        "shap_waterfall_local_explanation_panel",
         "shap_force_like_summary_panel"
       ],
       "migration_reason": "Global explanation variants should share ordering, zero-line, colorbar and feature-value governance."
@@ -220,9 +222,10 @@
       "category": "Model Explanation",
       "title": "Local and Support-Domain Explanation",
       "figure_archetype": "grouped_local_decision_path_or_support_domain_explanation",
-      "canonical_template_id": "shap_grouped_local_support_domain_panel",
+      "canonical_template_id": "shap_waterfall_local_explanation_panel",
       "default_visible": true,
       "aliases": [
+        "shap_grouped_local_support_domain_panel",
         "shap_grouped_decision_path_panel",
         "shap_grouped_local_explanation_panel",
         "shap_multigroup_decision_path_panel",
@@ -236,9 +239,10 @@
       "category": "Model Explanation",
       "title": "Feature Response Explanation",
       "figure_archetype": "pdp_ice_ale_interaction_or_support_response_panel",
-      "canonical_template_id": "partial_dependence_ice_panel",
+      "canonical_template_id": "shap_dependence_panel",
       "default_visible": true,
       "aliases": [
+        "partial_dependence_ice_panel",
         "accumulated_local_effects_panel",
         "feature_response_support_domain_panel",
         "partial_dependence_interaction_contour_panel",
@@ -262,9 +266,10 @@
       "category": "Generalizability",
       "title": "Generalizability and Transportability",
       "figure_archetype": "multicenter_generalizability_coverage_or_transportability_panel",
-      "canonical_template_id": "multicenter_generalizability_overview",
+      "canonical_template_id": "generalizability_subgroup_composite_panel",
       "default_visible": true,
       "aliases": [
+        "multicenter_generalizability_overview",
         "center_transportability_governance_summary_panel",
         "center_coverage_batch_transportability_panel",
         "transportability_recalibration_governance_panel"
@@ -291,7 +296,7 @@
       "title": "Phenotype and Treatment Gap",
       "figure_archetype": "phenotype_gap_site_stability_or_treatment_alignment_panel",
       "canonical_template_id": "phenotype_gap_structure_figure",
-      "default_visible": true,
+      "default_visible": false,
       "aliases": [
         "site_held_out_stability_figure",
         "treatment_gap_alignment_figure",
@@ -299,7 +304,7 @@
         "practical_factor_dot_figure",
         "preferred_class_sensitivity_figure"
       ],
-      "migration_reason": "Phenotype, site-stability and treatment-gap panels are study-specific shell variants and should not fragment the default chooser."
+      "migration_reason": "Phenotype, site-stability and treatment-gap evidence panels remain useful migration inputs, but the current representatives are Python-only and should not be default-visible until an R/ggplot2 evidence baseline or explicit Python advantage is proven."
     },
     {
       "family_id": "submission_summary_panel",
