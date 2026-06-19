@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    candidate_opl_transition_readback as _candidate_opl_transition_readback,
     provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
 )
 
@@ -229,9 +230,10 @@ def _candidate_has_matching_opl_readback(
 ) -> bool:
     if _text(candidate.get("opl_transition_readback_source")) != _OPL_TRANSITION_READBACK_SOURCE:
         return False
-    if not _provider_admission_opl_transition_readback(candidate):
+    readback = _candidate_opl_transition_readback(candidate)
+    if not readback or not _provider_admission_opl_transition_readback(candidate):
         return False
-    result = _mapping(candidate.get("opl_domain_progress_transition_result"))
+    result = _mapping(readback)
     identity = _mapping(result.get("identity"))
     aggregate_identity = _mapping(identity.get("aggregate_identity"))
     if not identity and not aggregate_identity:
