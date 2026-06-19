@@ -371,6 +371,8 @@ def test_retirement_validator_blocks_workbench_tail_completion_claims() -> None:
     inventory = _retirement_inventory()
     surface = _workbench_retirement_surface(inventory)
     tail = surface["opl_workbench_shell_readback_tail"]
+    tail["status"] = "satisfied_with_projection"
+    tail["required_before_physical_delete"] = "workbench_projection_clean_ref"
     tail["tail_readback_proven"] = True
     tail["no_active_workbench_projection_action_caller_proven"] = True
     tail["physical_delete_allowed"] = True
@@ -384,6 +386,14 @@ def test_retirement_validator_blocks_workbench_tail_completion_claims() -> None:
     violations = retirement.validate_runtime_surface_retirement_inventory(inventory)
 
     assert {
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_tail_status_not_open",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_tail_required_before_physical_delete_invalid",
+        ),
         (
             WORKBENCH_SURFACE_ID,
             "workbench_projection_tail_active_readbacks_incomplete",

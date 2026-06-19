@@ -299,12 +299,24 @@ def validate_progress_portal_study_workbench_overview_action_projection(
     else:
         if tail.get("surface_kind") != "opl_workbench_shell_readback_tail_requirement":
             violations.append(_violation(surface_id, "workbench_projection_tail_kind_invalid"))
+        if tail.get("status") != "tail_open":
+            violations.append(_violation(surface_id, "workbench_projection_tail_status_not_open"))
         if tail.get("runtime_owner") != "one-person-lab":
             violations.append(_violation(surface_id, "workbench_projection_tail_owner_not_opl"))
         if tail.get("runtime_kind") != (
             "OPL Workbench Shell/current-control/DomainProgressTransitionRuntime readback"
         ):
             violations.append(_violation(surface_id, "workbench_projection_tail_runtime_kind_invalid"))
+        if tail.get("required_before_physical_delete") != (
+            "progress_portal_study_workbench_overview_action_projection_"
+            "opl_workbench_shell_readback_tail_ref"
+        ):
+            violations.append(
+                _violation(
+                    surface_id,
+                    "workbench_projection_tail_required_before_physical_delete_invalid",
+                )
+            )
         required_readbacks = {
             "opl_workbench_shell_action_transport_readback",
             "opl_current_control_readback",
