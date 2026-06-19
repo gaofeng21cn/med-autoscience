@@ -78,6 +78,9 @@ def test_runtime_lifecycle_payload_retention_rejects_mas_cleanup_authority_regre
     tail = lifecycle["opl_runtime_lifecycle_maintenance_tail_readback"]
     tail["status"] = "satisfied_with_apply_gate"
     tail["required_before_physical_delete"] = "runtime_lifecycle_apply_gate_ref"
+    tail["sqlite_sidecar_repair_receipt_can_satisfy_live_takeover"] = True
+    tail["cold_payload_externalization_receipt_can_satisfy_live_takeover"] = True
+    tail["forbidden_completion_claims"].remove("payload_retention_plan_as_live_takeover")
     lifecycle["authority_boundary"]["can_authorize_generic_cleanup_policy"] = True
     lifecycle["authority_boundary"][
         "mutates_derived_runtime_lifecycle_payload_only_when_opl_authorized"
@@ -134,6 +137,24 @@ def test_runtime_lifecycle_payload_retention_rejects_mas_cleanup_authority_regre
         (
             "runtime_lifecycle_payload_retention",
             "lifecycle_retention_tail_required_before_physical_delete_invalid",
+        ),
+        (
+            "runtime_lifecycle_payload_retention",
+            (
+                "lifecycle_retention_tail_forbidden:"
+                "sqlite_sidecar_repair_receipt_can_satisfy_live_takeover"
+            ),
+        ),
+        (
+            "runtime_lifecycle_payload_retention",
+            (
+                "lifecycle_retention_tail_forbidden:"
+                "cold_payload_externalization_receipt_can_satisfy_live_takeover"
+            ),
+        ),
+        (
+            "runtime_lifecycle_payload_retention",
+            "lifecycle_retention_tail_missing_false_completion_guards",
         ),
         (
             "runtime_lifecycle_payload_retention",
@@ -214,6 +235,11 @@ def test_runtime_storage_maintenance_rejects_mas_storage_authority_regression() 
     tail = storage["opl_runtime_storage_maintenance_tail_readback"]
     tail["status"] = "satisfied_with_restore_canary"
     tail["required_before_physical_delete"] = "runtime_storage_restore_canary_ref"
+    tail["archive_report_retention_plan_can_satisfy_live_takeover"] = True
+    tail["attempt_evidence_capsule_can_satisfy_live_takeover"] = True
+    tail["planned_retention_projection_can_satisfy_live_takeover"] = True
+    tail["workspace_root_git_retirement_receipt_can_satisfy_live_takeover"] = True
+    tail["forbidden_completion_claims"].remove("archive_retention_plan_as_live_takeover")
     storage["authority_boundary"]["can_claim_paper_progress"] = True
     storage["authority_boundary"]["dry_run_projection_only"] = False
     storage["authority_boundary"]["mutates_runtime_storage_payload_only_when_opl_authorized"] = False
@@ -298,6 +324,38 @@ def test_runtime_storage_maintenance_rejects_mas_storage_authority_regression() 
         (
             "runtime_storage_maintenance",
             "storage_maintenance_tail_required_before_physical_delete_invalid",
+        ),
+        (
+            "runtime_storage_maintenance",
+            (
+                "storage_maintenance_tail_forbidden:"
+                "archive_report_retention_plan_can_satisfy_live_takeover"
+            ),
+        ),
+        (
+            "runtime_storage_maintenance",
+            (
+                "storage_maintenance_tail_forbidden:"
+                "attempt_evidence_capsule_can_satisfy_live_takeover"
+            ),
+        ),
+        (
+            "runtime_storage_maintenance",
+            (
+                "storage_maintenance_tail_forbidden:"
+                "planned_retention_projection_can_satisfy_live_takeover"
+            ),
+        ),
+        (
+            "runtime_storage_maintenance",
+            (
+                "storage_maintenance_tail_forbidden:"
+                "workspace_root_git_retirement_receipt_can_satisfy_live_takeover"
+            ),
+        ),
+        (
+            "runtime_storage_maintenance",
+            "storage_maintenance_tail_missing_false_completion_guards",
         ),
         (
             "runtime_storage_maintenance",

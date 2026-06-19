@@ -527,16 +527,21 @@ def validate_runtime_lifecycle_payload_retention(
         no_active_key="no_active_lifecycle_maintenance_adapter_caller_proven",
         forbidden_false_keys={
             "apply_authorization_can_satisfy_live_takeover",
+            "cold_payload_externalization_receipt_can_satisfy_live_takeover",
             "dry_run_plan_can_satisfy_live_takeover",
             "maintenance_receipt_can_satisfy_live_takeover",
             "repo_tests_can_satisfy_live_takeover",
+            "sqlite_sidecar_repair_receipt_can_satisfy_live_takeover",
         },
         required_false_completion_claims={
+            "cold_payload_externalization_receipt_as_physical_delete",
             "opl_maintenance_authorization_as_live_cleanup_policy_takeover",
+            "payload_retention_plan_as_live_takeover",
             "runtime_lifecycle_apply_gate_as_live_takeover",
             "runtime_lifecycle_dry_run_plan_as_live_takeover",
             "runtime_lifecycle_receipt_as_physical_delete",
             "repo_tests_green_as_runtime_lifecycle_physical_delete",
+            "sqlite_sidecar_repair_receipt_as_live_takeover",
         },
     )
     _validate_forbidden_completion_claims(
@@ -690,19 +695,29 @@ def validate_runtime_storage_maintenance(
         },
         no_active_key="no_active_storage_maintenance_adapter_caller_proven",
         forbidden_false_keys={
+            "archive_report_retention_plan_can_satisfy_live_takeover",
             "apply_authorization_can_satisfy_live_takeover",
+            "attempt_evidence_capsule_can_satisfy_live_takeover",
             "dry_run_projection_can_satisfy_live_takeover",
+            "planned_retention_projection_can_satisfy_live_takeover",
             "restore_canary_can_satisfy_live_takeover",
             "refs_only_index_projection_can_satisfy_live_takeover",
             "repo_tests_can_satisfy_live_takeover",
+            "workspace_root_git_retirement_receipt_can_satisfy_live_takeover",
         },
         required_false_completion_claims={
+            "archive_retention_plan_as_live_takeover",
+            "attempt_evidence_capsule_plan_as_storage_takeover",
             "opl_storage_maintenance_authorization_as_live_storage_policy_takeover",
+            "report_retention_plan_as_live_takeover",
             "runtime_storage_apply_gate_as_live_takeover",
             "runtime_storage_dry_run_projection_as_live_takeover",
             "restore_proof_canary_as_live_takeover",
             "refs_only_state_index_projection_as_storage_takeover",
             "repo_tests_green_as_runtime_storage_physical_delete",
+            "semantic_process_retention_plan_as_live_takeover",
+            "storage_maintenance_receipt_as_physical_delete",
+            "workspace_root_git_retirement_receipt_as_physical_delete",
         },
     )
     _validate_forbidden_completion_claims(
