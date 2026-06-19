@@ -721,6 +721,17 @@
             "focused_tests_green_as_physical_delete"
           ]
         }
+      },
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "no_active_stage_run_abi_caller_proven": false,
+        "no_forbidden_write_proof_required": true,
+        "physical_delete_allowed": false,
+        "repo_stage_run_abi_provenance_proven": true,
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
       }
     },
     {

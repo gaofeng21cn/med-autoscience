@@ -296,6 +296,22 @@ def _validate_legacy_stage_run_abi(
         violations.append(_violation(surface_id, "stage_closeout_physical_delete_missing_no_active_caller_scan"))
     else:
         violations.extend(_validate_stage_run_abi_active_caller_scan(surface_id, boundary))
+    gate = surface.get("retirement_gate")
+    if not isinstance(gate, Mapping):
+        violations.append(_violation(surface_id, "legacy_stage_run_abi_missing_retirement_gate"))
+    else:
+        if gate.get("active_caller_alone_retains_surface") is not False:
+            violations.append(_violation(surface_id, "legacy_stage_run_abi_active_caller_alone_can_retain_surface"))
+        if gate.get("completion_claim_requires_live_owner_or_opl_readback") is not True:
+            violations.append(_violation(surface_id, "legacy_stage_run_abi_missing_live_completion_gate"))
+        if gate.get("no_active_caller_required_before_physical_delete") is not True:
+            violations.append(_violation(surface_id, "legacy_stage_run_abi_missing_no_active_caller_gate"))
+        if gate.get("no_active_stage_run_abi_caller_proven") is not False:
+            violations.append(_violation(surface_id, "legacy_stage_run_abi_gate_must_not_claim_no_active_caller"))
+        if gate.get("physical_delete_allowed") is not False:
+            violations.append(_violation(surface_id, "legacy_stage_run_abi_gate_must_not_allow_physical_delete"))
+        if gate.get("repo_stage_run_abi_provenance_proven") is not True:
+            violations.append(_violation(surface_id, "legacy_stage_run_abi_gate_missing_repo_provenance"))
     closeout_roots = boundary.get("closeout_packet_roots")
     if not isinstance(closeout_roots, list) or not closeout_roots:
         violations.append(_violation(surface_id, "stage_closeout_packet_roots_missing"))

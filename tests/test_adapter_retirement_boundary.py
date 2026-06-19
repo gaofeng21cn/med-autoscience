@@ -432,6 +432,17 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             ],
         },
     }
+    assert execution_latest["retirement_gate"] == {
+        "active_caller_alone_retains_surface": False,
+        "completion_claim_requires_live_owner_or_opl_readback": True,
+        "no_active_caller_required_before_physical_delete": True,
+        "no_active_stage_run_abi_caller_proven": False,
+        "no_forbidden_write_proof_required": True,
+        "physical_delete_allowed": False,
+        "repo_stage_run_abi_provenance_proven": True,
+        "replacement_parity_required": True,
+        "tombstone_or_provenance_required": True,
+    }
 
     owner_dispatch = surfaces["domain_owner_action_dispatch"]
     assert owner_dispatch["active_caller_migrated"] is True
@@ -1234,6 +1245,11 @@ def test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open
     assert scan["status"] == "active_callers_present_tail_open"
     assert scan["no_active_stage_run_abi_caller_proven"] is False
     assert scan["physical_delete_allowed"] is False
+    assert surface["retirement_gate"][
+        "completion_claim_requires_live_owner_or_opl_readback"
+    ] is True
+    assert surface["retirement_gate"]["no_active_stage_run_abi_caller_proven"] is False
+    assert surface["retirement_gate"]["physical_delete_allowed"] is False
     assert (
         scan["required_before_physical_delete"]
         == "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
@@ -1273,6 +1289,8 @@ def test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open
     bad_scan = bad_surface["legacy_stage_run_abi_boundary"]["active_stage_run_abi_caller_scan"]
     bad_scan["no_active_stage_run_abi_caller_proven"] = True
     bad_scan["physical_delete_allowed"] = True
+    bad_surface["retirement_gate"]["no_active_stage_run_abi_caller_proven"] = True
+    bad_surface["retirement_gate"]["physical_delete_allowed"] = True
 
     violations = retirement.validate_runtime_surface_retirement_inventory(bad_inventory)
 
@@ -1288,6 +1306,14 @@ def test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open
         (
             "default_executor_execution_latest_wire_projection",
             "stage_closeout_no_active_claim_contradicts_active_callers",
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "legacy_stage_run_abi_gate_must_not_claim_no_active_caller",
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "legacy_stage_run_abi_gate_must_not_allow_physical_delete",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in violations}
 

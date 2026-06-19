@@ -744,6 +744,19 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["default_executor_execution_latest_wire_projection"][
         "legacy_stage_run_execution_authority"
     ] is False
+    assert open_surfaces["default_executor_execution_latest_wire_projection"][
+        "retirement_gate"
+    ] == {
+        "active_caller_alone_retains_surface": False,
+        "completion_claim_requires_live_owner_or_opl_readback": True,
+        "no_active_caller_required_before_physical_delete": True,
+        "no_active_stage_run_abi_caller_proven": False,
+        "no_forbidden_write_proof_required": True,
+        "physical_delete_allowed": False,
+        "repo_stage_run_abi_provenance_proven": True,
+        "replacement_parity_required": True,
+        "tombstone_or_provenance_required": True,
+    }
     assert open_surfaces["runtime_storage_maintenance"]["apply_authorization_surface"] == (
         "opl_runtime_storage_maintenance_authorization"
     )
@@ -1059,6 +1072,8 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     ]
     legacy_stage_run_scan["no_active_stage_run_abi_caller_proven"] = True
     legacy_stage_run_scan["physical_delete_allowed"] = True
+    legacy_stage_run["retirement_gate"]["no_active_stage_run_abi_caller_proven"] = True
+    legacy_stage_run["retirement_gate"]["physical_delete_allowed"] = True
 
     legacy_stage_run_violations = retirement.validate_runtime_surface_retirement_inventory(
         legacy_stage_run_bad_inventory
@@ -1105,6 +1120,14 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "default_executor_execution_latest_wire_projection",
             "stage_closeout_no_active_claim_contradicts_active_callers",
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "legacy_stage_run_abi_gate_must_not_claim_no_active_caller",
+        ),
+        (
+            "default_executor_execution_latest_wire_projection",
+            "legacy_stage_run_abi_gate_must_not_allow_physical_delete",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in legacy_stage_run_violations}
 
