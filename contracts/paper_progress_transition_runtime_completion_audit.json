@@ -138,6 +138,9 @@
         "runtime_health_kernel",
         "runtime_lifecycle_payload_retention",
         "runtime_storage_maintenance"
+      ],
+      "live_tail_evidence_intake_refs": [
+        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema"
       ]
     }
   },
@@ -1181,6 +1184,9 @@
         "runtime_health_kernel",
         "runtime_lifecycle_payload_retention",
         "runtime_storage_maintenance"
+      ],
+      "live_tail_evidence_intake_refs": [
+        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema"
       ]
     },
     {

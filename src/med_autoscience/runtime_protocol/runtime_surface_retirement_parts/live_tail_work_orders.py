@@ -72,6 +72,78 @@ def validate_live_tail_work_order_contract(
     return violations
 
 
+def evaluate_live_tail_evidence_record(
+    work_order: Mapping[str, Any],
+    evidence_record: Mapping[str, Any],
+) -> dict[str, Any]:
+    surface_id = _text(work_order.get("surface_id")) or "<missing>"
+    accepted_refs = _text_set(work_order.get("acceptable_evidence_ref_families"))
+    forbidden_substitutes = _text_set(work_order.get("forbidden_evidence_substitutes"))
+    provided_refs = _text_set(evidence_record.get("evidence_ref_families"))
+    provided_substitutes = _text_set(evidence_record.get("evidence_substitutes"))
+
+    matched_refs = sorted(accepted_refs & provided_refs)
+    forbidden_matches = sorted(forbidden_substitutes & provided_substitutes)
+    claim = _text(evidence_record.get("claim"))
+    evidence_source = _text(evidence_record.get("evidence_source"))
+    typed_blocker = _text(work_order.get("typed_blocker_when_missing")) or (
+        f"{surface_id}_live_runtime_readiness_evidence_required"
+    )
+    satisfied = bool(matched_refs) and not forbidden_matches and evidence_source is not None
+    return {
+        "surface_id": surface_id,
+        "status": "satisfied_by_accepted_ref" if satisfied else "typed_blocker_required",
+        "matched_evidence_ref_families": matched_refs,
+        "forbidden_evidence_substitutes_present": forbidden_matches,
+        "typed_blocker": None if satisfied else typed_blocker,
+        "live_runtime_readiness_claim_allowed": satisfied,
+        "repo_source_retirement_blocked": False,
+        "claim": claim,
+        "evidence_source": evidence_source,
+    }
+
+
+def live_tail_evidence_intake_summary(
+    contract: Mapping[str, Any],
+    evidence_records: list[Mapping[str, Any]],
+) -> dict[str, Any]:
+    orders = {
+        str(order.get("surface_id")): order
+        for order in contract.get("work_orders", [])
+        if isinstance(order, Mapping) and _text(order.get("surface_id")) is not None
+    }
+    records = {
+        str(record.get("surface_id")): record
+        for record in evidence_records
+        if isinstance(record, Mapping) and _text(record.get("surface_id")) is not None
+    }
+    results = [
+        evaluate_live_tail_evidence_record(order, records.get(surface_id, {}))
+        for surface_id, order in sorted(orders.items())
+    ]
+    satisfied = [
+        result["surface_id"]
+        for result in results
+        if result["status"] == "satisfied_by_accepted_ref"
+    ]
+    blocked = [
+        result["surface_id"]
+        for result in results
+        if result["status"] == "typed_blocker_required"
+    ]
+    return {
+        "surface_kind": "mas_runtime_live_tail_evidence_intake_summary",
+        "total_work_order_count": len(orders),
+        "satisfied_count": len(satisfied),
+        "typed_blocker_count": len(blocked),
+        "satisfied_surface_ids": satisfied,
+        "typed_blocker_surface_ids": blocked,
+        "repo_source_retirement_blocked": False,
+        "live_runtime_readiness_claim_allowed": bool(orders) and not blocked,
+        "results": results,
+    }
+
+
 def _work_order_from_tail(tail: Mapping[str, Any]) -> dict[str, Any]:
     gate = tail.get("evidence_gate")
     gate_mapping = gate if isinstance(gate, Mapping) else {}
@@ -102,6 +174,13 @@ def _text(value: Any) -> str | None:
     return text or None
 
 
+def _text_set(value: Any) -> set[str]:
+    if isinstance(value, list):
+        return {text for item in value if (text := _text(item)) is not None}
+    text = _text(value)
+    return {text} if text is not None else set()
+
+
 def _violation(surface_id: str, reason: str) -> dict[str, str]:
     return {"surface_id": surface_id, "reason": reason}
 
@@ -109,6 +188,8 @@ def _violation(surface_id: str, reason: str) -> dict[str, str]:
 __all__ = [
     "SURFACE_KIND",
     "VERSION",
+    "evaluate_live_tail_evidence_record",
+    "live_tail_evidence_intake_summary",
     "live_tail_work_orders_from_audit",
     "validate_live_tail_work_order_contract",
 ]

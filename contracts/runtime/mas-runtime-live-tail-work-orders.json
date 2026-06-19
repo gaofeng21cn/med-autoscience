@@ -14,12 +14,32 @@
       "same_identity_opl_live_readback",
       "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
       "no_active_production_caller_scan_with_owner_retirement_decision"
-    ]
+    ],
+    "evidence_record_schema": {
+      "required_fields": [
+        "surface_id",
+        "evidence_source",
+        "evidence_ref_families"
+      ],
+      "optional_fields": [
+        "claim",
+        "evidence_substitutes",
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref"
+      ],
+      "accepted_result_status": "satisfied_by_accepted_ref",
+      "missing_or_forbidden_result_status": "typed_blocker_required",
+      "repo_source_retirement_blocked_by_missing_evidence_record": false,
+      "live_runtime_readiness_claim_requires_all_work_orders_satisfied": true
+    }
   },
   "source_refs": [
     "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
     "med_autoscience.runtime_protocol.runtime_surface_retirement.audit_runtime_surface_retirement_inventory",
-    "contracts/paper_progress_transition_runtime_completion_audit.json#/completion_columns/live_runtime_readiness_completion"
+    "contracts/paper_progress_transition_runtime_completion_audit.json#/completion_columns/live_runtime_readiness_completion",
+    "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders.live_tail_evidence_intake_summary"
   ],
   "work_orders": [
     {

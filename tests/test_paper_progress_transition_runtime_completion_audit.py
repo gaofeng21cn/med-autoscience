@@ -203,6 +203,12 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     assert live_runtime["live_tail_work_order_refs"] == [
         "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
     ]
+    assert live_runtime["live_tail_evidence_intake_refs"] == [
+        (
+            "contracts/runtime/mas-runtime-live-tail-work-orders.json#/"
+            "completion_claim_boundary/evidence_record_schema"
+        )
+    ]
     assert live_runtime["open_live_runtime_work_order_surface_ids"] == live_tail_surface_ids
     assert {
         "same-transition OPL command/event/outbox/StageRun identity readback",
@@ -236,6 +242,12 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     assert physical_gate["repo_source_missing_evidence_tails"] == []
     assert physical_gate["live_runtime_work_order_refs"] == [
         "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
+    ]
+    assert physical_gate["live_tail_evidence_intake_refs"] == [
+        (
+            "contracts/runtime/mas-runtime-live-tail-work-orders.json#/"
+            "completion_claim_boundary/evidence_record_schema"
+        )
     ]
     assert physical_gate["live_runtime_work_order_surface_ids"] == live_tail_surface_ids
     assert set(physical_gate["missing_evidence_tails"]) == set(
