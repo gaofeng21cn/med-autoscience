@@ -231,6 +231,19 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
         )
     ]
     assert live_runtime["open_live_runtime_gap_work_order_ids"] == live_runtime_gap_ids
+    assert live_runtime["live_runtime_evidence_rollup_refs"] == [
+        "contracts/runtime/mas-live-runtime-evidence-rollup.json"
+    ]
+    assert (
+        live_runtime["live_runtime_evidence_rollup_intake_ref"]
+        == "contracts/runtime/mas-live-runtime-evidence-rollup.json#/completion_claim_boundary"
+    )
+    assert live_runtime["live_runtime_evidence_rollup_required_for_completion_claim"] is True
+    assert live_runtime["live_runtime_evidence_rollup_claim_boundary"] == {
+        "repo_source_retirement_blocked_by_missing_live_evidence": False,
+        "live_runtime_readiness_claim_requires_all_tail_and_gap_work_orders_satisfied": True,
+        "docs_tests_inventory_or_queue_empty_can_satisfy_rollup": False,
+    }
     assert {
         "same-transition OPL command/event/outbox/StageRun identity readback",
         "DHD apply exactly-one live outcome when explicitly delegated",

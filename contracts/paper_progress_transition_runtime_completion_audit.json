@@ -154,7 +154,17 @@
         "fresh_dm002_dm003_same_identity_opl_provider_admission_live_readback_instead_of_replay_fixture_r",
         "fresh_live_opl_event_outbox_stagerun_consumption_readback_reaches_provider_admission_arbiter_for",
         "fresh_dm002_dm003_paper_line_accepted_outcome_after_provider_admission_readback_consumption"
-      ]
+      ],
+      "live_runtime_evidence_rollup_refs": [
+        "contracts/runtime/mas-live-runtime-evidence-rollup.json"
+      ],
+      "live_runtime_evidence_rollup_intake_ref": "contracts/runtime/mas-live-runtime-evidence-rollup.json#/completion_claim_boundary",
+      "live_runtime_evidence_rollup_required_for_completion_claim": true,
+      "live_runtime_evidence_rollup_claim_boundary": {
+        "repo_source_retirement_blocked_by_missing_live_evidence": false,
+        "live_runtime_readiness_claim_requires_all_tail_and_gap_work_orders_satisfied": true,
+        "docs_tests_inventory_or_queue_empty_can_satisfy_rollup": false
+      }
     }
   },
   "status_values": [

@@ -1,0 +1,44 @@
+{
+  "surface_kind": "mas_live_runtime_evidence_rollup",
+  "version": "mas-live-runtime-evidence-rollup.v1",
+  "state": "active_live_runtime_evidence_rollup_contract",
+  "owner": "MAS owner-surface coordinator plus one-person-lab runtime owners",
+  "purpose": "Provide one machine-checkable intake and rollup surface for all remaining live-tail and live-runtime-gap evidence, without blocking repo-source physical retirement or restoring MAS private control planes.",
+  "repo_source_retirement_blocked": false,
+  "live_runtime_readiness_claim_allowed": false,
+  "live_tail_work_order_ref": "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders",
+  "live_runtime_gap_work_order_ref": "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders",
+  "live_tail_surface_ids": [
+    "agent_tool_arsenal_scientific_capability_registry",
+    "domain_health_diagnostic_obligation_actuator",
+    "domain_owner_action_dispatch",
+    "progress_portal_study_workbench_overview_action_projection",
+    "runtime_health_kernel",
+    "runtime_lifecycle_payload_retention",
+    "runtime_storage_maintenance"
+  ],
+  "live_runtime_gap_ids": [
+    "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated",
+    "fresh_dm002_dm003_paper_line_accepted_outcome_after_provider_admission_readback_consumption",
+    "fresh_dm002_dm003_same_identity_opl_provider_admission_live_readback_instead_of_replay_fixture_r",
+    "fresh_live_opl_event_outbox_stagerun_consumption_readback_reaches_provider_admission_arbiter_for",
+    "opl_outbox_and_stagerun_identity_live_readback_for_the_same_transition_request"
+  ],
+  "completion_claim_boundary": {
+    "repo_source_retirement_blocked_by_missing_live_evidence": false,
+    "docs_tests_inventory_or_queue_empty_can_satisfy_rollup": false,
+    "partial_rollup_can_claim_live_runtime_ready": false,
+    "live_runtime_readiness_claim_requires_all_tail_and_gap_work_orders_satisfied": true,
+    "accepted_record_families": [
+      "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema",
+      "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema"
+    ],
+    "accepted_rollup_result_status": "all_work_orders_satisfied",
+    "missing_or_forbidden_result_status": "typed_blocker_required"
+  },
+  "source_refs": [
+    "contracts/runtime/mas-runtime-live-tail-work-orders.json",
+    "contracts/runtime/mas-live-runtime-gap-work-orders.json",
+    "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup.live_runtime_evidence_rollup_summary"
+  ]
+}
