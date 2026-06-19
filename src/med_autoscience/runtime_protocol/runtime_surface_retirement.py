@@ -797,6 +797,39 @@ def _validate_agent_tool_arsenal_scientific_capability_registry(
             violations.append(_violation(surface_id, "capability_registry_missing_direct_hosted_parity_gate"))
         if gate.get("no_forbidden_write_proof_required") is not True:
             violations.append(_violation(surface_id, "capability_registry_missing_no_forbidden_write_gate"))
+
+    live_soak = surface.get("live_owner_consumption_soak_boundary")
+    if not isinstance(live_soak, Mapping):
+        violations.append(_violation(surface_id, "capability_registry_missing_live_owner_soak_boundary"))
+    else:
+        if live_soak.get("status") != "live_owner_consumption_soak_and_direct_hosted_parity_tail_open":
+            violations.append(_violation(surface_id, "capability_registry_live_soak_boundary_wrong_status"))
+        for key in (
+            "live_owner_consumption_soak_proven",
+            "direct_hosted_parity_proven",
+            "no_active_caller_proven",
+            "physical_delete_allowed",
+        ):
+            if live_soak.get(key, False) is not False:
+                violations.append(_violation(surface_id, f"capability_registry_live_soak_claimed:{key}"))
+        if (
+            live_soak.get("required_before_physical_delete")
+            != "agent_tool_arsenal_live_owner_consumption_soak_and_direct_hosted_parity_ref"
+        ):
+            violations.append(_violation(surface_id, "capability_registry_live_soak_missing_physical_delete_ref"))
+        allowed_consumption = live_soak.get("allowed_consumption")
+        if not isinstance(allowed_consumption, list) or not {
+            "current_owner_delta_bound_capability_projection",
+            "explicit_capability_request_resolution_evidence",
+        } <= {str(item) for item in allowed_consumption}:
+            violations.append(_violation(surface_id, "capability_registry_live_soak_allowed_consumption_incomplete"))
+        forbidden_claims = live_soak.get("forbidden_completion_claims")
+        if not isinstance(forbidden_claims, list) or not {
+            "capability_registry_contract_as_live_owner_consumption_soak",
+            "hosted_opl_runtime_requirement_as_direct_hosted_parity",
+            "repo_tests_green_as_physical_delete",
+        } <= {str(item) for item in forbidden_claims}:
+            violations.append(_violation(surface_id, "capability_registry_live_soak_missing_false_completion_guard"))
     return violations
 
 
@@ -822,6 +855,7 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
         else None
     )
     active_caller_soak = surface.get("active_caller_soak_boundary")
+    live_owner_consumption_soak = surface.get("live_owner_consumption_soak_boundary")
     return {
         "surface_id": surface["surface_id"],
         "current_disposition": surface["current_disposition"],
@@ -899,6 +933,31 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             len(active_caller_soak.get("active_caller_families"))
             if isinstance(active_caller_soak, Mapping)
             and isinstance(active_caller_soak.get("active_caller_families"), list)
+            else None
+        ),
+        "agent_tool_arsenal_live_owner_consumption_soak_status": (
+            live_owner_consumption_soak.get("status")
+            if isinstance(live_owner_consumption_soak, Mapping)
+            else None
+        ),
+        "agent_tool_arsenal_live_owner_consumption_soak_proven": (
+            live_owner_consumption_soak.get("live_owner_consumption_soak_proven")
+            if isinstance(live_owner_consumption_soak, Mapping)
+            else None
+        ),
+        "agent_tool_arsenal_direct_hosted_parity_proven": (
+            live_owner_consumption_soak.get("direct_hosted_parity_proven")
+            if isinstance(live_owner_consumption_soak, Mapping)
+            else None
+        ),
+        "agent_tool_arsenal_no_active_caller_proven": (
+            live_owner_consumption_soak.get("no_active_caller_proven")
+            if isinstance(live_owner_consumption_soak, Mapping)
+            else None
+        ),
+        "agent_tool_arsenal_physical_delete_allowed": (
+            live_owner_consumption_soak.get("physical_delete_allowed")
+            if isinstance(live_owner_consumption_soak, Mapping)
             else None
         ),
         **_audit_workbench_projection_fields(surface),

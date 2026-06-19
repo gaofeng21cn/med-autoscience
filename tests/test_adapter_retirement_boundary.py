@@ -700,6 +700,28 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "wildcard_action_trigger_as_default_selector" in capability_registry[
         "forbidden_claims"
     ]
+    assert capability_registry["live_owner_consumption_soak_boundary"] == {
+        "status": "live_owner_consumption_soak_and_direct_hosted_parity_tail_open",
+        "live_owner_consumption_soak_proven": False,
+        "direct_hosted_parity_proven": False,
+        "no_active_caller_proven": False,
+        "physical_delete_allowed": False,
+        "required_before_physical_delete": (
+            "agent_tool_arsenal_live_owner_consumption_soak_and_direct_hosted_parity_ref"
+        ),
+        "allowed_consumption": [
+            "current_owner_delta_bound_capability_projection",
+            "explicit_capability_request_resolution_evidence",
+        ],
+        "forbidden_completion_claims": [
+            "capability_registry_contract_as_live_owner_consumption_soak",
+            "hosted_opl_runtime_requirement_as_direct_hosted_parity",
+            "mcp_or_cli_mode_coverage_as_direct_hosted_parity",
+            "wildcard_guard_as_live_owner_consumption_soak",
+            "capability_request_projection_as_paper_progress",
+            "repo_tests_green_as_physical_delete",
+        ],
+    }
     assert capability_registry["retirement_gate"]["live_owner_consumption_soak_required"] is True
     assert capability_registry["retirement_gate"]["direct_hosted_parity_required"] is True
 

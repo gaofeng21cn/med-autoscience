@@ -1229,6 +1229,26 @@
         ],
         "wildcard_policy_ref": "contracts/agent_tool_arsenal.json#/scientific_capability_registry.default_policy"
       },
+      "live_owner_consumption_soak_boundary": {
+        "status": "live_owner_consumption_soak_and_direct_hosted_parity_tail_open",
+        "live_owner_consumption_soak_proven": false,
+        "direct_hosted_parity_proven": false,
+        "no_active_caller_proven": false,
+        "physical_delete_allowed": false,
+        "required_before_physical_delete": "agent_tool_arsenal_live_owner_consumption_soak_and_direct_hosted_parity_ref",
+        "allowed_consumption": [
+          "current_owner_delta_bound_capability_projection",
+          "explicit_capability_request_resolution_evidence"
+        ],
+        "forbidden_completion_claims": [
+          "capability_registry_contract_as_live_owner_consumption_soak",
+          "hosted_opl_runtime_requirement_as_direct_hosted_parity",
+          "mcp_or_cli_mode_coverage_as_direct_hosted_parity",
+          "wildcard_guard_as_live_owner_consumption_soak",
+          "capability_request_projection_as_paper_progress",
+          "repo_tests_green_as_physical_delete"
+        ]
+      },
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_tool_selector",

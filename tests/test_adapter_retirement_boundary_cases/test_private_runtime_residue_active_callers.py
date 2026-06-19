@@ -407,6 +407,18 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "agent_tool_arsenal_scientific_capability_registry_direct_hosted_parity_ref"
         in arsenal_tail["required_ref_families"]
     )
+    assert (
+        "agent_tool_arsenal_live_owner_consumption_soak_and_direct_hosted_parity_ref"
+        in arsenal_tail["required_ref_families"]
+    )
+    assert (
+        "capability_registry_contract_as_live_owner_consumption_soak"
+        in arsenal_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "hosted_opl_runtime_requirement_as_direct_hosted_parity"
+        in arsenal_tail["forbidden_completion_interpretations"]
+    )
     assert layers["physical_retirement"]["status"] == "evidence_required"
     assert layers["physical_retirement"]["allowed"] is False
     assert "domain_owner_action_dispatch" in layers["physical_retirement"]["blocked_surface_ids"]
@@ -555,6 +567,21 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
         "allowed_effect"
     ] == "current_owner_delta_bound_capability_projection_explicit_request_only"
+    assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
+        "agent_tool_arsenal_live_owner_consumption_soak_status"
+    ] == "live_owner_consumption_soak_and_direct_hosted_parity_tail_open"
+    assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
+        "agent_tool_arsenal_live_owner_consumption_soak_proven"
+    ] is False
+    assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
+        "agent_tool_arsenal_direct_hosted_parity_proven"
+    ] is False
+    assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
+        "agent_tool_arsenal_no_active_caller_proven"
+    ] is False
+    assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
+        "agent_tool_arsenal_physical_delete_allowed"
+    ] is False
     assert all(surface["active_caller_retains_authority"] is False for surface in open_surfaces.values())
     assert all(
         surface["active_caller_retains_runtime_authority"] is False
@@ -1267,6 +1294,16 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "wildcard_sidecar_can_block_current_owner_action"
     ] = True
     capability["retirement_gate"]["live_owner_consumption_soak_required"] = False
+    capability["live_owner_consumption_soak_boundary"][
+        "live_owner_consumption_soak_proven"
+    ] = True
+    capability["live_owner_consumption_soak_boundary"][
+        "direct_hosted_parity_proven"
+    ] = True
+    capability["live_owner_consumption_soak_boundary"]["physical_delete_allowed"] = True
+    capability["live_owner_consumption_soak_boundary"][
+        "required_before_physical_delete"
+    ] = "repo_tests_green_ref"
 
     capability_violations = retirement.validate_runtime_surface_retirement_inventory(
         capability_bad_inventory
@@ -1315,6 +1352,22 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "agent_tool_arsenal_scientific_capability_registry",
             "capability_registry_missing_live_owner_soak_gate",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_live_soak_claimed:live_owner_consumption_soak_proven",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_live_soak_claimed:direct_hosted_parity_proven",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_live_soak_claimed:physical_delete_allowed",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_live_soak_missing_physical_delete_ref",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in capability_violations}
 

@@ -26,6 +26,7 @@ def completion_evidence_layers(
         or audit.get("domain_owner_action_dispatch_physical_delete_allowed") is False
         or audit.get("domain_authority_refs_physical_delete_allowed") is False
         or audit.get("legacy_stage_run_physical_delete_allowed") is False
+        or audit.get("agent_tool_arsenal_physical_delete_allowed") is False
     )
     open_surface_tails = [
         _open_surface_tail(
@@ -77,6 +78,7 @@ def _physical_delete_required_refs(surface: Mapping[str, Any]) -> list[str]:
         ("opl_state_index_takeover_bridge", "runtime_active_private_state_index_caller_scan"),
         ("opl_state_index_takeover_bridge", "legacy_helper_active_caller_scan"),
         ("legacy_stage_run_abi_boundary", "active_stage_run_abi_caller_scan"),
+        ("live_owner_consumption_soak_boundary",),
     )
     for path in nested_paths:
         container: Any = surface
@@ -173,8 +175,24 @@ def _surface_live_or_no_active_proven(
             "active_stage_run_abi_caller_scan",
             "no_active_stage_run_abi_caller_proven",
         ),
+        ("live_owner_consumption_soak_boundary", "no_active_caller_proven"),
     )
-    return any(_nested_value(surface, path) is True for path in proof_fields)
+    if any(_nested_value(surface, path) is True for path in proof_fields):
+        return True
+    if surface.get("surface_id") == "agent_tool_arsenal_scientific_capability_registry":
+        return (
+            _nested_value(
+                surface,
+                ("live_owner_consumption_soak_boundary", "live_owner_consumption_soak_proven"),
+            )
+            is True
+            and _nested_value(
+                surface,
+                ("live_owner_consumption_soak_boundary", "direct_hosted_parity_proven"),
+            )
+            is True
+        )
+    return False
 
 
 def _nested_value(surface: Mapping[str, Any], path: tuple[str, ...]) -> Any:
@@ -198,6 +216,7 @@ def _completion_interpretation_containers(surface: Mapping[str, Any]) -> list[Ma
     for key in (
         "active_caller_boundary",
         "active_caller_soak_boundary",
+        "live_owner_consumption_soak_boundary",
         "retirement_gate",
         "opl_state_index_takeover_bridge",
         "legacy_stage_run_abi_boundary",
