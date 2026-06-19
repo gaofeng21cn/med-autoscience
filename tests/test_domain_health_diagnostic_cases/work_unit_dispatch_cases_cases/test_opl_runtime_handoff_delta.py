@@ -423,13 +423,13 @@ def test_watch_runtime_closes_opl_runtime_handoff_when_default_executor_closeout
         "sat-closeout.closeout.json"
     )
     dump_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "study_id": study_id,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_adapter_receipt",
                     "study_id": study_id,
                     "quest_id": study_id,
                     "action_type": "run_gate_clearing_batch",
@@ -513,7 +513,7 @@ def test_watch_runtime_closes_opl_runtime_handoff_when_default_executor_closeout
     closed_payload = ledger_events[1]["payload"]
     assert closed_payload["closure_reason"] == "default_executor_closeout_after_opl_runtime_handoff"
     assert closed_payload["default_executor_execution_ref"].endswith(
-        "default_executor_execution/latest.json"
+        "owner_callable_adapter_receipts/latest.json"
     )
     assert closeout_ref in closed_payload["closeout_refs"]
 
