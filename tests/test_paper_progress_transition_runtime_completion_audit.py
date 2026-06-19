@@ -90,6 +90,20 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
     assert gates["lane_3_opl_substrate_hardening_live_consumption"]["status"] == "evidence_required"
     assert gates["lane_4_projection_demotion_and_physical_retirement"]["status"] == "evidence_required"
     assert gates["lane_5_live_paper_line_acceptance"]["status"] == "evidence_required"
+    assert {
+        (
+            "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/"
+            "provider_admission_same_identity_live_readback_consumes_transition_request"
+        ),
+        (
+            "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/"
+            "provider_admission_cross_identity_readback_remains_request_pending"
+        ),
+        (
+            "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/"
+            "provider_admission_bare_transaction_fragments_rejected"
+        ),
+    } <= set(gates["lane_1_replay_fixtures"]["observed_refs"])
 
     open_tails = set(audit["open_evidence_tails"])
     assert {

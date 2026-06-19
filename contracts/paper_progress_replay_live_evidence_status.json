@@ -95,6 +95,27 @@
       "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_dhd_provider_transition_request_without_opl_readback_becomes_non_advancing_apply"
     },
     {
+      "trace_id": "provider_admission_same_identity_live_readback_consumes_transition_request",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "StartProviderAttempt",
+      "required_postcondition": "same_identity_live_readback_consumes_transition_request_pending",
+      "test_ref": "tests/test_paper_recovery_provider_admission_state.py::test_same_identity_live_readback_promotes_request_to_provider_admission"
+    },
+    {
+      "trace_id": "provider_admission_cross_identity_readback_remains_request_pending",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "AwaitOplTransitionReadback",
+      "required_postcondition": "stale_or_cross_identity_readback_rejected",
+      "test_ref": "tests/test_paper_recovery_provider_admission_state.py::test_cross_identity_live_readback_remains_request_pending"
+    },
+    {
+      "trace_id": "provider_admission_bare_transaction_fragments_rejected",
+      "status": "covered_by_focused_test",
+      "accepted_transition": "AwaitOplTransitionReadback",
+      "required_postcondition": "bare_event_outbox_stagerun_fragments_do_not_authorize_admission",
+      "test_ref": "tests/test_paper_recovery_provider_admission_state.py::test_bare_event_outbox_or_stagerun_fragments_do_not_authorize_admission"
+    },
+    {
       "trace_id": "human_gate_and_route_back_accepted_shapes",
       "status": "covered_by_focused_test",
       "accepted_transition": "OpenHumanGate_or_AdoptRouteBackEvidence",

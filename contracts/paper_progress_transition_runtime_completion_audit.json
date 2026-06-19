@@ -567,6 +567,9 @@
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/terminal_owner_receipt_closeout_transition_request_residue",
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/closeout_stagerun_identity_split",
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/dhd_request_without_opl_readback",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/provider_admission_same_identity_live_readback_consumes_transition_request",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/provider_admission_cross_identity_readback_remains_request_pending",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/provider_admission_bare_transaction_fragments_rejected",
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/human_gate_and_route_back_accepted_shapes"
       ],
       "missing_evidence_tails": [],

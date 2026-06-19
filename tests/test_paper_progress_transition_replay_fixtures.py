@@ -751,6 +751,9 @@ def test_paper_progress_replay_live_evidence_status_contract_keeps_live_acceptan
     replay_trace_ids = {item["trace_id"] for item in contract["replay_coverage"]}
     assert "closeout_stagerun_identity_split" in replay_trace_ids
     assert "terminal_owner_receipt_closeout_transition_request_residue" in replay_trace_ids
+    assert "provider_admission_same_identity_live_readback_consumes_transition_request" in replay_trace_ids
+    assert "provider_admission_cross_identity_readback_remains_request_pending" in replay_trace_ids
+    assert "provider_admission_bare_transaction_fragments_rejected" in replay_trace_ids
     assert contract["projection_metadata_completion_gate"]["required_fields"] == [
         "authority",
         "derived_from_event_id",
