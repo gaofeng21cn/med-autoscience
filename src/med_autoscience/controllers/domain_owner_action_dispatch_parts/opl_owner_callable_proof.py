@@ -99,6 +99,7 @@ def _expected_study_ids(payload: Mapping[str, Any]) -> set[str]:
         prompt_contract.get("study_id"),
         owner_route.get("study_id"),
         source_action.get("study_id"),
+        *_provider_attempt_live_readback_values(payload, "aggregate_identity", "study_id"),
     )
 
 
@@ -122,6 +123,12 @@ def _expected_work_unit_ids(payload: Mapping[str, Any]) -> set[str]:
         _work_unit_id(currentness_basis.get("work_unit_id")),
         _work_unit_id(transition_request.get("work_unit_id")),
         _work_unit_id(_mapping(transition_request.get("identity")).get("work_unit_id")),
+        *(
+            _work_unit_id(value)
+            for value in _provider_attempt_live_readback_values(
+                payload, "aggregate_identity", "work_unit_id"
+            )
+        ),
     )
 
 
@@ -146,6 +153,9 @@ def _expected_work_unit_fingerprints(payload: Mapping[str, Any]) -> set[str]:
         currentness_basis.get("work_unit_fingerprint"),
         transition_request.get("work_unit_fingerprint"),
         transition_identity.get("work_unit_fingerprint"),
+        *_provider_attempt_live_readback_values(
+            payload, "aggregate_identity", "work_unit_fingerprint"
+        ),
     )
 
 
@@ -170,6 +180,7 @@ def _expected_route_identity_keys(payload: Mapping[str, Any]) -> set[str]:
         transition_request.get("route_identity_key"),
         transition_identity.get("route_identity_key"),
         stage_identity.get("route_identity_key"),
+        *_provider_attempt_live_readback_values(payload, "stage_run_identity", "route_identity_key"),
     )
 
 
@@ -194,6 +205,9 @@ def _expected_attempt_idempotency_keys(payload: Mapping[str, Any]) -> set[str]:
         transition_request.get("attempt_idempotency_key"),
         transition_identity.get("attempt_idempotency_key"),
         stage_identity.get("attempt_idempotency_key"),
+        *_provider_attempt_live_readback_values(
+            payload, "stage_run_identity", "attempt_idempotency_key"
+        ),
     )
 
 
@@ -206,6 +220,8 @@ def _expected_transition_request_keys(payload: Mapping[str, Any]) -> set[str]:
         transition_request.get("transition_request_idempotency_key"),
         transition_request.get("mas_transition_request_idempotency_key"),
         transition_identity.get("attempt_idempotency_key"),
+        *_provider_attempt_live_readback_values(payload, "identity", "idempotency_key"),
+        *_provider_attempt_live_readback_values(payload, "identity", "request_idempotency_key"),
         _mapping(payload.get("domain_intent")).get("idempotency_key"),
         _mapping(prompt_contract.get("domain_intent")).get("idempotency_key"),
     )
@@ -230,6 +246,13 @@ def _iter_payloads(*values: object) -> list[Mapping[str, Any]]:
             payload = _mapping(value)
             payloads.append(payload)
             for key in (
+                "domain_progress_transition_runtime",
+                "domain_progress_transition_runtime_result",
+                "opl_domain_progress_transition_live_readback",
+                "opl_domain_progress_transition_result",
+                "opl_domain_progress_transition_runtime_live_readback",
+                "opl_domain_progress_transition_runtime_result",
+                "opl_runtime_result",
                 "prompt_contract",
                 "owner_route",
                 "source_action",
@@ -244,6 +267,39 @@ def _iter_payloads(*values: object) -> list[Mapping[str, Any]]:
         if isinstance(value, (list, tuple)):
             stack.extend(item for item in value if isinstance(item, Mapping))
     return payloads
+
+
+def _provider_attempt_live_readback_values(
+    payload: Mapping[str, Any],
+    section: str,
+    key: str,
+) -> tuple[object, ...]:
+    if payload.get("running_provider_attempt") is not True:
+        return ()
+    values: list[object] = []
+    for readback in _provider_attempt_live_readbacks(payload):
+        identity = _mapping(readback.get("identity"))
+        source = identity if section == "identity" else _mapping(identity.get(section))
+        if key in source:
+            values.append(source.get(key))
+    return tuple(values)
+
+
+def _provider_attempt_live_readbacks(payload: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
+    readbacks: list[Mapping[str, Any]] = []
+    for key in (
+        "opl_domain_progress_transition_live_readback",
+        "opl_domain_progress_transition_result",
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_domain_progress_transition_runtime_result",
+        "opl_runtime_result",
+        "domain_progress_transition_runtime",
+        "domain_progress_transition_runtime_result",
+    ):
+        value = _mapping(payload.get(key))
+        if value:
+            readbacks.append(value)
+    return tuple(readbacks)
 
 
 def _non_empty_set(*values: object) -> set[str]:

@@ -994,6 +994,17 @@ def validate_domain_owner_action_dispatch(
             violations.append(_violation(surface_id, "owner_dispatch_soak_must_not_allow_physical_delete"))
         if soak.get("allowed_effect") != "execute_only_with_trusted_opl_authorization_or_bound_readback":
             violations.append(_violation(surface_id, "owner_dispatch_soak_allowed_effect_not_opl_authorized"))
+        for key in (
+            "repo_authorization_coverage_can_satisfy_live_soak",
+            "current_execution_running_proof_can_satisfy_live_soak",
+            "study_progress_running_proof_can_satisfy_live_soak",
+            "provider_completion_can_satisfy_dispatch_retirement",
+            "owner_callable_receipt_projection_can_satisfy_opl_readback",
+            "opl_execution_authorization_required_blocker_can_satisfy_live_soak",
+            "provider_handoff_or_completion_can_satisfy_physical_delete",
+        ):
+            if soak.get(key) is not False:
+                violations.append(_violation(surface_id, f"owner_dispatch_soak_forbidden:{key}"))
         if (
             soak.get("required_before_physical_delete")
             != "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref"
@@ -1039,6 +1050,9 @@ def validate_domain_owner_action_dispatch(
             "provider_completion_as_dispatch_retirement",
             "current_execution_running_proof_without_opl_readback_as_soak",
             "study_progress_running_proof_without_opl_readback_as_soak",
+            "owner_callable_adapter_receipt_projection_as_opl_stage_run_readback",
+            "opl_execution_authorization_required_blocker_as_live_soak",
+            "provider_handoff_or_completion_as_physical_delete",
         }
         if not isinstance(forbidden_claims, list) or not required_false_claims <= {
             str(item) for item in forbidden_claims

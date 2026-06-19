@@ -88,6 +88,17 @@ _OPL_OWNER_CALLABLE_ADAPTER_READBACK_REQUIREMENT = {
         "opl_fixed_point_reconcile",
     ],
 }
+OWNER_CALLABLE_ADAPTER_FORBIDDEN_COMPLETION_INTERPRETATIONS = [
+    "repo_authorization_coverage_as_live_every_active_caller_soak",
+    "active_caller_migrated_as_no_active_caller_proof",
+    "focused_tests_green_as_physical_delete",
+    "provider_completion_as_dispatch_retirement",
+    "current_execution_running_proof_without_opl_readback_as_soak",
+    "study_progress_running_proof_without_opl_readback_as_soak",
+    "owner_callable_adapter_receipt_projection_as_opl_stage_run_readback",
+    "opl_execution_authorization_required_blocker_as_live_soak",
+    "provider_handoff_or_completion_as_physical_delete",
+]
 
 
 def _utc_now() -> str:
@@ -296,7 +307,17 @@ def _owner_callable_adapter_boundary() -> dict[str, Any]:
         "can_create_provider_attempt": False,
         "can_generate_next_action": False,
         "can_satisfy_opl_readback": False,
+        "repo_authorization_coverage_can_satisfy_live_soak": False,
+        "current_execution_running_proof_can_satisfy_live_soak": False,
+        "study_progress_running_proof_can_satisfy_live_soak": False,
+        "provider_completion_can_satisfy_dispatch_retirement": False,
+        "owner_callable_receipt_projection_can_satisfy_opl_readback": False,
+        "opl_execution_authorization_required_blocker_can_satisfy_live_soak": False,
+        "provider_handoff_or_completion_can_satisfy_physical_delete": False,
         "opl_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
+        "forbidden_completion_interpretations": list(
+            OWNER_CALLABLE_ADAPTER_FORBIDDEN_COMPLETION_INTERPRETATIONS
+        ),
         "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
         "replacement_owner_surface": "OPL DomainProgressTransitionRuntime / StageRun",
     }
@@ -727,6 +748,9 @@ def _opl_execution_authorization_block_fields() -> dict[str, Any]:
         "provider_admission_requires_opl_runtime_result": True,
         "provider_completion_is_domain_completion": False,
         "provider_attempt_or_lease_required": False,
+        "forbidden_completion_interpretations": list(
+            OWNER_CALLABLE_ADAPTER_FORBIDDEN_COMPLETION_INTERPRETATIONS
+        ),
         "opl_transition_runtime_required": True,
         "opl_owner_callable_adapter_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
         "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
@@ -874,7 +898,8 @@ def _dispatch_execution_payload(
         "legacy_wire_surface": LEGACY_EXECUTION_SURFACE,
         "schema_version": SCHEMA_VERSION,
         "adapter_kind": _text(dispatch.get("adapter_kind")) or "opl_authorized_owner_callable_adapter",
-        "target_runtime_owner": _text(dispatch.get("target_runtime_owner")) or "one-person-lab",
+        "source_dispatch_target_runtime_owner": _text(dispatch.get("target_runtime_owner")),
+        "target_runtime_owner": "one-person-lab",
         "mas_dispatch_authority": False,
         "mas_creates_opl_outbox": False,
         "mas_creates_opl_event": False,
@@ -889,6 +914,9 @@ def _dispatch_execution_payload(
             )
         ),
         "execution_requires_opl_authorization": True,
+        "forbidden_completion_interpretations": list(
+            OWNER_CALLABLE_ADAPTER_FORBIDDEN_COMPLETION_INTERPRETATIONS
+        ),
         "opl_execution_authorization_required": dispatch.get("opl_execution_authorization_required") is True
         or prompt_contract.get("opl_execution_authorization_required") is True,
         "opl_execution_authorization_present": bool(
@@ -965,6 +993,30 @@ def _dispatch_execution_payload(
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         **execution,
     }
+    execution_payload.update(
+        {
+            "adapter_kind": "opl_authorized_owner_callable_adapter",
+            "target_runtime_owner": "one-person-lab",
+            "mas_dispatch_authority": False,
+            "mas_creates_opl_outbox": False,
+            "mas_creates_opl_event": False,
+            "mas_creates_opl_stage_run": False,
+            "provider_admission_pending": False,
+            "provider_completion_is_domain_completion": False,
+            "projection_authority": False,
+            "owner_callable_receipt_projection": True,
+            "execution_ledger_authority": False,
+            "attempt_lifecycle_authority": False,
+            "queue_authority": False,
+            "retry_or_dead_letter_authority": False,
+            "execution_requires_opl_authorization": True,
+            "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
+            "opl_owner_callable_adapter_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
+            "forbidden_completion_interpretations": list(
+                OWNER_CALLABLE_ADAPTER_FORBIDDEN_COMPLETION_INTERPRETATIONS
+            ),
+        }
+    )
     if execution_status := _text(execution_payload.get("execution_status")):
         execution_payload["status"] = execution_status
     progress_first_typed_blocker = _progress_first_typed_blocker(

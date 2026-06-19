@@ -1037,11 +1037,21 @@
           "focused_tests_green_as_physical_delete",
           "provider_completion_as_dispatch_retirement",
           "current_execution_running_proof_without_opl_readback_as_soak",
-          "study_progress_running_proof_without_opl_readback_as_soak"
+          "study_progress_running_proof_without_opl_readback_as_soak",
+          "owner_callable_adapter_receipt_projection_as_opl_stage_run_readback",
+          "opl_execution_authorization_required_blocker_as_live_soak",
+          "provider_handoff_or_completion_as_physical_delete"
         ],
         "live_every_active_caller_soak_proven": false,
         "no_active_caller_proven": false,
         "physical_delete_allowed": false,
+        "repo_authorization_coverage_can_satisfy_live_soak": false,
+        "current_execution_running_proof_can_satisfy_live_soak": false,
+        "study_progress_running_proof_can_satisfy_live_soak": false,
+        "provider_completion_can_satisfy_dispatch_retirement": false,
+        "owner_callable_receipt_projection_can_satisfy_opl_readback": false,
+        "opl_execution_authorization_required_blocker_can_satisfy_live_soak": false,
+        "provider_handoff_or_completion_can_satisfy_physical_delete": false,
         "physical_delete_requires": [
           "domain_owner_action_dispatch_execute_dispatch_live_readback_ref",
           "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref",

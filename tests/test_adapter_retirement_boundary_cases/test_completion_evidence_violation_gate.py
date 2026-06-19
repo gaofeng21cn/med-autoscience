@@ -77,3 +77,69 @@ def test_completion_evidence_layers_do_not_satisfy_live_evidence_when_authority_
         "mas_owner_claim_allowed_not_false"
         in dispatch_tail["surface_violation_reasons"]
     )
+
+
+def test_owner_dispatch_tail_rejects_running_proof_as_live_soak_completion() -> None:
+    inventory = _inventory()
+    owner_dispatch = _surface(inventory, "domain_owner_action_dispatch")
+    soak = owner_dispatch["active_caller_soak_boundary"]
+    soak["repo_authorization_coverage_can_satisfy_live_soak"] = True
+    soak["current_execution_running_proof_can_satisfy_live_soak"] = True
+    soak["study_progress_running_proof_can_satisfy_live_soak"] = True
+    soak["provider_completion_can_satisfy_dispatch_retirement"] = True
+    soak["owner_callable_receipt_projection_can_satisfy_opl_readback"] = True
+    soak["opl_execution_authorization_required_blocker_can_satisfy_live_soak"] = True
+    soak["provider_handoff_or_completion_can_satisfy_physical_delete"] = True
+
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+    audit = retirement.audit_runtime_surface_retirement_inventory(inventory)
+    layers = audit["completion_evidence_layers"]
+
+    assert audit["status"] == "authority_boundary_violation"
+    assert layers["live_soak_or_no_active_caller"]["status"] == "evidence_required"
+    assert layers["live_soak_or_no_active_caller"]["proven"] is False
+    tails = {
+        item["surface_id"]: item
+        for item in layers["live_soak_or_no_active_caller"]["open_surface_tails"]
+    }
+    dispatch_tail = tails["domain_owner_action_dispatch"]
+    assert dispatch_tail["live_or_no_active_proven"] is False
+    assert {
+        (
+            "owner_dispatch_soak_forbidden:"
+            "repo_authorization_coverage_can_satisfy_live_soak"
+        ),
+        (
+            "owner_dispatch_soak_forbidden:"
+            "current_execution_running_proof_can_satisfy_live_soak"
+        ),
+        (
+            "owner_dispatch_soak_forbidden:"
+            "study_progress_running_proof_can_satisfy_live_soak"
+        ),
+        (
+            "owner_dispatch_soak_forbidden:"
+            "provider_completion_can_satisfy_dispatch_retirement"
+        ),
+        (
+            "owner_dispatch_soak_forbidden:"
+            "owner_callable_receipt_projection_can_satisfy_opl_readback"
+        ),
+        (
+            "owner_dispatch_soak_forbidden:"
+            "opl_execution_authorization_required_blocker_can_satisfy_live_soak"
+        ),
+        (
+            "owner_dispatch_soak_forbidden:"
+            "provider_handoff_or_completion_can_satisfy_physical_delete"
+        ),
+    } <= set(dispatch_tail["surface_violation_reasons"])
+    assert {
+        "current_execution_running_proof_without_opl_readback_as_soak",
+        "study_progress_running_proof_without_opl_readback_as_soak",
+        "owner_callable_adapter_receipt_projection_as_opl_stage_run_readback",
+        "opl_execution_authorization_required_blocker_as_live_soak",
+        "provider_handoff_or_completion_as_physical_delete",
+    } <= set(dispatch_tail["forbidden_completion_interpretations"])

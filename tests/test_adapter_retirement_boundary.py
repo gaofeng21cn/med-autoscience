@@ -599,6 +599,13 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "live_every_active_caller_soak_proven": False,
         "no_active_caller_proven": False,
         "physical_delete_allowed": False,
+        "repo_authorization_coverage_can_satisfy_live_soak": False,
+        "current_execution_running_proof_can_satisfy_live_soak": False,
+        "study_progress_running_proof_can_satisfy_live_soak": False,
+        "provider_completion_can_satisfy_dispatch_retirement": False,
+        "owner_callable_receipt_projection_can_satisfy_opl_readback": False,
+        "opl_execution_authorization_required_blocker_can_satisfy_live_soak": False,
+        "provider_handoff_or_completion_can_satisfy_physical_delete": False,
         "required_before_physical_delete": (
             "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref"
         ),
@@ -641,6 +648,9 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "provider_completion_as_dispatch_retirement",
             "current_execution_running_proof_without_opl_readback_as_soak",
             "study_progress_running_proof_without_opl_readback_as_soak",
+            "owner_callable_adapter_receipt_projection_as_opl_stage_run_readback",
+            "opl_execution_authorization_required_blocker_as_live_soak",
+            "provider_handoff_or_completion_as_physical_delete",
         ],
     }
     assert "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py" in owner_dispatch[

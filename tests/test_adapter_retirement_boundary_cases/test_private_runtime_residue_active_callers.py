@@ -587,6 +587,22 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "current_execution_running_proof_without_opl_readback_as_soak"
         in owner_dispatch_tail["forbidden_completion_interpretations"]
     )
+    assert (
+        "study_progress_running_proof_without_opl_readback_as_soak"
+        in owner_dispatch_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "owner_callable_adapter_receipt_projection_as_opl_stage_run_readback"
+        in owner_dispatch_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "opl_execution_authorization_required_blocker_as_live_soak"
+        in owner_dispatch_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "provider_handoff_or_completion_as_physical_delete"
+        in owner_dispatch_tail["forbidden_completion_interpretations"]
+    )
     runtime_health_tail = evidence_tails["runtime_health_kernel"]
     assert (
         "runtime_health_kernel_opl_runtime_health_observability_tail_readback_ref"
@@ -1499,6 +1515,27 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     owner_dispatch["active_caller_soak_boundary"]["no_active_caller_proven"] = True
     owner_dispatch["active_caller_soak_boundary"]["physical_delete_allowed"] = True
     owner_dispatch["active_caller_soak_boundary"][
+        "repo_authorization_coverage_can_satisfy_live_soak"
+    ] = True
+    owner_dispatch["active_caller_soak_boundary"][
+        "current_execution_running_proof_can_satisfy_live_soak"
+    ] = True
+    owner_dispatch["active_caller_soak_boundary"][
+        "study_progress_running_proof_can_satisfy_live_soak"
+    ] = True
+    owner_dispatch["active_caller_soak_boundary"][
+        "provider_completion_can_satisfy_dispatch_retirement"
+    ] = True
+    owner_dispatch["active_caller_soak_boundary"][
+        "owner_callable_receipt_projection_can_satisfy_opl_readback"
+    ] = True
+    owner_dispatch["active_caller_soak_boundary"][
+        "opl_execution_authorization_required_blocker_can_satisfy_live_soak"
+    ] = True
+    owner_dispatch["active_caller_soak_boundary"][
+        "provider_handoff_or_completion_can_satisfy_physical_delete"
+    ] = True
+    owner_dispatch["active_caller_soak_boundary"][
         "required_before_physical_delete"
     ] = "repo_tests_green"
     owner_dispatch["active_caller_soak_boundary"]["physical_delete_requires"] = [
@@ -1512,6 +1549,9 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     ]
     owner_dispatch["active_caller_soak_boundary"]["forbidden_completion_claims"].remove(
         "repo_authorization_coverage_as_live_every_active_caller_soak"
+    )
+    owner_dispatch["active_caller_soak_boundary"]["forbidden_completion_claims"].remove(
+        "owner_callable_adapter_receipt_projection_as_opl_stage_run_readback"
     )
     owner_dispatch["consumer_input_boundary"][
         "inline_default_executor_dispatch_request_candidate_allowed"
@@ -1567,6 +1607,55 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "domain_owner_action_dispatch",
             "owner_dispatch_soak_must_not_allow_physical_delete",
+        ),
+        (
+            "domain_owner_action_dispatch",
+            (
+                "owner_dispatch_soak_forbidden:"
+                "repo_authorization_coverage_can_satisfy_live_soak"
+            ),
+        ),
+        (
+            "domain_owner_action_dispatch",
+            (
+                "owner_dispatch_soak_forbidden:"
+                "current_execution_running_proof_can_satisfy_live_soak"
+            ),
+        ),
+        (
+            "domain_owner_action_dispatch",
+            (
+                "owner_dispatch_soak_forbidden:"
+                "study_progress_running_proof_can_satisfy_live_soak"
+            ),
+        ),
+        (
+            "domain_owner_action_dispatch",
+            (
+                "owner_dispatch_soak_forbidden:"
+                "provider_completion_can_satisfy_dispatch_retirement"
+            ),
+        ),
+        (
+            "domain_owner_action_dispatch",
+            (
+                "owner_dispatch_soak_forbidden:"
+                "owner_callable_receipt_projection_can_satisfy_opl_readback"
+            ),
+        ),
+        (
+            "domain_owner_action_dispatch",
+            (
+                "owner_dispatch_soak_forbidden:"
+                "opl_execution_authorization_required_blocker_can_satisfy_live_soak"
+            ),
+        ),
+        (
+            "domain_owner_action_dispatch",
+            (
+                "owner_dispatch_soak_forbidden:"
+                "provider_handoff_or_completion_can_satisfy_physical_delete"
+            ),
         ),
         (
             "domain_owner_action_dispatch",

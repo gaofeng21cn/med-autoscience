@@ -187,9 +187,25 @@ def test_dispatch_receipt_projection_never_exports_mas_private_authority_claims(
             "execution_status": "blocked",
             "blocked_reason": "mas_dispatch_authority_forbidden",
             "owner_callable_surface": None,
+            "adapter_kind": "legacy_default_executor_dispatcher",
+            "target_runtime_owner": "med-autoscience",
+            "mas_dispatch_authority": True,
+            "mas_creates_opl_outbox": True,
+            "mas_creates_opl_event": True,
+            "mas_creates_opl_stage_run": True,
+            "provider_admission_pending": True,
+            "provider_completion_is_domain_completion": True,
+            "owner_callable_receipt_projection": False,
+            "execution_ledger_authority": True,
+            "attempt_lifecycle_authority": True,
+            "queue_authority": True,
+            "retry_or_dead_letter_authority": True,
         },
     )
 
+    assert payload["adapter_kind"] == "opl_authorized_owner_callable_adapter"
+    assert payload["target_runtime_owner"] == "one-person-lab"
+    assert payload["source_dispatch_target_runtime_owner"] == "one-person-lab"
     assert payload["mas_dispatch_authority"] is False
     assert payload["mas_creates_opl_outbox"] is False
     assert payload["mas_creates_opl_event"] is False
@@ -198,10 +214,28 @@ def test_dispatch_receipt_projection_never_exports_mas_private_authority_claims(
     assert payload["source_dispatch_claimed_opl_write"] is True
     assert payload["source_dispatch_claimed_provider_admission_pending"] is True
     assert payload["provider_admission_pending"] is False
+    assert payload["provider_completion_is_domain_completion"] is False
     assert payload["owner_callable_adapter_boundary"]["mas_dispatch_authority"] is False
     assert payload["owner_callable_adapter_boundary"]["can_satisfy_opl_readback"] is False
+    forbidden_completion = set(payload["forbidden_completion_interpretations"])
+    assert {
+        "repo_authorization_coverage_as_live_every_active_caller_soak",
+        "provider_completion_as_dispatch_retirement",
+        "current_execution_running_proof_without_opl_readback_as_soak",
+        "study_progress_running_proof_without_opl_readback_as_soak",
+        "owner_callable_adapter_receipt_projection_as_opl_stage_run_readback",
+        "opl_execution_authorization_required_blocker_as_live_soak",
+        "provider_handoff_or_completion_as_physical_delete",
+    } <= forbidden_completion
+    assert (
+        payload["owner_callable_adapter_boundary"]["forbidden_completion_interpretations"]
+        == payload["forbidden_completion_interpretations"]
+    )
+    assert payload["owner_callable_receipt_projection"] is True
     assert payload["execution_ledger_authority"] is False
     assert payload["attempt_lifecycle_authority"] is False
+    assert payload["queue_authority"] is False
+    assert payload["retry_or_dead_letter_authority"] is False
     readback_requirement = payload["opl_owner_callable_adapter_readback_requirement"]
     assert readback_requirement["surface_kind"] == "opl_owner_callable_adapter_readback_requirement"
     assert readback_requirement["required_owner_surface"] == "one-person-lab DomainProgressTransitionRuntime / StageRun"
