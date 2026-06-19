@@ -4,8 +4,10 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.private_runtime_residue_validators import (
+    audit_workbench_projection_fields as _audit_workbench_projection_fields,
     validate_domain_health_diagnostic_obligation_actuator as _validate_domain_health_diagnostic_obligation_actuator,
     validate_domain_owner_action_dispatch as _validate_domain_owner_action_dispatch,
+    validate_progress_portal_study_workbench_overview_action_projection as _validate_progress_portal_study_workbench_overview_action_projection,
 )
 
 
@@ -142,6 +144,8 @@ def validate_runtime_surface_retirement_inventory(
             violations.extend(_validate_runtime_health_kernel(surface_id, surface))
         if surface_id == "agent_tool_arsenal_scientific_capability_registry":
             violations.extend(_validate_agent_tool_arsenal_scientific_capability_registry(surface_id, surface))
+        if surface_id == "progress_portal_study_workbench_overview_action_projection":
+            violations.extend(_validate_progress_portal_study_workbench_overview_action_projection(surface_id, surface))
         if surface.get("current_disposition") != "physically_retired":
             violations.extend(_validate_open_surface(surface_id, surface))
     return violations
@@ -841,6 +845,7 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             and isinstance(active_caller_soak.get("active_caller_families"), list)
             else None
         ),
+        **_audit_workbench_projection_fields(surface),
         "domain_authority_refs_no_active_replay_local_inspection_caller_proven": (
             state_index_scan.get("no_active_replay_or_local_inspection_caller_proven")
             if isinstance(state_index_scan, Mapping)

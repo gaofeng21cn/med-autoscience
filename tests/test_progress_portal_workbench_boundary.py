@@ -8,6 +8,20 @@ from tests.progress_portal_cases.helpers import progress_payload
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+WORKBENCH_SURFACE_ID = "progress_portal_study_workbench_overview_action_projection"
+
+
+def _retirement_inventory() -> dict[str, object]:
+    return json.loads(
+        (REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+def _workbench_retirement_surface(inventory: dict[str, object]) -> dict[str, object]:
+    surfaces = {item["surface_id"]: item for item in inventory["surfaces"]}
+    return surfaces[WORKBENCH_SURFACE_ID]
 
 
 def _study_workbench_payload() -> dict[str, object]:
@@ -208,13 +222,8 @@ def test_runtime_workbench_projection_actions_and_summaries_remain_read_only_ref
 
 
 def test_retirement_inventory_tracks_workbench_read_only_action_projection() -> None:
-    inventory = json.loads(
-        (REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    surfaces = {item["surface_id"]: item for item in inventory["surfaces"]}
-    surface = surfaces["progress_portal_study_workbench_overview_action_projection"]
+    inventory = _retirement_inventory()
+    surface = _workbench_retirement_surface(inventory)
 
     assert surface["current_disposition"] == "read_only_workbench_projection"
     assert surface["retained_mas_role"] == "body_free_workbench_read_model_projection"
@@ -247,4 +256,88 @@ def test_retirement_inventory_tracks_workbench_read_only_action_projection() -> 
             "must_not_be_used_as_next_action_authority": True,
         "must_not_be_used_as_publication_ready": True,
         "must_not_be_used_as_paper_progress": True,
+    }
+
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+    audit = retirement.audit_runtime_surface_retirement_inventory(inventory)
+    open_surfaces = {item["surface_id"]: item for item in audit["open_surfaces"]}
+    workbench_audit = open_surfaces[WORKBENCH_SURFACE_ID]
+
+    assert [
+        item for item in audit["violations"] if item["surface_id"] == WORKBENCH_SURFACE_ID
+    ] == []
+    assert workbench_audit["authority_status"] == "read_only_projection_no_authority"
+    assert workbench_audit["allowed_effect"] == "read_only_owner_delta_summary"
+    assert workbench_audit["workbench_projection_only"] is True
+    assert workbench_audit["workbench_next_system_action_role"] == "read_only_owner_delta_summary"
+    assert workbench_audit["workbench_operator_intent_refs_are_inert"] is True
+    assert workbench_audit["workbench_can_generate_action"] is False
+    assert workbench_audit["workbench_can_transport_operator_action"] is False
+
+
+def test_retirement_validator_blocks_workbench_projection_authority_regressions() -> None:
+    inventory = _retirement_inventory()
+    surface = _workbench_retirement_surface(inventory)
+    boundary = surface["projection_boundary"]
+    boundary["can_generate_action"] = True
+    boundary["can_transport_operator_action"] = True
+    boundary["can_emit_runtime_command"] = True
+    boundary["requires_opl_current_control_readback"] = False
+    boundary["operator_intent_refs_are_inert"] = False
+    boundary["next_system_action_role"] = "controller_next_action"
+    boundary["must_not_be_used_as_paper_progress"] = False
+
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+    violations = retirement.validate_runtime_surface_retirement_inventory(inventory)
+
+    assert {
+        (WORKBENCH_SURFACE_ID, "workbench_projection_boundary_forbidden:can_generate_action"),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_boundary_forbidden:can_transport_operator_action",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_boundary_forbidden:can_emit_runtime_command",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_boundary_mismatch:requires_opl_current_control_readback",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_boundary_mismatch:operator_intent_refs_are_inert",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_boundary_mismatch:next_system_action_role",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_boundary_mismatch:must_not_be_used_as_paper_progress",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in violations}
+
+
+def test_retirement_validator_requires_workbench_projection_boundary() -> None:
+    inventory = _retirement_inventory()
+    surface = _workbench_retirement_surface(inventory)
+    surface.pop("projection_boundary")
+
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+
+    assert {
+        (item["surface_id"], item["reason"])
+        for item in retirement.validate_runtime_surface_retirement_inventory(inventory)
+    } >= {
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_missing_projection_boundary",
+        )
     }

@@ -4,6 +4,78 @@ from collections.abc import Mapping
 from typing import Any
 
 
+def validate_progress_portal_study_workbench_overview_action_projection(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    if surface.get("current_disposition") != "read_only_workbench_projection":
+        violations.append(_violation(surface_id, "workbench_projection_not_read_only_projection"))
+    if surface.get("retained_mas_role") != "body_free_workbench_read_model_projection":
+        violations.append(_violation(surface_id, "workbench_projection_retained_role_not_body_free"))
+    if surface.get("replacement_surface") != (
+        "OPL Workbench Shell owns operator action transport; MAS only publishes inert "
+        "current_owner_delta and DomainProgressTransitionRuntime readback refs"
+    ):
+        violations.append(_violation(surface_id, "workbench_projection_replacement_not_opl_workbench_shell"))
+
+    boundary = surface.get("projection_boundary")
+    if not isinstance(boundary, Mapping):
+        return [*violations, _violation(surface_id, "workbench_projection_missing_projection_boundary")]
+
+    expected_values: dict[str, Any] = {
+        "next_system_action_role": "read_only_owner_delta_summary",
+        "projection_only": True,
+        "operator_intent_refs_are_inert": True,
+        "requires_opl_current_control_readback": True,
+        "legacy_operator_focus_role": "diagnostic_legacy_projection_input",
+        "legacy_next_system_action_role": "diagnostic_legacy_projection_input",
+        "must_not_be_used_as_provider_admission": True,
+        "must_not_be_used_as_next_action_authority": True,
+        "must_not_be_used_as_publication_ready": True,
+        "must_not_be_used_as_paper_progress": True,
+    }
+    for key, expected in expected_values.items():
+        if boundary.get(key) != expected:
+            violations.append(_violation(surface_id, f"workbench_projection_boundary_mismatch:{key}"))
+
+    for key in (
+        "can_generate_action",
+        "can_execute",
+        "can_emit_runtime_command",
+        "can_authorize_provider_admission",
+        "can_authorize_worker_attempt",
+        "can_open_runtime_endpoint",
+        "can_transport_operator_action",
+    ):
+        if boundary.get(key) is not False:
+            violations.append(_violation(surface_id, f"workbench_projection_boundary_forbidden:{key}"))
+    return violations
+
+
+def audit_workbench_projection_fields(surface: Mapping[str, Any]) -> dict[str, Any]:
+    surface_id = surface.get("surface_id")
+    boundary = surface.get("projection_boundary")
+    if (
+        surface_id != "progress_portal_study_workbench_overview_action_projection"
+        or not isinstance(boundary, Mapping)
+    ):
+        return {
+            "workbench_projection_only": None,
+            "workbench_next_system_action_role": None,
+            "workbench_operator_intent_refs_are_inert": None,
+            "workbench_can_generate_action": None,
+            "workbench_can_transport_operator_action": None,
+        }
+    return {
+        "workbench_projection_only": boundary.get("projection_only"),
+        "workbench_next_system_action_role": boundary.get("next_system_action_role"),
+        "workbench_operator_intent_refs_are_inert": boundary.get("operator_intent_refs_are_inert"),
+        "workbench_can_generate_action": boundary.get("can_generate_action"),
+        "workbench_can_transport_operator_action": boundary.get("can_transport_operator_action"),
+    }
+
+
 def validate_domain_owner_action_dispatch(
     surface_id: str,
     surface: Mapping[str, Any],
@@ -302,6 +374,8 @@ def _violation(surface_id: str, reason: str) -> dict[str, str]:
 
 
 __all__ = [
+    "audit_workbench_projection_fields",
     "validate_domain_health_diagnostic_obligation_actuator",
     "validate_domain_owner_action_dispatch",
+    "validate_progress_portal_study_workbench_overview_action_projection",
 ]
