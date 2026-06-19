@@ -110,6 +110,29 @@ DEFAULT_EXECUTOR_CARRIER_TAIL_READBACK = {
     ],
 }
 
+DOMAIN_AUTHORITY_REFS_NO_ACTIVE_LEGACY_HELPER_SCAN = {
+    "status": "no_active_replay_or_local_inspection_callers",
+    "no_active_replay_or_local_inspection_caller_proven": True,
+    "physical_delete_allowed": False,
+    "required_before_physical_delete": (
+        "domain_authority_refs_index_live_state_index_takeover_or_"
+        "no_active_replay_local_inspection_caller_physical_delete_ref"
+    ),
+    "active_callers": [],
+    "allowed_consumption": [
+        "explicit_history_replay",
+        "explicit_local_refs_inspection",
+        "tombstone_provenance",
+    ],
+    "forbidden_completion_claims": [
+        "legacy_helper_no_active_scan_as_physical_delete",
+        "opl_family_adoption_sqlite_inspection_as_current_projection",
+        "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
+        "explicit_replay_opt_in_as_live_opl_readback",
+        "no_active_replay_local_inspection_scan_as_live_state_index_kernel_takeover",
+    ],
+}
+
 
 def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only() -> None:
     inventory_path = REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json"
@@ -117,33 +140,7 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     surfaces = {surface["surface_id"]: surface for surface in inventory["surfaces"]}
 
     refs_surface = surfaces["domain_authority_refs_index"]
-    legacy_helper_scan = {
-        "status": "active_replay_or_local_inspection_callers_present_tail_open",
-        "no_active_replay_or_local_inspection_caller_proven": False,
-        "physical_delete_allowed": False,
-        "required_before_physical_delete": (
-            "domain_authority_refs_index_live_state_index_takeover_or_"
-            "no_active_replay_local_inspection_caller_physical_delete_ref"
-        ),
-        "active_callers": [
-            (
-                "paper_progress_transition_refs.record_paper_progress_transition_ref::"
-                "persist_authority_refs_index_explicit_opt_in"
-            ),
-        ],
-        "allowed_consumption": [
-            "explicit_history_replay",
-            "explicit_local_refs_inspection",
-            "tombstone_provenance",
-        ],
-        "forbidden_completion_claims": [
-            "legacy_helper_active_scan_as_physical_delete",
-            "legacy_helper_active_callers_as_no_active_caller",
-            "opl_family_adoption_sqlite_inspection_as_current_projection",
-            "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
-            "explicit_replay_opt_in_as_live_opl_readback",
-        ],
-    }
+    legacy_helper_scan = DOMAIN_AUTHORITY_REFS_NO_ACTIVE_LEGACY_HELPER_SCAN
     runtime_active_scan = {
         "status": "no_runtime_active_private_state_index_callers",
         "no_runtime_active_private_state_index_caller_proven": True,
@@ -213,7 +210,7 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "no_active_caller_required_before_physical_delete": True,
         "no_active_authority_caller_proven": True,
         "no_runtime_active_private_state_index_caller_proven": True,
-        "no_active_replay_or_local_inspection_caller_proven": False,
+        "no_active_replay_or_local_inspection_caller_proven": True,
         "physical_delete_allowed": False,
         "repo_replacement_parity_proven": True,
         "replacement_parity_required": True,
@@ -563,7 +560,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         in carrier_tail["forbidden_completion_interpretations"]
     )
     refs_tail = evidence_tails["domain_authority_refs_index"]
-    assert refs_tail["live_or_no_active_proven"] is False
+    assert refs_tail["live_or_no_active_proven"] is True
     assert refs_tail["physical_delete_gate_open"] is True
     assert (
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref"
@@ -575,6 +572,10 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     )
     assert (
         "source_adapter_manifest_as_live_opl_state_index_readback"
+        in refs_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "no_active_replay_local_inspection_scan_as_live_state_index_kernel_takeover"
         in refs_tail["forbidden_completion_interpretations"]
     )
     actuator_tail = evidence_tails["domain_health_diagnostic_obligation_actuator"]
@@ -796,7 +797,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         open_surfaces["domain_authority_refs_index"][
             "domain_authority_refs_no_active_replay_local_inspection_caller_proven"
         ]
-        is False
+        is True
     )
     assert (
         open_surfaces["domain_authority_refs_index"][
@@ -1073,8 +1074,8 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     refs_surface["retirement_gate"]["active_caller_alone_retains_surface"] = True
     refs_surface["authority_boundary"]["can_authorize_provider_admission"] = True
     refs_surface["opl_state_index_takeover_bridge"]["legacy_helper_active_caller_scan"][
-        "no_active_replay_or_local_inspection_caller_proven"
-    ] = True
+        "active_callers"
+    ] = ["paper_progress_transition_refs.record_paper_progress_transition_ref::legacy_sqlite"]
     refs_surface["opl_state_index_takeover_bridge"]["legacy_helper_active_caller_scan"][
         "physical_delete_allowed"
     ] = True
@@ -1092,11 +1093,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         ("domain_authority_refs_index", "active_caller_alone_can_retain_surface"),
         (
             "domain_authority_refs_index",
-            "domain_authority_refs_active_tail_must_not_claim_no_active_replay_local_inspection_callers",
-        ),
-        (
-            "domain_authority_refs_index",
-            "domain_authority_refs_active_replay_local_inspection_callers_block_physical_delete",
+            "domain_authority_refs_no_active_scan_must_not_list_active_callers",
         ),
         (
             "domain_authority_refs_index",
@@ -1104,7 +1101,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         ),
         (
             "domain_authority_refs_index",
-            "domain_authority_refs_retirement_gate_must_not_claim_no_active_replay_local_inspection_callers",
+            "domain_authority_refs_no_active_scan_must_not_allow_physical_delete",
         ),
         (
             "domain_authority_refs_index",
@@ -2280,7 +2277,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     } <= {(item["surface_id"], item["reason"]) for item in capability_violations}
 
 
-def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_tail_open() -> None:
+def test_domain_authority_refs_index_no_active_legacy_helper_scan_keeps_physical_delete_tail_open() -> None:
     inventory = json.loads(
         (REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json").read_text(
             encoding="utf-8"
@@ -2305,8 +2302,8 @@ def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_ta
     assert "runtime_active_no_private_caller_as_physical_delete" in runtime_scan[
         "forbidden_completion_claims"
     ]
-    assert scan["status"] == "active_replay_or_local_inspection_callers_present_tail_open"
-    assert scan["no_active_replay_or_local_inspection_caller_proven"] is False
+    assert scan["status"] == "no_active_replay_or_local_inspection_callers"
+    assert scan["no_active_replay_or_local_inspection_caller_proven"] is True
     assert scan["physical_delete_allowed"] is False
     assert (
         scan["required_before_physical_delete"]
@@ -2315,15 +2312,10 @@ def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_ta
             "no_active_replay_local_inspection_caller_physical_delete_ref"
         )
     )
-    assert {
-        (
-            "paper_progress_transition_refs.record_paper_progress_transition_ref::"
-            "persist_authority_refs_index_explicit_opt_in"
-        ),
-    } <= set(scan["active_callers"])
+    assert scan["active_callers"] == []
     assert "explicit_history_replay" in scan["allowed_consumption"]
     assert "explicit_local_refs_inspection" in scan["allowed_consumption"]
-    assert "legacy_helper_active_scan_as_physical_delete" in scan[
+    assert "legacy_helper_no_active_scan_as_physical_delete" in scan[
         "forbidden_completion_claims"
     ]
 
@@ -2336,7 +2328,7 @@ def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_ta
         audited_surface[
             "domain_authority_refs_no_active_replay_local_inspection_caller_proven"
         ]
-        is False
+        is True
     )
     assert (
         audited_surface[
@@ -2351,9 +2343,7 @@ def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_ta
         == 0
     )
     assert audited_surface["domain_authority_refs_physical_delete_allowed"] is False
-    assert audited_surface["domain_authority_refs_legacy_helper_active_caller_count"] == len(
-        scan["active_callers"]
-    )
+    assert audited_surface["domain_authority_refs_legacy_helper_active_caller_count"] == 0
     assert audited_surface["physical_delete_gate_open"] is True
     assert audit["completion_claim_allowed"] is False
 
@@ -2364,7 +2354,9 @@ def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_ta
     bad_scan = bad_surface["opl_state_index_takeover_bridge"][
         "legacy_helper_active_caller_scan"
     ]
-    bad_scan["no_active_replay_or_local_inspection_caller_proven"] = True
+    bad_scan["active_callers"] = [
+        "paper_progress_transition_refs.record_paper_progress_transition_ref::legacy_sqlite"
+    ]
     bad_scan["physical_delete_allowed"] = True
     bad_runtime_scan = bad_surface["opl_state_index_takeover_bridge"][
         "runtime_active_private_state_index_caller_scan"
@@ -2386,11 +2378,7 @@ def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_ta
     assert {
         (
             "domain_authority_refs_index",
-            "domain_authority_refs_active_tail_must_not_claim_no_active_replay_local_inspection_callers",
-        ),
-        (
-            "domain_authority_refs_index",
-            "domain_authority_refs_active_replay_local_inspection_callers_block_physical_delete",
+            "domain_authority_refs_no_active_scan_must_not_list_active_callers",
         ),
         (
             "domain_authority_refs_index",
@@ -2418,7 +2406,11 @@ def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_ta
         ),
         (
             "domain_authority_refs_index",
-            "domain_authority_refs_retirement_gate_must_not_claim_no_active_replay_local_inspection_callers",
+            "domain_authority_refs_no_active_scan_must_not_allow_physical_delete",
+        ),
+        (
+            "domain_authority_refs_index",
+            "domain_authority_refs_retirement_gate_must_not_allow_physical_delete",
         ),
         (
             "domain_authority_refs_index",

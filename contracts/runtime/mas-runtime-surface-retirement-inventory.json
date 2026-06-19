@@ -163,24 +163,22 @@
         "active_caller_db_path_does_not_imply_persistence": true,
         "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only",
         "legacy_helper_active_caller_scan": {
-          "status": "active_replay_or_local_inspection_callers_present_tail_open",
-          "no_active_replay_or_local_inspection_caller_proven": false,
+          "status": "no_active_replay_or_local_inspection_callers",
+          "no_active_replay_or_local_inspection_caller_proven": true,
           "physical_delete_allowed": false,
           "required_before_physical_delete": "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
-          "active_callers": [
-            "paper_progress_transition_refs.record_paper_progress_transition_ref::persist_authority_refs_index_explicit_opt_in"
-          ],
+          "active_callers": [],
           "allowed_consumption": [
             "explicit_history_replay",
             "explicit_local_refs_inspection",
             "tombstone_provenance"
           ],
           "forbidden_completion_claims": [
-            "legacy_helper_active_scan_as_physical_delete",
-            "legacy_helper_active_callers_as_no_active_caller",
+            "legacy_helper_no_active_scan_as_physical_delete",
             "opl_family_adoption_sqlite_inspection_as_current_projection",
             "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
-            "explicit_replay_opt_in_as_live_opl_readback"
+            "explicit_replay_opt_in_as_live_opl_readback",
+            "no_active_replay_local_inspection_scan_as_live_state_index_kernel_takeover"
           ]
         },
         "source_adapter_manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
@@ -208,7 +206,7 @@
         "completion_claim_requires_live_owner_or_opl_readback": true,
         "no_active_caller_required_before_physical_delete": true,
         "no_active_authority_caller_proven": true,
-        "no_active_replay_or_local_inspection_caller_proven": false,
+        "no_active_replay_or_local_inspection_caller_proven": true,
         "physical_delete_allowed": false,
         "repo_replacement_parity_proven": true,
         "replacement_parity_required": true,
@@ -224,7 +222,7 @@
         "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox",
         "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies",
         "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_tail_open",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_no_active_legacy_helper_scan_keeps_physical_delete_tail_open",
         "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
         "tests/test_domain_owner_action_dispatch_cases/anti_loop_budget.py::test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budget_and_indexes_receipt",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed"
@@ -938,53 +936,53 @@
         "live_readback_required_before_retirement": true,
         "live_tail": "live_every_active_caller_soak_or_no_active_caller_proof"
       },
-    "active_caller_soak_boundary": {
-      "status": "live_every_active_caller_soak_tail_open",
-      "live_every_active_caller_soak_proven": false,
-      "no_active_caller_proven": false,
-      "physical_delete_allowed": false,
-      "required_before_physical_delete": "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
-      "physical_delete_requires": [
-        "domain_owner_action_dispatch_execute_dispatch_live_readback_ref",
-        "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref",
-        "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref",
-        "domain_owner_action_dispatch_ai_reviewer_authorization_live_readback_ref",
-        "domain_owner_action_dispatch_gate_clearing_authorization_live_readback_ref",
-        "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref",
-        "domain_owner_action_dispatch_study_progress_running_proof_live_readback_ref",
-        "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref",
-        "no_forbidden_write_proof",
-        "replacement_parity_ref",
-        "tombstone_or_provenance_ref"
-      ],
-      "required_active_caller_readbacks": [
-        "execute_dispatch_live_readback",
-        "stage_native_owner_action_live_readback",
-        "provider_hosted_stage_packet_selection_live_readback",
-        "ai_reviewer_provider_hosted_authorization_live_readback",
-        "gate_clearing_authorization_live_readback",
-        "current_execution_running_proof_live_readback",
-        "study_progress_provider_admission_running_proof_live_readback"
-      ],
-      "active_caller_families": [
-        "domain_owner_action_dispatch.execute_dispatch",
-        "domain_owner_action_dispatch.stage_native_owner_action",
-        "domain_owner_action_dispatch.provider_hosted_exact_stage_packet_selection",
+      "active_caller_soak_boundary": {
+        "status": "live_every_active_caller_soak_tail_open",
+        "live_every_active_caller_soak_proven": false,
+        "no_active_caller_proven": false,
+        "physical_delete_allowed": false,
+        "required_before_physical_delete": "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
+        "physical_delete_requires": [
+          "domain_owner_action_dispatch_execute_dispatch_live_readback_ref",
+          "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref",
+          "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref",
+          "domain_owner_action_dispatch_ai_reviewer_authorization_live_readback_ref",
+          "domain_owner_action_dispatch_gate_clearing_authorization_live_readback_ref",
+          "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref",
+          "domain_owner_action_dispatch_study_progress_running_proof_live_readback_ref",
+          "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "required_active_caller_readbacks": [
+          "execute_dispatch_live_readback",
+          "stage_native_owner_action_live_readback",
+          "provider_hosted_stage_packet_selection_live_readback",
+          "ai_reviewer_provider_hosted_authorization_live_readback",
+          "gate_clearing_authorization_live_readback",
+          "current_execution_running_proof_live_readback",
+          "study_progress_provider_admission_running_proof_live_readback"
+        ],
+        "active_caller_families": [
+          "domain_owner_action_dispatch.execute_dispatch",
+          "domain_owner_action_dispatch.stage_native_owner_action",
+          "domain_owner_action_dispatch.provider_hosted_exact_stage_packet_selection",
           "domain_owner_action_dispatch.ai_reviewer_provider_hosted_authorization",
           "domain_owner_action_dispatch.gate_clearing_authorization",
           "current_execution_envelope.running_provider_attempt_priority",
           "study_progress.provider_admission_running_proof"
         ],
         "allowed_effect": "execute_only_with_trusted_opl_authorization_or_bound_readback",
-      "forbidden_completion_claims": [
-        "repo_authorization_coverage_as_live_every_active_caller_soak",
-        "active_caller_migrated_as_no_active_caller_proof",
-        "focused_tests_green_as_physical_delete",
-        "provider_completion_as_dispatch_retirement",
-        "current_execution_running_proof_without_opl_readback_as_soak",
-        "study_progress_running_proof_without_opl_readback_as_soak"
-      ]
-    },
+        "forbidden_completion_claims": [
+          "repo_authorization_coverage_as_live_every_active_caller_soak",
+          "active_caller_migrated_as_no_active_caller_proof",
+          "focused_tests_green_as_physical_delete",
+          "provider_completion_as_dispatch_retirement",
+          "current_execution_running_proof_without_opl_readback_as_soak",
+          "study_progress_running_proof_without_opl_readback_as_soak"
+        ]
+      },
       "consumer_input_boundary": {
         "canonical_current_surface": "domain_progress_transition_requests",
         "canonical_prompt_contract_field": "prompt_contract_ref",

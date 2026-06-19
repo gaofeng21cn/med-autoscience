@@ -611,6 +611,30 @@ def _validate_domain_authority_refs_index(
                     "domain_authority_refs_active_replay_local_inspection_callers_block_physical_delete",
                 )
             )
+    elif status == "no_active_replay_or_local_inspection_callers":
+        if active_caller_list:
+            violations.append(
+                _violation(
+                    surface_id,
+                    "domain_authority_refs_no_active_scan_must_not_list_active_callers",
+                )
+            )
+        if no_active_proven is not True:
+            violations.append(
+                _violation(
+                    surface_id,
+                    "domain_authority_refs_no_active_scan_must_claim_no_active_replay_local_inspection_callers",
+                )
+            )
+        if physical_delete_allowed is not False:
+            violations.append(
+                _violation(
+                    surface_id,
+                    "domain_authority_refs_no_active_scan_must_not_allow_physical_delete",
+                )
+            )
+    else:
+        violations.append(_violation(surface_id, "domain_authority_refs_legacy_helper_scan_status_invalid"))
     if active_caller_list and no_active_proven is True:
         violations.append(
             _violation(
@@ -650,9 +674,38 @@ def _validate_domain_authority_refs_index(
     forbidden_claims = scan.get("forbidden_completion_claims")
     if (
         not isinstance(forbidden_claims, list)
-        or "legacy_helper_active_scan_as_physical_delete" not in forbidden_claims
+        or not {
+            "opl_family_adoption_sqlite_inspection_as_current_projection",
+            "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
+            "explicit_replay_opt_in_as_live_opl_readback",
+        }.issubset({str(item) for item in forbidden_claims})
     ):
         violations.append(_violation(surface_id, "domain_authority_refs_legacy_helper_scan_missing_false_completion_guard"))
+    if status == "active_replay_or_local_inspection_callers_present_tail_open":
+        if (
+            not isinstance(forbidden_claims, list)
+            or "legacy_helper_active_scan_as_physical_delete" not in forbidden_claims
+            or "legacy_helper_active_callers_as_no_active_caller" not in forbidden_claims
+        ):
+            violations.append(
+                _violation(
+                    surface_id,
+                    "domain_authority_refs_active_scan_missing_false_completion_guard",
+                )
+            )
+    if status == "no_active_replay_or_local_inspection_callers":
+        if (
+            not isinstance(forbidden_claims, list)
+            or "legacy_helper_no_active_scan_as_physical_delete" not in forbidden_claims
+            or "no_active_replay_local_inspection_scan_as_live_state_index_kernel_takeover"
+            not in forbidden_claims
+        ):
+            violations.append(
+                _violation(
+                    surface_id,
+                    "domain_authority_refs_no_active_scan_missing_false_completion_guard",
+                )
+            )
     if (
         not isinstance(forbidden_claims, list)
         or "opl_family_adoption_sqlite_inspection_as_current_projection" not in forbidden_claims
@@ -671,11 +724,11 @@ def _validate_domain_authority_refs_index(
 
     gate = surface.get("retirement_gate")
     if isinstance(gate, Mapping):
-        if gate.get("no_active_replay_or_local_inspection_caller_proven") is not False:
+        if gate.get("no_active_replay_or_local_inspection_caller_proven") is not True:
             violations.append(
                 _violation(
                     surface_id,
-                    "domain_authority_refs_retirement_gate_must_not_claim_no_active_replay_local_inspection_callers",
+                    "domain_authority_refs_retirement_gate_must_claim_no_active_replay_local_inspection_callers",
                 )
             )
         if gate.get("physical_delete_allowed") is not False:

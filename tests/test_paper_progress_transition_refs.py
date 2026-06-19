@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import importlib
-import sqlite3
 from pathlib import Path
+
+import pytest
 
 
 def _intent(*, unit_id: str = "analysis_claim_evidence_repair", target: str = "claim:C1") -> dict[str, object]:
@@ -37,7 +38,6 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
         intent=_intent(),
         recorded_at="2026-05-10T00:00:00+00:00",
         db_path=db_path,
-        persist_authority_refs_index=True,
     )
     replay = refs.record_paper_progress_transition_ref(
         study_root=study_root,
@@ -46,7 +46,6 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
         intent=_intent(),
         recorded_at="2026-05-10T00:01:00+00:00",
         db_path=db_path,
-        persist_authority_refs_index=True,
     )
 
     assert first["receipt_status"] == "transition_request_pending_opl_runtime_required"
@@ -109,30 +108,23 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
     assert replay["intent_fingerprint"] == first["intent_fingerprint"]
     assert replay["semantic_receipt"] == first["semantic_receipt"]
     assert len(refs.read_transition_refs(study_root=study_root)) == 1
-    with sqlite3.connect(db_path) as conn:
-        columns = {
-            row[1]
-            for row in conn.execute("PRAGMA table_info(paper_progress_transition_refs)").fetchall()
-        }
-        assert "payload_json" not in columns
-        rows = conn.execute(
-            """
-            SELECT idempotency_key, intent_fingerprint, source_fingerprint, started_worker, worker_start_ref, payload_sha256, source_path
-            FROM paper_progress_transition_refs
-            WHERE study_root = ?
-            """,
-            (str(study_root.resolve()),),
-        ).fetchall()
-    assert len(rows) == 1
-    assert rows[0][:5] == (
-        "paper-work-unit::001",
-        first["intent_fingerprint"],
-        "publication-blockers::same-source",
-        0,
-        None,
-    )
-    assert rows[0][5] != ""
-    assert rows[0][6].endswith("paper_progress_transition_refs/receipts.jsonl")
+    assert not db_path.exists()
+
+
+def test_transition_ref_rejects_legacy_authority_index_persistence_alias(tmp_path: Path) -> None:
+    refs = importlib.import_module("med_autoscience.controllers.paper_progress_transition_refs")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
+
+    with pytest.raises(TypeError, match="persist_authority_refs_index"):
+        refs.record_paper_progress_transition_ref(
+            study_root=study_root,
+            quest_root=quest_root,
+            idempotency_key="paper-work-unit::001",
+            intent=_intent(),
+            recorded_at="2026-05-10T00:00:00+00:00",
+            persist_authority_refs_index=True,
+        )
 
 
 def test_transition_ref_default_authority_index_path_is_source_adapter_only(tmp_path: Path) -> None:
