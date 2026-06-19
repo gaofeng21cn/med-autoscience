@@ -162,6 +162,8 @@ def _open_surface_tail(
         else _surface_live_or_no_active_proven(surface, audit)
     )
     physical_delete_allowed = _surface_physical_delete_allowed(audit)
+    forbidden = _forbidden_completion_interpretations(surface)
+    required_refs = _physical_delete_required_refs(surface)
     return {
         "surface_id": surface_id,
         "authority_status": audit.get("authority_status"),
@@ -174,9 +176,70 @@ def _open_surface_tail(
         "live_or_no_active_proven": live_or_no_active_proven,
         "physical_delete_gate_open": audit.get("physical_delete_gate_open"),
         "physical_delete_allowed": physical_delete_allowed,
-        "forbidden_completion_interpretations": _forbidden_completion_interpretations(surface),
+        "forbidden_completion_interpretations": forbidden,
+        "evidence_gate": _evidence_gate(
+            surface_id,
+            surface,
+            required_refs=required_refs,
+            forbidden_completion_interpretations=forbidden,
+            live_or_no_active_proven=live_or_no_active_proven,
+            physical_delete_allowed=physical_delete_allowed,
+            surface_violation_reasons=surface_violation_reasons,
+        ),
         "surface_violation_reasons": list(surface_violation_reasons),
     }
+
+
+def _evidence_gate(
+    surface_id: str,
+    surface: Mapping[str, Any],
+    *,
+    required_refs: list[str],
+    forbidden_completion_interpretations: list[str],
+    live_or_no_active_proven: bool,
+    physical_delete_allowed: bool,
+    surface_violation_reasons: tuple[str, ...],
+) -> dict[str, Any]:
+    return {
+        "gate_kind": "live_runtime_readiness_tail",
+        "next_owner": _next_owner_for_tail(surface_id, surface),
+        "repo_source_retirement_blocked": False,
+        "live_runtime_readiness_claim_allowed": (
+            live_or_no_active_proven
+            and physical_delete_allowed
+            and not surface_violation_reasons
+        ),
+        "acceptable_evidence_ref_families": list(required_refs),
+        "forbidden_evidence_substitutes": list(forbidden_completion_interpretations),
+        "missing_evidence_status": (
+            "violations_present"
+            if surface_violation_reasons
+            else "evidence_required"
+            if not live_or_no_active_proven or not physical_delete_allowed
+            else "satisfied_with_live_evidence"
+        ),
+    }
+
+
+def _next_owner_for_tail(surface_id: str, surface: Mapping[str, Any]) -> str:
+    if surface_id == "agent_tool_arsenal_scientific_capability_registry":
+        return "one-person-lab Capability Runtime owner"
+    if surface_id == "domain_health_diagnostic_obligation_actuator":
+        return "one-person-lab RecoveryObligationStore / SupervisorDecisionEngine owner"
+    if surface_id == "domain_owner_action_dispatch":
+        return "one-person-lab StageRun / execution authorization owner"
+    if surface_id == "progress_portal_study_workbench_overview_action_projection":
+        return "one-person-lab Workbench Shell owner"
+    if surface_id == "runtime_health_kernel":
+        return "one-person-lab Observability / RouteReconciler owner"
+    if surface_id == "runtime_lifecycle_payload_retention":
+        return "one-person-lab runtime lifecycle / retention owner"
+    if surface_id == "runtime_storage_maintenance":
+        return "one-person-lab runtime storage / restore-retention owner"
+    generic_runtime_owner = _text(surface.get("generic_runtime_owner"))
+    if generic_runtime_owner is not None:
+        return f"{generic_runtime_owner} runtime owner"
+    return "surface owner"
 
 
 def _surface_physical_delete_allowed(audit: Mapping[str, Any]) -> bool:
