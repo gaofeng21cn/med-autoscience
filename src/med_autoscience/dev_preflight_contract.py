@@ -527,6 +527,10 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="paper_progress_transition_boundary_surface",
         exact_paths=(
+            "contracts/opl_domain_progress_transition_runtime_contract.json",
+            "contracts/paper_progress_transition_runtime_completion_audit.json",
+            "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+            "src/med_autoscience/controllers/opl_domain_progress_transition_contract.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/obligation_actuator.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control.py",
@@ -537,11 +541,14 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan_support.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_transition_request.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
+            "src/med_autoscience/controllers/paper_recovery_state_parts/provider_admission_state.py",
             "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
             "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
             "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_same_tick_cases.py",
             "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
+            "tests/test_opl_domain_progress_transition_runtime_contract.py",
             "tests/test_paper_progress_policy_adapter.py",
+            "tests/test_paper_recovery_provider_admission_state.py",
             "tests/test_provider_admission_current_control_arbiter.py",
         ),
         prefix_paths=(),
@@ -556,6 +563,11 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
                 "provider_admission_current_control_same_tick_cases.py "
                 "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
                 "test_obligation_actuator_outcomes.py -q"
+            ),
+            (
+                f"{PYTEST_CLEAN_RUNNER} "
+                "tests/test_opl_domain_progress_transition_runtime_contract.py "
+                "tests/test_paper_recovery_provider_admission_state.py -q"
             ),
         ),
     ),
