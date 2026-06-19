@@ -24,10 +24,7 @@ def completion_evidence_layers(
         str(audit["surface_id"])
         for audit in surface_audits
         if audit.get("physical_delete_gate_open") is True
-        or audit.get("domain_owner_action_dispatch_physical_delete_allowed") is False
-        or audit.get("domain_authority_refs_physical_delete_allowed") is False
-        or audit.get("legacy_stage_run_physical_delete_allowed") is False
-        or audit.get("agent_tool_arsenal_physical_delete_allowed") is False
+        or _has_blocked_physical_delete_tail(audit)
     )
     open_surface_tails = [
         _open_surface_tail(
@@ -164,21 +161,35 @@ def _open_surface_tail(
         if surface_violation_reasons
         else _surface_live_or_no_active_proven(surface, audit)
     )
+    physical_delete_allowed = _surface_physical_delete_allowed(audit)
     return {
         "surface_id": surface_id,
         "authority_status": audit.get("authority_status"),
         "status": (
             "satisfied_with_live_evidence"
-            if live_or_no_active_proven and audit.get("physical_delete_gate_open") is False
+            if live_or_no_active_proven and physical_delete_allowed
             else "evidence_required"
         ),
         "required_ref_families": required_refs,
         "live_or_no_active_proven": live_or_no_active_proven,
         "physical_delete_gate_open": audit.get("physical_delete_gate_open"),
-        "physical_delete_allowed": audit.get("physical_delete_gate_open") is False,
+        "physical_delete_allowed": physical_delete_allowed,
         "forbidden_completion_interpretations": _forbidden_completion_interpretations(surface),
         "surface_violation_reasons": list(surface_violation_reasons),
     }
+
+
+def _surface_physical_delete_allowed(audit: Mapping[str, Any]) -> bool:
+    return audit.get("physical_delete_gate_open") is False and not _has_blocked_physical_delete_tail(
+        audit
+    )
+
+
+def _has_blocked_physical_delete_tail(audit: Mapping[str, Any]) -> bool:
+    return any(
+        key.endswith("_physical_delete_allowed") and value is False
+        for key, value in audit.items()
+    )
 
 
 def _surface_live_or_no_active_proven(
