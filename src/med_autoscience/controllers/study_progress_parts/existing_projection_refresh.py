@@ -7,7 +7,6 @@ from typing import Any
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.controllers import current_execution_envelope, current_work_unit
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
-    has_opl_transition_readback as _has_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index
@@ -32,6 +31,11 @@ from .opl_current_control_state_handoff import (
 from .operator_view import _study_command_surfaces
 from .opl_supervisor_decision_readback import (
     attach_opl_supervisor_decision_readback,
+)
+from .provider_admission_currentness import (
+    active_provider_control as _handoff_is_active_provider_control,
+    current_control_provider_admission_action as _current_control_provider_admission_action,
+    with_provider_admission_executable_currentness as _with_provider_admission_executable_currentness,
 )
 from .progress_first_monitoring import build_progress_first_monitoring_summary
 from .projection_payload_assembly_parts.current_execution_surfaces import (
@@ -193,6 +197,7 @@ def refresh_existing_projection_current_owner_surfaces(
         and not _mapping_copy(updated.get("current_executable_owner_action"))
         and build_current_executable_owner_action(updated) is None
         and not current_control_executable_owner_action(handoff)
+        and not _handoff_is_active_provider_control(handoff)
         and not _current_control_handoff_is_typed_blocker(handoff)
     ):
         updated = _typed_blocker_stop_projection(updated, source_payload=updated)
@@ -206,11 +211,17 @@ def refresh_existing_projection_current_owner_surfaces(
     if current_control_executable_action and not _handoff_is_active_provider_control(handoff):
         recomputed_action = build_current_executable_owner_action(updated)
         current_control_executable_action = recomputed_action
+    if current_control_executable_action is None and _handoff_is_active_provider_control(handoff):
+        current_control_executable_action = _current_control_provider_admission_action(handoff)
     currentness_handoff = current_control_executable_currentness_handoff(
         handoff,
         current_control_executable_action=current_control_executable_action,
     )
-    updated = _apply_current_control_currentness_to_existing_projection(updated, handoff=handoff)
+    currentness_handoff = _with_provider_admission_executable_currentness(
+        currentness_handoff,
+        current_action=current_control_executable_action,
+    )
+    updated = _apply_current_control_currentness_to_existing_projection(updated, handoff=currentness_handoff)
     typed_blocker_successor_action = (
         current_control_executable_action
         or build_current_executable_owner_action(updated)
@@ -476,28 +487,6 @@ def _payload_typed_blocker_without_current_action(payload: Mapping[str, Any]) ->
         "typed_blocker",
         "blocked_current_work_unit",
     } or _non_empty_text(execution.get("state_kind")) == "typed_blocker"
-
-
-def _handoff_is_active_provider_control(handoff: Mapping[str, Any]) -> bool:
-    if handoff.get("running_provider_attempt") is True:
-        return bool(provider_admission_opl_transition_readback(handoff))
-    if handoff.get("provider_admission_pending_count") not in (None, 0):
-        return _has_opl_transition_readback(handoff) or any(
-            _has_opl_transition_readback(item)
-            for item in handoff.get("provider_admission_candidates") or []
-            if isinstance(item, Mapping)
-        )
-    if any(
-        _has_opl_transition_readback(item)
-        for item in handoff.get("provider_admission_candidates") or []
-        if isinstance(item, Mapping)
-    ):
-        return True
-    return any(
-        _has_opl_transition_readback(item)
-        for item in handoff.get("action_queue") or []
-        if isinstance(item, Mapping)
-    )
 
 
 def _handoff_has_bound_running_provider_attempt(handoff: Mapping[str, Any]) -> bool:

@@ -32,6 +32,7 @@ CURRENT_CONTROL_TYPED_BLOCKER_SUCCESSOR_SOURCES = frozenset(
     {
         "domain_transition",
         "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "opl_current_control_state.provider_admission_candidates",
         "paper_recovery_state.next_safe_action.successor_owner_action",
         "repair_progress_projection.mas_owner_repair_execution_evidence",
         "publication_eval.recommended_actions.readiness_blocker_repair",
@@ -241,6 +242,10 @@ def current_control_typed_blocker_successor_action(
         "publication_eval.recommended_actions.readiness_blocker_repair",
     }:
         return False
+    if source == "opl_current_control_state.provider_admission_candidates":
+        return action.get("provider_admission_pending") is True and _non_empty_text(
+            action.get("opl_transition_readback_source")
+        ) == "opl_domain_progress_transition_runtime_live_readback"
     if source == "repair_progress_projection.mas_owner_repair_execution_evidence":
         precedence = _mapping_copy(action.get("repair_progress_precedence"))
         if not (

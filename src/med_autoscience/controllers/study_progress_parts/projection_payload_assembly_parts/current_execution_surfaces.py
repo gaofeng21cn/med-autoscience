@@ -30,6 +30,11 @@ from ..current_control_executable_handoff import (
     current_control_executable_currentness_handoff,
     current_control_executable_owner_action,
 )
+from ..provider_admission_currentness import (
+    active_provider_control,
+    current_control_provider_admission_action,
+    with_provider_admission_executable_currentness,
+)
 from ..current_executable_owner_action import build_current_executable_owner_action
 from ..current_executable_owner_action_parts.non_advancing_terminal_closeout import (
     canonical_current_work_unit_terminal_typed_blocker,
@@ -89,11 +94,17 @@ def refresh_current_execution_surfaces(
         )
         return updated
     handoff_executable_action = current_control_executable_owner_action(handoff)
+    if handoff_executable_action is None and active_provider_control(handoff):
+        handoff_executable_action = current_control_provider_admission_action(handoff)
     if handoff_executable_action:
         updated["current_executable_owner_action"] = handoff_executable_action
         handoff = current_control_executable_currentness_handoff(
             handoff,
             current_control_executable_action=handoff_executable_action,
+        )
+        handoff = with_provider_admission_executable_currentness(
+            handoff,
+            current_action=handoff_executable_action,
         )
     terminal_typed_blocker = _consumed_terminal_typed_blocker_for_execution_refresh(
         handoff,

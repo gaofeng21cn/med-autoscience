@@ -461,6 +461,8 @@ def _identity_bound_handoff_provider_admission_fields(
     if _non_empty_text(current_work_unit.get("status")) not in {
         "executable_owner_action",
         "owner_receipt_recorded",
+        "typed_blocker",
+        "blocked_current_work_unit",
     }:
         return None
     matching = [

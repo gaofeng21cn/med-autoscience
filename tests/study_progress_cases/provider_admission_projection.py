@@ -330,6 +330,82 @@ def test_provider_admission_projection_clears_candidates_under_typed_blocker(tmp
     }
 
 
+def test_provider_admission_projection_preserves_complete_opl_readback_under_typed_blocker(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    readback = _opl_transition_result(
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+        fingerprint=fingerprint,
+    )
+
+    fields = module.provider_admission_projection_fields(
+        payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": _quality_repair_current_work_unit(
+                study_id=study_id,
+                fingerprint=fingerprint,
+                status="typed_blocker",
+            ),
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "write",
+                "typed_blocker": {
+                    "blocker_type": "medical_publication_surface_blocked",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                },
+            },
+        },
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "source_path": "/tmp/opl_current_control_state/latest.json",
+            "running_provider_attempt": False,
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "source": "opl_current_control_state.provider_admission_candidates",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "status": "provider_admission_pending",
+                    "next_executable_owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "provider_attempt_or_lease_required": True,
+                    "opl_domain_progress_transition_runtime_live_readback": readback,
+                }
+            ],
+            "action_queue": [],
+        },
+        study_root=study_root,
+    )
+
+    assert fields["provider_admission_pending_count"] == 1
+    assert fields["transition_request_pending_count"] == 0
+    candidate = fields["provider_admission_candidates"][0]
+    assert candidate["status"] == "provider_admission_pending"
+    assert candidate["provider_admission_requires_opl_runtime_result"] is False
+    assert candidate["opl_transition_readback_source"] == (
+        "opl_domain_progress_transition_runtime_live_readback"
+    )
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["work_unit_fingerprint"] == fingerprint
+
+
 def test_provider_admission_projection_emits_candidate_for_current_executable_action(tmp_path) -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
