@@ -37,6 +37,27 @@ AUTHORITY_OUTCOME_REF_FIELDS = (
     "human_gate_ref",
     "route_back_ref",
 )
+ACCEPTED_EVIDENCE_SOURCE_PREFIXES = (
+    "live_soak:",
+    "mas_owner_gate:",
+    "no_active_caller_scan:",
+    "operator_readback:",
+    "owner_readback:",
+    "production_caller_scan:",
+    "runtime_readback:",
+)
+FORBIDDEN_EVIDENCE_SOURCE_PREFIXES = (
+    "DHD_dry_run",
+    "contract_landed",
+    "docs",
+    "focused_tests",
+    "make_test_meta",
+    "queue_empty",
+    "replay_fixture",
+    "repo_source_retirement_complete",
+    "repo_tests",
+    "scripts_verify",
+)
 
 
 def live_tail_work_orders_from_audit(audit: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -91,6 +112,27 @@ def validate_live_tail_work_order_contract(
     ):
         violations.append(
             _violation("<contract>", "missing_or_malformed_does_not_block_live_readiness")
+        )
+    if _text_list(schema.get("accepted_evidence_source_prefixes")) != list(
+        ACCEPTED_EVIDENCE_SOURCE_PREFIXES
+    ):
+        violations.append(_violation("<contract>", "accepted_source_prefixes_mismatch"))
+    if _text_list(schema.get("forbidden_evidence_source_prefixes")) != list(
+        FORBIDDEN_EVIDENCE_SOURCE_PREFIXES
+    ):
+        violations.append(_violation("<contract>", "forbidden_source_prefixes_mismatch"))
+    if schema.get("unaccepted_evidence_source_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "unaccepted_source_status_mismatch"))
+    if schema.get("forbidden_evidence_source_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "forbidden_source_status_mismatch"))
+    if schema.get("forbidden_or_unaccepted_source_can_satisfy_work_order") is not False:
+        violations.append(_violation("<contract>", "forbidden_or_unaccepted_source_can_satisfy"))
+    if (
+        schema.get("forbidden_or_unaccepted_source_blocks_live_runtime_readiness_claim")
+        is not True
+    ):
+        violations.append(
+            _violation("<contract>", "forbidden_or_unaccepted_source_does_not_block")
         )
     if _text_list(schema.get("concrete_evidence_ref_fields")) != list(
         CONCRETE_EVIDENCE_REF_FIELDS
@@ -206,6 +248,8 @@ def evaluate_live_tail_evidence_record(
     )
     missing_concrete_evidence_ref_families = matched_refs if not concrete_ref_fields else []
     evidence_source = _text(evidence_record.get("evidence_source"))
+    accepted_source_prefix = _accepted_evidence_source_prefix(evidence_source)
+    forbidden_source_prefixes = _forbidden_evidence_source_prefixes(evidence_source)
     typed_blocker = _text(work_order.get("typed_blocker_when_missing")) or (
         f"{surface_id}_live_runtime_readiness_evidence_required"
     )
@@ -216,7 +260,8 @@ def evaluate_live_tail_evidence_record(
         and not forbidden_claim_terms
         and not missing_authority_outcome_refs
         and not missing_concrete_evidence_ref_families
-        and evidence_source is not None
+        and accepted_source_prefix is not None
+        and not forbidden_source_prefixes
     )
     return {
         "surface_id": surface_id,
@@ -232,6 +277,8 @@ def evaluate_live_tail_evidence_record(
         ),
         "missing_concrete_evidence_ref_families": missing_concrete_evidence_ref_families,
         "concrete_evidence_ref_fields_present": concrete_ref_fields,
+        "accepted_evidence_source_prefix": accepted_source_prefix,
+        "forbidden_evidence_source_prefixes_present": forbidden_source_prefixes,
         "typed_blocker": None if satisfied else typed_blocker,
         "live_runtime_readiness_claim_allowed": satisfied,
         "repo_source_retirement_blocked": False,
@@ -389,6 +436,29 @@ def _has_concrete_evidence_ref(value: Any) -> bool:
     return _text(value) is not None
 
 
+def _accepted_evidence_source_prefix(evidence_source: str | None) -> str | None:
+    if evidence_source is None:
+        return None
+    return next(
+        (
+            prefix
+            for prefix in ACCEPTED_EVIDENCE_SOURCE_PREFIXES
+            if evidence_source.startswith(prefix)
+        ),
+        None,
+    )
+
+
+def _forbidden_evidence_source_prefixes(evidence_source: str | None) -> list[str]:
+    if evidence_source is None:
+        return []
+    return [
+        prefix
+        for prefix in FORBIDDEN_EVIDENCE_SOURCE_PREFIXES
+        if evidence_source.startswith(prefix)
+    ]
+
+
 def _authority_outcome_ref_fields_present(evidence_record: Mapping[str, Any]) -> list[str]:
     return sorted(
         field
@@ -503,7 +573,9 @@ def _violation(surface_id: str, reason: str) -> dict[str, str]:
 __all__ = [
     "SURFACE_KIND",
     "VERSION",
+    "ACCEPTED_EVIDENCE_SOURCE_PREFIXES",
     "CONCRETE_EVIDENCE_REF_FIELDS",
+    "FORBIDDEN_EVIDENCE_SOURCE_PREFIXES",
     "FORBIDDEN_CLAIM_TERMS",
     "evaluate_live_tail_evidence_record",
     "live_tail_evidence_intake_summary",

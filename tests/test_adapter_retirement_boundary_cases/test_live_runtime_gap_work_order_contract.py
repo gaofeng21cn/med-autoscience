@@ -59,6 +59,33 @@ def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None
         schema["missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim"]
         is True
     )
+    assert schema["accepted_evidence_source_prefixes"] == [
+        "live_soak:",
+        "mas_owner_gate:",
+        "opl_live_readback:",
+        "operator_readback:",
+        "owner_readback:",
+        "runtime_readback:",
+    ]
+    assert {
+        "DHD_dry_run",
+        "contract_landed",
+        "docs",
+        "focused_tests",
+        "make_test_meta",
+        "queue_empty",
+        "replay_fixture",
+        "repo_source_retirement_complete",
+        "repo_tests",
+        "scripts_verify",
+    } <= set(schema["forbidden_evidence_source_prefixes"])
+    assert schema["unaccepted_evidence_source_status"] == "typed_blocker_required"
+    assert schema["forbidden_evidence_source_status"] == "typed_blocker_required"
+    assert schema["forbidden_or_unaccepted_source_can_satisfy_work_order"] is False
+    assert (
+        schema["forbidden_or_unaccepted_source_blocks_live_runtime_readiness_claim"]
+        is True
+    )
     assert schema["authority_outcome_ref_required_for_families"] == [
         "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
     ]
@@ -212,6 +239,42 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
     )
     assert non_forbidden_word_boundary["status"] == "satisfied_by_accepted_ref"
     assert non_forbidden_word_boundary["forbidden_claim_terms_present"] == []
+
+
+def test_live_runtime_gap_evidence_rejects_repo_test_source_even_with_accepted_refs() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+    )
+    contract = _contract()
+    by_text = {order["gap_text"]: order for order in contract["work_orders"]}
+    provider_readback = by_text[
+        "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback"
+    ]
+
+    repo_test_source = work_orders.evaluate_live_runtime_gap_evidence_record(
+        provider_readback,
+        {
+            "gap_id": provider_readback["gap_id"],
+            "evidence_source": "focused_tests",
+            "evidence_ref_families": [
+                "same_identity_opl_provider_admission_live_readback_ref"
+            ],
+            "evidence_refs": [
+                (
+                    "live-gap-evidence:"
+                    f"{provider_readback['gap_id']}:"
+                    "same_identity_opl_provider_admission_live_readback_ref"
+                )
+            ],
+        },
+    )
+
+    assert repo_test_source["status"] == "typed_blocker_required"
+    assert repo_test_source["accepted_evidence_source_prefix"] is None
+    assert repo_test_source["forbidden_evidence_source_prefixes_present"] == [
+        "focused_tests"
+    ]
+    assert repo_test_source["live_runtime_readiness_claim_allowed"] is False
 
 
 def test_live_runtime_gap_contract_rejects_undeclared_concrete_evidence_ref_fields() -> None:

@@ -60,6 +60,8 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
         "unknown_or_duplicate_evidence_records_result_status": "typed_blocker_required",
         "missing_or_malformed_evidence_records_can_satisfy_rollup": False,
         "missing_or_malformed_evidence_records_result_status": "typed_blocker_required",
+        "forbidden_or_unaccepted_evidence_source_can_satisfy_rollup": False,
+        "forbidden_or_unaccepted_evidence_source_result_status": "typed_blocker_required",
         "authority_family_without_outcome_ref_can_satisfy_rollup": False,
         "missing_authority_outcome_ref_result_status": "typed_blocker_required",
         "tail_authority_family_without_outcome_ref_can_satisfy_rollup": False,
@@ -351,6 +353,48 @@ def test_live_runtime_evidence_rollup_rejects_gap_family_without_concrete_ref() 
         "evidence_ref_families"
     ]
     assert result["concrete_evidence_ref_fields_present"] == []
+    assert summary["rollup_result_status"] == "typed_blocker_required"
+    assert summary["live_runtime_readiness_claim_allowed"] is False
+
+
+def test_live_runtime_evidence_rollup_rejects_repo_test_sources_with_accepted_refs() -> None:
+    rollup = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+    )
+    tail_contract = _live_tail_contract()
+    gap_contract = _live_gap_contract()
+    tail_records = [_satisfying_tail_record(order) for order in tail_contract["work_orders"]]
+    gap_records = [_satisfying_gap_record(order) for order in gap_contract["work_orders"]]
+    tail_records[0]["evidence_source"] = "focused_tests"
+    gap_records[0]["evidence_source"] = "scripts_verify"
+
+    summary = rollup.live_runtime_evidence_rollup_summary(
+        live_tail_contract=tail_contract,
+        live_runtime_gap_contract=gap_contract,
+        live_tail_evidence_records=tail_records,
+        live_runtime_gap_evidence_records=gap_records,
+    )
+    tail_result = next(
+        item
+        for item in summary["live_tail"]["results"]
+        if item["surface_id"] == tail_records[0]["surface_id"]
+    )
+    gap_result = next(
+        item
+        for item in summary["live_runtime_gaps"]["results"]
+        if item["gap_id"] == gap_records[0]["gap_id"]
+    )
+
+    assert tail_result["status"] == "typed_blocker_required"
+    assert tail_result["forbidden_evidence_source_prefixes_present"] == [
+        "focused_tests"
+    ]
+    assert gap_result["status"] == "typed_blocker_required"
+    assert gap_result["forbidden_evidence_source_prefixes_present"] == [
+        "scripts_verify"
+    ]
+    assert summary["satisfied_count"] == 10
+    assert summary["typed_blocker_count"] == 2
     assert summary["rollup_result_status"] == "typed_blocker_required"
     assert summary["live_runtime_readiness_claim_allowed"] is False
 

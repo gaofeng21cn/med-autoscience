@@ -53,6 +53,31 @@
       "malformed_evidence_record_status": "typed_blocker_required",
       "missing_or_malformed_evidence_record_can_satisfy_work_order": false,
       "missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim": true,
+      "accepted_evidence_source_prefixes": [
+        "live_soak:",
+        "mas_owner_gate:",
+        "no_active_caller_scan:",
+        "operator_readback:",
+        "owner_readback:",
+        "production_caller_scan:",
+        "runtime_readback:"
+      ],
+      "forbidden_evidence_source_prefixes": [
+        "DHD_dry_run",
+        "contract_landed",
+        "docs",
+        "focused_tests",
+        "make_test_meta",
+        "queue_empty",
+        "replay_fixture",
+        "repo_source_retirement_complete",
+        "repo_tests",
+        "scripts_verify"
+      ],
+      "unaccepted_evidence_source_status": "typed_blocker_required",
+      "forbidden_evidence_source_status": "typed_blocker_required",
+      "forbidden_or_unaccepted_source_can_satisfy_work_order": false,
+      "forbidden_or_unaccepted_source_blocks_live_runtime_readiness_claim": true,
       "concrete_evidence_ref_fields": [
         "evidence_refs",
         "owner_receipt_ref",

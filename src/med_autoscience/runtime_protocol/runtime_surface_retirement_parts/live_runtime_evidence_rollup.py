@@ -148,6 +148,58 @@ def validate_live_runtime_evidence_rollup_contract(
                 "boundary_mismatch:missing_or_malformed_evidence_records_result_status",
             )
         )
+    if (
+        boundary_mapping.get("forbidden_or_unaccepted_evidence_source_can_satisfy_rollup")
+        is not False
+    ):
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:forbidden_or_unaccepted_evidence_source_can_satisfy_rollup",
+            )
+        )
+    if (
+        boundary_mapping.get("forbidden_or_unaccepted_evidence_source_result_status")
+        != "typed_blocker_required"
+    ):
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:forbidden_or_unaccepted_evidence_source_result_status",
+            )
+        )
+    for contract_id, work_order_contract in (
+        ("live_tail", live_tail_contract),
+        ("live_runtime_gap", live_runtime_gap_contract),
+    ):
+        schema = _evidence_record_schema(work_order_contract)
+        if not _text_list(schema.get("accepted_evidence_source_prefixes")):
+            violations.append(
+                _violation("<contract>", f"{contract_id}:missing_accepted_source_prefixes")
+            )
+        if not _text_list(schema.get("forbidden_evidence_source_prefixes")):
+            violations.append(
+                _violation("<contract>", f"{contract_id}:missing_forbidden_source_prefixes")
+            )
+        if schema.get("unaccepted_evidence_source_status") != "typed_blocker_required":
+            violations.append(
+                _violation("<contract>", f"{contract_id}:unaccepted_source_status_mismatch")
+            )
+        if schema.get("forbidden_evidence_source_status") != "typed_blocker_required":
+            violations.append(
+                _violation("<contract>", f"{contract_id}:forbidden_source_status_mismatch")
+            )
+        if schema.get("forbidden_or_unaccepted_source_can_satisfy_work_order") is not False:
+            violations.append(
+                _violation("<contract>", f"{contract_id}:source_can_satisfy_mismatch")
+            )
+        if (
+            schema.get("forbidden_or_unaccepted_source_blocks_live_runtime_readiness_claim")
+            is not True
+        ):
+            violations.append(
+                _violation("<contract>", f"{contract_id}:source_does_not_block_readiness")
+            )
     if boundary_mapping.get("authority_family_without_outcome_ref_can_satisfy_rollup") is not False:
         violations.append(
             _violation(
@@ -295,6 +347,14 @@ def _text_list(value: Any) -> list[str]:
         return sorted(text for item in value if (text := _text(item)) is not None)
     text = _text(value)
     return [text] if text is not None else []
+
+
+def _evidence_record_schema(contract: Mapping[str, Any]) -> Mapping[str, Any]:
+    boundary = contract.get("completion_claim_boundary")
+    if not isinstance(boundary, Mapping):
+        return {}
+    schema = boundary.get("evidence_record_schema")
+    return schema if isinstance(schema, Mapping) else {}
 
 
 def _text(value: Any) -> str | None:

@@ -83,6 +83,34 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
         schema["missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim"]
         is True
     )
+    assert schema["accepted_evidence_source_prefixes"] == [
+        "live_soak:",
+        "mas_owner_gate:",
+        "no_active_caller_scan:",
+        "operator_readback:",
+        "owner_readback:",
+        "production_caller_scan:",
+        "runtime_readback:",
+    ]
+    assert {
+        "DHD_dry_run",
+        "contract_landed",
+        "docs",
+        "focused_tests",
+        "make_test_meta",
+        "queue_empty",
+        "replay_fixture",
+        "repo_source_retirement_complete",
+        "repo_tests",
+        "scripts_verify",
+    } <= set(schema["forbidden_evidence_source_prefixes"])
+    assert schema["unaccepted_evidence_source_status"] == "typed_blocker_required"
+    assert schema["forbidden_evidence_source_status"] == "typed_blocker_required"
+    assert schema["forbidden_or_unaccepted_source_can_satisfy_work_order"] is False
+    assert (
+        schema["forbidden_or_unaccepted_source_blocks_live_runtime_readiness_claim"]
+        is True
+    )
     assert "evidence_refs" in schema["optional_fields"]
     assert schema["concrete_evidence_ref_fields"] == [
         "evidence_refs",
@@ -268,6 +296,38 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
     assert missing["typed_blocker"] == (
         "runtime_health_kernel_live_runtime_readiness_evidence_required"
     )
+
+
+def test_live_tail_evidence_record_rejects_repo_test_source_even_with_accepted_refs() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+    )
+    contract = _contract()
+    runtime_health = {
+        order["surface_id"]: order for order in contract["work_orders"]
+    }["runtime_health_kernel"]
+
+    repo_test_source = work_orders.evaluate_live_tail_evidence_record(
+        runtime_health,
+        {
+            "surface_id": "runtime_health_kernel",
+            "claim": "accepted readback already recorded",
+            "evidence_source": "focused_tests",
+            "evidence_ref_families": [
+                "runtime_health_kernel_opl_observability_live_readback_ref"
+            ],
+            "evidence_refs": [
+                "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
+            ],
+        },
+    )
+
+    assert repo_test_source["status"] == "typed_blocker_required"
+    assert repo_test_source["accepted_evidence_source_prefix"] is None
+    assert repo_test_source["forbidden_evidence_source_prefixes_present"] == [
+        "focused_tests"
+    ]
+    assert repo_test_source["live_runtime_readiness_claim_allowed"] is False
 
 
 def test_live_tail_evidence_record_requires_concrete_evidence_ref() -> None:

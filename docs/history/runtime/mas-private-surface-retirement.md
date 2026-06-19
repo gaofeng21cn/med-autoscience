@@ -245,3 +245,15 @@ Forbidden interpretation: an OPL outbox, StageRun, provider-admission, DHD apply
 Validator note: concrete proof fields must be declared as required or optional evidence-record fields. The contract validator rejects undeclared concrete proof fields so producers cannot satisfy live-runtime gap work orders through hidden payload keys.
 
 Identity binding note: live-runtime gap evidence records are bound to their `gap_id`. A record for a different gap remains `typed_blocker_required` even when its evidence family, source and concrete refs are otherwise acceptable.
+
+## live_runtime_evidence_source_boundary
+
+Disposition: `fail_closed_live_evidence_intake_guard`
+
+Replacement: `contracts/runtime/mas-runtime-live-tail-work-orders.json` and `contracts/runtime/mas-live-runtime-gap-work-orders.json` require accepted live evidence source prefixes and reject forbidden repo/test/doc/queue/dry-run/replay source prefixes.
+
+Retained MAS role: MAS may still publish owner-readback, operator-readback, live-soak, no-active-caller and concrete authority refs as evidence inputs. OPL-owned runtime evidence must still arrive as concrete live readback refs.
+
+Forbidden interpretation: `focused_tests`, `repo_tests`, `scripts_verify`, `make_test_meta`, docs updates, queue-empty readbacks, DHD dry-runs, replay fixtures or repo-source retirement claims cannot satisfy live-tail or live-runtime-gap work orders, even when the record names an accepted evidence ref family and carries a concrete-looking ref field.
+
+Rollup note: `contracts/runtime/mas-live-runtime-evidence-rollup.json` now requires tail and gap work-order schemas to declare this source boundary. A forbidden or unaccepted evidence source keeps the work order at `typed_blocker_required` and cannot claim live runtime readiness.
