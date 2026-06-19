@@ -4,6 +4,170 @@ from collections.abc import Mapping
 from typing import Any
 
 
+def validate_domain_action_request_materializer_surface(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    if surface_id == "domain_action_request_materializer_owner_callable_adapter_projection":
+        return _validate_materializer_owner_callable_adapter_projection(surface_id, surface)
+    if surface_id == "domain_action_request_materializer_request_tasks_projection":
+        return _validate_materializer_request_tasks_projection(surface_id, surface)
+    if surface_id == "domain_action_request_materializer_canonical_transition_request_body_projection":
+        return _validate_materializer_canonical_transition_request_body_projection(surface_id, surface)
+    return []
+
+
+def _validate_materializer_owner_callable_adapter_projection(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    if surface.get("current_disposition") != "direct_readback_migrated_legacy_diagnostic_projection_only":
+        violations.append(_violation(surface_id, "materializer_owner_adapter_not_legacy_diagnostic_only"))
+    if surface.get("retained_mas_role") != "migration_diagnostic_projection_only":
+        violations.append(_violation(surface_id, "materializer_owner_adapter_retained_role_not_diagnostic_only"))
+    if surface.get("canonical_surface") != "domain_progress_transition_requests":
+        violations.append(_violation(surface_id, "materializer_owner_adapter_canonical_surface_not_transition_requests"))
+    if surface.get("replacement_surface") != "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime readback":
+        violations.append(_violation(surface_id, "materializer_owner_adapter_replacement_not_opl_runtime"))
+
+    boundary = surface.get("legacy_projection_boundary")
+    if not isinstance(boundary, Mapping):
+        return [*violations, _violation(surface_id, "materializer_owner_adapter_missing_legacy_boundary")]
+    expected_values: dict[str, Any] = {
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "legacy_diagnostic_ref_helper": "owner_callable_adapter_projection.legacy_owner_callable_adapter_refs",
+        "legacy_public_body_reader_returns_active_carriers": False,
+        "legacy_public_body_reader_status": "retired_returns_empty",
+        "legacy_raw_body_reader_scope": "internal_projection_to_refs_only_diagnostics",
+        "owner_callable_adapter_counts_authority": False,
+        "owner_callable_adapter_item_can_create_success_outcome": False,
+        "owner_callable_adapter_item_diagnostic_only": True,
+        "owner_callable_adapter_item_readiness_authority": False,
+        "owner_callable_adapter_list_can_create_success_outcome": False,
+        "owner_callable_adapter_list_diagnostic_only": True,
+        "owner_callable_adapter_readiness_authority": False,
+        "refs_only_diagnostics_body_omitted": True,
+    }
+    for key, expected in expected_values.items():
+        if boundary.get(key) != expected:
+            violations.append(_violation(surface_id, f"materializer_owner_adapter_boundary_mismatch:{key}"))
+    return violations
+
+
+def _validate_materializer_request_tasks_projection(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    if surface.get("current_disposition") != "top_level_alias_physically_retired_nested_diagnostics_refs_only":
+        violations.append(_violation(surface_id, "materializer_request_tasks_alias_not_retired"))
+    if surface.get("retained_mas_role") != "nested_identity_refs_only_diagnostic_projection_no_top_level_alias":
+        violations.append(_violation(surface_id, "materializer_request_tasks_retained_role_not_refs_only"))
+    if surface.get("canonical_surface") != "domain_progress_transition_requests":
+        violations.append(_violation(surface_id, "materializer_request_tasks_canonical_surface_not_transition_requests"))
+
+    boundary = surface.get("projection_boundary")
+    if not isinstance(boundary, Mapping):
+        return [*violations, _violation(surface_id, "materializer_request_tasks_missing_projection_boundary")]
+    expected_values: dict[str, Any] = {
+        "body_authority": False,
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "handoff_packet_body_omitted": True,
+        "legacy_alias_field": "request_tasks",
+        "legacy_alias_present": False,
+        "legacy_alias_retired": True,
+        "nested_diagnostic_surface": "legacy_request_task_diagnostics.legacy_request_task_refs",
+        "owner_route_body_omitted": True,
+        "payload_body_omitted": True,
+        "request_packet_body_omitted": True,
+        "source_action_body_omitted": True,
+    }
+    for key, expected in expected_values.items():
+        if boundary.get(key) != expected:
+            violations.append(_violation(surface_id, f"materializer_request_tasks_boundary_mismatch:{key}"))
+    return violations
+
+
+def _validate_materializer_canonical_transition_request_body_projection(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    if surface.get("current_disposition") != "canonical_transition_request_projection_body_retired":
+        violations.append(_violation(surface_id, "materializer_transition_request_body_not_retired"))
+    if surface.get("retained_mas_role") != "identity_refs_and_contract_metadata_projection_only":
+        violations.append(_violation(surface_id, "materializer_transition_request_retained_role_not_refs_only"))
+    if surface.get("canonical_surface") != "domain_progress_transition_requests":
+        violations.append(_violation(surface_id, "materializer_transition_request_canonical_surface_not_transition_requests"))
+    if surface.get("replacement_surface") != (
+        "OPL DomainProgressTransitionRuntime command/event/outbox/StageRun readback plus "
+        "MAS refs-only policy request projection"
+    ):
+        violations.append(_violation(surface_id, "materializer_transition_request_replacement_not_opl_runtime"))
+
+    boundary = surface.get("projection_boundary")
+    if not isinstance(boundary, Mapping):
+        return [*violations, _violation(surface_id, "materializer_transition_request_missing_projection_boundary")]
+    expected_values: dict[str, Any] = {
+        "body_authority": False,
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "payload_scope": "identity_refs_and_contract_metadata_only",
+        "transition_request_projection_body_authority": False,
+        "transition_request_projection_body_omitted": True,
+    }
+    for key, expected in expected_values.items():
+        if boundary.get(key) != expected:
+            violations.append(_violation(surface_id, f"materializer_transition_request_boundary_mismatch:{key}"))
+
+    for key in (
+        "source_action_body_omitted",
+        "owner_route_body_omitted",
+        "prompt_contract_body_omitted",
+        "domain_intent_body_omitted",
+        "stage_transition_authority_boundary_body_omitted",
+        "progress_first_closeout_admission_body_omitted",
+        "operator_payload_body_omitted",
+        "payload_authoring_target_body_omitted",
+        "record_production_satisfaction_body_omitted",
+        "owner_route_attempt_envelope_body_omitted",
+        "legacy_owner_callable_adapter_body_omitted",
+    ):
+        if boundary.get(key) is not True:
+            violations.append(_violation(surface_id, f"materializer_transition_request_body_not_omitted:{key}"))
+
+    allowed_ref_fields = boundary.get("allowed_ref_fields")
+    required_ref_fields = {
+        "domain_intent_ref",
+        "owner_route_attempt_envelope_ref",
+        "owner_route_ref",
+        "progress_first_closeout_admission_ref",
+        "prompt_contract_ref",
+        "record_production_satisfaction_ref",
+        "source_action_ref",
+        "stage_transition_authority_boundary_ref",
+    }
+    if not isinstance(allowed_ref_fields, list) or required_ref_fields != {str(item) for item in allowed_ref_fields}:
+        violations.append(_violation(surface_id, "materializer_transition_request_allowed_refs_mismatch"))
+
+    omitted_body_fields = boundary.get("omitted_body_fields")
+    required_omitted_fields = {
+        "domain_intent",
+        "operator_payload",
+        "owner_route",
+        "owner_route_attempt_envelope",
+        "payload_authoring_target",
+        "progress_first_closeout_admission",
+        "prompt_contract",
+        "record_production_satisfaction",
+        "source_action",
+        "stage_transition_authority_boundary",
+    }
+    if not isinstance(omitted_body_fields, list) or required_omitted_fields != {str(item) for item in omitted_body_fields}:
+        violations.append(_violation(surface_id, "materializer_transition_request_omitted_bodies_mismatch"))
+    return violations
+
+
 def validate_progress_portal_study_workbench_overview_action_projection(
     surface_id: str,
     surface: Mapping[str, Any],
@@ -375,6 +539,7 @@ def _violation(surface_id: str, reason: str) -> dict[str, str]:
 
 __all__ = [
     "audit_workbench_projection_fields",
+    "validate_domain_action_request_materializer_surface",
     "validate_domain_health_diagnostic_obligation_actuator",
     "validate_domain_owner_action_dispatch",
     "validate_progress_portal_study_workbench_overview_action_projection",

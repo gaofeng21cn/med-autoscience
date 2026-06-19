@@ -6,6 +6,7 @@ from typing import Any
 from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.private_runtime_residue_validators import (
     audit_workbench_projection_fields as _audit_workbench_projection_fields,
     validate_domain_health_diagnostic_obligation_actuator as _validate_domain_health_diagnostic_obligation_actuator,
+    validate_domain_action_request_materializer_surface as _validate_domain_action_request_materializer_surface,
     validate_domain_owner_action_dispatch as _validate_domain_owner_action_dispatch,
     validate_progress_portal_study_workbench_overview_action_projection as _validate_progress_portal_study_workbench_overview_action_projection,
 )
@@ -136,6 +137,8 @@ def validate_runtime_surface_retirement_inventory(
             violations.extend(_validate_legacy_stage_run_abi(surface_id, surface))
         if surface_id == "domain_authority_refs_index":
             violations.extend(_validate_domain_authority_refs_index(surface_id, surface))
+        if surface_id.startswith("domain_action_request_materializer_"):
+            violations.extend(_validate_domain_action_request_materializer_surface(surface_id, surface))
         if surface_id == "domain_owner_action_dispatch":
             violations.extend(_validate_domain_owner_action_dispatch(surface_id, surface))
         if surface_id == "domain_health_diagnostic_obligation_actuator":

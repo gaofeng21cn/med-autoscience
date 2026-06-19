@@ -489,6 +489,94 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         ),
     } <= {(item["surface_id"], item["reason"]) for item in violations}
 
+    materializer_bad_inventory = json.loads(json.dumps(inventory))
+    materializer_surfaces = {
+        surface["surface_id"]: surface for surface in materializer_bad_inventory["surfaces"]
+    }
+    owner_adapter = materializer_surfaces[
+        "domain_action_request_materializer_owner_callable_adapter_projection"
+    ]
+    owner_adapter["legacy_projection_boundary"][
+        "legacy_public_body_reader_returns_active_carriers"
+    ] = True
+    owner_adapter["legacy_projection_boundary"][
+        "owner_callable_adapter_counts_authority"
+    ] = True
+    owner_adapter["legacy_projection_boundary"][
+        "owner_callable_adapter_item_can_create_success_outcome"
+    ] = True
+    request_tasks = materializer_surfaces[
+        "domain_action_request_materializer_request_tasks_projection"
+    ]
+    request_tasks["projection_boundary"]["legacy_alias_present"] = True
+    request_tasks["projection_boundary"]["request_packet_body_omitted"] = False
+    request_tasks["projection_boundary"]["body_authority"] = True
+    transition_request = materializer_surfaces[
+        "domain_action_request_materializer_canonical_transition_request_body_projection"
+    ]
+    transition_request["projection_boundary"]["transition_request_projection_body_authority"] = True
+    transition_request["projection_boundary"]["transition_request_projection_body_omitted"] = False
+    transition_request["projection_boundary"]["source_action_body_omitted"] = False
+    transition_request["projection_boundary"]["allowed_ref_fields"].append("operator_payload")
+    transition_request["projection_boundary"]["omitted_body_fields"].remove("operator_payload")
+
+    materializer_violations = retirement.validate_runtime_surface_retirement_inventory(
+        materializer_bad_inventory
+    )
+
+    assert {
+        (
+            "domain_action_request_materializer_owner_callable_adapter_projection",
+            (
+                "materializer_owner_adapter_boundary_mismatch:"
+                "legacy_public_body_reader_returns_active_carriers"
+            ),
+        ),
+        (
+            "domain_action_request_materializer_owner_callable_adapter_projection",
+            "materializer_owner_adapter_boundary_mismatch:owner_callable_adapter_counts_authority",
+        ),
+        (
+            "domain_action_request_materializer_owner_callable_adapter_projection",
+            (
+                "materializer_owner_adapter_boundary_mismatch:"
+                "owner_callable_adapter_item_can_create_success_outcome"
+            ),
+        ),
+        (
+            "domain_action_request_materializer_request_tasks_projection",
+            "materializer_request_tasks_boundary_mismatch:legacy_alias_present",
+        ),
+        (
+            "domain_action_request_materializer_request_tasks_projection",
+            "materializer_request_tasks_boundary_mismatch:request_packet_body_omitted",
+        ),
+        (
+            "domain_action_request_materializer_request_tasks_projection",
+            "materializer_request_tasks_boundary_mismatch:body_authority",
+        ),
+        (
+            "domain_action_request_materializer_canonical_transition_request_body_projection",
+            "materializer_transition_request_boundary_mismatch:transition_request_projection_body_authority",
+        ),
+        (
+            "domain_action_request_materializer_canonical_transition_request_body_projection",
+            "materializer_transition_request_boundary_mismatch:transition_request_projection_body_omitted",
+        ),
+        (
+            "domain_action_request_materializer_canonical_transition_request_body_projection",
+            "materializer_transition_request_body_not_omitted:source_action_body_omitted",
+        ),
+        (
+            "domain_action_request_materializer_canonical_transition_request_body_projection",
+            "materializer_transition_request_allowed_refs_mismatch",
+        ),
+        (
+            "domain_action_request_materializer_canonical_transition_request_body_projection",
+            "materializer_transition_request_omitted_bodies_mismatch",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in materializer_violations}
+
     legacy_bad_inventory = json.loads(json.dumps(inventory))
     legacy_latest = next(
         surface
