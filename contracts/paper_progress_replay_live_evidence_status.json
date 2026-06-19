@@ -6,7 +6,7 @@
   "purpose": "Machine-readable status for DM002/DM003 paper progress transition replay coverage and read-only live-evidence acceptance boundaries.",
   "machine_boundary": "This surface records replay and live-evidence acceptance status only. It does not create OPL events, OPL outbox items, StageRun identity, provider attempts, MAS owner receipts, typed blockers, human gates, route-back evidence, paper deltas, publication verdicts, artifact mutations, current package freshness, or production readiness.",
   "source_of_truth": {
-    "target_design": "docs/runtime/designs/paper_progress_transition_kernel_target.md",
+    "target_design": "human_doc:opl_domain_progress_transition_runtime_target_design_for_mas",
     "active_plan": "docs/active/mas-ideal-state-gap-plan.md",
     "transition_runtime_contract": "contracts/opl_domain_progress_transition_runtime_contract.json",
     "runtime_truth_skill": "mas-runtime-truth-audit",
@@ -177,7 +177,23 @@
       "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
       "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
       "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family"
-    ]
+    ],
+    "readback_evidence_source_gate": {
+      "claimable_runtime_evidence_source_kinds": [
+        "opl_runtime_live_readback",
+        "opl_current_control_live_readback",
+        "opl_stagerun_live_readback"
+      ],
+      "non_claimable_runtime_evidence_source_kinds": [
+        "fixture_or_replay_readback",
+        "unit_test_helper_readback",
+        "mas_projection_payload",
+        "historical_log_extract"
+      ],
+      "fresh_live_claim_requires_source_kind": true,
+      "missing_source_kind_is_not_fresh_live_claim": true,
+      "valid_shape_can_test_projection_rules_without_live_claim": true
+    }
   },
   "projection_metadata_completion_gate": {
     "required_fields": [
@@ -247,7 +263,8 @@
     "provider_completion_without_mas_owner_acceptance",
     "recorded_only_owner_receipt_without_consumption_or_next_delta",
     "stale_transition_request_after_terminal_owner_receipt_closeout_as_pending_progress",
-    "command_event_log_readback_extraction"
+    "command_event_log_readback_extraction",
+    "valid_opl_readback_shape_without_claimable_evidence_source"
   ],
   "remaining_evidence_tails": [
     "OPL outbox and StageRun identity live readback for the same transition request",
@@ -262,7 +279,7 @@
     "tests/test_opl_transition_readback_contract.py",
     "tests/test_opl_domain_progress_transition_runtime_contract.py",
     "tests/test_paper_progress_transition_replay_fixtures.py",
-    "docs/runtime/designs/paper_progress_transition_kernel_target.md",
+    "human_doc:opl_domain_progress_transition_runtime_target_design_for_mas",
     "docs/active/mas-ideal-state-gap-plan.md"
   ]
 }

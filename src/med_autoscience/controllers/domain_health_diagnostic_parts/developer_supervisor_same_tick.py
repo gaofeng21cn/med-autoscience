@@ -3,11 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers import (
-    domain_action_request_materializer,
-    domain_owner_action_dispatch,
-    owner_route_reconcile,
-)
+from med_autoscience.controllers import owner_route_reconcile
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
     handoff_dispatch_path,
@@ -17,7 +13,6 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     provider_probe_has_matching_attempt,
     provider_probe_has_non_running_actions,
     study_has_running_provider_attempt,
-    transition_request_pending_dispatch_result,
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.owner_callable_adapter_projection import (
@@ -43,111 +38,37 @@ def _run_developer_supervisor_same_tick(
     study_ids: tuple[str, ...] = (),
     max_passes: int = PROGRESS_FIRST_SAME_TICK_MAX_PASSES,
     owner_route_reconcile_module: Any = owner_route_reconcile,
-    domain_action_request_materializer_module: Any = domain_action_request_materializer,
-    domain_owner_action_dispatch_module: Any = domain_owner_action_dispatch,
 ) -> dict[str, Any]:
     resolved_study_ids = (
         tuple(study_ids)
         or owner_route_reconcile_module.resolve_owner_route_reconcile_study_ids(profile)
     )
     retain_unscanned_studies = not bool(study_ids)
-    iterations: list[dict[str, Any]] = []
-    stop_reason = "max_passes_exhausted"
-    carried_scan_result: dict[str, Any] | None = None
-    carried_materialize_result: dict[str, Any] | None = None
-    for pass_index in range(1, max(1, max_passes) + 1):
-        if carried_scan_result is None:
-            scan_result = owner_route_reconcile_module.scan_domain_routes(
-                profile=profile,
-                study_ids=resolved_study_ids,
-                apply_safe_actions=True,
-                developer_supervisor_mode="developer_apply_safe",
-                live_attempt_timeout_seconds=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS,
-                live_attempt_max_inspect_count=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT,
-                provider_readiness_timeout_seconds=PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
-                retain_unscanned_studies=retain_unscanned_studies,
-            )
-        else:
-            scan_result = carried_scan_result
-            carried_scan_result = None
-        if carried_materialize_result is None:
-            materialize_result = with_owner_callable_adapter_projection(
-                domain_action_request_materializer_module.materialize_domain_action_requests(
-                    profile=profile,
-                    study_ids=resolved_study_ids,
-                    mode="developer_apply_safe",
-                    apply=True,
-                )
-            )
-        else:
-            materialize_result = with_owner_callable_adapter_projection(carried_materialize_result)
-            carried_materialize_result = None
-        if materialized_record_only_provider_handoff(materialize_result):
-            dispatch_result = transition_request_pending_dispatch_result(
-                materialize_result=materialize_result,
-            )
-        else:
-            dispatch_result = domain_owner_action_dispatch_module.dispatch_domain_owner_actions(
-                profile=profile,
-                study_ids=resolved_study_ids,
-                action_types=(),
-                mode="developer_apply_safe",
-                apply=True,
-                consumer_payload=materialize_result,
-            )
-        iteration = {
-            "pass_index": pass_index,
-            "owner_route_reconcile": scan_result,
-            "materialize": materialize_result,
-            "dispatch": dispatch_result,
-            "progress_first_delta": _same_tick_delta(
-                scan_result=scan_result,
-                materialize_result=materialize_result,
-                dispatch_result=dispatch_result,
-            ),
-        }
-        if _same_tick_handoff_written(iteration):
-            iteration["provider_admission_probe"] = owner_route_reconcile_module.scan_domain_routes(
-                profile=profile,
-                study_ids=resolved_study_ids,
-                apply_safe_actions=True,
-                developer_supervisor_mode="developer_apply_safe",
-                persist_surfaces=True,
-                live_attempt_timeout_seconds=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS,
-                live_attempt_max_inspect_count=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT,
-                provider_readiness_timeout_seconds=PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
-                retain_unscanned_studies=retain_unscanned_studies,
-            )
-            provider_attempt_started = _provider_attempt_started_for_iteration(iteration)
-            if (
-                provider_attempt_started
-                or materialized_record_only_provider_handoff(_mapping(iteration.get("materialize")))
-            ):
-                iteration["post_admission_materialize"] = with_owner_callable_adapter_projection(
-                    domain_action_request_materializer_module.materialize_domain_action_requests(
-                        profile=profile,
-                        study_ids=resolved_study_ids,
-                        mode="developer_apply_safe",
-                        apply=True,
-                    )
-                )
-                if provider_attempt_started and provider_probe_has_non_running_actions(
-                    _mapping(iteration["provider_admission_probe"])
-                ):
-                    carried_scan_result = _mapping(iteration["provider_admission_probe"])
-                    carried_materialize_result = _mapping(iteration["post_admission_materialize"])
-        iterations.append(iteration)
-        stop_reason = _same_tick_stop_reason(iteration)
-        if stop_reason not in {
-            "continue_same_tick_after_sync_owner_delta",
-            "continue_same_tick_after_provider_admission_delta",
-        }:
-            break
-    if stop_reason in {
-        "continue_same_tick_after_sync_owner_delta",
-        "continue_same_tick_after_provider_admission_delta",
-    }:
-        stop_reason = "max_passes_exhausted_owner_delta_required"
+    scan_result = owner_route_reconcile_module.scan_domain_routes(
+        profile=profile,
+        study_ids=resolved_study_ids,
+        apply_safe_actions=True,
+        developer_supervisor_mode="developer_apply_safe",
+        live_attempt_timeout_seconds=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS,
+        live_attempt_max_inspect_count=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT,
+        provider_readiness_timeout_seconds=PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
+        retain_unscanned_studies=retain_unscanned_studies,
+    )
+    materialize_result = _same_tick_retired_materialize_projection(scan_result)
+    dispatch_result = _same_tick_retired_dispatch_blocker()
+    iteration = {
+        "pass_index": 1,
+        "owner_route_reconcile": scan_result,
+        "materialize": materialize_result,
+        "dispatch": dispatch_result,
+        "progress_first_delta": _same_tick_delta(
+            scan_result=scan_result,
+            materialize_result=materialize_result,
+            dispatch_result=dispatch_result,
+        ),
+    }
+    iterations = [iteration]
+    stop_reason = "opl_transition_readback_required"
     terminal_diagnostic = _same_tick_terminal_diagnostic(
         stop_reason=stop_reason,
         iterations=iterations,
@@ -162,6 +83,10 @@ def _run_developer_supervisor_same_tick(
         "stop_reason": stop_reason,
         "actions": [
             "owner-route-reconcile",
+            "OPL DomainProgressTransitionRuntime readback required",
+            "MAS owner callable adapter blocked without OPL authorization",
+        ],
+        "retired_private_surfaces": [
             "domain-action-request-materialize",
             "domain-owner-action-dispatch",
         ],
@@ -179,10 +104,86 @@ def _run_developer_supervisor_same_tick(
         "owner_boundaries": {
             "runtime_owner": "one-person-lab",
             "domain_owner": "med-autoscience",
+            "mas_can_create_opl_command_event_outbox_or_stagerun": False,
+            "mas_can_authorize_provider_admission": False,
             "paper_package_mutation_allowed": False,
             "quality_gate_relaxation_allowed": False,
             "manual_study_patch_allowed": False,
         },
+    }
+
+
+def _same_tick_retired_materialize_projection(scan_result: Mapping[str, Any]) -> dict[str, Any]:
+    requests: list[dict[str, Any]] = []
+    for action in scan_result.get("action_queue") or []:
+        if not isinstance(action, Mapping):
+            continue
+        request = {
+            key: value
+            for key, value in {
+                "study_id": _non_empty_text(action.get("study_id")),
+                "action_type": _non_empty_text(action.get("action_type")),
+                "work_unit_id": (
+                    _non_empty_text(action.get("work_unit_id"))
+                    or _non_empty_text(action.get("next_work_unit"))
+                    or _non_empty_text(_mapping(action.get("controller_next_work_unit")).get("unit_id"))
+                    or handoff_work_unit_id(action)
+                ),
+                "work_unit_fingerprint": _non_empty_text(action.get("work_unit_fingerprint")),
+                "action_fingerprint": _non_empty_text(action.get("action_fingerprint")),
+                "dispatch_path": handoff_dispatch_path(action),
+            }.items()
+            if value is not None
+        }
+        request.update(
+            {
+                "dispatch_status": "transition_request_pending",
+                "provider_admission_pending": False,
+                "provider_admission_requires_opl_runtime_result": True,
+                "mas_can_create_opl_command_event_outbox_or_stagerun": False,
+                "mas_can_authorize_provider_admission": False,
+                "blocked_reason": "opl_domain_progress_transition_readback_required",
+                "opl_domain_progress_transition_request": {
+                    "surface_kind": "mas_domain_progress_transition_request",
+                    "target_runtime_owner": "one-person-lab",
+                    "request_body_materialized_by_mas": False,
+                    "requires_opl_runtime_intake": True,
+                },
+            }
+        )
+        requests.append(request)
+    return with_owner_callable_adapter_projection(
+        {
+            "surface_kind": "developer_supervisor_same_tick_retired_materialize_projection",
+            "schema_version": 1,
+            "dry_run": False,
+            "request_task_count": len(requests),
+            "domain_progress_transition_requests": requests,
+            "owner_callable_adapter_list_diagnostic_only": True,
+            "owner_callable_adapter_counts_authority": False,
+            "retired_private_surface": "domain-action-request-materialize",
+        }
+    )
+
+
+def _same_tick_retired_dispatch_blocker() -> dict[str, Any]:
+    return {
+        "surface_kind": "developer_supervisor_same_tick_retired_dispatch_blocker",
+        "schema_version": 1,
+        "execution_count": 0,
+        "executed_count": 0,
+        "blocked_count": 1,
+        "repeat_suppressed_count": 0,
+        "codex_dispatch_count": 0,
+        "executions": [
+            {
+                "execution_status": "blocked",
+                "blocked_reason": "opl_execution_authorization_required",
+                "stable_typed_blocker": True,
+                "owner": "one-person-lab",
+                "retired_private_surface": "domain-owner-action-dispatch",
+            }
+        ],
     }
 
 
@@ -484,7 +485,10 @@ def _same_tick_terminal_diagnostic(
         "repeat_suppressed_owner_delta_required",
         "max_passes_exhausted_owner_delta_required",
     }
-    requires_opl_transition_readback = stop_reason == "provider_handoff_written_transition_request_pending"
+    requires_opl_transition_readback = stop_reason in {
+        "provider_handoff_written_transition_request_pending",
+        "opl_transition_readback_required",
+    }
     requires_dispatch_blocker_resolution = (
         stop_reason == "typed_blocker_or_dispatch_blocker_observed"
         and (

@@ -165,6 +165,18 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "provider_attempt_or_lease_required": False,
         "transition_request_pending_only": True,
     }
+    assert default_dispatch["legacy_residue_cleanup_surface"] == {
+        "active_cli_command_retired": True,
+        "active_compat_test_retired": True,
+        "active_controller_module_retired": True,
+        "current_entry_allowed": False,
+        "historical_receipt_ref": (
+            "contracts/standard_agent_completion_evidence_status.json#/"
+            "historical_default_executor_dispatch_residue_cleanup_receipt"
+        ),
+        "retired_command": "default-executor-dispatch-residue-cleanup",
+        "retired_module": "med_autoscience.controllers.default_executor_dispatch_residue_cleanup",
+    }
     assert default_dispatch["legacy_stage_run_abi_provenance_boundary"] == {
         "carrier_kind": "opl_domain_progress_transition_request_carrier",
         "legacy_surface": "default_executor_dispatch_request",
@@ -221,15 +233,11 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     }
     assert default_dispatch["retirement_gate"] == {
         "active_caller_alone_retains_surface": False,
-        "completion_claim_requires_live_owner_or_opl_readback": True,
-        "no_active_caller_required_before_physical_delete": True,
-        "no_active_authority_caller_proven": True,
-        "no_forbidden_write_proof_required": True,
-        "opl_default_executor_carrier_tail_readback_required": True,
-        "physical_delete_allowed": False,
-        "repo_stage_run_abi_provenance_proven": True,
-        "replacement_parity_required": True,
-        "tombstone_or_provenance_required": True,
+        "live_runtime_readiness_required_for_repo_source_delete": False,
+        "no_forbidden_write_proof_proven": True,
+        "replacement_parity_proven": True,
+        "repo_source_physical_retirement_authorized": True,
+        "tombstone_or_provenance_proven": True,
     }
     assert default_dispatch["projection_counting_boundary"] == {
         "opl_live_readback_candidates_count_as": "provider_admission_pending",
@@ -277,28 +285,16 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
 
     owner_callable_projection = surfaces["domain_action_request_materializer_owner_callable_adapter_projection"]
     assert owner_callable_projection["active_caller_migrated"] is True
-    assert (
-        owner_callable_projection["current_disposition"]
-        == "direct_readback_migrated_legacy_diagnostic_projection_only"
-    )
-    assert owner_callable_projection["retained_mas_role"] == "migration_diagnostic_projection_only"
+    assert owner_callable_projection["current_disposition"] == "physically_retired"
+    assert owner_callable_projection["retained_mas_role"] == "none_physically_retired_no_alias"
     assert owner_callable_projection["canonical_surface"] == "domain_progress_transition_requests"
-    assert owner_callable_projection["retention_reason"] == (
-        "temporary migration diagnostic projection only; active direct readback now suppresses top-level "
-        "owner_callable_adapters and exposes canonical domain_progress_transition_requests; the public "
-        "owner_callable_adapters reader is retired as an active body carrier and legacy diagnostics are "
-        "body-free refs from legacy_owner_callable_adapter_refs while OPL live readback remains the physical "
-        "retirement gate"
-    )
     assert owner_callable_projection["retirement_gate"] == {
         "active_caller_alone_retains_surface": False,
-        "completion_claim_requires_live_owner_or_opl_readback": True,
-        "no_active_caller_required_before_physical_delete": True,
-        "no_forbidden_write_proof_required": True,
-        "opl_materializer_projection_tail_readback_required": True,
-        "physical_delete_allowed": False,
-        "replacement_parity_required": True,
-        "tombstone_or_provenance_required": True,
+        "live_runtime_readiness_required_for_repo_source_delete": False,
+        "no_forbidden_write_proof_proven": True,
+        "replacement_parity_proven": True,
+        "repo_source_physical_retirement_authorized": True,
+        "tombstone_or_provenance_proven": True,
     }
     materializer_projection_tail = owner_callable_projection[
         "opl_materializer_projection_tail_readback"
@@ -363,7 +359,6 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "owner_callable_adapters_as_success_outcome" in owner_callable_projection[
         "forbidden_claims"
     ]
-    assert "legacy_caller_exists" not in owner_callable_projection["retention_reason"]
     assert owner_callable_projection["verified_by"] == [
         (
             "tests/test_adapter_retirement_boundary.py::"
@@ -401,13 +396,10 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     ):
         materializer_projection = surfaces[surface_id]
         assert materializer_projection["retirement_gate"][
-            "no_active_caller_required_before_physical_delete"
+            "repo_source_physical_retirement_authorized"
         ] is True
         assert materializer_projection["retirement_gate"][
-            "opl_materializer_projection_tail_readback_required"
-        ] is True
-        assert materializer_projection["retirement_gate"][
-            "physical_delete_allowed"
+            "live_runtime_readiness_required_for_repo_source_delete"
         ] is False
         assert (
             materializer_projection["opl_materializer_projection_tail_readback"]
@@ -416,11 +408,8 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
 
     execution_latest = surfaces["default_executor_execution_latest_wire_projection"]
     assert execution_latest["active_caller_migrated"] is True
-    assert (
-        execution_latest["current_disposition"]
-        == "canonical_writer_and_current_readers_migrated_legacy_wire_explicit_history_fallback_only"
-    )
-    assert execution_latest["retained_mas_role"] == "owner_callable_receipt_projection_and_domain_authority_ref"
+    assert execution_latest["current_disposition"] == "physically_retired"
+    assert execution_latest["retained_mas_role"] == "none_physically_retired_no_alias"
     assert execution_latest["canonical_surface"] == "owner_callable_adapter_receipt_study_latest"
     assert execution_latest["canonical_wire_path"] == (
         "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
@@ -535,17 +524,14 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
                 "focused_tests_green_as_physical_delete",
             ],
         },
-    }
+        }
     assert execution_latest["retirement_gate"] == {
         "active_caller_alone_retains_surface": False,
-        "completion_claim_requires_live_owner_or_opl_readback": True,
-        "no_active_caller_required_before_physical_delete": True,
-        "no_active_stage_run_abi_caller_proven": False,
-        "no_forbidden_write_proof_required": True,
-        "physical_delete_allowed": False,
-        "repo_stage_run_abi_provenance_proven": True,
-        "replacement_parity_required": True,
-        "tombstone_or_provenance_required": True,
+        "live_runtime_readiness_required_for_repo_source_delete": False,
+        "no_forbidden_write_proof_proven": True,
+        "replacement_parity_proven": True,
+        "repo_source_physical_retirement_authorized": True,
+        "tombstone_or_provenance_proven": True,
     }
 
     owner_dispatch = surfaces["domain_owner_action_dispatch"]
@@ -1186,6 +1172,20 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert lifecycle_retention["retirement_gate"]["active_caller_alone_retains_surface"] is False
 
 
+def test_default_executor_dispatch_residue_cleanup_surface_is_physically_retired() -> None:
+    assert not (
+        SRC_ROOT / "controllers" / "default_executor_dispatch_residue_cleanup.py"
+    ).exists()
+    assert not (REPO_ROOT / "tests" / "test_default_executor_dispatch_residue_cleanup.py").exists()
+
+    cli_text = (SRC_ROOT / "cli.py").read_text(encoding="utf-8")
+    parser_text = (SRC_ROOT / "cli_parts" / "parser.py").read_text(encoding="utf-8")
+    assert "_load_controller(\"default_executor_dispatch_residue_cleanup\")" not in cli_text
+    assert "default_executor_dispatch_residue_cleanup =" not in cli_text
+    assert "args.command == \"default-executor-dispatch-residue-cleanup\"" not in cli_text
+    assert "add_parser(\"default-executor-dispatch-residue-cleanup\"" not in parser_text
+
+
 def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -> None:
     inventory_path = REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json"
     inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
@@ -1401,7 +1401,7 @@ def test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provena
     assert candidate["queue_authority"] is False
 
 
-def test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open() -> None:
+def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker() -> None:
     inventory = json.loads(
         (REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json").read_text(
             encoding="utf-8"
@@ -1415,14 +1415,22 @@ def test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open
     }["default_executor_execution_latest_wire_projection"]
     scan = surface["legacy_stage_run_abi_boundary"]["active_stage_run_abi_caller_scan"]
 
+    assert surface["current_disposition"] == "physically_retired"
+    assert surface["retirement_gate"] == {
+        "active_caller_alone_retains_surface": False,
+        "live_runtime_readiness_required_for_repo_source_delete": False,
+        "no_forbidden_write_proof_proven": True,
+        "replacement_parity_proven": True,
+        "repo_source_physical_retirement_authorized": True,
+        "tombstone_or_provenance_proven": True,
+    }
+    assert surface["tombstone_or_provenance_ref"] == (
+        "docs/history/runtime/mas-private-surface-retirement.md#"
+        "default_executor_execution_latest_wire_projection"
+    )
     assert scan["status"] == "active_callers_present_tail_open"
     assert scan["no_active_stage_run_abi_caller_proven"] is False
     assert scan["physical_delete_allowed"] is False
-    assert surface["retirement_gate"][
-        "completion_claim_requires_live_owner_or_opl_readback"
-    ] is True
-    assert surface["retirement_gate"]["no_active_stage_run_abi_caller_proven"] is False
-    assert surface["retirement_gate"]["physical_delete_allowed"] is False
     assert (
         scan["required_before_physical_delete"]
         == "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
@@ -1445,48 +1453,23 @@ def test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open
     ]
 
     audit = retirement.audit_runtime_surface_retirement_inventory(inventory)
-    audited_surface = {
-        item["surface_id"]: item for item in audit["open_surfaces"]
-    }["default_executor_execution_latest_wire_projection"]
-
-    assert audited_surface["legacy_stage_run_no_active_caller_proven"] is False
-    assert audited_surface["legacy_stage_run_physical_delete_allowed"] is False
-    assert audited_surface["legacy_stage_run_active_caller_count"] == len(scan["active_callers"])
-    assert audited_surface["physical_delete_gate_open"] is True
-    assert audit["completion_claim_allowed"] is False
+    assert "default_executor_execution_latest_wire_projection" not in audit["open_surface_ids"]
+    assert audit["repo_source_retirement_completion"]["completion_claim_allowed"] is True
+    assert audit["completion_claim_allowed"] is True
+    assert audit["live_runtime_readiness_completion"]["completion_claim_allowed"] is False
 
     bad_inventory = json.loads(json.dumps(inventory))
     bad_surface = {
         item["surface_id"]: item for item in bad_inventory["surfaces"]
     }["default_executor_execution_latest_wire_projection"]
-    bad_scan = bad_surface["legacy_stage_run_abi_boundary"]["active_stage_run_abi_caller_scan"]
-    bad_scan["no_active_stage_run_abi_caller_proven"] = True
-    bad_scan["physical_delete_allowed"] = True
-    bad_surface["retirement_gate"]["no_active_stage_run_abi_caller_proven"] = True
-    bad_surface["retirement_gate"]["physical_delete_allowed"] = True
+    del bad_surface["tombstone_or_provenance_ref"]
 
     violations = retirement.validate_runtime_surface_retirement_inventory(bad_inventory)
 
     assert {
         (
             "default_executor_execution_latest_wire_projection",
-            "stage_closeout_active_tail_must_not_claim_no_active_callers",
-        ),
-        (
-            "default_executor_execution_latest_wire_projection",
-            "stage_closeout_active_callers_block_physical_delete",
-        ),
-        (
-            "default_executor_execution_latest_wire_projection",
-            "stage_closeout_no_active_claim_contradicts_active_callers",
-        ),
-        (
-            "default_executor_execution_latest_wire_projection",
-            "legacy_stage_run_abi_gate_must_not_claim_no_active_caller",
-        ),
-        (
-            "default_executor_execution_latest_wire_projection",
-            "legacy_stage_run_abi_gate_must_not_allow_physical_delete",
+            "physically_retired_missing_tombstone_or_provenance_ref",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in violations}
 
@@ -1917,22 +1900,13 @@ def test_dhd_legacy_execution_fallback_is_refs_only_stage_run_intake(tmp_path) -
 
 
 def test_materializer_local_carrier_persistence_api_is_physically_retired() -> None:
-    persistence = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.persistence"
-    )
-
-    for symbol in (
-        "persist_default_executor_dispatches",
-        "persist_request_packets",
-        "persist_consumer_payload",
-        "request_packet_for_persistence",
-        "medical_paper_readiness_packet_for_persistence",
-        "source_workflow_ref_for_ai_reviewer_request",
-    ):
-        assert not hasattr(persistence, symbol), symbol
-
-    assert hasattr(persistence, "read_json_object")
-    assert hasattr(persistence, "write_json")
+    try:
+        importlib.import_module(
+            "med_autoscience.controllers.domain_action_request_materializer_parts.persistence"
+        )
+    except ModuleNotFoundError:
+        return
+    raise AssertionError("legacy materializer local carrier persistence module must stay retired")
 
 
 def test_owner_callable_projection_does_not_accept_legacy_dispatch_alias() -> None:
@@ -2437,14 +2411,79 @@ def test_dhd_dry_run_preview_does_not_consume_legacy_adapter_list_as_carrier() -
     assert "domain_progress_transition_requests(preview)" in source
 
 
+def test_owner_action_execution_payloads_do_not_recommend_retired_private_cli_aliases() -> None:
+    action_execution_root = (
+        SRC_ROOT
+        / "controllers"
+        / "domain_owner_action_dispatch_parts"
+        / "action_execution"
+    )
+    forbidden_tokens = (
+        "domain-action-request-materialize",
+        "domain-owner-action-dispatch",
+    )
+    violations: list[str] = []
+    for path in sorted(action_execution_root.rglob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        if any(token in text for token in forbidden_tokens):
+            violations.append(str(path.relative_to(REPO_ROOT)))
+
+    assert violations == []
+
+
+def test_domain_owner_controller_refresh_public_wrapper_is_retired() -> None:
+    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    public_surface = importlib.import_module("med_autoscience.cli_public_surface")
+
+    assert not hasattr(dispatch_module, "refresh_controller_decisions_for_current_publication_eval")
+    assert "refresh_controller_decisions_for_current_publication_eval" not in getattr(
+        dispatch_module,
+        "__all__",
+        (),
+    )
+    assert (
+        "runtime",
+        "domain-owner-action-refresh-controller-decisions",
+    ) not in public_surface.GROUPED_COMMAND_ALIASES
+
+
+def test_retired_domain_owner_refresh_controller_command_is_not_active_cli_surface() -> None:
+    retired_command = "domain-owner-action-refresh-controller-decisions"
+    allowed_refs = {
+        "tests/test_adapter_retirement_boundary.py",
+        "tests/test_cli_cases/domain_action_request_materializer_command.py",
+    }
+    violations: list[str] = []
+    for root in (SRC_ROOT, REPO_ROOT / "tests"):
+        for path in sorted(root.rglob("*.py")):
+            text = path.read_text(encoding="utf-8")
+            if retired_command not in text:
+                continue
+            relative_path = str(path.relative_to(REPO_ROOT))
+            if relative_path not in allowed_refs:
+                violations.append(relative_path)
+
+    assert violations == []
+
+
+def test_current_controller_decision_refresh_does_not_emit_legacy_domain_owner_action_surface() -> None:
+    source = (
+        SRC_ROOT
+        / "controllers"
+        / "domain_owner_action_dispatch_parts"
+        / "controller_refresh.py"
+    ).read_text(encoding="utf-8")
+
+    assert "domain_owner_action_controller_decision_refresh" not in source
+    assert 'SURFACE = "current_controller_decision_refresh"' in source
+
+
 def test_paper_recovery_export_consumes_only_canonical_transition_request_preview(
     tmp_path: Path,
-    monkeypatch,
 ) -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.owner_route_handoff_parts.paper_recovery_default_executor_tasks"
     )
-    materializer = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -2474,28 +2513,23 @@ def test_paper_recovery_export_consumes_only_canonical_transition_request_previe
             },
         },
     }
-
-    monkeypatch.setattr(
-        materializer,
-        "current_owner_callable_adapters",
-        lambda **_: {"owner_callable_adapters": [dict(dispatch)]},
-    )
+    assert not hasattr(module, "domain_action_request_materializer")
 
     owner_callable_only_tasks = module.paper_recovery_default_executor_dispatch_tasks(
-        current_progress=current_progress,
+        current_progress={
+            **current_progress,
+            "owner_callable_adapters": [dict(dispatch)],
+        },
         profile=profile,
         profile_ref=tmp_path / "profile.local.toml",
         study_id=study_id,
     )
 
-    monkeypatch.setattr(
-        materializer,
-        "current_owner_callable_adapters",
-        lambda **_: {"domain_progress_transition_requests": [dict(dispatch)]},
-    )
-
     canonical_request_tasks = module.paper_recovery_default_executor_dispatch_tasks(
-        current_progress=current_progress,
+        current_progress={
+            **current_progress,
+            "domain_progress_transition_requests": [dict(dispatch)],
+        },
         profile=profile,
         profile_ref=tmp_path / "profile.local.toml",
         study_id=study_id,
@@ -2508,9 +2542,21 @@ def test_paper_recovery_export_consumes_only_canonical_transition_request_previe
     assert task["provider_admission_pending"] is False
     assert task["provider_admission_requires_opl_runtime_result"] is True
     assert task["opl_domain_progress_transition_request"]["target_runtime_owner"] == "one-person-lab"
-    default_dispatch_request = task["payload"]["default_executor_dispatch_request"]
-    assert default_dispatch_request["dispatch_status"] == "ready"
-    assert default_dispatch_request["source_transition_request_status"] == (
+    assert task["payload"]["authority_boundary"]["target_runtime_owner"] == "one-person-lab"
+    assert task["payload"]["authority_boundary"]["mas_can_authorize_provider_admission"] is False
+    assert task["payload"]["paper_recovery_authority_boundary"] == (
+        "mas_domain_progress_transition_request_only"
+    )
+    assert "default_executor_dispatch_request" not in task["payload"]
+    legacy_dispatch_ref = task["payload"]["legacy_default_executor_dispatch_request_ref"]
+    assert legacy_dispatch_ref["projection_kind"] == "legacy_default_executor_dispatch_request_ref"
+    assert legacy_dispatch_ref["body_included"] is False
+    assert legacy_dispatch_ref["source_action_body_included"] is False
+    assert legacy_dispatch_ref["dispatch_body_included"] is False
+    assert legacy_dispatch_ref["authority_boundary"] == "mas_domain_progress_transition_request_only"
+    assert legacy_dispatch_ref["mas_can_authorize_provider_admission"] is False
+    assert legacy_dispatch_ref["mas_can_create_opl_stage_run"] is False
+    assert legacy_dispatch_ref["source_transition_request_status"] == (
         "transition_request_pending"
     )
 

@@ -87,8 +87,6 @@ OPS_MEDAUTOSCIENCE_ACTIVE_BIN_ENTRIES = {
     "study-state-matrix",
     "domain-health-diagnostic",
     "owner-route-reconcile",
-    "domain-action-request-materialize",
-    "domain-owner-action-dispatch",
     "maintain-runtime-storage",
     "storage-audit",
     "publication-gate",

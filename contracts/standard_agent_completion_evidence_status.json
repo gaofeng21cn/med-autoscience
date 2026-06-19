@@ -153,7 +153,7 @@
         "tests/test_paper_recovery_kernel_contract.py",
         "tests/test_stage_route_reconcile_contract.py",
         "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py",
-        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_default_executor_residue_cleanup_without_progress_claim",
+        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_retired_default_executor_residue_cleanup_receipt_without_progress_claim",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-negative-conformance-samples.json",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#tests/src/standard-agent-landing-acceptance-contract.test.ts::standard agent landing negative conformance has repo-backed cross-agent samples"
       ],
@@ -400,10 +400,16 @@
       ]
     }
   ],
-  "latest_default_executor_dispatch_residue_cleanup": {
-    "surface_kind": "default_executor_dispatch_residue_cleanup",
+  "historical_default_executor_dispatch_residue_cleanup_receipt": {
+    "surface_kind": "default_executor_dispatch_residue_cleanup_historical_receipt",
+    "source_surface_kind": "default_executor_dispatch_residue_cleanup",
     "workspace_ref": "workspace:Yang/DM-CVD-Mortality-Risk",
-    "status": "clean",
+    "status": "historical_clean_receipt",
+    "repo_source_disposition": "physically_retired",
+    "active_cli_command_retired": true,
+    "active_controller_module_retired": true,
+    "active_compat_test_retired": true,
+    "current_entry_allowed": false,
     "apply_observed_at": "2026-06-15T15:57:03Z",
     "dry_run_observed_at": "2026-06-15T16:09:23Z",
     "study_ids": [

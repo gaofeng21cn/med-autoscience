@@ -9,8 +9,6 @@ from med_autoscience.controllers import (
     autonomy_ai_doctor,
     control_intent,
     data_asset_gate,
-    domain_action_request_materializer,
-    domain_owner_action_dispatch,
     figure_loop_guard,
     medical_literature_audit,
     medical_publication_surface,
@@ -732,9 +730,7 @@ def run_domain_health_diagnostic_for_runtime(
     if scope.reads_owner_route and request_opl_stage_attempts and profile is not None and not apply:
         attach_domain_action_request_materialization_preview(
             report=report,
-            profile=profile,
             study_ids=study_ids,
-            materialize_domain_action_requests=domain_action_request_materializer.materialize_domain_action_requests,
         )
         attach_domain_handler_owner_resolution_preview(
             report=report,
@@ -1089,8 +1085,6 @@ def _run_developer_supervisor_same_tick(
         study_ids=study_ids,
         max_passes=max_passes,
         owner_route_reconcile_module=owner_route_reconcile,
-        domain_action_request_materializer_module=domain_action_request_materializer,
-        domain_owner_action_dispatch_module=domain_owner_action_dispatch,
     )
 
 

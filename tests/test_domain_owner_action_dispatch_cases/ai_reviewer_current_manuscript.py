@@ -151,8 +151,8 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     assert production_request["followup_actions"] == [
         "fill owner_callable_payload_ref.record_payload with an AI-reviewer-authored publication eval record",
         "run owner_callable_command exactly as rendered",
-        "domain-action-request-materialize",
-        "domain-owner-action-dispatch --action-types return_to_ai_reviewer_workflow",
+        "record owner callable result refs for OPL DomainProgressTransitionRuntime intake",
+        "wait for OPL current_owner_delta or DomainProgressTransitionRuntime live readback",
     ]
     assert production_request["reviewer_operating_system_contract"]["production_trace_builder"] == (
         "ai_reviewer_publication_eval_workflow.build_ai_reviewer_publication_eval_record_with_workflow_trace"

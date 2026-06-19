@@ -1,17 +1,29 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from tests.domain_owner_action_dispatch_helpers import write_json as _write_json
-from tests.study_runtime_test_helpers import make_profile, write_study
+from tests.study_runtime_test_helpers import make_profile, runtime_state_path, write_study
+
+
+def _read_json_object(path: Path) -> dict[str, object]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else {}
+
+
+def _runtime_runs_root(quest_root: Path) -> Path:
+    runtime_state = runtime_state_path(quest_root)
+    return runtime_state.parent.parent / "runs"
 
 
 def test_refresh_domain_transition_controller_decision_authorizes_runtime_without_publication_action(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -30,7 +42,7 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
         },
     )
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         {
             "status": "active",
             "quest_id": study_id,
@@ -89,7 +101,7 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -123,7 +135,7 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -156,7 +168,8 @@ def test_refresh_publication_gate_blocker_domain_transition_materializes_gate_re
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -175,7 +188,7 @@ def test_refresh_publication_gate_blocker_domain_transition_materializes_gate_re
         },
     )
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         {
             "status": "waiting_for_user",
             "quest_id": study_id,
@@ -209,7 +222,7 @@ def test_refresh_publication_gate_blocker_domain_transition_materializes_gate_re
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**kwargs: object) -> dict[str, object]:
@@ -243,7 +256,7 @@ def test_refresh_publication_gate_blocker_domain_transition_materializes_gate_re
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -272,7 +285,8 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -292,7 +306,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
         },
     )
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         {
             "status": "active",
             "quest_id": study_id,
@@ -351,7 +365,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -385,7 +399,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -416,7 +430,8 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -438,7 +453,7 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
         },
     )
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         {
             "status": "running",
             "quest_id": study_id,
@@ -457,7 +472,7 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
             },
         },
     )
-    stale_prompt = quest_root / ".ds" / "runs" / stale_run_id / "prompt.md"
+    stale_prompt = _runtime_runs_root(quest_root) / stale_run_id / "prompt.md"
     stale_prompt.parent.mkdir(parents=True, exist_ok=True)
     stale_prompt.write_text(
         "Active MAS controller work unit: paper/rebuttal/review_matrix.md and action_plan.md\n",
@@ -502,7 +517,7 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
     }
     calls: list[str] = []
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -540,8 +555,8 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime, raising=False)
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fake_request_opl_stage_attempt, raising=False)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime, raising=False)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "request_opl_stage_attempt", fake_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -552,7 +567,7 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
 
     runtime_authorization = result["refreshes"][0]["runtime_authorization"]
     prompt_refresh = runtime_authorization["active_prompt_refresh"]
-    runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
+    runtime_state = _read_json_object(runtime_state_path(quest_root))
     assert calls == []
     assert runtime_authorization["runtime_resume_status"] == "owner_route_required"
     assert runtime_authorization["queue_owner"] == "one-person-lab"
@@ -567,7 +582,8 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -588,7 +604,7 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
         },
     )
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         {
             "status": "running",
             "quest_id": study_id,
@@ -601,7 +617,7 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
             "continuation_reason": "controller_work_unit_pending",
         },
     )
-    live_prompt = quest_root / ".ds" / "runs" / live_run_id / "prompt.md"
+    live_prompt = _runtime_runs_root(quest_root) / live_run_id / "prompt.md"
     live_prompt.parent.mkdir(parents=True, exist_ok=True)
     live_prompt.write_text(
         f"Active MAS controller work unit: {work_unit_fingerprint}\n"
@@ -647,7 +663,7 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
     }
     calls: list[str] = []
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -684,8 +700,8 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime, raising=False)
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime, raising=False)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,

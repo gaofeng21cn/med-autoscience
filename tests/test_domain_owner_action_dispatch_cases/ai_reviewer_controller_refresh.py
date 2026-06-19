@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from tests.domain_owner_action_dispatch_helpers import (
@@ -12,11 +13,17 @@ from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_recor
 from tests.study_runtime_test_helpers import make_profile, runtime_state_path, write_study
 
 
+def _read_json_object(path: Path) -> dict[str, object]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else {}
+
+
 def test_refresh_controller_decisions_for_current_publication_eval_materializes_non_dispatching_decision(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -75,7 +82,7 @@ def test_refresh_controller_decisions_for_current_publication_eval_materializes_
     }
     calls: dict[str, object] = {}
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(
         outer_loop,
         "build_domain_health_diagnostic_outer_loop_tick_request",
@@ -104,7 +111,7 @@ def test_refresh_controller_decisions_for_current_publication_eval_materializes_
         apply=True,
     )
 
-    assert result["surface"] == "domain_owner_action_controller_decision_refresh"
+    assert result["surface"] == "current_controller_decision_refresh"
     assert result["refresh_count"] == 1
     assert result["materialized_count"] == 1
     refresh = result["refreshes"][0]
@@ -118,13 +125,15 @@ def test_refresh_controller_decisions_for_current_publication_eval_materializes_
     assert calls["materialize_kwargs"]["study_id"] == study_id
     assert calls["materialize_kwargs"]["study_root"] == study_root
     assert calls["materialize_kwargs"]["publication_eval_ref"] == tick_request["publication_eval_ref"]
-    assert calls["materialize_kwargs"]["source"] == "domain_owner_action_controller_decision_refresh"
+    assert calls["materialize_kwargs"]["source"] == "current_controller_decision_refresh"
+
 
 def test_refresh_controller_decision_prepares_opl_runtime_owner_handoff(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -222,7 +231,7 @@ def test_refresh_controller_decision_prepares_opl_runtime_owner_handoff(
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -252,7 +261,7 @@ def test_refresh_controller_decision_prepares_opl_runtime_owner_handoff(
         raise AssertionError("MAS must not resume OPL-owned runtime workers")
 
     monkeypatch.setattr(outer_loop, "materialize_non_dispatching_outer_loop_decision", fake_materialize_non_dispatching_outer_loop_decision)
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -264,7 +273,7 @@ def test_refresh_controller_decision_prepares_opl_runtime_owner_handoff(
     refresh = result["refreshes"][0]
     runtime_authorization = refresh["runtime_authorization"]
     current_authorization = runtime_authorization["current_controller_authorization"]
-    runtime_state = module._read_json_object(runtime_state_path(quest_root)) or {}
+    runtime_state = _read_json_object(runtime_state_path(quest_root))
     assert result["materialized_count"] == 1
     assert runtime_authorization["authorization_status"] == "owner_handoff_ready"
     assert runtime_authorization["runtime_resume_status"] == "owner_route_required"
@@ -295,7 +304,8 @@ def test_refresh_controller_decision_redrives_existing_pending_user_messages(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -397,7 +407,7 @@ def test_refresh_controller_decision_redrives_existing_pending_user_messages(
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -431,7 +441,7 @@ def test_refresh_controller_decision_redrives_existing_pending_user_messages(
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -442,7 +452,7 @@ def test_refresh_controller_decision_redrives_existing_pending_user_messages(
 
     runtime_authorization = result["refreshes"][0]["runtime_authorization"]
     pending_handoff = runtime_authorization["existing_pending_user_message_resume"]
-    runtime_state = module._read_json_object(runtime_state_path(quest_root)) or {}
+    runtime_state = _read_json_object(runtime_state_path(quest_root))
     assert runtime_authorization["authorization_status"] == "pending_user_message_owner_handoff_ready"
     assert runtime_authorization["current_controller_authorization"]["reason"] == "pending_user_messages_present"
     assert pending_handoff["marked"] is True
@@ -462,7 +472,8 @@ def test_refresh_controller_decision_preserves_live_worker_state(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -548,7 +559,7 @@ def test_refresh_controller_decision_preserves_live_worker_state(
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -578,7 +589,7 @@ def test_refresh_controller_decision_preserves_live_worker_state(
         raise AssertionError("MAS must not touch a live OPL-owned worker")
 
     monkeypatch.setattr(outer_loop, "materialize_non_dispatching_outer_loop_decision", fake_materialize_non_dispatching_outer_loop_decision)
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -587,7 +598,7 @@ def test_refresh_controller_decision_preserves_live_worker_state(
         apply=True,
     )
 
-    runtime_state = module._read_json_object(runtime_state_path(quest_root)) or {}
+    runtime_state = _read_json_object(runtime_state_path(quest_root))
     runtime_authorization = result["refreshes"][0]["runtime_authorization"]
     authorization = runtime_authorization["current_controller_authorization"]
     assert runtime_state["active_run_id"] == live_run_id
@@ -608,7 +619,8 @@ def test_refresh_controller_decisions_for_current_publication_eval_dry_run_does_
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.current_controller_decision_refresh")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -624,7 +636,7 @@ def test_refresh_controller_decisions_for_current_publication_eval_dry_run_does_
         "reason": "AI reviewer current eval blocks on claim-evidence consistency.",
     }
 
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
     monkeypatch.setattr(
         outer_loop,
@@ -649,7 +661,8 @@ def test_execute_dispatch_refreshes_controller_decision_after_ai_reviewer_materi
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    controller_refresh = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.controller_refresh")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -784,11 +797,11 @@ def test_execute_dispatch_refreshes_controller_decision_after_ai_reviewer_materi
     refresh_called: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.action_execution.ai_reviewer_publication_eval_workflow,
+        dispatch_module.action_execution.ai_reviewer_publication_eval_workflow,
         "run_ai_reviewer_publication_eval_workflow",
         fake_run_ai_reviewer_publication_eval_workflow,
     )
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(controller_refresh.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(
         outer_loop,
         "build_domain_health_diagnostic_outer_loop_tick_request",
@@ -810,7 +823,7 @@ def test_execute_dispatch_refreshes_controller_decision_after_ai_reviewer_materi
         fake_materialize_non_dispatching_outer_loop_decision,
     )
 
-    result = module.dispatch_domain_owner_actions(
+    result = dispatch_module.dispatch_domain_owner_actions(
         profile=profile,
         study_ids=(study_id,),
         action_types=("return_to_ai_reviewer_workflow",),

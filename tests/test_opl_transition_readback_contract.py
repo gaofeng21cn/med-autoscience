@@ -148,6 +148,66 @@ def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() 
     assert module.valid_opl_transition_readback(read_model_identity_mismatch) is False
 
 
+def test_opl_transition_readback_exposes_source_claimability() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+    )
+    contract = importlib.import_module(
+        "med_autoscience.controllers.opl_domain_progress_transition_contract"
+    )
+    trusted = _live_readback()
+    runtime_readback = {
+        **trusted,
+        "evidence_source": {
+            "source_kind": "opl_runtime_live_readback",
+            "source_ref": "opl://runtime/domain-progress/transactions/dptx-1",
+            "observed_at": "2026-06-19T09:40:00+00:00",
+        },
+    }
+    fixture_readback = {
+        **trusted,
+        "evidence_source": {
+            "source_kind": "fixture_or_replay_readback",
+            "source_ref": "tests/provider_admission_current_control_helpers.py",
+        },
+    }
+    missing_source_readback = dict(trusted)
+    missing_source_readback.pop("evidence_source")
+
+    assert module.required_opl_transition_readback_shape()[
+        "evidence_source_contract"
+    ] == contract.live_readback_evidence_source_contract()
+    assert module.valid_opl_transition_readback(runtime_readback) is True
+    assert module.valid_opl_transition_readback(fixture_readback) is True
+    assert module.opl_transition_readback_source_claimability(runtime_readback) == {
+        "source_kind": "opl_runtime_live_readback",
+        "source_ref": "opl://runtime/domain-progress/transactions/dptx-1",
+        "fresh_live_claim_allowed": True,
+        "runtime_claimable": True,
+        "shape_valid": True,
+        "replay_or_fixture": False,
+        "missing_source_kind": False,
+    }
+    assert module.opl_transition_readback_source_claimability(fixture_readback) == {
+        "source_kind": "fixture_or_replay_readback",
+        "source_ref": "tests/provider_admission_current_control_helpers.py",
+        "fresh_live_claim_allowed": False,
+        "runtime_claimable": False,
+        "shape_valid": True,
+        "replay_or_fixture": True,
+        "missing_source_kind": False,
+    }
+    assert module.opl_transition_readback_source_claimability(missing_source_readback) == {
+        "source_kind": None,
+        "source_ref": None,
+        "fresh_live_claim_allowed": False,
+        "runtime_claimable": False,
+        "shape_valid": True,
+        "replay_or_fixture": False,
+        "missing_source_kind": True,
+    }
+
+
 def test_provider_admission_readback_must_match_current_transition_identity() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"

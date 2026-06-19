@@ -29,6 +29,24 @@ def required_opl_transition_readback_shape() -> dict[str, Any]:
     return transition_contract.required_readback_shape()
 
 
+def opl_transition_readback_source_claimability(value: Mapping[str, Any]) -> dict[str, Any]:
+    source = _mapping(value.get("evidence_source"))
+    source_kind = _text(source.get("source_kind"))
+    source_ref = _text(source.get("source_ref"))
+    shape_valid = valid_opl_transition_readback(value)
+    runtime_claimable = source_kind in transition_contract.LIVE_READBACK_CLAIMABLE_SOURCE_KINDS
+    replay_or_fixture = source_kind in transition_contract.LIVE_READBACK_NON_CLAIMABLE_SOURCE_KINDS
+    return {
+        "source_kind": source_kind,
+        "source_ref": source_ref,
+        "fresh_live_claim_allowed": shape_valid and runtime_claimable,
+        "runtime_claimable": runtime_claimable,
+        "shape_valid": shape_valid,
+        "replay_or_fixture": replay_or_fixture,
+        "missing_source_kind": source_kind is None,
+    }
+
+
 def _valid_live_transition_readback(result: Mapping[str, Any]) -> bool:
     if _text(result.get("surface_kind")) != OPL_TRANSITION_LIVE_READBACK_SURFACE:
         return False
@@ -450,6 +468,7 @@ __all__ = [
     "candidate_opl_transition_readback",
     "has_provider_admission_opl_transition_readback",
     "has_opl_transition_readback",
+    "opl_transition_readback_source_claimability",
     "provider_admission_opl_transition_readback",
     "required_opl_transition_readback_shape",
     "valid_opl_transition_readback",

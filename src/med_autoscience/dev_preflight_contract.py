@@ -491,7 +491,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance.py",
             "src/med_autoscience/cli.py",
-            "src/med_autoscience/cli_parts/parser.py",
             "src/med_autoscience/mcp_server.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/control_plane_gate.py",
@@ -525,11 +524,35 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
+        category_id="cli_parser_surface",
+        exact_paths=(
+            "src/med_autoscience/cli_parts/parser.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_lifecycle_payload_retention.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="runtime_lifecycle_payload_retention_surface",
+        exact_paths=(
+            "src/med_autoscience/cli_parts/retention_commands.py",
+            "src/med_autoscience/controllers/runtime_lifecycle_payload_retention.py",
+            "tests/test_runtime_lifecycle_payload_retention.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_lifecycle_payload_retention.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
         category_id="paper_progress_transition_boundary_surface",
         exact_paths=(
+            "contracts/opl_domain_progress_transition_runtime_contract.json",
             "contracts/paper_progress_replay_live_evidence_status.json",
             "contracts/paper_progress_transition_runtime_completion_audit.json",
             "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+            "src/med_autoscience/controllers/opl_domain_progress_transition_contract.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/obligation_actuator.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control.py",
@@ -540,11 +563,14 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan_support.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_transition_request.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
+            "src/med_autoscience/controllers/paper_recovery_state_parts/provider_admission_state.py",
             "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
             "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
             "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_same_tick_cases.py",
             "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
+            "tests/test_opl_domain_progress_transition_runtime_contract.py",
             "tests/test_paper_progress_policy_adapter.py",
+            "tests/test_paper_recovery_provider_admission_state.py",
             "tests/test_provider_admission_current_control_arbiter.py",
         ),
         prefix_paths=(),
@@ -559,6 +585,11 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
                 "provider_admission_current_control_same_tick_cases.py "
                 "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
                 "test_obligation_actuator_outcomes.py -q"
+            ),
+            (
+                f"{PYTEST_CLEAN_RUNNER} "
+                "tests/test_opl_domain_progress_transition_runtime_contract.py "
+                "tests/test_paper_recovery_provider_admission_state.py -q"
             ),
         ),
     ),

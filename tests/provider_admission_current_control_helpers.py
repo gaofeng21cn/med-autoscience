@@ -143,6 +143,10 @@ def opl_transition_readback(
         "runtime_id": "opl_domain_progress_transition_runtime",
         "runtime_owner": "one-person-lab",
         "runtime_kind": "DomainProgressTransitionRuntime",
+        "evidence_source": {
+            "source_kind": "fixture_or_replay_readback",
+            "source_ref": "tests/provider_admission_current_control_helpers.py::opl_transition_readback",
+        },
         "storage_contract": "append_only_physical_jsonl",
         "runtime_readback_status": "complete_transaction",
         "transaction_complete": True,

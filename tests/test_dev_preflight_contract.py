@@ -483,6 +483,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/owner_route_handoff.py",
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
+            "src/med_autoscience/mcp_server.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/control_plane_gate.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/managed_wakeup.py",
@@ -506,11 +507,44 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
     assert result.unclassified_changes == ()
 
 
+def test_classify_changed_files_matches_cli_parser_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(["src/med_autoscience/cli_parts/parser.py"])
+
+    assert result.matched_categories == ("cli_parser_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        "scripts/run-pytest-clean.sh tests/test_runtime_lifecycle_payload_retention.py -q",
+    ]
+
+
+def test_classify_changed_files_matches_runtime_lifecycle_payload_retention_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "src/med_autoscience/cli_parts/retention_commands.py",
+            "src/med_autoscience/controllers/runtime_lifecycle_payload_retention.py",
+            "tests/test_runtime_lifecycle_payload_retention.py",
+        ]
+    )
+
+    assert result.matched_categories == (
+        "runtime_lifecycle_payload_retention_surface",
+    )
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        "scripts/run-pytest-clean.sh tests/test_runtime_lifecycle_payload_retention.py -q",
+    ]
+
+
 def test_classify_changed_files_matches_paper_progress_transition_boundary_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
         [
+            "contracts/opl_domain_progress_transition_runtime_contract.json",
             "contracts/paper_progress_replay_live_evidence_status.json",
             "contracts/paper_progress_transition_runtime_completion_audit.json",
             "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
@@ -518,6 +552,7 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
             "docs/runtime/control/controllers.md",
             "docs/runtime/designs/" + "paper_progress_" + "transition_kernel_target.md",
             "docs/status.md",
+            "src/med_autoscience/controllers/opl_domain_progress_transition_contract.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/obligation_actuator.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control.py",
@@ -528,6 +563,7 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan_support.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_transition_request.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
+            "src/med_autoscience/controllers/paper_recovery_state_parts/provider_admission_state.py",
             "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
             "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
             (
@@ -538,7 +574,9 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
                 "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
                 "test_obligation_actuator_outcomes.py"
             ),
+            "tests/test_opl_domain_progress_transition_runtime_contract.py",
             "tests/test_paper_progress_policy_adapter.py",
+            "tests/test_paper_recovery_provider_admission_state.py",
             "tests/test_provider_admission_current_control_arbiter.py",
         ]
     )
@@ -550,7 +588,7 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
     assert result.unclassified_changes == ()
     planned_commands = module.plan_commands_for_categories(result.matched_categories)
     assert "make test-control-plane" not in planned_commands
-    assert planned_commands[-1] == (
+    assert (
         "scripts/run-pytest-clean.sh "
         "tests/test_paper_progress_policy_adapter.py "
         "tests/test_provider_admission_current_control_arbiter.py "
@@ -560,7 +598,12 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
         "provider_admission_current_control_same_tick_cases.py "
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
         "test_obligation_actuator_outcomes.py -q"
-    )
+    ) in planned_commands
+    assert (
+        "scripts/run-pytest-clean.sh "
+        "tests/test_opl_domain_progress_transition_runtime_contract.py "
+        "tests/test_paper_recovery_provider_admission_state.py -q"
+    ) in planned_commands
 
 
 def test_classify_changed_files_matches_optional_provider_archive_audit_surface() -> None:

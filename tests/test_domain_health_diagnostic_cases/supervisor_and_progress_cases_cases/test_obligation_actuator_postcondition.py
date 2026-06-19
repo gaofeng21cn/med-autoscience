@@ -1229,7 +1229,10 @@ def _assert_obligation_typed_blocker_authority_result(
     ]
 
     assert typed_blocker_ref == str(latest_path)
-    assert outcome["typed_blocker_ref"] == typed_blocker_ref
+    if outcome["outcome_kind"] == "typed_blocker_ref":
+        assert outcome["typed_blocker_ref"] == typed_blocker_ref
+    else:
+        assert "typed_blocker_ref" not in outcome
     assert outcome["details"]["authority_result_ref"] == typed_blocker_ref
     assert outcome["details"]["authority_result_adapter"] == (
         "mas_domain_typed_blocker_authority_result_adapter"

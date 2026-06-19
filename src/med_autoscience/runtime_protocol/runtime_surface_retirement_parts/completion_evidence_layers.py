@@ -12,6 +12,7 @@ def completion_evidence_layers(
 ) -> dict[str, Any]:
     surfaces_by_id = {str(surface.get("surface_id")): surface for surface in open_surfaces}
     audits_by_id = {str(audit.get("surface_id")): audit for audit in surface_audits}
+    violation_reasons_by_id = _violation_reasons_by_surface(violations)
     required_refs = sorted(
         {
             ref
@@ -23,16 +24,14 @@ def completion_evidence_layers(
         str(audit["surface_id"])
         for audit in surface_audits
         if audit.get("physical_delete_gate_open") is True
-        or audit.get("domain_owner_action_dispatch_physical_delete_allowed") is False
-        or audit.get("domain_authority_refs_physical_delete_allowed") is False
-        or audit.get("legacy_stage_run_physical_delete_allowed") is False
-        or audit.get("agent_tool_arsenal_physical_delete_allowed") is False
+        or _has_blocked_physical_delete_tail(audit)
     )
     open_surface_tails = [
         _open_surface_tail(
             surface_id,
             surfaces_by_id.get(surface_id, {}),
             audits_by_id.get(surface_id, {}),
+            surface_violation_reasons=violation_reasons_by_id.get(surface_id, ()),
         )
         for surface_id in blocked_surface_ids
     ]
@@ -41,8 +40,11 @@ def completion_evidence_layers(
         _surface_live_or_no_active_proven(surfaces_by_id.get(str(audit["surface_id"]), {}), audit)
         for audit in surface_audits
     )
-    physical_delete_allowed = repo_no_authority_guard_satisfied and bool(surface_audits) and all(
-        audit.get("physical_delete_gate_open") is False for audit in surface_audits
+    physical_delete_allowed = (
+        repo_no_authority_guard_satisfied
+        and bool(surface_audits)
+        and not blocked_surface_ids
+        and all(audit.get("physical_delete_gate_open") is False for audit in surface_audits)
     )
     return {
         "repo_no_authority_guard": {
@@ -150,23 +152,44 @@ def _open_surface_tail(
     surface_id: str,
     surface: Mapping[str, Any],
     audit: Mapping[str, Any],
+    *,
+    surface_violation_reasons: tuple[str, ...],
 ) -> dict[str, Any]:
     required_refs = _physical_delete_required_refs(surface)
-    live_or_no_active_proven = _surface_live_or_no_active_proven(surface, audit)
+    live_or_no_active_proven = (
+        False
+        if surface_violation_reasons
+        else _surface_live_or_no_active_proven(surface, audit)
+    )
+    physical_delete_allowed = _surface_physical_delete_allowed(audit)
     return {
         "surface_id": surface_id,
         "authority_status": audit.get("authority_status"),
         "status": (
             "satisfied_with_live_evidence"
-            if live_or_no_active_proven and audit.get("physical_delete_gate_open") is False
+            if live_or_no_active_proven and physical_delete_allowed
             else "evidence_required"
         ),
         "required_ref_families": required_refs,
         "live_or_no_active_proven": live_or_no_active_proven,
         "physical_delete_gate_open": audit.get("physical_delete_gate_open"),
-        "physical_delete_allowed": audit.get("physical_delete_gate_open") is False,
+        "physical_delete_allowed": physical_delete_allowed,
         "forbidden_completion_interpretations": _forbidden_completion_interpretations(surface),
+        "surface_violation_reasons": list(surface_violation_reasons),
     }
+
+
+def _surface_physical_delete_allowed(audit: Mapping[str, Any]) -> bool:
+    return audit.get("physical_delete_gate_open") is False and not _has_blocked_physical_delete_tail(
+        audit
+    )
+
+
+def _has_blocked_physical_delete_tail(audit: Mapping[str, Any]) -> bool:
+    return any(
+        key.endswith("_physical_delete_allowed") and value is False
+        for key, value in audit.items()
+    )
 
 
 def _surface_live_or_no_active_proven(
@@ -203,40 +226,12 @@ def _surface_live_or_no_active_proven(
         ),
         ("live_owner_consumption_soak_boundary", "no_active_caller_proven"),
         ("opl_default_executor_carrier_tail_readback", "tail_readback_proven"),
-        (
-            "opl_default_executor_carrier_tail_readback",
-            "no_active_default_executor_carrier_caller_proven",
-        ),
         ("opl_obligation_actuator_tail_readback", "tail_readback_proven"),
-        (
-            "opl_obligation_actuator_tail_readback",
-            "no_active_mas_obligation_actuator_caller_proven",
-        ),
         ("opl_runtime_health_observability_tail_readback", "tail_readback_proven"),
-        (
-            "opl_runtime_health_observability_tail_readback",
-            "no_active_diagnostic_projection_caller_proven",
-        ),
         ("opl_materializer_projection_tail_readback", "tail_readback_proven"),
-        (
-            "opl_materializer_projection_tail_readback",
-            "no_active_materializer_projection_caller_proven",
-        ),
         ("opl_workbench_shell_readback_tail", "tail_readback_proven"),
-        (
-            "opl_workbench_shell_readback_tail",
-            "no_active_workbench_projection_action_caller_proven",
-        ),
         ("opl_runtime_lifecycle_maintenance_tail_readback", "tail_readback_proven"),
-        (
-            "opl_runtime_lifecycle_maintenance_tail_readback",
-            "no_active_lifecycle_maintenance_adapter_caller_proven",
-        ),
         ("opl_runtime_storage_maintenance_tail_readback", "tail_readback_proven"),
-        (
-            "opl_runtime_storage_maintenance_tail_readback",
-            "no_active_storage_maintenance_adapter_caller_proven",
-        ),
     )
     if any(_nested_value(surface, path) is True for path in proof_fields):
         return True
@@ -248,6 +243,22 @@ def _nested_value(surface: Mapping[str, Any], path: tuple[str, ...]) -> Any:
     for key in path:
         value = value.get(key) if isinstance(value, Mapping) else None
     return value
+
+
+def _violation_reasons_by_surface(
+    violations: list[dict[str, str]],
+) -> dict[str, tuple[str, ...]]:
+    reasons_by_id: dict[str, set[str]] = {}
+    for violation in violations:
+        surface_id = _text(violation.get("surface_id"))
+        reason = _text(violation.get("reason"))
+        if surface_id is None or reason is None:
+            continue
+        reasons_by_id.setdefault(surface_id, set()).add(reason)
+    return {
+        surface_id: tuple(sorted(reasons))
+        for surface_id, reasons in reasons_by_id.items()
+    }
 
 
 def _forbidden_completion_interpretations(surface: Mapping[str, Any]) -> list[str]:

@@ -8,7 +8,7 @@ from pathlib import Path
 DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
 
 
-def test_init_workspace_omits_retired_watch_runtime_service_wrappers(tmp_path: Path) -> None:
+def test_init_workspace_omits_retired_local_runtime_control_wrappers(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "lung-workspace"
 
@@ -22,12 +22,18 @@ def test_init_workspace_omits_retired_watch_runtime_service_wrappers(tmp_path: P
     install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
     service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
     uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
+    materialize_domain_action_requests = (
+        workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize"
+    )
     supervisor_execute_dispatch = workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch"
 
-    for path in (supervisor_execute_dispatch,):
-        assert path.is_file()
-        assert os.access(path, os.X_OK)
-    for path in (install_service, service_status, uninstall_service):
+    for path in (
+        install_service,
+        service_status,
+        uninstall_service,
+        materialize_domain_action_requests,
+        supervisor_execute_dispatch,
+    ):
         assert not path.exists()
     assert not (workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner").exists()
     assert not (workspace_root / "ops" / "medautoscience" / "supervisor").exists()
@@ -37,25 +43,6 @@ def test_init_workspace_omits_retired_watch_runtime_service_wrappers(tmp_path: P
     scan_domain_routes_text = scan_domain_routes.read_text(encoding="utf-8")
     assert "run_medautosci owner-route-reconcile" in scan_domain_routes_text
     assert '--profile "${PROFILE_PATH}"' in scan_domain_routes_text
-
-    materialize_domain_action_requests = workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize"
-    assert materialize_domain_action_requests.is_file()
-    assert os.access(materialize_domain_action_requests, os.X_OK)
-    materialize_domain_action_requests_text = materialize_domain_action_requests.read_text(encoding="utf-8")
-    assert "run_medautosci runtime domain-action-request-materialize" in materialize_domain_action_requests_text
-    assert '--profile "${PROFILE_PATH}"' in materialize_domain_action_requests_text
-    assert "--mode developer_apply_safe" in materialize_domain_action_requests_text
-    assert "--apply" in materialize_domain_action_requests_text
-    assert 'if [[ "${arg}" == "--apply" || "${arg}" == "--dry-run" ]]' in materialize_domain_action_requests_text
-    assert '${apply_mode:+"${apply_mode}"}' in materialize_domain_action_requests_text
-
-    supervisor_execute_dispatch_text = supervisor_execute_dispatch.read_text(encoding="utf-8")
-    assert "run_medautosci runtime domain-owner-action-dispatch" in supervisor_execute_dispatch_text
-    assert '--profile "${PROFILE_PATH}"' in supervisor_execute_dispatch_text
-    assert "--mode developer_apply_safe" in supervisor_execute_dispatch_text
-    assert "--apply" in supervisor_execute_dispatch_text
-    assert 'if [[ "${arg}" == "--apply" || "${arg}" == "--dry-run" ]]' in supervisor_execute_dispatch_text
-    assert '${apply_mode:+"${apply_mode}"}' in supervisor_execute_dispatch_text
 
 
 def test_init_workspace_does_not_render_workspace_local_scheduler_templates(tmp_path: Path) -> None:
@@ -136,12 +123,22 @@ def test_init_workspace_removes_retired_service_wrapper_family(tmp_path: Path) -
     service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
     uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
     runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
+    materializer = workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize"
+    dispatch = workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch"
     start_web = workspace_root / "ops" / "mas" / "bin" / "start-web"
     retired_payloads = {
         install_service: 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"\n',
         service_status: 'run_medautosci runtime supervision-status --profile "${PROFILE_PATH}" "$@"\n',
         uninstall_service: 'run_medautosci runtime remove-supervision --profile "${PROFILE_PATH}" "$@"\n',
         runner: 'WATCH_RUNTIME_RUNNER="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime-service-runner"\n',
+        materializer: (
+            'run_medautosci runtime domain-action-request-materialize '
+            '--profile "${PROFILE_PATH}" --mode developer_apply_safe --apply "$@"\n'
+        ),
+        dispatch: (
+            'run_medautosci runtime domain-owner-action-dispatch '
+            '--profile "${PROFILE_PATH}" --mode developer_apply_safe --apply "$@"\n'
+        ),
         start_web: 'run_medautosci workspace progress-portal --profile "${PROFILE_PATH}" --open "$@"\n',
     }
     for path, marker in retired_payloads.items():

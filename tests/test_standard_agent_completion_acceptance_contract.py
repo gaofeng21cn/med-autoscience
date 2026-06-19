@@ -452,15 +452,22 @@ def test_standard_agent_completion_evidence_ledger_records_lifecycle_owner_follo
     )
 
 
-def test_standard_agent_completion_evidence_ledger_records_default_executor_residue_cleanup_without_progress_claim() -> None:
+def test_standard_agent_completion_evidence_ledger_records_retired_default_executor_residue_cleanup_receipt_without_progress_claim() -> None:
     contract = _contract()
     ledger = _ledger()
     gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
 
-    cleanup = ledger["latest_default_executor_dispatch_residue_cleanup"]
-    assert cleanup["surface_kind"] == "default_executor_dispatch_residue_cleanup"
+    cleanup = ledger["historical_default_executor_dispatch_residue_cleanup_receipt"]
+    assert "latest_default_executor_dispatch_residue_cleanup" not in ledger
+    assert cleanup["surface_kind"] == "default_executor_dispatch_residue_cleanup_historical_receipt"
+    assert cleanup["source_surface_kind"] == "default_executor_dispatch_residue_cleanup"
     assert cleanup["workspace_ref"] == "workspace:Yang/DM-CVD-Mortality-Risk"
-    assert cleanup["status"] == "clean"
+    assert cleanup["status"] == "historical_clean_receipt"
+    assert cleanup["repo_source_disposition"] == "physically_retired"
+    assert cleanup["active_cli_command_retired"] is True
+    assert cleanup["active_controller_module_retired"] is True
+    assert cleanup["active_compat_test_retired"] is True
+    assert cleanup["current_entry_allowed"] is False
     assert cleanup["apply_observed_at"] == "2026-06-15T15:57:03Z"
     assert cleanup["dry_run_observed_at"] == "2026-06-15T16:09:23Z"
     assert cleanup["archived_mutable_slot_count"] == 23
@@ -519,7 +526,7 @@ def test_standard_agent_completion_evidence_ledger_records_default_executor_resi
     negative = gates["negative_false_completion_tests"]
     assert (
         "tests/test_standard_agent_completion_acceptance_contract.py::"
-        "test_standard_agent_completion_evidence_ledger_records_default_executor_residue_cleanup_without_progress_claim"
+        "test_standard_agent_completion_evidence_ledger_records_retired_default_executor_residue_cleanup_receipt_without_progress_claim"
     ) in negative["observed_refs"]
     assert "default_executor_residue_cleanup_clean" in contract["false_completion_claims"]
     assert "default_executor_residue_cleanup_clean" in ledger["rejected_completion_claims"]

@@ -92,8 +92,8 @@ def build_ai_reviewer_medical_prose_review_production_request(
         "owner_callable_surface": "publication materialize-ai-medical-prose-review",
         "review_must_consume_refs": [request_ref],
         "followup_actions": [
-            "domain-action-request-materialize",
-            "domain-owner-action-dispatch --action-types return_to_ai_reviewer_workflow",
+            "record owner callable result refs for OPL DomainProgressTransitionRuntime intake",
+            "wait for OPL current_owner_delta or DomainProgressTransitionRuntime live readback",
         ],
         "authority_contract": {
             "paper_package_mutation_allowed": False,

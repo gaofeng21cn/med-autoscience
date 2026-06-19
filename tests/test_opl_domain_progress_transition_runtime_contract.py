@@ -65,6 +65,25 @@ def test_opl_domain_progress_transition_runtime_contract_matches_helper_abi() ->
         "owner_callable_dispatch_uses_same_identity_binding": True,
         "missing_route_or_attempt_identity_counts_as_missing_opl_authorization": True,
     }
+    assert contract["live_readback_contract"]["evidence_source_contract"] == (
+        helper.live_readback_evidence_source_contract()
+    )
+    assert contract["live_readback_contract"]["evidence_source_contract"] == {
+        "claimable_runtime_evidence_source_kinds": [
+            "opl_runtime_live_readback",
+            "opl_current_control_live_readback",
+            "opl_stagerun_live_readback",
+        ],
+        "non_claimable_runtime_evidence_source_kinds": [
+            "fixture_or_replay_readback",
+            "unit_test_helper_readback",
+            "mas_projection_payload",
+            "historical_log_extract",
+        ],
+        "fresh_live_claim_requires_source_kind": True,
+        "missing_source_kind_is_not_fresh_live_claim": True,
+        "valid_shape_can_test_projection_rules_without_live_claim": True,
+    }
     assert contract["mas_request_contract"]["forbidden_runtime_fields"] == (
         helper.request_forbidden_runtime_fields()
     )

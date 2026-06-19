@@ -206,13 +206,29 @@ def test_domain_handler_export_materializes_supervisor_successor_dispatch_under_
     assert task["payload"]["provider_admission_pending"] is False
     assert task["payload"]["provider_admission_requires_opl_runtime_result"] is True
     assert task["payload"]["next_executable_owner"] == "write"
+    assert task["payload"]["paper_recovery_authority_boundary"] == (
+        "mas_domain_progress_transition_request_only"
+    )
     assert task["payload"]["paper_autonomy_supervisor_decision"]["decision"] == (
         "materialize_recovery_action"
     )
     assert task["payload"]["paper_recovery_source_action"]["authority"] == "paper_recovery_state"
-    assert task["payload"]["default_executor_dispatch_request"]["dispatch_status"] == "ready"
-    assert task["payload"]["default_executor_dispatch_request"]["source_action"]["reason"] == (
-        "publication_gate_replay_blocked"
+    assert "default_executor_dispatch_request" not in task["payload"]
+    legacy_ref = task["payload"]["legacy_default_executor_dispatch_request_ref"]
+    assert legacy_ref["role"] == "default_executor_dispatch_request"
+    assert legacy_ref["projection_kind"] == "legacy_default_executor_dispatch_request_ref"
+    assert legacy_ref["body_included"] is False
+    assert legacy_ref["source_action_body_included"] is False
+    assert legacy_ref["dispatch_body_included"] is False
+    assert legacy_ref["authority_boundary"] == "mas_domain_progress_transition_request_only"
+    assert legacy_ref["mas_can_authorize_provider_admission"] is False
+    assert legacy_ref["mas_can_create_opl_stage_run"] is False
+    assert legacy_ref["provider_admission_requires_opl_runtime_result"] is True
+    assert legacy_ref["source_transition_request_status"] == "transition_request_pending"
+    assert "publication_gate_replay_blocked" not in json.dumps(
+        legacy_ref,
+        sort_keys=True,
+        ensure_ascii=False,
     )
     assert any(
         ref["role"] == "paper_autonomy_supervisor_decision"

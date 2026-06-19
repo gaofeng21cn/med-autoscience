@@ -4,8 +4,6 @@ from pathlib import Path
 
 
 DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
-DEVELOPER_SUPERVISOR_CONSUME_ARGS = "--mode developer_apply_safe"
-DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS = "--mode developer_apply_safe"
 
 
 def _render_medautosci_shared(profile_relpath: Path) -> str:
@@ -173,45 +171,5 @@ def _render_scan_domain_routes_script() -> str:
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
         'run_medautosci owner-route-reconcile \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
-        '  "$@"\n'
-    )
-
-
-def _render_materialize_domain_action_requests_script() -> str:
-    return (
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'apply_mode="--apply"\n'
-        'for arg in "$@"; do\n'
-        '  if [[ "${arg}" == "--apply" || "${arg}" == "--dry-run" ]]; then\n'
-        '    apply_mode=""\n'
-        "    break\n"
-        "  fi\n"
-        "done\n\n"
-        'run_medautosci runtime domain-action-request-materialize \\\n'
-        '  --profile "${PROFILE_PATH}" \\\n'
-        f"  {DEVELOPER_SUPERVISOR_CONSUME_ARGS} \\\n"
-        '  ${apply_mode:+"${apply_mode}"} \\\n'
-        '  "$@"\n'
-    )
-
-
-def _render_supervisor_execute_dispatch_script() -> str:
-    return (
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'apply_mode="--apply"\n'
-        'for arg in "$@"; do\n'
-        '  if [[ "${arg}" == "--apply" || "${arg}" == "--dry-run" ]]; then\n'
-        '    apply_mode=""\n'
-        "    break\n"
-        "  fi\n"
-        "done\n\n"
-        'run_medautosci runtime domain-owner-action-dispatch \\\n'
-        '  --profile "${PROFILE_PATH}" \\\n'
-        f"  {DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS} \\\n"
-        '  ${apply_mode:+"${apply_mode}"} \\\n'
         '  "$@"\n'
     )

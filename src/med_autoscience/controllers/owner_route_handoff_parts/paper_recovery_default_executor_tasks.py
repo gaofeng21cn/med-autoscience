@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import domain_action_request_materializer
 from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
@@ -32,15 +31,8 @@ def paper_recovery_default_executor_dispatch_tasks(
 ) -> list[dict[str, Any]]:
     if not _paper_recovery_requests_default_executor_dispatch(current_progress):
         return []
-    preview = domain_action_request_materializer.current_owner_callable_adapters(
-        profile=profile,
-        study_ids=(study_id,),
-        mode="developer_apply_safe",
-        apply=False,
-        dispatch_ready_for_execution=True,
-    )
     tasks: list[dict[str, Any]] = []
-    for dispatch in domain_progress_transition_requests(preview):
+    for dispatch in domain_progress_transition_requests(current_progress):
         if not isinstance(dispatch, Mapping):
             continue
         if _text(dispatch.get("study_id")) != study_id:
@@ -190,7 +182,7 @@ def _materialized_default_executor_dispatch_task(
         "work_unit_fingerprint": work_unit_fingerprint,
         "source_fingerprint": source_fingerprint,
         "dispatch_ref": dispatch_ref,
-        "authority_boundary": "mas_default_executor_dispatch_request_only",
+        "paper_recovery_authority_boundary": "mas_domain_progress_transition_request_only",
         "next_executable_owner": next_owner,
         **transition_authority_fields,
         "opl_domain_progress_transition_request": transition_request,
@@ -200,9 +192,9 @@ def _materialized_default_executor_dispatch_task(
         "paper_autonomy_supervisor_decision": _source_action_supervisor_decision(source_action)
         or None,
         "paper_recovery_source_action": source_action or None,
-        "default_executor_dispatch_request": _default_executor_dispatch_request_payload(
+        "legacy_default_executor_dispatch_request_ref": _legacy_default_executor_dispatch_request_ref(
             dispatch=dispatch,
-            source_action=source_action,
+            dispatch_ref=dispatch_ref,
         ),
     }
     return {
@@ -459,19 +451,27 @@ def _source_action_supervisor_decision(source_action: Mapping[str, Any]) -> dict
     )
 
 
-def _default_executor_dispatch_request_payload(
+def _legacy_default_executor_dispatch_request_ref(
     *,
     dispatch: Mapping[str, Any],
-    source_action: Mapping[str, Any],
+    dispatch_ref: str | None,
 ) -> dict[str, Any]:
-    payload = dict(dispatch)
-    source_dispatch_status = _text(payload.get("dispatch_status"))
-    if source_dispatch_status is not None:
-        payload["source_transition_request_status"] = source_dispatch_status
-    payload["dispatch_status"] = "ready"
-    if source_action:
-        payload["source_action"] = dict(source_action)
-    return payload
+    return {
+        "role": "default_executor_dispatch_request",
+        "surface": "default_executor_dispatch_request",
+        "projection_kind": "legacy_default_executor_dispatch_request_ref",
+        "ref": dispatch_ref,
+        "body_included": False,
+        "source_action_body_included": False,
+        "dispatch_body_included": False,
+        "source_transition_request_status": "transition_request_pending",
+        "authority_boundary": "mas_domain_progress_transition_request_only",
+        "provider_admission_requires_opl_runtime_result": True,
+        "mas_can_authorize_provider_admission": False,
+        "mas_can_create_opl_event": False,
+        "mas_can_create_opl_outbox_record": False,
+        "mas_can_create_opl_stage_run": False,
+    }
 
 
 def _consumer_latest_path_for_source_ref(profile: WorkspaceProfile) -> Path:

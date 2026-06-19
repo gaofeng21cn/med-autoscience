@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .supervisor_and_progress_cases_cases.test_managed_recovery_holds import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_focused_scope import *  # noqa: F403,F401
-from .supervisor_and_progress_cases_cases.test_materialized_dispatch_blockers import *  # noqa: F403,F401
+from .supervisor_and_progress_cases_cases.test_private_surface_retirement_boundary import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_obligation_actuator_outcomes import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_obligation_actuator_postcondition import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_provider_admission_probe import *  # noqa: F403,F401
@@ -13,7 +13,6 @@ from .supervisor_and_progress_cases_cases.provider_admission_eval_bound_cases im
 from .supervisor_and_progress_cases_cases.provider_admission_fail_closed_blocker_cases import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.provider_admission_opl_authorization_typed_blocker_cases import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.provider_admission_report_currentness_cases import *  # noqa: F403,F401
-from .supervisor_and_progress_cases_cases.provider_admission_same_tick_admission_cases import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.provider_admission_current_control_previous_gate_queue_cases import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_managed_recovery_redrive import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_alias_and_family_companion import *  # noqa: F403,F401

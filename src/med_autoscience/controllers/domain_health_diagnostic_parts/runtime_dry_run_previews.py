@@ -15,27 +15,18 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
 from med_autoscience.profiles import WorkspaceProfile
 
 
-MaterializeDomainActionRequests = Callable[..., dict[str, Any]]
 ExportFamilyDomainHandler = Callable[..., dict[str, Any]]
 
 
 def attach_domain_action_request_materialization_preview(
     *,
     report: dict[str, Any],
-    profile: WorkspaceProfile,
     study_ids: tuple[str, ...],
-    materialize_domain_action_requests: MaterializeDomainActionRequests,
 ) -> None:
     if not _report_requests_recovery_materialization(report):
         return
     preview = with_owner_callable_adapter_projection(
-        materialize_domain_action_requests(
-            profile=profile,
-            study_ids=study_ids,
-            mode="developer_apply_safe",
-            apply=False,
-            dispatch_ready_for_execution=True,
-        )
+        _retired_materialization_preview_payload(report=report, study_ids=study_ids)
     )
     report["domain_action_request_materialization_preview"] = preview
     report["materialization_preview_request_task_count"] = _int_value(
@@ -68,6 +59,54 @@ def attach_domain_action_request_materialization_preview(
     )
     _attach_materialization_preview_to_managed_actions(report=report, preview=preview)
     _sync_transition_request_preview_to_report(report=report, preview=preview)
+
+
+def _retired_materialization_preview_payload(
+    *,
+    report: Mapping[str, Any],
+    study_ids: tuple[str, ...],
+) -> dict[str, Any]:
+    transition_requests = _existing_transition_request_candidates(
+        report=report,
+        study_ids=study_ids,
+    )
+    return {
+        "surface": "domain_action_request_materialization_preview",
+        "surface_kind": "dhd_materialization_preview_retired_opl_readback_required",
+        "schema_version": 1,
+        "dry_run": True,
+        "request_task_count": 0,
+        "domain_progress_transition_requests": transition_requests,
+        "retired_private_surface": "domain-action-request-materialize",
+        "active_materializer_call": False,
+        "mas_local_materialization_authority": False,
+        "mas_can_create_opl_command_event_outbox_or_stagerun": False,
+        "mas_can_authorize_provider_admission": False,
+        "blocked_reason": "opl_domain_progress_transition_runtime_readback_required",
+        "canonical_transition_request_surface": "managed_study_opl_transition_request_candidates",
+        "readback_source": "existing_report_transition_request_candidates",
+    }
+
+
+def _existing_transition_request_candidates(
+    *,
+    report: Mapping[str, Any],
+    study_ids: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    requested = set(_text_items(study_ids))
+    candidates: list[dict[str, Any]] = []
+    for source in (
+        report.get("managed_study_opl_transition_request_candidates"),
+        _mapping(report.get("current_execution_evidence")).get("transition_request_candidates"),
+    ):
+        for item in source or []:
+            if not isinstance(item, Mapping):
+                continue
+            study_id = _non_empty_text(item.get("study_id"))
+            if requested and study_id not in requested:
+                continue
+            candidates.append(_transition_request_projection(item))
+    return _merge_transition_request_candidates([], candidates)
 
 
 def attach_domain_handler_owner_resolution_preview(
@@ -220,9 +259,10 @@ def _transition_request_projection(adapter: Mapping[str, Any]) -> dict[str, Any]
     projection.setdefault("opl_transition_runtime_required", True)
     projection.setdefault(
         "source",
-        _non_empty_text(adapter.get("source")) or "domain_action_request_materialization_preview",
+        _non_empty_text(adapter.get("source"))
+        or "dhd_materialization_preview_existing_transition_request",
     )
-    projection.setdefault("same_tick_materialization_source", "dry_run_preview")
+    projection.setdefault("same_tick_materialization_source", "existing_opl_transition_request_projection")
     return projection
 
 
@@ -233,6 +273,7 @@ def _merge_transition_request_candidates(
     merged: list[dict[str, Any]] = []
     seen: set[tuple[str | None, str | None, str | None, str | None]] = set()
     for item in [*existing, *incoming]:
+        item = _transition_request_projection(item)
         key = (
             _non_empty_text(item.get("study_id")),
             _non_empty_text(item.get("action_type")),

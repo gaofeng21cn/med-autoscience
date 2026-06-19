@@ -74,6 +74,12 @@ FORBIDDEN_TRUE_AUTHORITY_FLAGS = frozenset(
         "wildcard_action_triggers_can_select_without_explicit_capability_request",
         "missing_explicit_capability_request_can_auto_select_wildcard_sidecar",
         "wildcard_sidecar_can_block_current_owner_action",
+        "body_authority",
+        "owner_callable_adapter_counts_authority",
+        "transition_request_projection_body_authority",
+        "mas_can_create_stage_run",
+        "provider_admission_pending",
+        "request_only_carrier_can_authorize_provider_admission",
     }
 )
 
@@ -82,6 +88,9 @@ def audit_runtime_surface_retirement_inventory(
     inventory: Mapping[str, Any],
 ) -> dict[str, Any]:
     surfaces = _surfaces(inventory)
+    repo_source_open_surfaces = [
+        surface for surface in surfaces if not _repo_source_retired(surface)
+    ]
     open_surfaces = [
         surface
         for surface in surfaces
@@ -94,15 +103,44 @@ def audit_runtime_surface_retirement_inventory(
         surface_audits=surface_audits,
         violations=violations,
     )
+    repo_source_completion_allowed = not violations and not repo_source_open_surfaces
+    live_runtime_readiness = evidence_layers["live_soak_or_no_active_caller"]
     return {
         "surface_kind": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
         "status": (
-            "repo_no_authority_guard_landed_live_physical_retirement_tail_open"
+            "repo_source_physical_retirement_complete"
+            if repo_source_completion_allowed
+            else "repo_no_authority_guard_landed_live_runtime_readiness_tail_open"
             if not violations
             else "authority_boundary_violation"
         ),
         "generic_runtime_owner": GENERIC_RUNTIME_OWNER,
+        "repo_source_retirement_completion": {
+            "status": "complete" if repo_source_completion_allowed else "incomplete",
+            "completion_claim_allowed": repo_source_completion_allowed,
+            "open_surface_count": len(repo_source_open_surfaces),
+            "open_surface_ids": [
+                str(surface.get("surface_id"))
+                for surface in repo_source_open_surfaces
+            ],
+            "evidence_basis": [
+                "current_disposition=physically_retired",
+                "no authority-boundary violations",
+                "compatibility_alias_allowed=false",
+                "mas_owner_claim_allowed=false",
+            ],
+        },
+        "live_runtime_readiness_completion": {
+            "status": (
+                "complete"
+                if live_runtime_readiness["proven"]
+                else "evidence_required"
+            ),
+            "completion_claim_allowed": bool(live_runtime_readiness["proven"]),
+            "required_ref_families": live_runtime_readiness["required_ref_families"],
+            "open_surface_tails": live_runtime_readiness["open_surface_tails"],
+        },
         "open_surface_count": len(open_surfaces),
         "open_surface_ids": [surface["surface_id"] for surface in open_surfaces],
         "open_surfaces": surface_audits,
@@ -116,19 +154,38 @@ def audit_runtime_surface_retirement_inventory(
         ]["proven"],
         "physical_delete_allowed": evidence_layers["physical_retirement"]["allowed"],
         "completion_evidence_layers": evidence_layers,
-        "completion_claim_allowed": False,
-        "physical_retirement_tail_open": True,
+        "completion_claim_allowed": repo_source_completion_allowed,
+        "physical_retirement_tail_open": not repo_source_completion_allowed,
         "violations": violations,
         "forbidden_completion_interpretations": [
             "active_caller_exists_as_retention_reason",
-            "active_caller_migrated_as_physical_retirement",
-            "inventory_entry_updated_as_live_takeover",
             "focused_tests_green_as_runtime_ready",
-            "repo_no_authority_guard_satisfied_without_live_soak",
             "maintenance_apply_gate_as_paper_progress",
             "read_only_projection_as_execution_authority",
+            "repo_source_retirement_as_live_runtime_ready",
+            "live_runtime_tail_open_as_repo_source_delete_blocker",
         ],
     }
+
+
+def _repo_source_retired(surface: Mapping[str, Any]) -> bool:
+    disposition = _text(surface.get("current_disposition")) or ""
+    if disposition == "physically_retired":
+        return True
+    return disposition in _REPO_SOURCE_ACCEPTED_ADAPTER_DISPOSITIONS
+
+
+_REPO_SOURCE_ACCEPTED_ADAPTER_DISPOSITIONS = frozenset(
+    {
+        "opl_authorized_owner_callable_adapter",
+        "obligation_readback_projection_consumer",
+        "read_only_diagnostic_publisher",
+        "read_only_workbench_projection",
+        "opl_capability_runtime_projection",
+        "opl_authorized_maintenance_callable_adapter_live_takeover_tail_open",
+        "opl_authorized_storage_maintenance_callable_adapter_live_takeover_tail_open",
+    }
+)
 
 
 def validate_runtime_surface_retirement_inventory(
@@ -150,6 +207,10 @@ def validate_runtime_surface_retirement_inventory(
             violations.append(_violation(surface_id, "missing_provider_completion_forbidden_claim"))
         for flag_path in _truthy_authority_flags(surface):
             violations.append(_violation(surface_id, f"truthy_authority_flag:{flag_path}"))
+        if surface.get("current_disposition") == "physically_retired":
+            if not _text(surface.get("tombstone_or_provenance_ref")):
+                violations.append(_violation(surface_id, "physically_retired_missing_tombstone_or_provenance_ref"))
+            continue
         if surface_id == "default_executor_dispatch_request":
             violations.extend(_validate_legacy_default_executor_carrier(surface_id, surface))
         if surface_id == "default_executor_execution_latest_wire_projection":
@@ -173,8 +234,7 @@ def validate_runtime_surface_retirement_inventory(
             violations.extend(_validate_runtime_lifecycle_payload_retention(surface_id, surface))
         if surface_id == "runtime_storage_maintenance":
             violations.extend(_validate_runtime_storage_maintenance(surface_id, surface))
-        if surface.get("current_disposition") != "physically_retired":
-            violations.extend(_validate_open_surface(surface_id, surface))
+        violations.extend(_validate_open_surface(surface_id, surface))
     return violations
 
 
@@ -184,7 +244,9 @@ def _validate_open_surface(
 ) -> list[dict[str, str]]:
     violations: list[dict[str, str]] = []
     gate = surface.get("retirement_gate")
-    if isinstance(gate, Mapping):
+    if not isinstance(gate, Mapping):
+        violations.append(_violation(surface_id, "missing_open_surface_retirement_gate"))
+    else:
         if gate.get("active_caller_alone_retains_surface") is not False:
             violations.append(_violation(surface_id, "active_caller_alone_can_retain_surface"))
         if gate.get("completion_claim_requires_live_owner_or_opl_readback") is not True:
