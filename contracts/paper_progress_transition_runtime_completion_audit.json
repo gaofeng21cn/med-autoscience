@@ -331,9 +331,10 @@
         "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention/capsule projections remain non-authority.",
         "runtime_surface_retirement_no_authority_audit derives repo-wide no-authority status from the retirement inventory and classifies runtime lifecycle/storage maintenance as OPL-authorized adapters, not MAS private runtime authority.",
         "Legacy default_executor_dispatch_request now has a machine-readable legacy_source_contamination_boundary: polluted source claims for MAS dispatch authority, OPL event/outbox/StageRun writes, or provider_admission_pending must remain diagnostic-only; receipt projections must force authority and provider-admission flags false, and runtime_surface_retirement rejects regressions that let polluted carrier payloads authorize provider admission or satisfy OPL readback.",
-        "owner_callable_adapter_projection.owner_callable_adapters is retired as an active body reader; current consumers must read domain_progress_transition_requests, and legacy diagnostics can only read body-free identity refs via legacy_owner_callable_adapter_refs / legacy_owner_callable_adapter_diagnostics."
+        "owner_callable_adapter_projection.owner_callable_adapters is retired as an active body reader; current consumers must read domain_progress_transition_requests, and legacy diagnostics can only read body-free identity refs via legacy_owner_callable_adapter_refs / legacy_owner_callable_adapter_diagnostics.",
+        "Agent Tool Arsenal / Scientific Capability Registry is now tracked as an OPL Capability Runtime projection in the runtime surface retirement inventory; wildcard sidecar action triggers cannot auto-select without explicit capability_families / route_required_ref_families and runtime_surface_retirement rejects MAS selector or wildcard auto-select regressions."
       ],
-      "open_gap": "Remaining live dispatcher soak/no-active-caller proof, DHD obligation actuator physical retirement, domain_authority_refs_index live OPL StateIndexKernel takeover or no-active-replay/local-inspection-caller physical delete proof, OPL cleanup/retention policy live takeover for runtime lifecycle payload retention, OPL storage policy live takeover for runtime_storage_maintenance, and full legacy carrier physical delete evidence still require closeout; default legacy latest fallback retirement, legacy carrier StageRun ABI/provenance no-authority proof, request_tasks alias retirement, OPL-family adoption source-adapter manifest consumption, runtime_lifecycle/runtime_storage apply gating, and runtime-surface no-authority guards are repo-level authority-boundary cleanup, not OPL live takeover or physical retirement of every legacy carrier."
+      "open_gap": "Remaining live dispatcher soak/no-active-caller proof, DHD obligation actuator physical retirement, domain_authority_refs_index live OPL StateIndexKernel takeover or no-active-replay/local-inspection-caller physical delete proof, OPL cleanup/retention policy live takeover for runtime lifecycle payload retention, OPL storage policy live takeover for runtime_storage_maintenance, Agent Tool Arsenal live owner-consumption soak / direct-hosted parity, and full legacy carrier physical delete evidence still require closeout; default legacy latest fallback retirement, legacy carrier StageRun ABI/provenance no-authority proof, request_tasks alias retirement, OPL-family adoption source-adapter manifest consumption, runtime_lifecycle/runtime_storage apply gating, Tool Arsenal wildcard selector hardening, and runtime-surface no-authority guards are repo-level authority-boundary cleanup, not OPL live takeover or physical retirement of every legacy carrier."
     },
     {
       "feature_id": "live_dm002_dm003_acceptance",
@@ -789,12 +790,18 @@
         "tests/test_study_runtime_typed_surface_cases/runtime_health_decision_gate_cases.py::test_runtime_health_recovery_decision_rejects_cross_identity_opl_readback",
         "tests/test_study_runtime_typed_surface_cases/runtime_health_decision_gate_cases.py::test_runtime_health_recovery_decision_rejects_top_level_opl_readback_claim",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_health_kernel#diagnostic_consumer_gate_boundary",
-        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_runtime_health_kernel#diagnostic_consumer_gate_boundary"
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_runtime_health_kernel#diagnostic_consumer_gate_boundary",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/agent_tool_arsenal_scientific_capability_registry#wildcard_action_trigger_boundary",
+        "contracts/agent_tool_arsenal.json#/scientific_capability_registry.default_policy#wildcard_action_triggers_auto_select=false",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_agent_tool_arsenal_scientific_capability_registry",
+        "tests/test_scientific_capability_registry.py::test_scientific_capability_registry_wildcard_sidecars_require_explicit_capability_request",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#agent_tool_arsenal_scientific_capability_registry"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
         "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
         "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
+        "agent_tool_arsenal_live_owner_consumption_soak_and_direct_hosted_parity_ref",
         "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
       ],
       "false_completion_boundary": [

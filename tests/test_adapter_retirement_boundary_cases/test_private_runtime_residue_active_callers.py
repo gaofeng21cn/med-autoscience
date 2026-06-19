@@ -413,6 +413,12 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["runtime_storage_maintenance"]["apply_authorization_surface"] == (
         "opl_runtime_storage_maintenance_authorization"
     )
+    assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
+        "authority_status"
+    ] == "opl_capability_runtime_projection_live_owner_soak_tail_open"
+    assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
+        "allowed_effect"
+    ] == "current_owner_delta_bound_capability_projection_explicit_request_only"
     assert all(surface["active_caller_retains_authority"] is False for surface in open_surfaces.values())
     assert all(
         surface["active_caller_retains_runtime_authority"] is False
@@ -927,6 +933,79 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
             "obligation_actuator_missing_owner_retirement_decision_gate",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in obligation_violations}
+
+    capability_bad_inventory = json.loads(json.dumps(inventory))
+    capability = next(
+        surface
+        for surface in capability_bad_inventory["surfaces"]
+        if surface["surface_id"] == "agent_tool_arsenal_scientific_capability_registry"
+    )
+    capability["authority_boundary"]["mas_selector_authority"] = True
+    capability["authority_boundary"]["selection_runtime_owner"] = "med-autoscience"
+    capability["wildcard_action_trigger_boundary"]["wildcard_action_triggers_auto_select"] = True
+    capability["wildcard_action_trigger_boundary"][
+        "requires_explicit_capability_request"
+    ] = False
+    capability["wildcard_action_trigger_boundary"][
+        "wildcard_action_triggers_can_select_without_explicit_capability_request"
+    ] = True
+    capability["wildcard_action_trigger_boundary"][
+        "missing_explicit_capability_request_can_auto_select_wildcard_sidecar"
+    ] = True
+    capability["wildcard_action_trigger_boundary"][
+        "wildcard_sidecar_can_block_current_owner_action"
+    ] = True
+    capability["retirement_gate"]["live_owner_consumption_soak_required"] = False
+
+    capability_violations = retirement.validate_runtime_surface_retirement_inventory(
+        capability_bad_inventory
+    )
+
+    assert {
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "truthy_authority_flag:authority_boundary.mas_selector_authority",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            (
+                "truthy_authority_flag:wildcard_action_trigger_boundary."
+                "wildcard_action_triggers_auto_select"
+            ),
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_authority_forbidden:mas_selector_authority",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_selection_owner_not_opl",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_wildcard_auto_select_enabled",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_wildcard_missing_explicit_request_gate",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_wildcard_can_select_without_explicit_request",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_wildcard_missing_request_can_auto_select",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_wildcard_sidecar_can_block_owner_action",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_missing_live_owner_soak_gate",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in capability_violations}
 
 
 def test_domain_authority_refs_index_legacy_helper_scan_keeps_physical_delete_tail_open() -> None:

@@ -57,9 +57,15 @@ FORBIDDEN_TRUE_AUTHORITY_FLAGS = frozenset(
         "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result",
         "dispatch_ref_stage_packet_identity_recovery_is_authority",
         "latest_wire_surface_is_stage_run_abi",
+        "mas_selector_authority",
+        "mas_tool_invocation_runtime_authority",
         "polluted_source_payload_can_authorize_provider_admission",
         "polluted_source_payload_can_create_opl_event_outbox_or_stage_run",
         "polluted_source_payload_can_satisfy_opl_readback",
+        "wildcard_action_triggers_auto_select",
+        "wildcard_action_triggers_can_select_without_explicit_capability_request",
+        "missing_explicit_capability_request_can_auto_select_wildcard_sidecar",
+        "wildcard_sidecar_can_block_current_owner_action",
     }
 )
 
@@ -134,6 +140,8 @@ def validate_runtime_surface_retirement_inventory(
             violations.extend(_validate_domain_health_diagnostic_obligation_actuator(surface_id, surface))
         if surface_id == "runtime_health_kernel":
             violations.extend(_validate_runtime_health_kernel(surface_id, surface))
+        if surface_id == "agent_tool_arsenal_scientific_capability_registry":
+            violations.extend(_validate_agent_tool_arsenal_scientific_capability_registry(surface_id, surface))
         if surface.get("current_disposition") != "physically_retired":
             violations.extend(_validate_open_surface(surface_id, surface))
     return violations
@@ -653,6 +661,90 @@ def _validate_runtime_health_kernel(
     return violations
 
 
+def _validate_agent_tool_arsenal_scientific_capability_registry(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    if surface.get("current_disposition") != "opl_capability_runtime_projection":
+        violations.append(_violation(surface_id, "capability_registry_not_opl_projection"))
+    if surface.get("retained_mas_role") != "capability_planning_projection_and_owner_consumption_evidence_shape":
+        violations.append(_violation(surface_id, "capability_registry_retained_role_not_projection"))
+    if surface.get("replacement_surface") != "OPL Capability Runtime / Tool Arsenal selector and invocation runtime":
+        violations.append(_violation(surface_id, "capability_registry_replacement_not_opl_runtime"))
+
+    authority = surface.get("authority_boundary")
+    if not isinstance(authority, Mapping):
+        violations.append(_violation(surface_id, "capability_registry_missing_authority_boundary"))
+    else:
+        for key in (
+            "mas_selector_authority",
+            "mas_tool_invocation_runtime_authority",
+            "can_create_default_selector",
+            "can_start_always_on_sidecar",
+            "can_authorize_provider_admission",
+            "can_authorize_worker_attempt",
+            "can_claim_paper_progress",
+            "can_write_domain_truth",
+            "can_write_publication_eval",
+            "can_write_controller_decision",
+            "missing_refs_trigger_mutating_invocation",
+        ):
+            if authority.get(key, False) is not False:
+                violations.append(_violation(surface_id, f"capability_registry_authority_forbidden:{key}"))
+        if authority.get("selection_runtime_owner") != GENERIC_RUNTIME_OWNER:
+            violations.append(_violation(surface_id, "capability_registry_selection_owner_not_opl"))
+        if authority.get("capability_runtime_owner") != GENERIC_RUNTIME_OWNER:
+            violations.append(_violation(surface_id, "capability_registry_runtime_owner_not_opl"))
+        if authority.get("capability_runtime_kind") != "OPL Capability Runtime":
+            violations.append(_violation(surface_id, "capability_registry_runtime_kind_not_opl"))
+        if authority.get("hosted_opl_capability_runtime_required") is not True:
+            violations.append(_violation(surface_id, "capability_registry_missing_hosted_opl_runtime_gate"))
+
+    wildcard = surface.get("wildcard_action_trigger_boundary")
+    if not isinstance(wildcard, Mapping):
+        violations.append(_violation(surface_id, "capability_registry_missing_wildcard_boundary"))
+    else:
+        if wildcard.get("wildcard_action_triggers_auto_select") is not False:
+            violations.append(_violation(surface_id, "capability_registry_wildcard_auto_select_enabled"))
+        if wildcard.get("requires_explicit_capability_request") is not True:
+            violations.append(_violation(surface_id, "capability_registry_wildcard_missing_explicit_request_gate"))
+        if wildcard.get("wildcard_action_triggers_can_select_without_explicit_capability_request") is not False:
+            violations.append(
+                _violation(surface_id, "capability_registry_wildcard_can_select_without_explicit_request")
+            )
+        if wildcard.get("missing_explicit_capability_request_can_auto_select_wildcard_sidecar") is not False:
+            violations.append(
+                _violation(surface_id, "capability_registry_wildcard_missing_request_can_auto_select")
+            )
+        if wildcard.get("wildcard_sidecar_can_block_current_owner_action") is not False:
+            violations.append(_violation(surface_id, "capability_registry_wildcard_sidecar_can_block_owner_action"))
+        explicit_fields = wildcard.get("explicit_request_fields")
+        if not isinstance(explicit_fields, list) or not {
+            "capability_families",
+            "capability_family",
+            "route_required_ref_families",
+            "route_required_ref_family",
+        } <= {str(item) for item in explicit_fields}:
+            violations.append(_violation(surface_id, "capability_registry_wildcard_explicit_fields_incomplete"))
+        wildcard_capabilities = wildcard.get("wildcard_capabilities")
+        if not isinstance(wildcard_capabilities, list) or not {
+            "evo_scientist_progress_sidecar",
+            "light_external_skill_content_advisory",
+        } <= {str(item) for item in wildcard_capabilities}:
+            violations.append(_violation(surface_id, "capability_registry_wildcard_capabilities_incomplete"))
+
+    gate = surface.get("retirement_gate")
+    if isinstance(gate, Mapping):
+        if gate.get("live_owner_consumption_soak_required") is not True:
+            violations.append(_violation(surface_id, "capability_registry_missing_live_owner_soak_gate"))
+        if gate.get("direct_hosted_parity_required") is not True:
+            violations.append(_violation(surface_id, "capability_registry_missing_direct_hosted_parity_gate"))
+        if gate.get("no_forbidden_write_proof_required") is not True:
+            violations.append(_violation(surface_id, "capability_registry_missing_no_forbidden_write_gate"))
+    return violations
+
+
 def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     active_boundary = surface.get("active_caller_boundary")
     apply_gate = surface.get("apply_gate")
@@ -755,6 +847,8 @@ def _authority_status(surface: Mapping[str, Any]) -> str:
         return "consume_only_readback_projection_live_tail_open"
     if surface_id == "domain_authority_refs_index":
         return "active_callers_migrated_opl_state_index_source_adapter_live_tail_open"
+    if surface_id == "agent_tool_arsenal_scientific_capability_registry":
+        return "opl_capability_runtime_projection_live_owner_soak_tail_open"
     if surface_id == "default_executor_execution_latest_wire_projection":
         return "legacy_latest_history_only_stage_run_abi_provenance_tail_open"
     if surface_id == "default_executor_dispatch_request":
@@ -782,6 +876,8 @@ def _allowed_effect(surface: Mapping[str, Any]) -> str:
         return "read_only_diagnostic_projection"
     if surface.get("surface_id") == "progress_portal_study_workbench_overview_action_projection":
         return "read_only_owner_delta_summary"
+    if surface.get("surface_id") == "agent_tool_arsenal_scientific_capability_registry":
+        return "current_owner_delta_bound_capability_projection_explicit_request_only"
     return "refs_only_or_diagnostic_projection"
 
 

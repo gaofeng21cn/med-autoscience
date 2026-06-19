@@ -115,6 +115,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "default_executor_execution_latest_wire_projection",
         "domain_owner_action_dispatch",
         "domain_health_diagnostic_obligation_actuator",
+        "agent_tool_arsenal_scientific_capability_registry",
     }
     for surface in surfaces.values():
         assert surface["generic_runtime_owner"] == "one-person-lab"
@@ -621,6 +622,61 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert obligation_actuator["can_write_fail_closed_typed_control_blocker"] is False
     assert obligation_actuator["actuator_direct_filesystem_write_retired"] is True
     assert obligation_actuator["actuator_can_write_private_blocker_surface"] is False
+
+    capability_registry = surfaces["agent_tool_arsenal_scientific_capability_registry"]
+    assert capability_registry["active_caller_migrated"] is True
+    assert capability_registry["current_disposition"] == "opl_capability_runtime_projection"
+    assert capability_registry["retained_mas_role"] == (
+        "capability_planning_projection_and_owner_consumption_evidence_shape"
+    )
+    assert capability_registry["replacement_surface"] == (
+        "OPL Capability Runtime / Tool Arsenal selector and invocation runtime"
+    )
+    assert capability_registry["authority_boundary"] == {
+        "selection_runtime_owner": "one-person-lab",
+        "capability_runtime_owner": "one-person-lab",
+        "capability_runtime_kind": "OPL Capability Runtime",
+        "hosted_opl_capability_runtime_required": True,
+        "mas_selector_authority": False,
+        "mas_tool_invocation_runtime_authority": False,
+        "can_create_default_selector": False,
+        "can_start_always_on_sidecar": False,
+        "can_authorize_provider_admission": False,
+        "can_authorize_worker_attempt": False,
+        "can_authorize_publication_ready": False,
+        "can_claim_paper_progress": False,
+        "can_write_domain_truth": False,
+        "can_write_publication_eval": False,
+        "can_write_controller_decision": False,
+        "missing_refs_trigger_mutating_invocation": False,
+        "stores_body": False,
+    }
+    assert capability_registry["wildcard_action_trigger_boundary"] == {
+        "wildcard_action_triggers_auto_select": False,
+        "requires_explicit_capability_request": True,
+        "wildcard_action_triggers_can_select_without_explicit_capability_request": False,
+        "missing_explicit_capability_request_can_auto_select_wildcard_sidecar": False,
+        "wildcard_sidecar_can_block_current_owner_action": False,
+        "explicit_request_fields": [
+            "capability_families",
+            "capability_family",
+            "route_required_ref_families",
+            "route_required_ref_family",
+        ],
+        "wildcard_capabilities": [
+            "evo_scientist_progress_sidecar",
+            "light_external_skill_content_advisory",
+        ],
+        "wildcard_policy_ref": (
+            "contracts/agent_tool_arsenal.json#/scientific_capability_registry.default_policy"
+        ),
+    }
+    assert "mas_owned_tool_selector" in capability_registry["forbidden_claims"]
+    assert "wildcard_action_trigger_as_default_selector" in capability_registry[
+        "forbidden_claims"
+    ]
+    assert capability_registry["retirement_gate"]["live_owner_consumption_soak_required"] is True
+    assert capability_registry["retirement_gate"]["direct_hosted_parity_required"] is True
 
     runtime_storage = surfaces["runtime_storage_maintenance"]
     assert runtime_storage["generic_runtime_owner"] == "one-person-lab"
