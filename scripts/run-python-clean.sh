@@ -5,6 +5,23 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(cd "${script_dir}/.." && pwd -P)"
 cd "${repo_root}"
 
+clean_runner_mode="${MAS_CLEAN_RUNNER_MODE:-run}"
+if [[ "${1:-}" == "--clean-runner-status" ]]; then
+  clean_runner_mode="status"
+  shift
+elif [[ "${1:-}" == "--clean-runner-warm" ]]; then
+  clean_runner_mode="warm"
+  shift
+fi
+case "${clean_runner_mode}" in
+  run|status|warm)
+    ;;
+  *)
+    echo "run-python-clean.sh: MAS_CLEAN_RUNNER_MODE must be run, status, or warm" >&2
+    exit 2
+    ;;
+esac
+
 stable_cache_root="${MAS_CLEAN_RUNNER_CACHE_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/med-autoscience/clean-runner}"
 cleanup_tmp_root=0
 reuse_env_enabled=0
@@ -252,6 +269,69 @@ clean_runner_sync_marker_is_current() {
   return 1
 }
 
+json_escape() {
+  local value="${1}"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  printf '%s' "${value}"
+}
+
+json_bool() {
+  if [[ "${1}" == "1" ]]; then
+    printf 'true'
+  else
+    printf 'false'
+  fi
+}
+
+print_clean_runner_status() {
+  local mode_label="${1}"
+  local marker_current=0
+  local lock_present=0
+  local venv_python_present=0
+  local sync_needed=1
+  local status_label="sync_required"
+
+  if clean_runner_sync_marker_is_current; then
+    marker_current=1
+    sync_needed=0
+    status_label="warm"
+  fi
+  if [[ -d "${sync_marker}.lock" ]]; then
+    lock_present=1
+    if [[ "${sync_needed}" == "1" ]]; then
+      status_label="waiting_for_dependency_sync"
+    fi
+  fi
+  if [[ -x "${venv_python}" ]]; then
+    venv_python_present=1
+  fi
+  if [[ "${mode_label}" == "warm" && "${sync_needed}" == "0" ]]; then
+    status_label="warm_ready"
+  fi
+
+  printf '{\n'
+  printf '  "surface_kind": "mas_clean_python_runner_status",\n'
+  printf '  "mode": "%s",\n' "$(json_escape "${mode_label}")"
+  printf '  "status": "%s",\n' "$(json_escape "${status_label}")"
+  printf '  "repo_root": "%s",\n' "$(json_escape "${repo_root}")"
+  printf '  "reuse_env_enabled": %s,\n' "$(json_bool "${reuse_env_enabled}")"
+  printf '  "tmp_root": "%s",\n' "$(json_escape "${tmp_root}")"
+  printf '  "uv_project_environment": "%s",\n' "$(json_escape "${UV_PROJECT_ENVIRONMENT}")"
+  printf '  "uv_cache_dir": "%s",\n' "$(json_escape "${UV_CACHE_DIR}")"
+  printf '  "python_pycache_prefix": "%s",\n' "$(json_escape "${PYTHONPYCACHEPREFIX}")"
+  printf '  "egg_info_base": "%s",\n' "$(json_escape "${egg_info_base}")"
+  printf '  "sync_marker": "%s",\n' "$(json_escape "${sync_marker}")"
+  printf '  "sync_fingerprint": "%s",\n' "$(json_escape "${sync_fingerprint}")"
+  printf '  "analysis_extra_enabled": %s,\n' "$(json_bool "${analysis_extra_enabled}")"
+  printf '  "marker_current": %s,\n' "$(json_bool "${marker_current}")"
+  printf '  "sync_required": %s,\n' "$(json_bool "${sync_needed}")"
+  printf '  "lock_present": %s,\n' "$(json_bool "${lock_present}")"
+  printf '  "venv_python_present": %s\n' "$(json_bool "${venv_python_present}")"
+  printf '}\n'
+}
+
 acquire_clean_runner_sync_lock() {
   local timeout_seconds="${MAS_CLEAN_RUNNER_SYNC_LOCK_TIMEOUT_SECONDS:-600}"
   local poll_seconds="${MAS_CLEAN_RUNNER_SYNC_LOCK_POLL_SECONDS:-0.2}"
@@ -276,6 +356,10 @@ acquire_clean_runner_sync_lock() {
 sync_required=1
 if clean_runner_sync_marker_is_current; then
   sync_required=0
+fi
+if [[ "${clean_runner_mode}" == "status" ]]; then
+  print_clean_runner_status "status"
+  exit 0
 fi
 if [[ "${sync_required}" == "1" ]]; then
   acquire_clean_runner_sync_lock
@@ -302,6 +386,11 @@ export MAS_CLEAN_RUNNER_SKIP_SYNC=1
 if [[ ! -x "${venv_python}" ]]; then
   echo "run-python-clean.sh: missing venv Python after dependency sync: ${venv_python}" >&2
   exit 1
+fi
+
+if [[ "${clean_runner_mode}" == "warm" ]]; then
+  print_clean_runner_status "warm"
+  exit 0
 fi
 
 set +e

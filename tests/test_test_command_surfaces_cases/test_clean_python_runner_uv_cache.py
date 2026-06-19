@@ -216,6 +216,104 @@ def test_clean_python_runner_defaults_to_external_reuse_env_locally(tmp_path: Pa
     ]
 
 
+def test_clean_python_runner_status_reports_cache_without_sync(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_uv = fake_bin / "uv"
+    fake_uv.write_text(
+        "#!/usr/bin/env bash\n"
+        "echo 'status mode must not call uv sync' >&2\n"
+        "exit 99\n",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+    reuse_root = tmp_path / "shared-clean-runner"
+    lock_dir = reuse_root / "uv-sync.done.lock"
+    lock_dir.mkdir(parents=True)
+
+    result = subprocess.run(
+        [str(REPO_ROOT / "scripts/run-python-clean.sh"), "--clean-runner-status"],
+        cwd=REPO_ROOT,
+        env=_clean_runner_env(
+            CI="",
+            PATH=f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+            MAS_CLEAN_RUNNER_REUSE_ENV="1",
+            MAS_CLEAN_RUNNER_REUSE_ROOT=str(reuse_root),
+            PYTHONPATH="",
+        ),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    status = json.loads(result.stdout)
+    assert status["surface_kind"] == "mas_clean_python_runner_status"
+    assert status["mode"] == "status"
+    assert status["status"] == "waiting_for_dependency_sync"
+    assert status["reuse_env_enabled"] is True
+    assert status["tmp_root"] == str(reuse_root)
+    assert status["uv_project_environment"] == str(reuse_root / "venv")
+    assert status["uv_cache_dir"] == str(reuse_root / "uv-cache")
+    assert status["sync_marker"] == str(reuse_root / "uv-sync.done")
+    assert status["marker_current"] is False
+    assert status["sync_required"] is True
+    assert status["lock_present"] is True
+    assert status["venv_python_present"] is False
+
+
+def test_clean_python_runner_warm_primes_reuse_env_once(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    sync_log = tmp_path / "uv-sync.log"
+    host_python = repr(sys.executable)
+    fake_uv = fake_bin / "uv"
+    fake_uv.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf 'sync %s %s\\n' \"${UV_PROJECT_ENVIRONMENT}\" \"${UV_CACHE_DIR}\" >> \"${MAS_TEST_SYNC_LOG}\"\n"
+        "mkdir -p \"${UV_PROJECT_ENVIRONMENT}/bin\"\n"
+        "cat >\"${UV_PROJECT_ENVIRONMENT}/bin/python\" <<'PY'\n"
+        "#!/usr/bin/env python3\n"
+        "import os\n"
+        "import sys\n"
+        f"os.execv({host_python}, [{host_python}, *sys.argv[1:]])\n"
+        "PY\n"
+        "chmod +x \"${UV_PROJECT_ENVIRONMENT}/bin/python\"\n",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+    reuse_root = tmp_path / "shared-clean-runner"
+    command = [str(REPO_ROOT / "scripts/run-python-clean.sh"), "--clean-runner-warm"]
+    env = _clean_runner_env(
+        CI="",
+        PATH=f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        MAS_CLEAN_RUNNER_REUSE_ENV="1",
+        MAS_CLEAN_RUNNER_REUSE_ROOT=str(reuse_root),
+        MAS_TEST_SYNC_LOG=str(sync_log),
+        PYTHONPATH="",
+    )
+
+    first = subprocess.run(command, cwd=REPO_ROOT, env=env, check=False, capture_output=True, text=True)
+    second = subprocess.run(command, cwd=REPO_ROOT, env=env, check=False, capture_output=True, text=True)
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    first_status = json.loads(first.stdout)
+    second_status = json.loads(second.stdout)
+    assert first_status["mode"] == "warm"
+    assert second_status["mode"] == "warm"
+    assert first_status["status"] == "warm_ready"
+    assert second_status["status"] == "warm_ready"
+    assert first_status["marker_current"] is True
+    assert second_status["marker_current"] is True
+    assert first_status["sync_required"] is False
+    assert second_status["sync_required"] is False
+    assert sync_log.read_text(encoding="utf-8").splitlines() == [
+        f"sync {reuse_root / 'venv'} {reuse_root / 'uv-cache'}"
+    ]
+
+
 def test_clean_python_runner_reuse_marker_is_independent_of_checkout_path(tmp_path: Path) -> None:
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()

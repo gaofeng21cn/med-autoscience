@@ -415,6 +415,10 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'uv_sync_args+=("-C--global-option=egg_info" "-C--global-option=--egg-base=${egg_info_base}")' in runner_script
     assert 'uv_sync_args+=(--extra analysis)' in runner_script
     assert 'UV_NO_SYNC=0 "${uv_sync_args[@]}"' in runner_script
+    assert '--clean-runner-status' in runner_script
+    assert '--clean-runner-warm' in runner_script
+    assert 'print_clean_runner_status "status"' in runner_script
+    assert 'print_clean_runner_status "warm"' in runner_script
     assert '"${UV_NO_SYNC:-0}" != "1"' not in runner_script
     assert 'venv_python="${UV_PROJECT_ENVIRONMENT}/bin/python"' in runner_script
     assert 'venv_python="${repo_root}/.venv/bin/python"' not in runner_script

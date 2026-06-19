@@ -13,6 +13,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 决策：CI 和诊断隔离仍可显式使用 `MAS_CLEAN_RUNNER_TMP_ROOT` 或 `MAS_CLEAN_RUNNER_REUSE_ENV=0` 隔离 runner root；需要连 uv cache 也完全冷启动时，再显式设置 `MAS_CLEAN_RUNNER_ISOLATE_UV_CACHE=1`。这些开关只改变验证工具链缓存策略，不改变 runtime/currentness/readiness 证据口径。
 - 理由：此前 `verify.sh` / `run-pytest-clean.sh` 已收口到本地 checkout 外复用，但直接跑 `run-python-clean.sh` 仍会在未显式配置时 `mktemp` 一个新 venv 并在退出时删除，导致许多 focused CLI / script 验证反复经历下载、sync 和初始化。把高频本地验证收口到 checkout 外 clean cache，可以保留工作区零副产物边界，同时降低重复下载和 sync 成本。并发 worktree 同时首跑时还会同时判断 marker 缺失并各自进入 `uv sync`；sync lock 把这个窗口收窄为一次真实 sync，后续进程只消费已写好的 marker。
 - 影响：这是本地验证效率与工程卫生修复，不执行 live DHD apply、hydrate、tick、redrive、provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。测试通过只能证明验证入口缓存行为，不证明 MAS/OPL runtime ready、paper progress 或 publication-ready。
+- 2026-06-19 追加：`scripts/run-python-clean.sh --clean-runner-status` 成为 checkout-external clean runner 的只读状态入口，输出 reuse root、venv、uv cache、pycache、egg-info、sync marker、lock、fingerprint 和是否需要 dependency sync；它不运行 `uv sync`，可用于判断长等待是在首次 warm、等待并发 sync lock，还是已命中缓存。`scripts/run-python-clean.sh --clean-runner-warm` 只执行依赖 sync / venv 预热并输出同一状态 JSON，后续普通 `run-python-clean.sh` / `run-pytest-clean.sh` / `verify.sh` 可复用该 marker。两个入口只优化本地验证启动成本，不改变 runner 隔离边界、依赖 pin、runtime/currentness/readiness 证据口径或任何 MAS/OPL authority。
 
 ## 2026-06-18：legacy owner-callable diagnostics 只保留 refs-only identity
 
