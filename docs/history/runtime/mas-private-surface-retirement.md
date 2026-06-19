@@ -18,9 +18,9 @@ MAS 私有控制面退役现在采用两栏口径：
 
 Disposition: `active_fail_closed_readback_guard`
 
-Replacement: `contracts/runtime/mas-runtime-live-tail-work-orders.json`、`contracts/runtime/mas-live-runtime-gap-work-orders.json` 和 `contracts/runtime/mas-live-runtime-evidence-rollup.json` 共同承接 live-tail / live-runtime-gap evidence record intake。未知 `surface_id` / `gap_id` 或重复 evidence record id 只能返回 typed blocker，不能满足 work order，也不能允许 live-runtime readiness rollup。
+Replacement: `contracts/runtime/mas-runtime-live-tail-work-orders.json`、`contracts/runtime/mas-live-runtime-gap-work-orders.json` 和 `contracts/runtime/mas-live-runtime-evidence-rollup.json` 共同承接 live-tail / live-runtime-gap evidence record intake。未知 `surface_id` / `gap_id`、缺失 id、重复 id 或 malformed evidence record 只能返回 typed blocker，不能满足 work order，也不能允许 live-runtime readiness rollup。
 
-Forbidden interpretation: owner 提交的 evidence file 即使包含全部 accepted ref family，只要混入 unknown / duplicate record，就不能声明 runtime ready、provider running、paper progress、publication-ready 或 production-ready。该 guard 只保护 live evidence intake，不启动 provider、不运行 DHD apply、不写 study/runtime/paper artifacts，也不把 repo-source retirement 改写成 live readiness。
+Forbidden interpretation: owner 提交的 evidence file 即使包含全部 accepted ref family，只要混入 unknown / duplicate / missing-id / malformed record，就不能声明 runtime ready、provider running、paper progress、publication-ready 或 production-ready。CLI 只负责读取 evidence list；record 形状统一由 intake readback fail closed。该 guard 只保护 live evidence intake，不启动 provider、不运行 DHD apply、不写 study/runtime/paper artifacts，也不把 repo-source retirement 改写成 live readiness。
 
 ## runtime_transport_core_bridge
 

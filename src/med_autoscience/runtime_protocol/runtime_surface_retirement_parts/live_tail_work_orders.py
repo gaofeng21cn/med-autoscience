@@ -60,6 +60,19 @@ def validate_live_tail_work_order_contract(
         violations.append(
             _violation("<contract>", "unknown_or_duplicate_does_not_block_live_readiness")
         )
+    if schema.get("missing_evidence_record_id_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "missing_id_typed_blocker_status"))
+    if schema.get("malformed_evidence_record_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "malformed_record_typed_blocker_status"))
+    if schema.get("missing_or_malformed_evidence_record_can_satisfy_work_order") is not False:
+        violations.append(_violation("<contract>", "missing_or_malformed_can_satisfy_work_order"))
+    if (
+        schema.get("missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim")
+        is not True
+    ):
+        violations.append(
+            _violation("<contract>", "missing_or_malformed_does_not_block_live_readiness")
+        )
 
     expected = {
         order["surface_id"]: order
@@ -152,6 +165,8 @@ def live_tail_evidence_intake_summary(
         evidence_records,
         orders,
     )
+    malformed_record_indexes = _malformed_record_indexes(evidence_records)
+    missing_surface_id_record_indexes = _missing_surface_id_record_indexes(evidence_records)
     results = [
         evaluate_live_tail_evidence_record(
             order,
@@ -190,6 +205,22 @@ def live_tail_evidence_intake_summary(
             "typed_blocker": "duplicate_live_tail_evidence_surface_id",
         }
         for surface_id in duplicate_surface_ids
+    ] + [
+        {
+            "violation_id": f"missing_surface_id_record:{index}",
+            "status": "typed_blocker_required",
+            "record_index": index,
+            "typed_blocker": "missing_live_tail_evidence_surface_id",
+        }
+        for index in missing_surface_id_record_indexes
+    ] + [
+        {
+            "violation_id": f"malformed_record:{index}",
+            "status": "typed_blocker_required",
+            "record_index": index,
+            "typed_blocker": "malformed_live_tail_evidence_record",
+        }
+        for index in malformed_record_indexes
     ]
     return {
         "surface_kind": "mas_runtime_live_tail_evidence_intake_summary",
@@ -202,6 +233,8 @@ def live_tail_evidence_intake_summary(
         "intake_violations": intake_violations,
         "unknown_surface_ids": unknown_surface_ids,
         "duplicate_surface_ids": duplicate_surface_ids,
+        "missing_surface_id_record_indexes": missing_surface_id_record_indexes,
+        "malformed_record_indexes": malformed_record_indexes,
         "repo_source_retirement_blocked": False,
         "live_runtime_readiness_claim_allowed": bool(orders)
         and not blocked
@@ -276,6 +309,20 @@ def _records_by_surface_id(
         if surface_id not in orders:
             unknown_surface_ids.add(surface_id)
     return records, sorted(unknown_surface_ids), sorted(duplicate_surface_ids)
+
+
+def _missing_surface_id_record_indexes(evidence_records: list[Any]) -> list[int]:
+    return [
+        index
+        for index, record in enumerate(evidence_records)
+        if isinstance(record, Mapping) and _text(record.get("surface_id")) is None
+    ]
+
+
+def _malformed_record_indexes(evidence_records: list[Any]) -> list[int]:
+    return [
+        index for index, record in enumerate(evidence_records) if not isinstance(record, Mapping)
+    ]
 
 
 def _evidence_record_schema(contract: Mapping[str, Any]) -> Mapping[str, Any]:

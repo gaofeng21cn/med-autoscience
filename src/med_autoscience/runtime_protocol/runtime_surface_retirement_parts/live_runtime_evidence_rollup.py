@@ -131,6 +131,23 @@ def validate_live_runtime_evidence_rollup_contract(
                 "boundary_mismatch:unknown_or_duplicate_evidence_records_result_status",
             )
         )
+    if boundary_mapping.get("missing_or_malformed_evidence_records_can_satisfy_rollup") is not False:
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:missing_or_malformed_evidence_records_can_satisfy_rollup",
+            )
+        )
+    if (
+        boundary_mapping.get("missing_or_malformed_evidence_records_result_status")
+        != "typed_blocker_required"
+    ):
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:missing_or_malformed_evidence_records_result_status",
+            )
+        )
     return violations
 
 

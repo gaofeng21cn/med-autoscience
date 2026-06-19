@@ -58,6 +58,8 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
         "missing_or_forbidden_result_status": "typed_blocker_required",
         "unknown_or_duplicate_evidence_records_can_satisfy_rollup": False,
         "unknown_or_duplicate_evidence_records_result_status": "typed_blocker_required",
+        "missing_or_malformed_evidence_records_can_satisfy_rollup": False,
+        "missing_or_malformed_evidence_records_result_status": "typed_blocker_required",
     }
     assert rollup_contract["live_tail_surface_ids"] == sorted(
         order["surface_id"] for order in tail_contract["work_orders"]
@@ -212,6 +214,13 @@ def test_live_runtime_evidence_rollup_fails_closed_on_unknown_or_duplicate_recor
                     "runtime_health_kernel_opl_observability_live_readback_ref"
                 ],
             },
+            {
+                "evidence_source": "owner_readback:missing-id",
+                "evidence_ref_families": [
+                    "runtime_health_kernel_opl_observability_live_readback_ref"
+                ],
+            },
+            "malformed-record",
         ],
         live_runtime_gap_evidence_records=[
             *gap_records,
@@ -223,16 +232,23 @@ def test_live_runtime_evidence_rollup_fails_closed_on_unknown_or_duplicate_recor
                     "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref"
                 ],
             },
+            {
+                "evidence_source": "owner_readback:missing-id",
+                "evidence_ref_families": [
+                    "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref"
+                ],
+            },
+            "malformed-record",
         ],
     )
 
     assert polluted["satisfied_count"] == 12
-    assert polluted["typed_blocker_count"] == 4
-    assert polluted["intake_violation_count"] == 4
+    assert polluted["typed_blocker_count"] == 8
+    assert polluted["intake_violation_count"] == 8
     assert polluted["live_runtime_readiness_claim_allowed"] is False
     assert polluted["rollup_result_status"] == "typed_blocker_required"
-    assert polluted["live_tail"]["intake_violation_count"] == 2
-    assert polluted["live_runtime_gaps"]["intake_violation_count"] == 2
+    assert polluted["live_tail"]["intake_violation_count"] == 4
+    assert polluted["live_runtime_gaps"]["intake_violation_count"] == 4
 
 
 def test_live_runtime_evidence_rollup_cli_outputs_readback_json(capsys) -> None:
@@ -340,6 +356,13 @@ def test_live_runtime_evidence_rollup_cli_rejects_polluted_evidence_files(
             [
                 *tail_records,
                 {**tail_records[0], "evidence_source": "owner_readback:duplicate"},
+                {
+                    "evidence_source": "owner_readback:missing-id",
+                    "evidence_ref_families": [
+                        "runtime_health_kernel_opl_observability_live_readback_ref"
+                    ],
+                },
+                "malformed-record",
             ]
         ),
         encoding="utf-8",
@@ -349,6 +372,13 @@ def test_live_runtime_evidence_rollup_cli_rejects_polluted_evidence_files(
             [
                 *gap_records,
                 {**gap_records[0], "evidence_source": "owner_readback:duplicate"},
+                {
+                    "evidence_source": "owner_readback:missing-id",
+                    "evidence_ref_families": [
+                        "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref"
+                    ],
+                },
+                "malformed-record",
             ]
         ),
         encoding="utf-8",
@@ -372,7 +402,7 @@ def test_live_runtime_evidence_rollup_cli_rejects_polluted_evidence_files(
 
     assert exit_code == 0
     assert output["summary"]["satisfied_count"] == 12
-    assert output["summary"]["typed_blocker_count"] == 2
-    assert output["summary"]["intake_violation_count"] == 2
+    assert output["summary"]["typed_blocker_count"] == 6
+    assert output["summary"]["intake_violation_count"] == 6
     assert output["summary"]["rollup_result_status"] == "typed_blocker_required"
     assert output["completion_claim_allowed"] is False

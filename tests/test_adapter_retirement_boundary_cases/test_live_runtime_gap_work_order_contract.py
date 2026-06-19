@@ -52,6 +52,13 @@ def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None
         schema["unknown_or_duplicate_evidence_record_blocks_live_runtime_readiness_claim"]
         is True
     )
+    assert schema["missing_evidence_record_id_status"] == "typed_blocker_required"
+    assert schema["malformed_evidence_record_status"] == "typed_blocker_required"
+    assert schema["missing_or_malformed_evidence_record_can_satisfy_work_order"] is False
+    assert (
+        schema["missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim"]
+        is True
+    )
 
     expected = {
         order["gap_id"]: order
@@ -245,16 +252,27 @@ def test_live_runtime_gap_intake_fails_closed_on_unknown_or_duplicate_records() 
                     "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref"
                 ],
             },
+            {
+                "evidence_source": "owner_readback:missing-id",
+                "evidence_ref_families": [
+                    "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref"
+                ],
+            },
+            "malformed-record",
         ],
     )
 
     assert polluted["satisfied_count"] == 5
-    assert polluted["typed_blocker_count"] == 2
-    assert polluted["intake_violation_count"] == 2
+    assert polluted["typed_blocker_count"] == 4
+    assert polluted["intake_violation_count"] == 4
     assert polluted["duplicate_gap_ids"] == [complete_records[0]["gap_id"]]
     assert polluted["unknown_gap_ids"] == ["unknown_live_runtime_gap"]
+    assert polluted["missing_gap_id_record_indexes"] == [7]
+    assert polluted["malformed_record_indexes"] == [8]
     assert polluted["live_runtime_readiness_claim_allowed"] is False
     assert {
         "duplicate_live_runtime_gap_evidence_gap_id",
+        "malformed_live_runtime_gap_evidence_record",
+        "missing_live_runtime_gap_evidence_gap_id",
         "unknown_live_runtime_gap_evidence_gap_id",
     } == {violation["typed_blocker"] for violation in polluted["intake_violations"]}

@@ -133,18 +133,13 @@ def _print_json(payload: object) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
-def _load_optional_json_list(path_value: str | None) -> list[dict[str, Any]] | None:
+def _load_optional_json_list(path_value: str | None) -> list[Any] | None:
     if path_value is None:
         return None
     payload = json.loads(Path(path_value).read_text(encoding="utf-8"))
     if not isinstance(payload, list):
         raise TypeError(f"{path_value} must contain a JSON list")
-    records: list[dict[str, Any]] = []
-    for index, item in enumerate(payload):
-        if not isinstance(item, dict):
-            raise TypeError(f"{path_value}[{index}] must contain a JSON object")
-        records.append(item)
-    return records
+    return payload
 
 
 __all__ = ["handle_public_root_command"]

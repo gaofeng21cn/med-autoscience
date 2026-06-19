@@ -76,6 +76,13 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
         schema["unknown_or_duplicate_evidence_record_blocks_live_runtime_readiness_claim"]
         is True
     )
+    assert schema["missing_evidence_record_id_status"] == "typed_blocker_required"
+    assert schema["malformed_evidence_record_status"] == "typed_blocker_required"
+    assert schema["missing_or_malformed_evidence_record_can_satisfy_work_order"] is False
+    assert (
+        schema["missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim"]
+        is True
+    )
     assert {
         "same_identity_opl_live_readback",
         "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
@@ -268,16 +275,25 @@ def test_live_tail_evidence_intake_fails_closed_on_unknown_or_duplicate_records(
                 "evidence_source": "owner_readback:unknown",
                 "evidence_ref_families": ["runtime_health_kernel_opl_observability_live_readback_ref"],
             },
+            {
+                "evidence_source": "owner_readback:missing-id",
+                "evidence_ref_families": ["runtime_health_kernel_opl_observability_live_readback_ref"],
+            },
+            "malformed-record",
         ],
     )
 
     assert polluted["satisfied_count"] == 7
-    assert polluted["typed_blocker_count"] == 2
-    assert polluted["intake_violation_count"] == 2
+    assert polluted["typed_blocker_count"] == 4
+    assert polluted["intake_violation_count"] == 4
     assert polluted["duplicate_surface_ids"] == [all_records[0]["surface_id"]]
     assert polluted["unknown_surface_ids"] == ["unknown_private_surface"]
+    assert polluted["missing_surface_id_record_indexes"] == [9]
+    assert polluted["malformed_record_indexes"] == [10]
     assert polluted["live_runtime_readiness_claim_allowed"] is False
     assert {
         "duplicate_live_tail_evidence_surface_id",
+        "malformed_live_tail_evidence_record",
+        "missing_live_tail_evidence_surface_id",
         "unknown_live_tail_evidence_surface_id",
     } == {violation["typed_blocker"] for violation in polluted["intake_violations"]}

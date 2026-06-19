@@ -61,6 +61,19 @@ def validate_live_runtime_gap_work_order_contract(
         violations.append(
             _violation("<contract>", "unknown_or_duplicate_does_not_block_live_readiness")
         )
+    if schema.get("missing_evidence_record_id_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "missing_id_typed_blocker_status"))
+    if schema.get("malformed_evidence_record_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "malformed_record_typed_blocker_status"))
+    if schema.get("missing_or_malformed_evidence_record_can_satisfy_work_order") is not False:
+        violations.append(_violation("<contract>", "missing_or_malformed_can_satisfy_work_order"))
+    if (
+        schema.get("missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim")
+        is not True
+    ):
+        violations.append(
+            _violation("<contract>", "missing_or_malformed_does_not_block_live_readiness")
+        )
 
     expected = {
         order["gap_id"]: order
@@ -139,15 +152,17 @@ def live_runtime_gap_evidence_intake_summary(
         for order in contract.get("work_orders", [])
         if isinstance(order, Mapping) and _text(order.get("gap_id")) is not None
     }
-    records_iterable: list[Mapping[str, Any]]
+    records_iterable: list[Any]
     if isinstance(evidence_records, list):
-        records_iterable = [record for record in evidence_records if isinstance(record, Mapping)]
+        records_iterable = list(evidence_records)
     else:
         records_iterable = []
     records, unknown_gap_ids, duplicate_gap_ids = _records_by_gap_id(
         records_iterable,
         orders,
     )
+    malformed_record_indexes = _malformed_record_indexes(records_iterable)
+    missing_gap_id_record_indexes = _missing_gap_id_record_indexes(records_iterable)
     forbidden_claim_terms = _evidence_record_schema(contract).get("forbidden_claim_terms", [])
     results = [
         evaluate_live_runtime_gap_evidence_record(
@@ -181,6 +196,22 @@ def live_runtime_gap_evidence_intake_summary(
             "typed_blocker": "duplicate_live_runtime_gap_evidence_gap_id",
         }
         for gap_id in duplicate_gap_ids
+    ] + [
+        {
+            "violation_id": f"missing_gap_id_record:{index}",
+            "status": "typed_blocker_required",
+            "record_index": index,
+            "typed_blocker": "missing_live_runtime_gap_evidence_gap_id",
+        }
+        for index in missing_gap_id_record_indexes
+    ] + [
+        {
+            "violation_id": f"malformed_record:{index}",
+            "status": "typed_blocker_required",
+            "record_index": index,
+            "typed_blocker": "malformed_live_runtime_gap_evidence_record",
+        }
+        for index in malformed_record_indexes
     ]
     return {
         "surface_kind": "mas_live_runtime_gap_evidence_intake_summary",
@@ -193,6 +224,8 @@ def live_runtime_gap_evidence_intake_summary(
         "intake_violations": intake_violations,
         "unknown_gap_ids": unknown_gap_ids,
         "duplicate_gap_ids": duplicate_gap_ids,
+        "missing_gap_id_record_indexes": missing_gap_id_record_indexes,
+        "malformed_record_indexes": malformed_record_indexes,
         "repo_source_retirement_blocked": False,
         "live_runtime_readiness_claim_allowed": bool(orders)
         and not blocked
@@ -300,7 +333,7 @@ def _text_list(value: Any) -> list[str]:
 
 
 def _records_by_gap_id(
-    evidence_records: list[Mapping[str, Any]],
+    evidence_records: list[Any],
     orders: Mapping[str, Mapping[str, Any]],
 ) -> tuple[dict[str, Mapping[str, Any]], list[str], list[str]]:
     records: dict[str, Mapping[str, Any]] = {}
@@ -308,6 +341,8 @@ def _records_by_gap_id(
     duplicate_gap_ids: set[str] = set()
     unknown_gap_ids: set[str] = set()
     for record in evidence_records:
+        if not isinstance(record, Mapping):
+            continue
         gap_id = _text(record.get("gap_id"))
         if gap_id is None:
             continue
@@ -319,6 +354,20 @@ def _records_by_gap_id(
         if gap_id not in orders:
             unknown_gap_ids.add(gap_id)
     return records, sorted(unknown_gap_ids), sorted(duplicate_gap_ids)
+
+
+def _missing_gap_id_record_indexes(evidence_records: list[Any]) -> list[int]:
+    return [
+        index
+        for index, record in enumerate(evidence_records)
+        if isinstance(record, Mapping) and _text(record.get("gap_id")) is None
+    ]
+
+
+def _malformed_record_indexes(evidence_records: list[Any]) -> list[int]:
+    return [
+        index for index, record in enumerate(evidence_records) if not isinstance(record, Mapping)
+    ]
 
 
 def _text(value: Any) -> str | None:
