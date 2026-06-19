@@ -43,8 +43,11 @@ def completion_evidence_layers(
         _surface_live_or_no_active_proven(surfaces_by_id.get(str(audit["surface_id"]), {}), audit)
         for audit in surface_audits
     )
-    physical_delete_allowed = repo_no_authority_guard_satisfied and bool(surface_audits) and all(
-        audit.get("physical_delete_gate_open") is False for audit in surface_audits
+    physical_delete_allowed = (
+        repo_no_authority_guard_satisfied
+        and bool(surface_audits)
+        and not blocked_surface_ids
+        and all(audit.get("physical_delete_gate_open") is False for audit in surface_audits)
     )
     return {
         "repo_no_authority_guard": {
