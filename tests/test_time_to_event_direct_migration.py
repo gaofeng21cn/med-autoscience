@@ -105,7 +105,7 @@ def _display_registry_payload() -> dict:
             {
                 "display_id": "multicenter_generalizability",
                 "display_kind": "figure",
-                "requirement_key": "multicenter_generalizability_overview",
+                "requirement_key": "generalizability_subgroup_composite_panel",
                 "catalog_id": "F5",
                 "shell_path": "paper/figures/multicenter_generalizability.shell.json",
             },
@@ -259,7 +259,7 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
     f2 = json.loads((paper_root / "time_to_event_discrimination_calibration_inputs.json").read_text(encoding="utf-8"))
     f3 = json.loads((paper_root / "time_to_event_grouped_inputs.json").read_text(encoding="utf-8"))
     f4 = json.loads((paper_root / "time_to_event_decision_curve_inputs.json").read_text(encoding="utf-8"))
-    f5 = json.loads((paper_root / "multicenter_generalizability_inputs.json").read_text(encoding="utf-8"))
+    f5 = json.loads((paper_root / "generalizability_subgroup_composite_inputs.json").read_text(encoding="utf-8"))
     t2 = json.loads((paper_root / "time_to_event_performance_summary.json").read_text(encoding="utf-8"))
     ga = json.loads((paper_root / "submission_graphical_abstract.json").read_text(encoding="utf-8"))
     registry_after = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
@@ -308,57 +308,38 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
 
     assert registry_after["displays"][1]["requirement_key"] == "time_to_event_risk_group_summary"
 
-    assert f5["input_schema_id"] == "multicenter_generalizability_inputs_v1"
+    assert f5["input_schema_id"] == "generalizability_subgroup_composite_inputs_v1"
     assert f5["displays"][0]["display_id"] == "multicenter_generalizability"
     assert f5["displays"][0]["template_id"] == (
-        display_registry.get_evidence_figure_spec("multicenter_generalizability_overview").template_id
+        display_registry.get_evidence_figure_spec("generalizability_subgroup_composite_panel").template_id
     )
     assert f5["displays"][0]["catalog_id"] == "F5"
     assert f5["displays"][0]["paper_role"] == "main_text"
     assert f5["displays"][0]["title"] == "Internal multicenter heterogeneity summary"
     assert f5["displays"][0]["caption"] == "Center-level event support with coverage context under the frozen split."
-    assert f5["displays"][0]["overview_mode"] == "center_support_counts"
     assert materialization_module._load_evidence_display_payload(
         paper_root=paper_root,
-        spec=display_registry.get_evidence_figure_spec("multicenter_generalizability_overview"),
+        spec=display_registry.get_evidence_figure_spec("generalizability_subgroup_composite_panel"),
         display_id="multicenter_generalizability",
     )[1]["caption"] == f5["displays"][0]["caption"]
-    assert [item["center_label"] for item in f5["displays"][0]["center_event_counts"]] == [
+    assert f5["displays"][0]["metric_family"] == "effect_estimate"
+    assert f5["displays"][0]["primary_label"] == "Center event fraction"
+    assert [item["cohort_label"] for item in f5["displays"][0]["overview_rows"]] == [
         "Center 25",
         "Center 01",
         "Center 02",
         "Center 03",
     ]
-    assert f5["displays"][0]["coverage_panels"] == [
-        {
-            "panel_id": "region",
-            "title": "Region coverage (n=4)",
-            "layout_role": "wide_left",
-            "bars": [
-                {"label": "Central China", "count": 2},
-                {"label": "East China", "count": 1},
-                {"label": "South China", "count": 1},
-            ],
-        },
-        {
-            "panel_id": "north_south",
-            "title": "North vs South coverage",
-            "layout_role": "top_right",
-            "bars": [
-                {"label": "South", "count": 3},
-                {"label": "North", "count": 1},
-            ],
-        },
-        {
-            "panel_id": "urban_rural",
-            "title": "Urban/rural coverage",
-            "layout_role": "bottom_right",
-            "bars": [
-                {"label": "Urban", "count": 2},
-                {"label": "Missing", "count": 1},
-                {"label": "Rural", "count": 1},
-            ],
-        },
+    assert [item["support_count"] for item in f5["displays"][0]["overview_rows"]] == [110, 100, 120, 90]
+    assert [item["event_count"] for item in f5["displays"][0]["overview_rows"]] == [3, 2, 1, 0]
+    assert [item["subgroup_label"] for item in f5["displays"][0]["subgroup_rows"]] == [
+        "Region: Central China",
+        "Region: East China",
+        "Region: South China",
+    ]
+    assert f5["displays"][0]["source_context"]["north_south_counts"] == [
+        {"label": "South", "count": 3},
+        {"label": "North", "count": 1},
     ]
 
     assert t2["table_shell_id"] == (
@@ -442,13 +423,13 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
                 "time_to_event_discrimination_calibration_panel",
                 "time_to_event_risk_group_summary",
                 "time_to_event_decision_curve",
-                "multicenter_generalizability_overview",
+                "generalizability_subgroup_composite_panel",
             ],
             "required_evidence_templates": [
                 "time_to_event_discrimination_calibration_panel",
                 "time_to_event_risk_group_summary",
                 "time_to_event_decision_curve",
-                "multicenter_generalizability_overview",
+                "generalizability_subgroup_composite_panel",
             ],
             "display_shell_plan": [
                 {
@@ -478,7 +459,7 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
                 {
                     "display_id": "multicenter_generalizability",
                     "display_kind": "figure",
-                    "requirement_key": "multicenter_generalizability_overview",
+                    "requirement_key": "generalizability_subgroup_composite_panel",
                     "catalog_id": "F5",
                 },
                 {
@@ -571,7 +552,7 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
     synced_style_profile = json.loads((runtime_paper_root / "publication_style_profile.json").read_text(encoding="utf-8"))
     synced_reporting_contract = json.loads((runtime_paper_root / "medical_reporting_contract.json").read_text(encoding="utf-8"))
     synced_multicenter = json.loads(
-        (runtime_paper_root / "multicenter_generalizability_inputs.json").read_text(encoding="utf-8")
+        (runtime_paper_root / "generalizability_subgroup_composite_inputs.json").read_text(encoding="utf-8")
     )
 
     assert report["status"] == "synced"
@@ -587,7 +568,7 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
     assert (runtime_paper_root / "cohort_flow.json").exists()
     assert (runtime_paper_root / "tables" / "table2_performance_summary.md").exists()
     assert synced_multicenter["displays"][0]["template_id"] == (
-        display_registry.get_evidence_figure_spec("multicenter_generalizability_overview").template_id
+        display_registry.get_evidence_figure_spec("generalizability_subgroup_composite_panel").template_id
     )
 
 
@@ -596,7 +577,7 @@ def test_run_time_to_event_direct_migration_rejects_missing_required_display_bin
     study_root = tmp_path / "studies" / "001-dm"
     paper_root = tmp_path / "paper"
     registry = _display_registry_payload()
-    registry["displays"] = [item for item in registry["displays"] if item["requirement_key"] != "multicenter_generalizability_overview"]
+    registry["displays"] = [item for item in registry["displays"] if item["requirement_key"] != "generalizability_subgroup_composite_panel"]
     write_json(paper_root / "display_registry.json", registry)
 
     with pytest.raises(ValueError, match="missing required display binding"):
@@ -621,107 +602,6 @@ def test_run_time_to_event_direct_migration_rejects_legacy_risk_group_binding_wi
     assert not (paper_root / "time_to_event_grouped_inputs.json").exists()
 
 
-def test_run_time_to_event_direct_migration_accepts_current_transportability_governance_binding(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.time_to_event_direct_migration")
-    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
-    paper_root = tmp_path / "paper"
-    registry = _display_registry_payload()
-    registry["displays"] = [
-        item
-        for item in registry["displays"]
-        if item["requirement_key"] != "multicenter_generalizability_overview"
-    ]
-    registry["displays"].append(
-        {
-            "display_id": "transportability_governance",
-            "display_kind": "figure",
-            "requirement_key": "center_transportability_governance_summary_panel",
-            "catalog_id": "F5",
-            "shell_path": "paper/figures/transportability_governance.shell.json",
-        }
-    )
-    write_json(paper_root / "display_registry.json", registry)
-    write_json(paper_root / "cohort_flow.json", {"schema_version": 1, "steps": []})
-
-    monkeypatch.setattr(
-        module,
-        "_load_validation_discrimination_points",
-        lambda _path: [{"label": "CoxPH", "c_index": 0.8, "annotation": "0.800"}],
-    )
-
-    def fake_load_csv_rows(path: Path) -> list[dict[str, str]]:
-        if path.name == "coxph_calibration_5y.csv":
-            return [
-                {
-                    "decile": "1",
-                    "n": "10",
-                    "events_5y": "1",
-                    "mean_predicted_risk_5y": "0.02",
-                    "observed_km_risk_5y": "0.03",
-                }
-            ]
-        if path.name == "coxph_km_risk_groups_5y.csv":
-            return [
-                {
-                    "risk_group": "low",
-                    "n": "10",
-                    "events_5y": "1",
-                    "mean_predicted_risk_5y": "0.02",
-                    "observed_km_risk_5y": "0.03",
-                },
-                {
-                    "risk_group": "mid",
-                    "n": "10",
-                    "events_5y": "2",
-                    "mean_predicted_risk_5y": "0.04",
-                    "observed_km_risk_5y": "0.05",
-                },
-                {
-                    "risk_group": "high",
-                    "n": "10",
-                    "events_5y": "3",
-                    "mean_predicted_risk_5y": "0.08",
-                    "observed_km_risk_5y": "0.10",
-                }
-            ]
-        if path.name == "coxph_dca_5y.csv":
-            return [
-                {
-                    "threshold": "0.01",
-                    "net_benefit_model": "0.02",
-                    "net_benefit_treat_all": "0.01",
-                    "net_benefit_treat_none": "0.0",
-                    "treated_fraction_model": "0.3",
-                }
-            ]
-        raise AssertionError(f"current transportability-governance binding must not require {path.name}")
-
-    monkeypatch.setattr(module, "_load_csv_rows", fake_load_csv_rows)
-    monkeypatch.setattr(
-        module,
-        "_load_markdown_table",
-        lambda _path: (
-            ["Endpoint", "C-index", "Utility"],
-            [["All-cause mortality", "0.800", "Positive DCA"]],
-        ),
-    )
-    monkeypatch.setattr(
-        module,
-        "_build_submission_graphical_abstract_payload",
-        lambda **_: {"schema_version": 1, "shell_id": "submission_graphical_abstract"},
-    )
-
-    report = module.run_time_to_event_direct_migration(study_root=study_root, paper_root=paper_root)
-
-    assert report["status"] == "synced"
-    assert not (paper_root / "multicenter_generalizability_inputs.json").exists()
-    assert (paper_root / "time_to_event_grouped_inputs.json").exists()
-    assert report["notes"]["transportability_governance_binding"] == "current_contract_preserved"
-
-
 def test_run_time_to_event_direct_migration_materializes_current_transportability_layout_without_old_endpoint_root(
     tmp_path: Path,
 ) -> None:
@@ -732,15 +612,15 @@ def test_run_time_to_event_direct_migration_materializes_current_transportabilit
     registry["displays"] = [
         item
         for item in registry["displays"]
-        if item["requirement_key"] != "multicenter_generalizability_overview"
+        if item["requirement_key"] != "generalizability_subgroup_composite_panel"
     ]
     registry["displays"].append(
         {
-            "display_id": "transportability_governance",
+            "display_id": "multicenter_generalizability",
             "display_kind": "figure",
-            "requirement_key": "center_transportability_governance_summary_panel",
+            "requirement_key": "generalizability_subgroup_composite_panel",
             "catalog_id": "F5",
-            "shell_path": "paper/figures/transportability_governance.shell.json",
+            "shell_path": "paper/figures/multicenter_generalizability.shell.json",
         }
     )
     write_json(paper_root / "display_registry.json", registry)
@@ -829,16 +709,14 @@ def test_run_time_to_event_direct_migration_materializes_current_transportabilit
 
     f2 = json.loads((paper_root / "time_to_event_discrimination_calibration_inputs.json").read_text(encoding="utf-8"))
     f3 = json.loads((paper_root / "time_to_event_grouped_inputs.json").read_text(encoding="utf-8"))
-    f5 = json.loads(
-        (paper_root / "center_transportability_governance_summary_panel_inputs.json").read_text(encoding="utf-8")
-    )
+    f5 = json.loads((paper_root / "generalizability_subgroup_composite_inputs.json").read_text(encoding="utf-8"))
 
     assert report["status"] == "synced"
     assert report["blockers"] == []
     assert report["notes"]["analysis_layout"] == "transportability_current_layout"
     assert "10_china_primary_endpoint" not in "\n".join(report["source_paths"].values())
     assert report["source_paths"]["metrics_summary"] == str(transportability_root / "metrics_summary.json")
-    assert not (paper_root / "multicenter_generalizability_inputs.json").exists()
+    assert not (paper_root / "transportability_recalibration_governance_panel.json").exists()
     assert json.loads((paper_root / "time_to_event_decision_curve_inputs.json").read_text(encoding="utf-8")) == preserved_f4
     assert json.loads((paper_root / "time_to_event_performance_summary.json").read_text(encoding="utf-8")) == preserved_t2
 
@@ -860,7 +738,13 @@ def test_run_time_to_event_direct_migration_materializes_current_transportabilit
         "nhanes",
     ]
     assert f3["displays"][0]["risk_group_summaries"][-1]["risk_group_label"] == "Q1_low"
-    assert f5["input_schema_id"] == "center_transportability_governance_summary_panel_inputs_v1"
-    assert f5["displays"][0]["display_id"] == "transportability_governance"
-    assert f5["displays"][0]["centers"][1]["center_label"] == "NHANES"
-    assert f5["displays"][0]["centers"][1]["verdict"] == "recalibration_required"
+    assert f5["input_schema_id"] == "generalizability_subgroup_composite_inputs_v1"
+    assert f5["displays"][0]["template_id"] == display_registry.get_evidence_figure_spec(
+        "generalizability_subgroup_composite_panel"
+    ).template_id
+    assert f5["displays"][0]["display_id"] == "multicenter_generalizability"
+    assert f5["displays"][0]["overview_rows"][1]["cohort_label"] == "NHANES"
+    assert (
+        f5["displays"][0]["source_context"]["transportability_verdict"]
+        == "recalibration_required"
+    )

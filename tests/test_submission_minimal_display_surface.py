@@ -395,7 +395,7 @@ def test_create_submission_minimal_package_preserves_second_stage_display_entrie
             {
                 "figure_id": "F14",
                 "template_id": "time_to_event_discrimination_calibration_panel",
-                "renderer_family": "python",
+                "renderer_family": "r_ggplot2",
                 "paper_role": "main_text",
                 "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
                 "qc_profile": "publication_evidence_curve",
@@ -412,16 +412,16 @@ def test_create_submission_minimal_package_preserves_second_stage_display_entrie
             },
             {
                 "figure_id": "F17",
-                "template_id": "multicenter_generalizability_overview",
-                "renderer_family": "python",
+                "template_id": "generalizability_subgroup_composite_panel",
+                "renderer_family": "r_ggplot2",
                 "paper_role": "supplementary",
-                "input_schema_id": "multicenter_generalizability_inputs_v1",
-                "qc_profile": "publication_multicenter_overview",
+                "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
+                "qc_profile": "publication_generalizability_subgroup_composite_panel",
                 "qc_result": {
                     "status": "pass",
                     "checked_at": "2026-04-03T10:00:00+00:00",
                     "engine_id": "display_layout_qc_v1",
-                    "qc_profile": "publication_multicenter_overview",
+                    "qc_profile": "publication_generalizability_subgroup_composite_panel",
                     "layout_sidecar_path": "paper/figures/generated/F17.layout.json",
                     "issues": [],
                 },
@@ -470,9 +470,11 @@ def test_create_submission_minimal_package_preserves_second_stage_display_entrie
 
     assert set(figures_by_id) == {"F1", "F14", "F17"}
     assert figures_by_id["F14"]["template_id"] == full_id("time_to_event_discrimination_calibration_panel")
-    assert figures_by_id["F14"]["renderer_family"] == "python"
+    assert figures_by_id["F14"]["renderer_family"] == "r_ggplot2"
     assert figures_by_id["F14"]["input_schema_id"] == "time_to_event_discrimination_calibration_inputs_v1"
-    assert figures_by_id["F17"]["qc_profile"] == "publication_multicenter_overview"
+    assert figures_by_id["F17"]["template_id"] == full_id("generalizability_subgroup_composite_panel")
+    assert figures_by_id["F17"]["renderer_family"] == "r_ggplot2"
+    assert figures_by_id["F17"]["qc_profile"] == "publication_generalizability_subgroup_composite_panel"
     assert len(figures_by_id["F14"]["output_paths"]) == 2
     assert all((workspace_root / output_path).exists() for output_path in figures_by_id["F14"]["output_paths"])
     assert all((workspace_root / output_path).exists() for output_path in figures_by_id["F17"]["output_paths"])
@@ -527,7 +529,7 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
                 {
                     "figure_id": "F2",
                     "template_id": "time_to_event_discrimination_calibration_panel",
-                    "renderer_family": "python",
+                    "renderer_family": "r_ggplot2",
                     "paper_role": "main_text",
                     "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
                     "qc_profile": "publication_evidence_curve",
@@ -545,7 +547,7 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
                 {
                     "figure_id": "F3",
                     "template_id": "time_to_event_risk_group_summary",
-                    "renderer_family": "python",
+                    "renderer_family": "r_ggplot2",
                     "paper_role": "main_text",
                     "input_schema_id": "time_to_event_grouped_inputs_v1",
                     "qc_profile": "publication_survival_curve",
@@ -563,7 +565,7 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
                 {
                     "figure_id": "F4",
                     "template_id": "time_to_event_decision_curve",
-                    "renderer_family": "python",
+                    "renderer_family": "r_ggplot2",
                     "paper_role": "main_text",
                     "input_schema_id": "time_to_event_decision_curve_inputs_v1",
                     "qc_profile": "publication_decision_curve",
@@ -580,16 +582,16 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
                 },
                 {
                     "figure_id": "F5",
-                    "template_id": "multicenter_generalizability_overview",
-                    "renderer_family": "python",
+                    "template_id": "generalizability_subgroup_composite_panel",
+                    "renderer_family": "r_ggplot2",
                     "paper_role": "main_text",
-                    "input_schema_id": "multicenter_generalizability_inputs_v1",
-                    "qc_profile": "publication_multicenter_overview",
+                    "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
+                    "qc_profile": "publication_generalizability_subgroup_composite_panel",
                     "qc_result": {
                         "status": "pass",
                         "checked_at": "2026-04-03T10:00:00+00:00",
                         "engine_id": "display_layout_qc_v1",
-                        "qc_profile": "publication_multicenter_overview",
+                        "qc_profile": "publication_generalizability_subgroup_composite_panel",
                         "layout_sidecar_path": "paper/figures/generated/F5.layout.json",
                         "issues": [],
                     },
@@ -640,8 +642,10 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
 
     assert set(figures_by_id) == {"F1", "F2", "F3", "F4", "F5"}
     assert figures_by_id["F1"]["template_id"] == full_id("cohort_flow_figure")
-    assert figures_by_id["F5"]["template_id"] == full_id("multicenter_generalizability_overview")
-    assert figures_by_id["F5"]["qc_profile"] == "publication_multicenter_overview"
+    assert figures_by_id["F1"]["renderer_family"] == "python"
+    assert figures_by_id["F5"]["template_id"] == full_id("generalizability_subgroup_composite_panel")
+    assert figures_by_id["F5"]["renderer_family"] == "r_ggplot2"
+    assert figures_by_id["F5"]["qc_profile"] == "publication_generalizability_subgroup_composite_panel"
     assert manifest_payload["naming_map"]["figures"]["F5"] == "Figure5"
     assert all((workspace_root / output_path).exists() for output_path in figures_by_id["F5"]["output_paths"])
 

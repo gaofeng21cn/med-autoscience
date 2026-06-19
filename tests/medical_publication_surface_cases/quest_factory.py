@@ -669,7 +669,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
         {
             "figure_id": "F2",
             "template_id": "time_to_event_discrimination_calibration_panel",
-            "renderer_family": "python",
+            "renderer_family": "r_ggplot2",
             "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
             "qc_profile": "publication_evidence_curve",
             "qc_result": {
@@ -688,7 +688,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
         {
             "figure_id": "F3",
             "template_id": "time_to_event_risk_group_summary",
-            "renderer_family": "python",
+            "renderer_family": "r_ggplot2",
             "input_schema_id": "time_to_event_grouped_inputs_v1",
             "qc_profile": "publication_survival_curve",
             "qc_result": {
@@ -707,7 +707,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
         {
             "figure_id": "F4",
             "template_id": "time_to_event_decision_curve",
-            "renderer_family": "python",
+            "renderer_family": "r_ggplot2",
             "input_schema_id": "time_to_event_decision_curve_inputs_v1",
             "qc_profile": "publication_decision_curve",
             "qc_result": {
@@ -728,15 +728,15 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
         figure_entries.append(
             {
                 "figure_id": "F5",
-                "template_id": "multicenter_generalizability_overview",
-                "renderer_family": "python",
-                "input_schema_id": "multicenter_generalizability_inputs_v1",
-                "qc_profile": "publication_multicenter_overview",
+                "template_id": "generalizability_subgroup_composite_panel",
+                "renderer_family": "r_ggplot2",
+                "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
+                "qc_profile": "publication_generalizability_subgroup_composite_panel",
                 "qc_result": {
                     "status": "pass",
                     "checked_at": "2026-04-03T10:00:00+00:00",
                     "engine_id": "display_layout_qc_v1",
-                    "qc_profile": "publication_multicenter_overview",
+                    "qc_profile": "publication_generalizability_subgroup_composite_panel",
                     "layout_sidecar_path": "paper/figures/generated/F5.layout.json",
                     "issues": [],
                 },
@@ -821,7 +821,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
             "recommendation_boundary": "The panel supports validation, not a clinical intervention threshold.",
             "renderer_contract": {
                 "figure_semantics": "evidence",
-                "renderer_family": "python",
+                "renderer_family": "r_ggplot2",
                 "template_id": "time_to_event_discrimination_calibration_panel",
                 "selection_rationale": "The validation panel stays on the audited direct-migration template.",
                 "layout_qc_profile": "publication_evidence_curve",
@@ -850,7 +850,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
             "recommendation_boundary": "Risk-group separation does not by itself define a treatment rule.",
             "renderer_contract": {
                 "figure_semantics": "evidence",
-                "renderer_family": "python",
+                "renderer_family": "r_ggplot2",
                 "template_id": "time_to_event_risk_group_summary",
                 "selection_rationale": "The manuscript requires the audited two-panel tertile summary rather than a grouped KM default.",
                 "layout_qc_profile": "publication_survival_curve",
@@ -879,7 +879,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
             "recommendation_boundary": "No single intervention threshold is recommended from this figure.",
             "renderer_contract": {
                 "figure_semantics": "evidence",
-                "renderer_family": "python",
+                "renderer_family": "r_ggplot2",
                 "template_id": "time_to_event_decision_curve",
                 "selection_rationale": "The horizon-aware decision curve stays on the audited direct-migration template.",
                 "layout_qc_profile": "publication_decision_curve",
@@ -906,15 +906,15 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
                 "interpretation_boundary": "Internal center-level support only; not external transport validation.",
                 "panel_messages": [{"panel_id": "A", "message": "Center-level interval support is summarized explicitly."}],
                 "legend_glossary": [{"term": "center support", "explanation": "Center-level estimate with uncertainty interval."}],
-                "threshold_semantics": "No treatment threshold is encoded in the generalizability overview.",
+                "threshold_semantics": "No treatment threshold is encoded in the generalizability composite.",
                 "stratification_basis": "Centers are displayed as prespecified data-partition units rather than risk strata.",
                 "recommendation_boundary": "The overview does not establish external transportability on its own.",
                 "renderer_contract": {
                     "figure_semantics": "evidence",
-                    "renderer_family": "python",
-                    "template_id": "multicenter_generalizability_overview",
-                    "selection_rationale": "The center-level overview remains on the audited multicenter template.",
-                    "layout_qc_profile": "publication_multicenter_overview",
+                    "renderer_family": "r_ggplot2",
+                    "template_id": "generalizability_subgroup_composite_panel",
+                    "selection_rationale": "The subgroup generalizability composite remains on the audited R/ggplot2 template.",
+                    "layout_qc_profile": "publication_generalizability_subgroup_composite_panel",
                     "required_exports": ["png", "pdf"],
                     **evidence_renderer_display_to_claim_fields(
                         figure_id="F5",

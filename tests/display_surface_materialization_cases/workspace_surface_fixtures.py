@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from . import shared_base as _shared_base
 from . import registry_id_helpers as _registry_id_helpers
+from .current_evidence_payload_fixtures import _make_generalizability_subgroup_composite_panel_display
 from .registry_builders import _build_workspace_registry_displays, _workspace_template_bindings
 
 def _module_reexport(module) -> None:
@@ -668,71 +669,11 @@ def build_display_surface_workspace(
                 },
             )
             dump_json(
-                paper_root / "multicenter_generalizability_inputs.json",
+                paper_root / "generalizability_subgroup_composite_inputs.json",
                 {
                     "schema_version": 1,
-                    "input_schema_id": "multicenter_generalizability_inputs_v1",
-                    "displays": [
-                        {
-                            "display_id": "Figure17",
-                            "template_id": "multicenter_generalizability_overview",
-                            "title": "Multicenter generalizability overview",
-                            "caption": "Center-level event support with coverage context under the frozen split.",
-                            "overview_mode": "center_support_counts",
-                            "center_event_y_label": "5-year CVD events",
-                            "coverage_y_label": "Patient count",
-                            "center_event_counts": [
-                                {
-                                    "center_label": "Center A",
-                                    "split_bucket": "train",
-                                    "event_count": 7,
-                                },
-                                {
-                                    "center_label": "Center B",
-                                    "split_bucket": "validation",
-                                    "event_count": 5,
-                                },
-                                {
-                                    "center_label": "Center C",
-                                    "split_bucket": "train",
-                                    "event_count": 3,
-                                },
-                            ],
-                            "coverage_panels": [
-                                {
-                                    "panel_id": "region",
-                                    "title": "Region coverage (n=198)",
-                                    "layout_role": "wide_left",
-                                    "bars": [
-                                        {"label": "Central", "count": 72},
-                                        {"label": "East", "count": 54},
-                                        {"label": "South", "count": 43},
-                                        {"label": "North", "count": 29},
-                                    ],
-                                },
-                                {
-                                    "panel_id": "north_south",
-                                    "title": "North vs South coverage",
-                                    "layout_role": "top_right",
-                                    "bars": [
-                                        {"label": "North", "count": 84},
-                                        {"label": "South", "count": 114},
-                                    ],
-                                },
-                                {
-                                    "panel_id": "urban_rural",
-                                    "title": "Urban/rural coverage",
-                                    "layout_role": "bottom_right",
-                                    "bars": [
-                                        {"label": "Urban", "count": 101},
-                                        {"label": "Rural", "count": 63},
-                                        {"label": "Missing", "count": 34},
-                                    ],
-                                },
-                            ],
-                            "footnote": "Train and validation centers remain balanced, but sparse center-level events limit transportability claims.",
-                        }
-                    ],
+                    "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
+                    "displays": [_make_generalizability_subgroup_composite_panel_display("Figure17")],
                 },
             )
     dump_json(

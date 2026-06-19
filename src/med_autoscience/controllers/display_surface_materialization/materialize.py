@@ -175,39 +175,30 @@ def _render_evidence_figure_by_template_runtime(
         paper_root=paper_root,
     )
     template_manifest = runtime.template_manifest
-    if template_manifest.execution_mode == "python_plugin":
-        render_callable = display_pack_runtime.load_python_plugin_callable(
-            repo_root=_REPO_ROOT,
-            template_id=template_id,
-            paper_root=paper_root,
+    if template_manifest.renderer_family != "r_ggplot2":
+        raise ValueError(
+            f"evidence figure template `{template_id}` must use r_ggplot2; "
+            f"observed renderer `{template_manifest.renderer_family}`"
         )
-        render_kwargs = {
-            "template_id": template_id,
-            "display_payload": display_payload,
-            "output_png_path": output_png_path,
-            "output_pdf_path": output_pdf_path,
-            "layout_sidecar_path": layout_sidecar_path,
-        }
-        if output_svg_path is not None:
-            render_kwargs["output_svg_path"] = output_svg_path
-        render_result = render_callable(**render_kwargs)
-        return dict(render_result) if isinstance(render_result, dict) else {}
+    if template_manifest.execution_mode != "subprocess":
+        raise ValueError(
+            f"evidence figure template `{template_id}` must use subprocess execution mode; "
+            f"observed `{template_manifest.execution_mode}`"
+        )
     if output_svg_path is not None:
         raise ValueError(f"subprocess evidence figure template `{template_id}` cannot export svg from this materializer")
-    if template_manifest.execution_mode == "subprocess":
-        return _run_subprocess_renderer(
-            runtime_template_root=runtime.template_path.parent,
-            pack_root=runtime.pack_root,
-            template_manifest=template_manifest,
-            paper_root=paper_root,
-            figure_id=figure_id,
-            full_template_id=template_manifest.full_template_id,
-            display_payload=display_payload,
-            output_png_path=output_png_path,
-            output_pdf_path=output_pdf_path,
-            layout_sidecar_path=layout_sidecar_path,
-        )
-    raise ValueError(f"unsupported display template execution mode `{template_manifest.execution_mode}`")
+    return _run_subprocess_renderer(
+        runtime_template_root=runtime.template_path.parent,
+        pack_root=runtime.pack_root,
+        template_manifest=template_manifest,
+        paper_root=paper_root,
+        figure_id=figure_id,
+        full_template_id=template_manifest.full_template_id,
+        display_payload=display_payload,
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
 
 
 def _materialize_contract_backed_figure(

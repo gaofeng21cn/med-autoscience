@@ -55,8 +55,8 @@ version = "0.2.0"
                 'input_schema_ref = "binary_prediction_curve_inputs_v1"',
                 'qc_profile_ref = "publication_evidence_curve"',
                 'required_exports = ["png", "pdf"]',
-                'execution_mode = "python_plugin"',
-                'entrypoint = "pkg.module:render"',
+                'execution_mode = "subprocess"',
+                'entrypoint = "Rscript render.R --request {request_json}"',
                 "paper_proven = false",
             )
         )
@@ -115,7 +115,7 @@ def test_display_pack_lock_payload_includes_figure_quality_refs(tmp_path: Path) 
                     "figure_id": "F1",
                     "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
                     "selected_backend": "r_ggplot2",
-                    "execution_mode": "python_plugin",
+                    "execution_mode": "subprocess",
                     "backend_exclusivity_proof": {
                         "selected_backend": "r_ggplot2",
                         "observed_renderer_family": "r_ggplot2",

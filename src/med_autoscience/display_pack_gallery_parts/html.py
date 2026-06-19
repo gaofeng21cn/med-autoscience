@@ -55,27 +55,15 @@ def _render_html(
         for record in visible_records
         if record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
     )
-    python_evidence_count = sum(
-        1
-        for record in visible_records
-        if record.kind == "evidence_figure" and record.renderer_family == "python"
-    )
     illustration_count = sum(1 for record in visible_records if record.kind == "illustration_shell")
-    baseline_count = sum(
-        1
-        for record in visible_records
-        if baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")).status == "rendered"
-    )
     meta = (
         f'<span class="pill">style_profile_id: {html.escape(default_style["style_profile_id"])}</span>'
         f'<span class="pill">journal_palette_ref: {html.escape(default_style["journal_palette_ref"])}</span>'
         f'<span class="pill">gallery cards: {len(visible_records)}</span>'
         f'<span class="pill">family policy: R-first evidence + design shells</span>'
         f'<span class="pill">R/ggplot2 evidence: {r_evidence_count}</span>'
-        f'<span class="pill">Python evidence: {python_evidence_count}</span>'
         f'<span class="pill">Python design shells: {illustration_count}</span>'
         f'<span class="pill">rendered images: {rendered_count}</span>'
-        f'<span class="pill">Python comparisons: {baseline_count}</span>'
     )
     swatches = "".join(
         (
@@ -94,7 +82,6 @@ def _render_html(
         cards: list[str] = []
         for record in sorted(categories[category], key=lambda item: (item.kind, item.canonical_family_id)):
             asset = rendered[record.template_id]
-            baseline = baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable"))
             tags = "".join(
                 f'<span class="tag">{html.escape(tag)}</span>'
                 for tag in (
@@ -108,16 +95,14 @@ def _render_html(
             if record.kind == "illustration_shell":
                 pane_label = "Python / SVG composition shell"
             else:
-                pane_label = "R / ggplot2 evidence" if record.renderer_family == "r_ggplot2" else "Python evidence"
+                pane_label = "R / ggplot2 evidence"
             panes = _asset_html(asset, label=pane_label)
-            if baseline.status == "rendered":
-                panes += _asset_html(baseline, label="Legacy Python baseline")
             if asset.status != "rendered":
                 panes = f'<div class="placeholder"><strong>{html.escape(record.canonical_family_title)}</strong><span>{html.escape(record.kind)} · {html.escape(record.renderer_family)}</span><em>{html.escape(asset.reason or "no renderer output")}</em></div>'
             cards.append(
                 f"""
 <article class="card" id="template-{html.escape(record.template_id)}">
-  <div class="panes{' compare' if baseline.status == 'rendered' else ''}">{panes}</div>
+  <div class="panes">{panes}</div>
   <div class="card-body">
     <h3>{html.escape(record.canonical_family_title)}</h3>
     <p><code>{html.escape(record.template_id)}</code></p>
@@ -184,7 +169,7 @@ h1{{margin:0 0 8px;font-size:25px;letter-spacing:0}}
 <body>
 <header>
   <h1>MAS Display Pack Canonical Gallery</h1>
-  <div class="sub">默认展示 R/ggplot2 数据证据图和设计/流程类 composition shell；Python evidence 模板保留为迁移库存或显式请求，不作为默认图卡。</div>
+  <div class="sub">默认展示 R/ggplot2 数据证据图和设计/流程类 composition shell；未证明优于 R/ggplot2 的 Python evidence 模板已从当前 pack 退役。</div>
   <div class="meta">{meta}</div>
   <div class="palette">{swatches}</div>
 </header>

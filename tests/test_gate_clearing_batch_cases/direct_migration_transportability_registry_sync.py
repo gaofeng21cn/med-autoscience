@@ -108,9 +108,9 @@ def test_run_gate_clearing_batch_direct_migration_waits_for_transportability_reg
                         "catalog_id": "F3",
                     },
                     {
-                        "display_id": "transportability_governance",
+                        "display_id": "multicenter_generalizability",
                         "display_kind": "figure",
-                        "requirement_key": "center_transportability_governance_summary_panel",
+                        "requirement_key": "generalizability_subgroup_composite_panel",
                         "catalog_id": "F5",
                     },
                 ],
@@ -122,7 +122,7 @@ def test_run_gate_clearing_batch_direct_migration_waits_for_transportability_reg
         call_order.append("direct_migration")
         registry_payload = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
         requirement_keys = {item["requirement_key"] for item in registry_payload["displays"]}
-        assert "center_transportability_governance_summary_panel" in requirement_keys
+        assert "generalizability_subgroup_composite_panel" in requirement_keys
         assert "multicenter_generalizability_overview" not in requirement_keys
         _write_json(
             payload_path,
@@ -396,9 +396,9 @@ def test_run_gate_clearing_batch_redrives_transportability_sync_when_previous_fi
                         "catalog_id": "F4",
                     },
                     {
-                        "display_id": "transportability_governance",
+                        "display_id": "multicenter_generalizability",
                         "display_kind": "figure",
-                        "requirement_key": "center_transportability_governance_summary_panel",
+                        "requirement_key": "generalizability_subgroup_composite_panel",
                         "catalog_id": "F5",
                     },
                 ],
@@ -606,7 +606,7 @@ def test_run_gate_clearing_batch_cleanly_rematerializes_missing_transportability
         call_order.append("direct_migration")
         registry_payload = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
         requirement_keys = {item["requirement_key"] for item in registry_payload["displays"]}
-        assert "center_transportability_governance_summary_panel" in requirement_keys
+        assert "generalizability_subgroup_composite_panel" in requirement_keys
         assert "multicenter_generalizability_overview" not in requirement_keys
         _write_json(
             payload_path,
@@ -674,9 +674,9 @@ def test_run_gate_clearing_batch_cleanly_rematerializes_missing_transportability
     assert call_order == ["direct_migration", "materialize"]
     registry_payload = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
     requirement_keys = {item["requirement_key"] for item in registry_payload["displays"]}
-    assert "center_transportability_governance_summary_panel" in requirement_keys
+    assert "generalizability_subgroup_composite_panel" in requirement_keys
     assert "multicenter_generalizability_overview" not in requirement_keys
     contract_payload = json.loads((paper_root / "medical_reporting_contract.json").read_text(encoding="utf-8"))
     contract_requirement_keys = {item["requirement_key"] for item in contract_payload["display_shell_plan"]}
-    assert "center_transportability_governance_summary_panel" in contract_requirement_keys
+    assert "generalizability_subgroup_composite_panel" in contract_requirement_keys
     assert not (paper_root / "multicenter_generalizability_inputs.json").exists()

@@ -191,27 +191,29 @@ def time_to_event_direct_migration_display_inputs_need_refresh(
         return True
     item = display_registry_item_for_requirement(
         paper_root=paper_root,
-        requirement_key="multicenter_generalizability_overview",
+        requirement_key="generalizability_subgroup_composite_panel",
     )
-    if item is None:
-        item = display_registry_item_for_requirement(
-            paper_root=paper_root,
-            requirement_key="center_transportability_governance_summary_panel",
-        )
+    if item is not None and display_registry_item_for_requirement(
+        paper_root=paper_root,
+        requirement_key="multicenter_generalizability_overview",
+    ) is not None:
+        return True
+    if item is None and display_registry_item_for_requirement(
+        paper_root=paper_root,
+        requirement_key="multicenter_generalizability_overview",
+    ) is not None:
+        return True
     if item is None:
         return False
     display_id = non_empty_text(item.get("display_id"))
     if display_id is None:
         return True
-    requirement_key = str(item.get("requirement_key") or "").strip()
-    if requirement_key == "center_transportability_governance_summary_panel":
-        if gate_clearing_batch_transportability.transportability_governance_display_inputs_need_refresh(
-            paper_root=paper_root
-        ):
-            return True
-        return False
+    if gate_clearing_batch_transportability.transportability_governance_display_inputs_need_refresh(
+        paper_root=paper_root
+    ):
+        return True
     spec = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
-        "multicenter_generalizability_overview"
+        "generalizability_subgroup_composite_panel"
     )
     try:
         _, payload = display_surface_materialization_controller._load_evidence_display_payload(

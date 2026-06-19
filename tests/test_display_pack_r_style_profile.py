@@ -27,7 +27,7 @@ payload <- list(
     palette = list(primary = "#123456", secondary = "#654321", neutral = "#999999", text = "#111111", grid = "#EEEEEE", heatmap_seq_low = "#F4F8FA", heatmap_seq_mid = "#9DD2D3", heatmap_seq_high = "#0B4F6C", heatmap_low = "#2B6CB0", heatmap_mid = "#F7F7F7", heatmap_high = "#B64342"),
     semantic_roles = list(model_curve = "primary", comparator_curve = "secondary", reference_line = "neutral", text = "text", grid_line = "grid", heatmap_seq_low = "heatmap_seq_low", heatmap_seq_mid = "heatmap_seq_mid", heatmap_seq_high = "heatmap_seq_high", heatmap_low = "heatmap_low", heatmap_mid = "heatmap_mid", heatmap_high = "heatmap_high"),
     style_roles = list(model_curve = "#123456", comparator_curve = "#654321", reference_line = "#999999", text = "#111111", grid_line = "#EEEEEE", heatmap_seq_low = "#F4F8FA", heatmap_seq_mid = "#9DD2D3", heatmap_seq_high = "#0B4F6C", heatmap_low = "#2B6CB0", heatmap_mid = "#F7F7F7", heatmap_high = "#B64342"),
-    typography = list(font_family = "sans", base_size = 10, title_size = 13, axis_title_size = 11, tick_size = 9, legend_size = 7.2, colorbar_width = 5, colorbar_height = 42),
+    typography = list(font_family = "sans", base_size = 10, title_size = 13, axis_title_size = 11, tick_size = 9, legend_size = 7.2, colorbar_width = 5, colorbar_height = 42, colorbar_horizontal_width = 260, colorbar_horizontal_height = 6, colorbar_max_breaks = 8, colorbar_label_size = 5.6),
     stroke = list(primary_linewidth = 2.4, reference_linewidth = 1.2, grid_linewidth = 0.33),
     grid = list(major = TRUE, minor = FALSE, major_axis = "both", color = "#EEEEEE"),
     layout_override = list(output_width_in = 5, output_height_in = 5)
@@ -63,8 +63,19 @@ stopifnot("#0B4F6C" %in% heatmap_built$plot$scales$scales[[2]]$palette(1))
 stopifnot(!("#B64342" %in% heatmap_built$data[[1]]$fill))
 heatmap_layout <- build_layout_sidecar(heatmap_plot, "heatmap_group_comparison", heatmap_payload)
 stopifnot(any(vapply(heatmap_layout$guide_boxes, function(item) identical(item$box_type, "colorbar"), logical(1))))
-breaks <- continuous_scale_breaks(c(0.10, 0.45, 0.70, 0.95), max_breaks = 4)
-stopifnot(length(breaks) <= 4)
+breaks <- continuous_scale_breaks(c(0.10, 0.45, 0.70, 0.95), max_breaks = 3)
+stopifnot(length(breaks) <= 3)
+crowded_breaks <- continuous_scale_breaks(c(0.55, 0.60, 0.65, 0.70, 0.75, 0.80), max_breaks = 8)
+stopifnot(length(crowded_breaks) <= 3)
+heatmap_components <- heatmap_scale_components(heatmap_payload, c(0.55, 0.60, 0.65, 0.70, 0.75, 0.80), name = "Alteration fraction")
+stopifnot(length(heatmap_components$breaks) <= 3)
+guide <- publication_colorbar_guide(payload, title = "Score", bar_orientation = "horizontal")
+stopifnot(!is.null(guide))
+stopifnot(as.numeric(guide$barwidth) >= 260)
+stopifnot(as.numeric(guide$barheight) >= 6)
+colorbar_theme <- theme_publication_colorbar(payload)
+stopifnot(identical(as.numeric(colorbar_theme$legend.text$size), 5.6))
+stopifnot(as.numeric(colorbar_theme$legend.spacing.x) >= 8)
 stopifnot(publication_legend_guides(payload, c("a", "b", "c", "d"))$nrow == 2)
 """
 

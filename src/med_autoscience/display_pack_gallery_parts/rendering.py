@@ -17,9 +17,7 @@ from med_autoscience.display_pack_gallery_parts.assets import (
     write_json,
 )
 from med_autoscience.display_pack_gallery_parts.payloads import (
-    LEGACY_PYTHON_BASELINE_EXCLUDED,
     _load_r_gallery_payload,
-    _python_display_payload,
     _style_context_for,
 )
 
@@ -93,31 +91,9 @@ def _render_python_template(
     render_payload = json.loads(json.dumps(payload))
     render_context = _style_context_for(record.template_id)
     if record.kind == "evidence_figure":
-        render_payload["render_context"] = render_context
+        raise RuntimeError("Python evidence templates are not retained in the current gallery")
     write_json(payload_path, render_payload)
-    if record.kind == "evidence_figure":
-        from fenggaolab_org_medical_display_core.evidence_figures import render_python_evidence_figure
-
-        try:
-            render_python_evidence_figure(
-                template_id=record.full_template_id,
-                display_payload=render_payload,
-                output_png_path=output_png,
-                output_pdf_path=output_pdf,
-                output_svg_path=output_svg,
-                layout_sidecar_path=output_layout,
-            )
-        except TypeError as exc:
-            if "output_svg_path" not in str(exc):
-                raise
-            render_python_evidence_figure(
-                template_id=record.full_template_id,
-                display_payload=render_payload,
-                output_png_path=output_png,
-                output_pdf_path=output_pdf,
-                layout_sidecar_path=output_layout,
-            )
-    elif record.kind == "illustration_shell":
+    if record.kind == "illustration_shell":
         from fenggaolab_org_medical_display_core.illustration_shells import render_illustration_shell
 
         render_illustration_shell(
@@ -148,50 +124,3 @@ def _render_python_template(
         image_size_px=_image_size(output_png),
         preview_image_size_px=preview_size,
     )
-
-
-def _legacy_python_baseline_payload(
-    record: TemplateRecord,
-    fixture_payloads: dict[str, dict[str, Any]],
-) -> dict[str, Any] | None:
-    try:
-        return _python_display_payload(record, fixture_payloads)
-    except RuntimeError:
-        return None
-
-
-def _render_legacy_python_baseline(record: TemplateRecord, payload: dict[str, Any] | None) -> RenderedAsset:
-    if record.template_id in LEGACY_PYTHON_BASELINE_EXCLUDED:
-        return RenderedAsset(status="excluded", reason="legacy_python_baseline_failed_previous_render")
-    if record.previous_renderer_family != "python" or not record.previous_entrypoint:
-        return RenderedAsset(status="not_applicable")
-    if payload is None:
-        return RenderedAsset(status="not_available", reason="legacy_python_fixture_missing")
-    previous_record = TemplateRecord(
-        template_id=record.template_id,
-        full_template_id=record.full_template_id,
-        display_name=record.display_name,
-        kind=record.kind,
-        audit_family=record.audit_family,
-        renderer_family="python",
-        execution_mode="python_plugin",
-        entrypoint=record.previous_entrypoint,
-        previous_renderer_family="",
-        previous_entrypoint="",
-        paper_proven=record.paper_proven,
-        required_exports=record.required_exports,
-        template_dir=record.template_dir,
-        canonical_family_id=record.canonical_family_id,
-        canonical_family_title=record.canonical_family_title,
-        canonical_family_category=record.canonical_family_category,
-        canonical_template_id=record.canonical_template_id,
-        figure_archetype=record.figure_archetype,
-        migration_status=record.migration_status,
-        default_visible=record.default_visible,
-        migrated_alias_template_ids=record.migrated_alias_template_ids,
-        migration_reason=record.migration_reason,
-    )
-    try:
-        return _render_python_template(previous_record, payload, output_root=paths.PYTHON_BASELINE_ROOT, suffix="python")
-    except Exception as exc:
-        return RenderedAsset(status="excluded", reason=f"legacy_python_baseline_render_failed: {type(exc).__name__}: {exc}")

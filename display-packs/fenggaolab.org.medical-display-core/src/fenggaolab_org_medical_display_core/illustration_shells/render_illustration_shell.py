@@ -8,19 +8,13 @@ import matplotlib
 matplotlib.use("Agg")
 
 from ..shared_parts.common import _require_namespaced_registry_id
-from .render_baseline_missingness_qc_panel import _render_baseline_missingness_qc_panel
-from .render_center_coverage_batch_transportability_panel import _render_center_coverage_batch_transportability_panel
 from .render_cohort_flow_figure import _render_cohort_flow_figure
 from .render_design_evidence_composite_shell import _render_design_evidence_composite_shell
 from .render_submission_graphical_abstract import _render_submission_graphical_abstract
-from .render_transportability_recalibration_governance_panel import _render_transportability_recalibration_governance_panel
 from .render_workflow_fact_sheet_panel import _render_workflow_fact_sheet_panel
-from .validate_baseline_missingness_qc_panel_payload import _validate_baseline_missingness_qc_panel_payload
-from .validate_center_coverage_batch_transportability_panel_payload import _validate_center_coverage_batch_transportability_panel_payload
 from .validate_cohort_flow_payload import _validate_cohort_flow_payload
 from .validate_design_evidence_composite_shell_payload import _validate_design_evidence_composite_shell_payload
 from .validate_submission_graphical_abstract_payload import _validate_submission_graphical_abstract_payload
-from .validate_transportability_recalibration_governance_panel_payload import _validate_transportability_recalibration_governance_panel_payload
 from .validate_workflow_fact_sheet_panel_payload import _validate_workflow_fact_sheet_panel_payload
 
 
@@ -100,51 +94,6 @@ def render_illustration_shell(
     if template_short_id == "design_evidence_composite_shell":
         normalized_shell_payload = _validate_design_evidence_composite_shell_payload(resolved_payload_path, shell_payload)
         _render_design_evidence_composite_shell(
-            output_svg_path=output_svg_path,
-            output_png_path=output_png_path,
-            output_layout_path=output_layout_path,
-            shell_payload=normalized_shell_payload,
-            render_context=render_context,
-        )
-        return {
-            "title": str(normalized_shell_payload.get("title") or "").strip(),
-            "caption": str(normalized_shell_payload.get("caption") or "").strip(),
-        }
-    if template_short_id == "baseline_missingness_qc_panel":
-        normalized_shell_payload = _validate_baseline_missingness_qc_panel_payload(resolved_payload_path, shell_payload)
-        _render_baseline_missingness_qc_panel(
-            output_svg_path=output_svg_path,
-            output_png_path=output_png_path,
-            output_layout_path=output_layout_path,
-            shell_payload=normalized_shell_payload,
-            render_context=render_context,
-        )
-        return {
-            "title": str(normalized_shell_payload.get("title") or "").strip(),
-            "caption": str(normalized_shell_payload.get("caption") or "").strip(),
-        }
-    if template_short_id == "center_coverage_batch_transportability_panel":
-        normalized_shell_payload = _validate_center_coverage_batch_transportability_panel_payload(
-            resolved_payload_path,
-            shell_payload,
-        )
-        _render_center_coverage_batch_transportability_panel(
-            output_svg_path=output_svg_path,
-            output_png_path=output_png_path,
-            output_layout_path=output_layout_path,
-            shell_payload=normalized_shell_payload,
-            render_context=render_context,
-        )
-        return {
-            "title": str(normalized_shell_payload.get("title") or "").strip(),
-            "caption": str(normalized_shell_payload.get("caption") or "").strip(),
-        }
-    if template_short_id == "transportability_recalibration_governance_panel":
-        normalized_shell_payload = _validate_transportability_recalibration_governance_panel_payload(
-            resolved_payload_path,
-            shell_payload,
-        )
-        _render_transportability_recalibration_governance_panel(
             output_svg_path=output_svg_path,
             output_png_path=output_png_path,
             output_layout_path=output_layout_path,

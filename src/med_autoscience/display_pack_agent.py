@@ -395,7 +395,7 @@ def display_pack_capability_discover(
             "default_templates_are_canonical_only": True,
             "active_inventory_is_canonical_only": True,
             "evidence_figures_default_to_r_ggplot2": True,
-            "python_evidence_templates_hidden_from_default_discover": True,
+            "python_evidence_templates_not_retained_without_advantage_proof": True,
             "python_illustration_shells_may_be_default_visible": True,
             "legacy_alias_templates_hidden_from_default_discover": True,
             "migration_inventory_template_count": sum(
@@ -512,7 +512,7 @@ def display_pack_figure_plan(
         "template_surface_policy": {
             "default_recommendations_are_canonical_only": True,
             "evidence_figures_default_to_r_ggplot2": True,
-            "python_evidence_templates_hidden_unless_explicit": True,
+            "python_evidence_templates_not_retained_without_advantage_proof": True,
             "python_illustration_shells_may_be_default_visible": True,
             "legacy_alias_templates_hidden_unless_explicit": True,
             "explicit_alias_requests_migrate_to_canonical": True,

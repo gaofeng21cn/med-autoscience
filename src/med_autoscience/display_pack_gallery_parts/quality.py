@@ -19,30 +19,28 @@ EXTERNAL_QUALITY_REFERENCES: tuple[dict[str, str], ...] = (
         "lesson": "Use consistent sans-serif figure lettering, readable reduced-size labels, vector line art when possible, 0.25-1 pt final line weights, RGB color, and production-quality figure files.",
     },
     {
-        "ref_id": "plos_figure_guidelines",
-        "url": "https://journals.plos.org/plosone/s/figures",
-        "lesson": "Keep figures at intended dimensions, 300-600 dpi, fonts in the 8-12 pt range for submitted artwork, and avoid low-resolution or upsampled elements.",
+        "ref_id": "ggplot2_theme_system",
+        "url": "https://ggplot2.tidyverse.org/reference/theme.html",
+        "lesson": "Use a single theme system for titles, labels, fonts, backgrounds, gridlines, and legends so all evidence figures share one article-level visual grammar.",
     },
     {
         "ref_id": "ggsci",
-        "url": "https://github.com/nanxstats/ggsci",
-        "lesson": "Scientific-journal-inspired palettes are useful references, but MAS keeps one semantic clinical palette instead of exposing many style presets.",
+        "url": "https://nanx.me/ggsci/",
+        "lesson": "Scientific-journal-inspired ggplot2 palettes are useful references, but MAS keeps one semantic clinical palette instead of exposing many style presets.",
     },
     {
-        "ref_id": "ggpubfigs",
-        "url": "https://github.com/JLSteenwyk/ggpubfigs",
-        "lesson": "Publication themes should be restrained and colorblind friendly; palette accessibility is part of the template quality floor.",
+        "ref_id": "complexheatmap_color_mapping",
+        "url": "https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
+        "lesson": "Matrix heatmaps need fixed value-to-color mapping rather than per-plot drift; shared sequential and diverging mappings preserve cross-figure comparability.",
     },
 )
 
 FAMILY_BASELINE_BLOCKERS: dict[str, tuple[str, ...]] = {
-    "atlas_spatial_panel": ("composition_density_risk", "python_current_style_gap"),
     "genomic_landscape_panel": ("low_information_density",),
     "submission_summary_panel": ("illustration_shell_style_gap",),
     "cohort_flow_and_design_panel": ("illustration_shell_style_gap",),
     "model_audit_panel": ("multi_panel_readability_risk",),
     "local_explanation_panel": ("multi_panel_readability_risk",),
-    "response_explanation_panel": ("python_current_style_gap",),
 }
 
 KIND_BASELINE_BLOCKERS: dict[str, tuple[str, ...]] = {
@@ -61,7 +59,7 @@ def _baseline_quality_gates(record: TemplateRecord, asset: RenderedAsset) -> lis
     ]
     if record.renderer_family == "r_ggplot2":
         gates.append("ggplot2_publication_theme")
-    if record.renderer_family == "python":
+    if record.kind == "illustration_shell" and record.renderer_family == "python":
         gates.append("python_renderer_style_alignment_required")
     return gates
 
@@ -75,14 +73,10 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
         blockers.append("non_visual_template_not_gallery_card")
     if "vector_export_missing" in _baseline_quality_gates(record, asset):
         warnings.append("vector_export_missing")
-    if record.renderer_family == "python":
+    if record.kind == "illustration_shell" and record.renderer_family == "python":
         warnings.append("python_renderer_style_alignment_required")
-        if record.kind == "evidence_figure":
-            blockers.append("python_evidence_not_default_first_class")
-    if baseline.status == "rendered":
-        warnings.append("legacy_python_comparison_available")
-    if baseline.status == "excluded":
-        warnings.append("legacy_python_comparison_excluded_after_failed_render")
+    if record.kind == "evidence_figure" and record.renderer_family == "python":
+        blockers.append("python_evidence_retained_without_advantage_proof")
     blockers.extend(FAMILY_BASELINE_BLOCKERS.get(record.canonical_family_id, ()))
     blockers.extend(KIND_BASELINE_BLOCKERS.get(record.kind, ()))
     if record.canonical_family_category in {"Matrix Pattern", "Model Explanation"}:
@@ -114,14 +108,16 @@ def recommended_next_actions(record: TemplateRecord, blockers: list[str], warnin
         "Use this template as a lower-bound starting point; AI may freely alter structure, layout, labels, scale, and composition for the paper-specific claim.",
         "Render-inspect-revise before any paper-facing use; do not accept the synthetic Gallery preview as final artwork.",
     ]
-    if "python_renderer_style_alignment_required" in warnings or "python_current_style_gap" in blockers:
-        actions.append("Align Python renderer typography, palette roles, export discipline, and guide placement with the MAS publication style profile.")
+    if "python_renderer_style_alignment_required" in warnings:
+        actions.append("Align design-shell typography, palette roles, export discipline, and composition with the MAS publication style profile.")
     if "legend_or_colorbar_overlap_risk" in warnings:
         actions.append("Check guide boxes after rendering; prefer direct labels or horizontal colorbars when tick labels collide.")
     if "low_information_density" in blockers:
         actions.append("Replace sparse synthetic matrices with denser, biologically plausible rows/columns before claiming publication-level quality.")
     if "multi_panel_readability_risk" in blockers:
         actions.append("Split overloaded panels or enlarge the device when reduced-size labels are not readable.")
+    if "python_evidence_retained_without_advantage_proof" in blockers:
+        actions.append("Retire this Python evidence template or promote it only after documented advantage over the R/ggplot2 baseline and visual audit.")
     if record.kind == "illustration_shell":
         actions.append("Treat shell figures as editorial layouts requiring paper-local composition, not fixed statistical plot templates.")
     return actions
@@ -243,23 +239,12 @@ def _category_completion(
             for record in visible
             if record.kind == "evidence_figure" and record.renderer_family == R_GGPLOT2_RENDERER
         }
-        python_only_family_ids = sorted(
-            {
-                record.canonical_family_id
-                for record in records
-                if record.canonical_family_category == category
-                and record.kind == "evidence_figure"
-                and record.renderer_family == "python"
-                and record.canonical_family_id not in default_r_family_ids
-            }
-        )
-        excluded_templates = [
+        retained_python_evidence = [
             record
             for record in records
             if record.canonical_family_category == category
             and record.kind == "evidence_figure"
             and record.renderer_family == "python"
-            and record.canonical_family_id in python_only_family_ids
         ]
         non_visual = [
             record
@@ -269,11 +254,11 @@ def _category_completion(
         evidence = [record for record in visible if record.kind == "evidence_figure"]
         r_evidence = [record for record in evidence if record.renderer_family == R_GGPLOT2_RENDERER]
         status = "done"
-        if explicit_default_excluded or excluded_templates:
+        if retained_python_evidence:
             status = "partial"
         if visible or non_visual:
-            completion_percent = 100 if not excluded_templates else round(
-                100 * len(visible) / (len(visible) + len(python_only_family_ids))
+            completion_percent = 100 if not retained_python_evidence else round(
+                100 * len(visible) / (len(visible) + len(retained_python_evidence))
             )
         else:
             completion_percent = 0
@@ -285,8 +270,9 @@ def _category_completion(
                 "default_visual_families": len(visible),
                 "default_r_ggplot2_evidence_families": len(r_evidence),
                 "default_non_visual_families": len(non_visual),
-                "non_default_python_evidence_families": len(python_only_family_ids),
-                "non_default_python_evidence_template_ids": [record.template_id for record in excluded_templates],
+                "default_surface_excluded_templates": len(explicit_default_excluded),
+                "retained_python_evidence_templates": len(retained_python_evidence),
+                "retained_python_evidence_template_ids": [record.template_id for record in retained_python_evidence],
             }
         )
     return rows
@@ -308,7 +294,7 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
         (
             f"| {item['category']} | `{item['status']}` | {item['completion_percent']}% | "
             f"{item['default_visual_families']} | {item['default_r_ggplot2_evidence_families']} | "
-            f"{item['non_default_python_evidence_families']} |"
+            f"{item['retained_python_evidence_templates']} |"
         )
         for item in audit["completion_by_category"]
     )
@@ -361,11 +347,17 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 ## 分类完成度
 
-| Category | Status | Completion | Default visual | R/ggplot2 evidence | Non-default Python evidence |
+| Category | Status | Completion | Default visual | R/ggplot2 evidence | Current Python evidence |
 | --- | --- | ---: | ---: | ---: | ---: |
 {completion_lines}
 
-## 默认面排除的 Python Evidence
+    ## 当前 Python Evidence
+
+| Template | Category | Kind | Renderer | Reason |
+| --- | --- | --- | --- | --- |
+| none | none | evidence_figure | python | current_pack_retains_no_python_evidence_templates |
+
+## 默认面排除的非视觉库存
 
 | Template | Category | Kind | Renderer | Reason |
 | --- | --- | --- | --- | --- |

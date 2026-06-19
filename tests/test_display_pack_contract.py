@@ -111,8 +111,8 @@ def test_load_display_template_manifest_parses_optional_asset_metadata(tmp_path:
                 'required_exports = ["png", "pdf"]',
                 'golden_case_paths = ["goldens/main.png"]',
                 'exemplar_refs = ["Nature Medicine 2025 Figure 2"]',
-                'execution_mode = "python_plugin"',
-                'entrypoint = "pkg.module:render"',
+                'execution_mode = "subprocess"',
+                'entrypoint = "Rscript render.R --request {request_json}"',
                 "paper_proven = true",
             )
         )
@@ -145,6 +145,37 @@ def test_load_display_template_manifest_rejects_unknown_audit_family(tmp_path: P
                 'input_schema_ref = "binary_prediction_curve_inputs_v1"',
                 'qc_profile_ref = "publication_evidence_curve"',
                 'required_exports = ["png", "pdf"]',
+                'execution_mode = "subprocess"',
+                'entrypoint = "Rscript render.R --request {request_json}"',
+                "paper_proven = false",
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="audit_family"):
+        load_display_template_manifest(
+            template_path,
+            expected_pack_id="fenggaolab.org.medical-display-core",
+        )
+
+
+def test_load_display_template_manifest_rejects_python_evidence_template(tmp_path: Path) -> None:
+    template_path = tmp_path / "template.toml"
+    template_path.write_text(
+        "\n".join(
+            (
+                'template_id = "roc_curve_binary"',
+                'full_template_id = "fenggaolab.org.medical-display-core::roc_curve_binary"',
+                'kind = "evidence_figure"',
+                'display_name = "ROC Curve (Binary Outcome)"',
+                'paper_family_ids = ["A"]',
+                'audit_family = "Prediction Performance"',
+                'renderer_family = "python"',
+                'input_schema_ref = "binary_prediction_curve_inputs_v1"',
+                'qc_profile_ref = "publication_evidence_curve"',
+                'required_exports = ["png", "pdf"]',
                 'execution_mode = "python_plugin"',
                 'entrypoint = "pkg.module:render"',
                 "paper_proven = false",
@@ -154,7 +185,7 @@ def test_load_display_template_manifest_rejects_unknown_audit_family(tmp_path: P
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="audit_family"):
+    with pytest.raises(ValueError, match="Python evidence templates are not retained"):
         load_display_template_manifest(
             template_path,
             expected_pack_id="fenggaolab.org.medical-display-core",

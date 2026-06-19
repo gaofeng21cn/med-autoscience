@@ -41,7 +41,7 @@ def _time_to_event_reporting_contract() -> dict[str, object]:
             {
                 "display_id": "multicenter_generalizability",
                 "display_kind": "figure",
-                "requirement_key": "multicenter_generalizability_overview",
+                "requirement_key": "generalizability_subgroup_composite_panel",
                 "catalog_id": "F5",
             },
             {
@@ -87,23 +87,6 @@ def _nf_pitnet_reporting_contract() -> dict[str, object]:
     }
 
 
-def _transportability_attribution_reporting_contract() -> dict[str, object]:
-    payload = _time_to_event_reporting_contract()
-    payload["display_shell_plan"] = [
-        (
-            {
-                **item,
-                "display_id": "transportability_governance",
-                "requirement_key": "center_transportability_governance_summary_panel",
-            }
-            if item["catalog_id"] == "F5"
-            else item
-        )
-        for item in payload["display_shell_plan"]
-    ]
-    return payload
-
-
 def test_run_quest_hydration_writes_required_medical_runtime_files(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quest_hydration")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
@@ -146,7 +129,7 @@ def test_run_quest_hydration_writes_required_medical_runtime_files(tmp_path: Pat
     assert (quest_root / "paper" / "time_to_event_discrimination_calibration_inputs.json").exists()
     assert (quest_root / "paper" / "time_to_event_grouped_inputs.json").exists()
     assert (quest_root / "paper" / "time_to_event_decision_curve_inputs.json").exists()
-    assert (quest_root / "paper" / "multicenter_generalizability_inputs.json").exists()
+    assert (quest_root / "paper" / "generalizability_subgroup_composite_inputs.json").exists()
     assert (quest_root / "paper" / "references.bib").exists()
     assert (quest_root / "paper" / "reference_coverage_report.json").exists()
     assert (quest_root / "literature" / "pubmed" / "records.jsonl").exists()
@@ -208,7 +191,7 @@ def test_run_quest_hydration_writes_semantic_display_ids_and_catalog_ids(tmp_pat
         {
             "display_id": "multicenter_generalizability",
             "display_kind": "figure",
-            "requirement_key": "multicenter_generalizability_overview",
+            "requirement_key": "generalizability_subgroup_composite_panel",
             "catalog_id": "F5",
             "shell_path": "paper/figures/multicenter_generalizability.shell.json",
         },
@@ -247,7 +230,7 @@ def test_run_quest_hydration_writes_semantic_display_ids_and_catalog_ids(tmp_pat
     )
     decision_inputs = json.loads((quest_root / "paper" / "time_to_event_decision_curve_inputs.json").read_text(encoding="utf-8"))
     generalizability_inputs = json.loads(
-        (quest_root / "paper" / "multicenter_generalizability_inputs.json").read_text(encoding="utf-8")
+        (quest_root / "paper" / "generalizability_subgroup_composite_inputs.json").read_text(encoding="utf-8")
     )
     performance_inputs = json.loads(
         (quest_root / "paper" / "time_to_event_performance_summary.json").read_text(encoding="utf-8")
@@ -545,7 +528,7 @@ def test_run_quest_hydration_keeps_default_sync_on_current_paper_root_when_legac
     assert (current_paper_root / "baseline_characteristics_schema.json").exists()
 
 
-def test_run_quest_hydration_writes_transportability_governance_f5_stub(tmp_path: Path) -> None:
+def test_run_quest_hydration_writes_generalizability_f5_input_stub(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quest_hydration")
     quest_root = tmp_path / "runtime" / "quests" / "002-dm-transportability"
     (quest_root / "paper").mkdir(parents=True, exist_ok=True)
@@ -554,28 +537,27 @@ def test_run_quest_hydration_writes_transportability_governance_f5_stub(tmp_path
         quest_root=quest_root,
         hydration_payload={
             "medical_analysis_contract": {"study_archetype": "clinical_classifier", "endpoint_type": "time_to_event"},
-            "medical_reporting_contract": _transportability_attribution_reporting_contract(),
+            "medical_reporting_contract": _time_to_event_reporting_contract(),
             "entry_state_summary": "Study root: /tmp/studies/002-dm-transportability",
             "literature_records": [],
         },
     )
 
     payload = json.loads(
-        (quest_root / "paper" / "center_transportability_governance_summary_panel_inputs.json").read_text(
+        (quest_root / "paper" / "generalizability_subgroup_composite_inputs.json").read_text(
             encoding="utf-8"
         )
     )
-    assert payload["input_schema_id"] == "center_transportability_governance_summary_panel_inputs_v1"
+    assert payload["input_schema_id"] == "generalizability_subgroup_composite_inputs_v1"
     assert payload["displays"] == [
         {
-            "display_id": "transportability_governance",
+            "display_id": "multicenter_generalizability",
             "template_id": display_registry.get_evidence_figure_spec(
-                "center_transportability_governance_summary_panel"
+                "generalizability_subgroup_composite_panel"
             ).template_id,
             "catalog_id": "F5",
         }
     ]
-    assert not (quest_root / "paper" / "multicenter_generalizability_inputs.json").exists()
 
 
 def test_run_quest_hydration_materializes_literature_from_study_reference_context(tmp_path: Path) -> None:

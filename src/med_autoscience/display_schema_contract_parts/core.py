@@ -3,7 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from collections.abc import Mapping
 
-from .domain_registry import template_ids_for_evidence_class, template_ids_for_input_schema
+from .domain_registry import (
+    input_schema_ids_for_evidence_class,
+    template_ids_for_evidence_class,
+    template_ids_for_input_schema,
+)
 from .validation import freeze_contract_mapping
 
 
@@ -48,6 +52,10 @@ class InputSchemaContract:
 
 def _template_ids_for_evidence_class(evidence_class: str) -> tuple[str, ...]:
     return template_ids_for_evidence_class(evidence_class)
+
+
+def _input_schema_ids_for_evidence_class(evidence_class: str) -> tuple[str, ...]:
+    return input_schema_ids_for_evidence_class(evidence_class)
 
 
 def _template_ids_for_input_schema(input_schema_id: str) -> tuple[str, ...]:

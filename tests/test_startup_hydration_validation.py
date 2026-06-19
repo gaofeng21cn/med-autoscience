@@ -218,7 +218,7 @@ def test_startup_hydration_validation_blocks_missing_direct_migration_stub(tmp_p
         {
             "display_id": "multicenter_generalizability",
             "display_kind": "figure",
-            "requirement_key": "multicenter_generalizability_overview",
+            "requirement_key": "generalizability_subgroup_composite_panel",
             "catalog_id": "F5",
         },
         {
@@ -326,19 +326,19 @@ def test_startup_hydration_validation_blocks_missing_direct_migration_stub(tmp_p
     report = module.run_validation(quest_root=quest_root)
 
     assert report["status"] == "blocked"
-    assert "missing_multicenter_generalizability_inputs" in report["blockers"]
+    assert "missing_generalizability_subgroup_composite_inputs" in report["blockers"]
 
 
-def test_startup_hydration_validation_blocks_missing_transportability_governance_stub(
+def test_startup_hydration_validation_blocks_missing_generalizability_f5_inputs(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
     quest_root = tmp_path / "runtime" / "quests" / "002-dm-transportability"
     display_plan = [
         {
-            "display_id": "transportability_governance",
+            "display_id": "multicenter_generalizability",
             "display_kind": "figure",
-            "requirement_key": "center_transportability_governance_summary_panel",
+            "requirement_key": "generalizability_subgroup_composite_panel",
             "catalog_id": "F5",
         }
     ]
@@ -358,13 +358,13 @@ def test_startup_hydration_validation_blocks_missing_transportability_governance
             "displays": [
                 {
                     **display_plan[0],
-                    "shell_path": "paper/figures/transportability_governance.shell.json",
+                    "shell_path": "paper/figures/multicenter_generalizability.shell.json",
                 }
             ],
         },
     )
     write_json(
-        quest_root / "paper" / "figures" / "transportability_governance.shell.json",
+        quest_root / "paper" / "figures" / "multicenter_generalizability.shell.json",
         {
             "schema_version": 1,
             **display_plan[0],
@@ -373,8 +373,7 @@ def test_startup_hydration_validation_blocks_missing_transportability_governance
 
     report = module.run_validation(quest_root=quest_root)
 
-    assert "missing_center_transportability_governance_summary_panel_inputs" in report["blockers"]
-    assert "missing_multicenter_generalizability_inputs" not in report["blockers"]
+    assert "missing_generalizability_subgroup_composite_inputs" in report["blockers"]
 
 
 def test_startup_hydration_validation_reads_projected_paper_root_and_legacy_shell_requirements(

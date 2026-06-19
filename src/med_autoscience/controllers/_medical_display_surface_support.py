@@ -7,7 +7,7 @@ from typing import Any, Literal
 from med_autoscience import display_registry, publication_display_contract
 
 
-StubKind = Literal["cohort_flow", "table_shell", "evidence_inputs"]
+StubKind = Literal["cohort_flow", "table_shell", "display_inputs"]
 
 
 @dataclass(frozen=True)
@@ -49,7 +49,7 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
     "phenotype_gap_structure_figure": RequiredDisplaySurfaceStub(
         filename="phenotype_gap_structure_inputs.json",
         blocker_key="missing_phenotype_gap_structure_inputs",
-        stub_kind="evidence_inputs",
+        stub_kind="display_inputs",
         schema_key="input_schema_id",
         schema_value="phenotype_gap_structure_inputs_v1",
         status="required_pending_materialization",
@@ -66,7 +66,7 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
     "site_held_out_stability_figure": RequiredDisplaySurfaceStub(
         filename="site_held_out_stability_inputs.json",
         blocker_key="missing_site_held_out_stability_inputs",
-        stub_kind="evidence_inputs",
+        stub_kind="display_inputs",
         schema_key="input_schema_id",
         schema_value="site_held_out_stability_inputs_v1",
         status="required_pending_materialization",
@@ -83,7 +83,7 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
     "treatment_gap_alignment_figure": RequiredDisplaySurfaceStub(
         filename="treatment_gap_alignment_inputs.json",
         blocker_key="missing_treatment_gap_alignment_inputs",
-        stub_kind="evidence_inputs",
+        stub_kind="display_inputs",
         schema_key="input_schema_id",
         schema_value="treatment_gap_alignment_inputs_v1",
         status="required_pending_materialization",
@@ -92,7 +92,7 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
     "time_to_event_discrimination_calibration_panel": RequiredDisplaySurfaceStub(
         filename="time_to_event_discrimination_calibration_inputs.json",
         blocker_key="missing_time_to_event_discrimination_calibration_inputs",
-        stub_kind="evidence_inputs",
+        stub_kind="display_inputs",
         schema_key="input_schema_id",
         schema_value="time_to_event_discrimination_calibration_inputs_v1",
         status="required_pending_materialization",
@@ -101,7 +101,7 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
     "time_to_event_risk_group_summary": RequiredDisplaySurfaceStub(
         filename="time_to_event_grouped_inputs.json",
         blocker_key="missing_time_to_event_grouped_inputs",
-        stub_kind="evidence_inputs",
+        stub_kind="display_inputs",
         schema_key="input_schema_id",
         schema_value="time_to_event_grouped_inputs_v1",
         status="required_pending_materialization",
@@ -110,34 +110,25 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
     "time_to_event_decision_curve": RequiredDisplaySurfaceStub(
         filename="time_to_event_decision_curve_inputs.json",
         blocker_key="missing_time_to_event_decision_curve_inputs",
-        stub_kind="evidence_inputs",
+        stub_kind="display_inputs",
         schema_key="input_schema_id",
         schema_value="time_to_event_decision_curve_inputs_v1",
         status="required_pending_materialization",
         template_id="time_to_event_decision_curve",
     ),
-    "multicenter_generalizability_overview": RequiredDisplaySurfaceStub(
-        filename="multicenter_generalizability_inputs.json",
-        blocker_key="missing_multicenter_generalizability_inputs",
-        stub_kind="evidence_inputs",
+    "generalizability_subgroup_composite_panel": RequiredDisplaySurfaceStub(
+        filename="generalizability_subgroup_composite_inputs.json",
+        blocker_key="missing_generalizability_subgroup_composite_inputs",
+        stub_kind="display_inputs",
         schema_key="input_schema_id",
-        schema_value="multicenter_generalizability_inputs_v1",
+        schema_value="generalizability_subgroup_composite_inputs_v1",
         status="required_pending_materialization",
-        template_id="multicenter_generalizability_overview",
-    ),
-    "center_transportability_governance_summary_panel": RequiredDisplaySurfaceStub(
-        filename="center_transportability_governance_summary_panel_inputs.json",
-        blocker_key="missing_center_transportability_governance_summary_panel_inputs",
-        stub_kind="evidence_inputs",
-        schema_key="input_schema_id",
-        schema_value="center_transportability_governance_summary_panel_inputs_v1",
-        status="required_pending_materialization",
-        template_id="center_transportability_governance_summary_panel",
+        template_id="generalizability_subgroup_composite_panel",
     ),
     "local_architecture_overview_figure": RequiredDisplaySurfaceStub(
         filename="risk_layering_monotonic_inputs.json",
         blocker_key="missing_local_architecture_overview_inputs",
-        stub_kind="evidence_inputs",
+        stub_kind="display_inputs",
         schema_key="input_schema_id",
         schema_value="risk_layering_monotonic_inputs_v1",
         status="required_pending_materialization",
@@ -181,7 +172,12 @@ def build_required_display_surface_stub_payload(
             payload["columns"] = []
             payload["rows"] = []
     else:
-        canonical_template_id = display_registry.get_evidence_figure_spec(spec.template_id).template_id
+        if spec.template_id and display_registry.is_evidence_figure_template(spec.template_id):
+            canonical_template_id = display_registry.get_evidence_figure_spec(spec.template_id).template_id
+        elif spec.template_id and display_registry.is_illustration_shell(spec.template_id):
+            canonical_template_id = display_registry.get_illustration_shell_spec(spec.template_id).shell_id
+        else:
+            raise ValueError(f"unknown required display surface template `{spec.template_id}`")
         display_payload: dict[str, Any] = {
             "display_id": item["display_id"],
             "template_id": canonical_template_id,
@@ -190,7 +186,7 @@ def build_required_display_surface_stub_payload(
             display_payload["catalog_id"] = item["catalog_id"]
         payload["displays"] = [display_payload]
 
-    if item.get("catalog_id") and spec.stub_kind != "evidence_inputs":
+    if item.get("catalog_id") and spec.stub_kind != "display_inputs":
         payload["catalog_id"] = item["catalog_id"]
 
     return spec.filename, payload

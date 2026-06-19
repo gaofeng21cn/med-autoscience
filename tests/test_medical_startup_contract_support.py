@@ -420,7 +420,7 @@ def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_pat
         {
             "display_id": "multicenter_generalizability",
             "display_kind": "figure",
-            "requirement_key": "multicenter_generalizability_overview",
+            "requirement_key": "generalizability_subgroup_composite_panel",
             "catalog_id": "F5",
             "story_role": "result_evidence",
         },
@@ -858,49 +858,58 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
         },
     )
     dump_json(
-        paper_root / "multicenter_generalizability_inputs.json",
+        paper_root / "generalizability_subgroup_composite_inputs.json",
         {
             "schema_version": 1,
-            "input_schema_id": "multicenter_generalizability_inputs_v1",
+            "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
             "displays": [
                 {
                     "display_id": "multicenter_generalizability",
-                    "template_id": "multicenter_generalizability_overview",
+                    "template_id": "generalizability_subgroup_composite_panel",
                     "title": "Internal multicenter generalizability overview",
-                    "caption": "Center-level event support and coverage context under the frozen split.",
-                    "overview_mode": "center_support_counts",
-                    "center_event_y_label": "5-year events",
-                    "coverage_y_label": "Patient count",
-                    "center_event_counts": [
+                    "caption": "External cohort support and prespecified subgroup discrimination stability.",
+                    "metric_family": "discrimination",
+                    "primary_label": "Locked model",
+                    "comparator_label": "Derivation cohort",
+                    "overview_panel_title": "External cohort discrimination overview",
+                    "overview_x_label": "AUROC",
+                    "overview_rows": [
                         {
-                            "center_label": "Center A",
-                            "split_bucket": "train",
+                            "cohort_id": "center_a",
+                            "cohort_label": "Center A",
+                            "support_count": 420,
                             "event_count": 7,
+                            "metric_value": 0.82,
+                            "comparator_metric_value": 0.80,
                         },
                         {
-                            "center_label": "Center B",
-                            "split_bucket": "validation",
+                            "cohort_id": "center_b",
+                            "cohort_label": "Center B",
+                            "support_count": 395,
                             "event_count": 5,
+                            "metric_value": 0.78,
+                            "comparator_metric_value": 0.80,
                         },
                     ],
-                    "coverage_panels": [
+                    "subgroup_panel_title": "Prespecified subgroup discrimination stability",
+                    "subgroup_x_label": "AUROC",
+                    "subgroup_reference_value": 0.80,
+                    "subgroup_rows": [
                         {
-                            "panel_id": "region",
-                            "title": "Region coverage",
-                            "layout_role": "wide_left",
-                            "bars": [{"label": "Central", "count": 420}, {"label": "East", "count": 395}],
+                            "subgroup_id": "age_ge_65",
+                            "subgroup_label": "Age >=65 years",
+                            "group_n": 201,
+                            "estimate": 0.82,
+                            "lower": 0.78,
+                            "upper": 0.86,
                         },
                         {
-                            "panel_id": "north_south",
-                            "title": "North vs South",
-                            "layout_role": "top_right",
-                            "bars": [{"label": "North", "count": 380}, {"label": "South", "count": 435}],
-                        },
-                        {
-                            "panel_id": "urban_rural",
-                            "title": "Urban/rural",
-                            "layout_role": "bottom_right",
-                            "bars": [{"label": "Urban", "count": 520}, {"label": "Missing", "count": 295}],
+                            "subgroup_id": "female",
+                            "subgroup_label": "Female",
+                            "group_n": 173,
+                            "estimate": 0.79,
+                            "lower": 0.75,
+                            "upper": 0.83,
                         },
                     ],
                 }
@@ -924,29 +933,7 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
             encoding="utf-8",
         )
 
-    def fake_render_python_evidence_figure(
-        *,
-        template_id: str,
-        display_payload: dict[str, object],
-        output_png_path: Path,
-        output_pdf_path: Path,
-        layout_sidecar_path: Path,
-    ) -> None:
-        output_png_path.parent.mkdir(parents=True, exist_ok=True)
-        output_png_path.write_text("PNG", encoding="utf-8")
-        output_pdf_path.write_text("%PDF", encoding="utf-8")
-        layout_sidecar_path.write_text(
-            json.dumps(minimal_layout_sidecar(template_id), ensure_ascii=False),
-            encoding="utf-8",
-        )
-
     monkeypatch.setattr(materialization_module, "_render_r_evidence_figure", fake_render_r_evidence_figure, raising=False)
-    monkeypatch.setattr(
-        materialization_module,
-        "_render_python_evidence_figure",
-        fake_render_python_evidence_figure,
-        raising=False,
-    )
 
     result = materialization_module.materialize_display_surface(paper_root=paper_root)
 

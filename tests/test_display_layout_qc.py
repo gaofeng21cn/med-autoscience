@@ -6,12 +6,5 @@ from tests.display_layout_qc_cases.baseline_transportability_and_risk_qc import 
 from tests.display_layout_qc_cases.risk_decision_curve_and_omics_qc import *
 from tests.display_layout_qc_cases.omics_genomic_landscape_qc import *
 from tests.display_layout_qc_cases.genomic_consequence_and_pathway_qc import *
-from tests.display_layout_qc_cases.genomic_governance_and_atlas_qc import *
-from tests.display_layout_qc_cases.trajectory_multicenter_and_forest_qc import *
-from tests.display_layout_qc_cases.shap_summary_and_context_support_qc import *
-from tests.display_layout_qc_cases.shap_local_support_domain_qc import *
-from tests.display_layout_qc_cases.shap_decision_and_partial_dependence_qc import *
-from tests.display_layout_qc_cases.partial_dependence_and_importance_qc import *
 from tests.display_layout_qc_cases.generalizability_effect_and_heterogeneity_qc import *
-from tests.display_layout_qc_cases.dpcc_primary_care_qc import *
 from tests.display_layout_qc_cases.layout_qc_edge_cases import *

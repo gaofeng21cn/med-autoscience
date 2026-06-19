@@ -16,8 +16,6 @@ from med_autoscience.display_pack_gallery_parts.pdf import _copy_docs_gallery, _
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit_markdown
 from med_autoscience.display_pack_gallery_parts.reference_writer import _write_reference
 from med_autoscience.display_pack_gallery_parts.rendering import (
-    _legacy_python_baseline_payload,
-    _render_legacy_python_baseline,
     _render_python_template,
     _render_r_template,
 )
@@ -43,7 +41,6 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
     seed_r_payloads = _load_seed_r_payloads(records)
     fixture_payloads = _load_python_payload_fixtures()
     rendered: dict[str, RenderedAsset] = {}
-    baseline_rendered: dict[str, RenderedAsset] = {}
     visible_template_ids = {record.template_id for record in visual_gallery_records(records)}
     for record in records:
         if record.template_id not in visible_template_ids:
@@ -54,15 +51,13 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
             continue
         if record.renderer_family == "r_ggplot2":
             rendered[record.template_id] = _render_r_template(record, seed_r_payloads)
-            baseline_payload = _legacy_python_baseline_payload(record, fixture_payloads)
-            baseline_rendered[record.template_id] = _render_legacy_python_baseline(record, baseline_payload)
-        elif record.renderer_family == "python":
+        elif record.kind == "illustration_shell" and record.renderer_family == "python":
             try:
                 payload = _python_display_payload(record, fixture_payloads)
                 rendered[record.template_id] = _render_python_template(
                     record,
                     payload,
-                    output_root=paths.PYTHON_CURRENT_ROOT,
+                    output_root=paths.ASSET_ROOT,
                     suffix="python",
                 )
             except Exception as exc:
@@ -70,9 +65,14 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
                     status="not_rendered",
                     reason=f"{type(exc).__name__}: {exc}",
                 )
+        elif record.kind == "evidence_figure" and record.renderer_family == "python":
+            rendered[record.template_id] = RenderedAsset(
+                status="policy_violation",
+                reason="python_evidence_templates_are_not_retained_without_documented_advantage_proof",
+            )
         else:
             rendered[record.template_id] = RenderedAsset(status="not_visual", reason="table_shell_or_non_visual_template")
-    return rendered, baseline_rendered
+    return rendered, {}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -116,12 +116,6 @@ def main(argv: list[str] | None = None) -> int:
                 "non_visual_canonical_templates": manifest["non_visual_canonical_template_count"],
                 "rendered_image_templates": manifest["rendered_image_template_count"],
                 "internal_rendered_image_templates": manifest["internal_rendered_image_template_count"],
-                "canonical_python_comparisons": sum(
-                    1
-                    for record in visible_records
-                    if baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")).status == "rendered"
-                ),
-                "internal_python_comparisons": manifest["legacy_python_baseline_rendered_count"],
                 "quality_overall_status": manifest["quality_audit"]["overall_status"],
                 "publication_ready_claim_authorized": manifest["quality_audit"]["publication_ready_claim_authorized"],
                 "html_path": str(paths.HTML_PATH),

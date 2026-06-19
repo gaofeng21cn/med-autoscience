@@ -31,9 +31,10 @@ def test_canonical_template_catalog_maps_full_template_inventory() -> None:
 
     assert set(catalog.canonical_template_ids).issubset(template_ids)
     assert set(catalog.alias_template_ids).issubset(template_ids)
-    assert len(catalog.canonical_template_ids) >= 20
-    assert len(catalog.alias_template_ids) >= 50
-    assert len(catalog.entries_by_template_id) == len(template_ids)
+    assert len(catalog.canonical_template_ids) == 19
+    assert len(catalog.alias_template_ids) == 47
+    assert len(catalog.canonical_template_ids) + len(catalog.alias_template_ids) == len(template_ids)
+    assert set(catalog.entries_by_template_id).issubset(template_ids)
 
     roc_alias = catalog.entries_by_template_id["time_dependent_roc_horizon"]
     assert roc_alias.migration_status == "migrated_alias"
@@ -116,16 +117,15 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
             "policy_version": 1,
             "data_evidence_first_class_renderer": "r_ggplot2",
             "data_evidence_default_rule": (
-                "evidence_figure templates are default-visible only when the default renderer is "
-                "R/ggplot2, unless a future catalog entry carries explicit Python advantage proof"
+                "current evidence_figure templates are retained only when their renderer is R/ggplot2; "
+                "a Python evidence template can re-enter only as a current audited template with documented "
+                "advantage over the R/ggplot2 baseline"
             ),
             "python_evidence_default_allowed": False,
-            "python_evidence_allowed_roles": [
-                "legacy_comparison",
-                "migration_input",
-                "paper_specific_explicit_request",
-                "future_documented_advantage_with_visual_audit",
-            ],
+            "python_evidence_retention_rule": (
+                "not retained in the current pack without documented advantage proof and visual audit"
+            ),
+            "python_evidence_allowed_roles": [],
             "design_flow_renderer_rule": (
                 "illustration_shell templates may use SVG, Python composition, or imagegen-assisted "
                 "art direction because they do not act as statistical evidence authority"
@@ -136,7 +136,7 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         "machine_boundary": "core_catalog_and_gallery_metadata_only_not_source_truth_statistical_truth_or_publication_readiness_authority",
     }
     core_catalog = load_medical_figure_family_catalog()
-    assert manifest["schema_version"] == 7
+    assert manifest["schema_version"] == 8
     assert manifest["ai_adaptation_policy"] == ai_adaptation_policy()
     assert manifest["canonical_family_count"] == len(manifest["canonical_family_ontology"]) == core_catalog.family_count
     assert manifest["gallery_template_family_count"] == len(manifest["gallery_template_family_ontology"]) == 18
@@ -160,6 +160,7 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     ]
     assert manifest["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
     assert manifest["renderer_policy_completion"]["default_r_ggplot2_evidence_template_count"] == 16
+    assert manifest["renderer_policy_completion"]["python_evidence_retained_count"] == 0
     assert manifest["renderer_policy_completion"]["default_illustration_shell_count"] == 2
     assert manifest["palette_policy"]["matrix_heatmap_uses_shared_palette_roles"] is True
     assert manifest["palette_policy"]["heatmap_sequential_roles"] == [

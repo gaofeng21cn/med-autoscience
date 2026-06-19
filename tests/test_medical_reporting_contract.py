@@ -424,7 +424,7 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
         "time_to_event_discrimination_calibration_panel",
         "time_to_event_risk_group_summary",
         "time_to_event_decision_curve",
-        "multicenter_generalizability_overview",
+        "generalizability_subgroup_composite_panel",
     )
     assert contract.required_illustration_shells == ("cohort_flow_figure",)
     assert contract.required_table_shells == (
@@ -435,7 +435,7 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
         "time_to_event_discrimination_calibration_panel",
         "time_to_event_risk_group_summary",
         "time_to_event_decision_curve",
-        "multicenter_generalizability_overview",
+        "generalizability_subgroup_composite_panel",
     )
     assert contract.display_shell_plan == (
         module.DisplayShellPlanItem(
@@ -469,7 +469,7 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
         module.DisplayShellPlanItem(
             display_id="multicenter_generalizability",
             display_kind="figure",
-            requirement_key="multicenter_generalizability_overview",
+            requirement_key="generalizability_subgroup_composite_panel",
             catalog_id="F5",
             story_role="result_evidence",
         ),
@@ -544,13 +544,14 @@ def test_controller_routes_transportability_attribution_survival_f5_to_transport
         "time_to_event_discrimination_calibration_panel",
         "time_to_event_risk_group_summary",
         "time_to_event_decision_curve",
-        "center_transportability_governance_summary_panel",
+        "generalizability_subgroup_composite_panel",
     ]
-    assert result["required_evidence_templates"][-1] == "center_transportability_governance_summary_panel"
+    assert result["required_illustration_shells"] == ["cohort_flow_figure"]
+    assert "generalizability_subgroup_composite_panel" in result["required_evidence_templates"]
     assert result["display_shell_plan"][4] == {
-        "display_id": "transportability_governance",
+        "display_id": "multicenter_generalizability",
         "display_kind": "figure",
-        "requirement_key": "center_transportability_governance_summary_panel",
+        "requirement_key": "generalizability_subgroup_composite_panel",
         "catalog_id": "F5",
         "story_role": "result_evidence",
     }
@@ -559,7 +560,7 @@ def test_controller_routes_transportability_attribution_survival_f5_to_transport
         manuscript_family="prediction_model",
         endpoint_type="time_to_event",
         submission_target_family="general_medical_journal",
-    ).figure_shell_requirements[-1] == "multicenter_generalizability_overview"
+    ).figure_shell_requirements[-1] == "generalizability_subgroup_composite_panel"
 
 
 def test_time_to_event_reporting_contract_does_not_rewrite_legacy_requirement_aliases() -> None:

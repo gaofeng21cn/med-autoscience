@@ -72,7 +72,7 @@ def _write_demo_pack(
     return_prefix: str,
 ) -> Path:
     pack_root = root / pack_dir
-    (pack_root / "templates" / "time_to_event_risk_group_summary").mkdir(parents=True)
+    (pack_root / "templates" / "cohort_flow_figure").mkdir(parents=True)
     (pack_root / "src" / module_name).mkdir(parents=True)
     (pack_root / "display_pack.toml").write_text(
         "\n".join(
@@ -86,19 +86,19 @@ def _write_demo_pack(
         + "\n",
         encoding="utf-8",
     )
-    (pack_root / "templates" / "time_to_event_risk_group_summary" / "template.toml").write_text(
+    (pack_root / "templates" / "cohort_flow_figure" / "template.toml").write_text(
         "\n".join(
             (
-                'template_id = "time_to_event_risk_group_summary"',
-                'full_template_id = "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"',
-                'kind = "evidence_figure"',
-                'display_name = "Risk Group Summary"',
-                'paper_family_ids = ["A", "B"]',
-                'audit_family = "Clinical Utility"',
+                'template_id = "cohort_flow_figure"',
+                'full_template_id = "fenggaolab.org.medical-display-core::cohort_flow_figure"',
+                'kind = "illustration_shell"',
+                'display_name = "Cohort Flow Figure"',
+                'paper_family_ids = ["H"]',
+                'audit_family = "Publication Shells and Tables"',
                 'renderer_family = "python"',
-                'input_schema_ref = "time_to_event_risk_group_summary_inputs_v1"',
-                'qc_profile_ref = "publication_risk_group_summary"',
-                'required_exports = ["png", "pdf"]',
+                'input_schema_ref = "cohort_flow_figure_inputs_v1"',
+                'qc_profile_ref = "publication_cohort_flow"',
+                'required_exports = ["png", "svg"]',
                 'execution_mode = "python_plugin"',
                 f'entrypoint = "{module_name}.renderers:render_template"',
                 "paper_proven = true",
@@ -133,7 +133,7 @@ def _write_demo_python_package_pack(
     return_prefix: str,
 ) -> Path:
     package_root = site_root / package_name
-    (package_root / "templates" / "time_to_event_risk_group_summary").mkdir(parents=True)
+    (package_root / "templates" / "cohort_flow_figure").mkdir(parents=True)
     (package_root / "display_pack.toml").write_text(
         "\n".join(
             (
@@ -146,19 +146,19 @@ def _write_demo_python_package_pack(
         + "\n",
         encoding="utf-8",
     )
-    (package_root / "templates" / "time_to_event_risk_group_summary" / "template.toml").write_text(
+    (package_root / "templates" / "cohort_flow_figure" / "template.toml").write_text(
         "\n".join(
             (
-                'template_id = "time_to_event_risk_group_summary"',
-                'full_template_id = "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"',
-                'kind = "evidence_figure"',
-                'display_name = "Risk Group Summary"',
-                'paper_family_ids = ["A", "B"]',
-                'audit_family = "Clinical Utility"',
+                'template_id = "cohort_flow_figure"',
+                'full_template_id = "fenggaolab.org.medical-display-core::cohort_flow_figure"',
+                'kind = "illustration_shell"',
+                'display_name = "Cohort Flow Figure"',
+                'paper_family_ids = ["H"]',
+                'audit_family = "Publication Shells and Tables"',
                 'renderer_family = "python"',
-                'input_schema_ref = "time_to_event_risk_group_summary_inputs_v1"',
-                'qc_profile_ref = "publication_risk_group_summary"',
-                'required_exports = ["png", "pdf"]',
+                'input_schema_ref = "cohort_flow_figure_inputs_v1"',
+                'qc_profile_ref = "publication_cohort_flow"',
+                'required_exports = ["png", "svg"]',
                 'execution_mode = "python_plugin"',
                 f'entrypoint = "{package_name}.renderers:render_template"',
                 "paper_proven = true",
@@ -199,7 +199,7 @@ def test_resolve_display_template_runtime_keeps_pack_root_and_manifest(tmp_path:
 
     runtime = resolve_display_template_runtime(
         repo_root=repo_root,
-        template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+        template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
     )
 
     assert runtime.pack_root == pack_root
@@ -237,19 +237,19 @@ def test_load_python_plugin_callable_imports_pack_local_src(tmp_path: Path) -> N
 
     target = load_python_plugin_callable(
         repo_root=repo_root,
-        template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+        template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
     )
 
     assert callable(target)
     assert (
         target(
-            template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+            template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
             display_payload={},
             output_png_path=Path("output.png"),
             output_pdf_path=Path("output.pdf"),
             layout_sidecar_path=Path("output.layout.json"),
         )
-        == "repo:fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
+        == "repo:fenggaolab.org.medical-display-core::cohort_flow_figure"
     )
 
 
@@ -279,12 +279,12 @@ def test_paper_root_override_changes_runtime_resolution(tmp_path: Path) -> None:
     runtime = resolve_display_template_runtime(
         repo_root=repo_root,
         paper_root=paper_root,
-        template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+        template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
     )
     target = load_python_plugin_callable(
         repo_root=repo_root,
         paper_root=paper_root,
-        template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+        template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
     )
 
     assert runtime.pack_root == paper_pack_root
@@ -292,13 +292,13 @@ def test_paper_root_override_changes_runtime_resolution(tmp_path: Path) -> None:
     assert runtime.pack_manifest.version == "0.2.0"
     assert (
         target(
-            template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+            template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
             display_payload={},
             output_png_path=Path("output.png"),
             output_pdf_path=Path("output.pdf"),
             layout_sidecar_path=Path("output.layout.json"),
         )
-        == "paper:fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
+        == "paper:fenggaolab.org.medical-display-core::cohort_flow_figure"
     )
 
 
@@ -322,22 +322,22 @@ def test_load_python_plugin_callable_imports_python_package_source(
 
     runtime = resolve_display_template_runtime(
         repo_root=repo_root,
-        template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+        template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
     )
     target = load_python_plugin_callable(
         repo_root=repo_root,
-        template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+        template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
     )
 
     assert runtime.pack_root == package_root
     assert runtime.pack_manifest.version == "0.3.0"
     assert (
         target(
-            template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+            template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
             display_payload={},
             output_png_path=Path("output.png"),
             output_pdf_path=Path("output.pdf"),
             layout_sidecar_path=Path("output.layout.json"),
         )
-        == "pkg:fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
+        == "pkg:fenggaolab.org.medical-display-core::cohort_flow_figure"
     )

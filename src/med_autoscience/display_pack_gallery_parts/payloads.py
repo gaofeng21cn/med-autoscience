@@ -10,27 +10,19 @@ import tempfile
 
 from med_autoscience import publication_display_contract as display_contract
 from med_autoscience.display_pack_gallery_catalog import TemplateRecord
-from med_autoscience.display_pack_gallery_parts.taxonomy import LEGACY_PYTHON_BASELINE_EXCLUDED
 from med_autoscience.publication_display_contract import (
     load_publication_style_profile,
     resolve_style_roles,
 )
 
 PYTHON_PAYLOAD_FIXTURE_MODULES = (
-    "tests.display_surface_materialization_cases.genomic_payload_fixtures",
     "tests.display_surface_materialization_cases.illustration_payload_fixtures",
-    "tests.display_surface_materialization_cases.atlas_payload_fixtures",
-    "tests.display_surface_materialization_cases.response_payload_fixtures",
-    "tests.display_surface_materialization_cases.transportability_payload_fixtures",
 )
 ILLUSTRATION_PAYLOAD_BUILDERS = {
     "workflow_fact_sheet_panel": "_make_workflow_fact_sheet_panel_payload",
     "design_evidence_composite_shell": "_make_design_evidence_composite_shell_payload",
-    "baseline_missingness_qc_panel": "_make_baseline_missingness_qc_panel_payload",
-    "center_coverage_batch_transportability_panel": "_make_center_coverage_batch_transportability_panel_payload",
-    "transportability_recalibration_governance_panel": "_make_transportability_recalibration_governance_panel_payload",
 }
-MANUAL_PYTHON_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
+MANUAL_GALLERY_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "cohort_flow_figure": {
         "schema_version": 1,
         "shell_id": "cohort_flow_figure",
@@ -108,122 +100,11 @@ MANUAL_PYTHON_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
             {"pill_id": "p2", "panel_id": "primary_endpoint", "label": "Supportive endpoint", "style_role": "secondary"},
         ],
     },
-    "multicenter_generalizability_overview": {
-        "display_id": "Figure17",
-        "template_id": "multicenter_generalizability_overview",
-        "title": "Multicenter generalizability overview",
-        "caption": "Center-level event support with coverage context under the frozen split.",
-        "center_event_y_label": "5-year CVD events",
-        "coverage_y_label": "Patient count",
-        "center_event_counts": [
-            {"center_label": "Center 1", "split_bucket": "train", "event_count": 7},
-            {"center_label": "Center 2", "split_bucket": "validation", "event_count": 5},
-            {"center_label": "Center 3", "split_bucket": "train", "event_count": 3},
-        ],
-        "coverage_panels": [
-            {"panel_id": "region", "title": "Region coverage", "layout_role": "wide_left", "bars": [{"label": "Central", "count": 72}, {"label": "East", "count": 54}, {"label": "South", "count": 43}]},
-            {"panel_id": "north_south", "title": "North vs South", "layout_role": "top_right", "bars": [{"label": "North", "count": 84}, {"label": "South", "count": 114}]},
-            {"panel_id": "urban_rural", "title": "Urban/rural", "layout_role": "bottom_right", "bars": [{"label": "Urban", "count": 101}, {"label": "Rural", "count": 63}, {"label": "Missing", "count": 34}]},
-        ],
-    },
-    "phenotype_gap_structure_figure": {
-        "display_id": "Figure2",
-        "template_id": "phenotype_gap_structure_figure",
-        "title": "Phenotype composition and treatment-gap profiles across the index cohort.",
-        "rows": [
-            {"phenotype_label": "Phenotype A", "share_of_index_patients": 0.42, "severe_glycemia_low_intensity_gap_rate": 0.18, "uncontrolled_glycemia_no_drug_gap_rate": 0.24, "hypertension_no_antihypertensive_gap_rate": 0.16, "dyslipidemia_no_lipid_lowering_gap_rate": 0.21},
-            {"phenotype_label": "Phenotype B", "share_of_index_patients": 0.58, "severe_glycemia_low_intensity_gap_rate": 0.07, "uncontrolled_glycemia_no_drug_gap_rate": 0.11, "hypertension_no_antihypertensive_gap_rate": None, "dyslipidemia_no_lipid_lowering_gap_rate": 0.14},
-        ],
-    },
-    "site_held_out_stability_figure": {
-        "display_id": "Figure3",
-        "template_id": "site_held_out_stability_figure",
-        "title": "Transition stability and site-held-out support for phenotype assignment.",
-        "transition_rows": [
-            {"source_phenotype_label": "Phenotype A", "target_phenotype_label": "Phenotype A", "patient_count": 84, "share_of_transition_patients": 0.62},
-            {"source_phenotype_label": "Phenotype A", "target_phenotype_label": "Phenotype B", "patient_count": 51, "share_of_transition_patients": 0.38},
-            {"source_phenotype_label": "Phenotype B", "target_phenotype_label": "Phenotype B", "patient_count": 93, "share_of_transition_patients": 0.67},
-            {"source_phenotype_label": "Phenotype B", "target_phenotype_label": "Phenotype A", "patient_count": 45, "share_of_transition_patients": 0.33},
-        ],
-        "site_fold_rows": [
-            {"fold_id": "fold_1", "index_patients": 120, "share_of_index_patients": 0.34},
-            {"fold_id": "fold_2", "index_patients": 111, "share_of_index_patients": 0.31},
-            {"fold_id": "pooled_small_site", "index_patients": 121, "share_of_index_patients": 0.35},
-        ],
-        "eligible_site_count": 6,
-        "visit_coverage": 0.83,
-    },
-    "treatment_gap_alignment_figure": {
-        "display_id": "Figure4",
-        "template_id": "treatment_gap_alignment_figure",
-        "title": "Guideline-linked treatment gaps aligned to phenotypes.",
-        "rows": [
-            {"phenotype_label": "Phenotype A", "index_patients": 320, "severe_glycemia_low_intensity_gap_patients": 44, "uncontrolled_glycemia_no_drug_gap_patients": 61, "hypertension_no_antihypertensive_gap_patients": 37, "dyslipidemia_no_lipid_lowering_gap_patients": 72},
-            {"phenotype_label": "Phenotype B", "index_patients": 280, "severe_glycemia_low_intensity_gap_patients": 29, "uncontrolled_glycemia_no_drug_gap_patients": 41, "hypertension_no_antihypertensive_gap_patients": 18, "dyslipidemia_no_lipid_lowering_gap_patients": 56},
-        ],
-    },
-    "treatment_shift_alignment_figure": {
-        "display_id": "Figure5",
-        "template_id": "treatment_shift_alignment_figure",
-        "title": "Treatment shift alignment summary",
-        "caption": "Synthetic descriptive display preview.",
-        "panels": [
-            {
-                "panel_id": "phenotype_shift",
-                "title": "Treatment shift by phenotype",
-                "x_label": "Share of patients",
-                "y_label": "Phenotype",
-                "marks": [
-                    {"label": "Phenotype A", "value": 0.48, "comparison_value": 0.34, "annotation": "recommended"},
-                    {"label": "Phenotype B", "value": 0.36, "comparison_value": 0.41},
-                    {"label": "Phenotype C", "value": 0.16, "comparison_value": 0.25},
-                ],
-            }
-        ],
-    },
-    "practical_factor_dot_figure": {
-        "display_id": "Figure6",
-        "template_id": "practical_factor_dot_figure",
-        "title": "Practical factor dot summary",
-        "caption": "Synthetic descriptive display preview.",
-        "panels": [
-            {
-                "panel_id": "factor_effects",
-                "title": "Practical factors",
-                "x_label": "Standardized effect",
-                "y_label": "Factor",
-                "marks": [
-                    {"label": "HbA1c above target", "value": 0.42, "annotation": "n=318"},
-                    {"label": "Albuminuria", "value": 0.31, "annotation": "n=204"},
-                    {"label": "Systolic BP above target", "value": 0.27, "annotation": "n=286"},
-                ],
-            }
-        ],
-    },
-    "preferred_class_sensitivity_figure": {
-        "display_id": "Figure7",
-        "template_id": "preferred_class_sensitivity_figure",
-        "title": "Preferred class sensitivity analysis",
-        "caption": "Synthetic descriptive display preview.",
-        "panels": [
-            {
-                "panel_id": "class_share",
-                "title": "Preferred class share",
-                "x_label": "Share",
-                "y_label": "Class",
-                "marks": [
-                    {"label": "GLP-1RA preferred", "value": 0.42, "comparison_value": 0.35},
-                    {"label": "SGLT2i preferred", "value": 0.36, "comparison_value": 0.29},
-                    {"label": "Insulin intensification", "value": 0.22, "comparison_value": 0.16},
-                ],
-            }
-        ],
-    },
     "binary_calibration_decision_curve_panel": {
         "display_id": "Figure3",
         "template_id": "binary_calibration_decision_curve_panel",
         "title": "Calibration and decision curve comparison",
-        "caption": "Synthetic calibration and decision curve preview for legacy Python comparison.",
+        "caption": "Synthetic calibration and decision curve preview for the R/ggplot2 gallery.",
         "calibration_x_label": "Mean predicted probability",
         "calibration_y_label": "Observed probability",
         "decision_x_label": "Threshold probability",
@@ -248,7 +129,7 @@ MANUAL_PYTHON_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
         "display_id": "Figure22",
         "template_id": "risk_layering_monotonic_bars",
         "title": "Risk layering by score band",
-        "caption": "Synthetic monotonic risk layering preview for legacy Python comparison.",
+        "caption": "Synthetic monotonic risk layering preview for the R/ggplot2 gallery.",
         "y_label": "Outcome risk (%)",
         "left_panel_title": "Comparator score",
         "left_x_label": "Risk tertile",
@@ -269,7 +150,7 @@ MANUAL_PYTHON_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
         "display_id": "Figure13",
         "template_id": "shap_summary_beeswarm",
         "title": "SHAP summary beeswarm",
-        "caption": "Synthetic feature-level SHAP distribution preview for legacy Python comparison.",
+        "caption": "Synthetic feature-level SHAP distribution preview for the R/ggplot2 gallery.",
         "x_label": "SHAP value",
         "rows": [
             {
@@ -297,52 +178,6 @@ MANUAL_PYTHON_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
                     {"shap_value": -0.12, "feature_value": 0.34},
                     {"shap_value": 0.04, "feature_value": 0.57},
                     {"shap_value": 0.16, "feature_value": 0.79},
-                ],
-            },
-        ],
-    },
-    "shap_grouped_local_support_domain_panel": {
-        "display_id": "Figure50",
-        "template_id": "shap_grouped_local_support_domain_panel",
-        "title": "Grouped local explanation with support-domain follow-on.",
-        "caption": "Synthetic grouped local explanation preview.",
-        "grouped_local_x_label": "Local SHAP contribution",
-        "support_y_label": "Predicted response probability",
-        "support_legend_title": "Support domain",
-        "local_panels": [
-            {"panel_id": "high_risk", "panel_label": "A", "title": "High-risk phenotype", "group_label": "Phenotype 1", "baseline_value": 0.22, "predicted_value": 0.34, "contributions": [{"rank": 1, "feature": "Age", "shap_value": 0.14}, {"rank": 2, "feature": "Albumin", "shap_value": -0.05}, {"rank": 3, "feature": "Tumor size", "shap_value": 0.03}]},
-            {"panel_id": "low_risk", "panel_label": "B", "title": "Lower-risk phenotype", "group_label": "Phenotype 2", "baseline_value": 0.18, "predicted_value": 0.12, "contributions": [{"rank": 1, "feature": "Age", "shap_value": -0.07}, {"rank": 2, "feature": "Albumin", "shap_value": 0.02}, {"rank": 3, "feature": "Tumor size", "shap_value": -0.01}]},
-        ],
-        "support_panels": [
-            {
-                "panel_id": "age_support",
-                "panel_label": "C",
-                "title": "Age response support",
-                "x_label": "Age (years)",
-                "feature": "Age",
-                "reference_value": 60.0,
-                "reference_label": "Median age",
-                "response_curve": {"x": [40.0, 50.0, 60.0, 70.0, 80.0], "y": [0.18, 0.22, 0.29, 0.35, 0.41]},
-                "support_segments": [
-                    {"segment_id": "age_observed", "segment_label": "Observed", "support_kind": "observed_support", "domain_start": 40.0, "domain_end": 50.0},
-                    {"segment_id": "age_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "domain_start": 50.0, "domain_end": 62.0},
-                    {"segment_id": "age_bin", "segment_label": "Bin", "support_kind": "bin_support", "domain_start": 62.0, "domain_end": 72.0},
-                    {"segment_id": "age_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "domain_start": 72.0, "domain_end": 80.0},
-                ],
-            },
-            {
-                "panel_id": "albumin_support",
-                "panel_label": "D",
-                "title": "Albumin response support",
-                "x_label": "Albumin (g/dL)",
-                "feature": "Albumin",
-                "reference_value": 3.8,
-                "reference_label": "Median albumin",
-                "response_curve": {"x": [2.8, 3.4, 4.0, 4.6], "y": [0.39, 0.31, 0.25, 0.20]},
-                "support_segments": [
-                    {"segment_id": "albumin_observed", "segment_label": "Observed", "support_kind": "observed_support", "domain_start": 2.8, "domain_end": 3.4},
-                    {"segment_id": "albumin_bin", "segment_label": "Bin", "support_kind": "bin_support", "domain_start": 3.4, "domain_end": 4.2},
-                    {"segment_id": "albumin_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "domain_start": 4.2, "domain_end": 4.6},
                 ],
             },
         ],
@@ -599,7 +434,7 @@ def _generic_r_gallery_payload(record: TemplateRecord) -> dict[str, Any]:
 def _load_seed_r_payloads(records: list[TemplateRecord]) -> dict[str, dict[str, Any]]:
     payloads: dict[str, dict[str, Any]] = {
         key: json.loads(json.dumps(value))
-        for key, value in MANUAL_PYTHON_DISPLAY_PAYLOADS.items()
+        for key, value in MANUAL_GALLERY_DISPLAY_PAYLOADS.items()
     }
     payloads.update({
         key: json.loads(json.dumps(value))
@@ -660,7 +495,7 @@ def _load_python_payload_fixtures() -> dict[str, dict[str, Any]]:
                     continue
                 if isinstance(payload, dict):
                     payloads.setdefault(template_id, payload)
-    payloads.update(MANUAL_PYTHON_DISPLAY_PAYLOADS)
+    payloads.update(MANUAL_GALLERY_DISPLAY_PAYLOADS)
     return payloads
 
 

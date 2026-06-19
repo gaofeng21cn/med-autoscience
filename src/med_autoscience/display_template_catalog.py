@@ -144,7 +144,7 @@ def _render_paper_proven_baseline_section() -> list[str]:
             _full_id("time_to_event_discrimination_calibration_panel"),
             _full_id("time_to_event_risk_group_summary"),
             _full_id("time_to_event_decision_curve"),
-            _full_id("multicenter_generalizability_overview"),
+            _full_id("generalizability_subgroup_composite_panel"),
             _full_id("submission_graphical_abstract"),
         )
     )
@@ -156,7 +156,7 @@ def _render_paper_proven_baseline_section() -> list[str]:
         f"- Paper families: {paper_families}",
         f"- Audit families: {audit_families}",
         f"- Template instances: {template_ids}",
-        "- Cross-paper golden regression priority: title policy, annotation placement, panel-label/header-band anchoring, grouped-separation readability, landmark/time-slice semantics, graphical-abstract arrow lanes, calibration axis-window fit, and multicenter legend title/label + tick-label readability",
+        "- Cross-paper golden regression priority: title policy, annotation placement, panel-label/header-band anchoring, grouped-separation readability, landmark/time-slice semantics, graphical-abstract arrow lanes, calibration axis-window fit, and generalizability interval readability",
         "",
     ]
 

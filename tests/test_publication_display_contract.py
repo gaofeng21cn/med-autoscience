@@ -154,6 +154,19 @@ def test_load_publication_style_profile_accepts_font_family_and_grid_tokens(tmp_
     assert module.publication_style_profile_payload(style_profile)["grid"]["major_axis"] == "both"
 
 
+def test_default_publication_style_profile_carries_shared_colorbar_tokens() -> None:
+    module = importlib.import_module("med_autoscience.publication_display_contract")
+    payload = module._DEFAULT_STYLE_PROFILE_PAYLOAD
+    typography = payload["typography"]
+
+    assert typography["colorbar_horizontal_width"] == 260.0
+    assert typography["colorbar_horizontal_height"] == 6.0
+    assert typography["colorbar_max_breaks"] == 3.0
+    assert typography["colorbar_label_size"] == 5.6
+    assert payload["palette"]["heatmap_seq_high"] == "#0B4F6C"
+    assert payload["palette"]["heatmap_high"] == "#B64342"
+
+
 def test_load_publication_style_profile_rejects_non_boolean_grid_flags(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.publication_display_contract")
     path = tmp_path / "publication_style_profile.json"

@@ -1,5 +1,0 @@
-from __future__ import annotations
-
-from ._renderer import _render_python_shap_signed_importance_local_support_domain_panel
-
-__all__ = ["_render_python_shap_signed_importance_local_support_domain_panel"]

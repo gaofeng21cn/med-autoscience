@@ -31,8 +31,6 @@ class TemplateRecord:
     renderer_family: str
     execution_mode: str
     entrypoint: str
-    previous_renderer_family: str
-    previous_entrypoint: str
     paper_proven: bool
     required_exports: tuple[str, ...]
     template_dir: Path
@@ -69,8 +67,6 @@ def read_template_records(pack_root: Path, template_root: Path) -> list[Template
                 renderer_family=str(payload["renderer_family"]),
                 execution_mode=str(payload["execution_mode"]),
                 entrypoint=str(payload.get("entrypoint") or ""),
-                previous_renderer_family=str(payload.get("previous_renderer_family") or ""),
-                previous_entrypoint=str(payload.get("previous_entrypoint") or ""),
                 paper_proven=bool(payload.get("paper_proven", False)),
                 required_exports=tuple(str(item) for item in payload.get("required_exports", ())),
                 template_dir=template_path.parent,

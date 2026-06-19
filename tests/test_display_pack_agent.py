@@ -59,6 +59,7 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
     assert payload["inventory"]["kind_counts"]["evidence_figure"] >= 15
     assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
     assert payload["inventory"]["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
+    assert payload["inventory"]["renderer_policy_completion"]["python_evidence_retained_count"] == 0
     assert payload["renderer_policy"]["data_evidence_first_class_renderer"] == "r_ggplot2"
     assert {item["command"] for item in payload["callable_actions"]} == {
         "display-pack-capability-discover",
@@ -78,8 +79,8 @@ def test_display_pack_capability_discover_templates_defaults_to_canonical_surfac
     assert payload["template_surface_policy"]["default_templates_are_canonical_only"] is True
     assert payload["template_surface_policy"]["active_inventory_is_canonical_only"] is True
     assert payload["template_surface_policy"]["evidence_figures_default_to_r_ggplot2"] is True
-    assert payload["template_surface_policy"]["python_evidence_templates_hidden_from_default_discover"] is True
-    assert payload["template_surface_policy"]["migration_inventory_template_count"] >= 90
+    assert payload["template_surface_policy"]["python_evidence_templates_not_retained_without_advantage_proof"] is True
+    assert payload["template_surface_policy"]["migration_inventory_template_count"] == 66
     assert payload["template_surface_policy"]["returned_template_count"] == payload["inventory"]["template_count"]
     assert payload["templates"]
     assert {item["migration_status"] for item in payload["templates"]} == {"canonical"}

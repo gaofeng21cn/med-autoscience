@@ -6,7 +6,7 @@ from pathlib import Path
 from med_autoscience import publication_display_contract as display_contract
 from med_autoscience.display_pack_gallery_catalog import TemplateRecord, visual_gallery_records
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
-from med_autoscience.display_pack_gallery_parts.taxonomy import CATEGORY_ORDER, LEGACY_PYTHON_BASELINE_EXCLUDED
+from med_autoscience.display_pack_gallery_parts.taxonomy import CATEGORY_ORDER
 from med_autoscience.display_pack_gallery_reference import build_gallery_reference_markdown
 from med_autoscience.display_pack_gallery_parts import paths
 
@@ -26,23 +26,12 @@ def _write_reference(
         for record in visible_records
         if record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
     )
-    python_evidence_count = sum(
-        1
-        for record in visible_records
-        if record.kind == "evidence_figure" and record.renderer_family == "python"
-    )
     illustration_shell_count = sum(1 for record in visible_records if record.kind == "illustration_shell")
-    baseline_count = sum(
-        1
-        for record in visible_records
-        if baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")).status == "rendered"
-    )
     category_lines = "\n".join(
         f"| {category} | {categories[category]} |"
         for category in CATEGORY_ORDER
         if category in categories
     )
-    excluded = ", ".join(f"`{item}`" for item in LEGACY_PYTHON_BASELINE_EXCLUDED)
     reference_path.parent.mkdir(parents=True, exist_ok=True)
     reference_path.write_text(
         build_gallery_reference_markdown(
@@ -50,12 +39,9 @@ def _write_reference(
             default_style=default_style,
             renderer_inventory=Counter(record.renderer_family for record in visible_records),
             rendered_count=rendered_count,
-            baseline_count=baseline_count,
-            excluded_python_comparisons=excluded,
             canonical_gallery_family_count=len(visible_records),
             nature_skills_head=paths.NATURE_SKILLS_HEAD,
             r_evidence_count=r_evidence_count,
-            python_evidence_count=python_evidence_count,
             illustration_shell_count=illustration_shell_count,
         ),
         encoding="utf-8",

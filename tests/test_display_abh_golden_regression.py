@@ -64,7 +64,7 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
                 {
                     "display_id": "multicenter_generalizability",
                     "display_kind": "figure",
-                    "requirement_key": "multicenter_generalizability_overview",
+                    "requirement_key": "generalizability_subgroup_composite_panel",
                     "catalog_id": "F5",
                     "shell_path": "paper/figures/multicenter_generalizability.shell.json",
                 },
@@ -212,30 +212,73 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
         },
     )
     dump_json(
-        paper_root / "multicenter_generalizability_inputs.json",
+        paper_root / "generalizability_subgroup_composite_inputs.json",
         {
             "schema_version": 1,
-            "input_schema_id": "multicenter_generalizability_inputs_v1",
+            "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
             "displays": [
                 {
                     "display_id": "multicenter_generalizability",
-                    "template_id": "multicenter_generalizability_overview",
+                    "template_id": "fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel",
                     "catalog_id": "F5",
                     "paper_role": "main_text",
                     "title": "Internal multicenter heterogeneity summary",
                     "caption": "Center-level event support with coverage context under the frozen split.",
-                    "overview_mode": "center_support_counts",
-                    "center_event_y_label": "5-year CVD events",
-                    "coverage_y_label": "Patient count",
-                    "center_event_counts": [
-                        {"center_label": "Center 01", "split_bucket": "validation", "event_count": 2},
-                        {"center_label": "Center 02", "split_bucket": "validation", "event_count": 1},
-                        {"center_label": "Center 25", "split_bucket": "train", "event_count": 3},
+                    "metric_family": "effect_estimate",
+                    "primary_label": "Center event fraction",
+                    "overview_panel_title": "Center-level event support",
+                    "overview_x_label": "Observed event fraction",
+                    "overview_rows": [
+                        {
+                            "cohort_id": "center_25",
+                            "cohort_label": "Center 25",
+                            "support_count": 110,
+                            "event_count": 3,
+                            "metric_value": 0.0273,
+                        },
+                        {
+                            "cohort_id": "center_01",
+                            "cohort_label": "Center 01",
+                            "support_count": 100,
+                            "event_count": 2,
+                            "metric_value": 0.0200,
+                        },
+                        {
+                            "cohort_id": "center_02",
+                            "cohort_label": "Center 02",
+                            "support_count": 120,
+                            "event_count": 1,
+                            "metric_value": 0.0083,
+                        },
                     ],
-                    "coverage_panels": [
-                        {"panel_id": "region", "title": "Region coverage", "layout_role": "wide_left", "bars": [{"label": "Central", "count": 72}]},
-                        {"panel_id": "north_south", "title": "North vs South", "layout_role": "top_right", "bars": [{"label": "North", "count": 84}]},
-                        {"panel_id": "urban_rural", "title": "Urban/rural", "layout_role": "bottom_right", "bars": [{"label": "Urban", "count": 101}]},
+                    "subgroup_panel_title": "Geodemographic support distribution",
+                    "subgroup_x_label": "Cohort fraction",
+                    "subgroup_reference_value": 0.3333,
+                    "subgroup_rows": [
+                        {
+                            "subgroup_id": "region_central",
+                            "subgroup_label": "Region: Central",
+                            "group_n": 72,
+                            "estimate": 0.48,
+                            "lower": 0.40,
+                            "upper": 0.56,
+                        },
+                        {
+                            "subgroup_id": "region_north",
+                            "subgroup_label": "Region: North",
+                            "group_n": 84,
+                            "estimate": 0.56,
+                            "lower": 0.48,
+                            "upper": 0.64,
+                        },
+                        {
+                            "subgroup_id": "urban",
+                            "subgroup_label": "Urban",
+                            "group_n": 101,
+                            "estimate": 0.67,
+                            "lower": 0.60,
+                            "upper": 0.74,
+                        },
                     ],
                 }
             ],
@@ -424,19 +467,22 @@ def test_materialize_display_surface_preserves_h_golden_regression_invariants(
     assert figures_by_id["GA1"]["qc_result"]["status"] == "pass"
 
     f5_layout = json.loads(
-        (paper_root / "figures" / "generated" / "F5_multicenter_generalizability_overview.layout.json").read_text(
-            encoding="utf-8"
-        )
+        (
+            paper_root
+            / "figures"
+            / "generated"
+            / "F5_generalizability_subgroup_composite_panel.layout.json"
+        ).read_text(encoding="utf-8")
     )
     f5_layout_boxes = {item["box_id"]: item for item in f5_layout["layout_boxes"]}
     f5_panel_boxes = {item["box_id"]: item for item in f5_layout["panel_boxes"]}
-    f5_guide_boxes = {item["box_id"]: item for item in f5_layout["guide_boxes"]}
-    assert {"panel_label_A", "panel_label_B", "panel_label_C"} <= set(f5_layout_boxes)
-    assert "coverage_panel_right_stack" in f5_panel_boxes
+    assert figures_by_id["F5"]["template_id"].endswith("::generalizability_subgroup_composite_panel")
+    assert figures_by_id["F5"]["renderer_family"] == "r_ggplot2"
+    assert {"panel_label_A", "panel_label_B"} <= set(f5_layout_boxes)
+    assert {"overview_panel", "subgroup_panel"} <= set(f5_panel_boxes)
     for label_box_id, panel_box_id in {
-        "panel_label_A": "center_event_panel",
-        "panel_label_B": "coverage_panel_wide_left",
-        "panel_label_C": "coverage_panel_right_stack",
+        "panel_label_A": "overview_panel",
+        "panel_label_B": "subgroup_panel",
     }.items():
         label_box = f5_layout_boxes[label_box_id]
         panel_box = f5_panel_boxes[panel_box_id]
@@ -444,17 +490,18 @@ def test_materialize_display_surface_preserves_h_golden_regression_invariants(
         panel_height = panel_box["y1"] - panel_box["y0"]
         assert label_box["x0"] <= panel_box["x0"] + panel_width * 0.08
         assert label_box["y1"] >= panel_box["y1"] - panel_height * 0.10
-    assert f5_layout["metrics"]["center_label_mode"] == "shared_prefix_compacted"
-    assert f5_layout["metrics"]["center_tick_labels"] == ["01", "02", "25"]
-    assert f5_layout["metrics"]["center_axis_title"] == "Center ID"
-    assert f5_layout["metrics"]["legend_title"] == "Split"
-    assert f5_layout["metrics"]["legend_labels"] == ["Train", "Validation"]
-    legend_box = f5_guide_boxes["legend"]
-    assert legend_box["y1"] <= min(
-        f5_panel_boxes["coverage_panel_wide_left"]["y0"],
-        f5_panel_boxes["coverage_panel_right_stack"]["y0"],
-    ) - 0.01
-    assert abs(((legend_box["x0"] + legend_box["x1"]) / 2.0) - 0.5) <= 0.02
+    assert f5_layout["metrics"]["metric_family"] == "effect_estimate"
+    assert [item["cohort_label"] for item in f5_layout["metrics"]["overview_rows"]] == [
+        "Center 25",
+        "Center 01",
+        "Center 02",
+    ]
+    assert [item["event_count"] for item in f5_layout["metrics"]["overview_rows"]] == [3, 2, 1]
+    assert [item["subgroup_label"] for item in f5_layout["metrics"]["subgroup_rows"]] == [
+        "Region: Central",
+        "Region: North",
+        "Urban",
+    ]
     assert not any(item["box_type"] == "title" for item in f5_layout["layout_boxes"])
 
     ga_layout = json.loads(

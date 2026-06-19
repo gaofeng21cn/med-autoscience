@@ -1,6 +1,3 @@
 from __future__ import annotations
 
 from tests.display_f_golden_regression_cases.shared import *
-from tests.display_f_golden_regression_cases.global_and_local_explainability_golden import *
-from tests.display_f_golden_regression_cases.partial_dependence_and_effects_golden import *
-from tests.display_f_golden_regression_cases.support_domain_and_importance_golden import *

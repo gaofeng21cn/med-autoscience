@@ -217,160 +217,6 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ],
             },
         }
-    if template_short_id == "baseline_missingness_qc_panel":
-        return {
-            "template_id": template_id,
-            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.06, "y0": 0.08, "x1": 0.09, "y1": 0.12},
-                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.58, "y0": 0.08, "x1": 0.61, "y1": 0.12},
-                {"box_id": "panel_label_C", "box_type": "panel_label", "x0": 0.58, "y0": 0.58, "x1": 0.61, "y1": 0.62},
-                {"box_id": "balance_panel_title", "box_type": "panel_title", "x0": 0.10, "y0": 0.08, "x1": 0.34, "y1": 0.12},
-                {"box_id": "balance_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.14, "y0": 0.84, "x1": 0.40, "y1": 0.88},
-                {"box_id": "missingness_panel_title", "box_type": "panel_title", "x0": 0.63, "y0": 0.08, "x1": 0.88, "y1": 0.12},
-                {"box_id": "missingness_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.66, "y0": 0.45, "x1": 0.89, "y1": 0.49},
-                {"box_id": "missingness_y_axis_title", "box_type": "subplot_y_axis_title", "x0": 0.56, "y0": 0.18, "x1": 0.60, "y1": 0.38},
-                {"box_id": "qc_panel_title", "box_type": "panel_title", "x0": 0.63, "y0": 0.58, "x1": 0.84, "y1": 0.62},
-                {"box_id": "qc_card_label_retained", "box_type": "card_label", "x0": 0.63, "y0": 0.68, "x1": 0.74, "y1": 0.71},
-                {"box_id": "qc_card_value_retained", "box_type": "card_value", "x0": 0.63, "y0": 0.72, "x1": 0.74, "y1": 0.77},
-                {"box_id": "qc_card_label_missing", "box_type": "card_label", "x0": 0.77, "y0": 0.68, "x1": 0.89, "y1": 0.71},
-                {"box_id": "qc_card_value_missing", "box_type": "card_value", "x0": 0.77, "y0": 0.72, "x1": 0.89, "y1": 0.77},
-            ],
-            "panel_boxes": [
-                {"box_id": "panel_balance", "box_type": "panel", "x0": 0.04, "y0": 0.06, "x1": 0.48, "y1": 0.90},
-                {"box_id": "panel_missingness", "box_type": "panel", "x0": 0.56, "y0": 0.06, "x1": 0.94, "y1": 0.50},
-                {"box_id": "panel_qc", "box_type": "panel", "x0": 0.56, "y0": 0.56, "x1": 0.94, "y1": 0.90},
-            ],
-            "guide_boxes": [
-                {"box_id": "balance_threshold", "box_type": "reference_line", "x0": 0.24, "y0": 0.16, "x1": 0.25, "y1": 0.82},
-                {"box_id": "missingness_colorbar", "box_type": "colorbar", "x0": 0.90, "y0": 0.14, "x1": 0.92, "y1": 0.42},
-            ],
-            "metrics": {
-                "primary_balance_label": "Pre-adjustment SMD",
-                "secondary_balance_label": "Post-adjustment SMD",
-                "balance_threshold": 0.10,
-                "balance_variables": [
-                    {"variable_id": "age", "label": "Age", "primary_value": 0.24, "secondary_value": 0.08},
-                    {"variable_id": "sex", "label": "Female sex", "primary_value": 0.11, "secondary_value": 0.04},
-                ],
-                "missingness_rows": [{"label": "Age"}, {"label": "HbA1c"}],
-                "missingness_columns": [{"label": "Train"}, {"label": "Validation"}],
-                "missingness_cells": [
-                    {"x": "Train", "y": "Age", "value": 0.01},
-                    {"x": "Validation", "y": "Age", "value": 0.03},
-                    {"x": "Train", "y": "HbA1c", "value": 0.08},
-                    {"x": "Validation", "y": "HbA1c", "value": 0.11},
-                ],
-                "qc_cards": [
-                    {"card_id": "retained", "label_box_id": "qc_card_label_retained", "value_box_id": "qc_card_value_retained"},
-                    {"card_id": "max_missing", "label_box_id": "qc_card_label_missing", "value_box_id": "qc_card_value_missing"},
-                ],
-            },
-        }
-    if template_short_id == "center_coverage_batch_transportability_panel":
-        return {
-            "template_id": template_id,
-            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.06, "y0": 0.08, "x1": 0.09, "y1": 0.12},
-                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.58, "y0": 0.08, "x1": 0.61, "y1": 0.12},
-                {"box_id": "panel_label_C", "box_type": "panel_label", "x0": 0.58, "y0": 0.58, "x1": 0.61, "y1": 0.62},
-                {"box_id": "coverage_panel_title", "box_type": "panel_title", "x0": 0.10, "y0": 0.08, "x1": 0.34, "y1": 0.12},
-                {"box_id": "coverage_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.15, "y0": 0.84, "x1": 0.40, "y1": 0.88},
-                {"box_id": "batch_panel_title", "box_type": "panel_title", "x0": 0.63, "y0": 0.08, "x1": 0.86, "y1": 0.12},
-                {"box_id": "batch_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.66, "y0": 0.45, "x1": 0.89, "y1": 0.49},
-                {"box_id": "batch_y_axis_title", "box_type": "subplot_y_axis_title", "x0": 0.56, "y0": 0.18, "x1": 0.60, "y1": 0.38},
-                {"box_id": "transportability_panel_title", "box_type": "panel_title", "x0": 0.63, "y0": 0.58, "x1": 0.87, "y1": 0.62},
-                {"box_id": "transport_card_label_centers", "box_type": "card_label", "x0": 0.63, "y0": 0.68, "x1": 0.77, "y1": 0.71},
-                {"box_id": "transport_card_value_centers", "box_type": "card_value", "x0": 0.63, "y0": 0.72, "x1": 0.77, "y1": 0.77},
-                {"box_id": "transport_card_label_shift", "box_type": "card_label", "x0": 0.63, "y0": 0.79, "x1": 0.77, "y1": 0.82},
-                {"box_id": "transport_card_value_shift", "box_type": "card_value", "x0": 0.63, "y0": 0.83, "x1": 0.77, "y1": 0.88},
-            ],
-            "panel_boxes": [
-                {"box_id": "panel_coverage", "box_type": "panel", "x0": 0.04, "y0": 0.06, "x1": 0.48, "y1": 0.90},
-                {"box_id": "panel_batch", "box_type": "panel", "x0": 0.56, "y0": 0.06, "x1": 0.94, "y1": 0.50},
-                {"box_id": "panel_transportability", "box_type": "panel", "x0": 0.56, "y0": 0.56, "x1": 0.94, "y1": 0.90},
-            ],
-            "guide_boxes": [
-                {"box_id": "batch_threshold", "box_type": "reference_line", "x0": 0.88, "y0": 0.14, "x1": 0.89, "y1": 0.42},
-                {"box_id": "batch_colorbar", "box_type": "colorbar", "x0": 0.90, "y0": 0.14, "x1": 0.92, "y1": 0.42},
-            ],
-            "metrics": {
-                "batch_threshold": 0.20,
-                "center_rows": [
-                    {"center_id": "train_a", "center_label": "Train A", "cohort_role": "Derivation", "support_count": 412, "event_count": 63},
-                    {"center_id": "external_b", "center_label": "External B", "cohort_role": "External", "support_count": 188, "event_count": 29},
-                ],
-                "batch_rows": [{"label": "Train A"}, {"label": "External B"}],
-                "batch_columns": [{"label": "Specimen drift"}, {"label": "Scanner drift"}],
-                "batch_cells": [
-                    {"x": "Specimen drift", "y": "Train A", "value": 0.08},
-                    {"x": "Scanner drift", "y": "Train A", "value": 0.11},
-                    {"x": "Specimen drift", "y": "External B", "value": 0.14},
-                    {"x": "Scanner drift", "y": "External B", "value": 0.18},
-                ],
-                "transportability_cards": [
-                    {"card_id": "covered_centers", "label_box_id": "transport_card_label_centers", "value_box_id": "transport_card_value_centers"},
-                    {"card_id": "largest_shift", "label_box_id": "transport_card_label_shift", "value_box_id": "transport_card_value_shift"},
-                ],
-            },
-        }
-    if template_short_id == "transportability_recalibration_governance_panel":
-        return {
-            "template_id": template_id,
-            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.06, "y0": 0.08, "x1": 0.09, "y1": 0.12},
-                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.58, "y0": 0.08, "x1": 0.61, "y1": 0.12},
-                {"box_id": "panel_label_C", "box_type": "panel_label", "x0": 0.58, "y0": 0.58, "x1": 0.61, "y1": 0.62},
-                {"box_id": "coverage_panel_title", "box_type": "panel_title", "x0": 0.10, "y0": 0.08, "x1": 0.34, "y1": 0.12},
-                {"box_id": "coverage_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.15, "y0": 0.84, "x1": 0.40, "y1": 0.88},
-                {"box_id": "batch_panel_title", "box_type": "panel_title", "x0": 0.63, "y0": 0.08, "x1": 0.86, "y1": 0.12},
-                {"box_id": "batch_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.66, "y0": 0.45, "x1": 0.89, "y1": 0.49},
-                {"box_id": "batch_y_axis_title", "box_type": "subplot_y_axis_title", "x0": 0.56, "y0": 0.18, "x1": 0.60, "y1": 0.38},
-                {"box_id": "recalibration_panel_title", "box_type": "panel_title", "x0": 0.63, "y0": 0.58, "x1": 0.89, "y1": 0.62},
-                {"box_id": "recalibration_row_label_train_a", "box_type": "row_label", "x0": 0.62, "y0": 0.68, "x1": 0.72, "y1": 0.72},
-                {"box_id": "recalibration_row_slope_train_a", "box_type": "row_metric", "x0": 0.62, "y0": 0.73, "x1": 0.71, "y1": 0.77},
-                {"box_id": "recalibration_row_oe_train_a", "box_type": "row_metric", "x0": 0.73, "y0": 0.73, "x1": 0.82, "y1": 0.77},
-                {"box_id": "recalibration_row_action_train_a", "box_type": "row_action", "x0": 0.83, "y0": 0.71, "x1": 0.92, "y1": 0.77},
-                {"box_id": "recalibration_row_label_external_b", "box_type": "row_label", "x0": 0.62, "y0": 0.80, "x1": 0.75, "y1": 0.84},
-                {"box_id": "recalibration_row_slope_external_b", "box_type": "row_metric", "x0": 0.62, "y0": 0.85, "x1": 0.71, "y1": 0.89},
-                {"box_id": "recalibration_row_oe_external_b", "box_type": "row_metric", "x0": 0.73, "y0": 0.85, "x1": 0.82, "y1": 0.89},
-                {"box_id": "recalibration_row_action_external_b", "box_type": "row_action", "x0": 0.83, "y0": 0.83, "x1": 0.92, "y1": 0.89},
-            ],
-            "panel_boxes": [
-                {"box_id": "panel_coverage", "box_type": "panel", "x0": 0.04, "y0": 0.06, "x1": 0.48, "y1": 0.90},
-                {"box_id": "panel_batch", "box_type": "panel", "x0": 0.56, "y0": 0.06, "x1": 0.94, "y1": 0.50},
-                {"box_id": "panel_recalibration", "box_type": "panel", "x0": 0.56, "y0": 0.56, "x1": 0.94, "y1": 0.90},
-            ],
-            "guide_boxes": [
-                {"box_id": "batch_threshold", "box_type": "reference_line", "x0": 0.88, "y0": 0.14, "x1": 0.89, "y1": 0.42},
-                {"box_id": "batch_colorbar", "box_type": "colorbar", "x0": 0.90, "y0": 0.14, "x1": 0.92, "y1": 0.42},
-            ],
-            "metrics": {
-                "batch_threshold": 0.20,
-                "slope_acceptance_lower": 0.90,
-                "slope_acceptance_upper": 1.10,
-                "oe_ratio_acceptance_lower": 0.90,
-                "oe_ratio_acceptance_upper": 1.10,
-                "center_rows": [
-                    {"center_id": "train_a", "center_label": "Train A", "cohort_role": "Derivation", "support_count": 412, "event_count": 63},
-                    {"center_id": "external_b", "center_label": "External B", "cohort_role": "External", "support_count": 188, "event_count": 29},
-                ],
-                "batch_rows": [{"label": "Train A"}, {"label": "External B"}],
-                "batch_columns": [{"label": "Specimen drift"}, {"label": "Scanner drift"}],
-                "batch_cells": [
-                    {"x": "Specimen drift", "y": "Train A", "value": 0.08},
-                    {"x": "Scanner drift", "y": "Train A", "value": 0.11},
-                    {"x": "Specimen drift", "y": "External B", "value": 0.14},
-                    {"x": "Scanner drift", "y": "External B", "value": 0.18},
-                ],
-                "recalibration_rows": [
-                    {"center_id": "train_a", "label_box_id": "recalibration_row_label_train_a", "slope_box_id": "recalibration_row_slope_train_a", "oe_ratio_box_id": "recalibration_row_oe_train_a", "action_box_id": "recalibration_row_action_train_a", "slope": 1.00, "oe_ratio": 1.00},
-                    {"center_id": "external_b", "label_box_id": "recalibration_row_label_external_b", "slope_box_id": "recalibration_row_slope_external_b", "oe_ratio_box_id": "recalibration_row_oe_external_b", "action_box_id": "recalibration_row_action_external_b", "slope": 0.84, "oe_ratio": 1.18},
-                ],
-            },
-        }
     if template_short_id == "design_evidence_composite_shell":
         return {
             "template_id": template_id,
@@ -789,63 +635,56 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ],
             },
         }
-    if template_short_id == "multicenter_generalizability_overview":
+    if template_short_id == "generalizability_subgroup_composite_panel":
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
             "layout_boxes": [
                 {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.62, "y1": 0.08},
-                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.09, "y0": 0.47, "x1": 0.12, "y1": 0.51},
-                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.09, "y0": 0.89, "x1": 0.12, "y1": 0.93},
-                {"box_id": "panel_label_C", "box_type": "panel_label", "x0": 0.57, "y0": 0.89, "x1": 0.60, "y1": 0.93},
-                {"box_id": "center_event_y_axis_title", "box_type": "y_axis_title", "x0": 0.01, "y0": 0.12, "x1": 0.05, "y1": 0.52},
-                {"box_id": "coverage_y_axis_title", "box_type": "y_axis_title", "x0": 0.01, "y0": 0.58, "x1": 0.05, "y1": 0.94},
-                {"box_id": "center_event_bar_1", "box_type": "center_event_bar", "x0": 0.08, "y0": 0.14, "x1": 0.20, "y1": 0.52},
-                {"box_id": "center_event_bar_2", "box_type": "center_event_bar", "x0": 0.22, "y0": 0.14, "x1": 0.34, "y1": 0.52},
-                {"box_id": "coverage_bar_region_1", "box_type": "coverage_bar", "x0": 0.08, "y0": 0.64, "x1": 0.16, "y1": 0.92},
-                {"box_id": "coverage_bar_region_2", "box_type": "coverage_bar", "x0": 0.19, "y0": 0.70, "x1": 0.27, "y1": 0.92},
-                {"box_id": "coverage_bar_ns_1", "box_type": "coverage_bar", "x0": 0.60, "y0": 0.64, "x1": 0.70, "y1": 0.78},
-                {"box_id": "coverage_bar_ns_2", "box_type": "coverage_bar", "x0": 0.74, "y0": 0.58, "x1": 0.84, "y1": 0.78},
-                {"box_id": "coverage_bar_ur_1", "box_type": "coverage_bar", "x0": 0.60, "y0": 0.82, "x1": 0.70, "y1": 0.94},
-                {"box_id": "coverage_bar_ur_2", "box_type": "coverage_bar", "x0": 0.74, "y0": 0.88, "x1": 0.84, "y1": 0.94},
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.09, "y0": 0.12, "x1": 0.12, "y1": 0.16},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.09, "y0": 0.55, "x1": 0.12, "y1": 0.59},
+                {"box_id": "overview_x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.47, "x1": 0.56, "y1": 0.51},
+                {"box_id": "subgroup_x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.91, "x1": 0.56, "y1": 0.95},
+                {"box_id": "overview_row_1_label", "box_type": "row_label", "x0": 0.08, "y0": 0.22, "x1": 0.22, "y1": 0.27},
+                {"box_id": "overview_primary_1", "box_type": "estimate_marker", "x0": 0.56, "y0": 0.22, "x1": 0.58, "y1": 0.27},
+                {"box_id": "overview_comparator_1", "box_type": "estimate_marker", "x0": 0.51, "y0": 0.22, "x1": 0.53, "y1": 0.27},
+                {"box_id": "subgroup_row_1_label", "box_type": "row_label", "x0": 0.08, "y0": 0.66, "x1": 0.24, "y1": 0.71},
+                {"box_id": "subgroup_estimate_1", "box_type": "estimate_marker", "x0": 0.57, "y0": 0.66, "x1": 0.59, "y1": 0.71},
+                {"box_id": "subgroup_ci_1", "box_type": "ci_segment", "x0": 0.51, "y0": 0.685, "x1": 0.64, "y1": 0.695},
             ],
             "panel_boxes": [
-                {"box_id": "center_event_panel", "box_type": "center_event_panel", "x0": 0.08, "y0": 0.14, "x1": 0.92, "y1": 0.52},
-                {"box_id": "coverage_panel_wide_left", "box_type": "coverage_panel", "x0": 0.08, "y0": 0.64, "x1": 0.44, "y1": 0.94},
-                {"box_id": "coverage_panel_top_right", "box_type": "coverage_panel", "x0": 0.56, "y0": 0.58, "x1": 0.92, "y1": 0.78},
-                {"box_id": "coverage_panel_bottom_right", "box_type": "coverage_panel", "x0": 0.56, "y0": 0.82, "x1": 0.92, "y1": 0.94},
-                {"box_id": "coverage_panel_right_stack", "box_type": "coverage_panel", "x0": 0.56, "y0": 0.58, "x1": 0.92, "y1": 0.94},
+                {"box_id": "overview_panel", "box_type": "panel", "x0": 0.08, "y0": 0.14, "x1": 0.84, "y1": 0.46},
+                {"box_id": "subgroup_panel", "box_type": "panel", "x0": 0.08, "y0": 0.57, "x1": 0.84, "y1": 0.90},
             ],
             "guide_boxes": [
-                {"box_id": "legend", "box_type": "legend", "x0": 0.40, "y0": 0.02, "x1": 0.60, "y1": 0.08},
+                {"box_id": "legend", "box_type": "legend", "x0": 0.70, "y0": 0.02, "x1": 0.92, "y1": 0.08},
+                {"box_id": "subgroup_reference_line", "box_type": "reference_line", "x0": 0.54, "y0": 0.57, "x1": 0.54, "y1": 0.90},
             ],
             "metrics": {
-                "center_event_counts": [
-                    {"center_label": "Center A", "split_bucket": "train", "event_count": 7},
-                    {"center_label": "Center B", "split_bucket": "validation", "event_count": 5},
-                ],
-                "coverage_panels": [
+                "metric_family": "discrimination",
+                "primary_label": "Locked model",
+                "comparator_label": "Derivation cohort",
+                "overview_rows": [
                     {
-                        "panel_id": "region",
-                        "title": "Region coverage (n=198)",
-                        "layout_role": "wide_left",
-                        "bars": [{"label": "Central", "count": 72}, {"label": "East", "count": 54}],
-                    },
-                    {
-                        "panel_id": "north_south",
-                        "title": "North vs South coverage",
-                        "layout_role": "top_right",
-                        "bars": [{"label": "North", "count": 84}, {"label": "South", "count": 114}],
-                    },
-                    {
-                        "panel_id": "urban_rural",
-                        "title": "Urban/rural coverage",
-                        "layout_role": "bottom_right",
-                        "bars": [{"label": "Urban", "count": 101}, {"label": "Missing", "count": 34}],
+                        "cohort_id": "external_a",
+                        "cohort_label": "External A",
+                        "support_count": 184,
+                        "event_count": 29,
+                        "metric_value": 0.82,
+                        "comparator_metric_value": 0.79,
                     },
                 ],
-                "legend_title": "Split",
-                "legend_labels": ["Train", "Validation"],
+                "subgroup_reference_value": 0.80,
+                "subgroup_rows": [
+                    {
+                        "subgroup_id": "age_ge_65",
+                        "subgroup_label": "Age >=65 years",
+                        "group_n": 201,
+                        "estimate": 0.82,
+                        "lower": 0.78,
+                        "upper": 0.86,
+                    },
+                ],
             },
         }
     if template_short_id == "cohort_flow_figure":

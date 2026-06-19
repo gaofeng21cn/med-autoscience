@@ -38,7 +38,7 @@ TIME_TO_EVENT_DIRECT_MIGRATION_DISPLAY_PLAN = [
     {
         "display_id": "multicenter_generalizability",
         "display_kind": "figure",
-        "requirement_key": "multicenter_generalizability_overview",
+        "requirement_key": "generalizability_subgroup_composite_panel",
         "catalog_id": "F5",
     },
     {

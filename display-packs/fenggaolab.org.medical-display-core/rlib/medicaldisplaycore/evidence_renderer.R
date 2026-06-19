@@ -159,14 +159,24 @@ publication_legend_guides <- function(display_payload, labels = NULL) {
 publication_colorbar_guide <- function(display_payload, title = NULL, bar_orientation = "vertical") {
   typography <- style_typography(display_payload)
   horizontal <- identical(bar_orientation, "horizontal")
-  default_barwidth <- if (horizontal) 132.0 else 5.0
-  default_barheight <- if (horizontal) 5.0 else 42.0
+  default_barwidth <- if (horizontal) 260.0 else 5.0
+  default_barheight <- if (horizontal) 6.0 else 42.0
+  label_size <- style_numeric(typography, "colorbar_label_size", 5.6)
+  title_size <- style_numeric(typography, "colorbar_title_size", 6.0)
   guide_colourbar(
     title = title,
     title.position = "top",
     title.hjust = 0.5,
     label.position = if (horizontal) "bottom" else "right",
     label.hjust = if (horizontal) 0.5 else 0,
+    label.theme = element_text(
+      size = label_size,
+      margin = if (horizontal) margin(t = 4, unit = "pt") else margin(l = 2, unit = "pt")
+    ),
+    title.theme = element_text(
+      size = title_size,
+      margin = if (horizontal) margin(b = 3.5, unit = "pt") else margin(b = 1, unit = "pt")
+    ),
     barwidth = unit(
       style_numeric(
         typography,
@@ -187,7 +197,7 @@ publication_colorbar_guide <- function(display_payload, title = NULL, bar_orient
     draw.llim = TRUE,
     draw.ulim = TRUE,
     frame.colour = NA,
-    nbin = 80
+    nbin = 120
   )
 }
 
@@ -200,10 +210,14 @@ continuous_scale_breaks <- function(values, max_breaks = 3) {
   if (identical(range_values[[1]], range_values[[2]])) {
     return(range_values[[1]])
   }
+  max_breaks <- max(2, min(3, round(as.numeric(max_breaks))))
   breaks <- pretty(range_values, n = max_breaks)
   breaks <- breaks[breaks >= range_values[[1]] & breaks <= range_values[[2]]]
   if (length(breaks) > max_breaks) {
     breaks <- breaks[round(seq(1, length(breaks), length.out = max_breaks))]
+  }
+  if (length(breaks) < 2) {
+    breaks <- range_values
   }
   unique(breaks)
 }
@@ -218,7 +232,12 @@ heatmap_scale_components <- function(display_payload, values, name = NULL, limit
   if (is.null(midpoint)) {
     midpoint <- if (crosses_zero) 0 else mean(value_range)
   }
-  breaks <- if (is.null(limits)) continuous_scale_breaks(finite_values) else continuous_scale_breaks(limits)
+  colorbar_max_breaks <- max(2, min(3, round(style_numeric(style_typography(display_payload), "colorbar_max_breaks", 3))))
+  breaks <- if (is.null(limits)) {
+    continuous_scale_breaks(finite_values, max_breaks = colorbar_max_breaks)
+  } else {
+    continuous_scale_breaks(limits, max_breaks = colorbar_max_breaks)
+  }
   guide <- publication_colorbar_guide(display_payload, title = name, bar_orientation = "horizontal")
   list(
     finite_values = finite_values,
@@ -304,15 +323,17 @@ theme_publication_colorbar <- function(display_payload) {
   typography <- style_typography(display_payload)
   text_color <- style_text_color(display_payload)
   legend_size <- style_numeric(typography, "legend_size", 7.2)
-  colorbar_text_size <- min(legend_size, 6.2)
+  colorbar_text_size <- min(legend_size, style_numeric(typography, "colorbar_label_size", 6.0))
   theme(
     legend.position = "bottom",
     legend.box = "horizontal",
     legend.justification = "center",
-    legend.title = element_text(size = colorbar_text_size, colour = text_color, margin = margin(b = 1, unit = "pt")),
-    legend.text = element_text(size = colorbar_text_size, colour = text_color, margin = margin(t = 1, unit = "pt")),
-    legend.margin = margin(1, 2, 1, 2, unit = "pt"),
-    legend.box.spacing = unit(8, "pt")
+    legend.title = element_text(size = colorbar_text_size, colour = text_color, margin = margin(b = 2.5, unit = "pt")),
+    legend.text = element_text(size = colorbar_text_size, colour = text_color, margin = margin(t = 4, unit = "pt")),
+    legend.margin = margin(4, 8, 8, 8, unit = "pt"),
+    legend.spacing.x = unit(8, "pt"),
+    legend.spacing.y = unit(5, "pt"),
+    legend.box.spacing = unit(14, "pt")
   )
 }
 

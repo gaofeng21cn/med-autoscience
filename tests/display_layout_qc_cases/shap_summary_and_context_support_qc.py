@@ -1,54 +1,5 @@
 from .shared import *
 
-def test_run_display_layout_qc_fails_when_multicenter_legend_labels_are_not_split_order() -> None:
-    module = importlib.import_module("med_autoscience.display_layout_qc")
-
-    result = module.run_display_layout_qc(
-        qc_profile="publication_multicenter_overview",
-        layout_sidecar={
-            "template_id": "multicenter_generalizability_overview",
-            "device": make_device(),
-            "layout_boxes": [
-                make_box("panel_label_A", "panel_label", x0=0.09, y0=0.47, x1=0.12, y1=0.51),
-                make_box("panel_label_B", "panel_label", x0=0.09, y0=0.89, x1=0.12, y1=0.93),
-                make_box("panel_label_C", "panel_label", x0=0.57, y0=0.89, x1=0.60, y1=0.93),
-                make_box("center_event_y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.05, y1=0.48),
-                make_box("coverage_y_axis_title", "y_axis_title", x0=0.02, y0=0.64, x1=0.05, y1=0.92),
-                make_box("center_event_bar_1", "center_event_bar", x0=0.10, y0=0.20, x1=0.12, y1=0.42),
-                make_box("coverage_bar_region_1", "coverage_bar", x0=0.08, y0=0.64, x1=0.16, y1=0.92),
-                make_box("coverage_bar_ns_1", "coverage_bar", x0=0.60, y0=0.64, x1=0.70, y1=0.78),
-                make_box("coverage_bar_ur_1", "coverage_bar", x0=0.60, y0=0.82, x1=0.70, y1=0.94),
-            ],
-            "panel_boxes": [
-                make_box("center_event_panel", "center_event_panel", x0=0.08, y0=0.14, x1=0.92, y1=0.52),
-                make_box("coverage_panel_wide_left", "coverage_panel", x0=0.08, y0=0.64, x1=0.44, y1=0.94),
-                make_box("coverage_panel_top_right", "coverage_panel", x0=0.56, y0=0.58, x1=0.92, y1=0.78),
-                make_box("coverage_panel_bottom_right", "coverage_panel", x0=0.56, y0=0.82, x1=0.92, y1=0.94),
-                make_box("coverage_panel_right_stack", "coverage_panel", x0=0.56, y0=0.58, x1=0.92, y1=0.94),
-            ],
-            "guide_boxes": [
-                make_box("legend", "legend", x0=0.40, y0=0.02, x1=0.62, y1=0.08),
-            ],
-            "metrics": {
-                "center_event_counts": [
-                    {"center_label": "Center 01", "split_bucket": "validation", "event_count": 2},
-                    {"center_label": "Center 02", "split_bucket": "validation", "event_count": 1},
-                    {"center_label": "Center 25", "split_bucket": "train", "event_count": 3},
-                ],
-                "coverage_panels": [
-                    {"panel_id": "region", "title": "Region coverage", "layout_role": "wide_left", "bars": [{"label": "Central", "count": 72}]},
-                    {"panel_id": "north_south", "title": "North vs South", "layout_role": "top_right", "bars": [{"label": "North", "count": 84}]},
-                    {"panel_id": "urban_rural", "title": "Urban/rural", "layout_role": "bottom_right", "bars": [{"label": "Urban", "count": 101}]},
-                ],
-                "legend_title": "Split",
-                "legend_labels": ["Validation", "Train"],
-            },
-        },
-    )
-
-    assert result["status"] == "fail"
-    assert any(issue["rule_id"] == "legend_labels_invalid" for issue in result["issues"])
-
 def test_run_display_layout_qc_fails_when_binary_calibration_axis_window_is_missing() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

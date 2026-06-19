@@ -121,7 +121,7 @@ def _build_workspace_registry_displays(
                 {
                     "display_id": "Figure17",
                     "display_kind": "figure",
-                    "requirement_key": "multicenter_generalizability_overview",
+                    "requirement_key": "generalizability_subgroup_composite_panel",
                     "shell_path": "paper/figures/Figure17.shell.json",
                 },
                 {
@@ -210,7 +210,7 @@ def _workspace_template_bindings(include_extended_evidence: bool) -> list[tuple[
                 (14, "time_to_event_discrimination_calibration_panel"),
                 (15, "time_to_event_risk_group_summary"),
                 (16, "time_to_event_decision_curve"),
-                (17, "multicenter_generalizability_overview"),
+                (17, "generalizability_subgroup_composite_panel"),
                 (18, "time_dependent_roc_horizon"),
                 (19, "tsne_scatter_grouped"),
                 (20, "subgroup_forest"),

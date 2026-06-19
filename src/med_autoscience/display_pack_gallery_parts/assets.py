@@ -78,5 +78,3 @@ def _clean_assets() -> None:
             shutil.rmtree(path)
         elif path.suffix in {".png", ".pdf", ".json", ".svg"}:
             path.unlink()
-    paths.PYTHON_CURRENT_ROOT.mkdir(parents=True, exist_ok=True)
-    paths.PYTHON_BASELINE_ROOT.mkdir(parents=True, exist_ok=True)

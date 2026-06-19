@@ -11,7 +11,4 @@ required_exports = ["png", "pdf"]
 allowed_paper_roles = ["main_text", "supplementary"]
 execution_mode = "subprocess"
 entrypoint = "Rscript render.R --request {request_json}"
-previous_renderer_family = "python"
-previous_execution_mode = "python_plugin"
-previous_entrypoint = "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
 paper_proven = false

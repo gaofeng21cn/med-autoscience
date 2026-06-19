@@ -13,13 +13,24 @@ from med_autoscience.display_schema_contract_parts import (
     _INPUT_SCHEMA_CONTRACTS_TIME_TO_EVENT,
 )
 
-_INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
+_ALL_INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
     _INPUT_SCHEMA_CONTRACTS_TIME_TO_EVENT
     + _INPUT_SCHEMA_CONTRACTS_DATA_GEOMETRY
     + _INPUT_SCHEMA_CONTRACTS_OMICS
     + _INPUT_SCHEMA_CONTRACTS_EFFECTS
     + _INPUT_SCHEMA_CONTRACTS_EXPLANATIONS
     + _INPUT_SCHEMA_CONTRACTS_GENERAL_PUBLICATION
+)
+
+
+def _is_current_input_schema_contract(contract: InputSchemaContract) -> bool:
+    if contract.display_kind != "evidence_figure":
+        return True
+    return bool(contract.template_ids)
+
+
+_INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = tuple(
+    item for item in _ALL_INPUT_SCHEMA_CONTRACTS if _is_current_input_schema_contract(item)
 )
 
 _INPUT_SCHEMA_CONTRACT_BY_ID = {item.input_schema_id: item for item in _INPUT_SCHEMA_CONTRACTS}

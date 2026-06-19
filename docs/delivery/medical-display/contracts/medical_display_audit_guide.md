@@ -1,581 +1,77 @@
 # Medical Display Audit Guide
 
 Owner: `MedAutoScience`
-Purpose: `Explain the human-readable medical-display contract and audit boundary for MAS delivery work.`
+Purpose: `current_medical_display_audit_boundary`
 State: `active_support`
-Machine boundary: Human-readable delivery contract support only; enforceable truth remains in source, tests, machine-readable contracts, generated artifacts, and audit receipts.
+Machine boundary: Human-readable delivery contract support only. Enforceable truth remains in source, template descriptors, machine-readable contracts, generated artifacts, layout sidecars, tests, audit receipts, and owner receipts.
 
-This guide is the stable, human-auditable view of the medical display system in `med-autoscience`.
+This guide defines the current deterministic lower-bound audit surface for MAS medical display work. It is narrower than the long-term roadmap and narrower than final publication judgment.
 
-This file is the engineering audit surface, not the top-level product roadmap taxonomy.
+## What Counts As Current
 
-Use [medical_display_family_roadmap.md](../portfolio/medical_display_family_roadmap.md) when the goal is to answer:
+A display counts as current implemented inventory only when it is present in the active pack descriptors and can be reached through the current registry/schema/materialization/QC path.
 
-- which paper-facing evidence families the platform should eventually cover;
-- how the original `A-H` families define the long-horizon display north star;
-- how real-paper-driven template expansion should be evaluated at the roadmap level.
+Current `fenggaolab.org.medical-display-core` inventory:
 
-Use this file when the goal is to answer:
+- `55` evidence figures, all `r_ggplot2` subprocess renderers;
+- `0` Python evidence figures;
+- `4` Python illustration shells for design / flow / graphical-abstract composition;
+- `7` table shells;
+- `32` retired Python evidence IDs retained only in `renderer_migration_ledger.json` / `canonical_template_catalog.json` as provenance.
 
-- Which display classes are officially supported?
-- Which figure and table templates are already materialized end to end?
-- Which input schema contracts are enforced?
-- Which renderer and layout-QC path is authoritative for each template?
-- What must change together when a new display template is added?
-
-This guide primarily documents the deterministic and auditable lower-bound layer.
-
-For the exhaustive generated matrix, see [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md).
-
-## Scope
-
-This guide covers the audited display surface only. A display counts as "implemented" here only when all of the following are true:
-
-1. It is registered in `src/med_autoscience/display_registry.py`.
-2. It is covered by `src/med_autoscience/display_schema_contract.py`.
-3. `src/med_autoscience/controllers/display_surface_materialization/` can materialize it from the registered input schema.
-4. Its output is checked by the registered QC profile in `src/med_autoscience/display_layout_qc/`, or by the registered table/shell contract.
-5. The resulting catalog entry survives publication-surface and submission-minimal validation.
-
-This definition is intentionally stricter than "present in a catalog" or "listed in a planning document".
-
-It is also intentionally narrower than "publication-perfect under every visual judgment." Some paper-facing refinement work will still require an explicit AI-first visual review loop on top of the deterministic audited path.
+Retired Python evidence IDs are not hidden defaults, explicit-request inventory, Gallery comparison cards, or runtime fallback templates.
 
 ## Source Of Truth
 
-The audited source files are:
-
+- `display-packs/fenggaolab.org.medical-display-core/templates/*/template.toml`
+- `display-packs/fenggaolab.org.medical-display-core/canonical_template_catalog.json`
+- `display-packs/fenggaolab.org.medical-display-core/renderer_migration_ledger.json`
 - `src/med_autoscience/display_registry.py`
-  - Official registry of evidence figures, illustration shells, and table shells.
 - `src/med_autoscience/display_schema_contract.py`
-  - Official schema classes and input-schema field contracts.
 - `src/med_autoscience/controllers/display_surface_materialization/`
-  - Official materialization path from payload to exported surface.
 - `src/med_autoscience/display_layout_qc/`
-  - Official layout QC engine for publication-facing figures.
-- `src/med_autoscience/controllers/medical_publication_surface.py`
-  - Official manuscript-safety scan and catalog contract enforcement layer.
-- `src/med_autoscience/controllers/submission_minimal.py`
-  - Official submission packaging consumer for figure/table metadata.
+- generated Gallery manifest under `outputs/display-pack-gallery/ggplot2_template_reference_assets/gallery_manifest.json`
 
-## Visual QA And Canonical Surface Policy
+The generated catalog is [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md). The human Gallery is [ggplot2_template_reference.md](../examples/ggplot2_template_reference.md) and `ggplot2_template_gallery.pdf`.
 
-- Renderer contracts, schema contracts, and layout QC define the **minimum audited quality floor** for publication-facing displays.
-- Final visual quality is intentionally **AI-first above that floor**:
-  - generate the figure from the audited pipeline;
-  - review the real image, not just manifests or reports;
-  - let AI/human visual audit call out concrete readability/presentation defects;
-  - tighten renderer/QC/contract based on those defects.
-- `publication-gate` / `submission_manifest` clear is therefore **not sufficient evidence** that a final figure is manuscript-ready.
-- For anchor-paper and paper-owned delivery surfaces, keep the directory truth simple and stable:
-  - `paper/` = authoritative manuscript-facing source surface;
-  - `paper/figures/*.shell.json` / `paper/tables/*.shell.json` = display contracts and shells, not rendered deliverables;
-  - `paper/figures/generated/` and `paper/tables/generated/` = authoritative generated display outputs, not artifact authority or source truth;
-  - `paper/submission_minimal/` = stable submission-package projection surface; freshness and submission readiness still require MAS owner authority and receipts;
-  - `manuscript/` = the only human-facing final-delivery mirror;
-  - `artifacts/` = auxiliary runtime/finalization evidence only, not duplicated figure/table lookup.
-  - legacy top-level exports such as `paper/figures/Figure*.png|pdf|svg` and `paper/tables/Table*.csv|md` should be pruned once the catalog points to `generated/`.
+## Renderer Policy
 
-## External Exemplar Intake Policy
+| Surface | Renderer policy | Authority boundary |
+| --- | --- | --- |
+| Evidence figures | R/ggplot2 first; current pack has no Python evidence | May display data/statistical evidence only from structured payloads and renderer/QC contracts |
+| Illustration shells | Python/SVG/composition allowed | May express workflow, cohort flow, graphical abstract, or design context; cannot carry statistical evidence authority |
+| Table shells | Structured table renderer | May materialize tabular display artifacts; cannot sign publication readiness |
 
-- External galleries such as PaperPlotHub are read-only exemplar sources, not display-pack sources.
-- PaperPlotHub scripts, screenshots, rendered PNGs, and paper figures must not be copied into the MAS repository by default.
-- Link-only exemplar metadata may be recorded in intake documents or `template.toml` `exemplar_refs` when it maps to an existing audited template.
-- A PaperPlotHub item does not become a formal display capability until a real MAS paper demand proves the gap and the change lands through explicit schema, renderer, QC, catalog, and submission-surface validation.
-- External exemplar refs must not introduce a runtime dependency, bypass the audited renderer path, or replace AI-first visual review.
+Future Python evidence may re-enter only after documented advantage over the R/ggplot2 baseline, checked-in current descriptors, layout/QC/audit evidence, and explicit user-visible current-pack status.
 
-## Current Paper-Proven Baseline (001/003)
+## Current Audit Families
 
-The audited inventory is intentionally broader than the subset already proven against real papers.
+| Family | Current templates |
+| --- | --- |
+| Prediction performance | `roc_curve_binary`, `pr_curve_binary`, `calibration_curve_binary` |
+| Clinical utility | `decision_curve_binary`, `clinical_impact_curve_binary`, `binary_calibration_decision_curve_panel`, `time_to_event_threshold_governance_panel`, `time_to_event_decision_curve` |
+| Time-to-event | `risk_layering_monotonic_bars`, `kaplan_meier_grouped`, `cumulative_incidence_grouped`, `time_dependent_roc_horizon`, `time_dependent_roc_comparison_panel`, `time_to_event_landmark_performance_panel`, `time_to_event_multihorizon_calibration_panel`, `time_to_event_stratified_cumulative_incidence_panel`, `time_to_event_discrimination_calibration_panel`, `time_to_event_risk_group_summary` |
+| Data geometry | `umap_scatter_grouped`, `pca_scatter_grouped`, `tsne_scatter_grouped`, `phate_scatter_grouped`, `diffusion_map_scatter_grouped`, `celltype_signature_heatmap`, `omics_volcano_panel` |
+| Matrix pattern | `heatmap_group_comparison`, `performance_heatmap`, `confusion_matrix_heatmap_binary`, `correlation_heatmap`, `clustered_heatmap`, `gsva_ssgsea_heatmap`, `pathway_enrichment_dotplot_panel`, `celltype_marker_dotplot_panel`, `oncoplot_mutation_landscape_panel`, `cnv_recurrence_summary_panel`, `genomic_alteration_landscape_panel`, `genomic_alteration_consequence_panel`, `genomic_alteration_multiomic_consequence_panel`, `genomic_alteration_pathway_integrated_composite_panel`, `genomic_program_governance_summary_panel` |
+| Effect estimate | `forest_effect_main`, `subgroup_forest`, `multivariable_forest`, `compact_effect_estimate_panel`, `coefficient_path_panel`, `broader_heterogeneity_summary_panel`, `interaction_effect_summary_panel` |
+| Model explanation | `shap_summary_beeswarm`, `shap_bar_importance`, `shap_multicohort_importance_panel`, `shap_dependence_panel`, `shap_waterfall_local_explanation_panel`, `shap_force_like_summary_panel` |
+| Model audit | `model_complexity_audit_panel` |
+| Generalizability | `generalizability_subgroup_composite_panel` |
+| Illustration shells | `cohort_flow_figure`, `submission_graphical_abstract`, `workflow_fact_sheet_panel`, `design_evidence_composite_shell` |
+| Table shells | `table1_baseline_characteristics`, `table2_phenotype_gap_summary`, `table3_transition_site_support_summary`, `table2_time_to_event_performance_summary`, `table3_clinical_interpretation_summary`, `performance_summary_table_generic`, `grouped_risk_event_summary_table` |
 
-Current paper-proven baseline:
+## Visual QA Boundary
 
-- Paper families: `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event`, `H. Cohort and Study Design Evidence`
-- Audit families: `Clinical Utility`, `Time-to-Event`, `Generalizability`, `Publication Shells / Tables`
-- Template instances:
-  - `fenggaolab.org.medical-display-core::binary_calibration_decision_curve_panel`
-  - `fenggaolab.org.medical-display-core::time_to_event_discrimination_calibration_panel`
-  - `fenggaolab.org.medical-display-core::time_to_event_risk_group_summary`
-  - `fenggaolab.org.medical-display-core::time_to_event_decision_curve`
-  - `fenggaolab.org.medical-display-core::multicenter_generalizability_overview`
-  - `fenggaolab.org.medical-display-core::submission_graphical_abstract`
+Renderer contracts, schema contracts, layout QC and Gallery generation prove only a minimum quality floor. A final manuscript figure still needs:
 
-These are the first-priority cross-paper regression families because they have already exposed real paper-facing failure modes and then been reverified against `001/003` final figures.
+1. real paper payload and data refs;
+2. render artifacts plus layout sidecar;
+3. visual audit on the actual image;
+4. concrete renderer/QC/style hardening when defects are found;
+5. MAS owner / publication gate receipt for any readiness claim.
 
-## Current Audited Coverage
+Green tests, Gallery generation, style-profile hash, visual-audit clear, display lock, or OPL smoke receipt cannot authorize publication readiness by themselves.
 
-Current implemented display inventory:
+## External Exemplar Intake
 
-- Evidence figure classes: `9`
-- Implemented evidence figure templates: `84`
-- Illustration shells: `7`
-- Table shells: `7`
-- Total implemented display templates: `98`
-
-### Evidence Classes
-
-| Class | Implemented Templates | Input Schemas | Primary QC Profiles |
-| --- | ---: | --- | --- |
-| Prediction Performance | 3 | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` |
-| Clinical Utility | 5 | `binary_prediction_curve_inputs_v1`, `time_to_event_decision_curve_inputs_v1`, `time_to_event_threshold_governance_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1` | `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve`, `publication_time_to_event_threshold_governance_panel` |
-| Time-to-Event | 10 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_landmark_performance_inputs_v1`, `time_to_event_multihorizon_calibration_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`, `publication_landmark_performance_panel`, `publication_time_to_event_multihorizon_calibration_panel` |
-| Data Geometry | 15 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1`, `atlas_spatial_trajectory_density_coverage_panel_inputs_v1`, `atlas_spatial_trajectory_context_support_panel_inputs_v1`, `atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1`, `omics_volcano_panel_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel`, `publication_atlas_spatial_trajectory_density_coverage_panel`, `publication_atlas_spatial_trajectory_context_support_panel`, `publication_atlas_spatial_trajectory_multimanifold_context_support_panel`, `publication_omics_volcano_panel` |
-| Matrix Pattern | 15 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `confusion_matrix_heatmap_binary_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1`, `pathway_enrichment_dotplot_panel_inputs_v1`, `celltype_marker_dotplot_panel_inputs_v1`, `oncoplot_mutation_landscape_panel_inputs_v1`, `cnv_recurrence_summary_panel_inputs_v1`, `genomic_alteration_landscape_panel_inputs_v1`, `genomic_alteration_consequence_panel_inputs_v1`, `genomic_alteration_multiomic_consequence_panel_inputs_v1`, `genomic_alteration_pathway_integrated_composite_panel_inputs_v1`, `genomic_program_governance_summary_panel_inputs_v1` | `publication_heatmap`, `publication_pathway_enrichment_dotplot_panel`, `publication_celltype_marker_dotplot_panel`, `publication_oncoplot_mutation_landscape_panel`, `publication_cnv_recurrence_summary_panel`, `publication_genomic_alteration_landscape_panel`, `publication_genomic_alteration_consequence_panel`, `publication_genomic_alteration_multiomic_consequence_panel`, `publication_genomic_alteration_pathway_integrated_composite_panel`, `publication_genomic_program_governance_summary_panel` |
-| Effect Estimate | 7 | `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1`, `coefficient_path_panel_inputs_v1`, `broader_heterogeneity_summary_panel_inputs_v1`, `interaction_effect_summary_panel_inputs_v1` | `publication_forest_plot`, `publication_compact_effect_estimate_panel`, `publication_coefficient_path_panel`, `publication_broader_heterogeneity_summary_panel`, `publication_interaction_effect_summary_panel` |
-| Model Explanation | 19 | `shap_summary_inputs_v1`, `shap_bar_importance_inputs_v1`, `shap_signed_importance_panel_inputs_v1`, `shap_multicohort_importance_panel_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `shap_grouped_local_explanation_panel_inputs_v1`, `shap_grouped_decision_path_panel_inputs_v1`, `shap_multigroup_decision_path_panel_inputs_v1`, `shap_grouped_local_support_domain_panel_inputs_v1`, `shap_multigroup_decision_path_support_domain_panel_inputs_v1`, `shap_signed_importance_local_support_domain_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1`, `partial_dependence_interaction_contour_panel_inputs_v1`, `partial_dependence_interaction_slice_panel_inputs_v1`, `partial_dependence_subgroup_comparison_panel_inputs_v1`, `accumulated_local_effects_panel_inputs_v1`, `feature_response_support_domain_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_bar_importance`, `publication_shap_signed_importance_panel`, `publication_shap_multicohort_importance_panel`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_shap_grouped_local_explanation_panel`, `publication_shap_grouped_decision_path_panel`, `publication_shap_multigroup_decision_path_panel`, `publication_shap_grouped_local_support_domain_panel`, `publication_shap_multigroup_decision_path_support_domain_panel`, `publication_shap_signed_importance_local_support_domain_panel`, `publication_partial_dependence_ice_panel`, `publication_partial_dependence_interaction_contour_panel`, `publication_partial_dependence_interaction_slice_panel`, `publication_partial_dependence_subgroup_comparison_panel`, `publication_accumulated_local_effects_panel`, `publication_feature_response_support_domain_panel` |
-| Model Audit | 1 | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` |
-| Generalizability | 3 | `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1`, `center_transportability_governance_summary_panel_inputs_v1` | `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel`, `publication_center_transportability_governance_summary_panel` |
-
-### Publication Shell Layer
-
-| Kind | Implemented Templates | Input Schemas | Contract Gate |
-| --- | ---: | --- | --- |
-| Accepted Descriptive Evidence Figures | 6 | `accepted_descriptive_display_data_v1`, `dpcc_phenotype_gap_structure_v1`, `dpcc_transition_site_support_v1`, `dpcc_treatment_gap_alignment_v1` | evidence profile + catalog contract |
-| Illustration Shell | 7 | `cohort_flow_shell_inputs_v1`, `submission_graphical_abstract_inputs_v1`, `workflow_fact_sheet_panel_inputs_v1`, `design_evidence_composite_shell_inputs_v1`, `baseline_missingness_qc_panel_inputs_v1`, `center_coverage_batch_transportability_panel_inputs_v1`, `transportability_recalibration_governance_panel_inputs_v1` | shell profile + catalog contract |
-| Table Shell | 7 | `baseline_characteristics_schema_v1`, `phenotype_gap_summary_schema_v1`, `transition_site_support_summary_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1`, `performance_summary_table_generic_v1`, `grouped_risk_event_summary_table_v1` | table profile + catalog contract |
-
-## Current Audit-Family Map
-
-The audit families below are the current engineering governance view.
-
-They are intentionally not the same thing as the roadmap-level `A-H` paper families:
-
-- roadmap families answer manuscript-facing evidence questions;
-- audit families answer renderer, schema, QC, and materialization governance questions.
-
-That distinction is intentional and should be preserved.
-
-### 1. Prediction Performance
-
-Templates:
-
-- `roc_curve_binary`
-- `pr_curve_binary`
-- `calibration_curve_binary`
-
-Audit purpose:
-
-- Binary-outcome discrimination and calibration evidence.
-- Curve payloads remain on the audited numeric surface rather than free-text captions or ad hoc plotting code.
-
-Authoritative contract:
-
-- Input schema: `binary_prediction_curve_inputs_v1`
-- Renderer family: `r_ggplot2`
-- QC: `publication_evidence_curve`
-
-### 2. Clinical Utility
-
-Templates:
-
-- `decision_curve_binary`
-- `clinical_impact_curve_binary`
-- `binary_calibration_decision_curve_panel`
-- `time_to_event_threshold_governance_panel`
-- `time_to_event_decision_curve`
-
-Audit purpose:
-
-- Clinical decision-threshold and impact evidence for binary and time-to-event settings, including structured threshold cards, clinical-impact counting curves, and grouped survival-calibration governance.
-
-Authoritative contract:
-
-- Input schemas: `binary_prediction_curve_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1`, `time_to_event_threshold_governance_inputs_v1`, `time_to_event_decision_curve_inputs_v1`
-- Renderer families: `r_ggplot2`, `python`
-- QC: `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve`, `publication_time_to_event_threshold_governance_panel`
-
-### 3. Time-to-Event
-
-Templates:
-
-- `risk_layering_monotonic_bars`
-- `kaplan_meier_grouped`
-- `cumulative_incidence_grouped`
-- `time_dependent_roc_horizon`
-- `time_dependent_roc_comparison_panel`
-- `time_to_event_landmark_performance_panel`
-- `time_to_event_multihorizon_calibration_panel`
-- `time_to_event_stratified_cumulative_incidence_panel`
-- `time_to_event_discrimination_calibration_panel`
-- `time_to_event_risk_group_summary`
-
-Audit purpose:
-
-- Risk-layer stratification, grouped survival separation, event accumulation, fixed-horizon discrimination, landmark/time-slice performance governance, multi-window ROC comparison, stratified cumulative-incidence panels, grouped calibration at one or multiple horizons, and risk-group summary views.
-
-Authoritative contract:
-
-- Input schemas: `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_landmark_performance_inputs_v1`, `time_to_event_multihorizon_calibration_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1`
-- Renderer families: `r_ggplot2`, `python`
-- QC: `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`, `publication_landmark_performance_panel`, `publication_time_to_event_multihorizon_calibration_panel`
-
-### 4. Data Geometry
-
-Templates:
-
-- `umap_scatter_grouped`
-- `pca_scatter_grouped`
-- `tsne_scatter_grouped`
-- `phate_scatter_grouped`
-- `diffusion_map_scatter_grouped`
-- `celltype_signature_heatmap`
-- `single_cell_atlas_overview_panel`
-- `atlas_spatial_bridge_panel`
-- `spatial_niche_map_panel`
-- `trajectory_progression_panel`
-- `atlas_spatial_trajectory_storyboard_panel`
-- `atlas_spatial_trajectory_density_coverage_panel`
-- `atlas_spatial_trajectory_context_support_panel`
-- `atlas_spatial_trajectory_multimanifold_context_support_panel`
-- `omics_volcano_panel`
-
-Audit purpose:
-
-- Structured latent-space, grouped PCA/UMAP/t-SNE/PHATE/diffusion-map scatter, atlas-to-spatial bridge, tissue-coordinate niche, trajectory-progression, atlas-spatial-trajectory storyboard, bounded density/coverage support, six-panel context-support evidence, or threshold-governed omics volcano scatter under grouped labeling, including composite panels that must keep declared state/region/branch/context vocabularies, atlas and spatial point domains, trajectory branches, support grids, composition summaries, pseudotime bins, marker-program heatmap grids, fold-change thresholds, significance thresholds, and regulation vocabularies fail-closed together.
-
-Authoritative contract:
-
-- Input schemas: `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1`, `atlas_spatial_trajectory_density_coverage_panel_inputs_v1`, `atlas_spatial_trajectory_context_support_panel_inputs_v1`, `atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1`, `omics_volcano_panel_inputs_v1`
-- Renderer families: `r_ggplot2`, `python`
-- QC: `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel`, `publication_atlas_spatial_trajectory_density_coverage_panel`, `publication_atlas_spatial_trajectory_context_support_panel`, `publication_atlas_spatial_trajectory_multimanifold_context_support_panel`, `publication_omics_volcano_panel`
-
-### 5. Matrix Pattern
-
-Templates:
-
-- `heatmap_group_comparison`
-- `performance_heatmap`
-- `confusion_matrix_heatmap_binary`
-- `correlation_heatmap`
-- `clustered_heatmap`
-- `gsva_ssgsea_heatmap`
-- `pathway_enrichment_dotplot_panel`
-- `celltype_marker_dotplot_panel`
-- `oncoplot_mutation_landscape_panel`
-- `cnv_recurrence_summary_panel`
-- `genomic_alteration_landscape_panel`
-- `genomic_alteration_consequence_panel`
-- `genomic_alteration_multiomic_consequence_panel`
-- `genomic_alteration_pathway_integrated_composite_panel`
-- `genomic_program_governance_summary_panel`
-
-Audit purpose:
-
-- Group contrast matrices, audited performance grids, binary confusion-matrix heatmaps with explicit normalization governance, symmetric correlation structure, externally fixed clustered ordering, omics-native GSVA/ssGSEA program heatmaps, shared-pathway enrichment dotplots, celltype-marker atlas companion dotplots, bounded oncoplot mutation landscapes, bounded CNV recurrence summaries, bounded mutation-plus-CNV genomic landscapes, driver-centric consequence follow-on panels, fixed three-layer multiomic consequence follow-on panels, pathway-integrated genomic composite panels, and bounded genomic-program governance summary panels that jointly govern effect direction, effect strength, hit-size encoding, shared pathway ordering, shared `celltype × marker` ordering, declared sample/gene ordering, declared sample/region ordering, driver-gene subsets, annotation-track completeness, top burden sidebars, right-side alteration-frequency semantics, bounded proteome/phosphoproteome/glycoproteome consequence scatter semantics, bounded pathway-layer colorbar / size-scale / shared-pathway evidence semantics, fixed layer-order governance, fixed program priority/vocabulary governance, and cross-layer support coverage completeness.
-
-Authoritative contract:
-
-- Input schemas: `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `confusion_matrix_heatmap_binary_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1`, `pathway_enrichment_dotplot_panel_inputs_v1`, `celltype_marker_dotplot_panel_inputs_v1`, `oncoplot_mutation_landscape_panel_inputs_v1`, `cnv_recurrence_summary_panel_inputs_v1`, `genomic_alteration_landscape_panel_inputs_v1`, `genomic_alteration_consequence_panel_inputs_v1`, `genomic_alteration_multiomic_consequence_panel_inputs_v1`, `genomic_alteration_pathway_integrated_composite_panel_inputs_v1`, `genomic_program_governance_summary_panel_inputs_v1`
-- Renderer families: `r_ggplot2`, `python`
-- QC: `publication_heatmap`, `publication_pathway_enrichment_dotplot_panel`, `publication_celltype_marker_dotplot_panel`, `publication_oncoplot_mutation_landscape_panel`, `publication_cnv_recurrence_summary_panel`, `publication_genomic_alteration_landscape_panel`, `publication_genomic_alteration_consequence_panel`, `publication_genomic_alteration_multiomic_consequence_panel`, `publication_genomic_alteration_pathway_integrated_composite_panel`, `publication_genomic_program_governance_summary_panel`
-
-### 6. Effect Estimate
-
-Templates:
-
-- `forest_effect_main`
-- `multivariable_forest`
-- `subgroup_forest`
-- `compact_effect_estimate_panel`
-- `coefficient_path_panel`
-- `broader_heterogeneity_summary_panel`
-- `interaction_effect_summary_panel`
-
-Audit purpose:
-
-- Publication-facing interval estimate display for prespecified predictors, multivariable-model coefficients, subgroups, bounded compact multi-panel effect-estimate comparisons, coefficient-path stability summaries, row-aligned broader heterogeneity verdict synthesis, and modifier-level interaction verdict summaries under shared row-order and reference-line governance.
-
-Authoritative contract:
-
-- Input schemas: `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1`, `coefficient_path_panel_inputs_v1`, `broader_heterogeneity_summary_panel_inputs_v1`, `interaction_effect_summary_panel_inputs_v1`
-- Renderer families: `r_ggplot2`, `python`
-- QC: `publication_forest_plot`, `publication_compact_effect_estimate_panel`, `publication_coefficient_path_panel`, `publication_broader_heterogeneity_summary_panel`, `publication_interaction_effect_summary_panel`
-
-### 7. Model Explanation
-
-Templates:
-
-- `shap_summary_beeswarm`
-- `shap_bar_importance`
-- `shap_signed_importance_panel`
-- `shap_multicohort_importance_panel`
-- `shap_dependence_panel`
-- `shap_waterfall_local_explanation_panel`
-- `shap_force_like_summary_panel`
-- `shap_grouped_local_explanation_panel`
-- `shap_grouped_decision_path_panel`
-- `shap_multigroup_decision_path_panel`
-- `shap_grouped_local_support_domain_panel`
-- `shap_multigroup_decision_path_support_domain_panel`
-- `shap_signed_importance_local_support_domain_panel`
-- `partial_dependence_ice_panel`
-- `partial_dependence_interaction_contour_panel`
-- `partial_dependence_interaction_slice_panel`
-- `partial_dependence_subgroup_comparison_panel`
-- `accumulated_local_effects_panel`
-- `feature_response_support_domain_panel`
-
-Audit purpose:
-
-- Ranked feature-attribution summary, bounded global importance overview, zero-centered signed directional importance overview, cross-cohort global importance comparison, grouped local explanation comparison, grouped decision-path comparison, grouped-local plus support-domain explanation scenes, three-group decision-path plus matched support-domain composite scenes, signed-global plus single-case local plus matched support-domain explanation scenes, multi-panel dependence explanation, patient-level additive waterfall paths, bounded force-like representative-case summaries, bounded PDP+ICE panels, pairwise partial-dependence interaction contours, higher-order interaction slices, subgroup-conditioned partial-dependence comparisons, accumulated-local-effects summaries, and support-domain explanation panels under controlled point geometry, shared legend/colorbar governance, explicit zero/reference guides, directional positive/negative contribution lanes, cross-panel feature-order governance, deterministic baseline-plus-contribution reconciliation, subgroup/order semantics, global-to-local feature-order governance, global-to-support feature-order governance, local-to-support feature-order governance, decision-to-support feature-order governance, support-legend title containment, and fail-closed interaction-grid / observed-support / slice-point / bin / extrapolation-domain containment.
-
-Authoritative contract:
-
-- Input schemas: `shap_summary_inputs_v1`, `shap_bar_importance_inputs_v1`, `shap_signed_importance_panel_inputs_v1`, `shap_multicohort_importance_panel_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `shap_grouped_local_explanation_panel_inputs_v1`, `shap_grouped_decision_path_panel_inputs_v1`, `shap_multigroup_decision_path_panel_inputs_v1`, `shap_grouped_local_support_domain_panel_inputs_v1`, `shap_multigroup_decision_path_support_domain_panel_inputs_v1`, `shap_signed_importance_local_support_domain_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1`, `partial_dependence_interaction_contour_panel_inputs_v1`, `partial_dependence_interaction_slice_panel_inputs_v1`, `partial_dependence_subgroup_comparison_panel_inputs_v1`, `accumulated_local_effects_panel_inputs_v1`, `feature_response_support_domain_panel_inputs_v1`
-- Renderer family: `python`
-- QC: `publication_shap_summary`, `publication_shap_bar_importance`, `publication_shap_signed_importance_panel`, `publication_shap_multicohort_importance_panel`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_shap_grouped_local_explanation_panel`, `publication_shap_grouped_decision_path_panel`, `publication_shap_multigroup_decision_path_panel`, `publication_shap_grouped_local_support_domain_panel`, `publication_shap_multigroup_decision_path_support_domain_panel`, `publication_shap_signed_importance_local_support_domain_panel`, `publication_partial_dependence_ice_panel`, `publication_partial_dependence_interaction_contour_panel`, `publication_partial_dependence_interaction_slice_panel`, `publication_partial_dependence_subgroup_comparison_panel`, `publication_accumulated_local_effects_panel`, `publication_feature_response_support_domain_panel`
-
-### 8. Model Audit
-
-Templates:
-
-- `model_complexity_audit_panel`
-
-Audit purpose:
-
-- Controlled multi-panel audit of metric coherence, bounded complexity, and coefficient/domain stability without reverting to free-form plotting.
-
-Authoritative contract:
-
-- Input schema: `model_complexity_audit_panel_inputs_v1`
-- Renderer family: `python`
-- QC: `publication_model_complexity_audit`
-
-### 9. Generalizability
-
-Templates:
-
-- `multicenter_generalizability_overview`
-- `generalizability_subgroup_composite_panel`
-- `center_transportability_governance_summary_panel`
-
-Audit purpose:
-
-- Center-level transportability, bounded subgroup interval robustness, and manuscript-facing center-governance synthesis under audited sample-size, cohort-level metric, interval-estimate, shift, recalibration, and action-summary panels.
-
-Authoritative contract:
-
-- Input schemas: `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1`, `center_transportability_governance_summary_panel_inputs_v1`
-- Renderer family: `python`
-- QC: `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel`, `publication_center_transportability_governance_summary_panel`
-
-## Publication Shell And Table Audit Map
-
-### Accepted Descriptive Evidence Figures
-
-- `fenggaolab.org.medical-display-core::phenotype_gap_structure_figure`
-  - Input schema: `dpcc_phenotype_gap_structure_v1`
-  - Required exports: `png`, `pdf`, `svg`
-  - Role: paper-facing phenotype-gap structure figure for descriptive survey studies
-- `fenggaolab.org.medical-display-core::site_held_out_stability_figure`
-  - Input schema: `dpcc_transition_site_support_v1`
-  - Required exports: `png`, `pdf`, `svg`
-  - Role: paper-facing site-held-out stability figure for descriptive survey studies
-- `fenggaolab.org.medical-display-core::treatment_gap_alignment_figure`
-  - Input schema: `dpcc_treatment_gap_alignment_v1`
-  - Required exports: `png`, `pdf`, `svg`
-  - Role: paper-facing treatment-gap alignment figure for descriptive survey studies
-- `fenggaolab.org.medical-display-core::treatment_shift_alignment_figure`
-  - Input schema: `accepted_descriptive_display_data_v1`
-  - Required exports: `png`, `svg`
-  - Role: paper-facing treatment-shift alignment figure for descriptive survey studies
-- `fenggaolab.org.medical-display-core::practical_factor_dot_figure`
-  - Input schema: `accepted_descriptive_display_data_v1`
-  - Required exports: `png`, `svg`
-  - Role: paper-facing practical-factor comparison figure for descriptive survey studies
-- `fenggaolab.org.medical-display-core::preferred_class_sensitivity_figure`
-  - Input schema: `accepted_descriptive_display_data_v1`
-  - Required exports: `png`, `svg`
-  - Role: paper-facing preferred-class sensitivity figure for descriptive survey studies
-
-### Illustration Shells
-
-- `fenggaolab.org.medical-display-core::cohort_flow_figure`
-  - Input schema: `cohort_flow_shell_inputs_v1`
-  - Required exports: `png`, `svg`
-  - Role: trial-style or cohort-entry audit figure
-- `fenggaolab.org.medical-display-core::submission_graphical_abstract`
-  - Input schema: `submission_graphical_abstract_inputs_v1`
-  - Required exports: `png`, `svg`
-  - Role: paper-facing graphical-abstract shell routed through the audited catalog and QC path
-- `fenggaolab.org.medical-display-core::workflow_fact_sheet_panel`
-  - Input schema: `workflow_fact_sheet_panel_inputs_v1`
-  - Required exports: `png`, `svg`
-  - Role: bounded manuscript-facing workflow / study-design fact sheet shell with fixed 2x2 section governance
-- `fenggaolab.org.medical-display-core::design_evidence_composite_shell`
-  - Input schema: `design_evidence_composite_shell_inputs_v1`
-  - Required exports: `png`, `svg`
-  - Role: bounded manuscript-facing design-evidence composite shell with a fixed workflow ribbon plus three summary panels
-- `fenggaolab.org.medical-display-core::baseline_missingness_qc_panel`
-  - Input schema: `baseline_missingness_qc_panel_inputs_v1`
-  - Required exports: `png`, `svg`
-  - Role: bounded manuscript-facing three-panel shell that jointly governs baseline balance, missingness pattern, and QC summary cards
-- `fenggaolab.org.medical-display-core::center_coverage_batch_transportability_panel`
-  - Input schema: `center_coverage_batch_transportability_panel_inputs_v1`
-  - Required exports: `png`, `svg`
-  - Role: bounded manuscript-facing three-panel shell that jointly governs center coverage, batch-shift heatmap evidence, and transportability boundary cards
-
-### Table Shells
-
-- `fenggaolab.org.medical-display-core::table1_baseline_characteristics`
-  - Input schema: `baseline_characteristics_schema_v1`
-  - Required exports: `csv`, `md`
-- `fenggaolab.org.medical-display-core::table2_phenotype_gap_summary`
-  - Input schema: `phenotype_gap_summary_schema_v1`
-  - Required exports: `md`
-- `fenggaolab.org.medical-display-core::table3_transition_site_support_summary`
-  - Input schema: `transition_site_support_summary_schema_v1`
-  - Required exports: `md`
-- `fenggaolab.org.medical-display-core::table2_time_to_event_performance_summary`
-  - Input schema: `time_to_event_performance_summary_v1`
-  - Required exports: `md`
-- `fenggaolab.org.medical-display-core::table3_clinical_interpretation_summary`
-  - Input schema: `clinical_interpretation_summary_v1`
-  - Required exports: `md`
-  - Additional publication-surface rule: the markdown table body is scanned for forbidden engineering or tooling language, because interpretation text must be manuscript-safe even when the catalog title/caption is clean.
-- `fenggaolab.org.medical-display-core::performance_summary_table_generic`
-  - Input schema: `performance_summary_table_generic_v1`
-  - Required exports: `csv`, `md`
-- `fenggaolab.org.medical-display-core::grouped_risk_event_summary_table`
-  - Input schema: `grouped_risk_event_summary_table_v1`
-  - Required exports: `csv`, `md`
-
-## Cross-Paper Golden Regression Priority
-
-Phase 1 hardening should not start from abstract template counts. The first regression lane should stay anchored on the real-paper-used families already exercised by `001/003`.
-
-### A/B curve-panel families
-
-- `fenggaolab.org.medical-display-core::binary_calibration_decision_curve_panel`
-- `fenggaolab.org.medical-display-core::time_to_event_discrimination_calibration_panel`
-- `fenggaolab.org.medical-display-core::time_to_event_risk_group_summary`
-- `fenggaolab.org.medical-display-core::time_to_event_decision_curve`
-- lower-bound focus: title policy, blank-zone annotation placement, calibration axis-window fit, grouped-separation readability, and landmark/time-slice regression semantics
-
-### H generalizability and shell layer
-
-- `fenggaolab.org.medical-display-core::multicenter_generalizability_overview`
-- `fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel`
-- `fenggaolab.org.medical-display-core::center_transportability_governance_summary_panel`
-- `fenggaolab.org.medical-display-core::submission_graphical_abstract`
-- `fenggaolab.org.medical-display-core::workflow_fact_sheet_panel`
-- `fenggaolab.org.medical-display-core::design_evidence_composite_shell`
-- `fenggaolab.org.medical-display-core::baseline_missingness_qc_panel`
-- `fenggaolab.org.medical-display-core::center_coverage_batch_transportability_panel`
-- `fenggaolab.org.medical-display-core::transportability_recalibration_governance_panel`
-- lower-bound focus: panel-label anchoring, section-title and fact-row containment, outboard cohort/subgroup label containment, center-governance summary containment, shift / slope / O:E acceptance-band governance, legend title/label semantics, tick-label readability, arrow-lane placement, balance-threshold governance, missingness-grid completeness, batch-grid completeness, transportability-card containment, recalibration-row containment, and catalog/package routing consistency
-
-### D/E/G composite atlas lane
-
-- `fenggaolab.org.medical-display-core::celltype_signature_heatmap`
-- `fenggaolab.org.medical-display-core::atlas_spatial_trajectory_multimanifold_context_support_panel`
-- lower-bound focus: embedding-group and declared heatmap-column alignment, complete row/column coverage without duplicate coordinates, explicit score-method provenance, and stable legend/colorbar anchoring for the composite panel
-- lower-bound focus: dual-manifold atlas panel identity, manifold-method uniqueness, shared state vocabulary, point-domain containment across atlas/spatial/trajectory panels, complete context-support grids, and stable seven-panel label anchoring for the manuscript-facing composite
-
-### F local explanation lane
-
-- `fenggaolab.org.medical-display-core::shap_dependence_panel`
-- `fenggaolab.org.medical-display-core::shap_waterfall_local_explanation_panel`
-- `fenggaolab.org.medical-display-core::shap_force_like_summary_panel`
-- `fenggaolab.org.medical-display-core::shap_grouped_decision_path_panel`
-- `fenggaolab.org.medical-display-core::shap_multigroup_decision_path_panel`
-- `fenggaolab.org.medical-display-core::partial_dependence_ice_panel`
-- `fenggaolab.org.medical-display-core::partial_dependence_interaction_contour_panel`
-- `fenggaolab.org.medical-display-core::partial_dependence_interaction_slice_panel`
-- `fenggaolab.org.medical-display-core::partial_dependence_subgroup_comparison_panel`
-- `fenggaolab.org.medical-display-core::accumulated_local_effects_panel`
-- `fenggaolab.org.medical-display-core::feature_response_support_domain_panel`
-- `fenggaolab.org.medical-display-core::shap_grouped_local_support_domain_panel`
-- lower-bound focus: panel-feature uniqueness, finite point coordinates, zero-line containment, shared colorbar/legend governance, panel-label anchoring, contribution direction consistency, positive/negative lane containment, grouped and multigroup decision-path baseline/reference-line governance, shared feature-order alignment, prediction-marker directionality, deterministic `baseline + contributions = prediction` reconciliation, local-to-support feature-order alignment, support-legend title containment, in-panel PDP/ICE/reference-line containment with aligned reference-label semantics, fail-closed pairwise interaction-grid / observed-support containment, slice-point containment, subgroup estimate-marker containment, ALE bin containment, and support-domain segment / extrapolation-label containment for manuscript-facing explanation panels
-
-### AI-first visual audit lane
-
-- deterministic QC keeps ownership of repeatable lower-bound failures;
-- AI-first visual critique remains mandatory for paper-facing issues that are still too context-sensitive to encode cleanly in deterministic rules;
-- `gate clear != final figure QA clear` remains the governing rule when deciding whether a family is mature enough for real-paper reuse.
-
-## Input Schema Contract Rules
-
-All audited schemas share the same enforcement philosophy:
-
-1. The top-level schema identifier must match the registered template family.
-2. Required display fields must be explicit and non-empty.
-3. Required collections must be non-empty when the schema defines them.
-4. Length-matched numeric arrays must remain length-matched after validation.
-5. Interval-based templates must satisfy `lower <= estimate <= upper`.
-6. Registered renderers and QC profiles must match the registry entry exactly.
-7. Required export formats must be present in the catalog entry that reaches publication or submission packaging.
-
-The exhaustive per-schema field matrix is maintained in [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md).
-
-## Renderer And QC Boundary
-
-The system does not treat plotting as unconstrained "free generation".
-
-Every audited template is bound to:
-
-- one registered renderer family
-- one registered input schema
-- one registered QC profile or shell/table contract
-- one registered export set
-
-This means the plotting path is constrained before, during, and after rendering:
-
-1. Before rendering:
-   - the payload must pass the registered schema validator
-2. During rendering:
-   - the template can only go through its registered renderer family
-3. After rendering:
-   - the figure must emit a layout sidecar that satisfies the registered QC profile
-   - tables and shells must satisfy the registered catalog/export contract
-
-## Publication Style Governance
-
-Publication-facing figure appearance is no longer treated as a private template concern.
-
-- `paper/publication_style_profile.json` is the article-level style-token source of truth for palette semantic roles, typography, stroke and grid tokens; it is not source-readiness, artifact-authority, publication-quality, or submission-readiness authority.
-- `paper/display_overrides.json` is the structured figure-level adjustment layer.
-- E2E render request, layout sidecar, display lock and publication manifest must preserve the same style profile hash so cross-figure style drift is auditable.
-- Templates remain the audited lower bound, but they do not cap manuscript-facing expression when the formal style and override contracts require a clearer presentation.
-
-This keeps visual consistency at the paper level while preserving a formal route for figure-specific correction.
-
-## Readability Audit
-
-Layout integrity alone is not sufficient for publication release.
-
-A figure fails readability audit when it technically renders but does not communicate the intended manuscript-facing signal, such as:
-
-- risk-group separation that remains visually compressed
-- threshold-region utility that is not meaningfully distinguishable
-- grouped or panelized evidence that is present but not interpretable at publication surface
-
-Readability failure is a blocking display-audit outcome for accepting the generated display surface. The required correction path is:
-
-1. adjust `display_overrides.json`
-2. adjust `publication_style_profile.json`
-3. update the registered renderer or schema contract if the audited inputs are still insufficient
-
-The gate does not silently repair a failed figure after export.
-
-## Change Protocol
-
-When adding a new display template, the minimum audited change set is:
-
-1. Register the template in `display_registry.py`
-2. Add or extend the corresponding input schema contract in `display_schema_contract.py`
-3. Materialize it in `display_surface_materialization.py`
-4. Attach the correct layout-QC or shell/table contract
-5. Add tests for:
-   - registry/schema coverage
-   - materialization
-   - QC
-   - CLI
-   - publication-surface policy if wording or export behavior changes
-   - submission-minimal metadata preservation if catalog semantics change
-6. Refresh the generated catalog guide
-7. Update this audit guide when the class map, completion count, or audit boundary changes
-
-## Audit Use
-
-Use this guide as the stable human-facing entry point. Use the generated catalog for exhaustive field-by-field lookup. If the two ever disagree, the source-of-truth Python files win and both documents must be updated in the same change.
+External galleries, blogs, packages, and paper examples are read-only learning sources. They can justify a template gap, style rule, or audit check. They do not become current MAS display capabilities until the change lands through descriptor, schema, renderer, QC, catalog, Gallery/readback, and tests.

@@ -2,4 +2,3 @@ from __future__ import annotations
 
 from tests.display_ch_golden_regression_cases.shared import *
 from tests.display_ch_golden_regression_cases.clinical_baseline_and_transportability_golden import *
-from tests.display_ch_golden_regression_cases.clinical_dpcc_golden import *

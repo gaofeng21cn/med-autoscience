@@ -5,7 +5,7 @@ import importlib
 import pytest
 
 
-def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str = "python") -> dict[str, object]:
+def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str = "r_ggplot2") -> dict[str, object]:
     if figure_semantics == "illustration":
         template_id = "cohort_flow_figure"
         layout_qc_profile = "publication_illustration_flow"
@@ -16,10 +16,6 @@ def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str =
         layout_qc_profile = "submission_graphical_abstract"
         required_exports = ["png", "svg"]
         renderer_family = "python"
-    elif renderer_family == "python":
-        template_id = "shap_summary_beeswarm"
-        layout_qc_profile = "publication_shap_summary"
-        required_exports = ["png", "pdf"]
     else:
         template_id = "roc_curve_binary"
         layout_qc_profile = "publication_evidence_curve"
@@ -61,7 +57,7 @@ def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str =
 def test_allowed_renderer_families_follow_semantics_boundary() -> None:
     module = importlib.import_module("med_autoscience.figure_renderer_contract")
 
-    assert module.allowed_renderer_families("evidence") == ("python", "r_ggplot2")
+    assert module.allowed_renderer_families("evidence") == ("r_ggplot2",)
     assert module.allowed_renderer_families("illustration") == ("python", "r_ggplot2", "html_svg")
     assert module.allowed_renderer_families("submission_companion") == ("python", "r_ggplot2", "html_svg")
 
@@ -69,7 +65,6 @@ def test_allowed_renderer_families_follow_semantics_boundary() -> None:
 def test_validate_renderer_contract_accepts_allowed_pairs() -> None:
     module = importlib.import_module("med_autoscience.figure_renderer_contract")
 
-    assert module.validate_renderer_contract(valid_contract(figure_semantics="evidence", renderer_family="python")) == []
     assert module.validate_renderer_contract(
         valid_contract(figure_semantics="evidence", renderer_family="r_ggplot2")
     ) == []
@@ -81,7 +76,7 @@ def test_validate_renderer_contract_accepts_allowed_pairs() -> None:
     ) == []
 
 
-def test_validate_renderer_contract_rejects_html_svg_for_evidence() -> None:
+def test_validate_renderer_contract_rejects_non_r_renderers_for_evidence() -> None:
     module = importlib.import_module("med_autoscience.figure_renderer_contract")
 
     errors = module.validate_renderer_contract(valid_contract(figure_semantics="evidence", renderer_family="html_svg"))
@@ -90,6 +85,16 @@ def test_validate_renderer_contract_rejects_html_svg_for_evidence() -> None:
     assert "renderer_family" in errors[0]
     assert "html_svg" in errors[0]
     assert "evidence" in errors[0]
+
+    python_errors = module.validate_renderer_contract(
+        {
+            **valid_contract(figure_semantics="evidence", renderer_family="r_ggplot2"),
+            "renderer_family": "python",
+        }
+    )
+    assert python_errors
+    assert "python" in python_errors[0]
+    assert "evidence" in python_errors[0]
 
 
 def test_validate_renderer_contract_rejects_failure_driven_fallbacks() -> None:

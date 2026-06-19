@@ -13,8 +13,6 @@ DOCS_PDF_PATH = EXAMPLES_ROOT / "ggplot2_template_gallery.pdf"
 DOCS_REFERENCE_PATH = EXAMPLES_ROOT / "ggplot2_template_reference.md"
 DOCS_QUALITY_AUDIT_PATH = EXAMPLES_ROOT / "display_pack_gallery_quality_audit.md"
 ASSET_ROOT = DEFAULT_OUTPUT_ROOT / "ggplot2_template_reference_assets"
-PYTHON_CURRENT_ROOT = ASSET_ROOT / "python_current"
-PYTHON_BASELINE_ROOT = ASSET_ROOT / "python_baseline"
 HTML_PATH = DEFAULT_OUTPUT_ROOT / "ggplot2_template_gallery.html"
 PDF_PATH = DEFAULT_OUTPUT_ROOT / "ggplot2_template_gallery.pdf"
 REFERENCE_PATH = DEFAULT_OUTPUT_ROOT / "ggplot2_template_reference.md"
@@ -28,8 +26,6 @@ if str(PACK_SRC_ROOT) not in sys.path:
 
 def configure_output_paths(output_root: Path) -> None:
     global ASSET_ROOT
-    global PYTHON_CURRENT_ROOT
-    global PYTHON_BASELINE_ROOT
     global HTML_PATH
     global PDF_PATH
     global REFERENCE_PATH
@@ -41,8 +37,6 @@ def configure_output_paths(output_root: Path) -> None:
         resolved = REPO_ROOT / resolved
     resolved = resolved.resolve()
     ASSET_ROOT = resolved / "ggplot2_template_reference_assets"
-    PYTHON_CURRENT_ROOT = ASSET_ROOT / "python_current"
-    PYTHON_BASELINE_ROOT = ASSET_ROOT / "python_baseline"
     HTML_PATH = resolved / "ggplot2_template_gallery.html"
     PDF_PATH = resolved / "ggplot2_template_gallery.pdf"
     REFERENCE_PATH = resolved / "ggplot2_template_reference.md"

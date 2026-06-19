@@ -73,9 +73,13 @@ _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
     "time_to_event_discrimination_calibration_panel": ("discrimination_calibration", "figure", "F2"),
     "time_to_event_risk_group_summary": ("km_risk_stratification", "figure", "F3"),
     "time_to_event_decision_curve": ("decision_curve", "figure", "F4"),
-    "multicenter_generalizability_overview": ("multicenter_generalizability", "figure", "F5"),
-    "center_transportability_governance_summary_panel": ("transportability_governance", "figure", "F5"),
+    "generalizability_subgroup_composite_panel": ("multicenter_generalizability", "figure", "F5"),
 }
+_ILLUSTRATION_REQUIREMENT_KEYS = frozenset(
+    {
+        "cohort_flow_figure",
+    }
+)
 
 
 def normalize_requirement_key(requirement_key: object) -> str:
@@ -199,11 +203,7 @@ def resolve_medical_reporting_contract(
         and endpoint_type == "time_to_event"
         and submission_target_family == "general_medical_journal"
     ):
-        final_evidence_requirement = (
-            "center_transportability_governance_summary_panel"
-            if reporting_context == "transportability_attribution_shift"
-            else "multicenter_generalizability_overview"
-        )
+        final_evidence_requirement = "generalizability_subgroup_composite_panel"
         table_shell_requirements = (
             "table1_baseline_characteristics",
             "table2_time_to_event_performance_summary",
@@ -262,11 +262,11 @@ def resolve_medical_reporting_contract(
         table_shell_requirements=table_shell_requirements,
         figure_shell_requirements=figure_shell_requirements,
         required_illustration_shells=tuple(
-            item for item in figure_shell_requirements if item == "cohort_flow_figure"
+            item for item in figure_shell_requirements if item in _ILLUSTRATION_REQUIREMENT_KEYS
         ),
         required_table_shells=table_shell_requirements,
         required_evidence_templates=tuple(
-            item for item in figure_shell_requirements if item != "cohort_flow_figure"
+            item for item in figure_shell_requirements if item not in _ILLUSTRATION_REQUIREMENT_KEYS
         ),
         display_registry_required=True,
         display_shell_plan=_build_display_shell_plan(

@@ -334,17 +334,22 @@ def test_materialize_display_surface_uses_pack_runtime_for_r_evidence_template(t
             ],
         },
     )
-    original_loader = module.display_pack_runtime.load_python_plugin_callable
     render_calls: list[str] = []
 
-    def fake_evidence_renderer(
+    def fake_subprocess_renderer(
         *,
-        template_id: str,
+        full_template_id: str,
+        template_manifest,
+        runtime_template_root: Path,
+        pack_root: Path,
+        paper_root: Path,
+        figure_id: str,
         display_payload: dict[str, object],
         output_png_path: Path,
         output_pdf_path: Path,
         layout_sidecar_path: Path,
-    ) -> None:
+    ) -> dict[str, object]:
+        template_id = full_template_id
         _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
         output_png_path.write_text("PNG", encoding="utf-8")
         output_pdf_path.write_text("%PDF", encoding="utf-8")
@@ -353,19 +358,10 @@ def test_materialize_display_surface_uses_pack_runtime_for_r_evidence_template(t
             encoding="utf-8",
         )
         render_calls.append(template_id)
+        return {"status": "rendered", "figure_id": figure_id}
 
-    def fake_loader(*, repo_root: Path, template_id: str, paper_root: Path | None = None):
-        if template_id == full_id("roc_curve_binary"):
-            return fake_evidence_renderer
-        return original_loader(repo_root=repo_root, template_id=template_id, paper_root=paper_root)
-
-    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
-    monkeypatch.setattr(
-        module,
-        "_render_r_evidence_figure",
-        lambda **_: (_ for _ in ()).throw(AssertionError("host R evidence renderer should not be used")),
-        raising=False,
-    )
+    materialize_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.materialize")
+    monkeypatch.setattr(materialize_module, "_run_subprocess_renderer", fake_subprocess_renderer)
 
     result = module.materialize_display_surface(paper_root=paper_root)
 

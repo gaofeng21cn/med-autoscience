@@ -11,7 +11,6 @@ CORE_PACK_ID = "fenggaolab.org.medical-display-core"
 _DEFAULT_EXECUTION_MODE = "python_plugin"
 _R_EVIDENCE_EXECUTION_MODE = "subprocess"
 _R_EVIDENCE_ENTRYPOINT = "Rscript render.R --request {request_json}"
-_PYTHON_EVIDENCE_ENTRYPOINT = "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
 _ILLUSTRATION_SHELL_ENTRYPOINT = "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell"
 _TABLE_SHELL_ENTRYPOINT = "fenggaolab_org_medical_display_core.table_shells:render_table_shell"
 _PUBLICATION_SHELL_CLASS_ID = "publication_shells_and_tables"
@@ -21,7 +20,6 @@ _PAPER_PROVEN_TEMPLATE_IDS = frozenset(
         f"{CORE_PACK_ID}::time_to_event_discrimination_calibration_panel",
         f"{CORE_PACK_ID}::time_to_event_risk_group_summary",
         f"{CORE_PACK_ID}::time_to_event_decision_curve",
-        f"{CORE_PACK_ID}::multicenter_generalizability_overview",
         f"{CORE_PACK_ID}::submission_graphical_abstract",
     )
 )
@@ -40,9 +38,6 @@ _PAPERPLOTHUB_EXEMPLAR_REFS_BY_TEMPLATE_ID: dict[str, tuple[str, ...]] = {
     ),
     "performance_heatmap": (
         "PaperPlotHub `aiscientist_heatmap` https://paperplothub.tech/p/aiscientist_heatmap",
-    ),
-    "partial_dependence_interaction_contour_panel": (
-        "PaperPlotHub `predictscale_contour` https://paperplothub.tech/p/predictscale_contour",
     ),
     "tsne_scatter_grouped": (
         "PaperPlotHub `scatter_tsne` https://paperplothub.tech/p/scatter_tsne",
@@ -106,16 +101,8 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 qc_profile_ref=spec.layout_qc_profile,
                 required_exports=spec.required_exports,
                 allowed_paper_roles=spec.allowed_paper_roles,
-                execution_mode=(
-                    _R_EVIDENCE_EXECUTION_MODE
-                    if spec.renderer_family == "r_ggplot2"
-                    else _DEFAULT_EXECUTION_MODE
-                ),
-                entrypoint=(
-                    _R_EVIDENCE_ENTRYPOINT
-                    if spec.renderer_family == "r_ggplot2"
-                    else _PYTHON_EVIDENCE_ENTRYPOINT
-                ),
+                execution_mode=_R_EVIDENCE_EXECUTION_MODE,
+                entrypoint=_R_EVIDENCE_ENTRYPOINT,
                 paper_proven=spec.template_id in _PAPER_PROVEN_TEMPLATE_IDS,
                 exemplar_refs=_PAPERPLOTHUB_EXEMPLAR_REFS_BY_TEMPLATE_ID.get(short_id, ()),
             )

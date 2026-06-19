@@ -734,7 +734,7 @@ def test_medical_reporting_audit_blocks_missing_direct_migration_stub(tmp_path: 
         {
             "display_id": "multicenter_generalizability",
             "display_kind": "figure",
-            "requirement_key": "multicenter_generalizability_overview",
+            "requirement_key": "generalizability_subgroup_composite_panel",
             "catalog_id": "F5",
         },
         {
@@ -910,20 +910,20 @@ def test_medical_reporting_audit_blocks_missing_direct_migration_stub(tmp_path: 
     report = module.run_controller(quest_root=quest_root, apply=False)
 
     assert report["status"] == "blocked"
-    assert "missing_multicenter_generalizability_inputs" in report["blockers"]
+    assert "missing_generalizability_subgroup_composite_inputs" in report["blockers"]
     assert "missing_medical_story_contract" in report["blockers"]
 
 
-def test_medical_reporting_audit_blocks_missing_transportability_governance_stub(tmp_path: Path) -> None:
+def test_medical_reporting_audit_blocks_missing_generalizability_f5_inputs(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "002-dm-transportability"
     paper_root = quest_root / "paper"
     (paper_root / "figures").mkdir(parents=True, exist_ok=True)
     display_plan = [
         {
-            "display_id": "transportability_governance",
+            "display_id": "multicenter_generalizability",
             "display_kind": "figure",
-            "requirement_key": "center_transportability_governance_summary_panel",
+            "requirement_key": "generalizability_subgroup_composite_panel",
             "catalog_id": "F5",
         }
     ]
@@ -946,7 +946,7 @@ def test_medical_reporting_audit_blocks_missing_transportability_governance_stub
                 "displays": [
                     {
                         **display_plan[0],
-                        "shell_path": "paper/figures/transportability_governance.shell.json",
+                        "shell_path": "paper/figures/multicenter_generalizability.shell.json",
                     }
                 ],
             },
@@ -954,10 +954,9 @@ def test_medical_reporting_audit_blocks_missing_transportability_governance_stub
         ),
         encoding="utf-8",
     )
-    (paper_root / "figures" / "transportability_governance.shell.json").write_text("{}", encoding="utf-8")
+    (paper_root / "figures" / "multicenter_generalizability.shell.json").write_text("{}", encoding="utf-8")
 
     report = module.run_controller(quest_root=quest_root, apply=False)
 
     assert report["status"] == "blocked"
-    assert "missing_center_transportability_governance_summary_panel_inputs" in report["blockers"]
-    assert "missing_multicenter_generalizability_inputs" not in report["blockers"]
+    assert "missing_generalizability_subgroup_composite_inputs" in report["blockers"]

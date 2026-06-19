@@ -9,9 +9,9 @@ import yaml
 from med_autoscience.profiles import WorkspaceProfile
 
 
-TRANSPORTABILITY_REQUIREMENT_KEY = "center_transportability_governance_summary_panel"
-TRANSPORTABILITY_INPUT_SCHEMA_ID = "center_transportability_governance_summary_panel_inputs_v1"
-TRANSPORTABILITY_INPUT_FILENAME = "center_transportability_governance_summary_panel_inputs.json"
+TRANSPORTABILITY_REQUIREMENT_KEY = "generalizability_subgroup_composite_panel"
+TRANSPORTABILITY_INPUT_SCHEMA_ID = "generalizability_subgroup_composite_inputs_v1"
+TRANSPORTABILITY_INPUT_FILENAME = "generalizability_subgroup_composite_inputs.json"
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -72,13 +72,17 @@ def _current_transportability_payload_is_substantive(*, paper_root: Path) -> boo
     displays = payload.get("displays")
     if not isinstance(displays, list) or not displays:
         return False
-    for item in displays:
-        if not isinstance(item, dict):
-            continue
-        centers = item.get("centers")
-        if isinstance(centers, list) and centers:
-            return True
-    return False
+    first_display = displays[0]
+    if not isinstance(first_display, dict):
+        return False
+    if _non_empty_text(first_display.get("template_id")) not in {
+        "generalizability_subgroup_composite_panel",
+        "fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel",
+    }:
+        return False
+    overview_rows = first_display.get("overview_rows")
+    subgroup_rows = first_display.get("subgroup_rows")
+    return isinstance(overview_rows, list) and bool(overview_rows) and isinstance(subgroup_rows, list) and bool(subgroup_rows)
 
 
 def transportability_reporting_contract_required(

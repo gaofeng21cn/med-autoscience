@@ -92,10 +92,13 @@ def _git(cwd: Path, *args: str) -> str:
 def _write_template_manifest(
     pack_root: Path,
     *,
-    entrypoint: str = "pkg.module:render",
+    entrypoint: str = "Rscript render.R --request {request_json}",
+    render_label: str = "render",
 ) -> None:
     template_root = pack_root / "templates" / "roc_curve_binary"
     template_root.mkdir(parents=True, exist_ok=True)
+    script_name = entrypoint.split()[1] if " " in entrypoint else "render.R"
+    (template_root / script_name).write_text(f"message('{render_label}')\n", encoding="utf-8")
     (template_root / "template.toml").write_text(
         "\n".join(
             (
@@ -109,7 +112,7 @@ def _write_template_manifest(
                 'input_schema_ref = "binary_prediction_curve_inputs_v1"',
                 'qc_profile_ref = "publication_evidence_curve"',
                 'required_exports = ["png", "pdf"]',
-                'execution_mode = "python_plugin"',
+                'execution_mode = "subprocess"',
                 f'entrypoint = "{entrypoint}"',
                 "paper_proven = false",
             )
@@ -149,20 +152,20 @@ def test_load_enabled_local_display_packs_reads_packaged_default_config(
     monkeypatch.setattr(display_pack_loader, "_DEFAULT_REPO_ROOT", install_root)
     manifests = load_enabled_local_display_packs(install_root)
     template_records = load_enabled_local_display_pack_template_records(install_root)
-    renderer_source = (
+    r_renderer_source = (
         packaged_root
         / "display-packs"
         / CORE_PACK_ID
         / "src"
         / "fenggaolab_org_medical_display_core"
         / "evidence_figures"
-        / "python_registry.py"
+        / "r_renderer.py"
     )
 
     assert [item.pack_id for item in manifests] == [CORE_PACK_ID]
     assert manifests[0].version == "0.1.0"
     assert template_records
-    assert renderer_source.is_file()
+    assert r_renderer_source.is_file()
 
 
 def test_source_tree_does_not_keep_packaged_display_pack_projection() -> None:
@@ -189,16 +192,13 @@ def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
         if record.template_manifest.renderer_family == "python"
     ]
 
-    assert len(evidence_records) == 84
-    assert len(r_records) == 51
-    assert len(python_records) == 33
+    assert len(evidence_records) == 55
+    assert len(r_records) == 55
+    assert len(python_records) == 0
     for record in r_records:
         assert record.template_manifest.execution_mode == "subprocess"
         assert record.template_manifest.entrypoint == "Rscript render.R --request {request_json}"
         assert (record.template_path.parent / "render.R").is_file()
-    for record in python_records:
-        assert record.template_manifest.execution_mode == "python_plugin"
-        assert record.template_manifest.entrypoint.startswith("fenggaolab_org_medical_display_core.")
 
 
 def test_default_display_pack_template_inventory_is_canonical_only() -> None:
@@ -206,7 +206,7 @@ def test_default_display_pack_template_inventory_is_canonical_only() -> None:
     full_records = load_enabled_local_display_pack_template_records(REPO_ROOT, inventory_scope="all")
 
     assert len(default_records) == 19
-    assert len(full_records) == 98
+    assert len(full_records) == 66
     assert {record.template_manifest.template_id for record in default_records} < {
         record.template_manifest.template_id for record in full_records
     }
@@ -309,7 +309,11 @@ def test_paper_display_pack_config_overrides_repo_source_and_version(tmp_path: P
         pack_id="fenggaolab.org.medical-display-core",
         version="0.1.0",
     )
-    _write_template_manifest(repo_pack_root, entrypoint="repo_pack.renderers:render")
+    _write_template_manifest(
+        repo_pack_root,
+        entrypoint="Rscript repo_render.R --request {request_json}",
+        render_label="repo",
+    )
 
     paper_root = tmp_path / "paper"
     paper_root.mkdir()
@@ -320,7 +324,11 @@ def test_paper_display_pack_config_overrides_repo_source_and_version(tmp_path: P
         pack_id="fenggaolab.org.medical-display-core",
         version="0.2.0",
     )
-    _write_template_manifest(paper_pack_root, entrypoint="paper_pack.renderers:render")
+    _write_template_manifest(
+        paper_pack_root,
+        entrypoint="Rscript paper_render.R --request {request_json}",
+        render_label="paper",
+    )
 
     selection = resolve_display_pack_selection(repo_root, paper_root=paper_root)
     records = load_enabled_local_display_pack_records(repo_root, paper_root=paper_root)
@@ -331,7 +339,7 @@ def test_paper_display_pack_config_overrides_repo_source_and_version(tmp_path: P
     assert records[0].pack_root == paper_pack_root
     assert records[0].pack_manifest.version == "0.2.0"
     assert records[0].source_config.declared_in == "paper"
-    assert template_records[0].template_manifest.entrypoint == "paper_pack.renderers:render"
+    assert template_records[0].template_manifest.entrypoint == "Rscript paper_render.R --request {request_json}"
 
 
 def test_paper_display_pack_config_can_disable_repo_defaults(tmp_path: Path) -> None:

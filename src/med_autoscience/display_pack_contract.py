@@ -197,6 +197,17 @@ def load_display_template_manifest(
         else:
             allowed_paper_roles = ("main_text", "supplementary")
 
+    renderer_family = _expect_str(payload, "renderer_family")
+    execution_mode = _expect_execution_mode(payload, "execution_mode")
+    if kind == "evidence_figure":
+        if renderer_family != "r_ggplot2":
+            raise ValueError(
+                "evidence_figure templates must use renderer_family `r_ggplot2`; "
+                "Python evidence templates are not retained in the current pack"
+            )
+        if execution_mode != "subprocess":
+            raise ValueError("evidence_figure templates must use subprocess execution mode")
+
     return DisplayTemplateManifest(
         template_id=template_id,
         full_template_id=full_template_id,
@@ -205,7 +216,7 @@ def load_display_template_manifest(
         display_class_id=display_class_id,
         audit_family=audit_family,
         paper_family_ids=_expect_str_tuple(payload, "paper_family_ids"),
-        renderer_family=_expect_str(payload, "renderer_family"),
+        renderer_family=renderer_family,
         input_schema_ref=_expect_str(payload, "input_schema_ref"),
         qc_profile_ref=_expect_str(payload, "qc_profile_ref"),
         required_exports=_expect_str_tuple(payload, "required_exports"),
@@ -216,7 +227,7 @@ def load_display_template_manifest(
             anchor_dir=template_root,
         ),
         exemplar_refs=_optional_str_tuple(payload, "exemplar_refs") or (),
-        execution_mode=_expect_execution_mode(payload, "execution_mode"),
+        execution_mode=execution_mode,
         entrypoint=_expect_str(payload, "entrypoint"),
         paper_proven=_expect_bool(payload, "paper_proven"),
     )

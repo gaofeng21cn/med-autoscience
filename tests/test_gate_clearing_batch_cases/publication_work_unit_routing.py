@@ -572,16 +572,16 @@ def test_gate_clearing_batch_records_display_materialization_failure_refs(
     quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
-    payload_path = paper_root / "multicenter_generalizability_inputs.json"
+    payload_path = paper_root / "generalizability_subgroup_composite_inputs.json"
     _write_json(
         payload_path,
         {
             "schema_version": 1,
-            "input_schema_id": "multicenter_generalizability_inputs_v1",
+            "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
             "displays": [
                 {
                     "display_id": "multicenter_generalizability",
-                    "template_id": "mas.medical_display.multicenter_generalizability_overview",
+                    "template_id": "fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel",
                 }
             ],
         },
@@ -603,12 +603,12 @@ def test_gate_clearing_batch_records_display_materialization_failure_refs(
         ],
         "current_required_action": "complete_bundle_stage",
         "medical_publication_surface_status": "blocked",
-        "medical_publication_surface_named_blockers": ["missing_multicenter_generalizability_inputs"],
+        "medical_publication_surface_named_blockers": ["missing_generalizability_subgroup_composite_inputs"],
         "study_delivery_status": "stale_source_changed",
         "study_delivery_stale_reason": "delivery_manifest_source_changed",
         "blocking_artifact_refs": [
             {
-                "blocker": "missing_multicenter_generalizability_inputs",
+                "blocker": "missing_generalizability_subgroup_composite_inputs",
                 "artifact_path": str(payload_path),
                 "artifact_role": "display_input_payload",
             }
@@ -627,7 +627,10 @@ def test_gate_clearing_batch_records_display_materialization_failure_refs(
         module,
         "_materialize_display_surface",
         lambda *, paper_root: (_ for _ in ()).throw(
-            ValueError("multicenter_generalizability_inputs.json display `multicenter_generalizability` title must be non-empty")
+            ValueError(
+                "generalizability_subgroup_composite_inputs.json display "
+                "`multicenter_generalizability` title must be non-empty"
+            )
         ),
     )
     monkeypatch.setattr(
@@ -658,7 +661,7 @@ def test_gate_clearing_batch_records_display_materialization_failure_refs(
             "artifact_path": str(payload_path.resolve()),
             "artifact_role": "display_input_payload",
             "failure_reason": (
-                "multicenter_generalizability_inputs.json display `multicenter_generalizability` "
+                "generalizability_subgroup_composite_inputs.json display `multicenter_generalizability` "
                 "title must be non-empty"
             ),
             "terminal_state": "gate_needs_specificity",

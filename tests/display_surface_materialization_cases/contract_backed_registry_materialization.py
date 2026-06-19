@@ -315,17 +315,22 @@ def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_f
         },
     )
 
-    original_loader = module.display_pack_runtime.load_python_plugin_callable
     render_calls: list[str] = []
 
-    def fake_evidence_renderer(
+    def fake_subprocess_renderer(
         *,
-        template_id: str,
+        full_template_id: str,
+        template_manifest,
+        runtime_template_root: Path,
+        pack_root: Path,
+        paper_root: Path,
+        figure_id: str,
         display_payload: dict[str, object],
         output_png_path: Path,
         output_pdf_path: Path,
         layout_sidecar_path: Path,
-    ) -> None:
+    ) -> dict[str, object]:
+        template_id = full_template_id
         render_calls.append(template_id)
         _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
         output_png_path.write_bytes(b"png")
@@ -334,13 +339,10 @@ def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_f
             json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
             encoding="utf-8",
         )
+        return {"status": "rendered", "figure_id": figure_id}
 
-    def fake_loader(*, repo_root: Path, template_id: str, paper_root: Path | None = None):
-        if template_id == full_id("roc_curve_binary"):
-            return fake_evidence_renderer
-        return original_loader(repo_root=repo_root, template_id=template_id, paper_root=paper_root)
-
-    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
+    materialize_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.materialize")
+    monkeypatch.setattr(materialize_module, "_run_subprocess_renderer", fake_subprocess_renderer)
 
     result = module.materialize_display_surface(paper_root=paper_root)
 
@@ -376,9 +378,10 @@ def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_f
     }
     for figure_id, expected in expected_contract_catalog.items():
         entry = figures_by_id[figure_id]
+        spec = display_registry.get_evidence_figure_spec(expected["template_id"])
         assert entry["template_id"] == expected["template_id"]
         assert entry["pack_id"] == "fenggaolab.org.medical-display-core"
-        assert entry["renderer_family"] == "python"
+        assert entry["renderer_family"] == spec.renderer_family
         assert entry["input_schema_id"] == expected["input_schema_id"]
         assert entry["qc_profile"] == expected["qc_profile"]
         assert entry["qc_result"]["status"] == "pass"

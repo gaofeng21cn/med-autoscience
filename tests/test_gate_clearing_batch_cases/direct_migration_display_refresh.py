@@ -16,62 +16,120 @@ def _write_current_transportability_governance_payload(
     slope: float = 0.01,
 ) -> None:
     _write_json(
-        paper_root / "center_transportability_governance_summary_panel_inputs.json",
+        paper_root / "generalizability_subgroup_composite_inputs.json",
         {
             "schema_version": 1,
-            "input_schema_id": "center_transportability_governance_summary_panel_inputs_v1",
+            "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
             "source_contract_path": "paper/medical_reporting_contract.json",
             "status": "materialized_from_current_transportability_layout",
             "displays": [
                 {
-                    "display_id": "transportability_governance",
-                    "template_id": "fenggaolab.org.medical-display-core::center_transportability_governance_summary_panel",
+                    "display_id": "multicenter_generalizability",
+                    "template_id": "fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel",
                     "catalog_id": "F5",
-                    "title": "China-US transportability governance summary",
-                    "caption": "Current analysis owner materialized bounded transportability governance.",
+                    "title": "China-US transportability and recalibration summary",
+                    "caption": "Current analysis owner materialized transportability evidence through the R/ggplot2 generalizability panel.",
                     "metric_family": "discrimination",
-                    "metric_panel_title": "Cohort discrimination",
-                    "metric_x_label": "C-index",
-                    "metric_reference_value": 0.759985474506,
-                    "batch_shift_threshold": 0.05,
-                    "slope_acceptance_lower": 0.90,
-                    "slope_acceptance_upper": 1.10,
-                    "oe_ratio_acceptance_lower": 0.90,
-                    "oe_ratio_acceptance_upper": 1.10,
-                    "summary_panel_title": "Transportability action",
-                    "centers": [
+                    "primary_label": "China-derived score",
+                    "comparator_label": "China reference",
+                    "overview_panel_title": "Discrimination transportability",
+                    "overview_x_label": "C-index",
+                    "overview_rows": [
                         {
-                            "center_id": "china_reference",
-                            "center_label": "China",
-                            "cohort_role": "Reference cohort",
+                            "cohort_id": "china_reference",
+                            "cohort_label": "China",
                             "support_count": 15789,
                             "event_count": 321,
-                            "metric_estimate": 0.759985474506,
-                            "metric_lower": 0.759985474506,
-                            "metric_upper": 0.759985474506,
-                            "max_shift": 0.0,
-                            "slope": 1.0,
-                            "oe_ratio": 1.037291771376,
-                            "verdict": "stable",
-                            "action": "Use as the reference fit for transportability comparison",
-                            "detail": "The China cohort anchors the current 5-year mortality risk surface.",
+                            "metric_value": 0.7599854745055089,
+                            "comparator_metric_value": 0.7599854745055089,
                         },
                         {
-                            "center_id": "nhanes_external",
-                            "center_label": "NHANES",
-                            "cohort_role": "External comparative population",
+                            "cohort_id": "nhanes_external",
+                            "cohort_label": "NHANES",
                             "support_count": 5659,
                             "event_count": 704,
-                            "metric_estimate": 0.564708523287,
-                            "metric_lower": 0.564708523287,
-                            "metric_upper": 0.564708523287,
-                            "max_shift": max_shift,
-                            "slope": slope,
-                            "oe_ratio": 109.407514187,
-                            "verdict": "recalibration_required",
-                            "action": "Require recalibration and bounded reporting before any deployment claim",
-                            "detail": "Current transportability analysis, not legacy feature-shift payload, owns this materialization.",
+                            "metric_value": 0.5647085232871016,
+                            "comparator_metric_value": 0.7599854745055089,
                         },
+                    ],
+                    "subgroup_panel_title": "Recalibration governance metrics",
+                    "subgroup_x_label": "Ratio or retained separation",
+                    "subgroup_reference_value": 1.0,
+                    "subgroup_rows": [
+                        {
+                            "subgroup_id": "china_oe_ratio",
+                            "subgroup_label": "China O:E ratio",
+                            "group_n": 15789,
+                            "estimate": 1.037291771376,
+                            "lower": 0.90,
+                            "upper": 1.10,
+                        },
+                        {
+                            "subgroup_id": "nhanes_oe_ratio",
+                            "subgroup_label": "NHANES O:E ratio",
+                            "group_n": 5659,
+                            "estimate": 109.407514187,
+                            "lower": 0.90,
+                            "upper": 109.407514187,
+                        },
+                        {
+                            "subgroup_id": "risk_separation_retention",
+                            "subgroup_label": "NHANES/China risk separation",
+                            "group_n": 5659,
+                            "estimate": slope,
+                            "lower": min(0.50, slope),
+                            "upper": 1.00,
+                        },
+                    ],
+                    "source_context": {
+                        "calibration_shift": max_shift,
+                        "transportability_verdict": "recalibration_required",
+                    },
+                }
+            ],
+        },
+    )
+
+
+def _write_current_generalizability_payload(paper_root: Path) -> None:
+    _write_json(
+        paper_root / "generalizability_subgroup_composite_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "multicenter_generalizability",
+                    "template_id": "fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel",
+                    "catalog_id": "F5",
+                    "paper_role": "main_text",
+                    "title": "Internal multicenter heterogeneity summary",
+                    "caption": "Center-level event support with coverage context under the frozen split.",
+                    "metric_family": "effect_estimate",
+                    "primary_label": "Center event fraction",
+                    "overview_panel_title": "Center-level event support",
+                    "overview_x_label": "Observed event fraction",
+                    "overview_rows": [
+                        {
+                            "cohort_id": "center_01",
+                            "cohort_label": "Center 01",
+                            "support_count": 100,
+                            "event_count": 2,
+                            "metric_value": 0.0200,
+                        }
+                    ],
+                    "subgroup_panel_title": "Geodemographic support distribution",
+                    "subgroup_x_label": "Cohort fraction",
+                    "subgroup_reference_value": 0.3333,
+                    "subgroup_rows": [
+                        {
+                            "subgroup_id": "region_central",
+                            "subgroup_label": "Region: Central China",
+                            "group_n": 1,
+                            "estimate": 0.3333,
+                            "lower": 0.0,
+                            "upper": 0.6667,
+                        }
                     ],
                 }
             ],
@@ -173,58 +231,20 @@ def test_run_gate_clearing_batch_rematerializes_stale_direct_migration_display_i
 
     def fake_direct_migration(*, study_root: Path, paper_root: Path) -> dict[str, object]:
         call_order.append("direct_migration")
-        _write_json(
-            paper_root / "multicenter_generalizability_inputs.json",
-            {
-                "schema_version": 1,
-                "input_schema_id": "multicenter_generalizability_inputs_v1",
-                "displays": [
-                    {
-                        "display_id": "multicenter_generalizability",
-                        "template_id": "fenggaolab.org.medical-display-core::multicenter_generalizability_overview",
-                        "title": "Internal multicenter heterogeneity summary",
-                        "caption": "Center-level event support with coverage context under the frozen split.",
-                        "overview_mode": "center_support_counts",
-                        "center_event_y_label": "5-year CVD events",
-                        "coverage_y_label": "Patient count",
-                        "center_event_counts": [
-                            {"center_label": "Center 01", "split_bucket": "validation", "event_count": 2}
-                        ],
-                        "coverage_panels": [
-                            {
-                                "panel_id": "region",
-                                "title": "Region coverage",
-                                "layout_role": "wide_left",
-                                "bars": [{"label": "Central China", "count": 1}],
-                            },
-                            {
-                                "panel_id": "north_south",
-                                "title": "North vs South coverage",
-                                "layout_role": "top_right",
-                                "bars": [{"label": "South", "count": 1}],
-                            },
-                            {
-                                "panel_id": "urban_rural",
-                                "title": "Urban/rural coverage",
-                                "layout_role": "bottom_right",
-                                "bars": [{"label": "Urban", "count": 1}],
-                            },
-                        ],
-                    }
-                ],
-            },
-        )
+        _write_current_generalizability_payload(paper_root)
         return {
             "status": "synced",
             "study_root": str(study_root),
             "paper_root": str(paper_root),
-            "written_files": [str(paper_root / "multicenter_generalizability_inputs.json")],
+            "written_files": [str(paper_root / "generalizability_subgroup_composite_inputs.json")],
             "blockers": [],
         }
 
     def fake_materialize(*, paper_root: Path) -> dict[str, object]:
-        payload = json.loads((paper_root / "multicenter_generalizability_inputs.json").read_text(encoding="utf-8"))
+        payload = json.loads((paper_root / "generalizability_subgroup_composite_inputs.json").read_text(encoding="utf-8"))
         display = payload["displays"][0]
+        assert payload["input_schema_id"] == "generalizability_subgroup_composite_inputs_v1"
+        assert display["template_id"].endswith("::generalizability_subgroup_composite_panel")
         assert display["title"] == "Internal multicenter heterogeneity summary"
         assert display["caption"] == "Center-level event support with coverage context under the frozen split."
         assert "source_paths" not in display
@@ -259,10 +279,12 @@ def test_run_gate_clearing_batch_rematerializes_stale_direct_migration_display_i
     assert call_order == ["direct_migration", "materialize"]
     assert [item["unit_id"] for item in result["unit_results"]] == [
         "repair_paper_live_paths",
+        "sync_transportability_reporting_surface",
         "time_to_event_direct_migration",
         "materialize_display_surface",
     ]
-    assert result["unit_results"][1]["result"]["status"] == "synced"
+    assert result["unit_results"][1]["result"]["materialization_owner"] == "time_to_event_direct_migration"
+    assert result["unit_results"][2]["result"]["status"] == "synced"
 
 
 def test_run_gate_clearing_batch_routes_historical_feature_shift_f5_payload_to_current_direct_migration_owner(
@@ -355,7 +377,7 @@ def test_run_gate_clearing_batch_routes_historical_feature_shift_f5_payload_to_c
         _write_current_transportability_governance_payload(paper_root)
         return {
             "status": "synced",
-            "written_files": [str(paper_root / "center_transportability_governance_summary_panel_inputs.json")],
+            "written_files": [str(paper_root / "generalizability_subgroup_composite_inputs.json")],
         }
 
     def fake_materialize(*, paper_root: Path) -> dict[str, object]:
@@ -363,24 +385,23 @@ def test_run_gate_clearing_batch_routes_historical_feature_shift_f5_payload_to_c
         reporting_contract = json.loads((paper_root / "medical_reporting_contract.json").read_text(encoding="utf-8"))
         display_registry = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
         current_payload = json.loads(
-            (paper_root / "center_transportability_governance_summary_panel_inputs.json").read_text(
+            (paper_root / "generalizability_subgroup_composite_inputs.json").read_text(
                 encoding="utf-8"
             )
         )
-        assert reporting_contract["display_shell_plan"][4]["display_id"] == "transportability_governance"
+        assert reporting_contract["display_shell_plan"][4]["display_id"] == "multicenter_generalizability"
         assert reporting_contract["display_shell_plan"][4]["requirement_key"] == (
-            "center_transportability_governance_summary_panel"
+            "generalizability_subgroup_composite_panel"
         )
         assert display_registry["displays"][4]["requirement_key"] == (
-            "center_transportability_governance_summary_panel"
+            "generalizability_subgroup_composite_panel"
         )
-        assert current_payload["input_schema_id"] == "center_transportability_governance_summary_panel_inputs_v1"
         current_display = current_payload["displays"][0]
-        assert current_display["display_id"] == "transportability_governance"
-        assert current_display["template_id"].endswith("::center_transportability_governance_summary_panel")
-        assert current_display["centers"][1]["center_label"] == "NHANES"
-        assert current_display["centers"][1]["detail"].startswith("Current transportability analysis")
-        assert current_display["centers"][1]["verdict"] == "recalibration_required"
+        assert current_payload["input_schema_id"] == "generalizability_subgroup_composite_inputs_v1"
+        assert current_display["display_id"] == "multicenter_generalizability"
+        assert current_display["template_id"].endswith("::generalizability_subgroup_composite_panel")
+        assert current_display["overview_rows"][1]["cohort_label"] == "NHANES"
+        assert current_display["source_context"]["transportability_verdict"] == "recalibration_required"
         return {"status": "materialized", "figures_materialized": ["F5"]}
 
     monkeypatch.setattr(
@@ -828,7 +849,7 @@ def test_transportability_f5_ignores_historical_runtime_metrics_path_and_uses_cu
         _write_current_transportability_governance_payload(paper_root, max_shift=0.122535630941, slope=0.01)
         return {
             "status": "synced",
-            "written_files": [str(paper_root / "center_transportability_governance_summary_panel_inputs.json")],
+            "written_files": [str(paper_root / "generalizability_subgroup_composite_inputs.json")],
         }
 
     monkeypatch.setattr(
@@ -864,9 +885,9 @@ def test_transportability_f5_ignores_historical_runtime_metrics_path_and_uses_cu
     assert sync_result["unit_id"] == "sync_transportability_reporting_surface"
     assert sync_result["status"] == "updated"
     migrated_payload = json.loads(
-        (paper_root / "center_transportability_governance_summary_panel_inputs.json").read_text(encoding="utf-8")
+        (paper_root / "generalizability_subgroup_composite_inputs.json").read_text(encoding="utf-8")
     )
     migrated_display = migrated_payload["displays"][0]
-    assert migrated_display["centers"][1]["max_shift"] == 0.122535630941
-    assert migrated_display["centers"][1]["slope"] == 0.01
+    assert migrated_display["source_context"]["calibration_shift"] == 0.122535630941
+    assert migrated_display["subgroup_rows"][2]["estimate"] == 0.01
     assert not any(key.startswith("legacy_") for key in sync_result["result"])

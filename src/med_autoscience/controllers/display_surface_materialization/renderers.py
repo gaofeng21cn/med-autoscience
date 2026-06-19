@@ -1,37 +1,12 @@
 from __future__ import annotations
 
-from .shared import Any, Path, _REPO_ROOT, display_pack_runtime, load_json, plt
+from .shared import Any, Path, load_json, plt
 from .geometry import _bbox_to_layout_box
 
 def _load_layout_sidecar_or_raise(*, path: Path, template_id: str) -> dict[str, Any]:
     if not path.exists():
         raise RuntimeError(f"renderer did not produce layout sidecar for `{template_id}`: {path}")
     return load_json(path)
-
-def _render_r_evidence_figure(
-    *,
-    template_id: str,
-    display_payload: dict[str, Any],
-    output_png_path: Path,
-    output_pdf_path: Path,
-    layout_sidecar_path: Path,
-) -> None:
-    _prepare_python_render_output_paths(
-        output_png_path=output_png_path,
-        output_pdf_path=output_pdf_path,
-        layout_sidecar_path=layout_sidecar_path,
-    )
-    render_callable = display_pack_runtime.load_python_plugin_callable(
-        repo_root=_REPO_ROOT,
-        template_id=template_id,
-    )
-    render_callable(
-        template_id=template_id,
-        display_payload=display_payload,
-        output_png_path=output_png_path,
-        output_pdf_path=output_pdf_path,
-        layout_sidecar_path=layout_sidecar_path,
-    )
 
 def _centered_offsets(count: int, *, half_span: float = 0.28) -> list[float]:
     if count <= 1:
@@ -147,47 +122,12 @@ def _build_single_panel_layout_sidecar(
         "metrics": metrics,
     }
 
-def _render_python_evidence_figure(
-    *,
-    template_id: str,
-    display_payload: dict[str, Any],
-    output_png_path: Path,
-    output_pdf_path: Path,
-    layout_sidecar_path: Path,
-    output_svg_path: Path | None = None,
-) -> None:
-    _prepare_python_render_output_paths(
-        output_png_path=output_png_path,
-        output_pdf_path=output_pdf_path,
-        layout_sidecar_path=layout_sidecar_path,
-        output_svg_path=output_svg_path,
-    )
-    render_callable = display_pack_runtime.resolve_python_plugin_callable(
-        repo_root=_REPO_ROOT,
-        template_id=template_id,
-    )
-    if render_callable is None:
-        raise RuntimeError(f"template `{template_id}` is not wired to a pack-local python entrypoint")
-    render_kwargs = {
-        "template_id": template_id,
-        "display_payload": display_payload,
-        "output_png_path": output_png_path,
-        "output_pdf_path": output_pdf_path,
-        "layout_sidecar_path": layout_sidecar_path,
-    }
-    if output_svg_path is not None:
-        render_kwargs["output_svg_path"] = output_svg_path
-    render_callable(**render_kwargs)
-
-
 __all__ = [
     "_load_layout_sidecar_or_raise",
-    "_render_r_evidence_figure",
     "_centered_offsets",
     "_prepare_python_render_output_paths",
     "_prepare_python_illustration_output_paths",
     "_prepare_table_shell_output_paths",
     "_apply_publication_axes_style",
     "_build_single_panel_layout_sidecar",
-    "_render_python_evidence_figure",
 ]

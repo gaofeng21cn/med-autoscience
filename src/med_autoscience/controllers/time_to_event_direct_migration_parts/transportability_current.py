@@ -223,6 +223,29 @@ def _positive_ratio(numerator: float, denominator: float, *, label: str) -> floa
     return ratio
 
 
+def _risk_delta_to_batch_value(delta: float) -> float:
+    return max(0.0, min(1.0, abs(float(delta))))
+
+
+def _transportability_batch_grid(
+    *,
+    calibration_shift: float,
+    risk_separation_shift: float,
+    observed_rate_shift: float,
+) -> list[dict[str, Any]]:
+    rows = ("China", "NHANES")
+    columns = (
+        ("Calibration drift", 0.0, calibration_shift),
+        ("Risk-group support", 0.0, risk_separation_shift),
+        ("Absolute-risk shift", 0.0, observed_rate_shift),
+    )
+    cells: list[dict[str, Any]] = []
+    for column_label, china_value, nhanes_value in columns:
+        cells.append({"x": column_label, "y": rows[0], "value": _risk_delta_to_batch_value(china_value)})
+        cells.append({"x": column_label, "y": rows[1], "value": _risk_delta_to_batch_value(nhanes_value)})
+    return cells
+
+
 def _build_transportability_governance_payload(
     *,
     metrics_payload: dict[str, Any],
@@ -233,6 +256,7 @@ def _build_transportability_governance_payload(
     discrimination = _require_mapping(metrics_payload, "discrimination", context=context)
     calibration = _require_mapping(metrics_payload, "calibration_drift", context=context)
     risk_group_separation = _require_mapping(metrics_payload, "risk_group_separation", context=context)
+    absolute_risk_shift = _require_mapping(metrics_payload, "absolute_risk_shift", context=context)
     china_n = _parse_int(discrimination.get("china_n"), label="china_n")
     nhanes_n = _parse_int(discrimination.get("nhanes_n"), label="nhanes_n")
     if china_n <= 0 or nhanes_n <= 0:
@@ -261,6 +285,20 @@ def _build_transportability_governance_payload(
         )
     )
     separation_ratio = max(0.01, min(10.0, nhanes_top_bottom / china_top_bottom)) if china_top_bottom > 0 else 0.01
+    risk_separation_shift = abs(
+        _require_finite_number(
+            risk_group_separation,
+            "nhanes_minus_china",
+            context=context,
+        )
+    )
+    observed_rate_shift = abs(
+        _require_finite_number(
+            absolute_risk_shift,
+            "observed_rate_shift_nhanes_minus_china",
+            context=context,
+        )
+    )
     nhanes_verdict = (
         "recalibration_required"
         if nhanes_oe > 1.5 or calibration_shift > 0.05 or separation_ratio < 0.5
@@ -268,71 +306,83 @@ def _build_transportability_governance_payload(
         if nhanes_c < china_c - 0.1
         else "stable"
     )
+    template_id = display_registry.get_evidence_figure_spec(
+        "generalizability_subgroup_composite_panel"
+    ).template_id
     return {
         "schema_version": 1,
-        "input_schema_id": "center_transportability_governance_summary_panel_inputs_v1",
+        "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
         "source_contract_path": "paper/medical_reporting_contract.json",
         "status": "materialized_from_current_transportability_layout",
         "displays": [
             {
                 "display_id": display_id,
-                "template_id": display_registry.get_evidence_figure_spec(
-                    "center_transportability_governance_summary_panel"
-                ).template_id,
+                "template_id": template_id,
                 "catalog_id": catalog_id,
                 "paper_role": "main_text",
-                "title": "China-US transportability governance summary",
+                "title": "China-US transportability and recalibration summary",
                 "caption": (
-                    "Cohort-level discrimination, risk-group support, and observed-to-expected risk "
-                    "summarize the bounded transportability status of the China-derived score."
+                    "External transportability is summarized with cohort-level discrimination, "
+                    "observed-to-expected calibration, and risk-separation retention."
                 ),
                 "metric_family": "discrimination",
-                "metric_panel_title": "Cohort discrimination",
-                "metric_x_label": "C-index",
-                "metric_reference_value": china_c,
-                "batch_shift_threshold": 0.05,
-                "slope_acceptance_lower": 0.90,
-                "slope_acceptance_upper": 1.10,
-                "oe_ratio_acceptance_lower": 0.90,
-                "oe_ratio_acceptance_upper": 1.10,
-                "summary_panel_title": "Transportability action",
-                "centers": [
+                "primary_label": "China-derived score",
+                "comparator_label": "China reference",
+                "overview_panel_title": "Discrimination transportability",
+                "overview_x_label": "C-index",
+                "overview_rows": [
                     {
-                        "center_id": "china_reference",
-                        "center_label": "China",
-                        "cohort_role": "Reference cohort",
+                        "cohort_id": "china_reference",
+                        "cohort_label": "China",
                         "support_count": china_n,
                         "event_count": _event_count_from_rate(support_count=china_n, rate=china_observed),
-                        "metric_estimate": china_c,
-                        "metric_lower": china_c,
-                        "metric_upper": china_c,
-                        "max_shift": 0.0,
-                        "slope": 1.0,
-                        "oe_ratio": china_oe,
-                        "verdict": "stable",
-                        "action": "Use as the reference fit for transportability comparison",
-                        "detail": "The China cohort anchors the current 5-year mortality risk surface.",
+                        "metric_value": china_c,
+                        "comparator_metric_value": china_c,
                     },
                     {
-                        "center_id": "nhanes_external",
-                        "center_label": "NHANES",
-                        "cohort_role": "External comparative population",
+                        "cohort_id": "nhanes_external",
+                        "cohort_label": "NHANES",
                         "support_count": nhanes_n,
                         "event_count": _event_count_from_rate(support_count=nhanes_n, rate=nhanes_observed),
-                        "metric_estimate": nhanes_c,
-                        "metric_lower": nhanes_c,
-                        "metric_upper": nhanes_c,
-                        "max_shift": min(1.0, calibration_shift),
-                        "slope": separation_ratio,
-                        "oe_ratio": nhanes_oe,
-                        "verdict": nhanes_verdict,
-                        "action": "Require recalibration and bounded reporting before any deployment claim",
-                        "detail": (
-                            "The external cohort shows weaker discrimination, collapsed risk-group support, "
-                            "and severe observed-to-expected mismatch."
-                        ),
+                        "metric_value": nhanes_c,
+                        "comparator_metric_value": china_c,
                     },
                 ],
+                "subgroup_panel_title": "Recalibration governance metrics",
+                "subgroup_x_label": "Ratio or retained separation",
+                "subgroup_reference_value": 1.0,
+                "subgroup_rows": [
+                    {
+                        "subgroup_id": "china_oe_ratio",
+                        "subgroup_label": "China O:E ratio",
+                        "group_n": china_n,
+                        "estimate": china_oe,
+                        "lower": min(0.90, china_oe),
+                        "upper": max(1.10, china_oe),
+                    },
+                    {
+                        "subgroup_id": "nhanes_oe_ratio",
+                        "subgroup_label": "NHANES O:E ratio",
+                        "group_n": nhanes_n,
+                        "estimate": nhanes_oe,
+                        "lower": min(0.90, nhanes_oe),
+                        "upper": max(1.10, nhanes_oe),
+                    },
+                    {
+                        "subgroup_id": "risk_separation_retention",
+                        "subgroup_label": "NHANES/China risk separation",
+                        "group_n": nhanes_n,
+                        "estimate": separation_ratio,
+                        "lower": min(0.50, separation_ratio),
+                        "upper": max(1.00, separation_ratio),
+                    },
+                ],
+                "source_context": {
+                    "calibration_shift": calibration_shift,
+                    "risk_separation_shift": risk_separation_shift,
+                    "observed_rate_shift": observed_rate_shift,
+                    "transportability_verdict": nhanes_verdict,
+                },
             }
         ],
     }
@@ -375,7 +425,7 @@ def run_current_transportability_layout_migration(
     )
     written_files.append(str(grouped_path))
 
-    governance_path = Path(paper_root) / "center_transportability_governance_summary_panel_inputs.json"
+    governance_path = Path(paper_root) / "generalizability_subgroup_composite_inputs.json"
     _write_json(
         governance_path,
         _build_transportability_governance_payload(
@@ -385,8 +435,14 @@ def run_current_transportability_layout_migration(
         ),
     )
     written_files.append(str(governance_path))
+    retired_governance_path = Path(paper_root) / "transportability_recalibration_governance_panel.json"
+    if retired_governance_path.exists():
+        retired_governance_path.unlink()
 
-    notes: dict[str, Any] = {"analysis_layout": "transportability_current_layout"}
+    notes: dict[str, Any] = {
+        "analysis_layout": "transportability_current_layout",
+        "f5_template": "generalizability_subgroup_composite_panel",
+    }
     decision_curve_path = Path(paper_root) / "time_to_event_decision_curve_inputs.json"
     if decision_curve_path.exists():
         notes["decision_curve_payload"] = "preserved_existing_current_payload"

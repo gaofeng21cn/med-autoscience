@@ -14,10 +14,7 @@ from typing import Any
 
 from med_autoscience import display_layout_qc
 from med_autoscience.display_pack_lock import write_display_pack_lock
-from med_autoscience.display_pack_runtime import (
-    load_python_plugin_callable,
-    resolve_display_template_runtime,
-)
+from med_autoscience.display_pack_runtime import resolve_display_template_runtime
 from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle
 from med_autoscience.medical_figure_spec_contract import (
     MEDICAL_FIGURE_SPEC_BASENAME,
@@ -414,43 +411,6 @@ def _run_candidate_subprocess_renderer(
     return result
 
 
-def _run_python_plugin_renderer(
-    *,
-    repo_root: Path,
-    paper_root: Path,
-    template_manifest: Any,
-    full_template_id: str,
-    display_payload: Mapping[str, Any],
-    output_png_path: Path,
-    output_pdf_path: Path,
-    layout_sidecar_path: Path,
-) -> dict[str, Any]:
-    renderer = load_python_plugin_callable(
-        repo_root=repo_root,
-        paper_root=paper_root,
-        template_id=full_template_id,
-    )
-    plugin_result = renderer(
-        template_id=full_template_id,
-        display_payload=display_payload,
-        output_png_path=output_png_path,
-        output_pdf_path=output_pdf_path,
-        layout_sidecar_path=layout_sidecar_path,
-    )
-    if isinstance(plugin_result, Mapping):
-        return {
-            "execution_mode": "python_plugin",
-            "renderer_family": template_manifest.renderer_family,
-            **dict(plugin_result),
-        }
-    return {
-        "status": "rendered",
-        "execution_mode": "python_plugin",
-        "renderer_family": template_manifest.renderer_family,
-        "plugin_result": plugin_result,
-    }
-
-
 def _render_figure(
     *,
     repo_root: Path,
@@ -492,32 +452,33 @@ def _render_figure(
         "data_payload": data_payload,
         "render_context": render_context,
     }
-    if template_manifest.execution_mode == "python_plugin":
-        render_result = _run_python_plugin_renderer(
-            repo_root=repo_root,
-            paper_root=paper_root,
-            template_manifest=template_manifest,
-            full_template_id=full_template_id,
-            display_payload=display_payload,
-            output_png_path=output_png_path,
-            output_pdf_path=output_pdf_path,
-            layout_sidecar_path=layout_sidecar_path,
+    if template_manifest.kind != "evidence_figure":
+        raise ValueError(
+            "display pack publication manifest evidence path only materializes evidence_figure templates; "
+            f"observed `{template_manifest.kind}` for `{full_template_id}`"
         )
-    elif template_manifest.execution_mode == "subprocess":
-        render_result = _run_subprocess_renderer(
-            runtime_template_root=runtime.template_path.parent,
-            pack_root=runtime.pack_root,
-            template_manifest=template_manifest,
-            paper_root=paper_root,
-            figure_id=figure_id,
-            full_template_id=full_template_id,
-            display_payload=display_payload,
-            output_png_path=output_png_path,
-            output_pdf_path=output_pdf_path,
-            layout_sidecar_path=layout_sidecar_path,
+    if template_manifest.renderer_family != "r_ggplot2":
+        raise ValueError(
+            "display pack publication manifest evidence path requires renderer_family `r_ggplot2`; "
+            f"observed `{template_manifest.renderer_family}` for `{full_template_id}`"
         )
-    else:
-        raise ValueError(f"unsupported display template execution mode `{template_manifest.execution_mode}`")
+    if template_manifest.execution_mode != "subprocess":
+        raise ValueError(
+            "display pack publication manifest evidence path requires subprocess execution; "
+            f"observed `{template_manifest.execution_mode}` for `{full_template_id}`"
+        )
+    render_result = _run_subprocess_renderer(
+        runtime_template_root=runtime.template_path.parent,
+        pack_root=runtime.pack_root,
+        template_manifest=template_manifest,
+        paper_root=paper_root,
+        figure_id=figure_id,
+        full_template_id=full_template_id,
+        display_payload=display_payload,
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
     for path in (output_png_path, output_pdf_path, layout_sidecar_path):
         if not path.exists():
             raise FileNotFoundError(f"display pack renderer did not write required artifact: {path}")

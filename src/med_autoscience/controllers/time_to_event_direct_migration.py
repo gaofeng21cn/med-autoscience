@@ -656,61 +656,83 @@ def _build_multicenter_generalizability_payload(
             _parse_int(row.get("center"), label="center"),
         ),
     )
-    center_event_counts: list[dict[str, Any]] = []
+    overview_rows: list[dict[str, Any]] = []
     for row in sorted_center_rows:
         split_bucket = str(row.get("split_bucket") or "").strip()
         if split_bucket not in _CENTER_SPLIT_BUCKET_ORDER:
             raise ValueError(
                 f"center_event_distribution split_bucket must be `train` or `validation`, got {split_bucket!r}"
             )
-        center_event_counts.append(
+        event_count = _parse_int(row.get("n_cvd_events"), label="n_cvd_events")
+        support_count = _parse_int(
+            row.get("n_total")
+            or row.get("n_patients")
+            or row.get("n")
+            or row.get("count")
+            or row.get("support_count")
+            or event_count,
+            label="center support_count",
+        )
+        metric_denominator = max(support_count, 1)
+        overview_rows.append(
             {
-                "center_label": _format_center_label(row.get("center")),
-                "split_bucket": split_bucket,
-                "event_count": _parse_int(row.get("n_cvd_events"), label="n_cvd_events"),
+                "cohort_id": _slugify(f"center_{row.get('center')}"),
+                "cohort_label": _format_center_label(row.get("center")),
+                "support_count": support_count,
+                "event_count": event_count,
+                "metric_value": round(event_count / metric_denominator, 4),
             }
         )
 
     region_labels = [_normalized_region_label(row.get("patient_region_raw")) for row in geodemography_rows]
     north_south_labels = [_normalized_north_south_label(row.get("patient_south_flag_raw")) for row in geodemography_rows]
     urban_rural_labels = [_normalized_urban_rural_label(row.get("patient_rural_flag_raw")) for row in geodemography_rows]
+    subgroup_rows = [
+        {
+            "subgroup_id": _slugify(f"region_{item['label']}"),
+            "subgroup_label": f"Region: {item['label']}",
+            "group_n": item["count"],
+            "estimate": round(item["count"] / max(len(geodemography_rows), 1), 4),
+            "lower": max(round((item["count"] - 1) / max(len(geodemography_rows), 1), 4), 0.0),
+            "upper": min(round((item["count"] + 1) / max(len(geodemography_rows), 1), 4), 1.0),
+        }
+        for item in _count_labels_preserving_first_seen_order(region_labels)[:4]
+    ]
 
     return {
         "schema_version": 1,
-        "input_schema_id": "multicenter_generalizability_inputs_v1",
+        "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
         "source_contract_path": "paper/medical_reporting_contract.json",
         "displays": [
             {
                 "display_id": display_id,
-                "template_id": display_registry.get_evidence_figure_spec("multicenter_generalizability_overview").template_id,
+                "template_id": display_registry.get_evidence_figure_spec(
+                    "generalizability_subgroup_composite_panel"
+                ).template_id,
                 "catalog_id": catalog_id,
                 "paper_role": "main_text",
                 "title": "Internal multicenter heterogeneity summary",
                 "caption": "Center-level event support with coverage context under the frozen split.",
-                "overview_mode": "center_support_counts",
-                "center_event_y_label": "5-year CVD events",
-                "coverage_y_label": "Patient count",
-                "center_event_counts": center_event_counts,
-                "coverage_panels": [
-                    {
-                        "panel_id": "region",
-                        "title": f"Region coverage (n={len(geodemography_rows)})",
-                        "layout_role": "wide_left",
-                        "bars": _count_labels_preserving_first_seen_order(region_labels),
-                    },
-                    {
-                        "panel_id": "north_south",
-                        "title": "North vs South coverage",
-                        "layout_role": "top_right",
-                        "bars": _count_labels_in_fixed_order(north_south_labels, order=("South", "North")),
-                    },
-                    {
-                        "panel_id": "urban_rural",
-                        "title": "Urban/rural coverage",
-                        "layout_role": "bottom_right",
-                        "bars": _count_labels_in_fixed_order(urban_rural_labels, order=("Urban", "Missing", "Rural")),
-                    },
-                ],
+                "metric_family": "effect_estimate",
+                "primary_label": "Center event fraction",
+                "overview_panel_title": "Center-level event support",
+                "overview_x_label": "Observed event fraction",
+                "overview_rows": overview_rows,
+                "subgroup_panel_title": "Geodemographic support distribution",
+                "subgroup_x_label": "Cohort fraction",
+                "subgroup_reference_value": round(1 / max(len(set(region_labels)), 1), 4),
+                "subgroup_rows": subgroup_rows,
+                "source_context": {
+                    "region_counts": _count_labels_preserving_first_seen_order(region_labels),
+                    "north_south_counts": _count_labels_in_fixed_order(
+                        north_south_labels,
+                        order=("South", "North"),
+                    ),
+                    "urban_rural_counts": _count_labels_in_fixed_order(
+                        urban_rural_labels,
+                        order=("Urban", "Missing", "Rural"),
+                    ),
+                },
             }
         ],
     }
@@ -850,7 +872,7 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
             display_id=f5_binding["display_id"],
             catalog_id=f5_binding["catalog_id"],
         )
-        multicenter_generalizability_path = resolved_paper_root / "multicenter_generalizability_inputs.json"
+        multicenter_generalizability_path = resolved_paper_root / "generalizability_subgroup_composite_inputs.json"
         _write_json(multicenter_generalizability_path, multicenter_generalizability_payload)
         written_files.append(str(multicenter_generalizability_path))
     else:

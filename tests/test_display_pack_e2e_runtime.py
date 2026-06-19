@@ -31,16 +31,14 @@ version = "0.3.0"
 def _write_renderable_pack(repo_root: Path) -> None:
     pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
     template_root = pack_root / "templates" / "roc_curve_binary"
-    module_root = pack_root / "src" / "demo_display_core"
     template_root.mkdir(parents=True)
-    module_root.mkdir(parents=True)
     (pack_root / "display_pack.toml").write_text(
         "\n".join(
             (
                 'pack_id = "fenggaolab.org.medical-display-core"',
                 'version = "0.3.0"',
                 'display_api_version = "1"',
-                'default_execution_mode = "python_plugin"',
+                'default_execution_mode = "subprocess"',
                 'summary = "E2E renderable test pack"',
                 'maintainer = "MAS tests"',
                 'license = "MIT"',
@@ -58,33 +56,41 @@ def _write_renderable_pack(repo_root: Path) -> None:
                 'display_name = "ROC Curve"',
                 'paper_family_ids = ["A"]',
                 'audit_family = "Prediction Performance"',
-                'renderer_family = "python"',
+                'renderer_family = "r_ggplot2"',
                 'input_schema_ref = "binary_prediction_curve_inputs_v1"',
                 'qc_profile_ref = "publication_evidence_curve"',
                 'style_profile_ref = "paper_neutral_clinical_v1"',
                 'required_exports = ["png", "pdf"]',
-                'execution_mode = "python_plugin"',
-                'entrypoint = "demo_display_core.renderers:render_template"',
+                'execution_mode = "subprocess"',
+                f'entrypoint = "{sys.executable} render_subprocess.py --request {{request_json}}"',
                 "paper_proven = true",
             )
         )
         + "\n",
         encoding="utf-8",
     )
-    (module_root / "__init__.py").write_text("", encoding="utf-8")
-    (module_root / "renderers.py").write_text(
+    (template_root / "render_subprocess.py").write_text(
         """
 from __future__ import annotations
 
+import argparse
 import json
+from pathlib import Path
 
 
-def render_template(*, template_id, display_payload, output_png_path, output_pdf_path, layout_sidecar_path):
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--request", required=True)
+    args = parser.parse_args()
+    request = json.loads(Path(args.request).read_text(encoding="utf-8"))
+    output_png_path = Path(request["output_png_path"])
+    output_pdf_path = Path(request["output_pdf_path"])
+    layout_sidecar_path = Path(request["layout_sidecar_path"])
     output_png_path.parent.mkdir(parents=True, exist_ok=True)
     output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
     layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-    output_png_path.write_text("PNG:" + template_id, encoding="utf-8")
-    output_pdf_path.write_text("%PDF:" + template_id, encoding="utf-8")
+    output_png_path.write_text("PNG:" + request["template_id"], encoding="utf-8")
+    output_pdf_path.write_text("%PDF:" + request["template_id"], encoding="utf-8")
     layout_sidecar_path.write_text(
         json.dumps(
             {
@@ -105,7 +111,7 @@ def render_template(*, template_id, display_payload, output_png_path, output_pdf
                     "series": [{"x": [0.0, 0.4, 1.0], "y": [0.0, 0.82, 1.0]}],
                     "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
                 },
-                "render_context": display_payload["render_context"],
+                "render_context": request["display_payload"]["render_context"],
             },
             ensure_ascii=False,
             indent=2,
@@ -113,7 +119,12 @@ def render_template(*, template_id, display_payload, output_png_path, output_pdf
         + "\\n",
         encoding="utf-8",
     )
-    return {"status": "rendered", "template_id": template_id}
+    print(json.dumps({"renderer": "subprocess", "figure_id": request["figure_id"]}))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -457,9 +468,9 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     render_receipt = load_figure_render_receipt(paper_root / "figure_render_receipt.json")
     render_figure = render_receipt["figures"][0]
     assert render_figure["figure_id"] == "F1"
-    assert render_figure["selected_backend"] == "python"
+    assert render_figure["selected_backend"] == "r_ggplot2"
     assert render_figure["backend_exclusivity_proof"]["cross_backend_visual_fallback_used"] is False
-    assert render_figure["backend_exclusivity_proof"]["observed_renderer_family"] == "python"
+    assert render_figure["backend_exclusivity_proof"]["observed_renderer_family"] == "r_ggplot2"
     assert set(render_figure["export_formats"]) == {"png", "pdf"}
     assert render_figure["editable_text_required"] is True
     assert render_figure["source_data_refs"] == ["paper/data/frozen/primary_curve.json"]
@@ -727,9 +738,9 @@ def test_materialize_display_pack_publication_manifest_runs_multi_figure_batch(t
     style_hashes = {figure["publication_style_profile"]["sha256"] for figure in result["figures"]}
     assert style_hashes == {result["publication_style_profile"]["sha256"]}
     assert {figure["render_result"]["execution_mode"] for figure in result["figures"]} == {
-        "python_plugin",
         "subprocess",
     }
+    assert {figure["renderer_family"] for figure in result["figures"]} == {"r_ggplot2"}
     assert (paper_root / "build" / "display_artifact_manifest.F1.json").exists()
     assert (paper_root / "build" / "display_artifact_manifest.F2.json").exists()
     assert [item["figure_id"] for item in json.loads((paper_root / "figure_visual_audit_receipt.json").read_text())["inspected_artifacts"]] == [

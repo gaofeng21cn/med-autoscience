@@ -26,7 +26,6 @@ from med_autoscience.display_pack_renderer_policy import (
 from med_autoscience.display_pack_gallery_parts import paths
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit
-from med_autoscience.display_pack_gallery_parts.taxonomy import LEGACY_PYTHON_BASELINE_EXCLUDED
 
 
 def _asset_payload(asset: RenderedAsset) -> dict[str, Any]:
@@ -65,7 +64,6 @@ def build_manifest(
         for asset in rendered.values()
         if asset.status == "rendered"
     )
-    baseline_rendered_count = sum(1 for asset in baseline_rendered.values() if asset.status == "rendered")
     quality_audit = build_quality_audit(
         records=records,
         visual_records=visual_records,
@@ -76,7 +74,7 @@ def build_manifest(
     )
     palette = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["palette"]
     return {
-        "schema_version": 7,
+        "schema_version": 8,
         "status": "rendered",
         "html_path": str(paths.HTML_PATH),
         "pdf_path": str(paths.PDF_PATH),
@@ -97,7 +95,6 @@ def build_manifest(
         "legacy_alias_template_count": sum(1 for record in records if record.migration_status == "migrated_alias"),
         "rendered_image_template_count": canonical_rendered_count,
         "internal_rendered_image_template_count": internal_rendered_count,
-        "legacy_python_baseline_rendered_count": baseline_rendered_count,
         "renderer_family_counts": dict(sorted(Counter(record.renderer_family for record in records).items())),
         "style_profile_id": display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["style_profile_id"],
         "journal_palette_ref": display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["journal_palette_ref"],
@@ -119,7 +116,6 @@ def build_manifest(
         },
         "preview_device": {"width_in": 5.0, "height_in": 5.0},
         "nature_skills_observed_head": paths.NATURE_SKILLS_HEAD,
-        "excluded_legacy_python_baselines": list(LEGACY_PYTHON_BASELINE_EXCLUDED),
         "categories": dict(Counter(record.canonical_family_category for record in visual_records)),
         "non_visual_categories": dict(Counter(record.canonical_family_category for record in non_visual_records)),
         "figure_family_policy": figure_family_policy(),
@@ -134,18 +130,17 @@ def build_manifest(
             "gallery_default_surface": "r_first_evidence_canonical_families_plus_design_shells",
             "active_inventory_is_visual_canonical_only": True,
             "canonical_non_visual_inventory_preserved_in_manifest": True,
-            "migration_inventory_preserved_in_manifest": True,
+            "retired_python_evidence_templates_removed_from_current_manifest": True,
             "migrated_alias_templates_hidden_from_default_cards": True,
             "explicit_alias_requests_migrate_to_canonical_template": True,
             "evidence_figures_default_to_r_ggplot2": True,
-            "python_evidence_templates_hidden_from_default_cards": True,
+            "python_evidence_templates_not_retained_without_advantage_proof": True,
             "python_illustration_shells_may_be_default_visible": True,
         },
         "templates": [
             _template_payload(
                 record,
                 rendered[record.template_id],
-                baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
             )
             for record in visual_records
         ],
@@ -153,7 +148,6 @@ def build_manifest(
             _template_payload(
                 record,
                 rendered[record.template_id],
-                baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
             )
             for record in non_visual_records
         ],
@@ -161,7 +155,6 @@ def build_manifest(
             _template_payload(
                 record,
                 rendered[record.template_id],
-                baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
             )
             for record in default_excluded_records
         ],
@@ -181,7 +174,7 @@ def build_manifest(
     }
 
 
-def _template_payload(record: TemplateRecord, asset: RenderedAsset, baseline: RenderedAsset) -> dict[str, Any]:
+def _template_payload(record: TemplateRecord, asset: RenderedAsset) -> dict[str, Any]:
     return {
         "template_id": record.template_id,
         "display_name": record.display_name,
@@ -212,5 +205,4 @@ def _template_payload(record: TemplateRecord, asset: RenderedAsset, baseline: Re
         "layout_ref": asset.layout_ref,
         "pdf_ref": asset.pdf_ref,
         "svg_ref": asset.svg_ref,
-        "legacy_python_baseline": _asset_payload(baseline),
     }

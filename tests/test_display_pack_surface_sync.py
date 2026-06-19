@@ -168,7 +168,7 @@ def test_sync_display_pack_surface_canonicalizes_source_truth(tmp_path: Path) ->
     assert cohort_flow_contract["required_exports"] == ["png", "svg", "pdf"]
     risk_layering_contract = figure_semantics["figures"][1]["renderer_contract"]
     assert risk_layering_contract["template_id"] == "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars"
-    assert risk_layering_contract["renderer_family"] == "python"
+    assert risk_layering_contract["renderer_family"] == "r_ggplot2"
     assert risk_layering_contract["layout_qc_profile"] == "publication_risk_layering_bars"
     assert risk_layering_contract["required_exports"] == ["png", "pdf"]
 
@@ -222,7 +222,7 @@ def test_sync_display_pack_surface_updates_keyed_figure_semantics_manifest(tmp_p
     risk_layering_contract = figure_semantics["figures"]["F2"]["renderer_contract"]
     assert risk_layering_contract["template_id"] == "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars"
     assert risk_layering_contract["layout_qc_profile"] == "publication_risk_layering_bars"
-    assert risk_layering_contract["renderer"] == "python"
+    assert risk_layering_contract["renderer"] == "r_ggplot2"
 
 
 def test_sync_display_pack_surface_prefers_materialized_catalog_contract_for_keyed_manifest(tmp_path: Path) -> None:
@@ -499,7 +499,7 @@ def test_sync_display_pack_surface_resolves_contract_backed_figure_registry(tmp_
     updated_semantics = load_json(paper_root / "figure_semantics_manifest.json")
     updated_contract = updated_semantics["figures"][2]["renderer_contract"]
     assert updated_contract["template_id"] == "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars"
-    assert updated_contract["renderer_family"] == "python"
+    assert updated_contract["renderer_family"] == "r_ggplot2"
     assert updated_contract["layout_qc_profile"] == "publication_risk_layering_bars"
     assert updated_contract["required_exports"] == ["png", "pdf"]
 

@@ -85,11 +85,12 @@ def test_core_pack_illustration_shells_are_split_into_maintainable_modules() -> 
     assert max(module_line_counts.values()) <= 1500
 
 
-def test_core_pack_evidence_renderer_keeps_stable_python_entrypoint() -> None:
+def test_core_pack_evidence_renderer_exports_only_r_entrypoint() -> None:
     sys.path.insert(0, str(CORE_PACK_SRC_ROOT))
     module = importlib.import_module("fenggaolab_org_medical_display_core.evidence_figures")
 
-    assert callable(module.render_python_evidence_figure)
+    assert callable(module.render_r_evidence_figure)
+    assert not hasattr(module, "render_python_evidence_figure")
 
 
 def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
@@ -103,7 +104,7 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
             assert "render_r_evidence_figure" not in payload["entrypoint"]
             assert (manifest_path.parent / "render.R").is_file()
 
-    assert len(r_templates) == 51
+    assert len(r_templates) == 55
 
 
 def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> None:
@@ -116,45 +117,37 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
             manifest_ids.append(payload["template_id"])
 
     records_by_template = {item["template_id"]: item for item in records}
-    lane_counts = {
-        lane: sum(1 for item in records if item["migration_lane"] == lane)
-        for lane in ("P0", "P1", "P2")
-    }
-
     assert sorted(records_by_template) == sorted(manifest_ids)
-    assert ledger["summary"]["evidence_template_count"] == 84
-    assert ledger["summary"]["p0_landed_r_ggplot2_subprocess"] == 22
-    assert ledger["summary"]["p1_promoted_to_default_r_ggplot2_subprocess"] == 29
-    assert ledger["summary"]["p2_retained_python_or_dual_stack_later"] == 33
-    assert ledger["summary"]["unclassified"] == 0
-    assert lane_counts == {"P0": 22, "P1": 29, "P2": 33}
-    assert records_by_template["risk_layering_monotonic_bars"]["migration_lane"] == "P2"
-    assert records_by_template["time_to_event_landmark_performance_panel"]["migration_lane"] == "P2"
-    assert records_by_template["time_to_event_multihorizon_calibration_panel"]["migration_lane"] == "P2"
-    assert records_by_template["time_to_event_threshold_governance_panel"]["migration_lane"] == "P2"
-    assert records_by_template["celltype_signature_heatmap"]["migration_lane"] == "P1"
-    assert records_by_template["multicenter_generalizability_overview"]["migration_lane"] == "P2"
-    assert records_by_template["center_transportability_governance_summary_panel"]["migration_lane"] == "P2"
+    assert ledger["summary"]["evidence_template_count"] == 55
+    assert ledger["summary"]["r_ggplot2_subprocess_evidence_count"] == 55
+    assert ledger["summary"]["python_evidence_retained_count"] == 0
+    assert ledger["summary"]["retired_python_evidence_template_count"] == 32
+    assert {item["migration_lane"] for item in records} == {"R_CURRENT"}
+    assert records_by_template["risk_layering_monotonic_bars"]["migration_status"] == "current_r_ggplot2_subprocess"
+    assert records_by_template["time_to_event_landmark_performance_panel"]["migration_status"] == "current_r_ggplot2_subprocess"
+    assert records_by_template["time_to_event_multihorizon_calibration_panel"]["migration_status"] == "current_r_ggplot2_subprocess"
+    assert records_by_template["time_to_event_threshold_governance_panel"]["migration_status"] == "current_r_ggplot2_subprocess"
+    assert "multicenter_generalizability_overview" in ledger["retired_python_evidence_template_ids"]
+    assert "center_transportability_governance_summary_panel" in ledger["retired_python_evidence_template_ids"]
+    assert "baseline_missingness_qc_panel" in ledger["retired_python_evidence_template_ids"]
+    assert "center_coverage_batch_transportability_panel" in ledger["retired_python_evidence_template_ids"]
+    assert "transportability_recalibration_governance_panel" in ledger["retired_python_evidence_template_ids"]
 
 
-def test_core_pack_p1_renderers_are_promoted_r_subprocess_defaults() -> None:
+def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> None:
     ledger = json.loads((CORE_PACK_ROOT / "renderer_migration_ledger.json").read_text(encoding="utf-8"))
-    p1_records = [item for item in ledger["records"] if item["migration_lane"] == "P1"]
+    current_records = [item for item in ledger["records"] if item["migration_lane"] == "R_CURRENT"]
 
-    assert len(p1_records) == 29
-    for record in p1_records:
+    assert len(current_records) == 55
+    for record in current_records:
         template_root = CORE_PACK_ROOT / "templates" / record["template_id"]
         render_path = template_root / "render.R"
-        comparison_path = template_root / "render_candidate.R"
         assert render_path.is_file(), record["template_id"]
-        assert comparison_path.is_file(), record["template_id"]
         assert record["renderer_family"] == "r_ggplot2"
         assert record["execution_mode"] == "subprocess"
         assert record["entrypoint"] == "Rscript render.R --request {request_json}"
         assert record["render_script_path"] == "render.R"
-        assert record["migration_status"] == "promoted_to_default_r_ggplot2_subprocess"
-        assert record["previous_renderer_family"] == "python"
-        assert record["previous_execution_mode"] == "python_plugin"
+        assert record["migration_status"] == "current_r_ggplot2_subprocess"
         wrapper_source = render_path.read_text(encoding="utf-8")
         assert f'expected_template_id = "{record["template_id"]}"' in wrapper_source
 

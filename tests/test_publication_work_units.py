@@ -420,12 +420,12 @@ def test_missing_required_display_input_routes_to_display_contract_repair() -> N
         {
             "status": "blocked",
             "medical_publication_surface_named_blockers": [
-                "missing_multicenter_generalizability_inputs",
+                "missing_generalizability_subgroup_composite_inputs",
             ],
             "blocking_artifact_refs": [
                 {
-                    "blocker": "missing_multicenter_generalizability_inputs",
-                    "artifact_path": "/tmp/study/paper/multicenter_generalizability_inputs.json",
+                    "blocker": "missing_generalizability_subgroup_composite_inputs",
+                    "artifact_path": "/tmp/study/paper/generalizability_subgroup_composite_inputs.json",
                     "artifact_role": "display_input_payload",
                 }
             ],

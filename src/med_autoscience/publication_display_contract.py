@@ -169,8 +169,11 @@ _DEFAULT_STYLE_PROFILE_PAYLOAD: dict[str, Any] = {
         "legend_key_spacing_y": 3.5,
         "colorbar_width": 5.0,
         "colorbar_height": 42.0,
-        "colorbar_horizontal_width": 132.0,
-        "colorbar_horizontal_height": 5.0,
+        "colorbar_horizontal_width": 260.0,
+        "colorbar_horizontal_height": 6.0,
+        "colorbar_max_breaks": 3.0,
+        "colorbar_label_size": 5.6,
+        "colorbar_title_size": 6.0,
     },
     "stroke": {
         "axis_linewidth": 0.35,

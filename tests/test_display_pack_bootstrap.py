@@ -97,9 +97,6 @@ def test_export_core_pack_template_manifests_writes_allowlisted_exemplar_refs(tm
         "performance_heatmap": [
             "PaperPlotHub `aiscientist_heatmap` https://paperplothub.tech/p/aiscientist_heatmap",
         ],
-        "partial_dependence_interaction_contour_panel": [
-            "PaperPlotHub `predictscale_contour` https://paperplothub.tech/p/predictscale_contour",
-        ],
         "tsne_scatter_grouped": [
             "PaperPlotHub `scatter_tsne` https://paperplothub.tech/p/scatter_tsne",
         ],
@@ -146,9 +143,7 @@ def test_exported_entrypoint_is_real_importable_callable(tmp_path: Path) -> None
     export_core_pack_template_manifests(tmp_path)
     representative_entrypoints = {
         "roc_curve_binary": "Rscript render.R --request {request_json}",
-        "time_to_event_landmark_performance_panel": (
-            "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
-        ),
+        "time_to_event_landmark_performance_panel": "Rscript render.R --request {request_json}",
         "cohort_flow_figure": "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell",
         "table1_baseline_characteristics": "fenggaolab_org_medical_display_core.table_shells:render_table_shell",
     }
@@ -206,9 +201,11 @@ def test_exported_r_ggplot2_templates_are_first_class_subprocess_assets(tmp_path
         if spec.renderer_family == "r_ggplot2"
     }
 
-    assert len(r_template_ids) == 51
+    assert len(r_template_ids) == 55
     assert "time_to_event_risk_group_summary" in r_template_ids
-    assert "time_to_event_landmark_performance_panel" not in r_template_ids
+    assert "time_to_event_landmark_performance_panel" in r_template_ids
+    assert "time_to_event_multihorizon_calibration_panel" in r_template_ids
+    assert "time_to_event_threshold_governance_panel" in r_template_ids
     for short_id in sorted(r_template_ids):
         payload = tomllib.loads((tmp_path / "templates" / short_id / "template.toml").read_text(encoding="utf-8"))
         assert payload["kind"] == "evidence_figure"
