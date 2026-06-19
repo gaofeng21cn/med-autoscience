@@ -224,6 +224,8 @@ Retained MAS role: MAS may still publish owner receipt, typed blocker, human gat
 
 Forbidden interpretation: a live-tail record that only names an accepted ref family cannot satisfy live takeover, no-active-caller, direct-hosted parity, OPL readback, runtime readiness, provider running, paper progress or production readiness. Missing concrete refs remain `typed_blocker_required`.
 
+Schema note: `evidence_refs` is an explicit optional evidence-record field and one of the accepted concrete proof fields. Evidence producers must not rely on an undeclared implicit payload key to satisfy live-tail work orders.
+
 ## live_runtime_gap_concrete_evidence_refs
 
 Disposition: `fail_closed_live_evidence_intake_guard`

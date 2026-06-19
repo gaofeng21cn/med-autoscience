@@ -24,6 +24,7 @@
       "optional_fields": [
         "claim",
         "evidence_substitutes",
+        "evidence_refs",
         "owner_receipt_ref",
         "typed_blocker_ref",
         "human_gate_ref",

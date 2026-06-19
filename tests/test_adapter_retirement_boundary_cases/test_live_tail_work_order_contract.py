@@ -83,6 +83,7 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
         schema["missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim"]
         is True
     )
+    assert "evidence_refs" in schema["optional_fields"]
     assert schema["concrete_evidence_ref_fields"] == [
         "evidence_refs",
         "owner_receipt_ref",
