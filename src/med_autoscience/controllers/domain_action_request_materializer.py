@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,7 +38,6 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     current_writer_handoff,
     default_executor_prompt,
     execution_gate,
-    persistence,
     publication_owner_materialization,
     request_task_projection,
     supervisor_request_packets,
@@ -520,7 +520,7 @@ def _default_executor_dispatch(
     repeat_guard = repeat_suppression.dispatch_repeat_suppression(
         dispatch={"prompt_contract": prompt_contract, "owner_route": owner_route, "dispatch_status": dispatch_status},
         current_study=current_study,
-        existing_dispatch=persistence.read_json_object(dispatch_path),
+        existing_dispatch=_read_json_object(dispatch_path),
         required_output_pending=_required_output_pending(
             profile=profile,
             study_id=study_id,
@@ -1114,7 +1114,7 @@ def _ai_reviewer_request_refresh(
     changed = refreshed != packet
     if apply and changed:
         request_path.parent.mkdir(parents=True, exist_ok=True)
-        persistence.write_json(request_path, refreshed)
+        _write_json(request_path, refreshed)
     return {
         "surface": "ai_reviewer_request_refresh",
         "schema_version": SCHEMA_VERSION,
@@ -1173,6 +1173,22 @@ def _dispatch_status_count(dispatches: list[dict[str, Any]], status: str) -> int
     return sum(_text(dispatch.get("dispatch_status")) == status for dispatch in dispatches)
 
 
+def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _read_json_object(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return dict(payload) if isinstance(payload, Mapping) else None
+
+
 
 def current_owner_callable_adapters(
     *,
@@ -1190,7 +1206,7 @@ def current_owner_callable_adapters(
         generated_at=_utc_now(),
         supported_mode=SUPPORTED_MODE,
         dispatch_ready_for_execution=dispatch_ready_for_execution,
-        read_json_object=persistence.read_json_object,
+        read_json_object=_read_json_object,
         scan_latest_path=_scan_latest_path,
         resolve_study_ids_from_scan=_resolve_study_ids_from_scan,
         selected_actions=_selected_actions,
@@ -1220,7 +1236,7 @@ def materialize_domain_action_requests(
         scheduler_owner="external_queue_consumer",
     )
     developer_mode_payload = developer_mode.to_dict()
-    scan_payload = persistence.read_json_object(_scan_latest_path(profile)) or {}
+    scan_payload = _read_json_object(_scan_latest_path(profile)) or {}
     resolved_study_ids = _resolve_study_ids_from_scan(scan_payload, study_ids)
     selected_request_actions, ignored_actions = _selected_actions(
         profile=profile,

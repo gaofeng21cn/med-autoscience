@@ -81,8 +81,6 @@ data_asset_updates_controller = _LazyModuleProxy(lambda: _load_controller("data_
 display_pack_surface_sync = _LazyModuleProxy(lambda: _load_controller("display_pack_surface_sync"))
 display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
 delivery_inspector = _LazyModuleProxy(lambda: _load_controller("delivery_inspector"))
-domain_action_request_materializer = _LazyModuleProxy(lambda: _load_controller("domain_action_request_materializer"))
-domain_owner_action_dispatch = _LazyModuleProxy(lambda: _load_controller("domain_owner_action_dispatch"))
 stage_artifact_materializer = _LazyModuleProxy(lambda: _load_controller("stage_artifact_materializer"))
 light_advisory_materializer = _LazyModuleProxy(lambda: _load_controller("light_advisory_materializer"))
 owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
@@ -316,17 +314,6 @@ def main(argv: list[str] | None = None) -> int:
     if study_action_result is not None:
         return study_action_result
 
-    if args.command == "domain-action-request-materialize":
-        profile = load_profile(args.profile)
-        result = domain_action_request_materializer.materialize_domain_action_requests(
-            profile=profile,
-            study_ids=tuple(args.studies or ()),
-            mode=args.mode,
-            apply=bool(args.apply),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
     study_owner_gate_result = handle_study_owner_gate_command(
         args,
         load_profile=load_profile,
@@ -335,26 +322,9 @@ def main(argv: list[str] | None = None) -> int:
     if study_owner_gate_result is not None:
         return study_owner_gate_result
 
-    if args.command == "domain-owner-action-dispatch":
-        profile = load_profile(args.profile)
-        consumer_payload = (
-            _load_json_payload_from_args(args)
-            if getattr(args, "payload_file", None) or getattr(args, "payload_json", None)
-            else None
-        )
-        result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
-            profile=profile,
-            study_ids=tuple(args.studies or ()),
-            action_types=tuple(args.action_types or ()),
-            mode=args.mode,
-            apply=bool(args.apply),
-            consumer_payload=consumer_payload,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
     if args.command == "domain-owner-action-refresh-controller-decisions":
         profile = load_profile(args.profile)
+        domain_owner_action_dispatch = _load_controller("domain_owner_action_dispatch")
         result = domain_owner_action_dispatch.refresh_controller_decisions_for_current_publication_eval(
             profile=profile,
             study_ids=tuple(args.studies or ()),

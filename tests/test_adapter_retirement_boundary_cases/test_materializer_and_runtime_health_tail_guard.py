@@ -19,12 +19,21 @@ def _surface(inventory: dict, surface_id: str) -> dict:
     return {item["surface_id"]: item for item in inventory["surfaces"]}[surface_id]
 
 
-def test_materializer_projection_tail_rejects_status_and_ref_completion_regression() -> None:
+def test_retired_materializer_projection_requires_tombstone_not_live_tail_gate() -> None:
     inventory = _inventory()
     materializer = _surface(inventory, MATERIALIZER_SURFACE_ID)
-    tail = materializer["opl_materializer_projection_tail_readback"]
-    tail["status"] = "satisfied_with_request_tasks_alias_retirement"
-    tail["required_before_physical_delete"] = "request_tasks_alias_retired_ref"
+    assert materializer["current_disposition"] == "physically_retired"
+    assert materializer["retirement_gate"][
+        "repo_source_physical_retirement_authorized"
+    ] is True
+    assert materializer["retirement_gate"][
+        "live_runtime_readiness_required_for_repo_source_delete"
+    ] is False
+    assert materializer["tombstone_or_provenance_ref"] == (
+        "docs/history/runtime/mas-private-surface-retirement.md#"
+        f"{MATERIALIZER_SURFACE_ID}"
+    )
+    del materializer["tombstone_or_provenance_ref"]
 
     retirement = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement"
@@ -34,11 +43,7 @@ def test_materializer_projection_tail_rejects_status_and_ref_completion_regressi
     assert {
         (
             MATERIALIZER_SURFACE_ID,
-            "materializer_projection_tail_status_not_open",
-        ),
-        (
-            MATERIALIZER_SURFACE_ID,
-            "materializer_projection_tail_required_before_physical_delete_invalid",
+            "physically_retired_missing_tombstone_or_provenance_ref",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in violations}
 

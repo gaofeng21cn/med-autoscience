@@ -182,18 +182,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
         choices=("internal_only", "external_observe", "developer_apply_safe"),
     )
 
-    domain_action_request_materializer_parser = subparsers.add_parser("domain-action-request-materialize")
-    domain_action_request_materializer_parser.add_argument("--profile", required=True)
-    domain_action_request_materializer_parser.add_argument("--studies", nargs="+")
-    domain_action_request_materializer_parser.add_argument(
-        "--mode",
-        choices=("developer_apply_safe",),
-        required=True,
-    )
-    domain_action_request_materializer_apply = domain_action_request_materializer_parser.add_mutually_exclusive_group(required=True)
-    domain_action_request_materializer_apply.add_argument("--dry-run", action="store_true")
-    domain_action_request_materializer_apply.add_argument("--apply", action="store_true")
-
     study_owner_gate_decision_parser = subparsers.add_parser("study-owner-gate-decision")
     study_owner_gate_decision_parser.add_argument("--profile", required=True)
     study_owner_gate_decision_parser.add_argument("--study-id", required=True)
@@ -222,21 +210,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_owner_gate_decision_apply = study_owner_gate_decision_parser.add_mutually_exclusive_group(required=True)
     study_owner_gate_decision_apply.add_argument("--dry-run", action="store_true")
     study_owner_gate_decision_apply.add_argument("--apply", action="store_true")
-
-    domain_owner_action_dispatch_parser = subparsers.add_parser("domain-owner-action-dispatch")
-    domain_owner_action_dispatch_parser.add_argument("--profile", required=True)
-    domain_owner_action_dispatch_parser.add_argument("--studies", nargs="+")
-    domain_owner_action_dispatch_parser.add_argument("--action-types", nargs="+")
-    domain_owner_action_dispatch_parser.add_argument("--payload-file", type=str)
-    domain_owner_action_dispatch_parser.add_argument("--payload-json", type=str)
-    domain_owner_action_dispatch_parser.add_argument(
-        "--mode",
-        choices=("developer_apply_safe",),
-        required=True,
-    )
-    domain_owner_action_dispatch_apply = domain_owner_action_dispatch_parser.add_mutually_exclusive_group(required=True)
-    domain_owner_action_dispatch_apply.add_argument("--dry-run", action="store_true")
-    domain_owner_action_dispatch_apply.add_argument("--apply", action="store_true")
 
     domain_owner_refresh_controller_decisions_parser = subparsers.add_parser(
         "domain-owner-action-refresh-controller-decisions"

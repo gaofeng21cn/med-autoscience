@@ -21,6 +21,16 @@
     "active_adapter_can_claim_mas_owner": false,
     "new_alias_allowed": false
   },
+  "repo_source_physical_retirement_policy": {
+    "live_runtime_evidence_blocks_repo_source_delete": false,
+    "live_runtime_evidence_scope": [
+      "runtime_readiness",
+      "provider_admission_or_running_proof",
+      "dm002_dm003_live_paper_line_outcome",
+      "production_readiness"
+    ],
+    "repo_source_retirement_first": true
+  },
   "surface_kind": "mas_runtime_surface_retirement_inventory",
   "surfaces": [
     {
@@ -38,8 +48,23 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
       "retained_mas_role": "none_physically_retired_no_alias",
-      "surface_id": "runtime_transport_core_bridge"
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
+      },
+      "surface_id": "runtime_transport_core_bridge",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#runtime_transport_core_bridge"
     },
     {
       "active_caller_migrated": true,
@@ -54,8 +79,23 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
       "retained_mas_role": "none_physically_retired_no_alias",
-      "surface_id": "runtime_turn_runner_closeout_adapter"
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
+      },
+      "surface_id": "runtime_turn_runner_closeout_adapter",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#runtime_turn_runner_closeout_adapter"
     },
     {
       "active_caller_migrated": true,
@@ -70,12 +110,27 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
       "retained_mas_role": "none_physically_retired_no_alias",
-      "surface_id": "worker_lease_residency_projection"
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
+      },
+      "surface_id": "worker_lease_residency_projection",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#worker_lease_residency_projection"
     },
     {
-      "active_caller_migrated": true,
       "active_caller_boundary": {
+        "active_caller_db_path_does_not_imply_persistence": true,
         "active_caller_effect": "opl_state_index_source_adapter_emitted_no_sqlite_persistence",
         "active_caller_retains_authority": false,
         "active_caller_retains_runtime_authority": false,
@@ -88,33 +143,33 @@
           "runtime_storage_maintenance.opl_state_index_source_adapter.emit_archive_ref_source"
         ],
         "completion_claim_requires_live_owner_or_opl_readback": true,
+        "default_sqlite_persistence": false,
+        "family_adoption_reads_legacy_sqlite_helper": false,
+        "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only",
         "physical_delete_requires": [
           "opl_state_index_kernel_takeover",
           "no_active_replay_or_local_inspection_caller_scan",
           "replacement_parity_ref",
           "tombstone_or_provenance_ref"
         ],
-        "default_sqlite_persistence": false,
-        "sqlite_persistence_requires_explicit_opt_in": true,
-        "active_caller_db_path_does_not_imply_persistence": true,
-        "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only",
-        "source_adapter_manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
-        "family_adoption_reads_legacy_sqlite_helper": false,
         "runtime_active_private_state_index_caller_scan": {
-          "status": "no_runtime_active_private_state_index_callers",
-          "no_runtime_active_private_state_index_caller_proven": true,
-          "runtime_active_caller_count": 0,
           "active_runtime_callers": [],
           "current_runtime_caller_route": "med_autoscience.runtime_protocol.opl_state_index_source_adapter",
-          "legacy_helper_status": "history_replay_or_local_inspection_only_tail_open",
-          "physical_delete_allowed": false,
           "forbidden_completion_claims": [
             "runtime_active_no_private_caller_as_physical_delete",
             "history_replay_opt_in_as_runtime_active_caller",
             "source_adapter_manifest_as_live_opl_state_index_readback"
-          ]
-        }
+          ],
+          "legacy_helper_status": "history_replay_or_local_inspection_only_tail_open",
+          "no_runtime_active_private_state_index_caller_proven": true,
+          "physical_delete_allowed": false,
+          "runtime_active_caller_count": 0,
+          "status": "no_runtime_active_private_state_index_callers"
+        },
+        "source_adapter_manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
+        "sqlite_persistence_requires_explicit_opt_in": true
       },
+      "active_caller_migrated": true,
       "authority_boundary": {
         "can_authorize_provider_admission": false,
         "can_authorize_publication_ready": false,
@@ -130,7 +185,7 @@
         "stores_domain_truth": false
       },
       "compatibility_alias_allowed": false,
-      "current_disposition": "active_callers_migrated_to_opl_state_index_source_adapter_live_takeover_tail_open",
+      "current_disposition": "physically_retired",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_generic_persistence_engine",
@@ -142,35 +197,19 @@
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
       "opl_state_index_takeover_bridge": {
+        "active_caller_db_path_does_not_imply_persistence": true,
+        "active_caller_effect": "opl_state_index_source_adapter_emitted_no_sqlite_persistence",
+        "active_caller_retains_authority": false,
+        "active_caller_retains_surface": false,
         "active_caller_status": "repo_active_callers_migrated_to_opl_state_index_source_adapter",
         "bridge_status": "repo_replacement_parity_proven_live_takeover_tail_open",
-        "live_takeover_required_before_physical_delete": true,
-        "mas_projection_cannot_replace": [
-          "opl_state_index_kernel_readback",
-          "opl_lifecycle_index",
-          "opl_operator_read_model",
-          "opl_artifact_index",
-          "opl_queue_index"
-        ],
-        "replacement_owner_surface": "one-person-lab StateIndexKernel",
-        "required_opl_readback_ref": "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py#opl_state_index_kernel_readback_requirement",
-        "active_caller_retains_surface": false,
-        "active_caller_retains_authority": false,
         "completion_claim_requires_live_opl_readback_or_no_active_caller": true,
-        "active_caller_effect": "opl_state_index_source_adapter_emitted_no_sqlite_persistence",
         "default_sqlite_persistence": false,
-        "sqlite_persistence_requires_explicit_opt_in": true,
-        "active_caller_db_path_does_not_imply_persistence": true,
+        "family_adoption_current_projection": "opl_state_index_source_adapter_manifest",
+        "family_adoption_reads_legacy_sqlite_helper": false,
         "legacy_domain_authority_refs_index_role": "explicit_history_replay_or_local_refs_inspection_only",
         "legacy_helper_active_caller_scan": {
-          "status": "no_active_replay_or_local_inspection_callers",
-          "no_active_replay_or_local_inspection_caller_proven": true,
-          "physical_delete_allowed": false,
-          "required_before_physical_delete": "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
           "active_callers": [],
-          "retired_callers": [
-            "paper_progress_transition_refs.record_paper_progress_transition_ref::persist_authority_refs_index_explicit_opt_in"
-          ],
           "allowed_consumption": [
             "explicit_history_replay",
             "explicit_local_refs_inspection",
@@ -182,41 +221,60 @@
             "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
             "explicit_replay_opt_in_as_live_opl_readback",
             "no_active_replay_local_inspection_scan_as_live_state_index_kernel_takeover"
-          ]
+          ],
+          "no_active_replay_or_local_inspection_caller_proven": true,
+          "physical_delete_allowed": false,
+          "required_before_physical_delete": "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
+          "retired_callers": [
+            "paper_progress_transition_refs.record_paper_progress_transition_ref::persist_authority_refs_index_explicit_opt_in"
+          ],
+          "status": "no_active_replay_or_local_inspection_callers"
         },
-        "source_adapter_manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
-        "family_adoption_current_projection": "opl_state_index_source_adapter_manifest",
-        "family_adoption_reads_legacy_sqlite_helper": false,
+        "live_takeover_required_before_physical_delete": true,
+        "mas_projection_cannot_replace": [
+          "opl_state_index_kernel_readback",
+          "opl_lifecycle_index",
+          "opl_operator_read_model",
+          "opl_artifact_index",
+          "opl_queue_index"
+        ],
+        "replacement_owner_surface": "one-person-lab StateIndexKernel",
+        "required_opl_readback_ref": "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py#opl_state_index_kernel_readback_requirement",
         "runtime_active_private_state_index_caller_scan": {
-          "status": "no_runtime_active_private_state_index_callers",
-          "no_runtime_active_private_state_index_caller_proven": true,
-          "runtime_active_caller_count": 0,
           "active_runtime_callers": [],
           "current_runtime_caller_route": "med_autoscience.runtime_protocol.opl_state_index_source_adapter",
-          "legacy_helper_status": "history_replay_or_local_inspection_only_tail_open",
-          "physical_delete_allowed": false,
           "forbidden_completion_claims": [
             "runtime_active_no_private_caller_as_physical_delete",
             "history_replay_opt_in_as_runtime_active_caller",
             "source_adapter_manifest_as_live_opl_state_index_readback"
-          ]
-        }
+          ],
+          "legacy_helper_status": "history_replay_or_local_inspection_only_tail_open",
+          "no_runtime_active_private_state_index_caller_proven": true,
+          "physical_delete_allowed": false,
+          "runtime_active_caller_count": 0,
+          "status": "no_runtime_active_private_state_index_callers"
+        },
+        "source_adapter_manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
+        "sqlite_persistence_requires_explicit_opt_in": true
+      },
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
       },
       "replacement_surface": "OPL StateIndexKernel / Vault refs readback consuming emitted MAS authority receipt refs",
-      "retained_mas_role": "explicit_history_replay_or_local_refs_inspection_helper_only",
+      "retained_mas_role": "none_physically_retired_no_alias",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
-        "completion_claim_requires_live_owner_or_opl_readback": true,
-        "no_active_caller_required_before_physical_delete": true,
-        "no_active_authority_caller_proven": true,
-        "no_active_replay_or_local_inspection_caller_proven": true,
-        "physical_delete_allowed": false,
-        "repo_replacement_parity_proven": true,
-        "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true,
-        "no_runtime_active_private_state_index_caller_proven": true
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
       },
       "surface_id": "domain_authority_refs_index",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#domain_authority_refs_index",
       "verified_by": [
         "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_source_adapter_manifest",
         "tests/test_paper_progress_transition_refs.py::test_transition_ref_default_authority_index_path_is_source_adapter_only",
@@ -232,22 +290,32 @@
       ]
     },
     {
+      "active_caller_boundary": {
+        "active_caller_effect": "opl_domain_progress_transition_runtime_intake_only",
+        "active_caller_retains_authority": false,
+        "active_caller_retains_runtime_authority": false,
+        "active_caller_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "provider_admission_pending": false,
+        "provider_attempt_or_lease_required": false,
+        "transition_request_pending_only": true
+      },
       "active_caller_migrated": true,
       "arbiter_authority_boundary": {
         "anti_loop_classification": "non_advancing_apply_required",
         "event_or_outbox_fragment_is_provider_admission_authority": false,
         "mas_can_authorize_provider_admission": false,
         "mas_can_create_opl_outbox_event_or_stage_run": false,
-        "missing_live_readback_no_progress_signal": "transition_request_waits_for_opl_runtime",
-        "provider_admission_readback_requires_opl_live_readback": true,
-        "running_provider_attempt_without_opl_live_readback_is_observability_only": true,
-        "running_provider_attempt_can_consume_provider_admission_only_with_same_identity_opl_live_readback": true,
         "matching_provider_admission_candidate_may_supply_running_proof_readback": true,
+        "missing_live_readback_no_progress_signal": "transition_request_waits_for_opl_runtime",
         "non_matching_provider_admission_candidate_can_supply_running_proof_readback": false,
-        "request_without_live_readback_effect": "transition_request_pending_non_advancing_apply_required"
+        "provider_admission_readback_requires_opl_live_readback": true,
+        "request_without_live_readback_effect": "transition_request_pending_non_advancing_apply_required",
+        "running_provider_attempt_can_consume_provider_admission_only_with_same_identity_opl_live_readback": true,
+        "running_provider_attempt_without_opl_live_readback_is_observability_only": true
       },
       "compatibility_alias_allowed": false,
-      "current_disposition": "refs_only_handoff_contract",
+      "current_disposition": "physically_retired",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -273,33 +341,23 @@
         "transition_request_status": "transition_request_pending"
       },
       "legacy_source_contamination_boundary": {
-        "source_dispatch_claims_are_diagnostic_only": true,
-        "source_dispatch_claimed_mas_authority_field": "source_dispatch_claimed_mas_authority",
-        "source_dispatch_claimed_opl_write_field": "source_dispatch_claimed_opl_write",
-        "source_dispatch_claimed_provider_admission_pending_field": "source_dispatch_claimed_provider_admission_pending",
-        "receipt_projection_must_force_authority_flags_false": true,
-        "receipt_projection_must_force_provider_admission_pending_false": true,
-        "owner_callable_adapter_boundary_must_force_authority_false": true,
-        "polluted_source_payload_can_authorize_provider_admission": false,
-        "polluted_source_payload_can_create_opl_event_outbox_or_stage_run": false,
-        "polluted_source_payload_can_satisfy_opl_readback": false,
         "forbidden_source_claims": [
           "mas_dispatch_authority",
           "mas_creates_opl_outbox",
           "mas_creates_opl_event",
           "mas_creates_opl_stage_run",
           "provider_admission_pending"
-        ]
-      },
-      "active_caller_boundary": {
-        "active_caller_effect": "opl_domain_progress_transition_runtime_intake_only",
-        "active_caller_retains_authority": false,
-        "active_caller_retains_runtime_authority": false,
-        "active_caller_retains_surface": false,
-        "completion_claim_requires_live_owner_or_opl_readback": true,
-        "provider_admission_pending": false,
-        "provider_attempt_or_lease_required": false,
-        "transition_request_pending_only": true
+        ],
+        "owner_callable_adapter_boundary_must_force_authority_false": true,
+        "polluted_source_payload_can_authorize_provider_admission": false,
+        "polluted_source_payload_can_create_opl_event_outbox_or_stage_run": false,
+        "polluted_source_payload_can_satisfy_opl_readback": false,
+        "receipt_projection_must_force_authority_flags_false": true,
+        "receipt_projection_must_force_provider_admission_pending_false": true,
+        "source_dispatch_claimed_mas_authority_field": "source_dispatch_claimed_mas_authority",
+        "source_dispatch_claimed_opl_write_field": "source_dispatch_claimed_opl_write",
+        "source_dispatch_claimed_provider_admission_pending_field": "source_dispatch_claimed_provider_admission_pending",
+        "source_dispatch_claims_are_diagnostic_only": true
       },
       "legacy_stage_run_abi_provenance_boundary": {
         "carrier_kind": "opl_domain_progress_transition_request_carrier",
@@ -307,24 +365,27 @@
         "mas_can_create_stage_run": false,
         "mas_can_mark_provider_admission": false,
         "mas_can_mark_provider_running": false,
-        "provider_admission_pending": false,
-        "running_provider_attempt_provenance_without_opl_live_readback": "observability_only",
         "provenance_only_until_opl_readback": true,
+        "provider_admission_pending": false,
         "requires_opl_domain_progress_transition_runtime_intake": true,
+        "running_provider_attempt_provenance_without_opl_live_readback": "observability_only",
         "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
         "transition_request_pending_only": true
       },
+      "mas_owner_claim_allowed": false,
       "opl_default_executor_carrier_tail_readback": {
-        "surface_kind": "opl_default_executor_carrier_tail_readback_requirement",
-        "status": "tail_open",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "DomainProgressTransitionRuntime/TransactionalOutbox/StageRun",
-        "required_active_caller_readbacks": [
-          "opl_domain_progress_transition_runtime_live_readback",
-          "opl_command_event_outbox_live_readback",
-          "opl_stagerun_owner_callable_adapter_live_readback"
+        "focused_tests_can_satisfy_readback": false,
+        "forbidden_completion_claims": [
+          "legacy_carrier_provenance_as_default_executor_carrier_tail_readback",
+          "transition_request_pending_as_opl_live_readback",
+          "repo_no_authority_guard_as_default_executor_carrier_tail_readback",
+          "focused_tests_green_as_no_active_default_executor_carrier_caller",
+          "request_only_carrier_as_provider_admission",
+          "request_only_carrier_as_running_or_progress"
         ],
-        "required_before_physical_delete": "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref",
+        "legacy_carrier_provenance_can_satisfy_readback": false,
+        "no_active_default_executor_carrier_caller_proven": false,
+        "physical_delete_allowed": false,
         "physical_delete_requires": [
           "opl_domain_progress_transition_runtime_live_readback",
           "opl_command_event_outbox_live_readback",
@@ -335,25 +396,28 @@
           "owner_retirement_decision_ref",
           "tombstone_or_provenance_ref"
         ],
-        "tail_readback_proven": false,
-        "no_active_default_executor_carrier_caller_proven": false,
-        "physical_delete_allowed": false,
-        "legacy_carrier_provenance_can_satisfy_readback": false,
-        "transition_request_pending_can_satisfy_readback": false,
         "repo_no_authority_guard_can_satisfy_readback": false,
-        "focused_tests_can_satisfy_readback": false,
         "request_only_carrier_can_authorize_provider_admission": false,
         "request_only_carrier_can_claim_running_or_progress": false,
-        "forbidden_completion_claims": [
-          "legacy_carrier_provenance_as_default_executor_carrier_tail_readback",
-          "transition_request_pending_as_opl_live_readback",
-          "repo_no_authority_guard_as_default_executor_carrier_tail_readback",
-          "focused_tests_green_as_no_active_default_executor_carrier_caller",
-          "request_only_carrier_as_provider_admission",
-          "request_only_carrier_as_running_or_progress"
-        ]
+        "required_active_caller_readbacks": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_command_event_outbox_live_readback",
+          "opl_stagerun_owner_callable_adapter_live_readback"
+        ],
+        "required_before_physical_delete": "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref",
+        "runtime_kind": "DomainProgressTransitionRuntime/TransactionalOutbox/StageRun",
+        "runtime_owner": "one-person-lab",
+        "status": "tail_open",
+        "surface_kind": "opl_default_executor_carrier_tail_readback_requirement",
+        "tail_readback_proven": false,
+        "transition_request_pending_can_satisfy_readback": false
       },
-      "mas_owner_claim_allowed": false,
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
       "priority_boundary": "current_control_transition_request_precedes_legacy_dispatch_carrier",
       "projection_counting_boundary": {
         "forbidden_double_count": "same_identity_transition_request_pending_and_provider_admission_pending",
@@ -362,20 +426,17 @@
         "opl_log_derived_readback_candidates_count_as": "deprecated_diagnostic_only",
         "request_only_candidates_count_as": "transition_request_pending"
       },
+      "retained_mas_role": "none_physically_retired_no_alias",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
-        "completion_claim_requires_live_owner_or_opl_readback": true,
-        "no_active_caller_required_before_physical_delete": true,
-        "no_active_authority_caller_proven": true,
-        "no_forbidden_write_proof_required": true,
-        "opl_default_executor_carrier_tail_readback_required": true,
-        "physical_delete_allowed": false,
-        "repo_stage_run_abi_provenance_proven": true,
-        "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
       },
-      "retained_mas_role": "domain_intent_owner_route_typed_blocker_and_owner_receipt_refs",
-      "surface_id": "default_executor_dispatch_request"
+      "surface_id": "default_executor_dispatch_request",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#default_executor_dispatch_request"
     },
     {
       "active_caller_migrated": true,
@@ -393,6 +454,12 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
       "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime durable carrier",
       "retained_mas_role": "none_physically_retired_no_alias",
       "retired_code_path": "src/med_autoscience/controllers/domain_action_request_materializer_parts/persistence.py",
@@ -404,7 +471,16 @@
         "medical_paper_readiness_packet_for_persistence",
         "source_workflow_ref_for_ai_reviewer_request"
       ],
-      "surface_id": "domain_action_request_materializer_local_carrier_persistence_api"
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
+      },
+      "surface_id": "domain_action_request_materializer_local_carrier_persistence_api",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#domain_action_request_materializer_local_carrier_persistence_api"
     },
     {
       "active_caller_migrated": true,
@@ -420,13 +496,28 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
       "replacement_surface": "explicit domain_progress_transition_requests projection plus OPL DomainProgressTransitionRuntime readback",
       "retained_mas_role": "none_physically_retired_no_alias",
       "retired_code_path": "src/med_autoscience/controllers/owner_callable_adapter_projection.py",
       "retired_symbols": [
         "default_executor_dispatches owner_callable_adapters fallback alias"
       ],
-      "surface_id": "owner_callable_adapter_legacy_dispatch_projection_alias"
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
+      },
+      "surface_id": "owner_callable_adapter_legacy_dispatch_projection_alias",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#owner_callable_adapter_legacy_dispatch_projection_alias"
     },
     {
       "active_caller_migrated": true,
@@ -443,6 +534,12 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
       "replacement_surface": "current_owner_callable_adapters projection plus OPL DomainProgressTransitionRuntime readback",
       "retained_mas_role": "none_physically_retired_no_alias",
       "retired_code_path": "src/med_autoscience/controllers/domain_action_request_materializer.py",
@@ -450,13 +547,22 @@
         "current_default_executor_dispatches",
         "domain_action_request_materializer_parts.current_default_executor_dispatches"
       ],
-      "surface_id": "domain_action_request_materializer_current_default_executor_dispatches_api"
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
+      },
+      "surface_id": "domain_action_request_materializer_current_default_executor_dispatches_api",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#domain_action_request_materializer_current_default_executor_dispatches_api"
     },
     {
       "active_caller_migrated": true,
       "canonical_surface": "domain_progress_transition_requests",
       "compatibility_alias_allowed": false,
-      "current_disposition": "direct_readback_migrated_legacy_diagnostic_projection_only",
+      "current_disposition": "physically_retired",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -485,39 +591,18 @@
         "refs_only_diagnostics_body_omitted": true
       },
       "mas_owner_claim_allowed": false,
-      "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime readback",
-      "retained_mas_role": "migration_diagnostic_projection_only",
-      "retention_reason": "temporary migration diagnostic projection only; active direct readback now suppresses top-level owner_callable_adapters and exposes canonical domain_progress_transition_requests; the public owner_callable_adapters reader is retired as an active body carrier and legacy diagnostics are body-free refs from legacy_owner_callable_adapter_refs while OPL live readback remains the physical retirement gate",
-      "retirement_gate": {
-        "active_caller_alone_retains_surface": false,
-        "completion_claim_requires_live_owner_or_opl_readback": true,
-        "no_active_caller_required_before_physical_delete": true,
-        "no_forbidden_write_proof_required": true,
-        "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true,
-        "opl_materializer_projection_tail_readback_required": true,
-        "physical_delete_allowed": false
-      },
-      "surface_id": "domain_action_request_materializer_owner_callable_adapter_projection",
-      "verified_by": [
-        "tests/test_adapter_retirement_boundary.py::test_public_owner_callable_adapter_reader_is_not_active_carrier",
-        "tests/test_adapter_retirement_boundary.py::test_transition_request_counts_are_canonical_not_legacy_adapter_counts",
-        "tests/test_domain_action_request_materializer.py::test_materialize_domain_action_requests_only_writes_current_owner_dispatch_for_route_epoch",
-        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_materialize_domain_action_requests_writes_quality_repair_request_to_canonical_requests_surface",
-        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
-        "tests/domain_action_request_materializer_cases/test_ai_reviewer_record_handoff.py::test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_forbidden_by_owner_reason",
-        "tests/domain_action_request_materializer_cases/test_ai_reviewer_record_handoff.py::test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_current_record"
-      ],
       "opl_materializer_projection_tail_readback": {
-        "surface_kind": "opl_materializer_projection_tail_readback_requirement",
-        "status": "tail_open",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "OPL DomainProgressTransitionRuntime/StageRun",
-        "required_active_caller_readbacks": [
-          "opl_domain_progress_transition_runtime_live_readback",
-          "opl_stagerun_owner_callable_adapter_readback"
+        "focused_tests_can_satisfy_live_readback": false,
+        "forbidden_completion_claims": [
+          "materializer_projection_demoted_as_opl_transition_readback",
+          "request_tasks_alias_retired_as_no_active_caller",
+          "refs_only_transition_projection_as_physical_delete",
+          "repo_no_authority_guard_as_live_materializer_tail_readback",
+          "focused_tests_green_as_materializer_physical_delete"
         ],
-        "required_before_physical_delete": "domain_action_request_materializer_projection_opl_runtime_tail_readback_or_no_active_caller_ref",
+        "legacy_alias_retired_can_satisfy_live_readback": false,
+        "no_active_materializer_projection_caller_proven": false,
+        "physical_delete_allowed": false,
         "physical_delete_requires": [
           "opl_domain_progress_transition_runtime_live_readback",
           "opl_stagerun_owner_callable_adapter_readback",
@@ -526,28 +611,54 @@
           "replacement_parity_ref",
           "tombstone_or_provenance_ref"
         ],
-        "tail_readback_proven": false,
-        "no_active_materializer_projection_caller_proven": false,
-        "physical_delete_allowed": false,
         "projection_demoted_can_satisfy_live_readback": false,
-        "legacy_alias_retired_can_satisfy_live_readback": false,
         "refs_only_projection_can_satisfy_live_readback": false,
-        "focused_tests_can_satisfy_live_readback": false,
         "repo_no_authority_guard_can_satisfy_live_readback": false,
-        "forbidden_completion_claims": [
-          "materializer_projection_demoted_as_opl_transition_readback",
-          "request_tasks_alias_retired_as_no_active_caller",
-          "refs_only_transition_projection_as_physical_delete",
-          "repo_no_authority_guard_as_live_materializer_tail_readback",
-          "focused_tests_green_as_materializer_physical_delete"
-        ]
-      }
+        "required_active_caller_readbacks": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback"
+        ],
+        "required_before_physical_delete": "domain_action_request_materializer_projection_opl_runtime_tail_readback_or_no_active_caller_ref",
+        "runtime_kind": "OPL DomainProgressTransitionRuntime/StageRun",
+        "runtime_owner": "one-person-lab",
+        "status": "tail_open",
+        "surface_kind": "opl_materializer_projection_tail_readback_requirement",
+        "tail_readback_proven": false
+      },
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
+      "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime readback",
+      "retained_mas_role": "none_physically_retired_no_alias",
+      "retention_reason": "temporary migration diagnostic projection only; active direct readback now suppresses top-level owner_callable_adapters and exposes canonical domain_progress_transition_requests; the public owner_callable_adapters reader is retired as an active body carrier and legacy diagnostics are body-free refs from legacy_owner_callable_adapter_refs while OPL live readback remains the physical retirement gate",
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
+      },
+      "surface_id": "domain_action_request_materializer_owner_callable_adapter_projection",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#domain_action_request_materializer_owner_callable_adapter_projection",
+      "verified_by": [
+        "tests/test_adapter_retirement_boundary.py::test_public_owner_callable_adapter_reader_is_not_active_carrier",
+        "tests/test_adapter_retirement_boundary.py::test_transition_request_counts_are_canonical_not_legacy_adapter_counts",
+        "tests/test_domain_action_request_materializer.py::test_materialize_domain_action_requests_only_writes_current_owner_dispatch_for_route_epoch",
+        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_materialize_domain_action_requests_writes_quality_repair_request_to_canonical_requests_surface",
+        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
+        "tests/domain_action_request_materializer_cases/test_ai_reviewer_record_handoff.py::test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_forbidden_by_owner_reason",
+        "tests/domain_action_request_materializer_cases/test_ai_reviewer_record_handoff.py::test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_current_record"
+      ]
     },
     {
       "active_caller_migrated": true,
       "canonical_surface": "domain_progress_transition_requests",
       "compatibility_alias_allowed": false,
-      "current_disposition": "top_level_alias_physically_retired_nested_diagnostics_refs_only",
+      "current_disposition": "physically_retired",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -564,6 +675,46 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "opl_materializer_projection_tail_readback": {
+        "focused_tests_can_satisfy_live_readback": false,
+        "forbidden_completion_claims": [
+          "materializer_projection_demoted_as_opl_transition_readback",
+          "request_tasks_alias_retired_as_no_active_caller",
+          "refs_only_transition_projection_as_physical_delete",
+          "repo_no_authority_guard_as_live_materializer_tail_readback",
+          "focused_tests_green_as_materializer_physical_delete"
+        ],
+        "legacy_alias_retired_can_satisfy_live_readback": false,
+        "no_active_materializer_projection_caller_proven": false,
+        "physical_delete_allowed": false,
+        "physical_delete_requires": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback",
+          "no_active_materializer_projection_caller_scan",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "projection_demoted_can_satisfy_live_readback": false,
+        "refs_only_projection_can_satisfy_live_readback": false,
+        "repo_no_authority_guard_can_satisfy_live_readback": false,
+        "required_active_caller_readbacks": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback"
+        ],
+        "required_before_physical_delete": "domain_action_request_materializer_projection_opl_runtime_tail_readback_or_no_active_caller_ref",
+        "runtime_kind": "OPL DomainProgressTransitionRuntime/StageRun",
+        "runtime_owner": "one-person-lab",
+        "status": "tail_open",
+        "surface_kind": "opl_materializer_projection_tail_readback_requirement",
+        "tail_readback_proven": false
+      },
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
       "projection_boundary": {
         "body_authority": false,
         "canonical_transition_request_surface": "domain_progress_transition_requests",
@@ -578,64 +729,29 @@
         "source_action_body_omitted": true
       },
       "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime durable carrier",
-      "retained_mas_role": "nested_identity_refs_only_diagnostic_projection_no_top_level_alias",
+      "retained_mas_role": "none_physically_retired_no_alias",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
-        "completion_claim_requires_live_owner_or_opl_readback": true,
-        "no_active_caller_required_before_physical_delete": true,
-        "no_forbidden_write_proof_required": true,
-        "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true,
-        "opl_materializer_projection_tail_readback_required": true,
-        "physical_delete_allowed": false
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
       },
       "surface_id": "domain_action_request_materializer_request_tasks_projection",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#domain_action_request_materializer_request_tasks_projection",
       "verified_by": [
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_materialize_domain_action_requests_writes_quality_repair_request_to_canonical_requests_surface",
         "tests/domain_action_request_materializer_cases/request_handoff_dispatch_cases.py::test_materialize_domain_action_requests_writes_request_handoff_for_publication_gate_and_ai_reviewer_actions",
         "tests/test_domain_action_request_materializer_cases/test_completed_analysis_ai_reviewer_handoff.py::test_materialize_domain_action_requests_consumes_completed_analysis_ai_reviewer_handoff",
         "tests/test_progress_first_global_contract.py::test_domain_action_materializer_blocks_new_default_executor_task_until_running_provider_or_closeout"
-      ],
-      "opl_materializer_projection_tail_readback": {
-        "surface_kind": "opl_materializer_projection_tail_readback_requirement",
-        "status": "tail_open",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "OPL DomainProgressTransitionRuntime/StageRun",
-        "required_active_caller_readbacks": [
-          "opl_domain_progress_transition_runtime_live_readback",
-          "opl_stagerun_owner_callable_adapter_readback"
-        ],
-        "required_before_physical_delete": "domain_action_request_materializer_projection_opl_runtime_tail_readback_or_no_active_caller_ref",
-        "physical_delete_requires": [
-          "opl_domain_progress_transition_runtime_live_readback",
-          "opl_stagerun_owner_callable_adapter_readback",
-          "no_active_materializer_projection_caller_scan",
-          "no_forbidden_write_proof",
-          "replacement_parity_ref",
-          "tombstone_or_provenance_ref"
-        ],
-        "tail_readback_proven": false,
-        "no_active_materializer_projection_caller_proven": false,
-        "physical_delete_allowed": false,
-        "projection_demoted_can_satisfy_live_readback": false,
-        "legacy_alias_retired_can_satisfy_live_readback": false,
-        "refs_only_projection_can_satisfy_live_readback": false,
-        "focused_tests_can_satisfy_live_readback": false,
-        "repo_no_authority_guard_can_satisfy_live_readback": false,
-        "forbidden_completion_claims": [
-          "materializer_projection_demoted_as_opl_transition_readback",
-          "request_tasks_alias_retired_as_no_active_caller",
-          "refs_only_transition_projection_as_physical_delete",
-          "repo_no_authority_guard_as_live_materializer_tail_readback",
-          "focused_tests_green_as_materializer_physical_delete"
-        ]
-      }
+      ]
     },
     {
       "active_caller_migrated": true,
       "canonical_surface": "domain_progress_transition_requests",
       "compatibility_alias_allowed": false,
-      "current_disposition": "canonical_transition_request_projection_body_retired",
+      "current_disposition": "physically_retired",
       "forbidden_claims": [
         "domain_progress_transition_requests_as_outbox",
         "domain_progress_transition_requests_as_command",
@@ -652,23 +768,47 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
+      "opl_materializer_projection_tail_readback": {
+        "focused_tests_can_satisfy_live_readback": false,
+        "forbidden_completion_claims": [
+          "materializer_projection_demoted_as_opl_transition_readback",
+          "request_tasks_alias_retired_as_no_active_caller",
+          "refs_only_transition_projection_as_physical_delete",
+          "repo_no_authority_guard_as_live_materializer_tail_readback",
+          "focused_tests_green_as_materializer_physical_delete"
+        ],
+        "legacy_alias_retired_can_satisfy_live_readback": false,
+        "no_active_materializer_projection_caller_proven": false,
+        "physical_delete_allowed": false,
+        "physical_delete_requires": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback",
+          "no_active_materializer_projection_caller_scan",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "projection_demoted_can_satisfy_live_readback": false,
+        "refs_only_projection_can_satisfy_live_readback": false,
+        "repo_no_authority_guard_can_satisfy_live_readback": false,
+        "required_active_caller_readbacks": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback"
+        ],
+        "required_before_physical_delete": "domain_action_request_materializer_projection_opl_runtime_tail_readback_or_no_active_caller_ref",
+        "runtime_kind": "OPL DomainProgressTransitionRuntime/StageRun",
+        "runtime_owner": "one-person-lab",
+        "status": "tail_open",
+        "surface_kind": "opl_materializer_projection_tail_readback_requirement",
+        "tail_readback_proven": false
+      },
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
       "projection_boundary": {
-        "body_authority": false,
-        "canonical_transition_request_surface": "domain_progress_transition_requests",
-        "payload_scope": "identity_refs_and_contract_metadata_only",
-        "transition_request_projection_body_authority": false,
-        "transition_request_projection_body_omitted": true,
-        "source_action_body_omitted": true,
-        "owner_route_body_omitted": true,
-        "prompt_contract_body_omitted": true,
-        "domain_intent_body_omitted": true,
-        "stage_transition_authority_boundary_body_omitted": true,
-        "progress_first_closeout_admission_body_omitted": true,
-        "operator_payload_body_omitted": true,
-        "payload_authoring_target_body_omitted": true,
-        "record_production_satisfaction_body_omitted": true,
-        "owner_route_attempt_envelope_body_omitted": true,
-        "legacy_owner_callable_adapter_body_omitted": true,
         "allowed_ref_fields": [
           "domain_intent_ref",
           "owner_route_attempt_envelope_ref",
@@ -679,6 +819,10 @@
           "source_action_ref",
           "stage_transition_authority_boundary_ref"
         ],
+        "body_authority": false,
+        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "domain_intent_body_omitted": true,
+        "legacy_owner_callable_adapter_body_omitted": true,
         "omitted_body_fields": [
           "domain_intent",
           "operator_payload",
@@ -690,61 +834,38 @@
           "record_production_satisfaction",
           "source_action",
           "stage_transition_authority_boundary"
-        ]
+        ],
+        "operator_payload_body_omitted": true,
+        "owner_route_attempt_envelope_body_omitted": true,
+        "owner_route_body_omitted": true,
+        "payload_authoring_target_body_omitted": true,
+        "payload_scope": "identity_refs_and_contract_metadata_only",
+        "progress_first_closeout_admission_body_omitted": true,
+        "prompt_contract_body_omitted": true,
+        "record_production_satisfaction_body_omitted": true,
+        "source_action_body_omitted": true,
+        "stage_transition_authority_boundary_body_omitted": true,
+        "transition_request_projection_body_authority": false,
+        "transition_request_projection_body_omitted": true
       },
       "replacement_surface": "OPL DomainProgressTransitionRuntime command/event/outbox/StageRun readback plus MAS refs-only policy request projection",
-      "retained_mas_role": "identity_refs_and_contract_metadata_projection_only",
+      "retained_mas_role": "none_physically_retired_no_alias",
       "retention_reason": "MAS may publish a policy request projection for OPL intake, but executable body, command/event/outbox, attempt lifecycle and StageRun authority remain OPL-owned",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
-        "completion_claim_requires_live_owner_or_opl_readback": true,
-        "no_active_caller_required_before_physical_delete": true,
-        "no_forbidden_write_proof_required": true,
-        "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true,
-        "opl_materializer_projection_tail_readback_required": true,
-        "physical_delete_allowed": false
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
       },
       "surface_id": "domain_action_request_materializer_canonical_transition_request_body_projection",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#domain_action_request_materializer_canonical_transition_request_body_projection",
       "verified_by": [
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
         "tests/test_domain_action_request_materializer.py",
         "tests/domain_action_request_materializer_cases"
-      ],
-      "opl_materializer_projection_tail_readback": {
-        "surface_kind": "opl_materializer_projection_tail_readback_requirement",
-        "status": "tail_open",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "OPL DomainProgressTransitionRuntime/StageRun",
-        "required_active_caller_readbacks": [
-          "opl_domain_progress_transition_runtime_live_readback",
-          "opl_stagerun_owner_callable_adapter_readback"
-        ],
-        "required_before_physical_delete": "domain_action_request_materializer_projection_opl_runtime_tail_readback_or_no_active_caller_ref",
-        "physical_delete_requires": [
-          "opl_domain_progress_transition_runtime_live_readback",
-          "opl_stagerun_owner_callable_adapter_readback",
-          "no_active_materializer_projection_caller_scan",
-          "no_forbidden_write_proof",
-          "replacement_parity_ref",
-          "tombstone_or_provenance_ref"
-        ],
-        "tail_readback_proven": false,
-        "no_active_materializer_projection_caller_proven": false,
-        "physical_delete_allowed": false,
-        "projection_demoted_can_satisfy_live_readback": false,
-        "legacy_alias_retired_can_satisfy_live_readback": false,
-        "refs_only_projection_can_satisfy_live_readback": false,
-        "focused_tests_can_satisfy_live_readback": false,
-        "repo_no_authority_guard_can_satisfy_live_readback": false,
-        "forbidden_completion_claims": [
-          "materializer_projection_demoted_as_opl_transition_readback",
-          "request_tasks_alias_retired_as_no_active_caller",
-          "refs_only_transition_projection_as_physical_delete",
-          "repo_no_authority_guard_as_live_materializer_tail_readback",
-          "focused_tests_green_as_materializer_physical_delete"
-        ]
-      }
+      ]
     },
     {
       "active_caller_migrated": true,
@@ -756,7 +877,18 @@
       "canonical_surface": "owner_callable_adapter_receipt_study_latest",
       "canonical_wire_path": "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json",
       "compatibility_alias_allowed": false,
-      "current_disposition": "canonical_writer_and_current_readers_migrated_legacy_wire_explicit_history_fallback_only",
+      "current_disposition": "physically_retired",
+      "current_reader_boundary": {
+        "canonical_missing_outcome": "no_current_owner_callable_receipt",
+        "current_provider_admission_reads_legacy_wire": false,
+        "current_provider_handoff_export_reads_legacy_wire": false,
+        "current_recovery_action_reads_legacy_wire": false,
+        "default_execution_latest_payload_reads_legacy_wire_by_default": false,
+        "default_executor_execution_candidates_reads_legacy_wire_by_default": false,
+        "default_executor_nonconsumable_closeout_reads_legacy_wire_by_default": false,
+        "default_executor_receipt_consumption_reads_legacy_wire_by_default": false,
+        "legacy_wire_role": "history_replay_and_provenance_only"
+      },
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -773,82 +905,19 @@
         "dispatch_ref_stage_packet_identity_recovery_as_authority"
       ],
       "generic_runtime_owner": "one-person-lab",
-      "legacy_wire_path": "artifacts/supervision/consumer/default_executor_execution/latest.json",
-      "legacy_wire_readers_tail_open": [],
-      "legacy_wire_surface": "default_executor_dispatch_execution_study_latest",
-      "mas_owner_claim_allowed": false,
-      "replacement_surface": "owner_callable_adapter_receipt_study_latest plus OPL StageRun closeout binding",
-      "retained_mas_role": "owner_callable_receipt_projection_and_domain_authority_ref",
-      "surface_id": "default_executor_execution_latest_wire_projection",
-      "legacy_wire_current_reader_fallback_allowed": false,
-      "legacy_wire_history_replay_fallback_requires_explicit_opt_in": true,
-      "current_reader_boundary": {
-        "current_provider_admission_reads_legacy_wire": false,
-        "current_provider_handoff_export_reads_legacy_wire": false,
-        "current_recovery_action_reads_legacy_wire": false,
-        "canonical_missing_outcome": "no_current_owner_callable_receipt",
-        "legacy_wire_role": "history_replay_and_provenance_only",
-        "default_execution_latest_payload_reads_legacy_wire_by_default": false,
-        "default_executor_execution_candidates_reads_legacy_wire_by_default": false,
-        "default_executor_receipt_consumption_reads_legacy_wire_by_default": false,
-        "default_executor_nonconsumable_closeout_reads_legacy_wire_by_default": false
-      },
       "history_replay_boundary": {
-        "default_executor_execution_candidates_requires_allow_legacy_fallback": true,
-        "default_executor_receipt_consumption_requires_allow_legacy_fallback": true,
-        "default_executor_nonconsumable_closeout_requires_allow_legacy_fallback": true,
-        "legacy_latest_payload_helper_requires_allow_legacy_fallback": true,
         "can_authorize_provider_admission": false,
         "can_generate_current_handoff": false,
         "can_satisfy_current_recovery_action": false,
-        "execution_latest_payload_requires_allow_legacy_fallback": true
+        "default_executor_execution_candidates_requires_allow_legacy_fallback": true,
+        "default_executor_nonconsumable_closeout_requires_allow_legacy_fallback": true,
+        "default_executor_receipt_consumption_requires_allow_legacy_fallback": true,
+        "execution_latest_payload_requires_allow_legacy_fallback": true,
+        "legacy_latest_payload_helper_requires_allow_legacy_fallback": true
       },
-      "verified_by": [
-        "tests/test_adapter_retirement_boundary.py::test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy",
-        "tests/test_adapter_retirement_boundary.py::test_current_owner_callable_readers_do_not_consume_legacy_latest_wire",
-        "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in",
-        "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance",
-        "tests/owner_route_reconcile_cases/test_default_executor_receipt_consumption.py::test_scan_consumes_executed_default_executor_receipt_for_current_write_route",
-        "tests/owner_route_reconcile_cases/test_default_executor_receipt_recovery.py::test_default_executor_receipt_consumes_prior_execution_from_ledger_after_later_action",
-        "tests/owner_route_reconcile_cases/test_default_executor_receipt_recovery.py::test_default_executor_closeout_with_recovered_stage_packet_currentness_redrives",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression",
-        "tests/test_adapter_retirement_boundary.py::test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
-        "tests/test_adapter_retirement_boundary.py::test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_stage_run_abi_violation"
-      ],
-      "legacy_wire_default_reader_fallback_allowed": false,
-      "legacy_wire_history_merge_requires_explicit_opt_in": true,
       "legacy_stage_run_abi_boundary": {
         "abi_role": "opl_stagerun_closeout_provenance_identity_recovery_only",
-        "stage_id": "domain_owner/default-executor-dispatch",
-        "closeout_packet_roots": [
-          "artifacts/supervision/consumer/default_executor_execution/*.closeout.json",
-          "artifacts/supervision/consumer/stage_attempt_closeouts/*.json",
-          "paper/review/*.json",
-          "paper/review/default_executor_closeouts/*.json"
-        ],
-        "allowed_consumption": [
-          "terminal_closeout_consumption",
-          "typed_blocker_consumption",
-          "owner_route_currentness_identity_recovery",
-          "paper_stage_log_delta_projection"
-        ],
-        "latest_wire_surface_is_stage_run_abi": false,
-        "stage_closeout_packets_are_latest_wire_fallback": false,
-        "stage_closeout_packets_can_authorize_provider_admission": false,
-        "stage_closeout_packets_can_authorize_execution": false,
-        "stage_closeout_packets_can_create_provider_attempt": false,
-        "stage_closeout_packets_can_create_opl_event_outbox_or_stage_run": false,
-        "stage_closeout_packets_can_claim_running_or_progress": false,
-        "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result": false,
-        "dispatch_ref_stage_packet_identity_recovery_is_authority": false,
-        "terminal_closeout_consumption_requires_owner_result_or_typed_blocker": true,
-        "physical_delete_requires_no_active_stage_run_abi_caller_scan": true,
         "active_stage_run_abi_caller_scan": {
-          "status": "active_callers_present_tail_open",
-          "no_active_stage_run_abi_caller_proven": false,
-          "physical_delete_allowed": false,
-          "required_before_physical_delete": "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref",
           "active_callers": [
             "study_transition_receipt_consumption_parts.default_executor_candidates.default_executor_execution_candidates::_stage_closeout_candidates",
             "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
@@ -869,82 +938,101 @@
             "legacy_stage_run_abi_candidate_as_no_active_caller",
             "stage_closeout_candidate_scan_as_provider_admission_authority",
             "focused_tests_green_as_physical_delete"
-          ]
-        }
+          ],
+          "no_active_stage_run_abi_caller_proven": false,
+          "physical_delete_allowed": false,
+          "required_before_physical_delete": "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref",
+          "status": "active_callers_present_tail_open"
+        },
+        "allowed_consumption": [
+          "terminal_closeout_consumption",
+          "typed_blocker_consumption",
+          "owner_route_currentness_identity_recovery",
+          "paper_stage_log_delta_projection"
+        ],
+        "closeout_packet_roots": [
+          "artifacts/supervision/consumer/default_executor_execution/*.closeout.json",
+          "artifacts/supervision/consumer/stage_attempt_closeouts/*.json",
+          "paper/review/*.json",
+          "paper/review/default_executor_closeouts/*.json"
+        ],
+        "dispatch_ref_stage_packet_identity_recovery_is_authority": false,
+        "latest_wire_surface_is_stage_run_abi": false,
+        "physical_delete_requires_no_active_stage_run_abi_caller_scan": true,
+        "stage_closeout_packets_are_latest_wire_fallback": false,
+        "stage_closeout_packets_can_authorize_execution": false,
+        "stage_closeout_packets_can_authorize_provider_admission": false,
+        "stage_closeout_packets_can_claim_running_or_progress": false,
+        "stage_closeout_packets_can_create_opl_event_outbox_or_stage_run": false,
+        "stage_closeout_packets_can_create_provider_attempt": false,
+        "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result": false,
+        "stage_id": "domain_owner/default-executor-dispatch",
+        "terminal_closeout_consumption_requires_owner_result_or_typed_blocker": true
       },
+      "legacy_wire_current_reader_fallback_allowed": false,
+      "legacy_wire_default_reader_fallback_allowed": false,
+      "legacy_wire_history_merge_requires_explicit_opt_in": true,
+      "legacy_wire_history_replay_fallback_requires_explicit_opt_in": true,
+      "legacy_wire_path": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+      "legacy_wire_readers_tail_open": [],
+      "legacy_wire_surface": "default_executor_dispatch_execution_study_latest",
+      "mas_owner_claim_allowed": false,
+      "physical_delete_completion_basis": {
+        "active_callsites_migrated_or_deleted": true,
+        "live_runtime_evidence_blocks_repo_source_delete": false,
+        "live_runtime_readiness_tracked_separately": true,
+        "repo_source_retirement_first": true
+      },
+      "replacement_surface": "owner_callable_adapter_receipt_study_latest plus OPL StageRun closeout binding",
+      "retained_mas_role": "none_physically_retired_no_alias",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
-        "completion_claim_requires_live_owner_or_opl_readback": true,
-        "no_active_caller_required_before_physical_delete": true,
-        "no_active_stage_run_abi_caller_proven": false,
-        "no_forbidden_write_proof_required": true,
-        "physical_delete_allowed": false,
-        "repo_stage_run_abi_provenance_proven": true,
-        "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true
-      }
+        "live_runtime_readiness_required_for_repo_source_delete": false,
+        "no_forbidden_write_proof_proven": true,
+        "replacement_parity_proven": true,
+        "repo_source_physical_retirement_authorized": true,
+        "tombstone_or_provenance_proven": true
+      },
+      "surface_id": "default_executor_execution_latest_wire_projection",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#default_executor_execution_latest_wire_projection",
+      "verified_by": [
+        "tests/test_adapter_retirement_boundary.py::test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy",
+        "tests/test_adapter_retirement_boundary.py::test_current_owner_callable_readers_do_not_consume_legacy_latest_wire",
+        "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in",
+        "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance",
+        "tests/owner_route_reconcile_cases/test_default_executor_receipt_consumption.py::test_scan_consumes_executed_default_executor_receipt_for_current_write_route",
+        "tests/owner_route_reconcile_cases/test_default_executor_receipt_recovery.py::test_default_executor_receipt_consumes_prior_execution_from_ledger_after_later_action",
+        "tests/owner_route_reconcile_cases/test_default_executor_receipt_recovery.py::test_default_executor_closeout_with_recovered_stage_packet_currentness_redrives",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression",
+        "tests/test_adapter_retirement_boundary.py::test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
+        "tests/test_adapter_retirement_boundary.py::test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_stage_run_abi_violation"
+      ]
     },
     {
       "active_caller_migrated": true,
-      "compatibility_alias_allowed": false,
-      "current_disposition": "opl_authorized_owner_callable_adapter",
-      "execution_authorization_boundary": {
-        "closeout_binding_authorizes_execution": false,
-        "execution_authorization_sources": [
-          "trusted_opl_execution_authorization",
-          "exact_provider_hosted_stage_attempt",
-          "active_opl_provider_attempt_or_lease",
-          "bound_opl_domain_progress_transition_runtime_readback"
-        ],
-        "repo_level_authorization_coverage_complete": true,
-        "live_every_active_caller_soak_required": true,
-        "missing_authorization_outcome": "opl_execution_authorization_required_typed_blocker",
-        "provider_attempt_or_lease_required_when_blocked": false,
-        "running_provider_attempt_selector_boundary": {
-          "selector": "scan_route_currentness.live_provider_attempt_owner_route_from_scan_payload",
-          "running_provider_attempt_without_opl_proof_can_select_route": false,
-          "running_provider_attempt_without_opl_live_readback_can_select_current_execution": false,
-          "weak_running_handoff_role": "observability_only",
-          "accepted_proofs": [
-            "trusted_opl_execution_authorization",
-            "exact_provider_hosted_stage_attempt",
-            "bound_opl_domain_progress_transition_runtime_readback"
-          ],
-          "missing_proof_outcome": "no_current_owner_route_selection"
-        }
-      },
-      "execution_authorization_coverage": {
-        "coverage_status": "repo_fail_closed_all_supported_actions_live_readback_tail_open",
-        "supported_action_types_ref": "src/med_autoscience/controllers/default_executor_action_policy.py#SUPPORTED_ACTION_TYPES",
-        "repo_fail_closed_test_ref": "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
-        "request_projection_without_opl_proof_outcome": "opl_execution_authorization_required",
-        "current_execution_running_proof_requires_opl_live_readback": true,
-        "repo_covered_action_families": [
-          "artifact_display_surface_materialization_required",
-          "canonical_paper_inputs_rehydrate_required",
-          "complete_medical_paper_readiness_surface",
-          "current_package_freshness_required",
-          "methodology_reframe_route_decision",
-          "paper_clean_room_rebuild_required",
-          "provenance_limited_harmonization_audit",
-          "publication_gate_specificity_required",
-          "publication_handoff_owner_gate",
-          "recover_transport_model_provenance",
-          "return_to_ai_reviewer_workflow",
-          "run_gate_clearing_batch",
-          "run_medical_publication_surface_from_clean_room",
-          "run_quality_repair_batch",
-          "unit_harmonized_external_validation_rerun"
-        ],
-        "live_readback_required_before_retirement": true,
-        "live_tail": "live_every_active_caller_soak_or_no_active_caller_proof"
-      },
       "active_caller_soak_boundary": {
-        "status": "live_every_active_caller_soak_tail_open",
+        "active_caller_families": [
+          "domain_owner_action_dispatch.execute_dispatch",
+          "domain_owner_action_dispatch.stage_native_owner_action",
+          "domain_owner_action_dispatch.provider_hosted_exact_stage_packet_selection",
+          "domain_owner_action_dispatch.ai_reviewer_provider_hosted_authorization",
+          "domain_owner_action_dispatch.gate_clearing_authorization",
+          "current_execution_envelope.running_provider_attempt_priority",
+          "study_progress.provider_admission_running_proof"
+        ],
+        "allowed_effect": "execute_only_with_trusted_opl_authorization_or_bound_readback",
+        "forbidden_completion_claims": [
+          "repo_authorization_coverage_as_live_every_active_caller_soak",
+          "active_caller_migrated_as_no_active_caller_proof",
+          "focused_tests_green_as_physical_delete",
+          "provider_completion_as_dispatch_retirement",
+          "current_execution_running_proof_without_opl_readback_as_soak",
+          "study_progress_running_proof_without_opl_readback_as_soak"
+        ],
         "live_every_active_caller_soak_proven": false,
         "no_active_caller_proven": false,
         "physical_delete_allowed": false,
-        "required_before_physical_delete": "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
         "physical_delete_requires": [
           "domain_owner_action_dispatch_execute_dispatch_live_readback_ref",
           "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref",
@@ -967,63 +1055,76 @@
           "current_execution_running_proof_live_readback",
           "study_progress_provider_admission_running_proof_live_readback"
         ],
-        "active_caller_families": [
-          "domain_owner_action_dispatch.execute_dispatch",
-          "domain_owner_action_dispatch.stage_native_owner_action",
-          "domain_owner_action_dispatch.provider_hosted_exact_stage_packet_selection",
-          "domain_owner_action_dispatch.ai_reviewer_provider_hosted_authorization",
-          "domain_owner_action_dispatch.gate_clearing_authorization",
-          "current_execution_envelope.running_provider_attempt_priority",
-          "study_progress.provider_admission_running_proof"
-        ],
-        "allowed_effect": "execute_only_with_trusted_opl_authorization_or_bound_readback",
-        "forbidden_completion_claims": [
-          "repo_authorization_coverage_as_live_every_active_caller_soak",
-          "active_caller_migrated_as_no_active_caller_proof",
-          "focused_tests_green_as_physical_delete",
-          "provider_completion_as_dispatch_retirement",
-          "current_execution_running_proof_without_opl_readback_as_soak",
-          "study_progress_running_proof_without_opl_readback_as_soak"
-        ]
+        "required_before_physical_delete": "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref",
+        "status": "live_every_active_caller_soak_tail_open"
       },
+      "compatibility_alias_allowed": false,
       "consumer_input_boundary": {
+        "can_authorize_provider_admission": false,
+        "can_create_opl_event_outbox_or_stage_run": false,
+        "can_create_provider_attempt": false,
         "canonical_current_surface": "domain_progress_transition_requests",
-        "canonical_prompt_contract_field": "prompt_contract_ref",
         "canonical_projection_helper": "domain_action_request_materializer_parts.transition_request_projection.domain_progress_transition_request_projection",
         "canonical_projection_helper_exports_dispatcher_boundary_fields": true,
+        "canonical_prompt_contract_field": "prompt_contract_ref",
         "dispatcher_prompt_contract_normalization": "prompt_contract_ref_to_prompt_contract_for_adapter_preflight_only",
-        "inline_default_executor_dispatch_request_candidate_allowed": false,
-        "owner_callable_adapters_candidate_allowed": false,
-        "legacy_default_executor_dispatches_candidate_role": "persisted_migration_carrier_only_after_transition_request_normalization_and_opl_authorization_guard",
-        "explicit_action_transition_request_pending_selection": "fail_closed_blocker_projection_only",
         "explicit_action_pending_request_outcome": "opl_execution_authorization_required",
-        "can_authorize_provider_admission": false,
-        "can_create_provider_attempt": false,
-        "can_create_opl_event_outbox_or_stage_run": false
+        "explicit_action_transition_request_pending_selection": "fail_closed_blocker_projection_only",
+        "inline_default_executor_dispatch_request_candidate_allowed": false,
+        "legacy_default_executor_dispatches_candidate_role": "persisted_migration_carrier_only_after_transition_request_normalization_and_opl_authorization_guard",
+        "owner_callable_adapters_candidate_allowed": false
       },
-      "stage_native_next_action_selector_boundary": {
-        "candidate_surfaces": [
-          "control/next_action.json",
-          "stage_native_ready_for_owner_action",
-          "stage_native_workspace_next_action"
-        ],
-        "candidate_without_opl_proof_can_score_current": false,
-        "candidate_without_opl_proof_can_be_selected_by_default": false,
-        "candidate_without_opl_proof_can_preempt_other_current_dispatch": false,
-        "candidate_without_opl_proof_can_authorize_execution": false,
-        "candidate_without_opl_proof_explicit_action_outcome": "opl_execution_authorization_required",
-        "candidate_without_opl_proof_owner_route_basis": "stage_native_workspace_next_action_blocker_projection",
-        "candidate_without_opl_proof_owner_route_basis_is_authority": false,
-        "candidate_with_opl_proof_owner_route_basis": "stage_native_workspace_next_action",
-        "required_execution_proofs": [
+      "current_disposition": "opl_authorized_owner_callable_adapter",
+      "execution_authorization_boundary": {
+        "closeout_binding_authorizes_execution": false,
+        "execution_authorization_sources": [
           "trusted_opl_execution_authorization",
           "exact_provider_hosted_stage_attempt",
+          "active_opl_provider_attempt_or_lease",
           "bound_opl_domain_progress_transition_runtime_readback"
         ],
-        "missing_proof_retained_role": "candidate_or_diagnostic_transition_request_carrier",
-        "provider_admission_pending": false,
-        "provider_attempt_or_lease_required": false,
-        "mas_private_attempt_loop_forbidden": true
+        "live_every_active_caller_soak_required": true,
+        "missing_authorization_outcome": "opl_execution_authorization_required_typed_blocker",
+        "provider_attempt_or_lease_required_when_blocked": false,
+        "repo_level_authorization_coverage_complete": true,
+        "running_provider_attempt_selector_boundary": {
+          "accepted_proofs": [
+            "trusted_opl_execution_authorization",
+            "exact_provider_hosted_stage_attempt",
+            "bound_opl_domain_progress_transition_runtime_readback"
+          ],
+          "missing_proof_outcome": "no_current_owner_route_selection",
+          "running_provider_attempt_without_opl_live_readback_can_select_current_execution": false,
+          "running_provider_attempt_without_opl_proof_can_select_route": false,
+          "selector": "scan_route_currentness.live_provider_attempt_owner_route_from_scan_payload",
+          "weak_running_handoff_role": "observability_only"
+        }
+      },
+      "execution_authorization_coverage": {
+        "coverage_status": "repo_fail_closed_all_supported_actions_live_readback_tail_open",
+        "current_execution_running_proof_requires_opl_live_readback": true,
+        "live_readback_required_before_retirement": true,
+        "live_tail": "live_every_active_caller_soak_or_no_active_caller_proof",
+        "repo_covered_action_families": [
+          "artifact_display_surface_materialization_required",
+          "canonical_paper_inputs_rehydrate_required",
+          "complete_medical_paper_readiness_surface",
+          "current_package_freshness_required",
+          "methodology_reframe_route_decision",
+          "paper_clean_room_rebuild_required",
+          "provenance_limited_harmonization_audit",
+          "publication_gate_specificity_required",
+          "publication_handoff_owner_gate",
+          "recover_transport_model_provenance",
+          "return_to_ai_reviewer_workflow",
+          "run_gate_clearing_batch",
+          "run_medical_publication_surface_from_clean_room",
+          "run_quality_repair_batch",
+          "unit_harmonized_external_validation_rerun"
+        ],
+        "repo_fail_closed_test_ref": "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
+        "request_projection_without_opl_proof_outcome": "opl_execution_authorization_required",
+        "supported_action_types_ref": "src/med_autoscience/controllers/default_executor_action_policy.py#SUPPORTED_ACTION_TYPES"
       },
       "forbidden_claims": [
         "mas_owned_generic_runtime",
@@ -1048,6 +1149,30 @@
         "replacement_parity_required": true,
         "tombstone_or_provenance_required": true
       },
+      "stage_native_next_action_selector_boundary": {
+        "candidate_surfaces": [
+          "control/next_action.json",
+          "stage_native_ready_for_owner_action",
+          "stage_native_workspace_next_action"
+        ],
+        "candidate_with_opl_proof_owner_route_basis": "stage_native_workspace_next_action",
+        "candidate_without_opl_proof_can_authorize_execution": false,
+        "candidate_without_opl_proof_can_be_selected_by_default": false,
+        "candidate_without_opl_proof_can_preempt_other_current_dispatch": false,
+        "candidate_without_opl_proof_can_score_current": false,
+        "candidate_without_opl_proof_explicit_action_outcome": "opl_execution_authorization_required",
+        "candidate_without_opl_proof_owner_route_basis": "stage_native_workspace_next_action_blocker_projection",
+        "candidate_without_opl_proof_owner_route_basis_is_authority": false,
+        "mas_private_attempt_loop_forbidden": true,
+        "missing_proof_retained_role": "candidate_or_diagnostic_transition_request_carrier",
+        "provider_admission_pending": false,
+        "provider_attempt_or_lease_required": false,
+        "required_execution_proofs": [
+          "trusted_opl_execution_authorization",
+          "exact_provider_hosted_stage_attempt",
+          "bound_opl_domain_progress_transition_runtime_readback"
+        ]
+      },
       "surface_id": "domain_owner_action_dispatch",
       "verified_by": [
         "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
@@ -1071,7 +1196,6 @@
       ]
     },
     {
-      "active_caller_migrated": false,
       "active_caller_boundary": {
         "active_caller_effect": "consume_only_readback_projection_with_success_proof_gated_postcondition",
         "active_caller_retains_runtime_authority": false,
@@ -1087,41 +1211,13 @@
         ],
         "request_projection_only_can_satisfy_success": false
       },
-      "opl_obligation_actuator_tail_readback": {
-        "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
-        "status": "tail_open",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
-        "required_active_caller_readbacks": [
-          "opl_recovery_obligation_store_active_caller_readback",
-          "opl_supervisor_decision_engine_active_caller_readback"
-        ],
-        "required_before_physical_delete": "domain_health_diagnostic_obligation_actuator_opl_obligation_actuator_tail_readback_ref",
-        "physical_delete_requires": [
-          "opl_recovery_obligation_store_active_caller_readback",
-          "opl_supervisor_decision_engine_active_caller_readback",
-          "no_active_mas_obligation_actuator_caller_scan",
-          "no_forbidden_write_proof",
-          "owner_retirement_decision",
-          "tombstone_or_provenance"
-        ],
-        "tail_readback_proven": false,
-        "no_active_mas_obligation_actuator_caller_proven": false,
-        "physical_delete_allowed": false,
-        "mas_policy_projection_can_satisfy_readback": false,
-        "mas_request_projection_can_satisfy_readback": false,
-        "repo_no_authority_guard_can_satisfy_readback": false,
-        "focused_tests_can_satisfy_readback": false,
-        "forbidden_completion_claims": [
-          "repo_no_authority_guard_as_obligation_actuator_tail_readback",
-          "mas_policy_projection_as_opl_recovery_obligation_store_readback",
-          "mas_transition_request_as_supervisor_decision_engine_readback",
-          "focused_tests_green_as_no_active_obligation_actuator_caller",
-          "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback"
-        ]
-      },
+      "active_caller_migrated": false,
+      "actuator_can_write_private_blocker_surface": false,
+      "actuator_direct_filesystem_write_retired": true,
+      "can_write_fail_closed_typed_control_blocker": false,
       "compatibility_alias_allowed": false,
       "current_disposition": "obligation_readback_projection_consumer",
+      "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_generic_event_log",
@@ -1134,10 +1230,133 @@
         "provider_completion_as_domain_ready"
       ],
       "generic_runtime_owner": "one-person-lab",
+      "local_allowed_outcome_table_role": "contract_bound_result_shape_validation_not_supervisor_decision_engine",
+      "mas_can_choose_supervisor_decision": false,
+      "mas_can_create_opl_command_event_or_outbox": false,
+      "mas_can_mutate_recovery_obligation_store": false,
+      "mas_can_run_supervisor_decision_engine": false,
       "mas_owner_claim_allowed": false,
-      "no_forbidden_write_proof_surface": "artifacts/mas_authority/typed_blockers/domain_health_diagnostic_obligation/latest.json",
       "mas_typed_blocker_authority_result_adapter": "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.mas_domain_typed_blocker_authority_result",
-      "typed_blocker_authority_result_adapter_surface": "mas_domain_typed_blocker_authority_result_adapter",
+      "missing_explicit_supervisor_projection_outcome": "opl_supervisor_decision_readback_required",
+      "no_forbidden_write_proof_surface": "artifacts/mas_authority/typed_blockers/domain_health_diagnostic_obligation/latest.json",
+      "obligation_readback_boundary": {
+        "actuator_can_write_private_blocker_surface": false,
+        "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
+        "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
+        "local_allowed_outcome_table_role": "contract_bound_result_shape_validation_not_supervisor_decision_engine",
+        "mas_domain_authority_readback_requires_authority_boundary": true,
+        "opl_obligation_actuator_tail_readback_requirement": {
+          "focused_tests_can_satisfy_readback": false,
+          "mas_policy_projection_can_satisfy_readback": false,
+          "mas_request_projection_can_satisfy_readback": false,
+          "physical_delete_allowed_without_tail_proof": false,
+          "repo_no_authority_guard_can_satisfy_readback": false,
+          "required_active_caller_readbacks": [
+            "opl_recovery_obligation_store_active_caller_readback",
+            "opl_supervisor_decision_engine_active_caller_readback"
+          ],
+          "required_before_physical_delete": [
+            "opl_recovery_obligation_store_active_caller_readback",
+            "opl_supervisor_decision_engine_active_caller_readback",
+            "no_active_mas_obligation_actuator_caller_scan",
+            "no_forbidden_write_proof",
+            "owner_retirement_decision",
+            "tombstone_or_provenance"
+          ],
+          "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
+          "runtime_owner": "one-person-lab",
+          "surface_kind": "opl_obligation_actuator_tail_readback_requirement"
+        },
+        "read_model_evidence_refs_can_satisfy_success": false,
+        "readback_result_validator_boundary_required": true,
+        "request_projection_is_success_outcome": false,
+        "success_outcome_source_families": [
+          "opl_runtime_readback",
+          "mas_owner_answer_readback",
+          "mas_domain_authority_readback"
+        ],
+        "success_proof_forbidden_when_request_projection_only": true,
+        "success_proof_required_for_postcondition_ok": true,
+        "success_proof_requires_consumed_readback_identity": true,
+        "success_proof_surface_kind": "dhd_apply_success_proof",
+        "supervisor_disallowed_outcome_is_success": false,
+        "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator"
+      },
+      "opl_obligation_actuator_tail_readback": {
+        "focused_tests_can_satisfy_readback": false,
+        "forbidden_completion_claims": [
+          "repo_no_authority_guard_as_obligation_actuator_tail_readback",
+          "mas_policy_projection_as_opl_recovery_obligation_store_readback",
+          "mas_transition_request_as_supervisor_decision_engine_readback",
+          "focused_tests_green_as_no_active_obligation_actuator_caller",
+          "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback"
+        ],
+        "mas_policy_projection_can_satisfy_readback": false,
+        "mas_request_projection_can_satisfy_readback": false,
+        "no_active_mas_obligation_actuator_caller_proven": false,
+        "physical_delete_allowed": false,
+        "physical_delete_requires": [
+          "opl_recovery_obligation_store_active_caller_readback",
+          "opl_supervisor_decision_engine_active_caller_readback",
+          "no_active_mas_obligation_actuator_caller_scan",
+          "no_forbidden_write_proof",
+          "owner_retirement_decision",
+          "tombstone_or_provenance"
+        ],
+        "repo_no_authority_guard_can_satisfy_readback": false,
+        "required_active_caller_readbacks": [
+          "opl_recovery_obligation_store_active_caller_readback",
+          "opl_supervisor_decision_engine_active_caller_readback"
+        ],
+        "required_before_physical_delete": "domain_health_diagnostic_obligation_actuator_opl_obligation_actuator_tail_readback_ref",
+        "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
+        "runtime_owner": "one-person-lab",
+        "status": "tail_open",
+        "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
+        "tail_readback_proven": false
+      },
+      "paper_recovery_state_can_build_decision": false,
+      "paper_recovery_state_supervisor_projection_boundary": {
+        "accepted_explicit_projection_fields": [
+          "paper_progress_policy_result_projection",
+          "paper_autonomy_supervisor_decision"
+        ],
+        "explicit_projection_required": true,
+        "missing_explicit_projection_outcome": "opl_supervisor_decision_readback_required",
+        "paper_recovery_state_can_build_decision": false,
+        "provider_admission_pending_when_missing_readback": false,
+        "read_model_can_run_supervisor_decision_engine": false,
+        "requires_opl_supervisor_decision_engine_readback": true,
+        "surface": "paper_recovery_state.supervisor_decision",
+        "surface_role": "explicit_policy_projection_or_opl_readback_consumer"
+      },
+      "read_model_can_run_supervisor_decision_engine": false,
+      "replacement_surface": "OPL RecoveryObligationStore / SupervisorDecisionEngine readback plus MAS PaperProgressPolicyAdapter result",
+      "request_projection_only_status": "transition_request_pending",
+      "retained_mas_role": "consume_only_obligation_outcome_projection_and_mas_typed_blocker_authority_result",
+      "retention_reason": "temporary refs projection until OPL recovery-obligation readback is the active caller; fail-closed blockers are MAS typed-blocker authority results, not actuator private writes",
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "no_forbidden_write_proof_required": true,
+        "owner_retirement_decision_required": true,
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
+      },
+      "study_progress_supervisor_projection_boundary": {
+        "explicit_projection_required": true,
+        "missing_explicit_projection_outcome": "opl_supervisor_decision_readback_required",
+        "provider_admission_gate_outcome_when_missing_readback": "blocked",
+        "provider_admission_pending_when_missing_readback": false,
+        "read_model_can_run_supervisor_decision_engine": false,
+        "requires_opl_supervisor_decision_engine_readback": true,
+        "study_progress_supervisor_projection_can_build_decision": false,
+        "surface": "study_progress_parts.paper_autonomy_supervisor_decision.supervisor_decision_for_projection"
+      },
+      "study_progress_supervisor_projection_can_build_decision": false,
+      "surface_id": "domain_health_diagnostic_obligation_actuator",
+      "transition_request_pending_can_close_physical_tail": false,
       "typed_blocker_authority_result_adapter_boundary": {
         "actuator_private_write_authority": false,
         "adapter_role": "persist_mas_domain_typed_blocker_authority_result",
@@ -1155,88 +1374,9 @@
         "can_write_publication_eval": false,
         "surface_kind": "mas_domain_typed_blocker_authority_result_boundary"
       },
-      "study_progress_supervisor_projection_boundary": {
-        "surface": "study_progress_parts.paper_autonomy_supervisor_decision.supervisor_decision_for_projection",
-        "explicit_projection_required": true,
-        "missing_explicit_projection_outcome": "opl_supervisor_decision_readback_required",
-        "study_progress_supervisor_projection_can_build_decision": false,
-        "read_model_can_run_supervisor_decision_engine": false,
-        "requires_opl_supervisor_decision_engine_readback": true,
-        "provider_admission_gate_outcome_when_missing_readback": "blocked",
-        "provider_admission_pending_when_missing_readback": false
-      },
-      "paper_recovery_state_supervisor_projection_boundary": {
-        "surface": "paper_recovery_state.supervisor_decision",
-        "surface_role": "explicit_policy_projection_or_opl_readback_consumer",
-        "explicit_projection_required": true,
-        "accepted_explicit_projection_fields": [
-          "paper_progress_policy_result_projection",
-          "paper_autonomy_supervisor_decision"
-        ],
-        "missing_explicit_projection_outcome": "opl_supervisor_decision_readback_required",
-        "paper_recovery_state_can_build_decision": false,
-        "read_model_can_run_supervisor_decision_engine": false,
-        "requires_opl_supervisor_decision_engine_readback": true,
-        "provider_admission_pending_when_missing_readback": false
-      },
-      "obligation_readback_boundary": {
-        "request_projection_is_success_outcome": false,
-        "success_proof_required_for_postcondition_ok": true,
-        "success_proof_surface_kind": "dhd_apply_success_proof",
-        "success_proof_requires_consumed_readback_identity": true,
-        "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
-        "mas_domain_authority_readback_requires_authority_boundary": true,
-        "read_model_evidence_refs_can_satisfy_success": false,
-        "success_proof_forbidden_when_request_projection_only": true,
-        "success_outcome_source_families": [
-          "opl_runtime_readback",
-          "mas_owner_answer_readback",
-          "mas_domain_authority_readback"
-        ],
-        "supervisor_disallowed_outcome_is_success": false,
-        "readback_result_validator_boundary_required": true,
-        "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
-        "local_allowed_outcome_table_role": "contract_bound_result_shape_validation_not_supervisor_decision_engine",
-        "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
-        "actuator_can_write_private_blocker_surface": false,
-        "opl_obligation_actuator_tail_readback_requirement": {
-          "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
-          "runtime_owner": "one-person-lab",
-          "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
-          "required_before_physical_delete": [
-            "opl_recovery_obligation_store_active_caller_readback",
-            "opl_supervisor_decision_engine_active_caller_readback",
-            "no_active_mas_obligation_actuator_caller_scan",
-            "no_forbidden_write_proof",
-            "owner_retirement_decision",
-            "tombstone_or_provenance"
-          ],
-          "required_active_caller_readbacks": [
-            "opl_recovery_obligation_store_active_caller_readback",
-            "opl_supervisor_decision_engine_active_caller_readback"
-          ],
-          "mas_policy_projection_can_satisfy_readback": false,
-          "mas_request_projection_can_satisfy_readback": false,
-          "focused_tests_can_satisfy_readback": false,
-          "repo_no_authority_guard_can_satisfy_readback": false,
-          "physical_delete_allowed_without_tail_proof": false
-        }
-      },
-      "replacement_surface": "OPL RecoveryObligationStore / SupervisorDecisionEngine readback plus MAS PaperProgressPolicyAdapter result",
-      "request_projection_only_status": "transition_request_pending",
-      "retained_mas_role": "consume_only_obligation_outcome_projection_and_mas_typed_blocker_authority_result",
-      "retention_reason": "temporary refs projection until OPL recovery-obligation readback is the active caller; fail-closed blockers are MAS typed-blocker authority results, not actuator private writes",
-      "retirement_gate": {
-        "active_caller_alone_retains_surface": false,
-        "completion_claim_requires_live_owner_or_opl_readback": true,
-        "no_active_caller_required_before_physical_delete": true,
-        "no_forbidden_write_proof_required": true,
-        "owner_retirement_decision_required": true,
-        "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true
-      },
-      "surface_id": "domain_health_diagnostic_obligation_actuator",
-      "transition_request_pending_can_close_physical_tail": false,
+      "typed_blocker_authority_result_adapter_surface": "mas_domain_typed_blocker_authority_result_adapter",
+      "validator_module": "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.readback_result_validator",
+      "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
       "verified_by": [
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py::test_obligation_actuator_transition_request_is_projection_not_success",
@@ -1245,24 +1385,34 @@
         "tests/test_paper_recovery_state.py::test_typed_blocker_owns_recovery_even_when_residual_action_exists",
         "tests/test_paper_recovery_state.py::test_paper_recovery_state_consumes_explicit_policy_projection_without_rebuilding",
         "tests/test_paper_autonomy_supervisor_live_shape.py::test_paper_recovery_state_requires_supervisor_readback_for_dm002_dm003_live_shape"
-      ],
-      "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
-      "local_allowed_outcome_table_role": "contract_bound_result_shape_validation_not_supervisor_decision_engine",
-      "mas_can_choose_supervisor_decision": false,
-      "mas_can_mutate_recovery_obligation_store": false,
-      "mas_can_run_supervisor_decision_engine": false,
-      "study_progress_supervisor_projection_can_build_decision": false,
-      "paper_recovery_state_can_build_decision": false,
-      "read_model_can_run_supervisor_decision_engine": false,
-      "missing_explicit_supervisor_projection_outcome": "opl_supervisor_decision_readback_required",
-      "mas_can_create_opl_command_event_or_outbox": false,
-      "validator_module": "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.readback_result_validator",
-      "can_write_fail_closed_typed_control_blocker": false,
-      "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
-      "actuator_direct_filesystem_write_retired": true,
-      "actuator_can_write_private_blocker_surface": false
+      ]
     },
     {
+      "active_caller_boundary": {
+        "active_caller_effect": "body_free_runtime_health_diagnostic_projection",
+        "active_caller_retains_authority": false,
+        "active_caller_retains_runtime_authority": false,
+        "active_caller_retains_surface": false,
+        "attempt_liveness_owner": "one-person-lab",
+        "canonical_runtime_action_is_next_action_authority": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "local_event_log_append_allowed": false,
+        "physical_delete_requires": [
+          "opl_observability_live_readback",
+          "opl_route_reconciler_live_readback",
+          "no_active_diagnostic_projection_caller_scan",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "provider_liveness_owner": "one-person-lab",
+        "read_only_actions": [
+          "read_runtime_status",
+          "open_monitoring_entry"
+        ],
+        "retry_dead_letter_owner": "one-person-lab",
+        "runtime_health_epoch_is_currentness_authority": false,
+        "worker_residency_owner": "one-person-lab"
+      },
       "active_caller_migrated": true,
       "canonical_projection_metadata_fields": [
         "authority",
@@ -1273,6 +1423,46 @@
       ],
       "compatibility_alias_allowed": false,
       "current_disposition": "read_only_diagnostic_publisher",
+      "diagnostic_consumer_gate_boundary": {
+        "allowed_decision_source": "opl_runtime_readback",
+        "canonical_runtime_action_hint_can_authorize_recovery": false,
+        "consumer_gate": "runtime_health_decision_gate",
+        "decision_authority_owner": "one-person-lab",
+        "identity_bound_opl_readback_required": true,
+        "mas_role": "read_only_diagnostic_consumer",
+        "missing_or_cross_identity_readback_outcome": "opl_runtime_readback_required_for_runtime_health_decision",
+        "runtime_health_snapshot_authority_can_authorize_decision": false,
+        "unbound_opl_ref_can_authorize_decision": false,
+        "worker_liveness_hint_can_authorize_recovery": false
+      },
+      "diagnostic_projection_boundary": {
+        "allowed_actions_are_diagnostic_hints": true,
+        "attempt_state_is_diagnostic_hint": true,
+        "authority": false,
+        "can_authorize_provider_admission": false,
+        "can_claim_paper_progress": false,
+        "can_claim_runtime_currentness": false,
+        "can_create_opl_command": false,
+        "can_create_opl_event": false,
+        "can_create_opl_outbox": false,
+        "can_create_opl_stage_run": false,
+        "can_generate_next_action_authority": false,
+        "canonical_runtime_action_is_diagnostic_hint": true,
+        "outbox_record": false,
+        "projection_metadata_required": [
+          "authority",
+          "derived_from_event_id",
+          "observed_generation",
+          "lag_status",
+          "fixed_point_runtime_owner"
+        ],
+        "projection_role": "mas_runtime_health_diagnostic_publisher",
+        "provider_readiness_is_diagnostic_hint": true,
+        "retry_budget_is_diagnostic_hint": true,
+        "started_worker": false,
+        "stores_body": false,
+        "stores_domain_truth": false
+      },
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_runtime_liveness_authority",
@@ -1289,101 +1479,8 @@
       "local_event_log_append_from_status_payload": false,
       "mas_local_event_append_api_retired": true,
       "mas_owner_claim_allowed": false,
-      "active_caller_boundary": {
-        "active_caller_effect": "body_free_runtime_health_diagnostic_projection",
-        "active_caller_retains_authority": false,
-        "active_caller_retains_runtime_authority": false,
-        "active_caller_retains_surface": false,
-        "completion_claim_requires_live_owner_or_opl_readback": true,
-        "local_event_log_append_allowed": false,
-        "runtime_health_epoch_is_currentness_authority": false,
-        "canonical_runtime_action_is_next_action_authority": false,
-        "attempt_liveness_owner": "one-person-lab",
-        "retry_dead_letter_owner": "one-person-lab",
-        "worker_residency_owner": "one-person-lab",
-        "provider_liveness_owner": "one-person-lab",
-        "read_only_actions": [
-          "read_runtime_status",
-          "open_monitoring_entry"
-        ],
-        "physical_delete_requires": [
-          "opl_observability_live_readback",
-          "opl_route_reconciler_live_readback",
-          "no_active_diagnostic_projection_caller_scan",
-          "replacement_parity_ref",
-          "tombstone_or_provenance_ref"
-        ]
-      },
-      "diagnostic_projection_boundary": {
-        "projection_role": "mas_runtime_health_diagnostic_publisher",
-        "authority": false,
-        "stores_body": false,
-        "stores_domain_truth": false,
-        "started_worker": false,
-        "outbox_record": false,
-        "can_claim_runtime_currentness": false,
-        "can_generate_next_action_authority": false,
-        "can_authorize_provider_admission": false,
-        "can_claim_paper_progress": false,
-        "can_create_opl_command": false,
-        "can_create_opl_event": false,
-        "can_create_opl_outbox": false,
-        "can_create_opl_stage_run": false,
-        "projection_metadata_required": [
-          "authority",
-          "derived_from_event_id",
-          "observed_generation",
-          "lag_status",
-          "fixed_point_runtime_owner"
-        ],
-        "allowed_actions_are_diagnostic_hints": true,
-        "canonical_runtime_action_is_diagnostic_hint": true,
-        "retry_budget_is_diagnostic_hint": true,
-        "attempt_state_is_diagnostic_hint": true,
-        "provider_readiness_is_diagnostic_hint": true
-      },
-      "diagnostic_consumer_gate_boundary": {
-        "consumer_gate": "runtime_health_decision_gate",
-        "decision_authority_owner": "one-person-lab",
-        "mas_role": "read_only_diagnostic_consumer",
-        "identity_bound_opl_readback_required": true,
-        "unbound_opl_ref_can_authorize_decision": false,
-        "runtime_health_snapshot_authority_can_authorize_decision": false,
-        "canonical_runtime_action_hint_can_authorize_recovery": false,
-        "worker_liveness_hint_can_authorize_recovery": false,
-        "allowed_decision_source": "opl_runtime_readback",
-        "missing_or_cross_identity_readback_outcome": "opl_runtime_readback_required_for_runtime_health_decision"
-      },
       "opl_runtime_health_observability_tail_readback": {
-        "surface_kind": "opl_runtime_health_observability_tail_readback_requirement",
-        "status": "tail_open",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "OPL Observability/StageRun/RouteReconciler",
-        "required_active_caller_readbacks": [
-          "opl_observability_live_readback",
-          "opl_route_reconciler_live_readback"
-        ],
-        "required_before_physical_delete": "runtime_health_kernel_opl_runtime_health_observability_tail_readback_ref",
-        "physical_delete_requires": [
-          "opl_observability_live_readback",
-          "opl_route_reconciler_live_readback",
-          "no_active_diagnostic_projection_caller_scan",
-          "no_forbidden_write_proof",
-          "replacement_parity_ref",
-          "tombstone_or_provenance_ref"
-        ],
-        "tail_readback_proven": false,
-        "no_active_diagnostic_projection_caller_proven": false,
-        "physical_delete_allowed": false,
-        "mas_diagnostic_projection_can_satisfy_readback": false,
-        "mas_runtime_health_snapshot_can_satisfy_readback": false,
-        "repo_no_authority_guard_can_satisfy_readback": false,
-        "focused_tests_can_satisfy_readback": false,
         "active_diagnostic_projection_caller_scan": {
-          "status": "active_diagnostic_projection_callers_present_tail_open",
-          "no_active_diagnostic_projection_caller_proven": false,
-          "physical_delete_allowed": false,
-          "required_before_physical_delete": "runtime_health_kernel_no_active_diagnostic_projection_caller_physical_delete_ref",
           "active_callers": [
             "paper_repair_executor_parts.ai_reviewer_currentness::runtime_health_snapshot_path_read",
             "study_runtime_decision_parts.runtime_health_dominance::runtime_health_decision_gate_projection",
@@ -1399,21 +1496,54 @@
             "runtime_health_decision_gate_as_no_active_caller",
             "runtime_health_snapshot_reader_as_opl_observability_readback",
             "active_diagnostic_projection_scan_as_physical_delete"
-          ]
+          ],
+          "no_active_diagnostic_projection_caller_proven": false,
+          "physical_delete_allowed": false,
+          "required_before_physical_delete": "runtime_health_kernel_no_active_diagnostic_projection_caller_physical_delete_ref",
+          "status": "active_diagnostic_projection_callers_present_tail_open"
         },
+        "focused_tests_can_satisfy_readback": false,
         "forbidden_completion_claims": [
           "repo_no_authority_guard_as_runtime_health_tail_readback",
           "mas_runtime_health_snapshot_as_opl_observability_readback",
           "mas_diagnostic_projection_as_route_reconciler_readback",
           "focused_tests_green_as_no_active_runtime_health_caller",
           "runtime_health_decision_gate_as_opl_runtime_readback"
-        ]
+        ],
+        "mas_diagnostic_projection_can_satisfy_readback": false,
+        "mas_runtime_health_snapshot_can_satisfy_readback": false,
+        "no_active_diagnostic_projection_caller_proven": false,
+        "physical_delete_allowed": false,
+        "physical_delete_requires": [
+          "opl_observability_live_readback",
+          "opl_route_reconciler_live_readback",
+          "no_active_diagnostic_projection_caller_scan",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "repo_no_authority_guard_can_satisfy_readback": false,
+        "required_active_caller_readbacks": [
+          "opl_observability_live_readback",
+          "opl_route_reconciler_live_readback"
+        ],
+        "required_before_physical_delete": "runtime_health_kernel_opl_runtime_health_observability_tail_readback_ref",
+        "runtime_kind": "OPL Observability/StageRun/RouteReconciler",
+        "runtime_owner": "one-person-lab",
+        "status": "tail_open",
+        "surface_kind": "opl_runtime_health_observability_tail_readback_requirement",
+        "tail_readback_proven": false
       },
       "read_only_actions": [
         "read_runtime_status",
         "open_monitoring_entry"
       ],
       "replacement_surface": "OPL Observability / StageRun / DomainProgressTransitionRuntime readback plus MAS owner answer projection",
+      "retained_mas_role": "body_free_runtime_health_diagnostic_projection",
+      "retired_code_symbols": [
+        "runtime_health_kernel.append_runtime_health_event",
+        "runtime_health_kernel_parts.event_log.append_runtime_health_event"
+      ],
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,
@@ -1423,11 +1553,6 @@
         "runtime_health_live_opl_observability_readback_required": true,
         "tombstone_or_provenance_required": true
       },
-      "retained_mas_role": "body_free_runtime_health_diagnostic_projection",
-      "retired_code_symbols": [
-        "runtime_health_kernel.append_runtime_health_event",
-        "runtime_health_kernel_parts.event_log.append_runtime_health_event"
-      ],
       "surface_id": "runtime_health_kernel",
       "verified_by": [
         "tests/test_runtime_health_kernel.py",
@@ -1450,36 +1575,21 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
-      "projection_boundary": {
-        "can_authorize_provider_admission": false,
-        "can_authorize_worker_attempt": false,
-        "can_execute": false,
-        "can_emit_runtime_command": false,
-        "can_generate_action": false,
-        "can_open_runtime_endpoint": false,
-        "can_transport_operator_action": false,
-        "legacy_operator_focus_role": "diagnostic_legacy_projection_input",
-        "legacy_next_system_action_role": "diagnostic_legacy_projection_input",
-        "must_not_be_used_as_next_action_authority": true,
-        "must_not_be_used_as_paper_progress": true,
-        "must_not_be_used_as_provider_admission": true,
-        "must_not_be_used_as_publication_ready": true,
-        "next_system_action_role": "read_only_owner_delta_summary",
-        "operator_intent_refs_are_inert": true,
-        "projection_only": true,
-        "requires_opl_current_control_readback": true
-      },
       "opl_workbench_shell_readback_tail": {
-        "surface_kind": "opl_workbench_shell_readback_tail_requirement",
-        "status": "tail_open",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "OPL Workbench Shell/current-control/DomainProgressTransitionRuntime readback",
-        "required_active_caller_readbacks": [
-          "opl_workbench_shell_action_transport_readback",
-          "opl_current_control_readback",
-          "opl_domain_progress_transition_runtime_readback"
+        "focused_tests_can_satisfy_readback": false,
+        "forbidden_completion_claims": [
+          "mas_portal_projection_as_opl_workbench_shell_readback",
+          "mas_next_system_action_summary_as_action_transport_readback",
+          "operator_intent_refs_as_workbench_action_transport",
+          "current_owner_delta_summary_as_current_control_readback",
+          "repo_no_authority_guard_as_workbench_tail_readback",
+          "focused_tests_green_as_no_active_workbench_projection_caller"
         ],
-        "required_before_physical_delete": "progress_portal_study_workbench_overview_action_projection_opl_workbench_shell_readback_tail_ref",
+        "mas_next_system_action_summary_can_satisfy_readback": false,
+        "mas_portal_projection_can_satisfy_readback": false,
+        "no_active_workbench_projection_action_caller_proven": false,
+        "operator_intent_refs_can_satisfy_action_transport": false,
+        "physical_delete_allowed": false,
         "physical_delete_requires": [
           "opl_workbench_shell_action_transport_readback",
           "opl_current_control_readback",
@@ -1489,22 +1599,37 @@
           "replacement_parity_ref",
           "tombstone_or_provenance_ref"
         ],
-        "tail_readback_proven": false,
-        "no_active_workbench_projection_action_caller_proven": false,
-        "physical_delete_allowed": false,
-        "mas_portal_projection_can_satisfy_readback": false,
-        "mas_next_system_action_summary_can_satisfy_readback": false,
-        "operator_intent_refs_can_satisfy_action_transport": false,
         "repo_no_authority_guard_can_satisfy_readback": false,
-        "focused_tests_can_satisfy_readback": false,
-        "forbidden_completion_claims": [
-          "mas_portal_projection_as_opl_workbench_shell_readback",
-          "mas_next_system_action_summary_as_action_transport_readback",
-          "operator_intent_refs_as_workbench_action_transport",
-          "current_owner_delta_summary_as_current_control_readback",
-          "repo_no_authority_guard_as_workbench_tail_readback",
-          "focused_tests_green_as_no_active_workbench_projection_caller"
-        ]
+        "required_active_caller_readbacks": [
+          "opl_workbench_shell_action_transport_readback",
+          "opl_current_control_readback",
+          "opl_domain_progress_transition_runtime_readback"
+        ],
+        "required_before_physical_delete": "progress_portal_study_workbench_overview_action_projection_opl_workbench_shell_readback_tail_ref",
+        "runtime_kind": "OPL Workbench Shell/current-control/DomainProgressTransitionRuntime readback",
+        "runtime_owner": "one-person-lab",
+        "status": "tail_open",
+        "surface_kind": "opl_workbench_shell_readback_tail_requirement",
+        "tail_readback_proven": false
+      },
+      "projection_boundary": {
+        "can_authorize_provider_admission": false,
+        "can_authorize_worker_attempt": false,
+        "can_emit_runtime_command": false,
+        "can_execute": false,
+        "can_generate_action": false,
+        "can_open_runtime_endpoint": false,
+        "can_transport_operator_action": false,
+        "legacy_next_system_action_role": "diagnostic_legacy_projection_input",
+        "legacy_operator_focus_role": "diagnostic_legacy_projection_input",
+        "must_not_be_used_as_next_action_authority": true,
+        "must_not_be_used_as_paper_progress": true,
+        "must_not_be_used_as_provider_admission": true,
+        "must_not_be_used_as_publication_ready": true,
+        "next_system_action_role": "read_only_owner_delta_summary",
+        "operator_intent_refs_are_inert": true,
+        "projection_only": true,
+        "requires_opl_current_control_readback": true
       },
       "replacement_surface": "OPL Workbench Shell owns operator action transport; MAS only publishes inert current_owner_delta and DomainProgressTransitionRuntime readback refs",
       "retained_mas_role": "body_free_workbench_read_model_projection",
@@ -1513,9 +1638,9 @@
         "completion_claim_requires_live_owner_or_opl_readback": true,
         "no_active_caller_required_before_physical_delete": true,
         "no_forbidden_write_proof_required": true,
+        "opl_workbench_shell_readback_required": true,
         "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true,
-        "opl_workbench_shell_readback_required": true
+        "tombstone_or_provenance_required": true
       },
       "surface_id": "progress_portal_study_workbench_overview_action_projection",
       "verified_by": [
@@ -1527,58 +1652,58 @@
       ]
     },
     {
-      "surface_id": "agent_tool_arsenal_scientific_capability_registry",
       "active_caller_migrated": true,
-      "compatibility_alias_allowed": false,
-      "generic_runtime_owner": "one-person-lab",
-      "mas_owner_claim_allowed": false,
-      "current_disposition": "opl_capability_runtime_projection",
-      "retained_mas_role": "capability_planning_projection_and_owner_consumption_evidence_shape",
-      "replacement_surface": "OPL Capability Runtime / Tool Arsenal selector and invocation runtime",
       "authority_boundary": {
-        "selection_runtime_owner": "one-person-lab",
-        "capability_runtime_owner": "one-person-lab",
+        "can_authorize_provider_admission": false,
+        "can_authorize_publication_ready": false,
+        "can_authorize_worker_attempt": false,
+        "can_claim_paper_progress": false,
+        "can_create_default_selector": false,
+        "can_start_always_on_sidecar": false,
+        "can_write_controller_decision": false,
+        "can_write_domain_truth": false,
+        "can_write_publication_eval": false,
         "capability_runtime_kind": "OPL Capability Runtime",
+        "capability_runtime_owner": "one-person-lab",
         "hosted_opl_capability_runtime_required": true,
         "mas_selector_authority": false,
         "mas_tool_invocation_runtime_authority": false,
-        "can_create_default_selector": false,
-        "can_start_always_on_sidecar": false,
-        "can_authorize_provider_admission": false,
-        "can_authorize_worker_attempt": false,
-        "can_authorize_publication_ready": false,
-        "can_claim_paper_progress": false,
-        "can_write_domain_truth": false,
-        "can_write_publication_eval": false,
-        "can_write_controller_decision": false,
         "missing_refs_trigger_mutating_invocation": false,
+        "selection_runtime_owner": "one-person-lab",
         "stores_body": false
       },
-      "wildcard_action_trigger_boundary": {
-        "wildcard_action_triggers_auto_select": false,
-        "requires_explicit_capability_request": true,
-        "wildcard_action_triggers_can_select_without_explicit_capability_request": false,
-        "missing_explicit_capability_request_can_auto_select_wildcard_sidecar": false,
-        "wildcard_sidecar_can_block_current_owner_action": false,
-        "explicit_request_fields": [
-          "capability_families",
-          "capability_family",
-          "route_required_ref_families",
-          "route_required_ref_family"
-        ],
-        "wildcard_capabilities": [
-          "evo_scientist_progress_sidecar",
-          "light_external_skill_content_advisory"
-        ],
-        "wildcard_policy_ref": "contracts/agent_tool_arsenal.json#/scientific_capability_registry.default_policy"
-      },
+      "compatibility_alias_allowed": false,
+      "current_disposition": "opl_capability_runtime_projection",
+      "forbidden_claims": [
+        "mas_owned_generic_runtime",
+        "mas_owned_tool_selector",
+        "mas_owned_capability_runtime",
+        "mas_owned_always_on_sidecar",
+        "wildcard_action_trigger_as_default_selector",
+        "wildcard_sidecar_as_owner_action_authority",
+        "capability_resolution_as_provider_admission",
+        "capability_resolution_as_paper_progress",
+        "provider_completion_as_domain_ready"
+      ],
+      "generic_runtime_owner": "one-person-lab",
       "live_owner_consumption_soak_boundary": {
-        "status": "live_owner_consumption_soak_and_direct_hosted_parity_tail_open",
-        "live_owner_consumption_soak_proven": false,
+        "allowed_consumption": [
+          "current_owner_delta_bound_capability_projection",
+          "explicit_capability_request_resolution_evidence"
+        ],
         "direct_hosted_parity_proven": false,
+        "forbidden_completion_claims": [
+          "capability_registry_contract_as_live_owner_consumption_soak",
+          "hosted_opl_runtime_requirement_as_direct_hosted_parity",
+          "mcp_or_cli_mode_coverage_as_direct_hosted_parity",
+          "wildcard_guard_as_live_owner_consumption_soak",
+          "capability_request_projection_as_paper_progress",
+          "registry_projection_no_active_scan_as_physical_delete",
+          "repo_tests_green_as_physical_delete"
+        ],
+        "live_owner_consumption_soak_proven": false,
         "no_active_caller_proven": false,
         "physical_delete_allowed": false,
-        "required_before_physical_delete": "agent_tool_arsenal_live_owner_consumption_soak_and_direct_hosted_parity_ref",
         "physical_delete_requires": [
           "agent_tool_arsenal_live_owner_consumption_soak_current_owner_delta_readback_ref",
           "agent_tool_arsenal_explicit_capability_request_resolution_live_readback_ref",
@@ -1593,75 +1718,55 @@
           "explicit_capability_request_resolution_live_readback",
           "direct_hosted_tool_invocation_runtime_parity_readback"
         ],
-        "allowed_consumption": [
-          "current_owner_delta_bound_capability_projection",
-          "explicit_capability_request_resolution_evidence"
-        ],
-        "forbidden_completion_claims": [
-          "capability_registry_contract_as_live_owner_consumption_soak",
-          "hosted_opl_runtime_requirement_as_direct_hosted_parity",
-          "mcp_or_cli_mode_coverage_as_direct_hosted_parity",
-          "wildcard_guard_as_live_owner_consumption_soak",
-          "capability_request_projection_as_paper_progress",
-          "registry_projection_no_active_scan_as_physical_delete",
-          "repo_tests_green_as_physical_delete"
-        ]
+        "required_before_physical_delete": "agent_tool_arsenal_live_owner_consumption_soak_and_direct_hosted_parity_ref",
+        "status": "live_owner_consumption_soak_and_direct_hosted_parity_tail_open"
       },
-      "forbidden_claims": [
-        "mas_owned_generic_runtime",
-        "mas_owned_tool_selector",
-        "mas_owned_capability_runtime",
-        "mas_owned_always_on_sidecar",
-        "wildcard_action_trigger_as_default_selector",
-        "wildcard_sidecar_as_owner_action_authority",
-        "capability_resolution_as_provider_admission",
-        "capability_resolution_as_paper_progress",
-        "provider_completion_as_domain_ready"
-      ],
+      "mas_owner_claim_allowed": false,
+      "replacement_surface": "OPL Capability Runtime / Tool Arsenal selector and invocation runtime",
+      "retained_mas_role": "capability_planning_projection_and_owner_consumption_evidence_shape",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,
-        "live_owner_consumption_soak_required": true,
         "direct_hosted_parity_required": true,
+        "live_owner_consumption_soak_required": true,
         "no_active_caller_required_before_physical_delete": true,
         "no_forbidden_write_proof_required": true,
         "replacement_parity_required": true,
         "tombstone_or_provenance_required": true
       },
+      "surface_id": "agent_tool_arsenal_scientific_capability_registry",
       "verified_by": [
         "tests/test_scientific_capability_registry.py::test_scientific_capability_registry_wildcard_sidecars_require_explicit_capability_request",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
-      ]
+      ],
+      "wildcard_action_trigger_boundary": {
+        "explicit_request_fields": [
+          "capability_families",
+          "capability_family",
+          "route_required_ref_families",
+          "route_required_ref_family"
+        ],
+        "missing_explicit_capability_request_can_auto_select_wildcard_sidecar": false,
+        "requires_explicit_capability_request": true,
+        "wildcard_action_triggers_auto_select": false,
+        "wildcard_action_triggers_can_select_without_explicit_capability_request": false,
+        "wildcard_capabilities": [
+          "evo_scientist_progress_sidecar",
+          "light_external_skill_content_advisory"
+        ],
+        "wildcard_policy_ref": "contracts/agent_tool_arsenal.json#/scientific_capability_registry.default_policy",
+        "wildcard_sidecar_can_block_current_owner_action": false
+      }
     },
     {
-      "surface_id": "runtime_lifecycle_payload_retention",
       "active_caller_migrated": false,
-      "compatibility_alias_allowed": false,
-      "generic_runtime_owner": "one-person-lab",
-      "mas_owner_claim_allowed": false,
-      "current_disposition": "opl_authorized_maintenance_callable_adapter_live_takeover_tail_open",
-      "retained_mas_role": "maintenance_callable_adapter_and_body_free_receipt_projection",
-      "replacement_surface": "OPL runtime lifecycle cleanup / retention policy plus OPL maintenance authorization readback",
-      "authority_boundary": {
-        "can_create_opl_command": false,
-        "can_create_opl_event": false,
-        "can_create_opl_outbox": false,
-        "can_create_opl_stage_run": false,
-        "can_claim_runtime_currentness": false,
-        "can_authorize_generic_cleanup_policy": false,
-        "can_authorize_artifact_mutation": false,
-        "can_authorize_publication_ready": false,
-        "can_write_domain_truth": false,
-        "can_write_publication_eval": false,
-        "can_write_controller_decision": false,
-        "stores_body": false,
-        "mutates_derived_runtime_lifecycle_payload_only_when_opl_authorized": true
-      },
       "apply_gate": {
-        "required_authorization_surface": "opl_runtime_lifecycle_maintenance_authorization",
-        "proof_surface": "opl_runtime_lifecycle_maintenance_authorization_proof",
-        "required_for_apply": true,
+        "applies_to_operations": [
+          "payload_retention",
+          "sqlite_sidecar_repair"
+        ],
         "dry_run_requires_authorization": false,
+        "missing_or_invalid_authorization_status": "blocked_opl_runtime_lifecycle_maintenance_authorization_required",
         "must_bind": [
           "operation",
           "maintenance_surface",
@@ -1669,46 +1774,28 @@
           "outcome",
           "authorization_ref"
         ],
-        "missing_or_invalid_authorization_status": "blocked_opl_runtime_lifecycle_maintenance_authorization_required",
-        "typed_blocker": "opl_runtime_lifecycle_maintenance_authorization_required",
-        "applies_to_operations": [
-          "payload_retention",
-          "sqlite_sidecar_repair"
-        ]
+        "proof_surface": "opl_runtime_lifecycle_maintenance_authorization_proof",
+        "required_authorization_surface": "opl_runtime_lifecycle_maintenance_authorization",
+        "required_for_apply": true,
+        "typed_blocker": "opl_runtime_lifecycle_maintenance_authorization_required"
       },
-      "opl_runtime_lifecycle_maintenance_tail_readback": {
-        "surface_kind": "opl_runtime_lifecycle_maintenance_tail_readback_requirement",
-        "status": "tail_open",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "OPL RuntimeLifecycleCleanup/RetentionPolicy",
-        "required_active_caller_readbacks": [
-          "opl_runtime_lifecycle_cleanup_policy_live_readback",
-          "opl_runtime_retention_policy_live_readback"
-        ],
-        "required_before_physical_delete": "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_maintenance_tail_readback_ref",
-        "physical_delete_requires": [
-          "opl_runtime_lifecycle_cleanup_policy_live_readback",
-          "opl_runtime_retention_policy_live_readback",
-          "no_active_lifecycle_maintenance_adapter_caller_scan",
-          "no_forbidden_write_proof",
-          "replacement_parity_ref",
-          "tombstone_or_provenance_ref"
-        ],
-        "tail_readback_proven": false,
-        "no_active_lifecycle_maintenance_adapter_caller_proven": false,
-        "physical_delete_allowed": false,
-        "apply_authorization_can_satisfy_live_takeover": false,
-        "dry_run_plan_can_satisfy_live_takeover": false,
-        "maintenance_receipt_can_satisfy_live_takeover": false,
-        "repo_tests_can_satisfy_live_takeover": false,
-        "forbidden_completion_claims": [
-          "opl_maintenance_authorization_as_live_cleanup_policy_takeover",
-          "runtime_lifecycle_apply_gate_as_live_takeover",
-          "runtime_lifecycle_dry_run_plan_as_live_takeover",
-          "runtime_lifecycle_receipt_as_physical_delete",
-          "repo_tests_green_as_runtime_lifecycle_physical_delete"
-        ]
+      "authority_boundary": {
+        "can_authorize_artifact_mutation": false,
+        "can_authorize_generic_cleanup_policy": false,
+        "can_authorize_publication_ready": false,
+        "can_claim_runtime_currentness": false,
+        "can_create_opl_command": false,
+        "can_create_opl_event": false,
+        "can_create_opl_outbox": false,
+        "can_create_opl_stage_run": false,
+        "can_write_controller_decision": false,
+        "can_write_domain_truth": false,
+        "can_write_publication_eval": false,
+        "mutates_derived_runtime_lifecycle_payload_only_when_opl_authorized": true,
+        "stores_body": false
       },
+      "compatibility_alias_allowed": false,
+      "current_disposition": "opl_authorized_maintenance_callable_adapter_live_takeover_tail_open",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_generic_runtime_lifecycle_cleanup_policy",
@@ -1720,14 +1807,52 @@
         "runtime_storage_apply_as_paper_progress",
         "provider_completion_as_domain_ready"
       ],
+      "generic_runtime_owner": "one-person-lab",
+      "mas_owner_claim_allowed": false,
+      "opl_runtime_lifecycle_maintenance_tail_readback": {
+        "apply_authorization_can_satisfy_live_takeover": false,
+        "dry_run_plan_can_satisfy_live_takeover": false,
+        "forbidden_completion_claims": [
+          "opl_maintenance_authorization_as_live_cleanup_policy_takeover",
+          "runtime_lifecycle_apply_gate_as_live_takeover",
+          "runtime_lifecycle_dry_run_plan_as_live_takeover",
+          "runtime_lifecycle_receipt_as_physical_delete",
+          "repo_tests_green_as_runtime_lifecycle_physical_delete"
+        ],
+        "maintenance_receipt_can_satisfy_live_takeover": false,
+        "no_active_lifecycle_maintenance_adapter_caller_proven": false,
+        "physical_delete_allowed": false,
+        "physical_delete_requires": [
+          "opl_runtime_lifecycle_cleanup_policy_live_readback",
+          "opl_runtime_retention_policy_live_readback",
+          "no_active_lifecycle_maintenance_adapter_caller_scan",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "repo_tests_can_satisfy_live_takeover": false,
+        "required_active_caller_readbacks": [
+          "opl_runtime_lifecycle_cleanup_policy_live_readback",
+          "opl_runtime_retention_policy_live_readback"
+        ],
+        "required_before_physical_delete": "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_maintenance_tail_readback_ref",
+        "runtime_kind": "OPL RuntimeLifecycleCleanup/RetentionPolicy",
+        "runtime_owner": "one-person-lab",
+        "status": "tail_open",
+        "surface_kind": "opl_runtime_lifecycle_maintenance_tail_readback_requirement",
+        "tail_readback_proven": false
+      },
+      "replacement_surface": "OPL runtime lifecycle cleanup / retention policy plus OPL maintenance authorization readback",
+      "retained_mas_role": "maintenance_callable_adapter_and_body_free_receipt_projection",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
-        "replacement_parity_required": true,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
         "live_opl_cleanup_policy_takeover_required": true,
         "no_active_caller_required_before_physical_delete": true,
-        "tombstone_or_provenance_required": true,
-        "completion_claim_requires_live_owner_or_opl_readback": true
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
       },
+      "surface_id": "runtime_lifecycle_payload_retention",
       "verified_by": [
         "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_payload_retention_apply_requires_opl_authorization",
         "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_sqlite_sidecar_repair_apply_requires_opl_authorization",
@@ -1736,57 +1861,25 @@
       ]
     },
     {
-      "surface_id": "runtime_storage_maintenance",
       "active_caller_migrated": false,
-      "compatibility_alias_allowed": false,
-      "generic_runtime_owner": "one-person-lab",
-      "mas_owner_claim_allowed": false,
-      "current_disposition": "opl_authorized_storage_maintenance_callable_adapter_live_takeover_tail_open",
-      "retained_mas_role": "maintenance_callable_adapter_and_body_free_diagnostic_projection",
-      "replacement_surface": "OPL runtime storage maintenance authorization / retention shell plus OPL StateIndex and restore/readback surfaces",
-      "authority_boundary": {
-        "can_create_opl_command": false,
-        "can_create_opl_event": false,
-        "can_create_opl_outbox": false,
-        "can_create_opl_stage_run": false,
-        "can_claim_runtime_currentness": false,
-        "can_claim_paper_progress": false,
-        "can_authorize_generic_cleanup_policy": false,
-        "can_authorize_artifact_mutation": false,
-        "can_authorize_publication_ready": false,
-        "can_write_domain_truth": false,
-        "can_write_publication_eval": false,
-        "can_write_controller_decision": false,
-        "stores_body": false,
-        "dry_run_projection_only": true,
-        "mutates_runtime_storage_payload_only_when_opl_authorized": true
-      },
+      "allowed_without_opl_authorization": [
+        "workspace_storage_audit_dry_run",
+        "restore_proof_canary_source_retained",
+        "refs_only_state_index_only_projection",
+        "archive_retention_plan",
+        "report_retention_plan",
+        "attempt_evidence_capsule_plan",
+        "semantic_process_retention_plan"
+      ],
       "apply_gate": {
-        "required_authorization_surface": "opl_runtime_storage_maintenance_authorization",
-        "proof_surface": "opl_runtime_storage_maintenance_authorization_proof",
-        "required_for_workspace_apply": true,
-        "required_for_direct_quest_physical_apply": true,
-        "dry_run_requires_authorization": false,
-        "restore_proof_canary_requires_authorization": false,
-        "refs_only_state_index_only_requires_authorization": false,
-        "planned_retention_projection_requires_authorization": false,
-        "must_bind": [
-          "operation",
-          "maintenance_surface",
-          "workspace_root_or_quest_root",
-          "outcome",
-          "authorization_ref"
+        "accepted_maintenance_surfaces": [
+          "workspace_runtime_storage_maintenance",
+          "quest_runtime_storage_maintenance"
         ],
         "accepted_operations": [
           "workspace_storage_apply",
           "quest_runtime_storage_apply"
         ],
-        "accepted_maintenance_surfaces": [
-          "workspace_runtime_storage_maintenance",
-          "quest_runtime_storage_maintenance"
-        ],
-        "missing_or_invalid_authorization_status": "blocked_opl_runtime_storage_maintenance_authorization_required",
-        "typed_blocker": "opl_runtime_storage_maintenance_authorization_required",
         "applies_to_operations": [
           "workspace_storage_apply",
           "quest_runtime_storage_backend_apply",
@@ -1799,54 +1892,44 @@
           "workspace_root_git_reinitialize_apply",
           "workspace_root_git_retirement_apply",
           "delete_safe_cache_apply"
-        ]
-      },
-      "allowed_without_opl_authorization": [
-        "workspace_storage_audit_dry_run",
-        "restore_proof_canary_source_retained",
-        "refs_only_state_index_only_projection",
-        "archive_retention_plan",
-        "report_retention_plan",
-        "attempt_evidence_capsule_plan",
-        "semantic_process_retention_plan"
-      ],
-      "opl_runtime_storage_maintenance_tail_readback": {
-        "surface_kind": "opl_runtime_storage_maintenance_tail_readback_requirement",
-        "status": "tail_open",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "OPL RuntimeStorageMaintenance/RestoreRetentionShell/StateIndex",
-        "required_active_caller_readbacks": [
-          "opl_runtime_storage_policy_live_readback",
-          "opl_restore_retention_shell_live_readback",
-          "opl_state_index_storage_ref_readback"
         ],
-        "required_before_physical_delete": "runtime_storage_maintenance_opl_runtime_storage_maintenance_tail_readback_ref",
-        "physical_delete_requires": [
-          "opl_runtime_storage_policy_live_readback",
-          "opl_restore_retention_shell_live_readback",
-          "opl_state_index_storage_ref_readback",
-          "no_active_storage_maintenance_adapter_caller_scan",
-          "no_forbidden_write_proof",
-          "replacement_parity_ref",
-          "tombstone_or_provenance_ref"
+        "dry_run_requires_authorization": false,
+        "missing_or_invalid_authorization_status": "blocked_opl_runtime_storage_maintenance_authorization_required",
+        "must_bind": [
+          "operation",
+          "maintenance_surface",
+          "workspace_root_or_quest_root",
+          "outcome",
+          "authorization_ref"
         ],
-        "tail_readback_proven": false,
-        "no_active_storage_maintenance_adapter_caller_proven": false,
-        "physical_delete_allowed": false,
-        "apply_authorization_can_satisfy_live_takeover": false,
-        "dry_run_projection_can_satisfy_live_takeover": false,
-        "restore_canary_can_satisfy_live_takeover": false,
-        "refs_only_index_projection_can_satisfy_live_takeover": false,
-        "repo_tests_can_satisfy_live_takeover": false,
-        "forbidden_completion_claims": [
-          "opl_storage_maintenance_authorization_as_live_storage_policy_takeover",
-          "runtime_storage_apply_gate_as_live_takeover",
-          "runtime_storage_dry_run_projection_as_live_takeover",
-          "restore_proof_canary_as_live_takeover",
-          "refs_only_state_index_projection_as_storage_takeover",
-          "repo_tests_green_as_runtime_storage_physical_delete"
-        ]
+        "planned_retention_projection_requires_authorization": false,
+        "proof_surface": "opl_runtime_storage_maintenance_authorization_proof",
+        "refs_only_state_index_only_requires_authorization": false,
+        "required_authorization_surface": "opl_runtime_storage_maintenance_authorization",
+        "required_for_direct_quest_physical_apply": true,
+        "required_for_workspace_apply": true,
+        "restore_proof_canary_requires_authorization": false,
+        "typed_blocker": "opl_runtime_storage_maintenance_authorization_required"
       },
+      "authority_boundary": {
+        "can_authorize_artifact_mutation": false,
+        "can_authorize_generic_cleanup_policy": false,
+        "can_authorize_publication_ready": false,
+        "can_claim_paper_progress": false,
+        "can_claim_runtime_currentness": false,
+        "can_create_opl_command": false,
+        "can_create_opl_event": false,
+        "can_create_opl_outbox": false,
+        "can_create_opl_stage_run": false,
+        "can_write_controller_decision": false,
+        "can_write_domain_truth": false,
+        "can_write_publication_eval": false,
+        "dry_run_projection_only": true,
+        "mutates_runtime_storage_payload_only_when_opl_authorized": true,
+        "stores_body": false
+      },
+      "compatibility_alias_allowed": false,
+      "current_disposition": "opl_authorized_storage_maintenance_callable_adapter_live_takeover_tail_open",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_generic_runtime_storage_shell",
@@ -1860,14 +1943,56 @@
         "runtime_storage_apply_as_publication_ready",
         "provider_completion_as_domain_ready"
       ],
+      "generic_runtime_owner": "one-person-lab",
+      "mas_owner_claim_allowed": false,
+      "opl_runtime_storage_maintenance_tail_readback": {
+        "apply_authorization_can_satisfy_live_takeover": false,
+        "dry_run_projection_can_satisfy_live_takeover": false,
+        "forbidden_completion_claims": [
+          "opl_storage_maintenance_authorization_as_live_storage_policy_takeover",
+          "runtime_storage_apply_gate_as_live_takeover",
+          "runtime_storage_dry_run_projection_as_live_takeover",
+          "restore_proof_canary_as_live_takeover",
+          "refs_only_state_index_projection_as_storage_takeover",
+          "repo_tests_green_as_runtime_storage_physical_delete"
+        ],
+        "no_active_storage_maintenance_adapter_caller_proven": false,
+        "physical_delete_allowed": false,
+        "physical_delete_requires": [
+          "opl_runtime_storage_policy_live_readback",
+          "opl_restore_retention_shell_live_readback",
+          "opl_state_index_storage_ref_readback",
+          "no_active_storage_maintenance_adapter_caller_scan",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "refs_only_index_projection_can_satisfy_live_takeover": false,
+        "repo_tests_can_satisfy_live_takeover": false,
+        "required_active_caller_readbacks": [
+          "opl_runtime_storage_policy_live_readback",
+          "opl_restore_retention_shell_live_readback",
+          "opl_state_index_storage_ref_readback"
+        ],
+        "required_before_physical_delete": "runtime_storage_maintenance_opl_runtime_storage_maintenance_tail_readback_ref",
+        "restore_canary_can_satisfy_live_takeover": false,
+        "runtime_kind": "OPL RuntimeStorageMaintenance/RestoreRetentionShell/StateIndex",
+        "runtime_owner": "one-person-lab",
+        "status": "tail_open",
+        "surface_kind": "opl_runtime_storage_maintenance_tail_readback_requirement",
+        "tail_readback_proven": false
+      },
+      "replacement_surface": "OPL runtime storage maintenance authorization / retention shell plus OPL StateIndex and restore/readback surfaces",
+      "retained_mas_role": "maintenance_callable_adapter_and_body_free_diagnostic_projection",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
-        "replacement_parity_required": true,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
         "live_opl_storage_policy_takeover_required": true,
         "no_active_caller_required_before_physical_delete": true,
-        "tombstone_or_provenance_required": true,
-        "completion_claim_requires_live_owner_or_opl_readback": true
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true
       },
+      "surface_id": "runtime_storage_maintenance",
       "verified_by": [
         "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_basics.py::test_workspace_storage_apply_without_opl_authorization_blocks_before_physical_cleanup",
         "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_compaction_git.py::test_quest_runtime_storage_physical_path_without_opl_authorization_blocks_before_backend",

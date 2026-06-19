@@ -410,8 +410,9 @@ def _provider_admission_or_transition_request_outcome(
                 "opl_runtime_result": _normalized_opl_runtime_readback(runtime_result),
             },
         )
-    blocker = _typed_control_blocker_payload(
+    blocker = _persisted_obligation_typed_blocker(
         action=action,
+        current_control_state=current_control_state,
         blocker_type="opl_transition_readback_required",
         reason=(
             "MAS materialized a DomainProgressTransitionRuntime request, but OPL has "
@@ -428,6 +429,14 @@ def _provider_admission_or_transition_request_outcome(
         details={
             "provider_admission_candidates": candidates,
             "required_opl_runtime_result": True,
+            "authority_result_adapter": blocker.get("authority_result_adapter"),
+            "authority_result_ref": blocker.get("typed_blocker_ref"),
+            "authority_result_boundary": _mapping(
+                blocker.get("authority_result_boundary")
+            ),
+            "authority_result_history_ref": _obligation_typed_blocker_history_ref(
+                blocker.get("typed_blocker_ref")
+            ),
             "opl_transition_request": _mapping(
                 blocker.get("opl_domain_progress_transition_request")
             ),
@@ -436,6 +445,69 @@ def _provider_admission_or_transition_request_outcome(
         typed_control_blocker=blocker,
         postcondition_ok=False,
     )
+
+
+def _persisted_obligation_typed_blocker(
+    *,
+    action: Mapping[str, Any],
+    current_control_state: Mapping[str, Any],
+    blocker_type: str,
+    reason: str,
+    phase: str,
+) -> dict[str, Any]:
+    payload = _typed_control_blocker_payload(
+        action=action,
+        blocker_type=blocker_type,
+        reason=reason,
+        phase=phase,
+    )
+    study_root = _study_root_for_obligation_action(
+        action=action,
+        current_control_state=current_control_state,
+    )
+    if study_root is None:
+        return payload
+    authority_result = (
+        mas_domain_typed_blocker_authority_result.persist_obligation_typed_blocker(
+            study_root=study_root,
+            payload=payload,
+        )
+    )
+    typed_blocker_ref = _non_empty_text(authority_result.get("typed_blocker_ref"))
+    typed_blocker_payload = _mapping(authority_result.get("payload")) or payload
+    authority_result_boundary = _mapping(authority_result.get("authority_boundary"))
+    return {
+        **typed_blocker_payload,
+        "typed_blocker_ref": typed_blocker_ref,
+        "authority_result_ref": typed_blocker_ref,
+        "authority_result_adapter": authority_result.get("surface_kind"),
+        "authority_result_boundary": authority_result_boundary,
+    }
+
+
+def _study_root_for_obligation_action(
+    *,
+    action: Mapping[str, Any],
+    current_control_state: Mapping[str, Any],
+) -> Path | None:
+    for candidate in (
+        action,
+        _current_control_study(
+            current_control_state,
+            study_id=_non_empty_text(action.get("study_id")),
+        ),
+    ):
+        study_root = _non_empty_text(_mapping(candidate).get("study_root"))
+        if study_root is not None:
+            return Path(study_root)
+    return None
+
+
+def _obligation_typed_blocker_history_ref(typed_blocker_ref: object) -> str | None:
+    ref = _non_empty_text(typed_blocker_ref)
+    if ref is None:
+        return None
+    return str(Path(ref).parent / "history.jsonl")
 
 
 def _current_obligation_provider_admission_candidates(

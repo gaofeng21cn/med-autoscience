@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import domain_action_request_materializer
 from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
@@ -32,15 +31,8 @@ def paper_recovery_default_executor_dispatch_tasks(
 ) -> list[dict[str, Any]]:
     if not _paper_recovery_requests_default_executor_dispatch(current_progress):
         return []
-    preview = domain_action_request_materializer.current_owner_callable_adapters(
-        profile=profile,
-        study_ids=(study_id,),
-        mode="developer_apply_safe",
-        apply=False,
-        dispatch_ready_for_execution=True,
-    )
     tasks: list[dict[str, Any]] = []
-    for dispatch in domain_progress_transition_requests(preview):
+    for dispatch in domain_progress_transition_requests(current_progress):
         if not isinstance(dispatch, Mapping):
             continue
         if _text(dispatch.get("study_id")) != study_id:

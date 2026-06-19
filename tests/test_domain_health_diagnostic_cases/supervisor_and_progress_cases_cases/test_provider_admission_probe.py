@@ -24,69 +24,6 @@ def _assert_identity_extends_handoff(candidate: dict, handoff_identity: dict) ->
     assert candidate["idempotency_key"] == route_identity_key
 
 
-def test_domain_health_diagnostic_same_tick_reports_handoff_pending_without_provider_attempt(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    helpers = importlib.import_module("tests.study_runtime_test_helpers")
-    profile = helpers.make_profile(tmp_path)
-    study_id = "001-risk"
-    study_root = profile.studies_root / study_id
-    study_root.mkdir(parents=True, exist_ok=True)
-    dump_json(study_root / "study.yaml", {"study_id": study_id})
-
-    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
-    monkeypatch.setattr(
-        module.owner_route_reconcile,
-        "scan_domain_routes",
-        lambda **kwargs: {
-            "surface": "portable_owner_route_reconcile",
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "running_provider_attempt": False,
-                    "active_run_id": None,
-                    "active_stage_attempt_id": None,
-                }
-            ],
-        },
-    )
-    monkeypatch.setattr(
-        module.domain_action_request_materializer,
-        "materialize_domain_action_requests",
-        lambda **kwargs: {"owner_callable_adapter_count": 1},
-    )
-    monkeypatch.setattr(
-        module.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        lambda **kwargs: {
-            "execution_count": 1,
-            "codex_dispatch_count": 1,
-            "executions": [{"execution_status": "handoff_ready", "will_start_llm": True}],
-        },
-    )
-
-    supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=3)
-
-    assert supervisor_tick["stop_reason"] == "provider_handoff_written_transition_request_pending"
-    diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
-    assert diagnostic["same_tick_terminal_projection"] == {
-        "terminal_state": "provider_handoff_written_transition_request_pending",
-        "owner_delta_produced": False,
-        "provider_attempt_running": False,
-        "stable_typed_blocker_observed": False,
-        "provider_handoff_written": True,
-    }
-    assert diagnostic["requires_opl_transition_readback"] is True
-    assert diagnostic["provider_admission_probe"] == {
-        "observed": False,
-        "running_provider_attempt_count": 0,
-        "study_ids": [study_id],
-    }
-    assert diagnostic["next_forced_delta"]["target_surface"]["owner"] == "one-person-lab"
-
-
 def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provider_admission_candidate(
     tmp_path: Path,
     monkeypatch,
@@ -242,7 +179,7 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
     assert result["managed_study_opl_provider_admission_candidates"] == []
     candidate = result["managed_study_opl_transition_request_candidates"][0]
     assert candidate["status"] == "transition_request_pending"
-    assert candidate["source"] == "owner_callable_adapter_receipt"
+    assert candidate["source"] == "default_executor_execution"
     assert candidate["study_id"] == study_id
     assert candidate["action_type"] == "complete_medical_paper_readiness_surface"
     assert candidate["work_unit_id"] == "complete_medical_paper_readiness_surface"
@@ -449,36 +386,45 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
 
     assert result["provider_admission_pending_count"] == 0
     assert result["transition_request_pending_count"] == 1
-    identity = handoff["provider_admission_identity"]
-    assert identity["study_id"] == study_id
-    assert identity["action_type"] == "return_to_ai_reviewer_workflow"
-    assert identity["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-    assert identity["action_fingerprint"] == action_fingerprint
-    assert identity["blocked_reason"] == "opl_execution_authorization_required"
-    assert identity["status"] == "transition_request_pending"
-    assert identity["provider_attempt_or_lease_required"] is False
-    assert identity["provider_admission_requires_opl_runtime_result"] is True
-    assert handoff["provider_admission_candidates"] == [identity]
-    assert latest_handoff["provider_admission_identity"] == identity
-    assert latest_handoff["provider_admission_candidates"] == [identity]
+    assert handoff["provider_admission_identity"] is None
+    assert handoff["provider_admission_candidates"] == []
+    assert latest_handoff["provider_admission_identity"] is None
+    assert latest_handoff["provider_admission_candidates"] == []
     current_control = json.loads(current_control_path.read_text(encoding="utf-8"))
     assert current_control["provider_admission_pending_count"] == 0
     assert current_control["provider_admission_candidates"] == []
     assert current_control["transition_request_pending_count"] == 1
     assert len(current_control["transition_request_candidates"]) == 1
-    _assert_identity_extends_handoff(current_control["transition_request_candidates"][0], identity)
+    transition_identity = current_control["transition_request_candidates"][0]
+    assert transition_identity["study_id"] == study_id
+    assert transition_identity["action_type"] == "return_to_ai_reviewer_workflow"
+    assert transition_identity["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    assert transition_identity["action_fingerprint"] == action_fingerprint
+    assert transition_identity["blocked_reason"] == "opl_execution_authorization_required"
+    assert transition_identity["status"] == "transition_request_pending"
+    assert transition_identity["provider_attempt_or_lease_required"] is False
+    assert transition_identity["provider_admission_requires_opl_runtime_result"] is True
     assert current_control["current_control_refresh_source"] == (
         "domain_health_diagnostic.provider_admission_candidates"
     )
-    assert [action["action_type"] for action in current_control["action_queue"]] == [
-        "return_to_ai_reviewer_workflow"
-    ]
+    assert {
+        action["action_type"] for action in current_control["action_queue"]
+    } == {"return_to_ai_reviewer_workflow"}
     study = current_control["studies"][0]
     assert study["study_id"] == study_id
-    _assert_identity_extends_handoff(study["provider_admission_identity"], identity)
-    assert [action["action_type"] for action in study["action_queue"]] == [
-        "return_to_ai_reviewer_workflow"
-    ]
+    assert study["provider_admission_identity"] is None
+    study_transition_identity = study["transition_request_candidates"][0]
+    assert study_transition_identity["study_id"] == transition_identity["study_id"]
+    assert study_transition_identity["action_type"] == transition_identity["action_type"]
+    assert study_transition_identity["work_unit_id"] == transition_identity["work_unit_id"]
+    assert study_transition_identity["action_fingerprint"] == transition_identity["action_fingerprint"]
+    assert study_transition_identity["status"] == "transition_request_pending"
+    assert study_transition_identity["provider_admission_requires_opl_runtime_result"] is True
+    assert {
+        action["action_type"] for action in study["action_queue"]
+    } == {"return_to_ai_reviewer_workflow"}
     assert study["current_execution_envelope"]["state_kind"] == "executable_owner_action"
     assert (
         study["current_execution_envelope"]["next_work_unit"]
@@ -488,4 +434,3 @@ from .provider_admission_current_control_cases import *  # noqa: F403,F401,E402
 from .provider_admission_current_control_report_envelope_cases import *  # noqa: F403,F401,E402
 from .provider_admission_progress_currentness_cases import *  # noqa: F403,F401,E402
 from .provider_admission_probe_identity_cases import *  # noqa: F403,F401,E402
-from .provider_admission_same_tick_cases import *  # noqa: F403,F401,E402

@@ -1053,8 +1053,8 @@ def _provider_admission_candidate_merge_key(
         candidate.get("action_fingerprint")
     )
     stable_ref = (
-        _non_empty_text(candidate.get("route_identity_key"))
-        or fingerprint
+        fingerprint
+        or _non_empty_text(candidate.get("route_identity_key"))
         or _non_empty_text(candidate.get("dispatch_path"))
         or _non_empty_text(candidate.get("dispatch_ref"))
     )

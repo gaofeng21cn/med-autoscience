@@ -7,11 +7,6 @@ from typing import Any
 from med_autoscience.controllers import paper_progress_degradation_evidence
 from med_autoscience.controllers import real_paper_autonomy_soak_inventory
 from med_autoscience.controllers import real_workspace_soak_monitor
-from med_autoscience.controllers import domain_action_request_materializer
-from med_autoscience.controllers import domain_owner_action_dispatch
-from med_autoscience.controllers.owner_callable_adapter_projection import (
-    legacy_owner_callable_adapter_refs,
-)
 from med_autoscience.controllers import owner_route_reconcile
 from med_autoscience.controllers import workspace_monolith_migration
 from med_autoscience.profiles import WorkspaceProfile, load_profile
@@ -212,44 +207,18 @@ def _owner_route_handoff_observation(
             developer_supervisor_mode="developer_apply_safe",
             persist_surfaces=False,
         )
-        consumed = domain_action_request_materializer.materialize_domain_action_requests(
-            profile=profile,
-            study_ids=study_ids,
-            mode="developer_apply_safe",
-            apply=False,
-        )
-        executed = domain_owner_action_dispatch.dispatch_domain_owner_actions(
-            profile=profile,
-            study_ids=study_ids,
-            action_types=(),
-            mode="developer_apply_safe",
-            apply=False,
-        )
         resolved = _resolve_study_ids(
             requested=study_ids,
             before_scan=before_scan,
-            after_scan={},
-            consumed=consumed,
-            executed=executed,
-        )
-        after_scan = owner_route_reconcile.scan_domain_routes(
-            profile=profile,
-            study_ids=resolved,
-            apply_safe_actions=False,
-            developer_supervisor_mode="developer_apply_safe",
-            persist_surfaces=False,
         )
         step_receipts = _step_receipts(
             before_scan=before_scan,
-            consumed=consumed,
-            executed=executed,
-            after_scan=after_scan,
         )
         study_receipts = [
             {
                 "study_id": study_id,
                 "before": _study_projection(before_scan, study_id),
-                "after": _study_projection(after_scan, study_id),
+                "after": _study_projection(before_scan, study_id),
             }
             for study_id in resolved
         ]
@@ -271,9 +240,10 @@ def _owner_route_handoff_observation(
         "resolved_studies": list(resolved),
         "step_receipts": step_receipts,
         "study_receipts": study_receipts,
-        "blocked_count": executed.get("blocked_count"),
-        "execution_count": executed.get("execution_count"),
-        "stable_blockers": _stable_blockers(after_scan),
+        "transition_readback_required": True,
+        "blocked_count": 0,
+        "execution_count": 0,
+        "stable_blockers": _stable_blockers(before_scan),
     }
 
 
@@ -313,27 +283,13 @@ def _resolve_study_ids(
     *,
     requested: Sequence[str],
     before_scan: Mapping[str, Any],
-    after_scan: Mapping[str, Any],
-    consumed: Mapping[str, Any],
-    executed: Mapping[str, Any],
 ) -> tuple[str, ...]:
     resolved: list[str] = [study_id for item in requested if (study_id := _text(item)) is not None]
-    for source in (before_scan, after_scan):
-        for study in _sequence(source.get("studies")):
-            if isinstance(study, Mapping) and (study_id := _text(study.get("study_id"))) is not None:
-                resolved.append(study_id)
-        for action in _sequence(source.get("action_queue")):
-            if isinstance(action, Mapping) and (study_id := _text(action.get("study_id"))) is not None:
-                resolved.append(study_id)
-    request_task_diagnostics = _mapping(consumed.get("legacy_request_task_diagnostics"))
-    for item in _sequence(request_task_diagnostics.get("legacy_request_task_refs")):
-        if isinstance(item, Mapping) and (study_id := _text(item.get("study_id"))) is not None:
+    for study in _sequence(before_scan.get("studies")):
+        if isinstance(study, Mapping) and (study_id := _text(study.get("study_id"))) is not None:
             resolved.append(study_id)
-    for item in legacy_owner_callable_adapter_refs(consumed):
-        if isinstance(item, Mapping) and (study_id := _text(item.get("study_id"))) is not None:
-            resolved.append(study_id)
-    for execution in _sequence(executed.get("executions")):
-        if isinstance(execution, Mapping) and (study_id := _text(execution.get("study_id"))) is not None:
+    for action in _sequence(before_scan.get("action_queue")):
+        if isinstance(action, Mapping) and (study_id := _text(action.get("study_id"))) is not None:
             resolved.append(study_id)
     return tuple(dict.fromkeys(resolved))
 
@@ -341,9 +297,6 @@ def _resolve_study_ids(
 def _step_receipts(
     *,
     before_scan: Mapping[str, Any],
-    consumed: Mapping[str, Any],
-    executed: Mapping[str, Any],
-    after_scan: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     return [
         {
@@ -353,23 +306,15 @@ def _step_receipts(
             "action_count": len(_sequence(before_scan.get("action_queue"))),
         },
         {
-            "step": "materialize_domain_requests",
-            "surface": consumed.get("surface"),
-            "request_task_count": consumed.get("request_task_count"),
-            "owner_callable_adapter_count": consumed.get("owner_callable_adapter_count"),
-        },
-        {
-            "step": "observe_owner_dispatch",
-            "surface": executed.get("surface"),
-            "execution_count": executed.get("execution_count"),
-            "executed_count": executed.get("executed_count"),
-            "blocked_count": executed.get("blocked_count"),
-        },
-        {
-            "step": "rescan_owner_routes",
-            "surface": after_scan.get("surface"),
-            "study_count": len(_sequence(after_scan.get("studies"))),
-            "action_count": len(_sequence(after_scan.get("action_queue"))),
+            "step": "require_opl_transition_readback",
+            "surface": "opl_domain_progress_transition_runtime",
+            "status": "readback_required",
+            "request_task_count": 0,
+            "execution_count": 0,
+            "mas_local_materializer_call": False,
+            "mas_local_dispatcher_call": False,
+            "mas_can_create_opl_command_event_outbox_or_stagerun": False,
+            "mas_can_authorize_provider_admission": False,
         },
     ]
 

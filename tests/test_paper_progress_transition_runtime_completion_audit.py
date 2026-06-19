@@ -328,12 +328,16 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert surfaces["domain_health_diagnostic_obligation_actuator"][
         "obligation_readback_boundary"
     ]["read_model_evidence_refs_can_satisfy_success"] is False
-    assert surfaces["domain_authority_refs_index"]["current_disposition"] == (
-        "active_callers_migrated_to_opl_state_index_source_adapter_live_takeover_tail_open"
+    assert surfaces["domain_authority_refs_index"]["current_disposition"] == "physically_retired"
+    assert surfaces["domain_authority_refs_index"]["retained_mas_role"] == (
+        "none_physically_retired_no_alias"
     )
     assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
         "active_caller_effect"
     ] == "opl_state_index_source_adapter_emitted_no_sqlite_persistence"
+    assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
+        "active_caller_retains_surface"
+    ] is False
     assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
         "default_sqlite_persistence"
     ] is False
@@ -342,16 +346,31 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     ] is True
     assert surfaces["domain_authority_refs_index"]["active_caller_migrated"] is True
     assert surfaces["domain_authority_refs_index"]["retirement_gate"][
-        "repo_replacement_parity_proven"
+        "replacement_parity_proven"
     ] is True
     assert surfaces["domain_authority_refs_index"]["retirement_gate"][
-        "no_active_authority_caller_proven"
+        "repo_source_physical_retirement_authorized"
     ] is True
+    assert surfaces["domain_authority_refs_index"]["retirement_gate"][
+        "live_runtime_readiness_required_for_repo_source_delete"
+    ] is False
+    assert surfaces["domain_authority_refs_index"]["physical_delete_completion_basis"][
+        "live_runtime_evidence_blocks_repo_source_delete"
+    ] is False
     assert surfaces["default_executor_dispatch_request"]["active_caller_boundary"][
         "active_caller_effect"
     ] == "opl_domain_progress_transition_runtime_intake_only"
+    assert surfaces["default_executor_dispatch_request"]["current_disposition"] == (
+        "physically_retired"
+    )
+    assert surfaces["default_executor_dispatch_request"]["retained_mas_role"] == (
+        "none_physically_retired_no_alias"
+    )
     assert surfaces["default_executor_dispatch_request"]["active_caller_boundary"][
         "provider_admission_pending"
+    ] is False
+    assert surfaces["default_executor_dispatch_request"]["active_caller_boundary"][
+        "active_caller_retains_surface"
     ] is False
     assert surfaces["default_executor_dispatch_request"][
         "legacy_stage_run_abi_provenance_boundary"
@@ -369,11 +388,20 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "opl_default_executor_carrier_tail_readback"
     ]["request_only_carrier_can_authorize_provider_admission"] is False
     assert surfaces["default_executor_dispatch_request"]["retirement_gate"][
-        "opl_default_executor_carrier_tail_readback_required"
+        "repo_source_physical_retirement_authorized"
     ] is True
     assert surfaces["default_executor_dispatch_request"]["retirement_gate"][
-        "physical_delete_allowed"
+        "live_runtime_readiness_required_for_repo_source_delete"
     ] is False
+    assert surfaces["default_executor_dispatch_request"]["physical_delete_completion_basis"][
+        "live_runtime_evidence_blocks_repo_source_delete"
+    ] is False
+    assert surfaces["default_executor_execution_latest_wire_projection"][
+        "current_disposition"
+    ] == "physically_retired"
+    assert surfaces["default_executor_execution_latest_wire_projection"][
+        "retained_mas_role"
+    ] == "none_physically_retired_no_alias"
     assert surfaces["default_executor_execution_latest_wire_projection"][
         "legacy_stage_run_abi_boundary"
     ]["abi_role"] == "opl_stagerun_closeout_provenance_identity_recovery_only"
@@ -383,6 +411,12 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert surfaces["default_executor_execution_latest_wire_projection"][
         "legacy_stage_run_abi_boundary"
     ]["stage_closeout_packets_can_authorize_execution"] is False
+    assert surfaces["default_executor_execution_latest_wire_projection"][
+        "retirement_gate"
+    ]["repo_source_physical_retirement_authorized"] is True
+    assert surfaces["default_executor_execution_latest_wire_projection"][
+        "physical_delete_completion_basis"
+    ]["live_runtime_evidence_blocks_repo_source_delete"] is False
     assert surfaces["runtime_lifecycle_payload_retention"]["current_disposition"] == (
         "opl_authorized_maintenance_callable_adapter_live_takeover_tail_open"
     )

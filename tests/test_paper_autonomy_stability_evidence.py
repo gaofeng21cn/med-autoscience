@@ -120,27 +120,8 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
         }
 
     monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan)
-    monkeypatch.setattr(
-        module.domain_action_request_materializer,
-        "materialize_domain_action_requests",
-        lambda **_: {
-            "surface": "domain_action_request_materializer",
-            "legacy_request_task_diagnostics": {
-                "surface": "legacy_request_task_diagnostics",
-                "legacy_request_task_refs": [],
-            },
-        },
-    )
-    monkeypatch.setattr(
-        module.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        lambda **_: {
-            "surface": "default_executor_dispatch_executor",
-            "execution_count": 0,
-            "blocked_count": 0,
-            "executions": [],
-        },
-    )
+    assert not hasattr(module, "domain_action_request_materializer")
+    assert not hasattr(module, "domain_owner_action_dispatch")
 
     payload = module.build_paper_autonomy_stability_evidence(profile_paths=[profile_path])
 
@@ -150,7 +131,21 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
     assert payload["summary"]["can_claim_landed"] is False
     profile = payload["profiles"][0]
     assert profile["profile_readable"] is True
-    assert profile["owner_route_handoff_observation"]["can_complete"] is True
+    observation = profile["owner_route_handoff_observation"]
+    assert observation["can_complete"] is True
+    assert observation["transition_readback_required"] is True
+    assert observation["execution_count"] == 0
+    assert observation["step_receipts"][-1] == {
+        "step": "require_opl_transition_readback",
+        "surface": "opl_domain_progress_transition_runtime",
+        "status": "readback_required",
+        "request_task_count": 0,
+        "execution_count": 0,
+        "mas_local_materializer_call": False,
+        "mas_local_dispatcher_call": False,
+        "mas_can_create_opl_command_event_outbox_or_stagerun": False,
+        "mas_can_authorize_provider_admission": False,
+    }
     assert profile["workspace_migration_dry_run"]["dry_run"] is True
     assert profile["workspace_migration_dry_run"]["writes_performed"] is False
     assert profile["real_workspace_soak_monitor"]["writes_performed"] is False
@@ -244,27 +239,8 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
 
     fake_scan.seen = False
     monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan)
-    monkeypatch.setattr(
-        module.domain_action_request_materializer,
-        "materialize_domain_action_requests",
-        lambda **_: {
-            "surface": "domain_action_request_materializer",
-            "legacy_request_task_diagnostics": {
-                "surface": "legacy_request_task_diagnostics",
-                "legacy_request_task_refs": [],
-            },
-        },
-    )
-    monkeypatch.setattr(
-        module.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        lambda **_: {
-            "surface": "default_executor_dispatch_executor",
-            "execution_count": 1,
-            "blocked_count": 0,
-            "executions": [{"study_id": "001-active", "execution_status": "dry_run"}],
-        },
-    )
+    assert not hasattr(module, "domain_action_request_materializer")
+    assert not hasattr(module, "domain_owner_action_dispatch")
 
     payload = module.build_paper_autonomy_stability_evidence(profile_paths=[profile_path])
 
@@ -274,10 +250,11 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
     assert evidence["summary"]["writes_performed"] is False
     profile = evidence["profiles"][0]
     assert profile["progress_portal_refs"]["status"] == "readable"
-    assert profile["safe_reconcile_dry_run"]["next_action"] == "review_safe_reconcile_dry_run_before_apply"
+    assert profile["safe_reconcile_dry_run"]["next_action"] == "continue_read_only_monitoring"
     study = profile["studies"][0]
     assert study["status_progress_readability"]["status"] == "readable"
-    assert study["owner_route_progression"]["status"] == "advanced"
+    assert study["owner_route_progression"]["status"] == "stationary"
+    assert study["owner_route_progression"]["next_action"] == "inspect_stationary_owner_route"
     handoff = study["publication_handoff_clarity"]
     assert handoff["status"] == "clear"
     assert handoff["publication_gate"]["current_required_action"] == "continue_write_stage"

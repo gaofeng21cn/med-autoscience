@@ -720,5 +720,3 @@ def test_domain_health_diagnostic_retains_pending_over_stale_authorization_close
     assert control["stage_route_arbiter"]["decision_counts"] == {
         "opl_transition_readback_required": 1,
     }
-
-from .provider_admission_report_stale_currentness_cases import *  # noqa: F403,F401,E402
