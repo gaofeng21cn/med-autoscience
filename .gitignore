@@ -12,6 +12,7 @@ __pycache__/
 ops/
 dist/
 build/
+outputs/
 tmp/
 *.egg-info/
 profiles/*.local.toml

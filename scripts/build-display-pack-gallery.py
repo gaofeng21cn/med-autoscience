@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from dataclasses import dataclass
+import argparse
 import hashlib
 import html
 import importlib
@@ -28,12 +29,15 @@ PACK_ROOT = REPO_ROOT / "display-packs" / "fenggaolab.org.medical-display-core"
 PACK_SRC_ROOT = PACK_ROOT / "src"
 TEMPLATE_ROOT = PACK_ROOT / "templates"
 EXAMPLES_ROOT = REPO_ROOT / "docs" / "delivery" / "medical-display" / "examples"
-ASSET_ROOT = EXAMPLES_ROOT / "ggplot2_template_reference_assets"
+DEFAULT_OUTPUT_ROOT = REPO_ROOT / "outputs" / "display-pack-gallery"
+DOCS_PDF_PATH = EXAMPLES_ROOT / "ggplot2_template_gallery.pdf"
+DOCS_REFERENCE_PATH = EXAMPLES_ROOT / "ggplot2_template_reference.md"
+ASSET_ROOT = DEFAULT_OUTPUT_ROOT / "ggplot2_template_reference_assets"
 PYTHON_CURRENT_ROOT = ASSET_ROOT / "python_current"
 PYTHON_BASELINE_ROOT = ASSET_ROOT / "python_baseline"
-HTML_PATH = EXAMPLES_ROOT / "ggplot2_template_gallery.html"
-PDF_PATH = EXAMPLES_ROOT / "ggplot2_template_gallery.pdf"
-REFERENCE_PATH = EXAMPLES_ROOT / "ggplot2_template_reference.md"
+HTML_PATH = DEFAULT_OUTPUT_ROOT / "ggplot2_template_gallery.html"
+PDF_PATH = DEFAULT_OUTPUT_ROOT / "ggplot2_template_gallery.pdf"
+REFERENCE_PATH = DEFAULT_OUTPUT_ROOT / "ggplot2_template_reference.md"
 MANIFEST_PATH = ASSET_ROOT / "gallery_manifest.json"
 NATURE_SKILLS_HEAD = "1cb9070fdd94929d5f267ce6585ac87e2cba60b3"
 
@@ -391,6 +395,131 @@ MANUAL_PYTHON_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
         ],
     },
 }
+GALLERY_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
+    "celltype_signature_heatmap": {
+        "display_id": "Figure26",
+        "template_id": "celltype_signature_heatmap",
+        "title": "Cell-type embedding and signature activity atlas",
+        "caption": "Cell-type clusters and pathway-signature activity remain aligned across the circulating immune atlas.",
+        "embedding_panel_title": "Embedding by cell type",
+        "embedding_x_label": "UMAP 1",
+        "embedding_y_label": "UMAP 2",
+        "embedding_points": [
+            {"x": -2.1, "y": 1.0, "group": "T cells"},
+            {"x": -1.8, "y": 0.8, "group": "T cells"},
+            {"x": 1.4, "y": -0.6, "group": "Myeloid"},
+            {"x": 1.8, "y": -0.9, "group": "Myeloid"},
+        ],
+        "heatmap_panel_title": "Signature activity",
+        "heatmap_x_label": "Cell type",
+        "heatmap_y_label": "Program",
+        "score_method": "AUCell",
+        "row_order": [{"label": "IFN response"}, {"label": "TGF-beta signaling"}],
+        "column_order": [{"label": "T cells"}, {"label": "Myeloid"}],
+        "cells": [
+            {"x": "T cells", "y": "IFN response", "value": 0.78},
+            {"x": "Myeloid", "y": "IFN response", "value": -0.22},
+            {"x": "T cells", "y": "TGF-beta signaling", "value": -0.18},
+            {"x": "Myeloid", "y": "TGF-beta signaling", "value": 0.61},
+        ],
+    },
+    "confusion_matrix_heatmap_binary": {
+        "display_id": "Figure26",
+        "template_id": "confusion_matrix_heatmap_binary",
+        "title": "Binary confusion matrix on the held-out cohort",
+        "caption": "Row-normalized confusion matrix summarizing false-positive and false-negative error modes.",
+        "x_label": "Predicted class",
+        "y_label": "Observed class",
+        "metric_name": "Observed proportion",
+        "normalization": "row_fraction",
+        "row_order": [{"label": "Observed negative"}, {"label": "Observed positive"}],
+        "column_order": [{"label": "Predicted negative"}, {"label": "Predicted positive"}],
+        "cells": [
+            {"x": "Predicted negative", "y": "Observed negative", "value": 0.88},
+            {"x": "Predicted positive", "y": "Observed negative", "value": 0.12},
+            {"x": "Predicted negative", "y": "Observed positive", "value": 0.19},
+            {"x": "Predicted positive", "y": "Observed positive", "value": 0.81},
+        ],
+    },
+    "gsva_ssgsea_heatmap": {
+        "display_id": "Figure23",
+        "template_id": "gsva_ssgsea_heatmap",
+        "title": "GSVA heatmap for immune and stromal programs",
+        "caption": "Precomputed GSVA pathway scores across the analytic cohort highlight the dominant immune-stromal contrast.",
+        "x_label": "Samples",
+        "y_label": "Gene-set programs",
+        "score_method": "GSVA",
+        "row_order": [{"label": "IFN-gamma response"}, {"label": "TGF-beta signaling"}],
+        "column_order": [{"label": "Sample-01"}, {"label": "Sample-02"}],
+        "cells": [
+            {"x": "Sample-01", "y": "IFN-gamma response", "value": 0.72},
+            {"x": "Sample-02", "y": "IFN-gamma response", "value": -0.24},
+            {"x": "Sample-01", "y": "TGF-beta signaling", "value": -0.11},
+            {"x": "Sample-02", "y": "TGF-beta signaling", "value": 0.58},
+        ],
+    },
+    "model_complexity_audit_panel": {
+        "display_id": "model_audit",
+        "template_id": "model_complexity_audit_panel",
+        "title": "Threshold-based operating characteristics and risk-group profiles for the clinically informed preoperative model",
+        "caption": "Discrimination, calibration, and bounded complexity audit across candidate packages.",
+        "metric_panels": [
+            {
+                "panel_id": "auroc_panel",
+                "panel_label": "A",
+                "title": "Discrimination",
+                "x_label": "AUROC",
+                "rows": [
+                    {"label": "Core preoperative model", "value": 0.80},
+                    {"label": "Clinically informed preoperative model", "value": 0.81},
+                    {"label": "Random forest comparison model", "value": 0.84},
+                ],
+            },
+            {
+                "panel_id": "brier_panel",
+                "panel_label": "B",
+                "title": "Overall error",
+                "x_label": "Brier score",
+                "rows": [
+                    {"label": "Core preoperative model", "value": 0.14},
+                    {"label": "Clinically informed preoperative model", "value": 0.11},
+                    {"label": "Random forest comparison model", "value": 0.10},
+                ],
+            },
+        ],
+        "audit_panels": [
+            {
+                "panel_id": "coefficient_panel",
+                "panel_label": "C",
+                "title": "Coefficient stability",
+                "x_label": "Mean odds ratio",
+                "reference_value": 1.0,
+                "rows": [
+                    {"label": "Age", "value": 0.91},
+                    {"label": "Tumor diameter", "value": 1.44},
+                    {"label": "Knosp grade", "value": 1.13},
+                ],
+            }
+        ],
+    },
+    "performance_heatmap": {
+        "display_id": "Figure25",
+        "template_id": "performance_heatmap",
+        "title": "AUC heatmap across APOE4 subgroups and predictor sets",
+        "caption": "Random-forest discrimination remains strongest for the integrated model across APOE4-stratified analyses.",
+        "x_label": "Analytic subgroup",
+        "y_label": "Predictor set",
+        "metric_name": "AUC",
+        "row_order": [{"label": "Clinical baseline"}, {"label": "Integrated model"}],
+        "column_order": [{"label": "All participants"}, {"label": "APOE4 carriers"}],
+        "cells": [
+            {"x": "All participants", "y": "Clinical baseline", "value": 0.71},
+            {"x": "APOE4 carriers", "y": "Clinical baseline", "value": 0.68},
+            {"x": "All participants", "y": "Integrated model", "value": 0.83},
+            {"x": "APOE4 carriers", "y": "Integrated model", "value": 0.79},
+        ],
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -510,7 +639,7 @@ def _square_gallery_preview(path: Path) -> tuple[Path, tuple[int, int]]:
 
 
 def _relative_ref(path: Path) -> str:
-    return str(path.relative_to(EXAMPLES_ROOT))
+    return str(path.relative_to(HTML_PATH.parent))
 
 
 def _clean_assets() -> None:
@@ -526,42 +655,128 @@ def _clean_assets() -> None:
     PYTHON_BASELINE_ROOT.mkdir(parents=True, exist_ok=True)
 
 
-def _load_seed_payload_from_git(path: Path) -> dict[str, Any]:
-    relative_path = path.relative_to(REPO_ROOT)
-    result = subprocess.run(
-        ["git", "show", f"HEAD:{relative_path}"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=30,
+def _workspace_fixture_display_payloads() -> dict[str, dict[str, Any]]:
+    from tests.display_surface_materialization_cases.workspace_surface_fixtures import (
+        build_display_surface_workspace,
     )
-    if result.returncode != 0:
-        raise FileNotFoundError(f"missing seed payload {path} and git HEAD copy is unavailable")
-    payload = json.loads(result.stdout)
-    if not isinstance(payload, dict):
-        raise ValueError(f"{path} seed payload must contain a JSON object")
-    return payload
+
+    with tempfile.TemporaryDirectory(prefix="mas-gallery-workspace-") as tmp_dir:
+        paper_root = build_display_surface_workspace(
+            Path(tmp_dir),
+            include_extended_evidence=True,
+        )
+        payloads: dict[str, dict[str, Any]] = {}
+        for path in paper_root.glob("*_inputs.json"):
+            envelope = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(envelope, dict):
+                continue
+            for display in envelope.get("displays", []):
+                if not isinstance(display, dict):
+                    continue
+                template_id = str(display.get("template_id") or "").strip()
+                if "::" in template_id:
+                    template_id = template_id.split("::")[-1]
+                if template_id:
+                    payloads.setdefault(template_id, display)
+        return payloads
+
+
+def _generic_r_gallery_payload(record: TemplateRecord) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "source_data_digest": "gallery-synthetic-preview",
+        "display_id": record.template_id,
+        "template_id": record.template_id,
+        "title": record.display_name,
+        "caption": "Synthetic gallery preview payload for local visual inspection only.",
+        "x_label": "X axis",
+        "y_label": "Y axis",
+        "series": [
+            {
+                "label": "Model",
+                "x": [0, 0.05, 0.14, 0.28, 0.48, 0.72, 1],
+                "y": [0, 0.36, 0.58, 0.74, 0.86, 0.95, 1],
+                "panel_label": "A",
+                "panel_id": "A",
+            },
+            {
+                "label": "Comparator",
+                "x": [0, 0.10, 0.25, 0.45, 0.66, 0.84, 1],
+                "y": [0, 0.30, 0.49, 0.66, 0.79, 0.90, 1],
+                "panel_label": "A",
+                "panel_id": "A",
+            },
+        ],
+        "decision_series": [
+            {
+                "label": "Model",
+                "x": [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60],
+                "y": [0.22, 0.20, 0.17, 0.13, 0.09, 0.05, 0.02],
+                "panel_label": "A",
+            },
+            {
+                "label": "Treat all",
+                "x": [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60],
+                "y": [0.18, 0.15, 0.10, 0.05, 0.00, -0.05, -0.10],
+                "panel_label": "A",
+            },
+        ],
+        "bars": [
+            {"label": "Low", "value": 0.18, "panel_label": "B"},
+            {"label": "Intermediate", "value": 0.36, "panel_label": "B"},
+            {"label": "High", "value": 0.62, "panel_label": "B"},
+        ],
+        "points": [
+            {"x": -1.2, "y": 0.8, "group": "Group A"},
+            {"x": -0.8, "y": 0.5, "group": "Group A"},
+            {"x": 0.9, "y": -0.4, "group": "Group B"},
+            {"x": 1.3, "y": -0.7, "group": "Group B"},
+        ],
+        "rows": [
+            {"label": "Feature A", "estimate": 1.4, "lower": 1.1, "upper": 1.8, "value": 0.42},
+            {"label": "Feature B", "estimate": 0.8, "lower": 0.6, "upper": 1.0, "value": 0.25},
+            {"label": "Feature C", "estimate": 1.2, "lower": 0.9, "upper": 1.6, "value": 0.31},
+        ],
+        "row_order": [{"label": "Feature A"}, {"label": "Feature B"}, {"label": "Feature C"}],
+        "column_order": [{"label": "Group A"}, {"label": "Group B"}],
+        "cells": [
+            {"x": "Group A", "y": "Feature A", "value": 0.72},
+            {"x": "Group B", "y": "Feature A", "value": -0.24},
+            {"x": "Group A", "y": "Feature B", "value": -0.11},
+            {"x": "Group B", "y": "Feature B", "value": 0.58},
+            {"x": "Group A", "y": "Feature C", "value": 0.33},
+            {"x": "Group B", "y": "Feature C", "value": -0.45},
+        ],
+        "reference_line": {"label": "Reference", "x": [0, 1], "y": [0, 1]},
+        "reference_value": 1.0,
+    }
 
 
 def _load_seed_r_payloads(records: list[TemplateRecord]) -> dict[str, dict[str, Any]]:
-    payloads: dict[str, dict[str, Any]] = {}
+    payloads: dict[str, dict[str, Any]] = {
+        key: json.loads(json.dumps(value))
+        for key, value in MANUAL_PYTHON_DISPLAY_PAYLOADS.items()
+    }
+    payloads.update({
+        key: json.loads(json.dumps(value))
+        for key, value in GALLERY_R_DISPLAY_PAYLOADS.items()
+    })
+    payloads.update(
+        {
+            key: json.loads(json.dumps(value))
+            for key, value in _workspace_fixture_display_payloads().items()
+            if key not in payloads
+        }
+    )
     for record in records:
         if record.renderer_family != "r_ggplot2":
             continue
-        payload_path = ASSET_ROOT / f"{record.template_id}.payload.json"
-        if payload_path.exists():
-            payload = json.loads(payload_path.read_text(encoding="utf-8"))
-            if not isinstance(payload, dict):
-                raise ValueError(f"{payload_path} must contain a JSON object")
-        else:
-            payload = _load_seed_payload_from_git(payload_path)
-        payloads[record.template_id] = payload
+        if record.template_id not in payloads:
+            payloads[record.template_id] = _generic_r_gallery_payload(record)
     return payloads
 
 
 def _load_r_gallery_payload(template_id: str, seed_payloads: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    payload_path = ASSET_ROOT / f"{template_id}.payload.json"
     try:
         payload = json.loads(json.dumps(seed_payloads[template_id]))
     except KeyError as exc:
@@ -981,6 +1196,8 @@ def _write_reference(
     records: list[TemplateRecord],
     rendered: dict[str, RenderedAsset],
     baseline_rendered: dict[str, RenderedAsset],
+    *,
+    reference_path: Path,
 ) -> None:
     default_style = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD
     categories = Counter(record.audit_family for record in records)
@@ -993,7 +1210,8 @@ def _write_reference(
         if category in categories
     )
     excluded = ", ".join(f"`{item}`" for item in LEGACY_PYTHON_BASELINE_EXCLUDED)
-    REFERENCE_PATH.write_text(
+    reference_path.parent.mkdir(parents=True, exist_ok=True)
+    reference_path.write_text(
         f"""# MAS Display Pack Gallery
 
 Owner: `MedAutoScience`
@@ -1001,9 +1219,13 @@ Purpose: `human_readable_gallery_for_builtin_mas_display_templates`
 State: `active_support`
 Machine boundary: 人读示例文档。机器真相继续归 display-pack template descriptor、renderer source、`paper/publication_style_profile.json`、layout sidecar、display lock、publication manifest、tests 和真实论文 artifacts。
 
-- [HTML Gallery](./ggplot2_template_gallery.html)
 - [PDF Gallery](./ggplot2_template_gallery.pdf)
-- [Gallery manifest](./ggplot2_template_reference_assets/gallery_manifest.json)
+
+全量 HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`，不作为 repository canonical evidence 提交。需要重建时运行：
+
+```bash
+./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs
+```
 
 ## 索引
 
@@ -1057,7 +1279,53 @@ def _export_pdf() -> None:
     )
 
 
+def _configure_output_paths(output_root: Path) -> None:
+    global ASSET_ROOT
+    global PYTHON_CURRENT_ROOT
+    global PYTHON_BASELINE_ROOT
+    global HTML_PATH
+    global PDF_PATH
+    global REFERENCE_PATH
+    global MANIFEST_PATH
+
+    resolved = output_root.expanduser()
+    if not resolved.is_absolute():
+        resolved = REPO_ROOT / resolved
+    resolved = resolved.resolve()
+    ASSET_ROOT = resolved / "ggplot2_template_reference_assets"
+    PYTHON_CURRENT_ROOT = ASSET_ROOT / "python_current"
+    PYTHON_BASELINE_ROOT = ASSET_ROOT / "python_baseline"
+    HTML_PATH = resolved / "ggplot2_template_gallery.html"
+    PDF_PATH = resolved / "ggplot2_template_gallery.pdf"
+    REFERENCE_PATH = resolved / "ggplot2_template_reference.md"
+    MANIFEST_PATH = ASSET_ROOT / "gallery_manifest.json"
+
+
+def _copy_docs_gallery() -> None:
+    DOCS_PDF_PATH.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(PDF_PATH, DOCS_PDF_PATH)
+    shutil.copy2(REFERENCE_PATH, DOCS_REFERENCE_PATH)
+
+
+def _parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build the local MAS display-pack gallery.")
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=DEFAULT_OUTPUT_ROOT,
+        help="Ignored local gallery output root. Defaults to outputs/display-pack-gallery.",
+    )
+    parser.add_argument(
+        "--publish-docs",
+        action="store_true",
+        help="Copy only ggplot2_template_gallery.pdf and ggplot2_template_reference.md into docs.",
+    )
+    return parser.parse_args(argv)
+
+
 def main() -> int:
+    args = _parse_args(sys.argv[1:])
+    _configure_output_paths(args.output_root)
     if shutil.which("Rscript") is None:
         raise RuntimeError("Rscript is required to rebuild the gallery")
     records = _read_template_records()
@@ -1089,12 +1357,14 @@ def main() -> int:
             rendered[record.template_id] = RenderedAsset(status="not_visual", reason="table_shell_or_non_visual_template")
 
     HTML_PATH.write_text(_render_html(records, rendered, baseline_rendered), encoding="utf-8")
-    _write_reference(records, rendered, baseline_rendered)
+    _write_reference(records, rendered, baseline_rendered, reference_path=REFERENCE_PATH)
     manifest = {
         "schema_version": 4,
         "status": "rendered",
         "html_path": str(HTML_PATH),
         "pdf_path": str(PDF_PATH),
+        "docs_pdf_path": str(DOCS_PDF_PATH) if args.publish_docs else "",
+        "docs_reference_path": str(DOCS_REFERENCE_PATH) if args.publish_docs else "",
         "template_count": len(records),
         "rendered_image_template_count": sum(1 for asset in rendered.values() if asset.status == "rendered"),
         "legacy_python_baseline_rendered_count": sum(1 for asset in baseline_rendered.values() if asset.status == "rendered"),
@@ -1150,6 +1420,8 @@ def main() -> int:
     }
     _write_json(MANIFEST_PATH, manifest)
     _export_pdf()
+    if args.publish_docs:
+        _copy_docs_gallery()
     print(
         json.dumps(
             {
@@ -1159,6 +1431,8 @@ def main() -> int:
                 "legacy_python_baselines": manifest["legacy_python_baseline_rendered_count"],
                 "html_path": str(HTML_PATH),
                 "pdf_path": str(PDF_PATH),
+                "docs_pdf_path": str(DOCS_PDF_PATH) if args.publish_docs else "",
+                "docs_reference_path": str(DOCS_REFERENCE_PATH) if args.publish_docs else "",
                 "manifest_path": str(MANIFEST_PATH),
             },
             ensure_ascii=False,

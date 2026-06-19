@@ -5,9 +5,13 @@ Purpose: `human_readable_gallery_for_builtin_mas_display_templates`
 State: `active_support`
 Machine boundary: 人读示例文档。机器真相继续归 display-pack template descriptor、renderer source、`paper/publication_style_profile.json`、layout sidecar、display lock、publication manifest、tests 和真实论文 artifacts。
 
-- [HTML Gallery](./ggplot2_template_gallery.html)
 - [PDF Gallery](./ggplot2_template_gallery.pdf)
-- [Gallery manifest](./ggplot2_template_reference_assets/gallery_manifest.json)
+
+全量 HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`，不作为 repository canonical evidence 提交。需要重建时运行：
+
+```bash
+./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs
+```
 
 ## 索引
 
