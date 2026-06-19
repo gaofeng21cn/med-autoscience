@@ -92,6 +92,87 @@ def test_runtime_report_owner_gate_event_supersedes_managed_action_typed_blocker
     assert action["running_provider_attempt"] is False
 
 
+def test_runtime_report_owner_gate_event_consumes_terminal_no_selected_dispatch_alias() -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    result = report_aggregation.build_runtime_report(
+        runtime_root=Path("/workspace/runtime/quests"),
+        scanned=[study_id],
+        reports=[],
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "decision": "domain_blocked",
+                "reason": "current_work_unit_typed_blocker",
+            }
+        ],
+        managed_study_auto_recoveries=[],
+        managed_study_recovery_holds=[],
+        managed_study_outer_loop_dispatches=[],
+        managed_study_outer_loop_wakeup_audits=[],
+        managed_study_no_op_suppressions=[],
+        managed_study_opl_runtime_owner_handoffs=[],
+        managed_study_opl_provider_admission_candidates=[],
+        managed_study_progress_currentness={
+            study_id: {
+                "study_id": study_id,
+                "current_work_unit": _typed_blocker_work_unit(
+                    study_id=study_id,
+                    action_type="run_quality_repair_batch",
+                    work_unit_id="medical_prose_write_repair",
+                    blocker_type="no_selected_dispatch_for_authorized_stage_packet",
+                )
+                | {
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                },
+                "study_intervention_events": [
+                    {
+                        "surface": "study_intervention_event",
+                        "intent": "owner_gate_decision",
+                        "event_id": "intervention-event-000001-stage-packet",
+                        "recorded_at": "2026-06-19T16:30:00+00:00",
+                        "payload": {
+                            "decision": "admit_identity_bound_stage_packet",
+                            "current_owner_identity": {
+                                "study_id": study_id,
+                                "action_type": "run_quality_repair_batch",
+                                "work_unit_id": "medical_prose_write_repair",
+                                "work_unit_fingerprint": fingerprint,
+                                "blocker_type": "stage_packet_not_current_selected_dispatch",
+                            },
+                            "human_gate_ref": "human_gate:owner-gate-decision:dm003-stage-packet",
+                            "owner_gate_decision_ref": "owner-gate-decision:dm003-stage-packet",
+                            "stage_packet_refs": [
+                                "studies/003/artifacts/supervision/consumer/default_executor_dispatches/immutable/run_quality_repair_batch/current.json"
+                            ],
+                            "provider_admission_allowed": True,
+                        },
+                    }
+                ],
+            }
+        },
+        managed_study_autonomy_slo_statuses=[],
+        managed_study_autonomy_repair_actions=[],
+    )
+
+    recovery = result["paper_recovery_states"][study_id]
+    assert recovery["phase"] == "admission_pending"
+    assert recovery["conditions"][0]["condition"] == "accepted_owner_gate_decision"
+    assert recovery["conditions"][0]["decision"] == "admit_identity_bound_stage_packet"
+    assert recovery["next_safe_action"]["kind"] == "admit_identity_bound_stage_packet"
+    assert recovery["next_safe_action"]["provider_admission_allowed"] is True
+    assert "owner-gate-decision:dm003-stage-packet" in recovery["evidence_refs"]
+    assert (
+        "studies/003/artifacts/supervision/consumer/default_executor_dispatches/immutable/"
+        "run_quality_repair_batch/current.json"
+    ) in recovery["evidence_refs"]
+
+
 def test_runtime_report_preserves_human_gate_authority_payload() -> None:
     report_aggregation = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"

@@ -287,3 +287,86 @@ def test_current_work_unit_uses_owner_gate_current_identity_for_stage_packet_blo
         work_unit["state"]["owner_answer_binding"]["work_unit_fingerprint"]
         == current_fingerprint
     )
+
+
+def test_current_work_unit_uses_owner_gate_current_identity_for_no_selected_dispatch_alias() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    current_fingerprint = "publication-blockers::0915410f804b3697"
+    stale_fingerprint = "mas_default_executor_provider_admission_source_95eb75e51e25e7fc938b8682"
+    closeout_ref = (
+        "artifacts/supervision/consumer/default_executor_execution/"
+        "sat_08da46bea43329723d2fbbea.closeout.json"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "truth_epoch": "truth-event-000035-39f0b8e96689a623",
+            "runtime_health_epoch": "runtime-health-event-006980-c351132f6fd3256e",
+            "study_intervention_events": [
+                {
+                    "surface": "study_intervention_event",
+                    "intent": "owner_gate_decision",
+                    "event_id": "intervention-event-000001-stage-packet",
+                    "recorded_at": "2026-06-19T16:30:00+00:00",
+                    "payload": {
+                        "decision": "admit_identity_bound_stage_packet",
+                        "current_owner_identity": {
+                            "study_id": study_id,
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": current_fingerprint,
+                            "blocker_type": "stage_packet_not_current_selected_dispatch",
+                        },
+                        "human_gate_ref": "human_gate:owner-gate-decision:dm003-stage-packet",
+                        "owner_gate_decision_ref": "owner-gate-decision:dm003-stage-packet",
+                        "stage_packet_refs": [
+                            f"studies/{study_id}/artifacts/supervision/consumer/"
+                            "default_executor_dispatches/immutable/run_quality_repair_batch/current.json"
+                        ],
+                    },
+                }
+            ],
+        },
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+            "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+            "owner": "one-person-lab",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": stale_fingerprint,
+            "action_fingerprint": stale_fingerprint,
+            "source_ref": closeout_ref,
+            "typed_blocker_ref": closeout_ref,
+            "currentness_basis": {
+                "owner_reason": work_unit_id,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": stale_fingerprint,
+                "action_fingerprint": stale_fingerprint,
+                "source_fingerprint": stale_fingerprint,
+                "idempotency_key": "idem_2f8ab5c3e2608435ee8ccde0",
+                "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
+            },
+        },
+        blocked_reason="no_selected_dispatch_for_authorized_stage_packet",
+        next_owner="one-person-lab",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["work_unit_fingerprint"] == current_fingerprint
+    assert work_unit["action_fingerprint"] == current_fingerprint
+    assert work_unit["currentness_basis"]["source"] == "study_intervention_event.owner_gate_decision"
+    assert work_unit["state"]["typed_blocker"]["work_unit_fingerprint"] == current_fingerprint
+    assert (
+        work_unit["state"]["owner_answer_binding"]["work_unit_fingerprint"]
+        == current_fingerprint
+    )

@@ -16,6 +16,9 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
     mapping as _mapping,
     text as _text,
 )
+from med_autoscience.controllers.current_work_unit_parts.stage_packet_blockers import (
+    is_selected_dispatch_stage_packet_blocker as _is_selected_dispatch_stage_packet_blocker,
+)
 
 
 def stage_packet_blocker_current_identity_action(
@@ -26,7 +29,7 @@ def stage_packet_blocker_current_identity_action(
     gate_replay_work_units: Collection[str],
 ) -> dict[str, Any] | None:
     blocker_type = _text(blocker.get("blocker_type")) or _text(blocker.get("blocked_reason"))
-    if blocker_type != "stage_packet_not_current_selected_dispatch":
+    if not _is_selected_dispatch_stage_packet_blocker(blocker_type):
         return None
     blocker_work_unit = _work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(
         blocker.get("next_work_unit")
@@ -81,7 +84,7 @@ def _owner_gate_current_identity_action(
         identity = _mapping(payload.get("current_owner_identity"))
         if not identity:
             continue
-        if _text(identity.get("blocker_type")) != blocker_type:
+        if not _blocker_types_match(_text(identity.get("blocker_type")), blocker_type):
             continue
         identity_study_id = _text(identity.get("study_id"))
         if progress_study_id is not None and identity_study_id != progress_study_id:
@@ -194,7 +197,10 @@ def terminal_action_blocker_has_fresher_identity(
         return False
     blocker_type = _text(blocker.get("blocker_type")) or _text(blocker.get("blocked_reason"))
     existing_type = _text(existing.get("blocker_type")) or _text(existing.get("blocked_reason"))
-    if blocker_type != "stage_packet_not_current_selected_dispatch" or existing_type != blocker_type:
+    if (
+        not _is_selected_dispatch_stage_packet_blocker(blocker_type)
+        or not _blocker_types_match(existing_type, blocker_type)
+    ):
         return False
     blocker_work_unit = _work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(blocker.get("next_work_unit"))
     existing_work_unit = _work_unit_id(existing.get("work_unit_id")) or _work_unit_id(existing.get("next_work_unit"))
@@ -203,6 +209,15 @@ def terminal_action_blocker_has_fresher_identity(
     blocker_fingerprint = _text(blocker.get("work_unit_fingerprint")) or _text(blocker.get("action_fingerprint"))
     existing_fingerprint = _text(existing.get("work_unit_fingerprint")) or _text(existing.get("action_fingerprint"))
     return bool(blocker_fingerprint and existing_fingerprint and blocker_fingerprint != existing_fingerprint)
+
+
+def _blocker_types_match(candidate: str | None, blocker_type: str | None) -> bool:
+    if candidate == blocker_type:
+        return True
+    return (
+        _is_selected_dispatch_stage_packet_blocker(candidate)
+        and _is_selected_dispatch_stage_packet_blocker(blocker_type)
+    )
 
 
 def current_work_unit_fingerprint(

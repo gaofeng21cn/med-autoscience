@@ -4,7 +4,96 @@ from tests.test_current_work_unit_cases.shared import _assert_contract_shape, _m
 from tests.provider_admission_current_control_helpers import opl_transition_readback
 
 
+def _running_attempt(
+    study_id: str,
+    *,
+    active_stage_attempt_id: str,
+    action_type: str,
+    work_unit_id: str,
+    active_run_id: str | None = None,
+    active_workflow_id: str | None = None,
+    owner: str | None = None,
+    work_unit_fingerprint: str | None = None,
+    action_fingerprint: str | None = None,
+    runtime_health: dict[str, object] | None = None,
+    latest_terminal_stage_log: dict[str, object] | None = None,
+) -> dict[str, object]:
+    fingerprint = work_unit_fingerprint or action_fingerprint or f"running-provider::{study_id}::{work_unit_id}"
+    route_key = f"provider-admission::{study_id}::{fingerprint}"
+    health = {
+        "health_status": "running",
+        "runtime_liveness_status": "live",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+    } | dict(runtime_health or {})
+    attempt = {
+        "study_id": study_id,
+        "running_provider_attempt": True,
+        "active_run_id": active_run_id or f"opl-stage-attempt://{active_stage_attempt_id}",
+        "active_stage_attempt_id": active_stage_attempt_id,
+        "active_workflow_id": active_workflow_id or f"wf-{active_stage_attempt_id}",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": action_fingerprint or fingerprint,
+        "action_type": action_type,
+        "runtime_health": health,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "idempotency_key": route_key,
+        "opl_domain_progress_transition_result": opl_transition_readback(
+            study_id,
+            action_fingerprint=fingerprint,
+            work_unit_id=work_unit_id,
+            route_identity_key=route_key,
+            attempt_idempotency_key=route_key,
+            request_idempotency_key=route_key,
+            stage_run_id=active_stage_attempt_id,
+        ),
+    }
+    if owner is not None:
+        attempt["owner"] = owner
+    if latest_terminal_stage_log is not None:
+        attempt["latest_terminal_stage_log"] = latest_terminal_stage_log
+    return attempt
+
+
 def test_current_work_unit_accepts_strict_running_provider_proof() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+        },
+        actions=[
+            {
+                "source_surface": "action_queue",
+                "action_type": "run_gate_clearing_batch",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            }
+        ],
+        blocked_reason="medical_paper_readiness_not_ready",
+        next_owner="gate_clearing_batch",
+        live_provider_attempt=_running_attempt(
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            active_stage_attempt_id="sat-live",
+            active_workflow_id="wf-live",
+            action_type="run_gate_clearing_batch",
+            work_unit_id="publication_gate_replay",
+        ),
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "running_provider_attempt"
+    assert work_unit["owner"] == "gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "publication_gate_replay"
+    assert work_unit["state"]["strict_running_proof"] is True
+    assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-live"
+
+
+def test_current_work_unit_rejects_running_provider_proof_without_opl_readback() -> None:
     module = _module()
 
     work_unit = module.build_current_work_unit(
@@ -38,11 +127,8 @@ def test_current_work_unit_accepts_strict_running_provider_proof() -> None:
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "running_provider_attempt"
-    assert work_unit["owner"] == "gate_clearing_batch"
-    assert work_unit["work_unit_id"] == "publication_gate_replay"
-    assert work_unit["state"]["strict_running_proof"] is True
-    assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-live"
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["status"] != "running_provider_attempt"
 
 
 def test_current_work_unit_running_attempt_supersedes_ai_reviewer_recheck_blocker() -> None:
@@ -56,18 +142,13 @@ def test_current_work_unit_running_attempt_supersedes_ai_reviewer_recheck_blocke
         },
         blocked_reason="repair_progress_ai_reviewer_recheck_required",
         next_owner="ai_reviewer",
-        live_provider_attempt={
-            "running_provider_attempt": True,
-            "active_run_id": "opl-stage-attempt://sat-live-ai-review",
-            "active_stage_attempt_id": "sat-live-ai-review",
-            "active_workflow_id": "wf-live-ai-review",
-            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
-            "action_type": "return_to_ai_reviewer_workflow",
-            "runtime_health": {
-                "health_status": "running",
-                "runtime_liveness_status": "live",
-            },
-        },
+        live_provider_attempt=_running_attempt(
+            "002-dm-china-us-mortality-attribution",
+            active_stage_attempt_id="sat-live-ai-review",
+            active_workflow_id="wf-live-ai-review",
+            action_type="return_to_ai_reviewer_workflow",
+            work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        ),
     )
 
     _assert_contract_shape(work_unit)
@@ -88,23 +169,16 @@ def test_current_work_unit_running_attempt_supersedes_provider_admission_current
         },
         blocked_reason="provider_admission_current_control_state_required",
         next_owner="one-person-lab",
-        live_provider_attempt={
-            "running_provider_attempt": True,
-            "active_run_id": "opl-stage-attempt://sat-live-gate-replay",
-            "active_stage_attempt_id": "sat-live-gate-replay",
-            "active_workflow_id": "wf-live-gate-replay",
-            "owner": "gate_clearing_batch",
-            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-            "work_unit_fingerprint": "domain-transition::route_back_same_line::dpcc",
-            "action_fingerprint": "domain-transition::route_back_same_line::dpcc",
-            "action_type": "run_gate_clearing_batch",
-            "runtime_health": {
-                "health_status": "live",
-                "runtime_liveness_status": "live",
-                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-                "work_unit_fingerprint": "domain-transition::route_back_same_line::dpcc",
-            },
-        },
+        live_provider_attempt=_running_attempt(
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            active_stage_attempt_id="sat-live-gate-replay",
+            active_workflow_id="wf-live-gate-replay",
+            owner="gate_clearing_batch",
+            action_type="run_gate_clearing_batch",
+            work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            work_unit_fingerprint="domain-transition::route_back_same_line::dpcc",
+            runtime_health={"health_status": "live"},
+        ),
     )
 
     _assert_contract_shape(work_unit)
@@ -153,23 +227,15 @@ def test_current_work_unit_running_attempt_supersedes_prior_opl_authorization_te
             }
         ],
         next_owner="one-person-lab",
-        live_provider_attempt={
-            "running_provider_attempt": True,
-            "active_run_id": "opl-stage-attempt://sat-live-gate-replay",
-            "active_stage_attempt_id": "sat-live-gate-replay",
-            "active_workflow_id": "wf-live-gate-replay",
-            "owner": "gate_clearing_batch",
-            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-            "work_unit_fingerprint": "domain-transition::route_back_same_line::dpcc",
-            "action_fingerprint": "domain-transition::route_back_same_line::dpcc",
-            "action_type": "run_gate_clearing_batch",
-            "runtime_health": {
-                "health_status": "running",
-                "runtime_liveness_status": "live",
-                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-                "work_unit_fingerprint": "domain-transition::route_back_same_line::dpcc",
-            },
-        },
+        live_provider_attempt=_running_attempt(
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            active_stage_attempt_id="sat-live-gate-replay",
+            active_workflow_id="wf-live-gate-replay",
+            owner="gate_clearing_batch",
+            action_type="run_gate_clearing_batch",
+            work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            work_unit_fingerprint="domain-transition::route_back_same_line::dpcc",
+        ),
     )
 
     _assert_contract_shape(work_unit)
@@ -178,7 +244,7 @@ def test_current_work_unit_running_attempt_supersedes_prior_opl_authorization_te
     assert "typed_blocker" not in work_unit["state"]
 
 
-def test_running_provider_attempt_uses_currentness_work_unit_before_attempt_identity() -> None:
+def test_running_provider_attempt_uses_currentness_work_unit_before_stage_attempt_identity() -> None:
     module = _module()
 
     work_unit = module.build_current_work_unit(
@@ -194,16 +260,13 @@ def test_running_provider_attempt_uses_currentness_work_unit_before_attempt_iden
             }
         },
         next_owner="med-autoscience",
-        live_provider_attempt={
-            "running_provider_attempt": True,
-            "active_run_id": "opl-stage-attempt://sat-live-current-gate",
-            "active_stage_attempt_id": "sat-live-current-gate",
-            "active_workflow_id": "wf-live-current-gate",
-            "runtime_health": {
-                "health_status": "running",
-                "runtime_liveness_status": "live",
-            },
-        },
+        live_provider_attempt=_running_attempt(
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            active_stage_attempt_id="sat-live-current-gate",
+            active_workflow_id="wf-live-current-gate",
+            action_type="run_gate_clearing_batch",
+            work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        ),
     )
 
     _assert_contract_shape(work_unit)
@@ -227,28 +290,18 @@ def test_current_work_unit_running_attempt_supersedes_prior_dispatch_zero_blocke
         },
         blocked_reason="domain_owner_action_dispatch_execution_count_zero",
         next_owner="med-autoscience",
-        live_provider_attempt={
-            "running_provider_attempt": True,
-            "active_run_id": "opl-stage-attempt://sat-live-current-gate",
-            "active_stage_attempt_id": "sat-live-current-gate",
-            "active_workflow_id": "wf-live-current-gate",
-            "owner": "gate_clearing_batch",
-            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-            "work_unit_fingerprint": (
+        live_provider_attempt=_running_attempt(
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            active_stage_attempt_id="sat-live-current-gate",
+            active_workflow_id="wf-live-current-gate",
+            owner="gate_clearing_batch",
+            action_type="run_gate_clearing_batch",
+            work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            work_unit_fingerprint=(
                 "study-progress-current-owner-ticket::003::"
                 "dpcc_publication_gate_replay_after_current_ai_reviewer_record::run_gate_clearing_batch"
             ),
-            "action_fingerprint": (
-                "study-progress-current-owner-ticket::003::"
-                "dpcc_publication_gate_replay_after_current_ai_reviewer_record::run_gate_clearing_batch"
-            ),
-            "action_type": "run_gate_clearing_batch",
-            "runtime_health": {
-                "health_status": "running",
-                "runtime_liveness_status": "live",
-                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-            },
-        },
+        ),
     )
 
     _assert_contract_shape(work_unit)
@@ -311,23 +364,16 @@ def test_current_work_unit_running_attempt_supersedes_consumed_gate_replay_block
             "owner_receipt_required": True,
         },
         next_owner="one-person-lab",
-        live_provider_attempt={
-            "running_provider_attempt": True,
-            "active_run_id": "opl-stage-attempt://sat_1f960e7aa4017019d0be2c5b",
-            "active_stage_attempt_id": "sat_1f960e7aa4017019d0be2c5b",
-            "active_workflow_id": "wf_bf3700ffa605ac9f8f911316",
-            "owner": "one-person-lab",
-            "action_type": "run_gate_clearing_batch",
-            "work_unit_id": "publication_gate_replay",
-            "work_unit_fingerprint": fingerprint,
-            "action_fingerprint": fingerprint,
-            "runtime_health": {
-                "health_status": "running",
-                "runtime_liveness_status": "live",
-                "work_unit_id": "publication_gate_replay",
-                "work_unit_fingerprint": fingerprint,
-            },
-        },
+        live_provider_attempt=_running_attempt(
+            study_id,
+            active_stage_attempt_id="sat_1f960e7aa4017019d0be2c5b",
+            active_run_id="opl-stage-attempt://sat_1f960e7aa4017019d0be2c5b",
+            active_workflow_id="wf_bf3700ffa605ac9f8f911316",
+            owner="one-person-lab",
+            action_type="run_gate_clearing_batch",
+            work_unit_id="publication_gate_replay",
+            work_unit_fingerprint=fingerprint,
+        ),
     )
 
     _assert_contract_shape(work_unit)
@@ -352,23 +398,18 @@ def test_current_work_unit_ignores_terminal_log_without_matching_attempt_id() ->
             "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
             "current_stage": "publication_supervision",
         },
-        live_provider_attempt={
-            "running_provider_attempt": True,
-            "active_run_id": "opl-stage-attempt://sat-live-gate",
-            "active_stage_attempt_id": "sat-live-gate",
-            "active_workflow_id": "wf-live-gate",
-            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
-            "action_type": "return_to_ai_reviewer_workflow",
-            "runtime_health": {
-                "health_status": "running",
-                "runtime_liveness_status": "live",
-            },
-            "latest_terminal_stage_log": {
+        live_provider_attempt=_running_attempt(
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            active_stage_attempt_id="sat-live-gate",
+            active_workflow_id="wf-live-gate",
+            action_type="return_to_ai_reviewer_workflow",
+            work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            latest_terminal_stage_log={
                 "stage_attempt_id": None,
                 "status": "blocked",
                 "source_path": "studies/003/artifacts/supervision/consumer/default_executor_execution/latest.json",
             },
-        },
+        ),
     )
 
     _assert_contract_shape(work_unit)

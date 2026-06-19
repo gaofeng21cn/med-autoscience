@@ -483,6 +483,8 @@ def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
         "action_type": "run_quality_repair_batch",
         "work_unit_id": "analysis_claim_evidence_repair",
         "work_unit_fingerprint": fingerprint,
+        "human_gate_ref": "human_gate:owner-gate-decision:c7027de42ca336cfe0782428",
+        "owner_gate_decision_ref": "owner-gate-decision:c7027de42ca336cfe0782428",
         "route_back_evidence_ref": "route_back:owner-gate-decision:c7027de42ca336cfe0782428",
     }
     assert state["evidence_refs"] == [

@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.current_work_unit_parts.stage_packet_blockers import (
+    is_selected_dispatch_stage_packet_blocker as _is_selected_dispatch_stage_packet_blocker,
+)
+
 
 def matching_owner_gate_decision_event(
     progress: Mapping[str, Any],
@@ -59,11 +63,24 @@ def _owner_gate_identity_matches_obligation(
     identity = _mapping(payload.get("current_owner_identity"))
     if not identity:
         return False
-    for field in ("study_id", "action_type", "work_unit_id", "work_unit_fingerprint", "blocker_type"):
+    for field in ("study_id", "action_type", "work_unit_id", "work_unit_fingerprint"):
         expected = _text(obligation.get(field))
         if expected is not None and _text(identity.get(field)) != expected:
             return False
+    expected_blocker = _text(obligation.get("blocker_type"))
+    identity_blocker = _text(identity.get("blocker_type"))
+    if expected_blocker is not None and not _blocker_types_match(identity_blocker, expected_blocker):
+        return False
     return _text(payload.get("human_gate_ref")) is not None
+
+
+def _blocker_types_match(candidate: str | None, blocker_type: str | None) -> bool:
+    if candidate == blocker_type:
+        return True
+    return (
+        _is_selected_dispatch_stage_packet_blocker(candidate)
+        and _is_selected_dispatch_stage_packet_blocker(blocker_type)
+    )
 
 
 def _mapping(value: object) -> dict[str, Any]:
