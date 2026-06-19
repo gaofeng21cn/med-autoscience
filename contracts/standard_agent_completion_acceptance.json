@@ -6,12 +6,14 @@
   "purpose": "Machine-readable acceptance definition for eliminating MAS legacy platform residue and for making the OPL-standard-agent hardening work verifiable instead of slogan-complete.",
   "machine_boundary": "This contract defines acceptance gates, false-completion rules, evidence classes, and open evidence tails for MAS standard-OPL-agent completion. It does not declare live DM002/DM003 recovery, paper closure, publication readiness, submission readiness, current package freshness, production readiness, physical delete authorization, or OPL family-wide conformance completion.",
   "evidence_status_ref": "contracts/standard_agent_completion_evidence_status.json",
+  "live_runtime_evidence_rollup_ref": "contracts/runtime/mas-live-runtime-evidence-rollup.json",
   "source_design_refs": [
     "human_doc:mas_ideal_state_gap_plan",
     "human_doc:mas_status",
     "human_doc:mas_decisions",
     "contracts/paper_recovery_kernel_contract.json",
     "contracts/stage_route_reconcile_contract.json",
+    "contracts/runtime/mas-live-runtime-evidence-rollup.json",
     "external_repo:one-person-lab/contracts/opl-framework/standard-agent-landing-acceptance-contract.json"
   ],
   "completion_claim_policy": {
@@ -21,6 +23,9 @@
     "classification_zero_can_claim_complete": false,
     "docs_updated_can_claim_complete": false,
     "contract_tests_green_can_claim_complete": false,
+    "live_runtime_evidence_rollup_required_for_completion_claim": true,
+    "live_runtime_evidence_rollup_required_result_status": "all_work_orders_satisfied",
+    "partial_or_typed_blocker_rollup_can_claim_complete": false,
     "required_final_claim": "all_acceptance_gates_satisfied_with_current_evidence",
     "completion_requires_all_gate_statuses": [
       "satisfied",
@@ -210,7 +215,9 @@
     "default_executor_residue_cleanup_clean",
     "verified_refs_only_ledger",
     "App_projection_ready",
-    "manual_foreground_edit_without_adoption_refs"
+    "manual_foreground_edit_without_adoption_refs",
+    "partial_live_runtime_evidence_rollup",
+    "typed_blocker_required_live_runtime_evidence_rollup"
   ],
   "allowed_completion_evidence": [
     "domain_owner_receipt_ref",
@@ -225,13 +232,15 @@
     "physical_retirement_owner_decision_ref",
     "no_forbidden_write_proof_ref",
     "tombstone_or_provenance_ref",
-    "cross_agent_standard_conformance_negative_test_ref"
+    "cross_agent_standard_conformance_negative_test_ref",
+    "live_runtime_evidence_rollup_all_work_orders_satisfied_ref"
   ],
   "current_open_evidence_tails": [
     "direct/hosted generated surface production consumption",
     "physical source morphology scan beyond classification-zero",
     "OPL/OMA production generated-surface caller and long-soak negative conformance",
     "real owner receipt / typed blocker / human gate / route-back scaleout",
-    "provider long-soak and operator repair loop evidence"
+    "provider long-soak and operator repair loop evidence",
+    "live runtime evidence rollup all work orders satisfied"
   ]
 }
