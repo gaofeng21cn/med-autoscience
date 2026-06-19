@@ -188,6 +188,12 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert surfaces["domain_health_diagnostic_obligation_actuator"][
         "fail_closed_typed_blocker_surface"
     ] == "mas_domain_typed_blocker"
+    assert surfaces["domain_health_diagnostic_obligation_actuator"][
+        "obligation_readback_boundary"
+    ]["mas_domain_authority_readback_requires_authority_boundary"] is True
+    assert surfaces["domain_health_diagnostic_obligation_actuator"][
+        "obligation_readback_boundary"
+    ]["read_model_evidence_refs_can_satisfy_success"] is False
     assert surfaces["domain_authority_refs_index"]["current_disposition"] == (
         "active_callers_migrated_to_opl_state_index_source_adapter_live_takeover_tail_open"
     )
@@ -313,6 +319,20 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "test_obligation_actuator_outcomes.py::"
         "test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as_closed_outcome#"
         "consumed_obligation_readback_identity"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
+        "test_obligation_actuator_outcomes.py::"
+        "test_domain_health_diagnostic_apply_rejects_read_model_human_gate_and_route_back_refs"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
+        "test_obligation_actuator_outcomes.py::"
+        "test_domain_health_diagnostic_apply_accepts_owner_gate_authority_payload_refs"
+    ) in physical_gate["observed_refs"]
+    assert (
+        "tests/test_paper_recovery_state_cases/owner_gate_projection_cases.py::"
+        "test_runtime_report_preserves_human_gate_authority_payload"
     ) in physical_gate["observed_refs"]
     assert (
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"

@@ -187,6 +187,14 @@ def validate_domain_health_diagnostic_obligation_actuator(
             violations.append(_violation(surface_id, "obligation_actuator_missing_success_proof_gate"))
         if readback.get("success_proof_requires_consumed_readback_identity") is not True:
             violations.append(_violation(surface_id, "obligation_actuator_missing_consumed_identity_gate"))
+        if readback.get("mas_domain_authority_readback_requires_authority_boundary") is not True:
+            violations.append(
+                _violation(surface_id, "obligation_actuator_missing_domain_authority_boundary_gate")
+            )
+        if readback.get("read_model_evidence_refs_can_satisfy_success") is not False:
+            violations.append(
+                _violation(surface_id, "obligation_actuator_read_model_refs_can_satisfy_success")
+            )
         if readback.get("success_proof_forbidden_when_request_projection_only") is not True:
             violations.append(_violation(surface_id, "obligation_actuator_request_projection_can_emit_success_proof"))
         if readback.get("supervisor_disallowed_outcome_is_success") is not False:

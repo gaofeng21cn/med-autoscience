@@ -1155,6 +1155,33 @@ def _assert_exactly_one_dhd_apply_outcome(
         assert consumed_identity["source_family"] == source_family
         assert consumed_identity["outcome_kind"] == expected_kind
         assert consumed_identity["outcome_ref"] == outcome[expected_kind]
+        if source_family == "mas_domain_authority_readback":
+            assert consumed_identity["domain_authority_ref"] == outcome[expected_kind]
+            assert consumed_identity["domain_authority_ref_source"] != (
+                "paper_recovery_state.evidence_refs"
+            )
+            boundary = consumed_identity["domain_authority_boundary"]
+            assert boundary["actuator_private_write_authority"] is False
+            assert boundary["can_create_opl_command"] is False
+            assert boundary["can_create_opl_event"] is False
+            assert boundary["can_create_opl_outbox"] is False
+            assert boundary["can_create_opl_stage_run"] is False
+            assert boundary["can_store_recovery_obligation"] is False
+            assert boundary["can_run_supervisor_decision_engine"] is False
+            assert boundary["can_authorize_provider_admission"] is False
+            assert boundary["can_claim_paper_progress"] is False
+            if expected_kind == "typed_blocker_ref":
+                assert consumed_identity["domain_authority_surface"] == (
+                    "mas_domain_typed_blocker"
+                )
+                assert consumed_identity["authority_result_surface"] == (
+                    "mas_domain_typed_blocker"
+                )
+                assert consumed_identity["accepted_answer_shape"] == "typed_blocker_ref"
+            elif expected_kind in {"human_gate_ref", "route_back_evidence_ref"}:
+                assert consumed_identity["domain_authority_surface"] == "owner_gate_decision"
+                assert consumed_identity["authority_result_surface"] == "owner_gate_decision"
+                assert consumed_identity["accepted_answer_shape"] == expected_kind
         success_proof = outcome["dhd_apply_success_proof"]
         assert success_proof["surface_kind"] == "dhd_apply_success_proof"
         assert success_proof["success_outcome_source_family"] == source_family
@@ -1264,6 +1291,8 @@ def test_obligation_actuator_readback_validator_is_not_supervisor_decision_engin
     assert boundary["consumed_readback_identity_surface_kind"] == (
         "consumed_obligation_readback_identity"
     )
+    assert boundary["mas_domain_authority_readback_requires_authority_boundary"] is True
+    assert boundary["read_model_evidence_refs_can_satisfy_success"] is False
 
     assert validator.allowed_outcomes_for_policy_label("consume_terminal_closeout") == {
         "owner_receipt_ref",

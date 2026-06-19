@@ -34,6 +34,8 @@ def accepted_owner_gate_decision(payload: Mapping[str, Any]) -> dict[str, Any]:
         "action_type": _text(identity.get("action_type")),
         "work_unit_id": _text(identity.get("work_unit_id")),
         "work_unit_fingerprint": _text(identity.get("work_unit_fingerprint")),
+        "human_gate_ref": _text(payload.get("human_gate_ref")),
+        "owner_gate_decision_ref": _text(payload.get("owner_gate_decision_ref")),
         "route_back_evidence_ref": _text(payload.get("route_back_evidence_ref")),
     }
     return {key: value for key, value in accepted.items() if value not in (None, "", [], {})}

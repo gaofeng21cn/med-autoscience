@@ -476,19 +476,34 @@ def _route_back_evidence_outcome(
     recovery = _mapping(action.get("paper_recovery_state"))
     next_action = _mapping(recovery.get("next_safe_action"))
     accepted_owner_gate = _mapping(next_action.get("accepted_owner_gate_decision"))
-    route_back_ref = _first_text(
-        next_action.get("route_back_evidence_ref"),
-        accepted_owner_gate.get("route_back_evidence_ref"),
-        *_matching_ref_items(recovery.get("evidence_refs"), prefix="route_back:"),
+    route_back_ref, ref_source = _first_text_with_source(
+        ("next_safe_action", next_action.get("route_back_evidence_ref")),
+        ("accepted_owner_gate_decision", accepted_owner_gate.get("route_back_evidence_ref")),
+        *(
+            ("paper_recovery_state.evidence_refs", ref)
+            for ref in _matching_ref_items(recovery.get("evidence_refs"), prefix="route_back:")
+        ),
     )
     if route_back_ref is None:
         return None
+    details = {
+        "next_safe_action_kind": _non_empty_text(next_action.get("kind")),
+        "domain_authority_ref_source": ref_source,
+    }
+    if ref_source == "accepted_owner_gate_decision":
+        details.update(
+            _owner_gate_decision_authority_details(
+                accepted_owner_gate=accepted_owner_gate,
+                accepted_ref=route_back_ref,
+                accepted_shape="route_back_evidence_ref",
+            )
+        )
     return _obligation_outcome(
         action=action,
         outcome_kind="route_back_evidence_ref",
         outcome_ref=route_back_ref,
         phase=phase,
-        details={"next_safe_action_kind": _non_empty_text(next_action.get("kind"))},
+        details=details,
     )
 
 
@@ -501,19 +516,36 @@ def _human_gate_outcome(
     supervisor_decision = _mapping(recovery.get("supervisor_decision"))
     supervisor_next = _mapping(supervisor_decision.get("next_safe_action"))
     next_action = _mapping(recovery.get("next_safe_action"))
-    human_gate_ref = _first_text(
-        next_action.get("human_gate_ref"),
-        supervisor_next.get("human_gate_ref"),
-        *_matching_ref_items(recovery.get("evidence_refs"), prefix="human_gate:"),
+    accepted_owner_gate = _mapping(next_action.get("accepted_owner_gate_decision"))
+    human_gate_ref, ref_source = _first_text_with_source(
+        ("next_safe_action", next_action.get("human_gate_ref")),
+        ("supervisor_decision.next_safe_action", supervisor_next.get("human_gate_ref")),
+        ("accepted_owner_gate_decision", accepted_owner_gate.get("human_gate_ref")),
+        *(
+            ("paper_recovery_state.evidence_refs", ref)
+            for ref in _matching_ref_items(recovery.get("evidence_refs"), prefix="human_gate:")
+        ),
     )
     if human_gate_ref is None:
         return None
+    details = {
+        "next_safe_action_kind": _non_empty_text(next_action.get("kind")),
+        "domain_authority_ref_source": ref_source,
+    }
+    if ref_source == "accepted_owner_gate_decision":
+        details.update(
+            _owner_gate_decision_authority_details(
+                accepted_owner_gate=accepted_owner_gate,
+                accepted_ref=human_gate_ref,
+                accepted_shape="human_gate_ref",
+            )
+        )
     return _obligation_outcome(
         action=action,
         outcome_kind="human_gate_ref",
         outcome_ref=human_gate_ref,
         phase=phase,
-        details={"next_safe_action_kind": _non_empty_text(next_action.get("kind"))},
+        details=details,
     )
 
 
@@ -523,25 +555,40 @@ def _typed_blocker_outcome(
     phase: str,
 ) -> dict[str, Any] | None:
     typed_blocker = _current_typed_blocker_payload(action)
-    typed_blocker_ref = _first_text(
-        typed_blocker.get("typed_blocker_ref"),
-        typed_blocker.get("latest_owner_answer_ref"),
-        typed_blocker.get("source_ref"),
-        *_matching_ref_items(_mapping(action.get("paper_recovery_state")).get("evidence_refs"), prefix="typed_blocker:"),
+    typed_blocker_ref, ref_source = _first_text_with_source(
+        ("typed_blocker.typed_blocker_ref", typed_blocker.get("typed_blocker_ref")),
+        ("typed_blocker.latest_owner_answer_ref", typed_blocker.get("latest_owner_answer_ref")),
+        ("typed_blocker.source_ref", typed_blocker.get("source_ref")),
+        *(
+            ("paper_recovery_state.evidence_refs", ref)
+            for ref in _matching_ref_items(
+                _mapping(action.get("paper_recovery_state")).get("evidence_refs"),
+                prefix="typed_blocker:",
+            )
+        ),
     )
     if typed_blocker_ref is None:
         return None
+    details = {
+        "blocker_type": _first_text(
+            typed_blocker.get("blocker_type"),
+            typed_blocker.get("blocked_reason"),
+        ),
+        "domain_authority_ref_source": ref_source,
+    }
+    if ref_source != "paper_recovery_state.evidence_refs" and typed_blocker:
+        details.update(
+            _typed_blocker_authority_details(
+                typed_blocker=typed_blocker,
+                typed_blocker_ref=typed_blocker_ref,
+            )
+        )
     return _obligation_outcome(
         action=action,
         outcome_kind="typed_blocker_ref",
         outcome_ref=typed_blocker_ref,
         phase=phase,
-        details={
-            "blocker_type": _first_text(
-                typed_blocker.get("blocker_type"),
-                typed_blocker.get("blocked_reason"),
-            ),
-        },
+        details=details,
     )
 
 
@@ -965,7 +1012,38 @@ def _consumed_obligation_readback_identity(
         identity["owner_answer_ref"] = outcome_ref
     elif source_family == "mas_domain_authority_readback":
         identity["domain_authority_ref"] = outcome_ref
+        identity.update(_mas_domain_authority_readback_identity(details=details))
     return _clean_payload(identity)
+
+
+def _mas_domain_authority_readback_identity(*, details: Mapping[str, Any]) -> dict[str, Any]:
+    boundary = (
+        _mapping(details.get("domain_authority_boundary"))
+        or _mapping(details.get("authority_result_boundary"))
+        or _mapping(_mapping(details.get("typed_control_blocker")).get("authority_result_boundary"))
+    )
+    return _clean_payload(
+        {
+            "domain_authority_ref_source": _non_empty_text(
+                details.get("domain_authority_ref_source")
+            ),
+            "domain_authority_surface": _first_text(
+                details.get("domain_authority_surface"),
+                details.get("authority_result_surface"),
+                boundary.get("authority_result_surface"),
+            ),
+            "authority_result_ref": _first_text(
+                details.get("authority_result_ref"),
+                details.get("domain_authority_ref"),
+            ),
+            "authority_result_surface": _first_text(
+                details.get("authority_result_surface"),
+                boundary.get("authority_result_surface"),
+            ),
+            "accepted_answer_shape": _non_empty_text(details.get("accepted_answer_shape")),
+            "domain_authority_boundary": boundary,
+        }
+    )
 
 
 def _consume_only_readback_boundary() -> dict[str, Any]:
@@ -1212,6 +1290,14 @@ def _first_text(*values: object) -> str | None:
     return None
 
 
+def _first_text_with_source(*values: tuple[str, object]) -> tuple[str | None, str | None]:
+    for source, value in values:
+        text = _non_empty_text(value)
+        if text is not None:
+            return text, source
+    return None, None
+
+
 def _matching_ref_items(value: object, *, prefix: str) -> list[str]:
     values = value if isinstance(value, list | tuple | set) else [value]
     return [
@@ -1219,6 +1305,84 @@ def _matching_ref_items(value: object, *, prefix: str) -> list[str]:
         for item in values
         if (text := _non_empty_text(item)) is not None and text.startswith(prefix)
     ]
+
+
+def _typed_blocker_authority_details(
+    *,
+    typed_blocker: Mapping[str, Any],
+    typed_blocker_ref: str,
+) -> dict[str, Any]:
+    boundary = _mapping(typed_blocker.get("authority_result_boundary")) or {
+        "surface_kind": "mas_domain_typed_blocker_authority_boundary",
+        "authority_owner": _first_text(typed_blocker.get("authority_owner"), "med-autoscience"),
+        "authority_result_surface": "mas_domain_typed_blocker",
+        "adapter_role": "consume_existing_mas_domain_typed_blocker_result",
+        "actuator_private_write_authority": False,
+        "can_create_opl_command": False,
+        "can_create_opl_event": False,
+        "can_create_opl_outbox": False,
+        "can_create_opl_stage_run": False,
+        "can_store_recovery_obligation": False,
+        "can_run_supervisor_decision_engine": False,
+        "can_authorize_provider_admission": False,
+        "can_claim_paper_progress": False,
+        "can_write_publication_eval": False,
+        "can_write_controller_decision": False,
+    }
+    return {
+        "domain_authority_surface": "mas_domain_typed_blocker",
+        "domain_authority_ref": typed_blocker_ref,
+        "authority_result_ref": _first_text(
+            typed_blocker.get("authority_result_ref"),
+            typed_blocker_ref,
+        ),
+        "authority_result_surface": _first_text(
+            typed_blocker.get("authority_result_surface"),
+            "mas_domain_typed_blocker",
+        ),
+        "accepted_answer_shape": "typed_blocker_ref",
+        "domain_authority_boundary": boundary,
+        "authority_result_boundary": boundary,
+    }
+
+
+def _owner_gate_decision_authority_details(
+    *,
+    accepted_owner_gate: Mapping[str, Any],
+    accepted_ref: str,
+    accepted_shape: str,
+) -> dict[str, Any]:
+    boundary = {
+        "surface_kind": "mas_owner_gate_decision_authority_boundary",
+        "authority_owner": "med-autoscience",
+        "authority_result_surface": "owner_gate_decision",
+        "adapter_role": "consume_accepted_owner_gate_decision_result",
+        "accepted_answer_shape": accepted_shape,
+        "actuator_private_write_authority": False,
+        "can_create_opl_command": False,
+        "can_create_opl_event": False,
+        "can_create_opl_outbox": False,
+        "can_create_opl_stage_run": False,
+        "can_store_recovery_obligation": False,
+        "can_run_supervisor_decision_engine": False,
+        "can_generate_human_gate_resume_token": False,
+        "can_authorize_provider_admission": False,
+        "can_claim_paper_progress": False,
+        "can_write_publication_eval": False,
+        "can_write_controller_decision": False,
+    }
+    return {
+        "domain_authority_surface": "owner_gate_decision",
+        "domain_authority_ref": accepted_ref,
+        "authority_result_ref": _first_text(
+            accepted_owner_gate.get("owner_gate_decision_ref"),
+            accepted_ref,
+        ),
+        "authority_result_surface": "owner_gate_decision",
+        "accepted_answer_shape": accepted_shape,
+        "accepted_owner_gate_decision": dict(accepted_owner_gate),
+        "domain_authority_boundary": boundary,
+    }
 
 
 def _current_control_study(

@@ -171,6 +171,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "mas_can_mark_provider_admission": False,
         "mas_can_mark_provider_running": False,
         "provider_admission_pending": False,
+        "running_provider_attempt_provenance_without_opl_live_readback": "observability_only",
         "provenance_only_until_opl_readback": True,
         "requires_opl_domain_progress_transition_runtime_intake": True,
         "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
@@ -203,6 +204,10 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "anti_loop_classification": "non_advancing_apply_required",
         "mas_can_authorize_provider_admission": False,
         "mas_can_create_opl_outbox_event_or_stage_run": False,
+        "running_provider_attempt_without_opl_live_readback_is_observability_only": True,
+        "running_provider_attempt_can_consume_provider_admission_only_with_same_identity_opl_live_readback": True,
+        "matching_provider_admission_candidate_may_supply_running_proof_readback": True,
+        "non_matching_provider_admission_candidate_can_supply_running_proof_readback": False,
     }
 
     legacy_alias = surfaces["owner_callable_adapter_legacy_dispatch_projection_alias"]
@@ -433,6 +438,8 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "running_provider_attempt_selector_boundary": {
             "selector": "scan_route_currentness.live_provider_attempt_owner_route_from_scan_payload",
             "running_provider_attempt_without_opl_proof_can_select_route": False,
+            "running_provider_attempt_without_opl_live_readback_can_select_current_execution": False,
+            "weak_running_handoff_role": "observability_only",
             "accepted_proofs": [
                 "trusted_opl_execution_authorization",
                 "exact_provider_hosted_stage_attempt",
@@ -451,6 +458,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action"
         ),
         "request_projection_without_opl_proof_outcome": "opl_execution_authorization_required",
+        "current_execution_running_proof_requires_opl_live_readback": True,
         "repo_covered_action_families": sorted(SUPPORTED_ACTION_TYPES),
         "live_readback_required_before_retirement": True,
         "live_tail": "live_every_active_caller_soak_or_no_active_caller_proof",
@@ -513,6 +521,8 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "success_proof_surface_kind": "dhd_apply_success_proof",
         "success_proof_requires_consumed_readback_identity": True,
         "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
+        "mas_domain_authority_readback_requires_authority_boundary": True,
+        "read_model_evidence_refs_can_satisfy_success": False,
         "success_proof_forbidden_when_request_projection_only": True,
         "supervisor_disallowed_outcome_is_success": False,
         "readback_result_validator_boundary_required": True,

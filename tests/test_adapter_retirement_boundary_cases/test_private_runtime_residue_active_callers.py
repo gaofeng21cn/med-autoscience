@@ -262,6 +262,8 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "success_proof_surface_kind": "dhd_apply_success_proof",
         "success_proof_requires_consumed_readback_identity": True,
         "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
+        "mas_domain_authority_readback_requires_authority_boundary": True,
+        "read_model_evidence_refs_can_satisfy_success": False,
         "success_proof_forbidden_when_request_projection_only": True,
         "success_outcome_source_families": [
             "opl_runtime_readback",
@@ -805,6 +807,12 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     obligation["obligation_readback_boundary"][
         "success_proof_requires_consumed_readback_identity"
     ] = False
+    obligation["obligation_readback_boundary"][
+        "mas_domain_authority_readback_requires_authority_boundary"
+    ] = False
+    obligation["obligation_readback_boundary"][
+        "read_model_evidence_refs_can_satisfy_success"
+    ] = True
     obligation["typed_blocker_authority_result_adapter_boundary"][
         "actuator_private_write_authority"
     ] = True
@@ -850,6 +858,14 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "domain_health_diagnostic_obligation_actuator",
             "obligation_actuator_missing_consumed_identity_gate",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_missing_domain_authority_boundary_gate",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_read_model_refs_can_satisfy_success",
         ),
         (
             "domain_health_diagnostic_obligation_actuator",

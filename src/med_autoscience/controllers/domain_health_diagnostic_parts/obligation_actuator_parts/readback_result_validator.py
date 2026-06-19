@@ -92,6 +92,8 @@ VALIDATOR_AUTHORITY_BOUNDARY = {
     "request_projection_only_can_satisfy_success": False,
     "postcondition_success_requires_consumed_readback_identity": True,
     "consumed_readback_identity_surface_kind": CONSUMED_READBACK_IDENTITY_SURFACE,
+    "mas_domain_authority_readback_requires_authority_boundary": True,
+    "read_model_evidence_refs_can_satisfy_success": False,
 }
 CONSUME_ONLY_READBACK_BOUNDARY = {
     "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
@@ -116,6 +118,8 @@ CONSUME_ONLY_READBACK_BOUNDARY = {
     "supervisor_disallowed_outcome_is_success": False,
     "postcondition_success_requires_consumed_readback_identity": True,
     "consumed_readback_identity_surface_kind": CONSUMED_READBACK_IDENTITY_SURFACE,
+    "mas_domain_authority_readback_requires_authority_boundary": True,
+    "read_model_evidence_refs_can_satisfy_success": False,
     "readback_result_validator_boundary": dict(VALIDATOR_AUTHORITY_BOUNDARY),
 }
 ACTUATOR_AUTHORITY_BOUNDARY = {
@@ -158,6 +162,8 @@ ACTUATOR_AUTHORITY_BOUNDARY = {
     "success_requires_opl_foundation_readback_boundary": True,
     "postcondition_success_requires_consumed_readback_identity": True,
     "consumed_readback_identity_surface_kind": CONSUMED_READBACK_IDENTITY_SURFACE,
+    "mas_domain_authority_readback_requires_authority_boundary": True,
+    "read_model_evidence_refs_can_satisfy_success": False,
     "readback_result_validator_boundary": dict(VALIDATOR_AUTHORITY_BOUNDARY),
     "consume_only_readback_boundary": dict(CONSUME_ONLY_READBACK_BOUNDARY),
 }
@@ -262,5 +268,63 @@ def outcome_has_required_consumed_readback_identity(
     if source_family == "mas_owner_answer_readback":
         return _non_empty_text(identity.get("owner_answer_ref")) is not None
     if source_family == "mas_domain_authority_readback":
-        return _non_empty_text(identity.get("domain_authority_ref")) is not None
+        return _mas_domain_authority_identity_is_accepted(identity, outcome_kind=outcome_kind)
     return False
+
+
+def _mas_domain_authority_identity_is_accepted(
+    identity: Mapping[str, Any],
+    *,
+    outcome_kind: str,
+) -> bool:
+    if _non_empty_text(identity.get("domain_authority_ref")) is None:
+        return False
+    if _non_empty_text(identity.get("domain_authority_ref_source")) == (
+        "paper_recovery_state.evidence_refs"
+    ):
+        return False
+    boundary = _mapping(identity.get("domain_authority_boundary"))
+    if not boundary:
+        return False
+    if boundary.get("actuator_private_write_authority") is not False:
+        return False
+    for key in (
+        "can_create_opl_command",
+        "can_create_opl_event",
+        "can_create_opl_outbox",
+        "can_create_opl_stage_run",
+        "can_store_recovery_obligation",
+        "can_run_supervisor_decision_engine",
+        "can_authorize_provider_admission",
+        "can_claim_paper_progress",
+        "can_write_publication_eval",
+        "can_write_controller_decision",
+    ):
+        if boundary.get(key) is not False:
+            return False
+    surface = _non_empty_text(identity.get("domain_authority_surface"))
+    authority_result_surface = _non_empty_text(identity.get("authority_result_surface"))
+    accepted_shape = _non_empty_text(identity.get("accepted_answer_shape"))
+    if outcome_kind == "typed_blocker_ref":
+        return (
+            surface == "mas_domain_typed_blocker"
+            and authority_result_surface == "mas_domain_typed_blocker"
+            and accepted_shape == "typed_blocker_ref"
+            and _non_empty_text(identity.get("authority_result_ref")) is not None
+            and _non_empty_text(boundary.get("authority_result_surface"))
+            == "mas_domain_typed_blocker"
+        )
+    if outcome_kind in {"human_gate_ref", "route_back_evidence_ref"}:
+        return (
+            surface == "owner_gate_decision"
+            and authority_result_surface == "owner_gate_decision"
+            and accepted_shape == outcome_kind
+            and _non_empty_text(identity.get("authority_result_ref")) is not None
+            and _non_empty_text(boundary.get("authority_result_surface"))
+            == "owner_gate_decision"
+        )
+    return False
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}

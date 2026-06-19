@@ -102,6 +102,8 @@ def build_paper_recovery_state(
             next_action_kind = "route_back_to_owner_or_repair_materialization"
             provider_admission_allowed = False
             accepted_owner_gate_decision = _accepted_owner_gate_decision(owner_gate_payload)
+        elif decision == "wait_for_owner_with_resume_token":
+            accepted_owner_gate_decision = _accepted_owner_gate_decision(owner_gate_payload)
         elif decision == "admit_identity_bound_stage_packet":
             phase = "admission_pending"
             next_action_kind = "admit_identity_bound_stage_packet"
@@ -110,6 +112,7 @@ def build_paper_recovery_state(
         elif decision == "deny_and_stable_typed_blocker":
             phase = "domain_blocked"
             next_action_kind = "honor_stable_typed_blocker"
+            accepted_owner_gate_decision = _accepted_owner_gate_decision(owner_gate_payload)
         return _state(
             progress,
             obligation=obligation,

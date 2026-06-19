@@ -904,6 +904,8 @@
         "success_proof_surface_kind": "dhd_apply_success_proof",
         "success_proof_requires_consumed_readback_identity": true,
         "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
+        "mas_domain_authority_readback_requires_authority_boundary": true,
+        "read_model_evidence_refs_can_satisfy_success": false,
         "success_proof_forbidden_when_request_projection_only": true,
         "success_outcome_source_families": [
           "opl_runtime_readback",
