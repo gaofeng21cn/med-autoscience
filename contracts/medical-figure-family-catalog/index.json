@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "catalog_id": "medical_figure_family_catalog.v1",
+  "owner": "MedAutoScience",
+  "purpose": "MAS-native ontology for medical manuscript figure families. It provides a high-quality starter floor, loose matching vocabulary, style and palette policy, and QA gates while preserving AI authority to redesign figures for paper-local scientific clarity.",
+  "machine_boundary": "This catalog is a planning, matching, and quality-policy surface. It is not a renderer, a publication verdict, an artifact authority, a statistical analysis engine, or a replacement for real rendered-figure visual audit.",
+  "source_module": "src/med_autoscience/medical_figure_family_catalog.py",
+  "ai_adaptation_policy_ref": "ai_adaptation_policy.json",
+  "style_profiles_ref": "style_profiles.json",
+  "palette_tokens_ref": "palette_tokens.json",
+  "qa_gates_ref": "qa_gates.json",
+  "external_sources_ref": "external_sources.json",
+  "category_refs": [
+    "categories/study_design_and_flow.json",
+    "categories/population_and_baseline.json",
+    "categories/effect_estimation.json",
+    "categories/survival_and_time_to_event.json",
+    "categories/diagnosis_and_prediction.json",
+    "categories/trial_response_and_safety.json",
+    "categories/meta_analysis.json",
+    "categories/omics_and_molecular.json",
+    "categories/single_cell_and_spatial.json",
+    "categories/ml_explainability_and_causal.json",
+    "categories/longitudinal_and_patient_trajectory.json",
+    "categories/publication_shells.json"
+  ],
+  "verification": {
+    "focused_tests": [
+      "tests/test_medical_figure_family_catalog.py"
+    ],
+    "required_when_changed": [
+      "scripts/run-pytest-clean.sh tests/test_medical_figure_family_catalog.py",
+      "scripts/verify.sh"
+    ]
+  }
+}

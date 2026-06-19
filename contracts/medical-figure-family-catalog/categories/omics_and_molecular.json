@@ -1,0 +1,334 @@
+{
+  "category_id": "omics_and_molecular",
+  "title": "Omics and Molecular Medicine",
+  "families": [
+    {
+      "family_id": "volcano_or_ma_plot",
+      "category_id": "omics_and_molecular",
+      "title": "Volcano or MA Plot",
+      "intent": "Show differential signal magnitude and significance for genes, proteins, metabolites, or features.",
+      "canonical_variants": [
+        "volcano",
+        "ma_plot",
+        "signed_feature_scatter"
+      ],
+      "data_roles": [
+        "feature",
+        "effect_size",
+        "p_value",
+        "adjusted_p_value",
+        "label_flag"
+      ],
+      "starter_recipe_refs": [
+        "volcano_with_label_policy"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "diverging_centered",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "volcano",
+        "MA plot",
+        "differential expression",
+        "fold change"
+      ],
+      "external_refs": [
+        "enhancedvolcano"
+      ],
+      "template_seed_ids": [
+        "omics_volcano_panel"
+      ],
+      "ai_adaptation_notes": "AI may label top features or pathways but must avoid label clutter."
+    },
+    {
+      "family_id": "annotated_heatmap",
+      "category_id": "omics_and_molecular",
+      "title": "Annotated Heatmap",
+      "intent": "Show matrix patterns with sample, feature, group, or pathway annotations.",
+      "canonical_variants": [
+        "clustered_heatmap",
+        "signature_heatmap",
+        "performance_heatmap"
+      ],
+      "data_roles": [
+        "row_id",
+        "column_id",
+        "value",
+        "row_annotation",
+        "column_annotation"
+      ],
+      "starter_recipe_refs": [
+        "complex_heatmap_annotated"
+      ],
+      "style_tokens": [
+        "medpub_neutral",
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual",
+        "diverging_centered",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "heatmap",
+        "clustered heatmap",
+        "signature heatmap",
+        "matrix"
+      ],
+      "external_refs": [
+        "complexheatmap",
+        "colorspace"
+      ],
+      "template_seed_ids": [
+        "heatmap_group_comparison",
+        "clustered_heatmap",
+        "celltype_signature_heatmap"
+      ],
+      "ai_adaptation_notes": "AI must choose sequential vs diverging palette based on whether zero is meaningful."
+    },
+    {
+      "family_id": "dimension_reduction_scatter",
+      "category_id": "omics_and_molecular",
+      "title": "Dimension Reduction Scatter",
+      "intent": "Show PCA, UMAP, t-SNE, PHATE, or diffusion-map embedding colored by group or continuous signal.",
+      "canonical_variants": [
+        "pca",
+        "umap",
+        "tsne",
+        "phate",
+        "diffusion_map"
+      ],
+      "data_roles": [
+        "x",
+        "y",
+        "sample_id",
+        "group",
+        "continuous_value"
+      ],
+      "starter_recipe_refs": [
+        "embedding_scatter"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "PCA",
+        "UMAP",
+        "t-SNE",
+        "embedding",
+        "dimension reduction"
+      ],
+      "external_refs": [
+        "seurat",
+        "scanpy"
+      ],
+      "template_seed_ids": [
+        "pca_scatter_grouped",
+        "umap_scatter_grouped",
+        "tsne_scatter_grouped",
+        "phate_scatter_grouped"
+      ],
+      "ai_adaptation_notes": "AI may facet by cohort or overlay centroids when overplotting obscures groups."
+    },
+    {
+      "family_id": "enrichment_dotplot",
+      "category_id": "omics_and_molecular",
+      "title": "Pathway Enrichment Dotplot",
+      "intent": "Show pathway or gene-set enrichment magnitude, significance, and gene ratio.",
+      "canonical_variants": [
+        "dotplot",
+        "barplot",
+        "network_enrichment"
+      ],
+      "data_roles": [
+        "term",
+        "gene_ratio",
+        "p_adjust",
+        "count",
+        "direction"
+      ],
+      "starter_recipe_refs": [
+        "enrichment_dotplot"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual",
+        "diverging_centered"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "enrichment",
+        "GO",
+        "KEGG",
+        "pathway",
+        "dotplot"
+      ],
+      "external_refs": [
+        "clusterprofiler"
+      ],
+      "template_seed_ids": [
+        "pathway_enrichment_dotplot_panel"
+      ],
+      "ai_adaptation_notes": "AI may group redundant terms or use network map when term overlap is central."
+    },
+    {
+      "family_id": "gsea_running_score",
+      "category_id": "omics_and_molecular",
+      "title": "GSEA Running Score",
+      "intent": "Show gene-set enrichment running score, hits, and ranked-list metric.",
+      "canonical_variants": [
+        "single_pathway",
+        "multi_pathway"
+      ],
+      "data_roles": [
+        "rank",
+        "running_score",
+        "hit_flag",
+        "rank_metric",
+        "pathway"
+      ],
+      "starter_recipe_refs": [
+        "gsea_curve"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "GSEA",
+        "running score",
+        "enrichment curve"
+      ],
+      "external_refs": [
+        "clusterprofiler"
+      ],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may combine top pathways in small multiples instead of overcrowding one panel."
+    },
+    {
+      "family_id": "oncoplot_landscape",
+      "category_id": "omics_and_molecular",
+      "title": "Genomic Alteration Landscape",
+      "intent": "Show mutation, CNV, fusion, or alteration landscape across samples and genes.",
+      "canonical_variants": [
+        "oncoplot",
+        "alteration_heatmap",
+        "multiomic_landscape"
+      ],
+      "data_roles": [
+        "sample",
+        "gene",
+        "alteration_type",
+        "clinical_annotation"
+      ],
+      "starter_recipe_refs": [
+        "oncoplot_landscape"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "oncoplot",
+        "mutation landscape",
+        "alteration",
+        "genomics"
+      ],
+      "external_refs": [
+        "maftools"
+      ],
+      "template_seed_ids": [
+        "oncoplot_mutation_landscape_panel",
+        "genomic_alteration_landscape_panel"
+      ],
+      "ai_adaptation_notes": "AI may split by pathway or alteration class when gene count is too high."
+    },
+    {
+      "family_id": "cnv_or_circos_summary",
+      "category_id": "omics_and_molecular",
+      "title": "CNV or Genome-wide Summary",
+      "intent": "Show genomic copy-number or chromosome-level alteration patterns.",
+      "canonical_variants": [
+        "cnv_recurrence",
+        "chromosome_track",
+        "circos_like_summary"
+      ],
+      "data_roles": [
+        "chromosome",
+        "position",
+        "segment",
+        "copy_number",
+        "sample_or_group"
+      ],
+      "starter_recipe_refs": [
+        "cnv_recurrence_summary"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "diverging_centered",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "color_accessibility",
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "CNV",
+        "copy number",
+        "circos",
+        "genome-wide"
+      ],
+      "external_refs": [
+        "maftools"
+      ],
+      "template_seed_ids": [
+        "cnv_recurrence_summary_panel"
+      ],
+      "ai_adaptation_notes": "AI may use linear chromosome tracks instead of circos when labels must remain readable."
+    }
+  ]
+}

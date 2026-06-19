@@ -1,0 +1,271 @@
+{
+  "category_id": "study_design_and_flow",
+  "title": "Study Design and Sample Flow",
+  "families": [
+    {
+      "family_id": "consort_trial_flow",
+      "category_id": "study_design_and_flow",
+      "title": "CONSORT Trial Flow",
+      "intent": "Show randomized trial participant screening, allocation, follow-up, and analysis populations.",
+      "canonical_variants": [
+        "parallel_group",
+        "cluster_randomized",
+        "noninferiority_or_equivalence"
+      ],
+      "data_roles": [
+        "assessed",
+        "excluded",
+        "randomized",
+        "allocated",
+        "follow_up",
+        "analysed",
+        "exclusion_reason"
+      ],
+      "starter_recipe_refs": [
+        "flow_diagram_rectangular_counts",
+        "trial_arm_flow"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "loose_match_terms": [
+        "consort",
+        "trial flow",
+        "randomized",
+        "allocation",
+        "participant flow"
+      ],
+      "external_refs": [
+        "consort_2010_flow",
+        "consort_2025_reporting"
+      ],
+      "template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "ai_adaptation_notes": "AI may redesign the flow diagram layout for complex arms or adaptive trials, but must keep counts and exclusion reasons auditable."
+    },
+    {
+      "family_id": "strobe_cohort_flow",
+      "category_id": "study_design_and_flow",
+      "title": "Observational Cohort Flow",
+      "intent": "Show source population, eligibility filters, exclusions, final analytic cohorts, and endpoint availability.",
+      "canonical_variants": [
+        "single_cohort",
+        "multi_database",
+        "matched_cohort",
+        "case_control"
+      ],
+      "data_roles": [
+        "source_population",
+        "eligibility_filter",
+        "exclusion_reason",
+        "analytic_cohort",
+        "endpoint_inventory"
+      ],
+      "starter_recipe_refs": [
+        "cohort_flow_with_exclusion_branches"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "loose_match_terms": [
+        "cohort flow",
+        "strobe",
+        "inclusion",
+        "exclusion",
+        "analytic cohort"
+      ],
+      "external_refs": [
+        "strobe_reporting"
+      ],
+      "template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "ai_adaptation_notes": "AI may use tree, sankey, or waterfall layout when cohort construction is easier to read that way."
+    },
+    {
+      "family_id": "prisma_review_flow",
+      "category_id": "study_design_and_flow",
+      "title": "PRISMA Review Flow",
+      "intent": "Show systematic review identification, screening, eligibility, inclusion, automation exclusions, and reasons for exclusion.",
+      "canonical_variants": [
+        "new_review_database_registers",
+        "new_review_other_sources",
+        "updated_review"
+      ],
+      "data_roles": [
+        "records_identified",
+        "duplicates_removed",
+        "screened",
+        "excluded",
+        "reports_assessed",
+        "studies_included"
+      ],
+      "starter_recipe_refs": [
+        "prisma_2020_flow"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "loose_match_terms": [
+        "prisma",
+        "systematic review flow",
+        "screening records",
+        "included studies"
+      ],
+      "external_refs": [
+        "prisma_2020_flow"
+      ],
+      "template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "ai_adaptation_notes": "AI may collapse low-value boxes for space only when all PRISMA counts remain traceable in caption or supplement."
+    },
+    {
+      "family_id": "stard_diagnostic_flow",
+      "category_id": "study_design_and_flow",
+      "title": "Diagnostic Accuracy Flow",
+      "intent": "Show participant flow through index test, reference standard, exclusions, indeterminate results, and analysis set.",
+      "canonical_variants": [
+        "single_index_test",
+        "paired_index_tests",
+        "triage_pathway"
+      ],
+      "data_roles": [
+        "eligible",
+        "index_test",
+        "reference_standard",
+        "indeterminate",
+        "analysis_set"
+      ],
+      "starter_recipe_refs": [
+        "diagnostic_flow"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "stard",
+        "diagnostic flow",
+        "index test",
+        "reference standard"
+      ],
+      "external_refs": [
+        "stard_reporting"
+      ],
+      "template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "ai_adaptation_notes": "AI may use swimlane layout when index-test and reference-standard pathways diverge."
+    },
+    {
+      "family_id": "eligibility_waterfall",
+      "category_id": "study_design_and_flow",
+      "title": "Eligibility Waterfall",
+      "intent": "Show stepwise sample attrition from source population to final analytic set.",
+      "canonical_variants": [
+        "single_path",
+        "multi_endpoint_availability"
+      ],
+      "data_roles": [
+        "step",
+        "remaining_n",
+        "excluded_n",
+        "reason"
+      ],
+      "starter_recipe_refs": [
+        "waterfall_attrition_counts"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "eligibility waterfall",
+        "attrition",
+        "sample selection"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "ai_adaptation_notes": "AI may switch to flow diagram when exclusions branch rather than occur sequentially."
+    },
+    {
+      "family_id": "study_timeline",
+      "category_id": "study_design_and_flow",
+      "title": "Study Timeline",
+      "intent": "Show enrollment, exposure, follow-up, assessment windows, and analysis milestones.",
+      "canonical_variants": [
+        "cohort_timeline",
+        "trial_schedule",
+        "data_freeze_timeline"
+      ],
+      "data_roles": [
+        "event",
+        "start",
+        "end",
+        "cohort",
+        "milestone"
+      ],
+      "starter_recipe_refs": [
+        "timeline_gantt"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "timeline",
+        "follow-up window",
+        "study period",
+        "assessment schedule"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may use calendar, Gantt, or schematic timeline depending on narrative."
+    }
+  ]
+}

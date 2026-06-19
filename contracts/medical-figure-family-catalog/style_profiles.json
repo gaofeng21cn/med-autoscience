@@ -1,0 +1,56 @@
+{
+  "style_profiles": [
+    {
+      "profile_id": "medpub_neutral",
+      "purpose": "Default manuscript-safe biomedical style. Quiet white background, restrained axes, semantic color, and no journal-brand imitation.",
+      "font_family": "Arial_or_Helvetica",
+      "panel_label_policy": "bold_lowercase_or_journal_profile_override",
+      "line_width_pt_range": [
+        0.25,
+        1.0
+      ],
+      "text_size_policy": "size_by_final_physical_export_not_viewport",
+      "grid_policy": "minimal_major_grid_only_when_it_improves_reading",
+      "legend_policy": "outside_or_shared_with_wrapping_and_overlap_checks"
+    },
+    {
+      "profile_id": "nature_portfolio",
+      "purpose": "Compact multipanel export profile aligned with Nature-family figure constraints.",
+      "font_family": "Arial_or_Helvetica",
+      "panel_label_policy": "8pt_bold_lowercase",
+      "line_width_pt_range": [
+        0.25,
+        1.0
+      ],
+      "text_size_policy": "5_to_7pt_at_final_size",
+      "grid_policy": "remove_nonessential_grid",
+      "legend_policy": "prefer_shared_legends_and_direct_labels"
+    },
+    {
+      "profile_id": "clinical_journal",
+      "purpose": "Readable clinical journal profile for PLOS/JAMA/clinical reports where figure text may need larger final-size labels.",
+      "font_family": "Arial_Times_or_Symbol",
+      "panel_label_policy": "journal_profile_override",
+      "line_width_pt_range": [
+        0.35,
+        1.2
+      ],
+      "text_size_policy": "8_to_12pt_when_required_by_journal",
+      "grid_policy": "light_grid_allowed_for_clinical_readability",
+      "legend_policy": "explicit_group_labels_with_wrapping"
+    },
+    {
+      "profile_id": "supplement_dense",
+      "purpose": "Supplement profile for dense but readable secondary panels.",
+      "font_family": "Arial_or_Helvetica",
+      "panel_label_policy": "compact_panel_index",
+      "line_width_pt_range": [
+        0.25,
+        0.8
+      ],
+      "text_size_policy": "minimum_readable_at_final_size",
+      "grid_policy": "thin_guides_only",
+      "legend_policy": "shared_legends_or_appendix_key"
+    }
+  ]
+}

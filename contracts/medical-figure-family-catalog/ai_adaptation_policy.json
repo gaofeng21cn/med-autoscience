@@ -1,0 +1,37 @@
+{
+  "ai_adaptation_policy": {
+    "policy_id": "ai_can_redesign_with_quality_gates",
+    "starter_templates_are_floor_not_ceiling": true,
+    "loose_matching_default": true,
+    "ai_may_change": [
+      "figure_family",
+      "variant",
+      "geoms",
+      "layout",
+      "panel_structure",
+      "annotation_strategy",
+      "palette",
+      "legend_placement",
+      "scale_transform",
+      "statistical_overlay",
+      "rendering_backend",
+      "multi_family_composition"
+    ],
+    "ai_must_preserve": [
+      "scientific_claim_semantics",
+      "data_role_meaning",
+      "statistical_estimand",
+      "cohort_endpoint_model_bindings",
+      "source_data_and_statistics_refs",
+      "target_journal_export_constraints",
+      "auditability"
+    ],
+    "required_decision_trace": [
+      "selected_family_or_reason_for_family_switch",
+      "paper_local_modifications",
+      "statistical_semantics_preserved",
+      "quality_gates_checked",
+      "residual_visual_audit_items"
+    ]
+  }
+}

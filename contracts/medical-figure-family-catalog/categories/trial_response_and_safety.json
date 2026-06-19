@@ -1,0 +1,203 @@
+{
+  "category_id": "trial_response_and_safety",
+  "title": "Clinical Trial Response and Safety",
+  "families": [
+    {
+      "family_id": "swimmer_treatment_course",
+      "category_id": "trial_response_and_safety",
+      "title": "Swimmer Treatment Course",
+      "intent": "Show individual patient treatment duration, response, progression, and follow-up events.",
+      "canonical_variants": [
+        "oncology_swimmer",
+        "treatment_timeline"
+      ],
+      "data_roles": [
+        "patient_id",
+        "start",
+        "end",
+        "event",
+        "response",
+        "treatment"
+      ],
+      "starter_recipe_refs": [
+        "swimmer_plot"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "swimmer plot",
+        "treatment course",
+        "patient timeline"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may sort by response, duration, or molecular subgroup depending on the claim."
+    },
+    {
+      "family_id": "waterfall_response",
+      "category_id": "trial_response_and_safety",
+      "title": "Waterfall Response",
+      "intent": "Show best percentage change in lesion burden or biomarker response by patient.",
+      "canonical_variants": [
+        "oncology_waterfall",
+        "biomarker_change_waterfall"
+      ],
+      "data_roles": [
+        "patient_id",
+        "percent_change",
+        "response_class",
+        "subgroup"
+      ],
+      "starter_recipe_refs": [
+        "response_waterfall"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "waterfall plot",
+        "response",
+        "RECIST",
+        "tumor reduction"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may add threshold lines and mutation annotations when they support the response claim."
+    },
+    {
+      "family_id": "spider_response",
+      "category_id": "trial_response_and_safety",
+      "title": "Spider Response",
+      "intent": "Show longitudinal tumor or biomarker change for individual patients.",
+      "canonical_variants": [
+        "tumor_spider",
+        "biomarker_spider"
+      ],
+      "data_roles": [
+        "patient_id",
+        "time",
+        "percent_change",
+        "response_class"
+      ],
+      "starter_recipe_refs": [
+        "spider_plot"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "spider plot",
+        "longitudinal response",
+        "tumor change over time"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may facet or highlight selected patients to reduce overplotting."
+    },
+    {
+      "family_id": "adverse_event_profile",
+      "category_id": "trial_response_and_safety",
+      "title": "Adverse Event Profile",
+      "intent": "Show adverse event frequency and severity by arm or subgroup.",
+      "canonical_variants": [
+        "ae_bar",
+        "ae_heatmap",
+        "volcano_safety"
+      ],
+      "data_roles": [
+        "event",
+        "grade",
+        "arm",
+        "count",
+        "proportion"
+      ],
+      "starter_recipe_refs": [
+        "ae_severity_bar_heatmap"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "adverse event",
+        "toxicity",
+        "safety",
+        "grade"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may use heatmap when event-by-arm matrix is more readable than grouped bars."
+    },
+    {
+      "family_id": "dose_escalation_schema",
+      "category_id": "trial_response_and_safety",
+      "title": "Dose Escalation Schema",
+      "intent": "Show dose levels, cohorts, DLTs, and escalation/de-escalation decisions.",
+      "canonical_variants": [
+        "3_plus_3",
+        "bayesian_escalation",
+        "dose_expansion"
+      ],
+      "data_roles": [
+        "dose_level",
+        "cohort",
+        "patients",
+        "dlt",
+        "decision"
+      ],
+      "starter_recipe_refs": [
+        "dose_escalation_grid"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "dose escalation",
+        "DLT",
+        "phase I",
+        "dose level"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may use timeline, grid, or flow view depending on trial design."
+    }
+  ]
+}

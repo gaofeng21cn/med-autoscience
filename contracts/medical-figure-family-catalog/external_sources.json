@@ -1,0 +1,186 @@
+{
+  "external_sources": [
+    {
+      "source_id": "nature_figure_specs",
+      "source_type": "journal_guideline",
+      "url": "https://research-figure-guide.nature.com/figures/preparing-figures-our-specifications/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Final-size font, line weight, panel-label, and multipanel readability constraints inform journal_export QA; no Nature-branded palette is adopted."
+    },
+    {
+      "source_id": "plos_figure_guidelines",
+      "source_type": "journal_guideline",
+      "url": "https://journals.plos.org/plosone/s/figures",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Resolution, file-format, figure-size, and readable-font constraints inform clinical_journal export profiles."
+    },
+    {
+      "source_id": "wiley_figure_preparation",
+      "source_type": "publisher_guideline",
+      "url": "https://authors.wiley.com/author-resources/Journal-Authors/Prepare/manuscript-preparation-guidelines.html/figure-preparation.html",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "80-180 mm width and 300-600 dpi preparation range informs general journal_export QA."
+    },
+    {
+      "source_id": "consort_2010_flow",
+      "source_type": "reporting_guideline",
+      "url": "https://www.bmj.com/content/340/bmj.c869",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Trial flow is a first-class figure family with allocation, follow-up, and analysis counts."
+    },
+    {
+      "source_id": "consort_2025_reporting",
+      "source_type": "reporting_guideline",
+      "url": "https://www.equator-network.org/reporting-guidelines/consort/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Updated randomized-trial reporting guidance remains a source for trial-flow and participant-flow requirements."
+    },
+    {
+      "source_id": "prisma_2020_flow",
+      "source_type": "reporting_guideline",
+      "url": "https://www.prisma-statement.org/prisma-2020-flow-diagram",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Systematic-review flow is a first-class figure family with identification, screening, exclusion, and inclusion counts."
+    },
+    {
+      "source_id": "stard_reporting",
+      "source_type": "reporting_guideline",
+      "url": "https://www.equator-network.org/reporting-guidelines/stard/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Diagnostic accuracy flow requires index-test and reference-standard pathway semantics."
+    },
+    {
+      "source_id": "strobe_reporting",
+      "source_type": "reporting_guideline",
+      "url": "https://www.equator-network.org/reporting-guidelines/strobe/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Observational cohort flow requires explicit source population, eligibility, exclusions, analytic denominator, and endpoint availability semantics."
+    },
+    {
+      "source_id": "nature_skills_figure_contract",
+      "source_type": "clean_room_external_skill",
+      "url": "https://github.com/Yuan1z0825/nature-skills/tree/54eadc65d1c0535e90d792a87ab718d848ccbb7a/skills/nature-figure",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Core-conclusion-first figure contracts, panel hierarchy, backend exclusivity, visual QA, and chart-atlas thinking inform MAS quality gates without becoming a MAS runtime or publication authority."
+    },
+    {
+      "source_id": "patchwork",
+      "source_type": "r_visualization_package",
+      "url": "https://patchwork.data-imaginist.com/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Multipanel composition should be handled as a storyboard/layout concern rather than duplicated template ids."
+    },
+    {
+      "source_id": "cowplot",
+      "source_type": "r_visualization_package",
+      "url": "https://wilkelab.org/cowplot/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Clean publication themes and shared legends inform medpub_neutral style but do not constrain AI redesign."
+    },
+    {
+      "source_id": "complexheatmap",
+      "source_type": "bioconductor_package",
+      "url": "https://jokergoo.github.io/ComplexHeatmap-reference/book/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Heatmaps are matrix-pattern families with annotation and palette semantics, not generic raster images."
+    },
+    {
+      "source_id": "survminer",
+      "source_type": "r_visualization_package",
+      "url": "https://rpkgs.datanovia.com/survminer/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Survival curves require risk-table, censoring, and time-to-event semantics."
+    },
+    {
+      "source_id": "proc",
+      "source_type": "r_visualization_package",
+      "url": "https://xrobin.github.io/pROC/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "ROC curves belong to a broader discrimination family where ROC/PR/time-dependent ROC are variants."
+    },
+    {
+      "source_id": "metafor",
+      "source_type": "r_meta_analysis_package",
+      "url": "https://wviechtb.github.io/metafor/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Forest, funnel, influence, and heterogeneity diagnostics are distinct evidence-synthesis families."
+    },
+    {
+      "source_id": "forestploter",
+      "source_type": "r_visualization_package",
+      "url": "https://adayim.r-universe.dev/forestploter",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Table-like forest plots with long clinical labels should be treated as structured table-figure hybrids, not squeezed into ordinary axis legends."
+    },
+    {
+      "source_id": "ggplot2_contour",
+      "source_type": "r_visualization_package",
+      "url": "https://ggplot2.tidyverse.org/reference/geom_contour.html",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Contour and filled-contour response surfaces support interaction PDP/ALE variants when the plotted grid and support density remain auditable."
+    },
+    {
+      "source_id": "maftools",
+      "source_type": "bioconductor_package",
+      "url": "https://bioconductor.org/packages/release/bioc/html/maftools.html",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Oncoplot and genomic landscape views are molecular-medicine families with annotation semantics."
+    },
+    {
+      "source_id": "seurat",
+      "source_type": "single_cell_package",
+      "url": "https://satijalab.org/seurat/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Embedding, feature, and dotplot views are separate single-cell figure families."
+    },
+    {
+      "source_id": "scanpy",
+      "source_type": "single_cell_package",
+      "url": "https://scanpy.readthedocs.io/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Single-cell visualization families should preserve cell/sample/feature semantics across backends."
+    },
+    {
+      "source_id": "clusterprofiler",
+      "source_type": "bioconductor_package",
+      "url": "https://yulab-smu.top/biomedical-knowledge-mining-book/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Enrichment plots need term, ratio, p-value, count, and redundancy semantics."
+    },
+    {
+      "source_id": "enhancedvolcano",
+      "source_type": "bioconductor_package",
+      "url": "https://bioconductor.org/packages/release/bioc/html/EnhancedVolcano.html",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Volcano plots require label policy and threshold semantics."
+    },
+    {
+      "source_id": "okabe_ito",
+      "source_type": "palette_reference",
+      "url": "https://jfly.uni-koeln.de/color/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Categorical palettes should default to color-vision-accessible colors."
+    },
+    {
+      "source_id": "viridis",
+      "source_type": "palette_reference",
+      "url": "https://sjmgarnier.github.io/viridis/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Sequential continuous scales should be perceptually uniform and colorblind-friendly."
+    },
+    {
+      "source_id": "colorbrewer",
+      "source_type": "palette_reference",
+      "url": "https://colorbrewer2.org/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "Qualitative, sequential, and diverging palette classes should be selected by data semantics."
+    },
+    {
+      "source_id": "colorspace",
+      "source_type": "palette_reference",
+      "url": "https://colorspace.r-forge.r-project.org/",
+      "observed_date": "2026-06-19",
+      "adopted_pattern": "HCL palettes and color-vision checks inform palette QA."
+    }
+  ]
+}

@@ -1,0 +1,203 @@
+{
+  "category_id": "longitudinal_and_patient_trajectory",
+  "title": "Longitudinal and Patient Trajectory",
+  "families": [
+    {
+      "family_id": "spaghetti_trajectory",
+      "category_id": "longitudinal_and_patient_trajectory",
+      "title": "Longitudinal Spaghetti Trajectory",
+      "intent": "Show repeated measurement trajectories by patient, group, or subgroup.",
+      "canonical_variants": [
+        "individual_trajectories",
+        "summary_with_individuals",
+        "faceted_trajectories"
+      ],
+      "data_roles": [
+        "subject_id",
+        "time",
+        "value",
+        "group"
+      ],
+      "starter_recipe_refs": [
+        "spaghetti_plot"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "spaghetti plot",
+        "longitudinal trajectory",
+        "repeated measures"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may thin, summarize, or facet individual lines to avoid overplotting."
+    },
+    {
+      "family_id": "event_timeline",
+      "category_id": "longitudinal_and_patient_trajectory",
+      "title": "Event Timeline",
+      "intent": "Show clinical events, exposures, outcomes, or interventions over patient time.",
+      "canonical_variants": [
+        "patient_event_timeline",
+        "exposure_outcome_timeline"
+      ],
+      "data_roles": [
+        "subject_id",
+        "time",
+        "event_type",
+        "duration",
+        "group"
+      ],
+      "starter_recipe_refs": [
+        "event_timeline"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "event timeline",
+        "patient trajectory",
+        "exposure timeline"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may use swimmer layout when durations dominate and event markers are sparse."
+    },
+    {
+      "family_id": "alluvial_transition",
+      "category_id": "longitudinal_and_patient_trajectory",
+      "title": "Alluvial Transition",
+      "intent": "Show categorical state transitions across time, treatment lines, or care pathways.",
+      "canonical_variants": [
+        "alluvial",
+        "sankey",
+        "state_transition"
+      ],
+      "data_roles": [
+        "subject_id",
+        "timepoint",
+        "state",
+        "count",
+        "transition"
+      ],
+      "starter_recipe_refs": [
+        "alluvial_transition"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "alluvial",
+        "sankey",
+        "transition",
+        "care pathway"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may replace sankey with transition matrix when there are too many flows."
+    },
+    {
+      "family_id": "recurrent_event_plot",
+      "category_id": "longitudinal_and_patient_trajectory",
+      "title": "Recurrent Event Plot",
+      "intent": "Show repeated events over follow-up by subject or group.",
+      "canonical_variants": [
+        "event_rug",
+        "mean_cumulative_function",
+        "recurrent_event_timeline"
+      ],
+      "data_roles": [
+        "subject_id",
+        "event_time",
+        "event_type",
+        "group",
+        "cumulative_count"
+      ],
+      "starter_recipe_refs": [
+        "recurrent_event_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "recurrent event",
+        "event count",
+        "hospitalization trajectory"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may show cumulative mean instead of raw timelines when sample size is large."
+    },
+    {
+      "family_id": "lab_marker_trajectory",
+      "category_id": "longitudinal_and_patient_trajectory",
+      "title": "Laboratory or Biomarker Trajectory",
+      "intent": "Show longitudinal biomarker, lab, or physiological marker changes.",
+      "canonical_variants": [
+        "mean_ci_trajectory",
+        "individual_plus_summary",
+        "threshold_crossing"
+      ],
+      "data_roles": [
+        "subject_id",
+        "time",
+        "marker",
+        "value",
+        "clinical_threshold",
+        "group"
+      ],
+      "starter_recipe_refs": [
+        "lab_marker_trajectory"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "lab trajectory",
+        "biomarker trajectory",
+        "marker over time"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may add clinically meaningful threshold bands when they are part of the claim."
+    }
+  ]
+}

@@ -1,0 +1,322 @@
+{
+  "category_id": "diagnosis_and_prediction",
+  "title": "Diagnosis and Prediction Model Performance",
+  "families": [
+    {
+      "family_id": "discrimination_curve",
+      "category_id": "diagnosis_and_prediction",
+      "title": "Discrimination Curve",
+      "intent": "Show model discrimination using ROC, PR, time-dependent ROC, AUC, or C-statistic curves.",
+      "canonical_variants": [
+        "roc",
+        "pr",
+        "time_dependent_roc",
+        "multi_model_auc"
+      ],
+      "data_roles": [
+        "threshold",
+        "sensitivity",
+        "specificity",
+        "precision",
+        "recall",
+        "auc",
+        "model",
+        "time_horizon"
+      ],
+      "starter_recipe_refs": [
+        "roc_pr_curve",
+        "time_dependent_roc_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "roc",
+        "auc",
+        "pr curve",
+        "precision recall",
+        "discrimination"
+      ],
+      "external_refs": [
+        "proc"
+      ],
+      "template_seed_ids": [
+        "roc_curve_binary",
+        "pr_curve_binary",
+        "time_dependent_roc_horizon",
+        "time_dependent_roc_comparison_panel"
+      ],
+      "ai_adaptation_notes": "AI may switch between ROC and PR when class imbalance makes PR more informative."
+    },
+    {
+      "family_id": "calibration_panel",
+      "category_id": "diagnosis_and_prediction",
+      "title": "Calibration Panel",
+      "intent": "Show agreement between predicted and observed risk with uncertainty and calibration summaries.",
+      "canonical_variants": [
+        "binary_calibration",
+        "survival_calibration",
+        "slope_intercept",
+        "multihorizon_calibration"
+      ],
+      "data_roles": [
+        "predicted_risk",
+        "observed_risk",
+        "lower_ci",
+        "upper_ci",
+        "horizon",
+        "model"
+      ],
+      "starter_recipe_refs": [
+        "calibration_curve_with_histogram"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "calibration",
+        "predicted observed",
+        "calibration slope",
+        "risk prediction"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "calibration_curve_binary",
+        "time_to_event_multihorizon_calibration_panel"
+      ],
+      "ai_adaptation_notes": "AI may add risk distribution rug or histogram to expose unsupported ranges."
+    },
+    {
+      "family_id": "decision_curve_analysis",
+      "category_id": "diagnosis_and_prediction",
+      "title": "Decision Curve Analysis",
+      "intent": "Show net benefit or clinical utility across threshold probabilities.",
+      "canonical_variants": [
+        "binary_dca",
+        "time_to_event_dca",
+        "clinical_impact_curve"
+      ],
+      "data_roles": [
+        "threshold",
+        "net_benefit",
+        "strategy",
+        "model",
+        "event_count"
+      ],
+      "starter_recipe_refs": [
+        "decision_curve_clinical_impact"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "decision curve",
+        "net benefit",
+        "clinical utility",
+        "threshold probability"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "decision_curve_binary",
+        "clinical_impact_curve_binary",
+        "binary_calibration_decision_curve_panel",
+        "time_to_event_decision_curve"
+      ],
+      "ai_adaptation_notes": "AI must keep treat-all/treat-none baselines clear and may restrict threshold range to clinically relevant values."
+    },
+    {
+      "family_id": "confusion_matrix",
+      "category_id": "diagnosis_and_prediction",
+      "title": "Confusion Matrix",
+      "intent": "Show classification results by predicted and observed classes.",
+      "canonical_variants": [
+        "binary_matrix",
+        "multiclass_matrix",
+        "normalized_matrix"
+      ],
+      "data_roles": [
+        "observed_class",
+        "predicted_class",
+        "count",
+        "proportion"
+      ],
+      "starter_recipe_refs": [
+        "confusion_matrix_heatmap"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "confusion matrix",
+        "classification matrix",
+        "sensitivity specificity"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "confusion_matrix_heatmap_binary"
+      ],
+      "ai_adaptation_notes": "AI may show counts and row-normalized percentages together when both are clinically relevant."
+    },
+    {
+      "family_id": "risk_stratification",
+      "category_id": "diagnosis_and_prediction",
+      "title": "Risk Stratification",
+      "intent": "Show risk group separation, observed event rates, or monotonic risk layering.",
+      "canonical_variants": [
+        "risk_group_bar",
+        "risk_decile_plot",
+        "risk_distribution_by_outcome"
+      ],
+      "data_roles": [
+        "risk_group",
+        "predicted_risk",
+        "observed_event_rate",
+        "count",
+        "group"
+      ],
+      "starter_recipe_refs": [
+        "risk_layering_bars"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "risk group",
+        "stratification",
+        "risk decile",
+        "event rate"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "risk_layering_monotonic_bars",
+        "time_to_event_risk_group_summary"
+      ],
+      "ai_adaptation_notes": "AI may switch to density plot if continuous risk distribution is the main claim."
+    },
+    {
+      "family_id": "external_validation_performance",
+      "category_id": "diagnosis_and_prediction",
+      "title": "External Validation Performance",
+      "intent": "Show model performance across cohorts, centers, countries, or temporal splits.",
+      "canonical_variants": [
+        "cohort_metric_forest",
+        "performance_heatmap",
+        "transportability_summary"
+      ],
+      "data_roles": [
+        "cohort",
+        "metric",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "model"
+      ],
+      "starter_recipe_refs": [
+        "multi_cohort_performance_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "external validation",
+        "transportability",
+        "multi cohort",
+        "generalizability"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "multicenter_generalizability_overview",
+        "performance_heatmap"
+      ],
+      "ai_adaptation_notes": "AI may combine heatmap and forest when both metric spread and uncertainty matter."
+    },
+    {
+      "family_id": "nomogram",
+      "category_id": "diagnosis_and_prediction",
+      "title": "Nomogram or Scoring Rule",
+      "intent": "Show clinical score points, total score, and risk translation.",
+      "canonical_variants": [
+        "nomogram",
+        "points_score_chart",
+        "risk_score_table"
+      ],
+      "data_roles": [
+        "predictor",
+        "value",
+        "points",
+        "total_score",
+        "risk"
+      ],
+      "starter_recipe_refs": [
+        "nomogram_score_chart"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "journal_export"
+      ],
+      "loose_match_terms": [
+        "nomogram",
+        "score",
+        "points",
+        "risk calculator"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may replace a classic nomogram with a compact score table if journal space is limited."
+    }
+  ]
+}

@@ -1,0 +1,318 @@
+{
+  "category_id": "single_cell_and_spatial",
+  "title": "Single-cell and Spatial Biology",
+  "families": [
+    {
+      "family_id": "single_cell_embedding",
+      "category_id": "single_cell_and_spatial",
+      "title": "Single-cell Embedding",
+      "intent": "Show single-cell clusters, cell types, samples, or conditions in low-dimensional embedding.",
+      "canonical_variants": [
+        "dimplot",
+        "split_embedding",
+        "density_embedding"
+      ],
+      "data_roles": [
+        "cell_id",
+        "x",
+        "y",
+        "cell_type",
+        "sample",
+        "condition"
+      ],
+      "starter_recipe_refs": [
+        "single_cell_dimplot"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "single-cell",
+        "umap",
+        "tsne",
+        "DimPlot",
+        "cell cluster"
+      ],
+      "external_refs": [
+        "seurat",
+        "scanpy"
+      ],
+      "template_seed_ids": [
+        "single_cell_atlas_overview_panel"
+      ],
+      "ai_adaptation_notes": "AI may add labels, density contours, or split panels depending on cell count and story."
+    },
+    {
+      "family_id": "feature_expression_map",
+      "category_id": "single_cell_and_spatial",
+      "title": "Feature Expression Map",
+      "intent": "Show marker, gene, module score, or continuous feature on an embedding or spatial map.",
+      "canonical_variants": [
+        "featureplot",
+        "module_score_map",
+        "spatial_feature"
+      ],
+      "data_roles": [
+        "cell_id",
+        "x",
+        "y",
+        "feature_value",
+        "feature_name"
+      ],
+      "starter_recipe_refs": [
+        "feature_expression_embedding"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "FeaturePlot",
+        "gene expression map",
+        "module score",
+        "spatial feature"
+      ],
+      "external_refs": [
+        "seurat",
+        "scanpy"
+      ],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may use shared color scale across features when comparison matters."
+    },
+    {
+      "family_id": "marker_dotplot",
+      "category_id": "single_cell_and_spatial",
+      "title": "Marker Dotplot",
+      "intent": "Show marker expression prevalence and magnitude across cell types or clusters.",
+      "canonical_variants": [
+        "marker_dotplot",
+        "signature_dotplot"
+      ],
+      "data_roles": [
+        "cell_type",
+        "feature",
+        "mean_expression",
+        "percent_expressing",
+        "group"
+      ],
+      "starter_recipe_refs": [
+        "marker_dotplot"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "DotPlot",
+        "marker genes",
+        "percent expressing",
+        "cell marker"
+      ],
+      "external_refs": [
+        "seurat",
+        "scanpy"
+      ],
+      "template_seed_ids": [
+        "celltype_marker_dotplot_panel"
+      ],
+      "ai_adaptation_notes": "AI may facet by lineage or collapse markers into gene sets when labels are too dense."
+    },
+    {
+      "family_id": "cell_composition",
+      "category_id": "single_cell_and_spatial",
+      "title": "Cell Composition",
+      "intent": "Show cell-type abundance or proportions across samples, groups, tissues, or regions.",
+      "canonical_variants": [
+        "stacked_bar",
+        "composition_heatmap",
+        "beeswarm_abundance"
+      ],
+      "data_roles": [
+        "sample",
+        "group",
+        "cell_type",
+        "count",
+        "proportion"
+      ],
+      "starter_recipe_refs": [
+        "cell_composition_bar_or_dot"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "cell composition",
+        "cell type proportion",
+        "abundance"
+      ],
+      "external_refs": [
+        "seurat",
+        "scanpy"
+      ],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may choose dot/box summaries over stacked bars when sample-level variability matters."
+    },
+    {
+      "family_id": "trajectory_pseudotime",
+      "category_id": "single_cell_and_spatial",
+      "title": "Trajectory and Pseudotime",
+      "intent": "Show inferred cellular trajectory, pseudotime, lineage branches, or progression states.",
+      "canonical_variants": [
+        "trajectory_embedding",
+        "pseudotime_feature",
+        "branch_heatmap"
+      ],
+      "data_roles": [
+        "cell_id",
+        "x",
+        "y",
+        "pseudotime",
+        "branch",
+        "feature"
+      ],
+      "starter_recipe_refs": [
+        "trajectory_pseudotime_panel"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "trajectory",
+        "pseudotime",
+        "lineage",
+        "monocle"
+      ],
+      "external_refs": [
+        "scanpy"
+      ],
+      "template_seed_ids": [
+        "trajectory_progression_panel"
+      ],
+      "ai_adaptation_notes": "AI must label inferred trajectory as inferred, not observed time."
+    },
+    {
+      "family_id": "spatial_feature_map",
+      "category_id": "single_cell_and_spatial",
+      "title": "Spatial Feature Map",
+      "intent": "Show spatial localization of expression, cell types, niches, or histology-linked signals.",
+      "canonical_variants": [
+        "spatial_expression",
+        "niche_map",
+        "region_overlay"
+      ],
+      "data_roles": [
+        "x",
+        "y",
+        "feature_value",
+        "region",
+        "cell_type",
+        "image_ref"
+      ],
+      "starter_recipe_refs": [
+        "spatial_feature_map"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "spatial",
+        "spatial transcriptomics",
+        "niche",
+        "tissue map"
+      ],
+      "external_refs": [
+        "seurat",
+        "scanpy"
+      ],
+      "template_seed_ids": [
+        "spatial_niche_map_panel"
+      ],
+      "ai_adaptation_notes": "AI may overlay boundaries or use faceting; it must keep scale bars and tissue orientation when available."
+    },
+    {
+      "family_id": "cell_cell_interaction",
+      "category_id": "single_cell_and_spatial",
+      "title": "Cell-cell Interaction",
+      "intent": "Show inferred ligand-receptor, neighborhood, or interaction strengths between cell types.",
+      "canonical_variants": [
+        "chord_like",
+        "interaction_heatmap",
+        "network"
+      ],
+      "data_roles": [
+        "source_cell_type",
+        "target_cell_type",
+        "interaction",
+        "strength",
+        "p_value"
+      ],
+      "starter_recipe_refs": [
+        "cell_interaction_network_or_heatmap"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "cell-cell interaction",
+        "ligand receptor",
+        "niche interaction"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may avoid chord diagrams when labels become unreadable and use heatmap instead."
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+{
+  "category_id": "survival_and_time_to_event",
+  "title": "Survival and Time-to-Event Outcomes",
+  "families": [
+    {
+      "family_id": "kaplan_meier_with_risk_table",
+      "category_id": "survival_and_time_to_event",
+      "title": "Kaplan-Meier Curve with Risk Table",
+      "intent": "Show survival probability over time with number at risk and censoring information.",
+      "canonical_variants": [
+        "grouped_km",
+        "adjusted_survival",
+        "landmark_km"
+      ],
+      "data_roles": [
+        "time",
+        "survival",
+        "lower_ci",
+        "upper_ci",
+        "group",
+        "n_risk",
+        "censor"
+      ],
+      "starter_recipe_refs": [
+        "km_curve_risk_table"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "journal_export"
+      ],
+      "loose_match_terms": [
+        "kaplan meier",
+        "km plot",
+        "survival curve",
+        "risk table"
+      ],
+      "external_refs": [
+        "survminer"
+      ],
+      "template_seed_ids": [
+        "kaplan_meier_grouped"
+      ],
+      "ai_adaptation_notes": "AI may simplify censor marks or split risk tables when groups are numerous."
+    },
+    {
+      "family_id": "cumulative_incidence_competing_risk",
+      "category_id": "survival_and_time_to_event",
+      "title": "Cumulative Incidence with Competing Risks",
+      "intent": "Show event incidence over time when competing events matter.",
+      "canonical_variants": [
+        "grouped_cif",
+        "cause_specific_cif",
+        "stacked_incidence"
+      ],
+      "data_roles": [
+        "time",
+        "incidence",
+        "event_type",
+        "group",
+        "lower_ci",
+        "upper_ci"
+      ],
+      "starter_recipe_refs": [
+        "cif_curve"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "cumulative incidence",
+        "competing risk",
+        "CIF"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "cumulative_incidence_grouped",
+        "time_to_event_stratified_cumulative_incidence_panel"
+      ],
+      "ai_adaptation_notes": "AI must avoid labeling CIF as KM survival."
+    },
+    {
+      "family_id": "hazard_over_time",
+      "category_id": "survival_and_time_to_event",
+      "title": "Hazard over Time",
+      "intent": "Show time-varying hazard or hazard ratio patterns.",
+      "canonical_variants": [
+        "smoothed_hazard",
+        "time_varying_hr"
+      ],
+      "data_roles": [
+        "time",
+        "hazard",
+        "lower_ci",
+        "upper_ci",
+        "group"
+      ],
+      "starter_recipe_refs": [
+        "hazard_curve"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "hazard over time",
+        "time varying hazard",
+        "hazard curve"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may use log scale or facets when hazards vary widely."
+    },
+    {
+      "family_id": "landmark_survival",
+      "category_id": "survival_and_time_to_event",
+      "title": "Landmark Survival Panel",
+      "intent": "Show survival or prediction performance from a clinically meaningful landmark time.",
+      "canonical_variants": [
+        "landmark_km",
+        "landmark_performance"
+      ],
+      "data_roles": [
+        "landmark_time",
+        "time",
+        "survival",
+        "group",
+        "metric"
+      ],
+      "starter_recipe_refs": [
+        "landmark_survival_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "landmark",
+        "landmark survival",
+        "dynamic prediction"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "time_to_event_landmark_performance_panel"
+      ],
+      "ai_adaptation_notes": "AI may combine survival and discrimination panels if the claim is dynamic prediction."
+    },
+    {
+      "family_id": "rmst_difference",
+      "category_id": "survival_and_time_to_event",
+      "title": "Restricted Mean Survival Time Difference",
+      "intent": "Show absolute survival-time differences over clinically relevant horizons.",
+      "canonical_variants": [
+        "rmst_curve",
+        "rmst_bar_with_ci"
+      ],
+      "data_roles": [
+        "horizon",
+        "rmst",
+        "difference",
+        "lower_ci",
+        "upper_ci",
+        "group"
+      ],
+      "starter_recipe_refs": [
+        "rmst_difference_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "rmst",
+        "restricted mean survival",
+        "survival time difference"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may prefer RMST when proportional hazards are questionable."
+    }
+  ]
+}

@@ -1,0 +1,249 @@
+{
+  "category_id": "population_and_baseline",
+  "title": "Population and Baseline Description",
+  "families": [
+    {
+      "family_id": "table_one_baseline",
+      "category_id": "population_and_baseline",
+      "title": "Table 1 Baseline Characteristics",
+      "intent": "Summarize baseline variables by cohort, group, or treatment arm with appropriate summaries.",
+      "canonical_variants": [
+        "clinical_table",
+        "love_plot_companion",
+        "compact_main_text"
+      ],
+      "data_roles": [
+        "variable",
+        "group",
+        "summary",
+        "standardized_difference",
+        "missingness"
+      ],
+      "starter_recipe_refs": [
+        "table_shell_baseline"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "loose_match_terms": [
+        "table 1",
+        "baseline characteristics",
+        "cohort description"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "table1_baseline_characteristics"
+      ],
+      "ai_adaptation_notes": "AI may choose table, dot summary, or hybrid table-figure when visual comparison is clearer."
+    },
+    {
+      "family_id": "distribution_comparison",
+      "category_id": "population_and_baseline",
+      "title": "Distribution Comparison",
+      "intent": "Compare continuous or ordinal variable distributions across groups.",
+      "canonical_variants": [
+        "box_violin",
+        "raincloud",
+        "histogram_density",
+        "ridgeline"
+      ],
+      "data_roles": [
+        "value",
+        "group",
+        "stratum",
+        "timepoint"
+      ],
+      "starter_recipe_refs": [
+        "box_violin_raincloud"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "boxplot",
+        "violin",
+        "raincloud",
+        "distribution"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may replace boxplots with raincloud or ECDF if sample size and skew make that more truthful."
+    },
+    {
+      "family_id": "paired_change",
+      "category_id": "population_and_baseline",
+      "title": "Paired or Within-subject Change",
+      "intent": "Show paired baseline-to-follow-up changes or matched observations.",
+      "canonical_variants": [
+        "slopegraph",
+        "paired_dot_line",
+        "change_distribution"
+      ],
+      "data_roles": [
+        "subject_id",
+        "timepoint",
+        "value",
+        "group"
+      ],
+      "starter_recipe_refs": [
+        "paired_slope_plot"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "paired",
+        "slope plot",
+        "before after",
+        "within-subject"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may aggregate lines or use distribution of changes when many subjects cause overplotting."
+    },
+    {
+      "family_id": "missingness_map",
+      "category_id": "population_and_baseline",
+      "title": "Missingness Map",
+      "intent": "Show missing data patterns across variables, cohorts, or timepoints.",
+      "canonical_variants": [
+        "variable_missing_bar",
+        "sample_variable_heatmap",
+        "missingness_upset"
+      ],
+      "data_roles": [
+        "sample_id",
+        "variable",
+        "missing_flag",
+        "group"
+      ],
+      "starter_recipe_refs": [
+        "missingness_heatmap_or_upset"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "missing data",
+        "missingness",
+        "NA pattern"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "performance_heatmap"
+      ],
+      "ai_adaptation_notes": "AI may use UpSet layout when missingness combinations matter more than matrix position."
+    },
+    {
+      "family_id": "correlation_matrix",
+      "category_id": "population_and_baseline",
+      "title": "Correlation Matrix",
+      "intent": "Show relationships among variables, biomarkers, or model features.",
+      "canonical_variants": [
+        "correlation_heatmap",
+        "clustered_correlation",
+        "network_summary"
+      ],
+      "data_roles": [
+        "row_variable",
+        "column_variable",
+        "correlation",
+        "p_value"
+      ],
+      "starter_recipe_refs": [
+        "annotated_correlation_heatmap"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "diverging_centered"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "correlation",
+        "corrplot",
+        "association matrix"
+      ],
+      "external_refs": [
+        "complexheatmap"
+      ],
+      "template_seed_ids": [
+        "heatmap_group_comparison"
+      ],
+      "ai_adaptation_notes": "AI may choose clustered heatmap or network view depending on variable count."
+    },
+    {
+      "family_id": "composition_profile",
+      "category_id": "population_and_baseline",
+      "title": "Composition Profile",
+      "intent": "Show categorical composition such as sex, race, cell type, event type, or response class across groups.",
+      "canonical_variants": [
+        "stacked_bar",
+        "mosaic",
+        "composition_dot"
+      ],
+      "data_roles": [
+        "group",
+        "category",
+        "count",
+        "proportion"
+      ],
+      "starter_recipe_refs": [
+        "composition_stacked_bar"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "composition",
+        "proportion",
+        "stacked bar"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may switch to dot or heatmap representation when stacked bars become unreadable."
+    }
+  ]
+}

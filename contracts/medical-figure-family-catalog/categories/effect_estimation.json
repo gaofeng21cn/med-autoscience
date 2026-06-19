@@ -1,0 +1,217 @@
+{
+  "category_id": "effect_estimation",
+  "title": "Effect Estimation and Statistical Association",
+  "families": [
+    {
+      "family_id": "effect_forest",
+      "category_id": "effect_estimation",
+      "title": "Effect Estimate Forest",
+      "intent": "Show point estimates and intervals for effects, odds ratios, hazard ratios, risk differences, or coefficients.",
+      "canonical_variants": [
+        "single_model",
+        "multi_model",
+        "compact_coefficient"
+      ],
+      "data_roles": [
+        "term",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "reference",
+        "model"
+      ],
+      "starter_recipe_refs": [
+        "forest_dot_whisker"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "journal_export"
+      ],
+      "loose_match_terms": [
+        "forest plot",
+        "effect estimate",
+        "odds ratio",
+        "hazard ratio"
+      ],
+      "external_refs": [
+        "metafor",
+        "forestploter"
+      ],
+      "template_seed_ids": [
+        "forest_effect_main",
+        "multivariable_forest"
+      ],
+      "ai_adaptation_notes": "AI may group terms, add reference lines, or convert to table-figure hybrid when labels are long."
+    },
+    {
+      "family_id": "subgroup_interaction_forest",
+      "category_id": "effect_estimation",
+      "title": "Subgroup and Interaction Forest",
+      "intent": "Show treatment or exposure effect heterogeneity across clinically meaningful subgroups.",
+      "canonical_variants": [
+        "subgroup_forest",
+        "interaction_panel",
+        "heterogeneity_summary"
+      ],
+      "data_roles": [
+        "subgroup",
+        "level",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "p_interaction"
+      ],
+      "starter_recipe_refs": [
+        "subgroup_forest_with_interaction"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "subgroup",
+        "interaction",
+        "heterogeneity",
+        "forest"
+      ],
+      "external_refs": [
+        "metafor"
+      ],
+      "template_seed_ids": [
+        "subgroup_forest"
+      ],
+      "ai_adaptation_notes": "AI may add hierarchy, facet by endpoint, or split into supplement if too dense."
+    },
+    {
+      "family_id": "dose_response_spline",
+      "category_id": "effect_estimation",
+      "title": "Dose-response or Spline Curve",
+      "intent": "Show nonlinear association between continuous exposure and outcome.",
+      "canonical_variants": [
+        "restricted_cubic_spline",
+        "dose_response_meta",
+        "threshold_curve"
+      ],
+      "data_roles": [
+        "exposure",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "reference_value"
+      ],
+      "starter_recipe_refs": [
+        "spline_with_rug_and_ci"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "spline",
+        "dose response",
+        "nonlinear",
+        "exposure response"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may add histogram/rug support to prevent extrapolation overinterpretation."
+    },
+    {
+      "family_id": "coefficient_path",
+      "category_id": "effect_estimation",
+      "title": "Coefficient Path",
+      "intent": "Show variable coefficient evolution across regularization strength or model sequence.",
+      "canonical_variants": [
+        "lasso_path",
+        "model_sequence"
+      ],
+      "data_roles": [
+        "lambda",
+        "term",
+        "coefficient",
+        "selected_flag"
+      ],
+      "starter_recipe_refs": [
+        "coefficient_path_line"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "coefficient path",
+        "lasso path",
+        "regularization"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "coefficient_path_panel"
+      ],
+      "ai_adaptation_notes": "AI may label only key terms and move full path to supplement."
+    },
+    {
+      "family_id": "sensitivity_analysis_panel",
+      "category_id": "effect_estimation",
+      "title": "Sensitivity Analysis Panel",
+      "intent": "Show robustness of estimates across alternative definitions, adjustments, exclusions, or assumptions.",
+      "canonical_variants": [
+        "robustness_forest",
+        "specification_curve",
+        "leave_out_sensitivity"
+      ],
+      "data_roles": [
+        "analysis",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "assumption"
+      ],
+      "starter_recipe_refs": [
+        "robustness_forest_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "sensitivity analysis",
+        "robustness",
+        "specification curve"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may choose specification curve when many analyses are ordered by result."
+    }
+  ]
+}

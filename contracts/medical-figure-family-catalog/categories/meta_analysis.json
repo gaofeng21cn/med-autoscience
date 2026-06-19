@@ -1,0 +1,241 @@
+{
+  "category_id": "meta_analysis",
+  "title": "Meta-analysis and Evidence Synthesis",
+  "families": [
+    {
+      "family_id": "meta_forest",
+      "category_id": "meta_analysis",
+      "title": "Meta-analysis Forest",
+      "intent": "Show study-specific and pooled effect estimates with weights and intervals.",
+      "canonical_variants": [
+        "fixed_random_effects",
+        "subgroup_meta",
+        "prediction_interval"
+      ],
+      "data_roles": [
+        "study",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "weight",
+        "subgroup"
+      ],
+      "starter_recipe_refs": [
+        "meta_analysis_forest"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "meta forest",
+        "pooled estimate",
+        "meta-analysis"
+      ],
+      "external_refs": [
+        "metafor"
+      ],
+      "template_seed_ids": [
+        "forest_effect_main"
+      ],
+      "ai_adaptation_notes": "AI must distinguish pooled diamond from individual study estimates."
+    },
+    {
+      "family_id": "funnel_bias",
+      "category_id": "meta_analysis",
+      "title": "Funnel Plot and Bias Diagnostics",
+      "intent": "Show study-size or precision relationship to effect estimates for small-study effect assessment.",
+      "canonical_variants": [
+        "funnel",
+        "contour_enhanced_funnel"
+      ],
+      "data_roles": [
+        "study",
+        "estimate",
+        "standard_error",
+        "precision"
+      ],
+      "starter_recipe_refs": [
+        "funnel_plot"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "funnel plot",
+        "publication bias",
+        "small study effects"
+      ],
+      "external_refs": [
+        "metafor"
+      ],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may add contour regions only when their interpretation is explained."
+    },
+    {
+      "family_id": "leave_one_out_influence",
+      "category_id": "meta_analysis",
+      "title": "Leave-one-out Influence",
+      "intent": "Show effect of removing each study or cohort on pooled estimate.",
+      "canonical_variants": [
+        "leave_one_out_forest",
+        "influence_diagnostics"
+      ],
+      "data_roles": [
+        "omitted_study",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "influence_metric"
+      ],
+      "starter_recipe_refs": [
+        "leave_one_out_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "leave one out",
+        "influence",
+        "meta sensitivity"
+      ],
+      "external_refs": [
+        "metafor"
+      ],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may sort by influence and annotate outliers."
+    },
+    {
+      "family_id": "baujat_heterogeneity",
+      "category_id": "meta_analysis",
+      "title": "Baujat Heterogeneity",
+      "intent": "Show study contribution to heterogeneity and pooled effect.",
+      "canonical_variants": [
+        "baujat_scatter"
+      ],
+      "data_roles": [
+        "study",
+        "heterogeneity_contribution",
+        "effect_influence"
+      ],
+      "starter_recipe_refs": [
+        "baujat_plot"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "baujat",
+        "heterogeneity contribution"
+      ],
+      "external_refs": [
+        "metafor"
+      ],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may label only high-influence studies for readability."
+    },
+    {
+      "family_id": "network_meta_map",
+      "category_id": "meta_analysis",
+      "title": "Network Meta-analysis Map",
+      "intent": "Show treatment comparison network and evidence density.",
+      "canonical_variants": [
+        "network_graph",
+        "league_table_companion"
+      ],
+      "data_roles": [
+        "treatment",
+        "comparison",
+        "study_count",
+        "sample_size"
+      ],
+      "starter_recipe_refs": [
+        "network_meta_graph"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "network meta",
+        "treatment network",
+        "league table"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may pair network graph with compact league table for interpretation."
+    },
+    {
+      "family_id": "evidence_grade_map",
+      "category_id": "meta_analysis",
+      "title": "Evidence Grade Map",
+      "intent": "Show evidence certainty, risk of bias, and recommendation strength across outcomes.",
+      "canonical_variants": [
+        "grade_table_figure",
+        "evidence_heatmap"
+      ],
+      "data_roles": [
+        "outcome",
+        "domain",
+        "rating",
+        "certainty",
+        "reason"
+      ],
+      "starter_recipe_refs": [
+        "evidence_grade_heatmap"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "GRADE",
+        "evidence map",
+        "risk of bias",
+        "certainty"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may use heatmap or table depending on journal space and domain count."
+    }
+  ]
+}

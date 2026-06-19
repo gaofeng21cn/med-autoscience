@@ -1,0 +1,39 @@
+{
+  "palette_tokens": [
+    {
+      "token_id": "categorical_accessible",
+      "recommended_sources": [
+        "okabe_ito",
+        "colorbrewer_qualitative"
+      ],
+      "use_for": "unordered groups, trial arms, model labels, cohorts",
+      "forbidden_for": "ordered risk gradients"
+    },
+    {
+      "token_id": "sequential_perceptual",
+      "recommended_sources": [
+        "viridis",
+        "colorspace_sequential_hcl"
+      ],
+      "use_for": "continuous unsigned values, density, expression, probability",
+      "forbidden_for": "signed contrasts with meaningful zero"
+    },
+    {
+      "token_id": "diverging_centered",
+      "recommended_sources": [
+        "colorspace_diverging_hcl",
+        "colorbrewer_diverging"
+      ],
+      "use_for": "signed effects, log fold-change, residuals with meaningful center",
+      "forbidden_for": "arbitrary positive-only scales"
+    },
+    {
+      "token_id": "clinical_status",
+      "recommended_sources": [
+        "semantic_red_amber_green_with_accessibility_check"
+      ],
+      "use_for": "risk status, response status, adverse-event severity",
+      "forbidden_for": "decorative branding"
+    }
+  ]
+}

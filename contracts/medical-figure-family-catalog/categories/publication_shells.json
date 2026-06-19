@@ -1,0 +1,215 @@
+{
+  "category_id": "publication_shells",
+  "title": "Publication Shells and Composite Figures",
+  "families": [
+    {
+      "family_id": "multipanel_storyboard",
+      "category_id": "publication_shells",
+      "title": "Multipanel Storyboard",
+      "intent": "Compose multiple evidence panels into a coherent manuscript figure narrative.",
+      "canonical_variants": [
+        "main_text_figure",
+        "extended_data_figure",
+        "mechanism_plus_evidence"
+      ],
+      "data_roles": [
+        "panel_id",
+        "panel_role",
+        "family_id",
+        "caption_claim"
+      ],
+      "starter_recipe_refs": [
+        "patchwork_multipanel_layout"
+      ],
+      "style_tokens": [
+        "nature_portfolio",
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "journal_export",
+        "ai_redesign_trace"
+      ],
+      "loose_match_terms": [
+        "multi-panel",
+        "figure storyboard",
+        "composite figure",
+        "patchwork"
+      ],
+      "external_refs": [
+        "patchwork",
+        "cowplot"
+      ],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may reorder panels when it improves scientific narrative but must preserve claim-to-panel mapping."
+    },
+    {
+      "family_id": "graphical_abstract",
+      "category_id": "publication_shells",
+      "title": "Graphical Abstract",
+      "intent": "Summarize study question, data, method, and main finding in a visual overview.",
+      "canonical_variants": [
+        "clinical_workflow",
+        "mechanism_summary",
+        "ai_model_summary"
+      ],
+      "data_roles": [
+        "study_question",
+        "data_source",
+        "method",
+        "finding",
+        "clinical_implication"
+      ],
+      "starter_recipe_refs": [
+        "graphical_abstract_shell"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability",
+        "ai_redesign_trace"
+      ],
+      "loose_match_terms": [
+        "graphical abstract",
+        "visual abstract",
+        "summary figure"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "submission_graphical_abstract"
+      ],
+      "ai_adaptation_notes": "AI may use generated illustration only if it carries no unsupported scientific evidence mark."
+    },
+    {
+      "family_id": "mechanism_schematic",
+      "category_id": "publication_shells",
+      "title": "Mechanism Schematic",
+      "intent": "Show biological, clinical, or algorithmic mechanism supporting the manuscript narrative.",
+      "canonical_variants": [
+        "pathway_schematic",
+        "clinical_workflow",
+        "model_architecture"
+      ],
+      "data_roles": [
+        "node",
+        "edge",
+        "process",
+        "evidence_ref"
+      ],
+      "starter_recipe_refs": [
+        "mechanism_schematic"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "mechanism",
+        "schematic",
+        "pathway diagram",
+        "workflow"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may redraw freely but must separate hypothesis, evidence, and speculation."
+    },
+    {
+      "family_id": "source_data_companion",
+      "category_id": "publication_shells",
+      "title": "Source Data Companion",
+      "intent": "Show compact source-data, reproducibility, or evidence trace companion panel.",
+      "canonical_variants": [
+        "source_data_table",
+        "data_availability_panel",
+        "assay_inventory"
+      ],
+      "data_roles": [
+        "source",
+        "assay",
+        "sample_count",
+        "availability",
+        "digest_ref"
+      ],
+      "starter_recipe_refs": [
+        "source_data_companion_panel"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "source_data_traceability",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "source data",
+        "reproducibility",
+        "assay inventory",
+        "data availability"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may convert to table or schematic depending on evidence complexity."
+    },
+    {
+      "family_id": "supplement_dense_panel",
+      "category_id": "publication_shells",
+      "title": "Supplement Dense Panel",
+      "intent": "Pack many secondary checks into a readable supplement figure.",
+      "canonical_variants": [
+        "small_multiples",
+        "dense_heatmap_panel",
+        "appendix_grid"
+      ],
+      "data_roles": [
+        "panel_id",
+        "check_type",
+        "metric",
+        "value",
+        "group"
+      ],
+      "starter_recipe_refs": [
+        "supplement_dense_patchwork"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "journal_export"
+      ],
+      "loose_match_terms": [
+        "supplement",
+        "extended data",
+        "small multiples",
+        "appendix figure"
+      ],
+      "external_refs": [
+        "patchwork",
+        "cowplot"
+      ],
+      "template_seed_ids": [],
+      "ai_adaptation_notes": "AI may move overcrowded panels to separate supplement figures rather than shrinking text below readability."
+    }
+  ]
+}

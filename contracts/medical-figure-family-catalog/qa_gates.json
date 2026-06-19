@@ -1,0 +1,54 @@
+{
+  "qa_gates": [
+    {
+      "gate_id": "statistical_semantics_preserved",
+      "checks": [
+        "estimand_matches_claim",
+        "axis_units_present",
+        "confidence_interval_or_uncertainty_policy_clear"
+      ]
+    },
+    {
+      "gate_id": "layout_readability",
+      "checks": [
+        "no_text_overlap",
+        "legend_wrapped_or_shared",
+        "panel_labels_visible",
+        "long_label_stress_case_passes"
+      ]
+    },
+    {
+      "gate_id": "color_accessibility",
+      "checks": [
+        "colorblind_safe_palette",
+        "grayscale_discriminable",
+        "sequential_vs_diverging_semantics_match"
+      ]
+    },
+    {
+      "gate_id": "journal_export",
+      "checks": [
+        "final_physical_size_checked",
+        "font_size_checked",
+        "line_weight_checked",
+        "vector_export_available_when_possible"
+      ]
+    },
+    {
+      "gate_id": "source_data_traceability",
+      "checks": [
+        "source_data_refs_present",
+        "statistics_refs_present",
+        "render_receipt_or_visual_audit_ref_present"
+      ]
+    },
+    {
+      "gate_id": "ai_redesign_trace",
+      "checks": [
+        "starter_family_recorded",
+        "paper_local_modifications_recorded",
+        "family_switch_reason_recorded_when_applicable"
+      ]
+    }
+  ]
+}
