@@ -270,7 +270,7 @@ def test_build_display_pack_lock_payload_captures_git_repo_source_provenance(tmp
     assert pack_entry["resolved_source_root"].endswith("display-core-git")
 
 
-def test_build_display_pack_lock_payload_projects_core_p1_promoted_default_renderers() -> None:
+def test_build_display_pack_lock_payload_projects_canonical_default_renderers() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     payload = build_display_pack_lock_payload(repo_root=repo_root)
     template_entries = {
@@ -279,7 +279,15 @@ def test_build_display_pack_lock_payload_projects_core_p1_promoted_default_rende
         if pack["pack_id"] == "fenggaolab.org.medical-display-core"
         for item in pack["templates"]
     }
-    p1_promoted = [
+    r_ggplot2_default_templates = [
+        item
+        for item in template_entries.values()
+        if item["renderer_family"] == "r_ggplot2"
+        and item["execution_mode"] == "subprocess"
+        and item["entrypoint"] == "Rscript render.R --request {request_json}"
+        and item["render_script_path"].endswith(f"templates/{item['template_id']}/render.R")
+    ]
+    r_ggplot2_default_templates_with_candidate = [
         item
         for item in template_entries.values()
         if item["renderer_family"] == "r_ggplot2"
@@ -288,16 +296,23 @@ def test_build_display_pack_lock_payload_projects_core_p1_promoted_default_rende
         and item["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
     ]
 
-    assert len(p1_promoted) == 29
-    assert template_entries["time_to_event_risk_group_summary"]["renderer_family"] == "r_ggplot2"
-    assert template_entries["time_to_event_risk_group_summary"]["execution_mode"] == "subprocess"
-    assert template_entries["time_to_event_risk_group_summary"]["entrypoint"] == "Rscript render.R --request {request_json}"
-    assert template_entries["time_to_event_risk_group_summary"]["render_script_path"].endswith(
-        "templates/time_to_event_risk_group_summary/render.R"
+    assert len(template_entries) == 21
+    assert len(r_ggplot2_default_templates) == 13
+    assert len(r_ggplot2_default_templates_with_candidate) == 8
+    assert "time_to_event_risk_group_summary" not in template_entries
+    assert template_entries["time_to_event_discrimination_calibration_panel"]["renderer_family"] == "r_ggplot2"
+    assert template_entries["time_to_event_discrimination_calibration_panel"]["execution_mode"] == "subprocess"
+    assert template_entries["time_to_event_discrimination_calibration_panel"]["entrypoint"] == (
+        "Rscript render.R --request {request_json}"
     )
-    assert len(template_entries["time_to_event_risk_group_summary"]["render_script_sha256"]) == 64
-    assert template_entries["time_to_event_risk_group_summary"]["candidate_render_script_path"].endswith(
-        "templates/time_to_event_risk_group_summary/render_candidate.R"
+    assert template_entries["time_to_event_discrimination_calibration_panel"]["render_script_path"].endswith(
+        "templates/time_to_event_discrimination_calibration_panel/render.R"
+    )
+    assert len(template_entries["time_to_event_discrimination_calibration_panel"]["render_script_sha256"]) == 64
+    assert template_entries["time_to_event_discrimination_calibration_panel"][
+        "candidate_render_script_path"
+    ].endswith(
+        "templates/time_to_event_discrimination_calibration_panel/render_candidate.R"
     )
     assert template_entries["omics_volcano_panel"]["render_script_path"].endswith(
         "templates/omics_volcano_panel/render.R"
@@ -305,9 +320,11 @@ def test_build_display_pack_lock_payload_projects_core_p1_promoted_default_rende
     assert template_entries["shap_summary_beeswarm"]["render_script_path"].endswith(
         "templates/shap_summary_beeswarm/render.R"
     )
-    assert template_entries["time_to_event_landmark_performance_panel"]["renderer_family"] == "python"
-    assert template_entries["time_to_event_landmark_performance_panel"]["execution_mode"] == "python_plugin"
-    assert template_entries["time_to_event_landmark_performance_panel"]["render_script_path"] is None
-    assert template_entries["time_to_event_landmark_performance_panel"]["candidate_render_script_path"].endswith(
-        "templates/time_to_event_landmark_performance_panel/render_candidate.R"
+    assert template_entries["partial_dependence_ice_panel"]["renderer_family"] == "python"
+    assert template_entries["partial_dependence_ice_panel"]["execution_mode"] == "python_plugin"
+    assert template_entries["partial_dependence_ice_panel"]["render_script_path"] is None
+    assert template_entries["partial_dependence_ice_panel"]["candidate_render_script_path"] is None
+    assert template_entries["table1_baseline_characteristics"]["kind"] == "table_shell"
+    assert template_entries["table1_baseline_characteristics"]["entrypoint"] == (
+        "fenggaolab_org_medical_display_core.table_shells:render_table_shell"
     )

@@ -146,7 +146,7 @@ def test_exported_entrypoint_is_real_importable_callable(tmp_path: Path) -> None
     export_core_pack_template_manifests(tmp_path)
     representative_entrypoints = {
         "roc_curve_binary": "Rscript render.R --request {request_json}",
-        "time_to_event_risk_group_summary": (
+        "time_to_event_landmark_performance_panel": (
             "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
         ),
         "cohort_flow_figure": "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell",
@@ -206,7 +206,9 @@ def test_exported_r_ggplot2_templates_are_first_class_subprocess_assets(tmp_path
         if spec.renderer_family == "r_ggplot2"
     }
 
-    assert len(r_template_ids) == 22
+    assert len(r_template_ids) == 51
+    assert "time_to_event_risk_group_summary" in r_template_ids
+    assert "time_to_event_landmark_performance_panel" not in r_template_ids
     for short_id in sorted(r_template_ids):
         payload = tomllib.loads((tmp_path / "templates" / short_id / "template.toml").read_text(encoding="utf-8"))
         assert payload["kind"] == "evidence_figure"
