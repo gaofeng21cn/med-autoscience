@@ -174,6 +174,19 @@ def _surface_live_or_no_active_proven(
 ) -> bool:
     if audit.get("physical_delete_gate_open") is False:
         return True
+    if surface.get("surface_id") == "agent_tool_arsenal_scientific_capability_registry":
+        return (
+            _nested_value(
+                surface,
+                ("live_owner_consumption_soak_boundary", "live_owner_consumption_soak_proven"),
+            )
+            is True
+            and _nested_value(
+                surface,
+                ("live_owner_consumption_soak_boundary", "direct_hosted_parity_proven"),
+            )
+            is True
+        )
     proof_fields = (
         ("active_caller_soak_boundary", "live_every_active_caller_soak_proven"),
         ("active_caller_soak_boundary", "no_active_caller_proven"),
@@ -226,19 +239,6 @@ def _surface_live_or_no_active_proven(
     )
     if any(_nested_value(surface, path) is True for path in proof_fields):
         return True
-    if surface.get("surface_id") == "agent_tool_arsenal_scientific_capability_registry":
-        return (
-            _nested_value(
-                surface,
-                ("live_owner_consumption_soak_boundary", "live_owner_consumption_soak_proven"),
-            )
-            is True
-            and _nested_value(
-                surface,
-                ("live_owner_consumption_soak_boundary", "direct_hosted_parity_proven"),
-            )
-            is True
-        )
     return False
 
 
