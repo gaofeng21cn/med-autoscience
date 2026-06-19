@@ -204,7 +204,9 @@
         "MAS runtime-health local event append API is retired.",
         "contracts/opl_domain_progress_transition_runtime_contract.json and src/med_autoscience/controllers/opl_domain_progress_transition_contract.py now require read_model_rebuild_required_sections for identity, causality, authority_boundary, exactly_one_outcome, and projection_metadata.",
         "src/med_autoscience/controllers/domain_health_diagnostic_parts/opl_transition_readback.py now rejects read_model_readback unless those five sections exactly match the top-level live readback sections.",
-        "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape rejects stale read_model_readback identity refs."
+        "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape rejects stale read_model_readback identity refs.",
+        "src/med_autoscience/controllers/study_progress_parts/opl_supervisor_decision_readback.py consumes OPL SupervisorDecisionEngine readback from family-runtime/paper-autonomy/supervisor/supervisor-decisions.jsonl as a read-only study_progress projection.",
+        "tests/study_progress_cases/opl_supervisor_decision_readback_projection.py proves the consumed supervisor decision readback updates paper_recovery_state and refs without creating provider admission or MAS truth."
       ],
       "open_gap": "Workbench and all downstream projections still need fresh live proof of full event-driven rebuild under real paper-line flow."
     },
@@ -287,7 +289,8 @@
         "Current-control handoff projection keeps live-readback-backed admission pending until the terminal closeout binds the same OPL identity.",
         "Terminal handoff typed-blocker refresh now rebuilds stale materialize_successor_owner_action recovery state into domain_blocked / resolve_typed_blocker after current_work_unit consumption.",
         "Consumed terminal typed-blocker precedence covers handoffs whose current_work_unit still projects owner_receipt_recorded, so paper_recovery_state cannot retain a stale successor over the blocker.",
-        "Recovery successor fixed-point follow-through now binds repair-progress consumption to the successor work-unit fingerprint, closing the stale repair-progress over current paper-recovery successor path without authorizing provider admission."
+        "Recovery successor fixed-point follow-through now binds repair-progress consumption to the successor work-unit fingerprint, closing the stale repair-progress over current paper-recovery successor path without authorizing provider admission.",
+        "OPL supervisor decision readback consumption now lets paper_recovery_state replace opl_supervisor_decision_readback_required with an identity-bound SupervisorDecisionEngine readback while preserving MAS non-authority over the OPL ledger."
       ],
       "open_gap": "Remaining live materialization and closeout paths must prove OPL runtime-backed transitions."
     },
@@ -401,7 +404,8 @@
         "Current execution surface refresh consumes provider_admission_terminal_closeout_consumed typed blockers before owner-receipt successor projection when their identity overlaps without conflict.",
         "Top-level materializer request_tasks alias is retired; DHD preview and stability evidence consume only nested legacy_request_task_diagnostics refs.",
         "Repair-progress consumption of paper recovery successors is fingerprint-bound, preventing stale projection demotion during fixed-point refresh.",
-        "OPL transition readback validation now requires read_model_readback to rebuild identity, causality, authority_boundary, exactly_one_outcome, and projection_metadata from the same live sections."
+        "OPL transition readback validation now requires read_model_readback to rebuild identity, causality, authority_boundary, exactly_one_outcome, and projection_metadata from the same live sections.",
+        "study_progress now consumes OPL SupervisorDecisionEngine readback JSONL as refs-only projection evidence, so MAS no longer has to synthesize or stall the paper autonomy supervisor decision locally."
       ],
       "open_gap": "All downstream read models must still rebuild from OPL event plus MAS policy result, and live paper-line acceptance remains open."
     },

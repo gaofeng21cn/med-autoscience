@@ -26,6 +26,9 @@ from .current_owner_action_projection_reconcile import (
     reconcile_current_owner_action_projection,
 )
 from .macro_state_projection import compact_study_macro_state_from_payload
+from .opl_supervisor_decision_readback import (
+    attach_opl_supervisor_decision_readback as _attach_opl_supervisor_decision_readback,
+)
 from .progress_first_projection import build_progress_first_projection
 from .progress_first_monitoring import build_progress_first_monitoring_summary
 from .projection_payload_assembly_parts.ai_first_snapshot_fields import (
@@ -150,6 +153,7 @@ def assemble_study_progress_payload(
     runtime_facts: Any,
     supervision_health_status: str | None,
     refs: dict[str, Any],
+    profile: Any | None = None,
     materialize_sidecar_observation: bool = False,
 ) -> dict[str, Any]:
     handoff = _mapping_copy(opl_current_control_state_handoff)
@@ -274,6 +278,7 @@ def assemble_study_progress_payload(
         "study_intervention_events": read_intervention_events(study_root=study_root),
         "refs": refs,
     }
+    payload = _attach_opl_supervisor_decision_readback(payload, profile=profile)
     if stage_artifact_index is not None:
         payload["stage_artifact_index"] = dict(stage_artifact_index)
         payload["stage_kernel_projection"] = stage_kernel_projection_from_artifact_index(

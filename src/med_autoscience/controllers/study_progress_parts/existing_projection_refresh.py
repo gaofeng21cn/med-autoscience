@@ -30,6 +30,9 @@ from .opl_current_control_state_handoff import (
     opl_current_control_state_live_attempt_handoff_projection,
 )
 from .operator_view import _study_command_surfaces
+from .opl_supervisor_decision_readback import (
+    attach_opl_supervisor_decision_readback,
+)
 from .progress_first_monitoring import build_progress_first_monitoring_summary
 from .projection_payload_assembly_parts.current_execution_surfaces import (
     refresh_current_execution_surfaces,
@@ -138,6 +141,7 @@ def refresh_existing_projection_current_owner_surfaces(
     updated = dict(payload)
     if publication_eval_payload is not None:
         updated["publication_eval"] = publication_eval_payload
+    updated = attach_opl_supervisor_decision_readback(updated, profile=profile)
     handoff = merge_live_attempt_observability_into_handoff(
         handoff=_optional_mapping(updated.get("opl_current_control_state_handoff")),
         live_attempt_handoff=opl_current_control_state_live_attempt_handoff_projection(
