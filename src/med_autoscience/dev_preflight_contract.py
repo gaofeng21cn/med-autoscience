@@ -527,6 +527,9 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="paper_progress_transition_boundary_surface",
         exact_paths=(
+            "contracts/paper_progress_replay_live_evidence_status.json",
+            "contracts/paper_progress_transition_runtime_completion_audit.json",
+            "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/obligation_actuator.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control.py",

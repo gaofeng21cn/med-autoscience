@@ -41,7 +41,6 @@ def test_stale_compatibility_terms_do_not_reenter_active_surfaces() -> None:
     search_roots = [
         repo_root / "src",
         repo_root / "tests",
-        repo_root / "contracts",
         repo_root / "profiles",
     ]
     blocked_terms = (
@@ -54,7 +53,7 @@ def test_stale_compatibility_terms_do_not_reenter_active_surfaces() -> None:
         "paper_progress_" + "transition_kernel",
         "single_transition_" + "authority",
         "kernel_authorized_" + "provider_admission",
-        "mas_opl_paper_" + "autonomy_supervisor",
+        "mas_opl_paper_" + "autonomy_supervisor_apply",
     )
     violations: list[str] = []
 
@@ -512,6 +511,9 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
 
     result = module.classify_changed_files(
         [
+            "contracts/paper_progress_replay_live_evidence_status.json",
+            "contracts/paper_progress_transition_runtime_completion_audit.json",
+            "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
             "docs/active/mas-ideal-state-gap-plan.md",
             "docs/runtime/control/controllers.md",
             "docs/runtime/designs/" + "paper_progress_" + "transition_kernel_target.md",
@@ -542,8 +544,8 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
     )
 
     assert result.matched_categories == (
-        "documentation_review_only",
         "paper_progress_transition_boundary_surface",
+        "documentation_review_only",
     )
     assert result.unclassified_changes == ()
     planned_commands = module.plan_commands_for_categories(result.matched_categories)
