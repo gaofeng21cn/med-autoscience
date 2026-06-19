@@ -184,7 +184,9 @@ def _validate_open_surface(
 ) -> list[dict[str, str]]:
     violations: list[dict[str, str]] = []
     gate = surface.get("retirement_gate")
-    if isinstance(gate, Mapping):
+    if not isinstance(gate, Mapping):
+        violations.append(_violation(surface_id, "missing_open_surface_retirement_gate"))
+    else:
         if gate.get("active_caller_alone_retains_surface") is not False:
             violations.append(_violation(surface_id, "active_caller_alone_can_retain_surface"))
         if gate.get("completion_claim_requires_live_owner_or_opl_readback") is not True:
