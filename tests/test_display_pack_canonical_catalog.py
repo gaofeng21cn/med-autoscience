@@ -9,6 +9,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     ai_adaptation_policy,
     canonical_family_ontology,
     canonical_family_wording,
+    gallery_display_records,
     gallery_template_family_ontology,
     non_visual_canonical_records,
     read_template_records,
@@ -51,15 +52,20 @@ def test_gallery_family_ontology_exposes_canonical_wording_without_alias_noise()
     records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
     ontology = gallery_template_family_ontology(records)
     visual_records = visual_gallery_records(records)
+    evidence_gallery_records = gallery_display_records(records)
     non_visual_records = non_visual_canonical_records(records)
 
     assert len(ontology) == 18
     assert len(visual_records) == 18
+    assert len(evidence_gallery_records) == 55
+    assert {record.kind for record in evidence_gallery_records} == {"evidence_figure"}
+    assert {record.renderer_family for record in evidence_gallery_records} == {"r_ggplot2"}
     assert [record.template_id for record in non_visual_records] == ["table1_baseline_characteristics"]
     assert {entry["canonical_template_id"] for entry in ontology}.issubset(
         {record.template_id for record in visual_records}
     )
     assert "time_dependent_roc_horizon" not in {entry["canonical_template_id"] for entry in ontology}
+    assert "time_dependent_roc_horizon" in {record.template_id for record in evidence_gallery_records}
     assert "table1_baseline_characteristics" not in {entry["canonical_template_id"] for entry in ontology}
     assert "single_cell_atlas_overview_panel" not in {entry["canonical_template_id"] for entry in ontology}
     assert "phenotype_gap_structure_figure" not in {entry["canonical_template_id"] for entry in ontology}
@@ -110,8 +116,8 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         "core_catalog_ref": "contracts/medical-figure-family-catalog/",
         "gallery_template_metadata_source": "display_pack_canonical_template_catalog",
         "core_catalog_dependency": "loaded_via_medical_figure_family_catalog_loader",
-        "default_gallery_surface": "r_first_evidence_canonical_families_plus_design_shells",
-        "alias_handling": "hidden_from_gallery_cards_preserved_in_migration_index",
+        "default_gallery_surface": "all_r_ggplot2_evidence_templates",
+        "alias_handling": "current_r_ggplot2_evidence_aliases_visible_in_full_gallery_and_mapped_in_migration_index",
         "non_visual_handling": "kept_in_manifest_inventory_hidden_from_image_gallery_cards",
         "renderer_policy": {
             "policy_version": 1,
@@ -140,18 +146,21 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["ai_adaptation_policy"] == ai_adaptation_policy()
     assert manifest["canonical_family_count"] == len(manifest["canonical_family_ontology"]) == core_catalog.family_count
     assert manifest["gallery_template_family_count"] == len(manifest["gallery_template_family_ontology"]) == 18
-    assert manifest["active_template_count"] == len(manifest["templates"]) == 18
+    assert manifest["canonical_representative_template_count"] == 18
+    assert manifest["active_template_count"] == len(manifest["templates"]) == 55
+    assert manifest["evidence_gallery_template_count"] == 55
     assert manifest["non_visual_canonical_template_count"] == len(manifest["non_visual_inventory"]) == 1
     assert manifest["catalog_default_visible_template_count"] == 19
     assert manifest["default_visible_template_count"] == 19
     assert len(manifest["canonical_category_ontology"]) == 12
     assert "discrimination_curve" in {item["family_id"] for item in manifest["canonical_family_ontology"]}
-    assert all(item["migration_status"] == "canonical" for item in manifest["templates"])
-    assert all(item["default_visible"] is True for item in manifest["templates"])
+    assert {item["kind"] for item in manifest["templates"]} == {"evidence_figure"}
+    assert {item["renderer_family"] for item in manifest["templates"]} == {"r_ggplot2"}
+    assert any(item["migration_status"] == "migrated_alias" for item in manifest["templates"])
     assert all(item["visual_gallery_visible"] is True for item in manifest["templates"])
     assert manifest["non_visual_inventory"][0]["template_id"] == "table1_baseline_characteristics"
     assert manifest["non_visual_inventory"][0]["visual_gallery_visible"] is False
-    assert "time_dependent_roc_horizon" not in {item["template_id"] for item in manifest["templates"]}
+    assert "time_dependent_roc_horizon" in {item["template_id"] for item in manifest["templates"]}
     assert "time_dependent_roc_horizon" in {item["template_id"] for item in manifest["migration_index"]}
     assert not [
         item["template_id"]
@@ -160,6 +169,7 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     ]
     assert manifest["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
     assert manifest["renderer_policy_completion"]["default_r_ggplot2_evidence_template_count"] == 16
+    assert manifest["renderer_policy_completion"]["all_r_ggplot2_evidence_template_count"] == 55
     assert manifest["renderer_policy_completion"]["python_evidence_retained_count"] == 0
     assert manifest["renderer_policy_completion"]["default_illustration_shell_count"] == 2
     assert manifest["palette_policy"]["matrix_heatmap_uses_shared_palette_roles"] is True

@@ -347,11 +347,11 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 ## 分类完成度
 
-| Category | Status | Completion | Default visual | R/ggplot2 evidence | Current Python evidence |
+| Category | Status | Completion | Gallery visual | R/ggplot2 evidence | Current Python evidence |
 | --- | --- | ---: | ---: | ---: | ---: |
 {completion_lines}
 
-    ## 当前 Python Evidence
+## 当前 Python Evidence
 
 | Template | Category | Kind | Renderer | Reason |
 | --- | --- | --- | --- | --- |

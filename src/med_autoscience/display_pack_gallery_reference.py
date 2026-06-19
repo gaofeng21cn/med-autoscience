@@ -41,12 +41,12 @@ Machine boundary: 人读示例文档。机器真相继续归 display-pack templa
 - `style_profile_id`: `{default_style["style_profile_id"]}`
 - `journal_palette_ref`: `{default_style["journal_palette_ref"]}`
 - canonical renderer inventory: `r_ggplot2={renderer_inventory.get("r_ggplot2", 0)}`, `python={renderer_inventory.get("python", 0)}`, `n/a={renderer_inventory.get("n/a", 0)}`
-- default R/ggplot2 evidence templates: `{r_evidence_count}`
+- full R/ggplot2 evidence gallery cards: `{r_evidence_count}`
 - current Python evidence templates: `0`
-- default Python design / flow shells: `{illustration_shell_count}`
-- canonical rendered image templates: `{rendered_count}`
-- visual canonical gallery families: `{canonical_gallery_family_count}`
-- migration inventory templates are retained in `gallery_manifest.json`; duplicate / legacy aliases are not shown as separate Gallery cards.
+- Python design / flow shells in ggplot2 evidence Gallery: `0`
+- rendered evidence gallery cards: `{rendered_count}`
+- visual canonical representative families: `{canonical_gallery_family_count}`
+- migration inventory templates are retained in `gallery_manifest.json`; duplicate / legacy aliases are mapped to canonical families but current R/ggplot2 evidence aliases are still shown in this full evidence Gallery.
 - core medical figure families: sourced from `contracts/medical-figure-family-catalog/`
 - figure family policy: `core_catalog_bound_metadata_only`
 - AI adaptation policy: `canonical_family_baseline_then_paper_local_adaptation`
@@ -54,5 +54,5 @@ Machine boundary: 人读示例文档。机器真相继续归 display-pack templa
 
 ## 风格口径
 
-MAS 默认不是 Nature 官方模板复刻，也不是 Lancet 专用模板。当前内置默认是 `nature_informed_clinical_publication_v1`：白底、左下轴线、小字号、细轴线、弱网格、统一 clinical palette、sequential/diverging heatmap palette 和横向 colorbar。数据分析产生的 evidence figure 以 R/ggplot2 为第一公民；未证明优于 R/ggplot2 的 Python evidence 模板不进入当前 pack、隐藏库存或 Gallery 对比图。设计、流程和 graphical abstract shell 可以用 SVG、Python composition 或 imagegen-assisted art direction，但不承担统计证据权威。当前 catalog 只保留现有模板的 canonical family 与 alias 映射，不维护旧 Python evidence ID 清单。Gallery manifest 的医学图型 ontology 来自 `contracts/medical-figure-family-catalog/`，当前模板展示面由 pack-local canonical template catalog 提供代表模板和 aliases。
+MAS 默认不是 Nature 官方模板复刻，也不是 Lancet 专用模板。当前内置默认是 `nature_informed_clinical_publication_v1`：白底、左下轴线、小字号、细轴线、弱网格、统一 clinical palette、sequential/diverging heatmap palette 和横向 colorbar。数据分析产生的 evidence figure 以 R/ggplot2 为第一公民；未证明优于 R/ggplot2 的 Python evidence 模板不进入当前 pack、隐藏库存或 Gallery 对比图。设计、流程和 graphical abstract shell 可以用 SVG、Python composition 或 imagegen-assisted art direction，但不承担统计证据权威，也不混入这份 ggplot2 evidence Gallery。当前 catalog 只保留现有模板的 canonical family 与 alias 映射，不维护旧 Python evidence ID 清单。Gallery manifest 的医学图型 ontology 来自 `contracts/medical-figure-family-catalog/`；PDF Gallery 展示全量 current R/ggplot2 evidence templates，canonical representative families 只用于索引、推荐面和 alias 映射。
 """

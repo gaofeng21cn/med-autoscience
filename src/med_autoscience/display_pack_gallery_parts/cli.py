@@ -6,7 +6,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from med_autoscience.display_pack_gallery_catalog import read_template_records, visual_gallery_records
+from med_autoscience.display_pack_gallery_catalog import gallery_display_records, read_template_records
 from med_autoscience.display_pack_gallery_parts import paths
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset, _clean_assets, _strip_trailing_whitespace, write_json
 from med_autoscience.display_pack_gallery_parts.html import _render_html
@@ -41,7 +41,7 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
     seed_r_payloads = _load_seed_r_payloads(records)
     fixture_payloads = _load_python_payload_fixtures()
     rendered: dict[str, RenderedAsset] = {}
-    visible_template_ids = {record.template_id for record in visual_gallery_records(records)}
+    visible_template_ids = {record.template_id for record in gallery_display_records(records)}
     for record in records:
         if record.template_id not in visible_template_ids:
             rendered[record.template_id] = RenderedAsset(
@@ -106,7 +106,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.publish_docs:
         _copy_docs_gallery()
 
-    visible_records = visual_gallery_records(records)
+    visible_records = gallery_display_records(records)
     print(
         json.dumps(
             {

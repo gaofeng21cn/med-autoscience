@@ -14,6 +14,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     canonical_records,
     default_surface_excluded_records,
     figure_family_policy,
+    gallery_display_records,
     gallery_template_family_ontology,
     non_visual_canonical_records,
     visual_gallery_records,
@@ -50,7 +51,8 @@ def build_manifest(
     baseline_rendered: dict[str, RenderedAsset],
     publish_docs: bool,
 ) -> dict[str, Any]:
-    visual_records = visual_gallery_records(records)
+    visual_records = gallery_display_records(records)
+    canonical_visual_records = visual_gallery_records(records)
     non_visual_records = non_visual_canonical_records(records)
     catalog_default_records = canonical_catalog_default_records(records)
     default_excluded_records = default_surface_excluded_records(records)
@@ -84,10 +86,12 @@ def build_manifest(
         "docs_quality_audit_path": str(paths.DOCS_QUALITY_AUDIT_PATH) if publish_docs else "",
         "template_count": len(visual_records),
         "active_template_count": len(visual_records),
+        "evidence_gallery_template_count": len(visual_records),
         "non_visual_canonical_template_count": len(non_visual_records),
         "migration_inventory_template_count": len(records),
         "canonical_family_count": len(canonical_family_ontology()),
-        "gallery_template_family_count": len({record.canonical_family_id for record in visual_records}),
+        "gallery_template_family_count": len({record.canonical_family_id for record in canonical_visual_records}),
+        "canonical_representative_template_count": len(canonical_visual_records),
         "canonical_template_count": sum(1 for record in records if record.migration_status == "canonical"),
         "catalog_default_visible_template_count": len(catalog_default_records),
         "default_visible_template_count": len(canonical_records(records)),
@@ -127,14 +131,15 @@ def build_manifest(
         "canonical_family_ontology": canonical_family_ontology(),
         "gallery_template_family_ontology": gallery_template_family_ontology(records),
         "template_surface_policy": {
-            "gallery_default_surface": "r_first_evidence_canonical_families_plus_design_shells",
-            "active_inventory_is_visual_canonical_only": True,
+            "gallery_default_surface": "all_r_ggplot2_evidence_templates",
+            "active_inventory_is_full_r_ggplot2_evidence_gallery": True,
+            "canonical_representatives_are_metadata_not_gallery_card_filter": True,
             "canonical_non_visual_inventory_preserved_in_manifest": True,
-            "migrated_alias_templates_hidden_from_default_cards": True,
+            "migrated_alias_templates_rendered_when_they_are_current_r_ggplot2_evidence": True,
             "explicit_alias_requests_migrate_to_canonical_template": True,
             "evidence_figures_default_to_r_ggplot2": True,
             "python_evidence_templates_not_retained_without_advantage_proof": True,
-            "python_illustration_shells_may_be_default_visible": True,
+            "python_illustration_shells_may_exist_but_are_not_mixed_into_ggplot2_evidence_gallery": True,
         },
         "templates": [
             _template_payload(

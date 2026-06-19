@@ -7,6 +7,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     TemplateRecord,
     canonical_family_wording,
     family_categories,
+    gallery_display_records,
     visual_gallery_records,
 )
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
@@ -48,21 +49,22 @@ def _render_html(
 
     default_style = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD
     palette = default_style["palette"]
-    visible_records = visual_gallery_records(records)
+    visible_records = gallery_display_records(records)
+    canonical_visual_records = visual_gallery_records(records)
     rendered_count = sum(1 for record in visible_records if rendered[record.template_id].status == "rendered")
     r_evidence_count = sum(
         1
         for record in visible_records
         if record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
     )
-    illustration_count = sum(1 for record in visible_records if record.kind == "illustration_shell")
     meta = (
         f'<span class="pill">style_profile_id: {html.escape(default_style["style_profile_id"])}</span>'
         f'<span class="pill">journal_palette_ref: {html.escape(default_style["journal_palette_ref"])}</span>'
         f'<span class="pill">gallery cards: {len(visible_records)}</span>'
-        f'<span class="pill">family policy: R-first evidence + design shells</span>'
+        f'<span class="pill">gallery scope: all R/ggplot2 evidence templates</span>'
         f'<span class="pill">R/ggplot2 evidence: {r_evidence_count}</span>'
-        f'<span class="pill">Python design shells: {illustration_count}</span>'
+        f'<span class="pill">Python evidence: 0</span>'
+        f'<span class="pill">canonical default representatives: {len(canonical_visual_records)}</span>'
         f'<span class="pill">rendered images: {rendered_count}</span>'
     )
     swatches = "".join(
@@ -125,7 +127,7 @@ def _render_html(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MAS Display Pack Canonical Gallery</title>
+<title>MAS Display Pack Evidence Gallery</title>
 <style>
 :root{{--ink:#272727;--muted:#666;--line:#e4e7eb;--bg:#f7f8fa;--card:#fff;}}
 *{{box-sizing:border-box}}
@@ -168,8 +170,8 @@ h1{{margin:0 0 8px;font-size:25px;letter-spacing:0}}
 </head>
 <body>
 <header>
-  <h1>MAS Display Pack Canonical Gallery</h1>
-  <div class="sub">默认展示 R/ggplot2 数据证据图和设计/流程类 composition shell；未证明优于 R/ggplot2 的 Python evidence 模板不进入当前 pack。</div>
+  <h1>MAS Display Pack Evidence Gallery</h1>
+  <div class="sub">默认展示全量 R/ggplot2 数据证据图；未证明优于 R/ggplot2 的 Python evidence 模板不进入当前 pack。设计/流程类 composition shell 不混入这份 ggplot2 evidence Gallery。</div>
   <div class="meta">{meta}</div>
   <div class="palette">{swatches}</div>
 </header>

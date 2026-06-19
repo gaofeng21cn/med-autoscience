@@ -119,6 +119,18 @@ def visual_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord
     ]
 
 
+def full_evidence_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return [
+        record
+        for record in records
+        if record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
+    ]
+
+
+def gallery_display_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return full_evidence_gallery_records(records)
+
+
 def non_visual_canonical_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
     return [
         record
@@ -129,7 +141,7 @@ def non_visual_canonical_records(records: list[TemplateRecord]) -> list[Template
 
 def family_categories(records: list[TemplateRecord]) -> dict[str, list[TemplateRecord]]:
     categories: dict[str, list[TemplateRecord]] = defaultdict(list)
-    for record in visual_gallery_records(records):
+    for record in gallery_display_records(records):
         categories[record.canonical_family_category].append(record)
     return categories
 
@@ -141,8 +153,8 @@ def figure_family_policy() -> dict[str, object]:
         "core_catalog_ref": CORE_MEDICAL_FIGURE_FAMILY_CATALOG_REF,
         "gallery_template_metadata_source": GALLERY_TEMPLATE_FAMILY_SOURCE,
         "core_catalog_dependency": "loaded_via_medical_figure_family_catalog_loader",
-        "default_gallery_surface": "r_first_evidence_canonical_families_plus_design_shells",
-        "alias_handling": "hidden_from_gallery_cards_preserved_in_migration_index",
+        "default_gallery_surface": "all_r_ggplot2_evidence_templates",
+        "alias_handling": "current_r_ggplot2_evidence_aliases_visible_in_full_gallery_and_mapped_in_migration_index",
         "non_visual_handling": "kept_in_manifest_inventory_hidden_from_image_gallery_cards",
         "renderer_policy": default_surface_renderer_policy(),
         "machine_boundary": "core_catalog_and_gallery_metadata_only_not_source_truth_statistical_truth_or_publication_readiness_authority",
