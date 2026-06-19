@@ -66,3 +66,14 @@ def test_completion_evidence_layers_do_not_satisfy_live_evidence_when_authority_
     assert layers["live_soak_or_no_active_caller"]["status"] == "evidence_required"
     assert layers["live_soak_or_no_active_caller"]["proven"] is False
     assert audit["live_soak_or_no_active_caller_proven"] is False
+    tails = {
+        item["surface_id"]: item
+        for item in layers["live_soak_or_no_active_caller"]["open_surface_tails"]
+    }
+    dispatch_tail = tails["domain_owner_action_dispatch"]
+    assert dispatch_tail["status"] == "evidence_required"
+    assert dispatch_tail["live_or_no_active_proven"] is False
+    assert (
+        "mas_owner_claim_allowed_not_false"
+        in dispatch_tail["surface_violation_reasons"]
+    )

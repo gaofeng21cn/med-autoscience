@@ -12,6 +12,7 @@ def completion_evidence_layers(
 ) -> dict[str, Any]:
     surfaces_by_id = {str(surface.get("surface_id")): surface for surface in open_surfaces}
     audits_by_id = {str(audit.get("surface_id")): audit for audit in surface_audits}
+    violation_reasons_by_id = _violation_reasons_by_surface(violations)
     required_refs = sorted(
         {
             ref
@@ -33,6 +34,7 @@ def completion_evidence_layers(
             surface_id,
             surfaces_by_id.get(surface_id, {}),
             audits_by_id.get(surface_id, {}),
+            surface_violation_reasons=violation_reasons_by_id.get(surface_id, ()),
         )
         for surface_id in blocked_surface_ids
     ]
@@ -150,9 +152,15 @@ def _open_surface_tail(
     surface_id: str,
     surface: Mapping[str, Any],
     audit: Mapping[str, Any],
+    *,
+    surface_violation_reasons: tuple[str, ...],
 ) -> dict[str, Any]:
     required_refs = _physical_delete_required_refs(surface)
-    live_or_no_active_proven = _surface_live_or_no_active_proven(surface, audit)
+    live_or_no_active_proven = (
+        False
+        if surface_violation_reasons
+        else _surface_live_or_no_active_proven(surface, audit)
+    )
     return {
         "surface_id": surface_id,
         "authority_status": audit.get("authority_status"),
@@ -166,6 +174,7 @@ def _open_surface_tail(
         "physical_delete_gate_open": audit.get("physical_delete_gate_open"),
         "physical_delete_allowed": audit.get("physical_delete_gate_open") is False,
         "forbidden_completion_interpretations": _forbidden_completion_interpretations(surface),
+        "surface_violation_reasons": list(surface_violation_reasons),
     }
 
 
@@ -248,6 +257,22 @@ def _nested_value(surface: Mapping[str, Any], path: tuple[str, ...]) -> Any:
     for key in path:
         value = value.get(key) if isinstance(value, Mapping) else None
     return value
+
+
+def _violation_reasons_by_surface(
+    violations: list[dict[str, str]],
+) -> dict[str, tuple[str, ...]]:
+    reasons_by_id: dict[str, set[str]] = {}
+    for violation in violations:
+        surface_id = _text(violation.get("surface_id"))
+        reason = _text(violation.get("reason"))
+        if surface_id is None or reason is None:
+            continue
+        reasons_by_id.setdefault(surface_id, set()).add(reason)
+    return {
+        surface_id: tuple(sorted(reasons))
+        for surface_id, reasons in reasons_by_id.items()
+    }
 
 
 def _forbidden_completion_interpretations(surface: Mapping[str, Any]) -> list[str]:
