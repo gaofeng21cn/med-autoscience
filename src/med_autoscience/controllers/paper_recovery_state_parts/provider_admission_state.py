@@ -87,11 +87,18 @@ def _has_opl_transition_boundary(value: Mapping[str, Any]) -> bool:
 
 def transition_request_pending(progress: Mapping[str, Any]) -> bool:
     candidates = _provider_admission_candidates(progress)
-    if any(_has_mas_transition_request(candidate) for candidate in candidates):
+    if any(
+        _has_mas_transition_request(candidate) and not _has_opl_transition_readback(candidate)
+        for candidate in candidates
+    ):
         return True
     current_work_unit = _mapping(progress.get("current_work_unit"))
     state = _mapping(current_work_unit.get("state"))
-    return bool(state.get("provider_admission_pending") is True and _has_mas_transition_request(current_work_unit))
+    return bool(
+        state.get("provider_admission_pending") is True
+        and _has_mas_transition_request(current_work_unit)
+        and not _has_opl_transition_readback(current_work_unit)
+    )
 
 
 def _has_mas_transition_request(value: Mapping[str, Any]) -> bool:
