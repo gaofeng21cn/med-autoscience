@@ -36,10 +36,7 @@ def test_domain_health_diagnostic_same_tick_treats_blocked_materialized_dispatch
         lambda **kwargs: {
             "surface": "domain_action_request_materializer",
             "request_task_count": 1,
-            "owner_callable_adapter_count": 1,
-            "ready_owner_callable_adapter_count": 0,
-            "blocked_owner_callable_adapter_count": 1,
-            "owner_callable_adapters": [
+            "domain_progress_transition_requests": [
                 {
                     "study_id": study_id,
                     "action_type": "return_to_ai_reviewer_workflow",
@@ -83,6 +80,7 @@ def test_domain_health_diagnostic_same_tick_treats_blocked_materialized_dispatch
     assert diagnostic["requires_dispatch_blocker_resolution"] is True
     assert diagnostic["dispatch_blocker_summary"] == {
         "blocked_owner_callable_adapter_count": 1,
+        "legacy_blocked_owner_callable_adapter_count": 0,
         "dispatch_blocked_count": 0,
         "blocked_reasons": ["owner_route_currentness_basis_missing"],
         "blocked_actions": ["return_to_ai_reviewer_workflow"],
@@ -140,9 +138,6 @@ def test_domain_health_diagnostic_dry_run_includes_recovery_materialization_prev
             "surface": "domain_action_request_materializer",
             "dry_run": True,
             "request_task_count": 1,
-            "owner_callable_adapter_count": 1,
-            "ready_owner_callable_adapter_count": 1,
-            "blocked_owner_callable_adapter_count": 0,
             "owner_callable_adapters": [
                 {
                     "study_id": study_id,
@@ -184,7 +179,11 @@ def test_domain_health_diagnostic_dry_run_includes_recovery_materialization_prev
     assert materialize_calls[0]["study_ids"] == (study_id,)
     assert materialize_calls[0]["dispatch_ready_for_execution"] is True
     assert report["domain_action_request_materialization_preview"]["request_task_count"] == 1
-    assert report["domain_action_request_materialization_preview"]["owner_callable_adapter_count"] == 1
+    assert "owner_callable_adapter_count" not in report["domain_action_request_materialization_preview"]
+    assert "owner_callable_adapters" not in report["domain_action_request_materialization_preview"]
+    assert report["domain_action_request_materialization_preview"][
+        "domain_progress_transition_request_count"
+    ] == 1
     assert report["materialization_preview_request_task_count"] == 1
     assert report["materialization_preview_transition_request_count"] == 1
     assert report["materialization_preview_transition_request_pending_count"] == 0
@@ -493,11 +492,7 @@ def test_domain_health_diagnostic_current_control_preserves_request_only_preview
             "surface": "domain_action_request_materializer",
             "dry_run": True,
             "request_task_count": 1,
-            "owner_callable_adapter_count": 1,
-            "ready_owner_callable_adapter_count": 0,
-            "blocked_owner_callable_adapter_count": 0,
-            "transition_request_pending_owner_callable_adapter_count": 1,
-            "owner_callable_adapters": [
+            "domain_progress_transition_requests": [
                 {
                     "study_id": study_id,
                     "quest_id": study_id,
@@ -1282,10 +1277,7 @@ def test_domain_health_diagnostic_same_tick_dispatch_consumes_materialize_payloa
     materialize_payload = {
         "surface": "domain_action_request_materializer",
         "request_task_count": 1,
-        "owner_callable_adapter_count": 1,
-        "ready_owner_callable_adapter_count": 1,
-        "blocked_owner_callable_adapter_count": 0,
-        "owner_callable_adapters": [
+        "domain_progress_transition_requests": [
             {
                 "study_id": study_id,
                 "action_type": "run_quality_repair_batch",
@@ -1335,10 +1327,13 @@ def test_domain_health_diagnostic_same_tick_dispatch_consumes_materialize_payloa
     assert len(captured_consumer_payloads) == 1
     assert captured_consumer_payloads[0]["surface"] == materialize_payload["surface"]
     assert captured_consumer_payloads[0]["request_task_count"] == 1
-    assert captured_consumer_payloads[0]["owner_callable_adapter_count"] == 1
-    assert captured_consumer_payloads[0]["ready_owner_callable_adapter_count"] == 1
-    assert captured_consumer_payloads[0]["owner_callable_adapters"] == (
-        materialize_payload["owner_callable_adapters"]
+    assert "owner_callable_adapter_count" not in captured_consumer_payloads[0]
+    assert "ready_owner_callable_adapter_count" not in captured_consumer_payloads[0]
+    assert "owner_callable_adapters" not in captured_consumer_payloads[0]
+    assert captured_consumer_payloads[0]["domain_progress_transition_request_count"] == 1
+    assert captured_consumer_payloads[0]["ready_domain_progress_transition_request_count"] == 1
+    assert captured_consumer_payloads[0]["domain_progress_transition_requests"] == (
+        materialize_payload["domain_progress_transition_requests"]
     )
     assert supervisor_tick["pass_count"] == 1
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["dispatch_execution_count"] == 1

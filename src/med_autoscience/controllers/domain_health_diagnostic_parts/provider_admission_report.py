@@ -170,6 +170,9 @@ def sync_report_provider_admission_current_control_state(
         report=report,
         current_control_state=current_control_state,
     )
+    transition_request_candidates = _merge_transition_request_candidates(
+        transition_request_candidates
+    )
     candidates = _filter_candidates_blocked_by_paper_recovery_state(
         [
             dict(item)
@@ -1011,6 +1014,32 @@ def _merge_provider_admission_candidates(
                 continue
             index_by_key[key] = len(merged)
             merged.append(dict(candidate))
+    return merged
+
+
+def _merge_transition_request_candidates(
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    index_by_key: dict[tuple[str | None, str | None, str | None, str | None], int] = {}
+    for candidate in candidates:
+        key = _transition_request_key(candidate)
+        if key in index_by_key:
+            existing_index = index_by_key[key]
+            existing = merged[existing_index]
+            if _provider_admission_identity_rank(candidate) > _provider_admission_identity_rank(existing):
+                merged[existing_index] = _merge_provider_admission_candidate_payloads(
+                    existing,
+                    candidate,
+                )
+            else:
+                merged[existing_index] = _merge_provider_admission_candidate_payloads(
+                    candidate,
+                    existing,
+                )
+            continue
+        index_by_key[key] = len(merged)
+        merged.append(dict(candidate))
     return merged
 
 

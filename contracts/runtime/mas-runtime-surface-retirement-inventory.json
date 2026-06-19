@@ -399,18 +399,23 @@
       "generic_runtime_owner": "one-person-lab",
       "legacy_projection_boundary": {
         "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "legacy_diagnostic_ref_helper": "owner_callable_adapter_projection.legacy_owner_callable_adapter_refs",
+        "legacy_public_body_reader_returns_active_carriers": false,
+        "legacy_public_body_reader_status": "retired_returns_empty",
+        "legacy_raw_body_reader_scope": "internal_projection_to_refs_only_diagnostics",
         "owner_callable_adapter_counts_authority": false,
         "owner_callable_adapter_item_can_create_success_outcome": false,
         "owner_callable_adapter_item_diagnostic_only": true,
         "owner_callable_adapter_item_readiness_authority": false,
         "owner_callable_adapter_list_can_create_success_outcome": false,
         "owner_callable_adapter_list_diagnostic_only": true,
-        "owner_callable_adapter_readiness_authority": false
+        "owner_callable_adapter_readiness_authority": false,
+        "refs_only_diagnostics_body_omitted": true
       },
       "mas_owner_claim_allowed": false,
       "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime readback",
       "retained_mas_role": "migration_diagnostic_projection_only",
-      "retention_reason": "temporary migration diagnostic projection only; active direct readback now suppresses top-level owner_callable_adapters and exposes canonical domain_progress_transition_requests while OPL live readback remains the physical retirement gate",
+      "retention_reason": "temporary migration diagnostic projection only; active direct readback now suppresses top-level owner_callable_adapters and exposes canonical domain_progress_transition_requests; the public owner_callable_adapters reader is retired as an active body carrier and legacy diagnostics are body-free refs from legacy_owner_callable_adapter_refs while OPL live readback remains the physical retirement gate",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,
@@ -421,8 +426,13 @@
       },
       "surface_id": "domain_action_request_materializer_owner_callable_adapter_projection",
       "verified_by": [
+        "tests/test_adapter_retirement_boundary.py::test_public_owner_callable_adapter_reader_is_not_active_carrier",
+        "tests/test_adapter_retirement_boundary.py::test_transition_request_counts_are_canonical_not_legacy_adapter_counts",
         "tests/test_domain_action_request_materializer.py::test_materialize_domain_action_requests_only_writes_current_owner_dispatch_for_route_epoch",
-        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py::test_current_default_dispatch_for_execution_marks_paper_recovery_callable_ready"
+        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_materialize_domain_action_requests_writes_quality_repair_request_to_canonical_requests_surface",
+        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
+        "tests/domain_action_request_materializer_cases/test_ai_reviewer_record_handoff.py::test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_forbidden_by_owner_reason",
+        "tests/domain_action_request_materializer_cases/test_ai_reviewer_record_handoff.py::test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_current_record"
       ]
     },
     {

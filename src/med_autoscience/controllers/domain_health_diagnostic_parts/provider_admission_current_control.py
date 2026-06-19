@@ -134,6 +134,9 @@ def materialize_provider_admission_current_control_state(
         for candidate in projection_candidates
         if _candidate_key(candidate) in transition_request_candidate_keys
     ]
+    transition_request_candidates = _merge_transition_request_candidates(
+        transition_request_candidates
+    )
     terminal_precedence_by_study = _terminal_precedence_by_study(scanned_studies)
     studies = [
         _study_with_terminal_precedence(
@@ -279,6 +282,41 @@ def _candidate_with_transition_request_pending_state(candidate: Mapping[str, Any
     payload["status"] = "transition_request_pending"
     payload["dispatch_status"] = "transition_request_pending"
     return payload
+
+
+def _merge_transition_request_candidates(
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    index_by_key: dict[tuple[str | None, ...], int] = {}
+    for candidate in candidates:
+        key = _candidate_key(candidate)
+        if key in index_by_key:
+            existing_index = index_by_key[key]
+            merged[existing_index] = _merge_candidate_payloads(
+                merged[existing_index],
+                candidate,
+            )
+            continue
+        index_by_key[key] = len(merged)
+        merged.append(dict(candidate))
+    return merged
+
+
+def _merge_candidate_payloads(
+    existing: Mapping[str, Any],
+    incoming: Mapping[str, Any],
+) -> dict[str, Any]:
+    merged = {**dict(existing), **dict(incoming)}
+    for key, value in existing.items():
+        if merged.get(key) in (None, "", [], {}):
+            merged[key] = value
+    for key, value in incoming.items():
+        if isinstance(value, Mapping):
+            base = _mapping(existing.get(key))
+            if base:
+                merged[key] = {**base, **dict(value)}
+    return merged
 
 
 def _arbiter_decision_retains_transition_request(decision: Mapping[str, Any]) -> bool:

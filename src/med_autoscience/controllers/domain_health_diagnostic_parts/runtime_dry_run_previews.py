@@ -7,6 +7,7 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
     adapter_count,
     adapter_status_count,
     domain_progress_transition_requests,
+    legacy_owner_callable_adapter_refs,
     transition_request_count,
     transition_request_status_count,
     with_owner_callable_adapter_projection,
@@ -115,7 +116,7 @@ def _attach_materialization_preview_to_managed_actions(
     if not isinstance(actions, list):
         return
     request_tasks_by_study = _items_by_study(_legacy_request_task_refs(preview))
-    legacy_adapters_by_study = _items_by_study(preview.get("owner_callable_adapters"))
+    legacy_adapters_by_study = _items_by_study(legacy_owner_callable_adapter_refs(preview))
     transition_requests_by_study = _items_by_study(domain_progress_transition_requests(preview))
     for index, action in enumerate(actions):
         if not isinstance(action, Mapping):

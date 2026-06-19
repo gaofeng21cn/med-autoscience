@@ -5,7 +5,7 @@ from typing import Any
 
 from med_autoscience.controllers.owner_callable_adapter_projection import (
     domain_progress_transition_requests,
-    owner_callable_adapters,
+    legacy_owner_callable_adapter_refs,
 )
 from med_autoscience.runtime_control.owner_callable_registry import owner_callable_registry
 
@@ -413,7 +413,7 @@ def _consumer_projection(consumed: Mapping[str, Any], study_id: str) -> dict[str
     ]
     legacy_dispatches = [
         _mapping(item)
-        for item in owner_callable_adapters(consumed)
+        for item in legacy_owner_callable_adapter_refs(consumed)
         if _text(_mapping(item).get("study_id")) == study_id
     ]
     return {

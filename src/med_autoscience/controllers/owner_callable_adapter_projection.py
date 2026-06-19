@@ -5,9 +5,12 @@ from typing import Any
 
 
 def owner_callable_adapters(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
-    adapters = payload.get("owner_callable_adapters")
-    if isinstance(adapters, list):
-        return [dict(item) for item in adapters if isinstance(item, Mapping)]
+    """Retired active body reader.
+
+    Top-level owner_callable_adapters is no longer a controller/readiness/action
+    carrier. Use domain_progress_transition_requests for active reads and
+    legacy_owner_callable_adapter_refs for migration diagnostics.
+    """
     return []
 
 
@@ -39,9 +42,10 @@ def adapter_count(payload: Mapping[str, Any]) -> int:
 
 
 def legacy_owner_callable_adapter_count(payload: Mapping[str, Any]) -> int:
-    if "owner_callable_adapter_count" in payload:
-        return _int_value(payload.get("owner_callable_adapter_count"))
-    return len(owner_callable_adapters(payload))
+    diagnostics = _mapping(payload.get("legacy_owner_callable_adapter_diagnostics"))
+    if "legacy_dispatch_count" in diagnostics:
+        return _int_value(diagnostics.get("legacy_dispatch_count"))
+    return len(legacy_owner_callable_adapter_refs(payload))
 
 
 def adapter_status_count(payload: Mapping[str, Any], status: str) -> int:
@@ -49,15 +53,48 @@ def adapter_status_count(payload: Mapping[str, Any], status: str) -> int:
 
 
 def legacy_owner_callable_adapter_status_count(payload: Mapping[str, Any], status: str) -> int:
-    key = f"{status}_owner_callable_adapter_count"
-    if key in payload:
-        return _int_value(payload.get(key))
-    return sum(_text(item.get("dispatch_status")) == status for item in owner_callable_adapters(payload))
+    diagnostics = _mapping(payload.get("legacy_owner_callable_adapter_diagnostics"))
+    diagnostic_key = f"legacy_{status}_count"
+    if diagnostic_key in diagnostics:
+        return _int_value(diagnostics.get(diagnostic_key))
+    return sum(
+        _text(item.get("dispatch_status")) == status
+        for item in legacy_owner_callable_adapter_refs(payload)
+    )
+
+
+def legacy_owner_callable_adapter_refs(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    diagnostics = _mapping(payload.get("legacy_owner_callable_adapter_diagnostics"))
+    diagnostic_refs = diagnostics.get("legacy_dispatch_refs")
+    if isinstance(diagnostic_refs, list):
+        return [dict(item) for item in diagnostic_refs if isinstance(item, Mapping)]
+    diagnostic_refs = diagnostics.get("legacy_dispatches")
+    if isinstance(diagnostic_refs, list):
+        return [dict(item) for item in diagnostic_refs if isinstance(item, Mapping)]
+    return [
+        _legacy_owner_callable_adapter_ref(item)
+        for item in _legacy_owner_callable_adapter_bodies(payload)
+    ]
 
 
 def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dict[str, Any]:
-    adapters = owner_callable_adapters(payload)
-    legacy_dispatch_refs = [_legacy_owner_callable_adapter_ref(item) for item in adapters]
+    adapters = _legacy_owner_callable_adapter_bodies(payload)
+    if adapters:
+        legacy_dispatch_refs = [_legacy_owner_callable_adapter_ref(item) for item in adapters]
+        legacy_ready_count = _status_count(adapters, "ready")
+        legacy_blocked_count = _status_count(adapters, "blocked")
+        legacy_transition_request_pending_count = _status_count(
+            adapters,
+            "transition_request_pending",
+        )
+    else:
+        legacy_dispatch_refs = legacy_owner_callable_adapter_refs(payload)
+        legacy_ready_count = _status_count(legacy_dispatch_refs, "ready")
+        legacy_blocked_count = _status_count(legacy_dispatch_refs, "blocked")
+        legacy_transition_request_pending_count = _status_count(
+            legacy_dispatch_refs,
+            "transition_request_pending",
+        )
     return {
         "surface": "legacy_owner_callable_adapter_diagnostics",
         "canonical_transition_request_surface": "domain_progress_transition_requests",
@@ -67,13 +104,10 @@ def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dic
         "can_create_success_outcome": False,
         "body_authority": False,
         "body_projection": False,
-        "legacy_dispatch_count": len(adapters),
-        "legacy_ready_count": _status_count(adapters, "ready"),
-        "legacy_blocked_count": _status_count(adapters, "blocked"),
-        "legacy_transition_request_pending_count": _status_count(
-            adapters,
-            "transition_request_pending",
-        ),
+        "legacy_dispatch_count": len(legacy_dispatch_refs),
+        "legacy_ready_count": legacy_ready_count,
+        "legacy_blocked_count": legacy_blocked_count,
+        "legacy_transition_request_pending_count": legacy_transition_request_pending_count,
         "legacy_payload_scope": "identity_refs_only",
         "legacy_dispatch_refs": legacy_dispatch_refs,
         "legacy_dispatches": legacy_dispatch_refs,
@@ -93,7 +127,7 @@ def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dic
 
 def with_owner_callable_adapter_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     projected = dict(payload)
-    adapters = owner_callable_adapters(projected)
+    adapters = _legacy_owner_callable_adapter_bodies(projected)
     transition_requests = domain_progress_transition_requests(projected)
     diagnostics = legacy_owner_callable_adapter_diagnostics(projected) if adapters else None
     for key in (
@@ -147,6 +181,13 @@ def _status_count(adapters: list[dict[str, Any]], status: str) -> int:
     return sum(_text(item.get("dispatch_status")) == status for item in adapters)
 
 
+def _legacy_owner_callable_adapter_bodies(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    adapters = payload.get("owner_callable_adapters")
+    if isinstance(adapters, list):
+        return [dict(item) for item in adapters if isinstance(item, Mapping)]
+    return []
+
+
 def _legacy_owner_callable_adapter_ref(adapter: Mapping[str, Any]) -> dict[str, Any]:
     refs = _mapping(adapter.get("refs"))
     source_action = _mapping(adapter.get("source_action"))
@@ -173,8 +214,15 @@ def _legacy_owner_callable_adapter_ref(adapter: Mapping[str, Any]) -> dict[str, 
         ),
         "dispatch_status": _text(adapter.get("dispatch_status")),
         "blocked_reason": _text(adapter.get("blocked_reason")),
+        "dispatch_authority": _text(adapter.get("dispatch_authority")),
+        "required_output_surface": _text(adapter.get("required_output_surface")),
         "target_runtime_owner": _text(adapter.get("target_runtime_owner")),
+        "dispatch_path": _text(adapter.get("dispatch_path")) or _text(refs.get("dispatch_path")),
         "dispatch_ref": _text(adapter.get("dispatch_path")) or _text(refs.get("dispatch_path")),
+        "transition_request_ref": (
+            _text(adapter.get("transition_request_ref"))
+            or _text(refs.get("transition_request_ref"))
+        ),
         "stage_packet_ref": _text(adapter.get("stage_packet_ref")) or _text(refs.get("stage_packet_ref")),
         "stage_packet_refs": adapter.get("stage_packet_refs") or refs.get("stage_packet_refs"),
     }
@@ -203,6 +251,7 @@ __all__ = [
     "domain_progress_transition_requests",
     "legacy_owner_callable_adapter_count",
     "legacy_owner_callable_adapter_diagnostics",
+    "legacy_owner_callable_adapter_refs",
     "legacy_owner_callable_adapter_status_count",
     "owner_callable_adapters",
     "transition_request_count",

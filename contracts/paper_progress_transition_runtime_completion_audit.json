@@ -314,7 +314,7 @@
       "correct_owner": "MAS/OPL",
       "target": "Delete or tombstone MAS private kernel, alias, selector/materializer authority, and local runtime-like surfaces.",
       "status": "partial",
-      "completion_percent": 79,
+      "completion_percent": 80,
       "evidence": [
         "MAS runtime-health local append API is retired.",
         "Runtime surface inventory tracks remaining private surface tails.",
@@ -330,7 +330,8 @@
         "runtime_lifecycle_payload_retention apply and sqlite sidecar repair now require OPL runtime lifecycle maintenance authorization proof bound to operation, maintenance surface, db_path, authorized outcome, and authorization_ref; missing proof returns stable typed blocker shape and does not mutate SQLite/cold objects/sidecars.",
         "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention/capsule projections remain non-authority.",
         "runtime_surface_retirement_no_authority_audit derives repo-wide no-authority status from the retirement inventory and classifies runtime lifecycle/storage maintenance as OPL-authorized adapters, not MAS private runtime authority.",
-        "Legacy default_executor_dispatch_request now has a machine-readable legacy_source_contamination_boundary: polluted source claims for MAS dispatch authority, OPL event/outbox/StageRun writes, or provider_admission_pending must remain diagnostic-only; receipt projections must force authority and provider-admission flags false, and runtime_surface_retirement rejects regressions that let polluted carrier payloads authorize provider admission or satisfy OPL readback."
+        "Legacy default_executor_dispatch_request now has a machine-readable legacy_source_contamination_boundary: polluted source claims for MAS dispatch authority, OPL event/outbox/StageRun writes, or provider_admission_pending must remain diagnostic-only; receipt projections must force authority and provider-admission flags false, and runtime_surface_retirement rejects regressions that let polluted carrier payloads authorize provider admission or satisfy OPL readback.",
+        "owner_callable_adapter_projection.owner_callable_adapters is retired as an active body reader; current consumers must read domain_progress_transition_requests, and legacy diagnostics can only read body-free identity refs via legacy_owner_callable_adapter_refs / legacy_owner_callable_adapter_diagnostics."
       ],
       "open_gap": "Remaining live dispatcher soak/no-active-caller proof, DHD obligation actuator physical retirement, domain_authority_refs_index live OPL StateIndexKernel takeover or no-active-replay/local-inspection-caller physical delete proof, OPL cleanup/retention policy live takeover for runtime lifecycle payload retention, OPL storage policy live takeover for runtime_storage_maintenance, and full legacy carrier physical delete evidence still require closeout; default legacy latest fallback retirement, legacy carrier StageRun ABI/provenance no-authority proof, request_tasks alias retirement, OPL-family adoption source-adapter manifest consumption, runtime_lifecycle/runtime_storage apply gating, and runtime-surface no-authority guards are repo-level authority-boundary cleanup, not OPL live takeover or physical retirement of every legacy carrier."
     },

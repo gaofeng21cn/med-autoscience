@@ -241,8 +241,10 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert owner_callable_projection["canonical_surface"] == "domain_progress_transition_requests"
     assert owner_callable_projection["retention_reason"] == (
         "temporary migration diagnostic projection only; active direct readback now suppresses top-level "
-        "owner_callable_adapters and exposes canonical domain_progress_transition_requests while OPL live "
-        "readback remains the physical retirement gate"
+        "owner_callable_adapters and exposes canonical domain_progress_transition_requests; the public "
+        "owner_callable_adapters reader is retired as an active body carrier and legacy diagnostics are "
+        "body-free refs from legacy_owner_callable_adapter_refs while OPL live readback remains the physical "
+        "retirement gate"
     )
     assert owner_callable_projection["retirement_gate"] == {
         "active_caller_alone_retains_surface": False,
@@ -254,6 +256,12 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     }
     assert owner_callable_projection["legacy_projection_boundary"] == {
         "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "legacy_diagnostic_ref_helper": (
+            "owner_callable_adapter_projection.legacy_owner_callable_adapter_refs"
+        ),
+        "legacy_public_body_reader_returns_active_carriers": False,
+        "legacy_public_body_reader_status": "retired_returns_empty",
+        "legacy_raw_body_reader_scope": "internal_projection_to_refs_only_diagnostics",
         "owner_callable_adapter_counts_authority": False,
         "owner_callable_adapter_item_can_create_success_outcome": False,
         "owner_callable_adapter_item_diagnostic_only": True,
@@ -261,6 +269,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "owner_callable_adapter_list_can_create_success_outcome": False,
         "owner_callable_adapter_list_diagnostic_only": True,
         "owner_callable_adapter_readiness_authority": False,
+        "refs_only_diagnostics_body_omitted": True,
     }
     assert "ready_owner_callable_adapter_count_as_provider_admission" in owner_callable_projection[
         "forbidden_claims"
@@ -271,12 +280,32 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "legacy_caller_exists" not in owner_callable_projection["retention_reason"]
     assert owner_callable_projection["verified_by"] == [
         (
+            "tests/test_adapter_retirement_boundary.py::"
+            "test_public_owner_callable_adapter_reader_is_not_active_carrier"
+        ),
+        (
+            "tests/test_adapter_retirement_boundary.py::"
+            "test_transition_request_counts_are_canonical_not_legacy_adapter_counts"
+        ),
+        (
             "tests/test_domain_action_request_materializer.py::"
             "test_materialize_domain_action_requests_only_writes_current_owner_dispatch_for_route_epoch"
         ),
         (
-            "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py::"
-            "test_current_default_dispatch_for_execution_marks_paper_recovery_callable_ready"
+            "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::"
+            "test_materialize_domain_action_requests_writes_quality_repair_request_to_canonical_requests_surface"
+        ),
+        (
+            "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::"
+            "test_canonical_transition_request_projection_carries_dispatcher_boundary_fields"
+        ),
+        (
+            "tests/domain_action_request_materializer_cases/test_ai_reviewer_record_handoff.py::"
+            "test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_forbidden_by_owner_reason"
+        ),
+        (
+            "tests/domain_action_request_materializer_cases/test_ai_reviewer_record_handoff.py::"
+            "test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_current_record"
         ),
     ]
 
@@ -1428,6 +1457,30 @@ def test_owner_callable_projection_does_not_accept_legacy_dispatch_alias() -> No
         },
         "ready",
     ) == 0
+    assert projection.adapter_count(
+        {
+            "owner_callable_adapter_count": 7,
+            "ready_owner_callable_adapter_count": 6,
+        }
+    ) == 0
+    assert projection.adapter_status_count(
+        {
+            "owner_callable_adapter_count": 7,
+            "ready_owner_callable_adapter_count": 6,
+        },
+        "ready",
+    ) == 0
+    assert projection.legacy_owner_callable_adapter_count(
+        {
+            "legacy_owner_callable_adapter_diagnostics": {
+                "legacy_dispatch_count": 2,
+                "legacy_dispatch_refs": [
+                    {"dispatch_status": "ready"},
+                    {"dispatch_status": "blocked"},
+                ],
+            }
+        }
+    ) == 2
     assert projection.domain_progress_transition_requests(
         {
             "default_executor_dispatches": [
@@ -1460,10 +1513,17 @@ def test_transition_request_counts_are_canonical_not_legacy_adapter_counts() -> 
     projection = importlib.import_module("med_autoscience.controllers.owner_callable_adapter_projection")
 
     payload = {
-        "owner_callable_adapter_count": 99,
-        "ready_owner_callable_adapter_count": 88,
         "owner_callable_adapters": [
-            {"dispatch_status": "ready", "action_type": "legacy_ready"},
+            {
+                "study_id": "study-1",
+                "dispatch_status": "ready",
+                "action_type": "legacy_ready",
+                "dispatch_authority": "ai_reviewer_record_production_handoff",
+                "source_action": {
+                    "work_unit_id": "legacy-body-work",
+                    "work_unit_fingerprint": "legacy-body-fingerprint",
+                },
+            },
         ],
         "domain_progress_transition_requests": [
             {
@@ -1483,8 +1543,9 @@ def test_transition_request_counts_are_canonical_not_legacy_adapter_counts() -> 
         ],
     }
 
-    assert projection.legacy_owner_callable_adapter_count(payload) == 99
-    assert projection.legacy_owner_callable_adapter_status_count(payload, "ready") == 88
+    assert projection.owner_callable_adapters(payload) == []
+    assert projection.legacy_owner_callable_adapter_count(payload) == 1
+    assert projection.legacy_owner_callable_adapter_status_count(payload, "ready") == 1
     assert projection.adapter_count(payload) == projection.legacy_owner_callable_adapter_count(payload)
     assert projection.adapter_status_count(
         payload,
@@ -1511,8 +1572,12 @@ def test_transition_request_counts_are_canonical_not_legacy_adapter_counts() -> 
         {
             "diagnostic_ref_only": True,
             "payload_body_omitted": True,
+            "study_id": "study-1",
             "action_type": "legacy_ready",
+            "work_unit_id": "legacy-body-work",
+            "work_unit_fingerprint": "legacy-body-fingerprint",
             "dispatch_status": "ready",
+            "dispatch_authority": "ai_reviewer_record_production_handoff",
         }
     ]
     assert diagnostics["legacy_dispatch_refs"] == diagnostics["legacy_dispatches"]
@@ -1554,6 +1619,8 @@ def test_owner_callable_projection_requires_canonical_transition_request_surface
     }
 
     assert projection.domain_progress_transition_requests(legacy_payload) == []
+    assert projection.owner_callable_adapters(legacy_payload) == []
+    assert projection.legacy_owner_callable_adapter_count(legacy_payload) == 1
     assert projection.with_owner_callable_adapter_projection(legacy_payload)[
         "domain_progress_transition_request_count"
     ] == 0
@@ -1607,6 +1674,51 @@ def test_owner_callable_projection_requires_canonical_transition_request_surface
     assert "owner_callable_adapter_list_diagnostic_only" not in projected
     assert "owner_callable_adapter_count" not in projected
     assert "owner_callable_adapters" not in projected
+
+
+def test_public_owner_callable_adapter_reader_is_not_active_carrier() -> None:
+    projection = importlib.import_module("med_autoscience.controllers.owner_callable_adapter_projection")
+
+    payload = {
+        "owner_callable_adapters": [
+            {
+                "study_id": "study-1",
+                "action_type": "run_quality_repair_batch",
+                "dispatch_status": "ready",
+                "dispatch_authority": "ai_reviewer_record_production_handoff",
+                "source_action": {
+                    "work_unit_id": "legacy-work",
+                    "work_unit_fingerprint": "legacy-fingerprint",
+                },
+                "owner_route": {"next_owner": "write"},
+                "prompt_contract": {"action_type": "run_quality_repair_batch"},
+                "opl_domain_progress_transition_request": {
+                    "surface_kind": "mas_domain_progress_transition_request",
+                },
+            }
+        ]
+    }
+
+    assert projection.owner_callable_adapters(payload) == []
+    assert projection.adapter_count(payload) == 1
+    assert projection.adapter_status_count(payload, "ready") == 1
+    refs = projection.legacy_owner_callable_adapter_refs(payload)
+    assert refs == [
+        {
+            "diagnostic_ref_only": True,
+            "payload_body_omitted": True,
+            "study_id": "study-1",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "legacy-work",
+            "work_unit_fingerprint": "legacy-fingerprint",
+            "dispatch_status": "ready",
+            "dispatch_authority": "ai_reviewer_record_production_handoff",
+        }
+    ]
+    assert "owner_route" not in refs[0]
+    assert "prompt_contract" not in refs[0]
+    assert "source_action" not in refs[0]
+    assert "opl_domain_progress_transition_request" not in refs[0]
 
 
 def test_materializer_canonical_projection_preserves_strong_identity_without_legacy_body() -> None:

@@ -9,6 +9,9 @@ from med_autoscience.controllers import real_paper_autonomy_soak_inventory
 from med_autoscience.controllers import real_workspace_soak_monitor
 from med_autoscience.controllers import domain_action_request_materializer
 from med_autoscience.controllers import domain_owner_action_dispatch
+from med_autoscience.controllers.owner_callable_adapter_projection import (
+    legacy_owner_callable_adapter_refs,
+)
 from med_autoscience.controllers import owner_route_reconcile
 from med_autoscience.controllers import workspace_monolith_migration
 from med_autoscience.profiles import WorkspaceProfile, load_profile
@@ -326,7 +329,7 @@ def _resolve_study_ids(
     for item in _sequence(request_task_diagnostics.get("legacy_request_task_refs")):
         if isinstance(item, Mapping) and (study_id := _text(item.get("study_id"))) is not None:
             resolved.append(study_id)
-    for item in _sequence(consumed.get("owner_callable_adapters")):
+    for item in legacy_owner_callable_adapter_refs(consumed):
         if isinstance(item, Mapping) and (study_id := _text(item.get("study_id"))) is not None:
             resolved.append(study_id)
     for execution in _sequence(executed.get("executions")):
