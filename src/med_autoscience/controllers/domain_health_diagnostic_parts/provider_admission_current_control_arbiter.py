@@ -809,8 +809,10 @@ def _request_only_transition_can_bypass_paper_recovery_block(
         return False
     next_safe_action = _mapping(block.get("next_safe_action"))
     if _non_empty_text(next_safe_action.get("kind")) == "materialize_successor_owner_action":
-        successor = _mapping(next_safe_action.get("successor_owner_action"))
-        return bool(successor) and _identity_matches(successor, identity=candidate)
+        return any(
+            _identity_matches(source, identity=candidate)
+            for source in _recovery_successor_identity_sources(block)
+        )
     return _provider_admission_candidate_materializes_recovery_action(
         candidate,
         recovery=block,
@@ -954,7 +956,10 @@ def _paper_recovery_state_blocks_provider_admission(
         identity
     ) and _request_only_transition_matches_recovery_successor(
         identity,
-        recovery=recovery,
+        recovery={
+            **dict(recovery),
+            "current_work_unit": _mapping(study.get("current_work_unit")),
+        },
     ):
         return {}
     if _non_empty_text(recovery.get("phase")) == "admission_pending" and (
@@ -996,7 +1001,37 @@ def _request_only_transition_matches_recovery_successor(
     if _non_empty_text(next_safe_action.get("kind")) != "materialize_successor_owner_action":
         return False
     successor = _mapping(next_safe_action.get("successor_owner_action"))
-    return bool(successor and _identity_matches(successor, identity=identity))
+    if successor:
+        return _identity_matches(successor, identity=identity)
+    return any(
+        _identity_matches(source, identity=identity)
+        for source in _recovery_successor_identity_sources(recovery)
+    )
+
+
+def _recovery_successor_identity_sources(recovery: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    sources: list[Mapping[str, Any]] = []
+    successor = _mapping(next_safe_action.get("successor_owner_action"))
+    if successor:
+        sources.append(successor)
+    current_work_unit = _mapping(recovery.get("current_work_unit"))
+    if current_work_unit:
+        sources.append(current_work_unit)
+    recovery_identity = {
+        "action_type": _non_empty_text(recovery.get("action_type"))
+        or _non_empty_text(next_safe_action.get("action_type")),
+        "work_unit_id": _non_empty_text(recovery.get("work_unit_id"))
+        or _non_empty_text(next_safe_action.get("work_unit_id"))
+        or _non_empty_text(next_safe_action.get("next_work_unit")),
+        "work_unit_fingerprint": _non_empty_text(recovery.get("work_unit_fingerprint"))
+        or _non_empty_text(next_safe_action.get("work_unit_fingerprint"))
+        or _non_empty_text(recovery.get("action_fingerprint"))
+        or _non_empty_text(next_safe_action.get("action_fingerprint")),
+    }
+    if any(recovery_identity.values()):
+        sources.append(recovery_identity)
+    return sources
 
 
 def _provider_admission_candidate_materializes_recovery_action(
