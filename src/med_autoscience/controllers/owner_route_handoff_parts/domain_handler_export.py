@@ -318,6 +318,19 @@ def _pending_family_tasks(
                 if supervisor_request_task is not None:
                     tasks.append(supervisor_request_task)
                 tasks.append(resolution_task)
+                continue
+            if _ordinary_blocker_allows_owner_route_handoff(
+                ordinary_task_blocker=ordinary_task_blocker,
+                current_progress=current_progress,
+            ):
+                handoff_task = owner_route_handoff_task(
+                    study=study,
+                    profile=profile,
+                    profile_ref=profile_ref,
+                    study_id=study_id,
+                )
+                if handoff_task is not None:
+                    tasks.append(handoff_task)
             continue
         current_work_unit = mapping(current_progress.get("current_work_unit"))
         current_execution_envelope = _export_current_execution_envelope(
@@ -762,6 +775,26 @@ def _ordinary_pending_tasks_blocked_status(status: str | None) -> bool:
         "blocked_typed_owner",
         "parked",
     }
+
+
+def _ordinary_blocker_allows_owner_route_handoff(
+    *,
+    ordinary_task_blocker: Mapping[str, Any],
+    current_progress: Mapping[str, Any],
+) -> bool:
+    if text(ordinary_task_blocker.get("source")) != "current_work_unit":
+        return False
+    if text(ordinary_task_blocker.get("state_kind")) != "blocked_current_work_unit":
+        return False
+    current_work_unit = mapping(current_progress.get("current_work_unit"))
+    current_work_unit_state = mapping(current_work_unit.get("state"))
+    if text(current_work_unit_state.get("blocker_type")) != "current_work_unit_unresolved":
+        return False
+    return not (
+        text(current_work_unit.get("work_unit_id"))
+        or text(current_work_unit.get("work_unit_fingerprint"))
+        or text(current_work_unit.get("action_fingerprint"))
+    )
 
 
 def _current_typed_blocker_owner_resolution_task(
