@@ -22,6 +22,7 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 
 - [Portfolio consolidation](./portfolio/medical_display_portfolio_consolidation.md)
 - [Active board](./board/medical_display_active_board.md)
+- [医学图型家族体系指南](./medical_figure_family_system.md)
 - [Display Pack v2 landing status](./contracts/display_pack_v2_landing_status.md)
 - [Display Pack renderer migration assessment](./plans/display_pack_renderer_migration_assessment.md)
 - [Platform mainline](./contracts/medical_display_platform_mainline.md)
