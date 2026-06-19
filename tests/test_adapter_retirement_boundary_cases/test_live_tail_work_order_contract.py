@@ -116,6 +116,27 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
     } <= forbidden
 
 
+def test_live_tail_contract_rejects_undeclared_concrete_evidence_ref_fields() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+    )
+    contract = _contract()
+    audit = _audit()
+    bad_contract = json.loads(json.dumps(contract))
+    schema = bad_contract["completion_claim_boundary"]["evidence_record_schema"]
+    schema["optional_fields"].remove("evidence_refs")
+
+    violations = work_orders.validate_live_tail_work_order_contract(
+        bad_contract,
+        audit,
+    )
+
+    assert {
+        "surface_id": "<contract>",
+        "reason": "undeclared_concrete_evidence_ref_fields",
+    } in violations
+
+
 def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None:
     work_orders = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"

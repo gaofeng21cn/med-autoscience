@@ -226,6 +226,8 @@ Forbidden interpretation: a live-tail record that only names an accepted ref fam
 
 Schema note: `evidence_refs` is an explicit optional evidence-record field and one of the accepted concrete proof fields. Evidence producers must not rely on an undeclared implicit payload key to satisfy live-tail work orders.
 
+Validator note: concrete proof fields must be declared as required or optional evidence-record fields. The contract validator rejects undeclared concrete proof fields so producers cannot satisfy live-tail work orders through hidden payload keys.
+
 ## live_runtime_gap_concrete_evidence_refs
 
 Disposition: `fail_closed_live_evidence_intake_guard`
@@ -235,3 +237,5 @@ Replacement: `contracts/runtime/mas-live-runtime-gap-work-orders.json` requires 
 Retained MAS role: MAS may still publish owner receipt, typed blocker, human gate and route-back refs as concrete evidence inputs; OPL-owned runtime gap evidence must provide concrete command/event/outbox/StageRun/provider-admission/readback refs.
 
 Forbidden interpretation: an OPL outbox, StageRun, provider-admission, DHD apply, paper-line or route-back evidence record that only names an accepted ref family cannot satisfy live-runtime readiness. Missing concrete refs remain `typed_blocker_required`.
+
+Validator note: concrete proof fields must be declared as required or optional evidence-record fields. The contract validator rejects undeclared concrete proof fields so producers cannot satisfy live-runtime gap work orders through hidden payload keys.

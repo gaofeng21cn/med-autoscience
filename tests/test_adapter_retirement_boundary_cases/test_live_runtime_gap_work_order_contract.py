@@ -214,6 +214,27 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
     assert non_forbidden_word_boundary["forbidden_claim_terms_present"] == []
 
 
+def test_live_runtime_gap_contract_rejects_undeclared_concrete_evidence_ref_fields() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+    )
+    completion = _completion_audit()
+    contract = _contract()
+    bad_contract = json.loads(json.dumps(contract))
+    schema = bad_contract["completion_claim_boundary"]["evidence_record_schema"]
+    schema["optional_fields"].remove("evidence_refs")
+
+    violations = work_orders.validate_live_runtime_gap_work_order_contract(
+        bad_contract,
+        completion,
+    )
+
+    assert {
+        "gap_id": "<contract>",
+        "reason": "undeclared_concrete_evidence_ref_fields",
+    } in violations
+
+
 def test_live_runtime_gap_evidence_requires_concrete_authority_outcome_ref() -> None:
     work_orders = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"

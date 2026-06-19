@@ -117,6 +117,8 @@ def validate_live_runtime_gap_work_order_contract(
         CONCRETE_EVIDENCE_REF_FIELDS
     ):
         violations.append(_violation("<contract>", "concrete_evidence_ref_fields_mismatch"))
+    if _undeclared_concrete_evidence_ref_fields(schema):
+        violations.append(_violation("<contract>", "undeclared_concrete_evidence_ref_fields"))
     if schema.get("missing_concrete_evidence_ref_status") != "typed_blocker_required":
         violations.append(_violation("<contract>", "missing_concrete_evidence_ref_status"))
     if schema.get("accepted_family_without_concrete_ref_can_satisfy_work_order") is not False:
@@ -422,6 +424,17 @@ def _has_concrete_evidence_ref(value: Any) -> bool:
     if isinstance(value, list):
         return any(_text(item) is not None for item in value)
     return _text(value) is not None
+
+
+def _undeclared_concrete_evidence_ref_fields(schema: Mapping[str, Any]) -> list[str]:
+    declared_fields = set(_text_list(schema.get("required_fields"))) | set(
+        _text_list(schema.get("optional_fields"))
+    )
+    return [
+        field
+        for field in _text_list(schema.get("concrete_evidence_ref_fields"))
+        if field not in declared_fields
+    ]
 
 
 def _missing_authority_outcome_ref_families(
