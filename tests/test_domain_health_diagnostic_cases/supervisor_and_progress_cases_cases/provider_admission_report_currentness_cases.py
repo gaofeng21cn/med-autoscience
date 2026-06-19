@@ -837,6 +837,46 @@ def test_domain_health_diagnostic_retains_owner_gate_transition_request_over_acc
                 "reason": "stage_packet_not_current_selected_dispatch",
             },
         }
+        paper_recovery_state = {
+            "surface_kind": "paper_recovery_state",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "phase": "admission_pending",
+            "current_authority": {
+                "owner": "one-person-lab",
+                "obligation": {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "one-person-lab",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+            "conditions": [
+                {
+                    "condition": "accepted_owner_gate_decision",
+                    "decision": "admit_identity_bound_stage_packet",
+                },
+            ],
+            "next_safe_action": {
+                "kind": "admit_identity_bound_stage_packet",
+                "owner": "one-person-lab",
+                "provider_admission_allowed": True,
+            },
+            "evidence_refs": [
+                "owner-gate-decision:owner-gate-current",
+                dispatch_refs["stage_packet_ref"],
+            ],
+            "supervisor_decision": {
+                "decision": "stop_with_stable_typed_blocker",
+                "next_safe_action": {
+                    "kind": "consume_opl_supervisor_decision_readback",
+                    "provider_admission_allowed": False,
+                },
+            },
+        }
         return {
             "schema_version": 1,
             "scanned_at": "2026-06-19T17:45:00+00:00",
@@ -876,6 +916,7 @@ def test_domain_health_diagnostic_retains_owner_gate_transition_request_over_acc
                                 "work_unit_fingerprint": fingerprint,
                             },
                         },
+                        "paper_recovery_state": paper_recovery_state,
                         "current_executable_owner_action": {
                             "surface_kind": "current_executable_owner_action",
                             "schema_version": 1,
@@ -900,39 +941,6 @@ def test_domain_health_diagnostic_retains_owner_gate_transition_request_over_acc
                             },
                         },
                         "transition_request_candidates": [candidate],
-                        "paper_recovery_state": {
-                            "surface_kind": "paper_recovery_state",
-                            "phase": "admission_pending",
-                            "study_id": study_id,
-                            "quest_id": study_id,
-                            "action_type": "run_gate_clearing_batch",
-                            "work_unit_id": work_unit_id,
-                            "work_unit_fingerprint": fingerprint,
-                            "current_authority": {
-                                "obligation": {
-                                    "study_id": study_id,
-                                    "quest_id": study_id,
-                                    "action_type": "run_gate_clearing_batch",
-                                    "work_unit_id": work_unit_id,
-                                    "work_unit_fingerprint": fingerprint,
-                                }
-                            },
-                            "next_safe_action": {
-                                "kind": "admit_identity_bound_stage_packet",
-                                "owner": "one-person-lab",
-                                "provider_admission_allowed": True,
-                            },
-                            "conditions": [
-                                {
-                                    "condition": "accepted_owner_gate_decision",
-                                    "decision": "admit_identity_bound_stage_packet",
-                                }
-                            ],
-                            "evidence_refs": [
-                                "owner-gate-decision:0863b0b9a2d94867284fa160",
-                                str(dispatch_refs["stage_packet_ref"]),
-                            ],
-                        },
                         "accepted_closeout_evidence": [accepted_closeout],
                         "current_execution_envelope": {
                             "state_kind": "executable_owner_action",
