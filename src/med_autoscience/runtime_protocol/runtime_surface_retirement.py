@@ -933,6 +933,7 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     live_owner_consumption_soak = surface.get("live_owner_consumption_soak_boundary")
     obligation_tail = surface.get("opl_obligation_actuator_tail_readback")
     runtime_health_tail = surface.get("opl_runtime_health_observability_tail_readback")
+    materializer_tail = surface.get("opl_materializer_projection_tail_readback")
     workbench_tail = surface.get("opl_workbench_shell_readback_tail")
     lifecycle_maintenance_tail = surface.get("opl_runtime_lifecycle_maintenance_tail_readback")
     storage_maintenance_tail = surface.get("opl_runtime_storage_maintenance_tail_readback")
@@ -1088,6 +1089,32 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             len(runtime_health_tail.get("required_active_caller_readbacks"))
             if isinstance(runtime_health_tail, Mapping)
             and isinstance(runtime_health_tail.get("required_active_caller_readbacks"), list)
+            else None
+        ),
+        "materializer_projection_tail_status": (
+            materializer_tail.get("status")
+            if isinstance(materializer_tail, Mapping)
+            else None
+        ),
+        "materializer_projection_tail_readback_proven": (
+            materializer_tail.get("tail_readback_proven")
+            if isinstance(materializer_tail, Mapping)
+            else None
+        ),
+        "materializer_projection_no_active_caller_proven": (
+            materializer_tail.get("no_active_materializer_projection_caller_proven")
+            if isinstance(materializer_tail, Mapping)
+            else None
+        ),
+        "materializer_projection_physical_delete_allowed": (
+            materializer_tail.get("physical_delete_allowed")
+            if isinstance(materializer_tail, Mapping)
+            else None
+        ),
+        "materializer_projection_required_active_caller_readback_count": (
+            len(materializer_tail.get("required_active_caller_readbacks"))
+            if isinstance(materializer_tail, Mapping)
+            and isinstance(materializer_tail.get("required_active_caller_readbacks"), list)
             else None
         ),
         "workbench_tail_status": (
@@ -1291,6 +1318,7 @@ def _physical_delete_gate_open(surface: Mapping[str, Any]) -> bool:
         or gate.get("live_opl_cleanup_policy_takeover_required")
         or gate.get("live_opl_storage_policy_takeover_required")
         or gate.get("owner_retirement_decision_required")
+        or gate.get("opl_materializer_projection_tail_readback_required")
         or gate.get("opl_workbench_shell_readback_required")
     )
 

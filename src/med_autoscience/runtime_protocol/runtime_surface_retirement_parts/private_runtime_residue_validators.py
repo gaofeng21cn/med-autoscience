@@ -52,6 +52,7 @@ def _validate_materializer_owner_callable_adapter_projection(
     for key, expected in expected_values.items():
         if boundary.get(key) != expected:
             violations.append(_violation(surface_id, f"materializer_owner_adapter_boundary_mismatch:{key}"))
+    violations.extend(_validate_materializer_projection_tail_readback(surface_id, surface))
     return violations
 
 
@@ -86,6 +87,7 @@ def _validate_materializer_request_tasks_projection(
     for key, expected in expected_values.items():
         if boundary.get(key) != expected:
             violations.append(_violation(surface_id, f"materializer_request_tasks_boundary_mismatch:{key}"))
+    violations.extend(_validate_materializer_projection_tail_readback(surface_id, surface))
     return violations
 
 
@@ -165,6 +167,82 @@ def _validate_materializer_canonical_transition_request_body_projection(
     }
     if not isinstance(omitted_body_fields, list) or required_omitted_fields != {str(item) for item in omitted_body_fields}:
         violations.append(_violation(surface_id, "materializer_transition_request_omitted_bodies_mismatch"))
+    violations.extend(_validate_materializer_projection_tail_readback(surface_id, surface))
+    return violations
+
+
+def _validate_materializer_projection_tail_readback(
+    surface_id: str,
+    surface: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    tail = surface.get("opl_materializer_projection_tail_readback")
+    if not isinstance(tail, Mapping):
+        return [*violations, _violation(surface_id, "materializer_projection_missing_tail_readback")]
+    if tail.get("surface_kind") != "opl_materializer_projection_tail_readback_requirement":
+        violations.append(_violation(surface_id, "materializer_projection_tail_kind_invalid"))
+    if tail.get("runtime_owner") != "one-person-lab":
+        violations.append(_violation(surface_id, "materializer_projection_tail_owner_not_opl"))
+    if tail.get("runtime_kind") != "OPL DomainProgressTransitionRuntime/StageRun":
+        violations.append(_violation(surface_id, "materializer_projection_tail_runtime_kind_invalid"))
+    required_readbacks = {
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_stagerun_owner_callable_adapter_readback",
+    }
+    active_readbacks = tail.get("required_active_caller_readbacks")
+    if not isinstance(active_readbacks, list) or not required_readbacks <= {
+        str(item) for item in active_readbacks
+    }:
+        violations.append(_violation(surface_id, "materializer_projection_tail_active_readbacks_incomplete"))
+    required_tail_refs = {
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_stagerun_owner_callable_adapter_readback",
+        "no_active_materializer_projection_caller_scan",
+        "no_forbidden_write_proof",
+        "replacement_parity_ref",
+        "tombstone_or_provenance_ref",
+    }
+    physical_tail_requires = tail.get("physical_delete_requires")
+    if not isinstance(physical_tail_requires, list) or not required_tail_refs <= {
+        str(item) for item in physical_tail_requires
+    }:
+        violations.append(_violation(surface_id, "materializer_projection_tail_physical_delete_refs_incomplete"))
+    if tail.get("tail_readback_proven") is not False:
+        violations.append(_violation(surface_id, "materializer_projection_tail_must_not_claim_readback_proven"))
+    if tail.get("no_active_materializer_projection_caller_proven") is not False:
+        violations.append(_violation(surface_id, "materializer_projection_tail_must_not_claim_no_active_caller"))
+    if tail.get("physical_delete_allowed") is not False:
+        violations.append(_violation(surface_id, "materializer_projection_tail_must_not_allow_physical_delete"))
+    for key in (
+        "projection_demoted_can_satisfy_live_readback",
+        "legacy_alias_retired_can_satisfy_live_readback",
+        "refs_only_projection_can_satisfy_live_readback",
+        "focused_tests_can_satisfy_live_readback",
+        "repo_no_authority_guard_can_satisfy_live_readback",
+    ):
+        if tail.get(key) is not False:
+            violations.append(_violation(surface_id, f"materializer_projection_tail_forbidden:{key}"))
+    forbidden_claims = tail.get("forbidden_completion_claims")
+    required_false_claims = {
+        "materializer_projection_demoted_as_opl_transition_readback",
+        "request_tasks_alias_retired_as_no_active_caller",
+        "refs_only_transition_projection_as_physical_delete",
+        "repo_no_authority_guard_as_live_materializer_tail_readback",
+        "focused_tests_green_as_materializer_physical_delete",
+    }
+    if not isinstance(forbidden_claims, list) or not required_false_claims <= {
+        str(item) for item in forbidden_claims
+    }:
+        violations.append(_violation(surface_id, "materializer_projection_tail_missing_false_completion_guards"))
+
+    gate = surface.get("retirement_gate")
+    if not isinstance(gate, Mapping):
+        violations.append(_violation(surface_id, "materializer_projection_missing_retirement_gate"))
+    else:
+        if gate.get("no_active_caller_required_before_physical_delete") is not True:
+            violations.append(_violation(surface_id, "materializer_projection_missing_no_active_caller_physical_delete_gate"))
+        if gate.get("opl_materializer_projection_tail_readback_required") is not True:
+            violations.append(_violation(surface_id, "materializer_projection_missing_tail_readback_gate"))
     return violations
 
 

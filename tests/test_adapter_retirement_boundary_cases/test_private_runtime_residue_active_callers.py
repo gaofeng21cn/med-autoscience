@@ -946,12 +946,24 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     owner_adapter["legacy_projection_boundary"][
         "owner_callable_adapter_item_can_create_success_outcome"
     ] = True
+    owner_adapter["opl_materializer_projection_tail_readback"][
+        "tail_readback_proven"
+    ] = True
     request_tasks = materializer_surfaces[
         "domain_action_request_materializer_request_tasks_projection"
     ]
     request_tasks["projection_boundary"]["legacy_alias_present"] = True
     request_tasks["projection_boundary"]["request_packet_body_omitted"] = False
     request_tasks["projection_boundary"]["body_authority"] = True
+    request_tasks["opl_materializer_projection_tail_readback"][
+        "no_active_materializer_projection_caller_proven"
+    ] = True
+    request_tasks["opl_materializer_projection_tail_readback"][
+        "physical_delete_allowed"
+    ] = True
+    request_tasks["opl_materializer_projection_tail_readback"][
+        "repo_no_authority_guard_can_satisfy_live_readback"
+    ] = True
     transition_request = materializer_surfaces[
         "domain_action_request_materializer_canonical_transition_request_body_projection"
     ]
@@ -960,6 +972,15 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     transition_request["projection_boundary"]["source_action_body_omitted"] = False
     transition_request["projection_boundary"]["allowed_ref_fields"].append("operator_payload")
     transition_request["projection_boundary"]["omitted_body_fields"].remove("operator_payload")
+    transition_request["opl_materializer_projection_tail_readback"][
+        "forbidden_completion_claims"
+    ] = ["materializer_projection_demoted_as_opl_transition_readback"]
+    transition_request["retirement_gate"][
+        "no_active_caller_required_before_physical_delete"
+    ] = False
+    transition_request["retirement_gate"][
+        "opl_materializer_projection_tail_readback_required"
+    ] = False
 
     materializer_violations = retirement.validate_runtime_surface_retirement_inventory(
         materializer_bad_inventory
@@ -985,6 +1006,10 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
             ),
         ),
         (
+            "domain_action_request_materializer_owner_callable_adapter_projection",
+            "materializer_projection_tail_must_not_claim_readback_proven",
+        ),
+        (
             "domain_action_request_materializer_request_tasks_projection",
             "materializer_request_tasks_boundary_mismatch:legacy_alias_present",
         ),
@@ -995,6 +1020,21 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "domain_action_request_materializer_request_tasks_projection",
             "materializer_request_tasks_boundary_mismatch:body_authority",
+        ),
+        (
+            "domain_action_request_materializer_request_tasks_projection",
+            "materializer_projection_tail_must_not_claim_no_active_caller",
+        ),
+        (
+            "domain_action_request_materializer_request_tasks_projection",
+            "materializer_projection_tail_must_not_allow_physical_delete",
+        ),
+        (
+            "domain_action_request_materializer_request_tasks_projection",
+            (
+                "materializer_projection_tail_forbidden:"
+                "repo_no_authority_guard_can_satisfy_live_readback"
+            ),
         ),
         (
             "domain_action_request_materializer_canonical_transition_request_body_projection",
@@ -1015,6 +1055,18 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "domain_action_request_materializer_canonical_transition_request_body_projection",
             "materializer_transition_request_omitted_bodies_mismatch",
+        ),
+        (
+            "domain_action_request_materializer_canonical_transition_request_body_projection",
+            "materializer_projection_tail_missing_false_completion_guards",
+        ),
+        (
+            "domain_action_request_materializer_canonical_transition_request_body_projection",
+            "materializer_projection_missing_no_active_caller_physical_delete_gate",
+        ),
+        (
+            "domain_action_request_materializer_canonical_transition_request_body_projection",
+            "materializer_projection_missing_tail_readback_gate",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in materializer_violations}
 

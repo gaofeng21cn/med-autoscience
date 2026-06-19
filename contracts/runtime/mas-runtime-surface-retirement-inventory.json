@@ -452,7 +452,9 @@
         "no_active_caller_required_before_physical_delete": true,
         "no_forbidden_write_proof_required": true,
         "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true
+        "tombstone_or_provenance_required": true,
+        "opl_materializer_projection_tail_readback_required": true,
+        "physical_delete_allowed": false
       },
       "surface_id": "domain_action_request_materializer_owner_callable_adapter_projection",
       "verified_by": [
@@ -463,7 +465,41 @@
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
         "tests/domain_action_request_materializer_cases/test_ai_reviewer_record_handoff.py::test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_forbidden_by_owner_reason",
         "tests/domain_action_request_materializer_cases/test_ai_reviewer_record_handoff.py::test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_current_record"
-      ]
+      ],
+      "opl_materializer_projection_tail_readback": {
+        "surface_kind": "opl_materializer_projection_tail_readback_requirement",
+        "status": "tail_open",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "OPL DomainProgressTransitionRuntime/StageRun",
+        "required_active_caller_readbacks": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback"
+        ],
+        "required_before_physical_delete": "domain_action_request_materializer_projection_opl_runtime_tail_readback_or_no_active_caller_ref",
+        "physical_delete_requires": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback",
+          "no_active_materializer_projection_caller_scan",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "tail_readback_proven": false,
+        "no_active_materializer_projection_caller_proven": false,
+        "physical_delete_allowed": false,
+        "projection_demoted_can_satisfy_live_readback": false,
+        "legacy_alias_retired_can_satisfy_live_readback": false,
+        "refs_only_projection_can_satisfy_live_readback": false,
+        "focused_tests_can_satisfy_live_readback": false,
+        "repo_no_authority_guard_can_satisfy_live_readback": false,
+        "forbidden_completion_claims": [
+          "materializer_projection_demoted_as_opl_transition_readback",
+          "request_tasks_alias_retired_as_no_active_caller",
+          "refs_only_transition_projection_as_physical_delete",
+          "repo_no_authority_guard_as_live_materializer_tail_readback",
+          "focused_tests_green_as_materializer_physical_delete"
+        ]
+      }
     },
     {
       "active_caller_migrated": true,
@@ -504,10 +540,12 @@
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,
-        "no_active_caller_required_before_physical_delete": false,
+        "no_active_caller_required_before_physical_delete": true,
         "no_forbidden_write_proof_required": true,
         "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true
+        "tombstone_or_provenance_required": true,
+        "opl_materializer_projection_tail_readback_required": true,
+        "physical_delete_allowed": false
       },
       "surface_id": "domain_action_request_materializer_request_tasks_projection",
       "verified_by": [
@@ -515,7 +553,41 @@
         "tests/domain_action_request_materializer_cases/request_handoff_dispatch_cases.py::test_materialize_domain_action_requests_writes_request_handoff_for_publication_gate_and_ai_reviewer_actions",
         "tests/test_domain_action_request_materializer_cases/test_completed_analysis_ai_reviewer_handoff.py::test_materialize_domain_action_requests_consumes_completed_analysis_ai_reviewer_handoff",
         "tests/test_progress_first_global_contract.py::test_domain_action_materializer_blocks_new_default_executor_task_until_running_provider_or_closeout"
-      ]
+      ],
+      "opl_materializer_projection_tail_readback": {
+        "surface_kind": "opl_materializer_projection_tail_readback_requirement",
+        "status": "tail_open",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "OPL DomainProgressTransitionRuntime/StageRun",
+        "required_active_caller_readbacks": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback"
+        ],
+        "required_before_physical_delete": "domain_action_request_materializer_projection_opl_runtime_tail_readback_or_no_active_caller_ref",
+        "physical_delete_requires": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback",
+          "no_active_materializer_projection_caller_scan",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "tail_readback_proven": false,
+        "no_active_materializer_projection_caller_proven": false,
+        "physical_delete_allowed": false,
+        "projection_demoted_can_satisfy_live_readback": false,
+        "legacy_alias_retired_can_satisfy_live_readback": false,
+        "refs_only_projection_can_satisfy_live_readback": false,
+        "focused_tests_can_satisfy_live_readback": false,
+        "repo_no_authority_guard_can_satisfy_live_readback": false,
+        "forbidden_completion_claims": [
+          "materializer_projection_demoted_as_opl_transition_readback",
+          "request_tasks_alias_retired_as_no_active_caller",
+          "refs_only_transition_projection_as_physical_delete",
+          "repo_no_authority_guard_as_live_materializer_tail_readback",
+          "focused_tests_green_as_materializer_physical_delete"
+        ]
+      }
     },
     {
       "active_caller_migrated": true,
@@ -584,17 +656,53 @@
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,
-        "no_active_caller_required_before_physical_delete": false,
+        "no_active_caller_required_before_physical_delete": true,
         "no_forbidden_write_proof_required": true,
         "replacement_parity_required": true,
-        "tombstone_or_provenance_required": true
+        "tombstone_or_provenance_required": true,
+        "opl_materializer_projection_tail_readback_required": true,
+        "physical_delete_allowed": false
       },
       "surface_id": "domain_action_request_materializer_canonical_transition_request_body_projection",
       "verified_by": [
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
         "tests/test_domain_action_request_materializer.py",
         "tests/domain_action_request_materializer_cases"
-      ]
+      ],
+      "opl_materializer_projection_tail_readback": {
+        "surface_kind": "opl_materializer_projection_tail_readback_requirement",
+        "status": "tail_open",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "OPL DomainProgressTransitionRuntime/StageRun",
+        "required_active_caller_readbacks": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback"
+        ],
+        "required_before_physical_delete": "domain_action_request_materializer_projection_opl_runtime_tail_readback_or_no_active_caller_ref",
+        "physical_delete_requires": [
+          "opl_domain_progress_transition_runtime_live_readback",
+          "opl_stagerun_owner_callable_adapter_readback",
+          "no_active_materializer_projection_caller_scan",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "tail_readback_proven": false,
+        "no_active_materializer_projection_caller_proven": false,
+        "physical_delete_allowed": false,
+        "projection_demoted_can_satisfy_live_readback": false,
+        "legacy_alias_retired_can_satisfy_live_readback": false,
+        "refs_only_projection_can_satisfy_live_readback": false,
+        "focused_tests_can_satisfy_live_readback": false,
+        "repo_no_authority_guard_can_satisfy_live_readback": false,
+        "forbidden_completion_claims": [
+          "materializer_projection_demoted_as_opl_transition_readback",
+          "request_tasks_alias_retired_as_no_active_caller",
+          "refs_only_transition_projection_as_physical_delete",
+          "repo_no_authority_guard_as_live_materializer_tail_readback",
+          "focused_tests_green_as_materializer_physical_delete"
+        ]
+      }
     },
     {
       "active_caller_migrated": true,

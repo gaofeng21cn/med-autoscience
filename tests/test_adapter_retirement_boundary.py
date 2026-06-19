@@ -252,8 +252,50 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "completion_claim_requires_live_owner_or_opl_readback": True,
         "no_active_caller_required_before_physical_delete": True,
         "no_forbidden_write_proof_required": True,
+        "opl_materializer_projection_tail_readback_required": True,
+        "physical_delete_allowed": False,
         "replacement_parity_required": True,
         "tombstone_or_provenance_required": True,
+    }
+    materializer_projection_tail = owner_callable_projection[
+        "opl_materializer_projection_tail_readback"
+    ]
+    assert materializer_projection_tail == {
+        "surface_kind": "opl_materializer_projection_tail_readback_requirement",
+        "status": "tail_open",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "OPL DomainProgressTransitionRuntime/StageRun",
+        "required_active_caller_readbacks": [
+            "opl_domain_progress_transition_runtime_live_readback",
+            "opl_stagerun_owner_callable_adapter_readback",
+        ],
+        "required_before_physical_delete": (
+            "domain_action_request_materializer_projection_"
+            "opl_runtime_tail_readback_or_no_active_caller_ref"
+        ),
+        "physical_delete_requires": [
+            "opl_domain_progress_transition_runtime_live_readback",
+            "opl_stagerun_owner_callable_adapter_readback",
+            "no_active_materializer_projection_caller_scan",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        ],
+        "tail_readback_proven": False,
+        "no_active_materializer_projection_caller_proven": False,
+        "physical_delete_allowed": False,
+        "projection_demoted_can_satisfy_live_readback": False,
+        "legacy_alias_retired_can_satisfy_live_readback": False,
+        "refs_only_projection_can_satisfy_live_readback": False,
+        "focused_tests_can_satisfy_live_readback": False,
+        "repo_no_authority_guard_can_satisfy_live_readback": False,
+        "forbidden_completion_claims": [
+            "materializer_projection_demoted_as_opl_transition_readback",
+            "request_tasks_alias_retired_as_no_active_caller",
+            "refs_only_transition_projection_as_physical_delete",
+            "repo_no_authority_guard_as_live_materializer_tail_readback",
+            "focused_tests_green_as_materializer_physical_delete",
+        ],
     }
     assert owner_callable_projection["legacy_projection_boundary"] == {
         "canonical_transition_request_surface": "domain_progress_transition_requests",
@@ -309,6 +351,25 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_current_record"
         ),
     ]
+
+    for surface_id in (
+        "domain_action_request_materializer_request_tasks_projection",
+        "domain_action_request_materializer_canonical_transition_request_body_projection",
+    ):
+        materializer_projection = surfaces[surface_id]
+        assert materializer_projection["retirement_gate"][
+            "no_active_caller_required_before_physical_delete"
+        ] is True
+        assert materializer_projection["retirement_gate"][
+            "opl_materializer_projection_tail_readback_required"
+        ] is True
+        assert materializer_projection["retirement_gate"][
+            "physical_delete_allowed"
+        ] is False
+        assert (
+            materializer_projection["opl_materializer_projection_tail_readback"]
+            == materializer_projection_tail
+        )
 
     execution_latest = surfaces["default_executor_execution_latest_wire_projection"]
     assert execution_latest["active_caller_migrated"] is True
