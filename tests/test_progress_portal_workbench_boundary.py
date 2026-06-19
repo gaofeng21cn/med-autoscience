@@ -242,21 +242,59 @@ def test_retirement_inventory_tracks_workbench_read_only_action_projection() -> 
         "next_system_action_role": "read_only_owner_delta_summary",
         "projection_only": True,
         "can_generate_action": False,
-            "can_execute": False,
-            "can_emit_runtime_command": False,
-            "can_authorize_provider_admission": False,
-            "can_authorize_worker_attempt": False,
-            "can_open_runtime_endpoint": False,
-            "can_transport_operator_action": False,
-            "legacy_operator_focus_role": "diagnostic_legacy_projection_input",
-            "legacy_next_system_action_role": "diagnostic_legacy_projection_input",
-            "operator_intent_refs_are_inert": True,
-            "requires_opl_current_control_readback": True,
-            "must_not_be_used_as_provider_admission": True,
-            "must_not_be_used_as_next_action_authority": True,
+        "can_execute": False,
+        "can_emit_runtime_command": False,
+        "can_authorize_provider_admission": False,
+        "can_authorize_worker_attempt": False,
+        "can_open_runtime_endpoint": False,
+        "can_transport_operator_action": False,
+        "legacy_operator_focus_role": "diagnostic_legacy_projection_input",
+        "legacy_next_system_action_role": "diagnostic_legacy_projection_input",
+        "operator_intent_refs_are_inert": True,
+        "requires_opl_current_control_readback": True,
+        "must_not_be_used_as_provider_admission": True,
+        "must_not_be_used_as_next_action_authority": True,
         "must_not_be_used_as_publication_ready": True,
         "must_not_be_used_as_paper_progress": True,
     }
+    tail = surface["opl_workbench_shell_readback_tail"]
+    assert tail["surface_kind"] == "opl_workbench_shell_readback_tail_requirement"
+    assert tail["status"] == "tail_open"
+    assert tail["runtime_owner"] == "one-person-lab"
+    assert tail["runtime_kind"] == (
+        "OPL Workbench Shell/current-control/DomainProgressTransitionRuntime readback"
+    )
+    assert set(tail["required_active_caller_readbacks"]) == {
+        "opl_workbench_shell_action_transport_readback",
+        "opl_current_control_readback",
+        "opl_domain_progress_transition_runtime_readback",
+    }
+    assert set(tail["physical_delete_requires"]) == {
+        "opl_workbench_shell_action_transport_readback",
+        "opl_current_control_readback",
+        "opl_domain_progress_transition_runtime_readback",
+        "no_active_workbench_projection_action_caller_scan",
+        "no_forbidden_write_proof",
+        "replacement_parity_ref",
+        "tombstone_or_provenance_ref",
+    }
+    assert tail["tail_readback_proven"] is False
+    assert tail["no_active_workbench_projection_action_caller_proven"] is False
+    assert tail["physical_delete_allowed"] is False
+    assert tail["mas_portal_projection_can_satisfy_readback"] is False
+    assert tail["mas_next_system_action_summary_can_satisfy_readback"] is False
+    assert tail["operator_intent_refs_can_satisfy_action_transport"] is False
+    assert tail["repo_no_authority_guard_can_satisfy_readback"] is False
+    assert tail["focused_tests_can_satisfy_readback"] is False
+    assert set(tail["forbidden_completion_claims"]) >= {
+        "mas_portal_projection_as_opl_workbench_shell_readback",
+        "mas_next_system_action_summary_as_action_transport_readback",
+        "operator_intent_refs_as_workbench_action_transport",
+        "current_owner_delta_summary_as_current_control_readback",
+        "repo_no_authority_guard_as_workbench_tail_readback",
+        "focused_tests_green_as_no_active_workbench_projection_caller",
+    }
+    assert surface["retirement_gate"]["opl_workbench_shell_readback_required"] is True
 
     retirement = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement"
@@ -268,13 +306,19 @@ def test_retirement_inventory_tracks_workbench_read_only_action_projection() -> 
     assert [
         item for item in audit["violations"] if item["surface_id"] == WORKBENCH_SURFACE_ID
     ] == []
-    assert workbench_audit["authority_status"] == "read_only_projection_no_authority"
+    assert workbench_audit["authority_status"] == "read_only_workbench_projection_opl_shell_tail_open"
     assert workbench_audit["allowed_effect"] == "read_only_owner_delta_summary"
+    assert workbench_audit["physical_delete_gate_open"] is True
     assert workbench_audit["workbench_projection_only"] is True
     assert workbench_audit["workbench_next_system_action_role"] == "read_only_owner_delta_summary"
     assert workbench_audit["workbench_operator_intent_refs_are_inert"] is True
     assert workbench_audit["workbench_can_generate_action"] is False
     assert workbench_audit["workbench_can_transport_operator_action"] is False
+    assert workbench_audit["workbench_tail_status"] == "tail_open"
+    assert workbench_audit["workbench_tail_readback_proven"] is False
+    assert workbench_audit["workbench_no_active_caller_proven"] is False
+    assert workbench_audit["workbench_physical_delete_allowed"] is False
+    assert workbench_audit["workbench_required_active_caller_readback_count"] == 3
 
 
 def test_retirement_validator_blocks_workbench_projection_authority_regressions() -> None:
@@ -319,6 +363,50 @@ def test_retirement_validator_blocks_workbench_projection_authority_regressions(
         (
             WORKBENCH_SURFACE_ID,
             "workbench_projection_boundary_mismatch:must_not_be_used_as_paper_progress",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in violations}
+
+
+def test_retirement_validator_blocks_workbench_tail_completion_claims() -> None:
+    inventory = _retirement_inventory()
+    surface = _workbench_retirement_surface(inventory)
+    tail = surface["opl_workbench_shell_readback_tail"]
+    tail["tail_readback_proven"] = True
+    tail["no_active_workbench_projection_action_caller_proven"] = True
+    tail["physical_delete_allowed"] = True
+    tail["operator_intent_refs_can_satisfy_action_transport"] = True
+    tail["required_active_caller_readbacks"] = ["opl_workbench_shell_action_transport_readback"]
+    surface["retirement_gate"]["opl_workbench_shell_readback_required"] = False
+
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+    violations = retirement.validate_runtime_surface_retirement_inventory(inventory)
+
+    assert {
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_tail_active_readbacks_incomplete",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_tail_must_not_claim_readback_proven",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_tail_must_not_claim_no_active_caller",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_tail_must_not_allow_physical_delete",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_tail_forbidden:operator_intent_refs_can_satisfy_action_transport",
+        ),
+        (
+            WORKBENCH_SURFACE_ID,
+            "workbench_projection_missing_opl_workbench_readback_gate",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in violations}
 

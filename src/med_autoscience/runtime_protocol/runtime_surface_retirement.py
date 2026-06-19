@@ -917,6 +917,7 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     live_owner_consumption_soak = surface.get("live_owner_consumption_soak_boundary")
     obligation_tail = surface.get("opl_obligation_actuator_tail_readback")
     runtime_health_tail = surface.get("opl_runtime_health_observability_tail_readback")
+    workbench_tail = surface.get("opl_workbench_shell_readback_tail")
     lifecycle_maintenance_tail = surface.get("opl_runtime_lifecycle_maintenance_tail_readback")
     storage_maintenance_tail = surface.get("opl_runtime_storage_maintenance_tail_readback")
     return {
@@ -1073,6 +1074,32 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             and isinstance(runtime_health_tail.get("required_active_caller_readbacks"), list)
             else None
         ),
+        "workbench_tail_status": (
+            workbench_tail.get("status")
+            if isinstance(workbench_tail, Mapping)
+            else None
+        ),
+        "workbench_tail_readback_proven": (
+            workbench_tail.get("tail_readback_proven")
+            if isinstance(workbench_tail, Mapping)
+            else None
+        ),
+        "workbench_no_active_caller_proven": (
+            workbench_tail.get("no_active_workbench_projection_action_caller_proven")
+            if isinstance(workbench_tail, Mapping)
+            else None
+        ),
+        "workbench_physical_delete_allowed": (
+            workbench_tail.get("physical_delete_allowed")
+            if isinstance(workbench_tail, Mapping)
+            else None
+        ),
+        "workbench_required_active_caller_readback_count": (
+            len(workbench_tail.get("required_active_caller_readbacks"))
+            if isinstance(workbench_tail, Mapping)
+            and isinstance(workbench_tail.get("required_active_caller_readbacks"), list)
+            else None
+        ),
         "runtime_lifecycle_maintenance_tail_status": (
             lifecycle_maintenance_tail.get("status")
             if isinstance(lifecycle_maintenance_tail, Mapping)
@@ -1181,6 +1208,8 @@ def _authority_status(surface: Mapping[str, Any]) -> str:
         return "active_callers_migrated_opl_state_index_source_adapter_live_tail_open"
     if surface_id == "agent_tool_arsenal_scientific_capability_registry":
         return "opl_capability_runtime_projection_live_owner_soak_tail_open"
+    if surface_id == "progress_portal_study_workbench_overview_action_projection":
+        return "read_only_workbench_projection_opl_shell_tail_open"
     if surface_id == "default_executor_execution_latest_wire_projection":
         return "legacy_latest_history_only_stage_run_abi_provenance_tail_open"
     if surface_id == "default_executor_dispatch_request":
@@ -1246,6 +1275,7 @@ def _physical_delete_gate_open(surface: Mapping[str, Any]) -> bool:
         or gate.get("live_opl_cleanup_policy_takeover_required")
         or gate.get("live_opl_storage_policy_takeover_required")
         or gate.get("owner_retirement_decision_required")
+        or gate.get("opl_workbench_shell_readback_required")
     )
 
 

@@ -214,6 +214,82 @@ def validate_progress_portal_study_workbench_overview_action_projection(
     ):
         if boundary.get(key) is not False:
             violations.append(_violation(surface_id, f"workbench_projection_boundary_forbidden:{key}"))
+
+    tail = surface.get("opl_workbench_shell_readback_tail")
+    if not isinstance(tail, Mapping):
+        violations.append(_violation(surface_id, "workbench_projection_missing_opl_workbench_tail"))
+    else:
+        if tail.get("surface_kind") != "opl_workbench_shell_readback_tail_requirement":
+            violations.append(_violation(surface_id, "workbench_projection_tail_kind_invalid"))
+        if tail.get("runtime_owner") != "one-person-lab":
+            violations.append(_violation(surface_id, "workbench_projection_tail_owner_not_opl"))
+        if tail.get("runtime_kind") != (
+            "OPL Workbench Shell/current-control/DomainProgressTransitionRuntime readback"
+        ):
+            violations.append(_violation(surface_id, "workbench_projection_tail_runtime_kind_invalid"))
+        required_readbacks = {
+            "opl_workbench_shell_action_transport_readback",
+            "opl_current_control_readback",
+            "opl_domain_progress_transition_runtime_readback",
+        }
+        active_readbacks = tail.get("required_active_caller_readbacks")
+        if not isinstance(active_readbacks, list) or not required_readbacks <= {
+            str(item) for item in active_readbacks
+        }:
+            violations.append(_violation(surface_id, "workbench_projection_tail_active_readbacks_incomplete"))
+        required_tail_refs = {
+            "opl_workbench_shell_action_transport_readback",
+            "opl_current_control_readback",
+            "opl_domain_progress_transition_runtime_readback",
+            "no_active_workbench_projection_action_caller_scan",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        }
+        physical_tail_requires = tail.get("physical_delete_requires")
+        if not isinstance(physical_tail_requires, list) or not required_tail_refs <= {
+            str(item) for item in physical_tail_requires
+        }:
+            violations.append(_violation(surface_id, "workbench_projection_tail_physical_delete_refs_incomplete"))
+        if tail.get("tail_readback_proven") is not False:
+            violations.append(_violation(surface_id, "workbench_projection_tail_must_not_claim_readback_proven"))
+        if tail.get("no_active_workbench_projection_action_caller_proven") is not False:
+            violations.append(_violation(surface_id, "workbench_projection_tail_must_not_claim_no_active_caller"))
+        if tail.get("physical_delete_allowed") is not False:
+            violations.append(_violation(surface_id, "workbench_projection_tail_must_not_allow_physical_delete"))
+        for key in (
+            "mas_portal_projection_can_satisfy_readback",
+            "mas_next_system_action_summary_can_satisfy_readback",
+            "operator_intent_refs_can_satisfy_action_transport",
+            "repo_no_authority_guard_can_satisfy_readback",
+            "focused_tests_can_satisfy_readback",
+        ):
+            if tail.get(key) is not False:
+                violations.append(_violation(surface_id, f"workbench_projection_tail_forbidden:{key}"))
+        forbidden_claims = tail.get("forbidden_completion_claims")
+        required_false_claims = {
+            "mas_portal_projection_as_opl_workbench_shell_readback",
+            "mas_next_system_action_summary_as_action_transport_readback",
+            "operator_intent_refs_as_workbench_action_transport",
+            "current_owner_delta_summary_as_current_control_readback",
+            "repo_no_authority_guard_as_workbench_tail_readback",
+            "focused_tests_green_as_no_active_workbench_projection_caller",
+        }
+        if not isinstance(forbidden_claims, list) or not required_false_claims <= {
+            str(item) for item in forbidden_claims
+        }:
+            violations.append(_violation(surface_id, "workbench_projection_tail_missing_false_completion_guards"))
+
+    gate = surface.get("retirement_gate")
+    if not isinstance(gate, Mapping):
+        violations.append(_violation(surface_id, "workbench_projection_missing_retirement_gate"))
+    else:
+        if gate.get("no_active_caller_required_before_physical_delete") is not True:
+            violations.append(_violation(surface_id, "workbench_projection_missing_no_active_caller_gate"))
+        if gate.get("no_forbidden_write_proof_required") is not True:
+            violations.append(_violation(surface_id, "workbench_projection_missing_no_forbidden_write_proof"))
+        if gate.get("opl_workbench_shell_readback_required") is not True:
+            violations.append(_violation(surface_id, "workbench_projection_missing_opl_workbench_readback_gate"))
     return violations
 
 
@@ -230,13 +306,39 @@ def audit_workbench_projection_fields(surface: Mapping[str, Any]) -> dict[str, A
             "workbench_operator_intent_refs_are_inert": None,
             "workbench_can_generate_action": None,
             "workbench_can_transport_operator_action": None,
+            "workbench_tail_status": None,
+            "workbench_tail_readback_proven": None,
+            "workbench_no_active_caller_proven": None,
+            "workbench_physical_delete_allowed": None,
+            "workbench_required_active_caller_readback_count": None,
         }
+    tail = surface.get("opl_workbench_shell_readback_tail")
     return {
         "workbench_projection_only": boundary.get("projection_only"),
         "workbench_next_system_action_role": boundary.get("next_system_action_role"),
         "workbench_operator_intent_refs_are_inert": boundary.get("operator_intent_refs_are_inert"),
         "workbench_can_generate_action": boundary.get("can_generate_action"),
         "workbench_can_transport_operator_action": boundary.get("can_transport_operator_action"),
+        "workbench_tail_status": (
+            tail.get("status") if isinstance(tail, Mapping) else None
+        ),
+        "workbench_tail_readback_proven": (
+            tail.get("tail_readback_proven") if isinstance(tail, Mapping) else None
+        ),
+        "workbench_no_active_caller_proven": (
+            tail.get("no_active_workbench_projection_action_caller_proven")
+            if isinstance(tail, Mapping)
+            else None
+        ),
+        "workbench_physical_delete_allowed": (
+            tail.get("physical_delete_allowed") if isinstance(tail, Mapping) else None
+        ),
+        "workbench_required_active_caller_readback_count": (
+            len(tail.get("required_active_caller_readbacks"))
+            if isinstance(tail, Mapping)
+            and isinstance(tail.get("required_active_caller_readbacks"), list)
+            else None
+        ),
     }
 
 

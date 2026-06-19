@@ -1262,13 +1262,61 @@
         "projection_only": true,
         "requires_opl_current_control_readback": true
       },
+      "opl_workbench_shell_readback_tail": {
+        "surface_kind": "opl_workbench_shell_readback_tail_requirement",
+        "status": "tail_open",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "OPL Workbench Shell/current-control/DomainProgressTransitionRuntime readback",
+        "required_active_caller_readbacks": [
+          "opl_workbench_shell_action_transport_readback",
+          "opl_current_control_readback",
+          "opl_domain_progress_transition_runtime_readback"
+        ],
+        "required_before_physical_delete": "progress_portal_study_workbench_overview_action_projection_opl_workbench_shell_readback_tail_ref",
+        "physical_delete_requires": [
+          "opl_workbench_shell_action_transport_readback",
+          "opl_current_control_readback",
+          "opl_domain_progress_transition_runtime_readback",
+          "no_active_workbench_projection_action_caller_scan",
+          "no_forbidden_write_proof",
+          "replacement_parity_ref",
+          "tombstone_or_provenance_ref"
+        ],
+        "tail_readback_proven": false,
+        "no_active_workbench_projection_action_caller_proven": false,
+        "physical_delete_allowed": false,
+        "mas_portal_projection_can_satisfy_readback": false,
+        "mas_next_system_action_summary_can_satisfy_readback": false,
+        "operator_intent_refs_can_satisfy_action_transport": false,
+        "repo_no_authority_guard_can_satisfy_readback": false,
+        "focused_tests_can_satisfy_readback": false,
+        "forbidden_completion_claims": [
+          "mas_portal_projection_as_opl_workbench_shell_readback",
+          "mas_next_system_action_summary_as_action_transport_readback",
+          "operator_intent_refs_as_workbench_action_transport",
+          "current_owner_delta_summary_as_current_control_readback",
+          "repo_no_authority_guard_as_workbench_tail_readback",
+          "focused_tests_green_as_no_active_workbench_projection_caller"
+        ]
+      },
       "replacement_surface": "OPL Workbench Shell owns operator action transport; MAS only publishes inert current_owner_delta and DomainProgressTransitionRuntime readback refs",
       "retained_mas_role": "body_free_workbench_read_model_projection",
+      "retirement_gate": {
+        "active_caller_alone_retains_surface": false,
+        "completion_claim_requires_live_owner_or_opl_readback": true,
+        "no_active_caller_required_before_physical_delete": true,
+        "no_forbidden_write_proof_required": true,
+        "replacement_parity_required": true,
+        "tombstone_or_provenance_required": true,
+        "opl_workbench_shell_readback_required": true
+      },
       "surface_id": "progress_portal_study_workbench_overview_action_projection",
       "verified_by": [
         "tests/progress_portal_cases/test_study_workbench_and_routes.py",
         "tests/test_progress_portal.py",
-        "tests/test_progress_portal_workbench_boundary.py"
+        "tests/test_progress_portal_workbench_boundary.py",
+        "tests/test_adapter_retirement_boundary.py",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py"
       ]
     },
     {

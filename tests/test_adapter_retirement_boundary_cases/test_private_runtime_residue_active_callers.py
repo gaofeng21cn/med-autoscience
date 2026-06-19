@@ -487,6 +487,32 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "mas_runtime_health_snapshot_as_opl_observability_readback"
         in runtime_health_tail["forbidden_completion_interpretations"]
     )
+    workbench_tail = evidence_tails[
+        "progress_portal_study_workbench_overview_action_projection"
+    ]
+    assert (
+        "progress_portal_study_workbench_overview_action_projection_"
+        "opl_workbench_shell_readback_tail_ref"
+        in workbench_tail["required_ref_families"]
+    )
+    assert (
+        "progress_portal_study_workbench_overview_action_projection_"
+        "opl_workbench_shell_action_transport_readback_ref"
+        in workbench_tail["required_ref_families"]
+    )
+    assert (
+        "progress_portal_study_workbench_overview_action_projection_"
+        "opl_current_control_readback_ref"
+        in workbench_tail["required_ref_families"]
+    )
+    assert (
+        "mas_next_system_action_summary_as_action_transport_readback"
+        in workbench_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "operator_intent_refs_as_workbench_action_transport"
+        in workbench_tail["forbidden_completion_interpretations"]
+    )
     lifecycle_tail = evidence_tails["runtime_lifecycle_payload_retention"]
     assert (
         "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_maintenance_tail_readback_ref"
@@ -545,6 +571,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "domain_authority_refs_index",
         "domain_health_diagnostic_obligation_actuator",
         "runtime_health_kernel",
+        "progress_portal_study_workbench_overview_action_projection",
         "agent_tool_arsenal_scientific_capability_registry",
         "runtime_lifecycle_payload_retention",
         "runtime_storage_maintenance",
@@ -663,6 +690,27 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["runtime_health_kernel"][
         "runtime_health_required_active_caller_readback_count"
     ] == 2
+    assert open_surfaces[
+        "progress_portal_study_workbench_overview_action_projection"
+    ]["authority_status"] == "read_only_workbench_projection_opl_shell_tail_open"
+    assert open_surfaces[
+        "progress_portal_study_workbench_overview_action_projection"
+    ]["allowed_effect"] == "read_only_owner_delta_summary"
+    assert open_surfaces[
+        "progress_portal_study_workbench_overview_action_projection"
+    ]["workbench_tail_status"] == "tail_open"
+    assert open_surfaces[
+        "progress_portal_study_workbench_overview_action_projection"
+    ]["workbench_tail_readback_proven"] is False
+    assert open_surfaces[
+        "progress_portal_study_workbench_overview_action_projection"
+    ]["workbench_no_active_caller_proven"] is False
+    assert open_surfaces[
+        "progress_portal_study_workbench_overview_action_projection"
+    ]["workbench_physical_delete_allowed"] is False
+    assert open_surfaces[
+        "progress_portal_study_workbench_overview_action_projection"
+    ]["workbench_required_active_caller_readback_count"] == 3
     assert open_surfaces["domain_owner_action_dispatch"]["authority_status"] == (
         "opl_authorized_owner_callable_adapter_live_tail_open"
     )
@@ -1639,6 +1687,79 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
             "obligation_actuator_missing_owner_retirement_decision_gate",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in obligation_violations}
+
+    workbench_bad_inventory = json.loads(json.dumps(inventory))
+    workbench = next(
+        surface
+        for surface in workbench_bad_inventory["surfaces"]
+        if surface["surface_id"]
+        == "progress_portal_study_workbench_overview_action_projection"
+    )
+    workbench["projection_boundary"]["can_transport_operator_action"] = True
+    workbench["projection_boundary"]["can_generate_action"] = True
+    workbench["projection_boundary"][
+        "operator_intent_refs_are_inert"
+    ] = False
+    workbench["opl_workbench_shell_readback_tail"]["tail_readback_proven"] = True
+    workbench["opl_workbench_shell_readback_tail"][
+        "no_active_workbench_projection_action_caller_proven"
+    ] = True
+    workbench["opl_workbench_shell_readback_tail"]["physical_delete_allowed"] = True
+    workbench["opl_workbench_shell_readback_tail"][
+        "mas_portal_projection_can_satisfy_readback"
+    ] = True
+    workbench["opl_workbench_shell_readback_tail"][
+        "operator_intent_refs_can_satisfy_action_transport"
+    ] = True
+    workbench["opl_workbench_shell_readback_tail"]["forbidden_completion_claims"] = []
+    workbench["retirement_gate"]["opl_workbench_shell_readback_required"] = False
+
+    workbench_violations = retirement.validate_runtime_surface_retirement_inventory(
+        workbench_bad_inventory
+    )
+
+    assert {
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            "workbench_projection_boundary_forbidden:can_generate_action",
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            "workbench_projection_boundary_forbidden:can_transport_operator_action",
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            "workbench_projection_boundary_mismatch:operator_intent_refs_are_inert",
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            "workbench_projection_tail_must_not_claim_readback_proven",
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            "workbench_projection_tail_must_not_claim_no_active_caller",
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            "workbench_projection_tail_must_not_allow_physical_delete",
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            "workbench_projection_tail_forbidden:mas_portal_projection_can_satisfy_readback",
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            "workbench_projection_tail_forbidden:operator_intent_refs_can_satisfy_action_transport",
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            "workbench_projection_tail_missing_false_completion_guards",
+        ),
+        (
+            "progress_portal_study_workbench_overview_action_projection",
+            "workbench_projection_missing_opl_workbench_readback_gate",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in workbench_violations}
 
     capability_bad_inventory = json.loads(json.dumps(inventory))
     capability = next(

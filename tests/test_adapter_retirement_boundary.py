@@ -697,6 +697,82 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert obligation_actuator["actuator_direct_filesystem_write_retired"] is True
     assert obligation_actuator["actuator_can_write_private_blocker_surface"] is False
 
+    workbench_projection = surfaces[
+        "progress_portal_study_workbench_overview_action_projection"
+    ]
+    assert workbench_projection["current_disposition"] == "read_only_workbench_projection"
+    assert workbench_projection["retained_mas_role"] == (
+        "body_free_workbench_read_model_projection"
+    )
+    assert workbench_projection["projection_boundary"] == {
+        "can_authorize_provider_admission": False,
+        "can_authorize_worker_attempt": False,
+        "can_execute": False,
+        "can_emit_runtime_command": False,
+        "can_generate_action": False,
+        "can_open_runtime_endpoint": False,
+        "can_transport_operator_action": False,
+        "legacy_operator_focus_role": "diagnostic_legacy_projection_input",
+        "legacy_next_system_action_role": "diagnostic_legacy_projection_input",
+        "must_not_be_used_as_next_action_authority": True,
+        "must_not_be_used_as_paper_progress": True,
+        "must_not_be_used_as_provider_admission": True,
+        "must_not_be_used_as_publication_ready": True,
+        "next_system_action_role": "read_only_owner_delta_summary",
+        "operator_intent_refs_are_inert": True,
+        "projection_only": True,
+        "requires_opl_current_control_readback": True,
+    }
+    workbench_tail = workbench_projection["opl_workbench_shell_readback_tail"]
+    assert workbench_tail == {
+        "surface_kind": "opl_workbench_shell_readback_tail_requirement",
+        "status": "tail_open",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": (
+            "OPL Workbench Shell/current-control/DomainProgressTransitionRuntime readback"
+        ),
+        "required_active_caller_readbacks": [
+            "opl_workbench_shell_action_transport_readback",
+            "opl_current_control_readback",
+            "opl_domain_progress_transition_runtime_readback",
+        ],
+        "required_before_physical_delete": (
+            "progress_portal_study_workbench_overview_action_projection_"
+            "opl_workbench_shell_readback_tail_ref"
+        ),
+        "physical_delete_requires": [
+            "opl_workbench_shell_action_transport_readback",
+            "opl_current_control_readback",
+            "opl_domain_progress_transition_runtime_readback",
+            "no_active_workbench_projection_action_caller_scan",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        ],
+        "tail_readback_proven": False,
+        "no_active_workbench_projection_action_caller_proven": False,
+        "physical_delete_allowed": False,
+        "mas_portal_projection_can_satisfy_readback": False,
+        "mas_next_system_action_summary_can_satisfy_readback": False,
+        "operator_intent_refs_can_satisfy_action_transport": False,
+        "repo_no_authority_guard_can_satisfy_readback": False,
+        "focused_tests_can_satisfy_readback": False,
+        "forbidden_completion_claims": [
+            "mas_portal_projection_as_opl_workbench_shell_readback",
+            "mas_next_system_action_summary_as_action_transport_readback",
+            "operator_intent_refs_as_workbench_action_transport",
+            "current_owner_delta_summary_as_current_control_readback",
+            "repo_no_authority_guard_as_workbench_tail_readback",
+            "focused_tests_green_as_no_active_workbench_projection_caller",
+        ],
+    }
+    assert workbench_projection["retirement_gate"][
+        "opl_workbench_shell_readback_required"
+    ] is True
+    assert "workbench_projection_clean_as_runtime_ready" in workbench_projection[
+        "forbidden_claims"
+    ]
+
     capability_registry = surfaces["agent_tool_arsenal_scientific_capability_registry"]
     assert capability_registry["active_caller_migrated"] is True
     assert capability_registry["current_disposition"] == "opl_capability_runtime_projection"
