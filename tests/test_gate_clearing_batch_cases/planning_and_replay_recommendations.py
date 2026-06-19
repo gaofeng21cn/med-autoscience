@@ -21,9 +21,9 @@ def test_build_gate_clearing_batch_recommended_action_promotes_blocked_bounded_a
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     mapping_path = (
         quest_root
-        / ".ds"
-        / "worktrees"
-        / "analysis-analysis-c7574291-freeze-scientific-anchor-and-gate-map"
+        / "artifacts"
+        / "analysis"
+        / "analysis-c7574291"
         / "experiments"
         / "analysis"
         / "analysis-c7574291"
@@ -90,9 +90,9 @@ def test_build_gate_clearing_batch_recommended_action_uses_managed_runtime_quest
     mapping_path = (
         profile.managed_runtime_quests_root
         / "quest-001"
-        / ".ds"
-        / "worktrees"
-        / "analysis-analysis-c7574291-freeze-scientific-anchor-and-gate-map"
+        / "artifacts"
+        / "analysis"
+        / "analysis-c7574291"
         / "experiments"
         / "analysis"
         / "analysis-c7574291"

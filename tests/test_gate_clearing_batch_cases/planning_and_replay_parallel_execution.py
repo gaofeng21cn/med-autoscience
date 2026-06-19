@@ -99,6 +99,7 @@ def test_run_gate_clearing_batch_executes_parallel_units_then_replays_gate(monke
     assert [item["unit_id"] for item in result["unit_results"]] == [
         "freeze_scientific_anchor_fields",
         "repair_paper_live_paths",
+        "sync_transportability_reporting_surface",
         "materialize_display_surface",
     ]
     assert result["gate_replay"]["status"] == "blocked"
