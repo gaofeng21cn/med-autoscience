@@ -476,6 +476,22 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
+        "agent_tool_arsenal_live_owner_consumption_soak_current_owner_delta_readback_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
+        "agent_tool_arsenal_explicit_capability_request_resolution_live_readback_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
+        "agent_tool_arsenal_direct_hosted_tool_invocation_runtime_parity_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
+        "agent_tool_arsenal_no_active_registry_projection_caller_scan_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
         "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
@@ -645,11 +661,43 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         in arsenal_tail["required_ref_families"]
     )
     assert (
+        "agent_tool_arsenal_live_owner_consumption_soak_current_owner_delta_readback_ref"
+        in arsenal_tail["required_ref_families"]
+    )
+    assert (
+        "agent_tool_arsenal_explicit_capability_request_resolution_live_readback_ref"
+        in arsenal_tail["required_ref_families"]
+    )
+    assert (
+        "agent_tool_arsenal_direct_hosted_tool_invocation_runtime_parity_ref"
+        in arsenal_tail["required_ref_families"]
+    )
+    assert (
+        "agent_tool_arsenal_no_active_registry_projection_caller_scan_ref"
+        in arsenal_tail["required_ref_families"]
+    )
+    assert (
         "capability_registry_contract_as_live_owner_consumption_soak"
         in arsenal_tail["forbidden_completion_interpretations"]
     )
     assert (
         "hosted_opl_runtime_requirement_as_direct_hosted_parity"
+        in arsenal_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "wildcard_guard_as_live_owner_consumption_soak"
+        in arsenal_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "mcp_or_cli_mode_coverage_as_direct_hosted_parity"
+        in arsenal_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "capability_request_projection_as_paper_progress"
+        in arsenal_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "registry_projection_no_active_scan_as_physical_delete"
         in arsenal_tail["forbidden_completion_interpretations"]
     )
     assert layers["physical_retirement"]["status"] == "evidence_required"
@@ -946,6 +994,9 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
         "agent_tool_arsenal_physical_delete_allowed"
     ] is False
+    assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
+        "agent_tool_arsenal_required_active_caller_readback_count"
+    ] == 3
     assert all(surface["active_caller_retains_authority"] is False for surface in open_surfaces.values())
     assert all(
         surface["active_caller_retains_runtime_authority"] is False
@@ -2066,6 +2117,15 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     capability["live_owner_consumption_soak_boundary"][
         "required_before_physical_delete"
     ] = "repo_tests_green_ref"
+    capability["live_owner_consumption_soak_boundary"]["physical_delete_requires"] = [
+        "repo_tests_green_ref"
+    ]
+    capability["live_owner_consumption_soak_boundary"][
+        "required_active_caller_readbacks"
+    ] = ["mcp_or_cli_mode_coverage"]
+    capability["live_owner_consumption_soak_boundary"][
+        "forbidden_completion_claims"
+    ] = ["repo_tests_green_as_physical_delete"]
 
     capability_violations = retirement.validate_runtime_surface_retirement_inventory(
         capability_bad_inventory
@@ -2130,6 +2190,18 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "agent_tool_arsenal_scientific_capability_registry",
             "capability_registry_live_soak_missing_physical_delete_ref",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_live_soak_physical_delete_requires_incomplete",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_live_soak_required_readbacks_incomplete",
+        ),
+        (
+            "agent_tool_arsenal_scientific_capability_registry",
+            "capability_registry_live_soak_missing_false_completion_guard",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in capability_violations}
 

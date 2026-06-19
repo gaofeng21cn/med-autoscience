@@ -979,6 +979,20 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "required_before_physical_delete": (
             "agent_tool_arsenal_live_owner_consumption_soak_and_direct_hosted_parity_ref"
         ),
+        "physical_delete_requires": [
+            "agent_tool_arsenal_live_owner_consumption_soak_current_owner_delta_readback_ref",
+            "agent_tool_arsenal_explicit_capability_request_resolution_live_readback_ref",
+            "agent_tool_arsenal_direct_hosted_tool_invocation_runtime_parity_ref",
+            "agent_tool_arsenal_no_active_registry_projection_caller_scan_ref",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        ],
+        "required_active_caller_readbacks": [
+            "current_owner_delta_bound_capability_consumption_live_readback",
+            "explicit_capability_request_resolution_live_readback",
+            "direct_hosted_tool_invocation_runtime_parity_readback",
+        ],
         "allowed_consumption": [
             "current_owner_delta_bound_capability_projection",
             "explicit_capability_request_resolution_evidence",
@@ -989,6 +1003,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "mcp_or_cli_mode_coverage_as_direct_hosted_parity",
             "wildcard_guard_as_live_owner_consumption_soak",
             "capability_request_projection_as_paper_progress",
+            "registry_projection_no_active_scan_as_physical_delete",
             "repo_tests_green_as_physical_delete",
         ],
     }

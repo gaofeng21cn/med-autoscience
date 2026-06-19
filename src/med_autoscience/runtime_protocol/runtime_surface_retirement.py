@@ -1046,6 +1046,24 @@ def _validate_agent_tool_arsenal_scientific_capability_registry(
             != "agent_tool_arsenal_live_owner_consumption_soak_and_direct_hosted_parity_ref"
         ):
             violations.append(_violation(surface_id, "capability_registry_live_soak_missing_physical_delete_ref"))
+        physical_delete_requires = live_soak.get("physical_delete_requires")
+        if not isinstance(physical_delete_requires, list) or not {
+            "agent_tool_arsenal_live_owner_consumption_soak_current_owner_delta_readback_ref",
+            "agent_tool_arsenal_explicit_capability_request_resolution_live_readback_ref",
+            "agent_tool_arsenal_direct_hosted_tool_invocation_runtime_parity_ref",
+            "agent_tool_arsenal_no_active_registry_projection_caller_scan_ref",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        } <= {str(item) for item in physical_delete_requires}:
+            violations.append(_violation(surface_id, "capability_registry_live_soak_physical_delete_requires_incomplete"))
+        required_readbacks = live_soak.get("required_active_caller_readbacks")
+        if not isinstance(required_readbacks, list) or not {
+            "current_owner_delta_bound_capability_consumption_live_readback",
+            "explicit_capability_request_resolution_live_readback",
+            "direct_hosted_tool_invocation_runtime_parity_readback",
+        } <= {str(item) for item in required_readbacks}:
+            violations.append(_violation(surface_id, "capability_registry_live_soak_required_readbacks_incomplete"))
         allowed_consumption = live_soak.get("allowed_consumption")
         if not isinstance(allowed_consumption, list) or not {
             "current_owner_delta_bound_capability_projection",
@@ -1056,6 +1074,10 @@ def _validate_agent_tool_arsenal_scientific_capability_registry(
         if not isinstance(forbidden_claims, list) or not {
             "capability_registry_contract_as_live_owner_consumption_soak",
             "hosted_opl_runtime_requirement_as_direct_hosted_parity",
+            "mcp_or_cli_mode_coverage_as_direct_hosted_parity",
+            "wildcard_guard_as_live_owner_consumption_soak",
+            "capability_request_projection_as_paper_progress",
+            "registry_projection_no_active_scan_as_physical_delete",
             "repo_tests_green_as_physical_delete",
         } <= {str(item) for item in forbidden_claims}:
             violations.append(_violation(surface_id, "capability_registry_live_soak_missing_false_completion_guard"))
@@ -1199,6 +1221,12 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
         "agent_tool_arsenal_physical_delete_allowed": (
             live_owner_consumption_soak.get("physical_delete_allowed")
             if isinstance(live_owner_consumption_soak, Mapping)
+            else None
+        ),
+        "agent_tool_arsenal_required_active_caller_readback_count": (
+            len(live_owner_consumption_soak.get("required_active_caller_readbacks"))
+            if isinstance(live_owner_consumption_soak, Mapping)
+            and isinstance(live_owner_consumption_soak.get("required_active_caller_readbacks"), list)
             else None
         ),
         "obligation_actuator_tail_status": (
