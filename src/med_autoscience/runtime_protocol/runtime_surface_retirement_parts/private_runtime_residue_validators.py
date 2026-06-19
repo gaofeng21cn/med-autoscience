@@ -1130,10 +1130,22 @@ def validate_domain_health_diagnostic_obligation_actuator(
     else:
         if tail.get("surface_kind") != "opl_obligation_actuator_tail_readback_requirement":
             violations.append(_violation(surface_id, "obligation_actuator_tail_readback_kind_invalid"))
+        if tail.get("status") != "tail_open":
+            violations.append(_violation(surface_id, "obligation_actuator_tail_status_not_open"))
         if tail.get("runtime_owner") != "one-person-lab":
             violations.append(_violation(surface_id, "obligation_actuator_tail_runtime_owner_not_opl"))
         if tail.get("runtime_kind") != "RecoveryObligationStore/SupervisorDecisionEngine":
             violations.append(_violation(surface_id, "obligation_actuator_tail_runtime_kind_invalid"))
+        if tail.get("required_before_physical_delete") != (
+            "domain_health_diagnostic_obligation_actuator_"
+            "opl_obligation_actuator_tail_readback_ref"
+        ):
+            violations.append(
+                _violation(
+                    surface_id,
+                    "obligation_actuator_tail_required_before_physical_delete_invalid",
+                )
+            )
         required_readbacks = {
             "opl_recovery_obligation_store_active_caller_readback",
             "opl_supervisor_decision_engine_active_caller_readback",
