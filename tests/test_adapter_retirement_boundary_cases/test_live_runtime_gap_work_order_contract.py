@@ -44,6 +44,14 @@ def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None
             "forbidden_claim_terms"
         ]
     )
+    schema = contract["completion_claim_boundary"]["evidence_record_schema"]
+    assert schema["unknown_evidence_record_id_status"] == "typed_blocker_required"
+    assert schema["duplicate_evidence_record_id_status"] == "typed_blocker_required"
+    assert schema["unknown_or_duplicate_evidence_record_can_satisfy_work_order"] is False
+    assert (
+        schema["unknown_or_duplicate_evidence_record_blocks_live_runtime_readiness_claim"]
+        is True
+    )
 
     expected = {
         order["gap_id"]: order
@@ -128,6 +136,20 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
     ]
     assert false_ready_claim["live_runtime_readiness_claim_allowed"] is False
 
+    non_forbidden_word_boundary = work_orders.evaluate_live_runtime_gap_evidence_record(
+        provider_readback,
+        {
+            "gap_id": provider_readback["gap_id"],
+            "claim": "accepted readback already recorded",
+            "evidence_source": "opl_live_readback:provider-admission:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [
+                "same_identity_opl_provider_admission_live_readback_ref"
+            ],
+        },
+    )
+    assert non_forbidden_word_boundary["status"] == "satisfied_by_accepted_ref"
+    assert non_forbidden_word_boundary["forbidden_claim_terms_present"] == []
+
 
 def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
     work_orders = importlib.import_module(
@@ -192,3 +214,47 @@ def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
     assert complete["satisfied_count"] == 5
     assert complete["typed_blocker_count"] == 0
     assert complete["live_runtime_readiness_claim_allowed"] is True
+
+
+def test_live_runtime_gap_intake_fails_closed_on_unknown_or_duplicate_records() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+    )
+    contract = _contract()
+    complete_records = [
+        {
+            "gap_id": order["gap_id"],
+            "evidence_source": f"owner_readback:{order['gap_id']}",
+            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
+        }
+        for order in contract["work_orders"]
+    ]
+
+    polluted = work_orders.live_runtime_gap_evidence_intake_summary(
+        contract,
+        [
+            *complete_records,
+            {
+                **complete_records[0],
+                "evidence_source": "owner_readback:duplicate",
+            },
+            {
+                "gap_id": "unknown_live_runtime_gap",
+                "evidence_source": "owner_readback:unknown",
+                "evidence_ref_families": [
+                    "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref"
+                ],
+            },
+        ],
+    )
+
+    assert polluted["satisfied_count"] == 5
+    assert polluted["typed_blocker_count"] == 2
+    assert polluted["intake_violation_count"] == 2
+    assert polluted["duplicate_gap_ids"] == [complete_records[0]["gap_id"]]
+    assert polluted["unknown_gap_ids"] == ["unknown_live_runtime_gap"]
+    assert polluted["live_runtime_readiness_claim_allowed"] is False
+    assert {
+        "duplicate_live_runtime_gap_evidence_gap_id",
+        "unknown_live_runtime_gap_evidence_gap_id",
+    } == {violation["typed_blocker"] for violation in polluted["intake_violations"]}

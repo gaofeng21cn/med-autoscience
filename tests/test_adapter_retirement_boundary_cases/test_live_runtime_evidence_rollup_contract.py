@@ -56,6 +56,8 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
         ],
         "accepted_rollup_result_status": "all_work_orders_satisfied",
         "missing_or_forbidden_result_status": "typed_blocker_required",
+        "unknown_or_duplicate_evidence_records_can_satisfy_rollup": False,
+        "unknown_or_duplicate_evidence_records_result_status": "typed_blocker_required",
     }
     assert rollup_contract["live_tail_surface_ids"] == sorted(
         order["surface_id"] for order in tail_contract["work_orders"]
@@ -169,8 +171,68 @@ def test_live_runtime_evidence_rollup_requires_all_tail_and_gap_records() -> Non
     assert complete["total_work_order_count"] == 12
     assert complete["satisfied_count"] == 12
     assert complete["typed_blocker_count"] == 0
+    assert complete["intake_violation_count"] == 0
     assert complete["live_runtime_readiness_claim_allowed"] is True
     assert complete["rollup_result_status"] == "all_work_orders_satisfied"
+
+
+def test_live_runtime_evidence_rollup_fails_closed_on_unknown_or_duplicate_records() -> None:
+    rollup = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+    )
+    tail_contract = _live_tail_contract()
+    gap_contract = _live_gap_contract()
+    tail_records = [
+        {
+            "surface_id": order["surface_id"],
+            "evidence_source": f"owner_readback:{order['surface_id']}",
+            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
+        }
+        for order in tail_contract["work_orders"]
+    ]
+    gap_records = [
+        {
+            "gap_id": order["gap_id"],
+            "evidence_source": f"owner_readback:{order['gap_id']}",
+            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
+        }
+        for order in gap_contract["work_orders"]
+    ]
+
+    polluted = rollup.live_runtime_evidence_rollup_summary(
+        live_tail_contract=tail_contract,
+        live_runtime_gap_contract=gap_contract,
+        live_tail_evidence_records=[
+            *tail_records,
+            {**tail_records[0], "evidence_source": "owner_readback:duplicate"},
+            {
+                "surface_id": "unknown_private_surface",
+                "evidence_source": "owner_readback:unknown",
+                "evidence_ref_families": [
+                    "runtime_health_kernel_opl_observability_live_readback_ref"
+                ],
+            },
+        ],
+        live_runtime_gap_evidence_records=[
+            *gap_records,
+            {**gap_records[0], "evidence_source": "owner_readback:duplicate"},
+            {
+                "gap_id": "unknown_live_runtime_gap",
+                "evidence_source": "owner_readback:unknown",
+                "evidence_ref_families": [
+                    "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref"
+                ],
+            },
+        ],
+    )
+
+    assert polluted["satisfied_count"] == 12
+    assert polluted["typed_blocker_count"] == 4
+    assert polluted["intake_violation_count"] == 4
+    assert polluted["live_runtime_readiness_claim_allowed"] is False
+    assert polluted["rollup_result_status"] == "typed_blocker_required"
+    assert polluted["live_tail"]["intake_violation_count"] == 2
+    assert polluted["live_runtime_gaps"]["intake_violation_count"] == 2
 
 
 def test_live_runtime_evidence_rollup_cli_outputs_readback_json(capsys) -> None:
@@ -244,4 +306,73 @@ def test_live_runtime_evidence_rollup_cli_consumes_evidence_files(tmp_path: Path
     assert exit_code == 0
     assert output["summary"]["rollup_result_status"] == "all_work_orders_satisfied"
     assert output["summary"]["typed_blocker_count"] == 0
+    assert output["summary"]["intake_violation_count"] == 0
     assert output["completion_claim_allowed"] is True
+
+
+def test_live_runtime_evidence_rollup_cli_rejects_polluted_evidence_files(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    tail_contract = _live_tail_contract()
+    gap_contract = _live_gap_contract()
+    tail_records = [
+        {
+            "surface_id": order["surface_id"],
+            "evidence_source": f"owner_readback:{order['surface_id']}",
+            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
+        }
+        for order in tail_contract["work_orders"]
+    ]
+    gap_records = [
+        {
+            "gap_id": order["gap_id"],
+            "evidence_source": f"owner_readback:{order['gap_id']}",
+            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
+        }
+        for order in gap_contract["work_orders"]
+    ]
+    tail_file = tmp_path / "polluted-tail-evidence.json"
+    gap_file = tmp_path / "polluted-gap-evidence.json"
+    tail_file.write_text(
+        json.dumps(
+            [
+                *tail_records,
+                {**tail_records[0], "evidence_source": "owner_readback:duplicate"},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    gap_file.write_text(
+        json.dumps(
+            [
+                *gap_records,
+                {**gap_records[0], "evidence_source": "owner_readback:duplicate"},
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "doctor",
+            "live-runtime-evidence-rollup",
+            "--repo-root",
+            str(REPO_ROOT),
+            "--tail-evidence-file",
+            str(tail_file),
+            "--gap-evidence-file",
+            str(gap_file),
+            "--format",
+            "json",
+        ]
+    )
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert output["summary"]["satisfied_count"] == 12
+    assert output["summary"]["typed_blocker_count"] == 2
+    assert output["summary"]["intake_violation_count"] == 2
+    assert output["summary"]["rollup_result_status"] == "typed_blocker_required"
+    assert output["completion_claim_allowed"] is False

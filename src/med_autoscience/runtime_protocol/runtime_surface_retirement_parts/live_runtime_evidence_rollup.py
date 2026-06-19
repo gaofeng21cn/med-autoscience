@@ -114,6 +114,23 @@ def validate_live_runtime_evidence_rollup_contract(
                 "boundary_mismatch:live_runtime_readiness_claim_requires_all_tail_and_gap_work_orders_satisfied",
             )
         )
+    if boundary_mapping.get("unknown_or_duplicate_evidence_records_can_satisfy_rollup") is not False:
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:unknown_or_duplicate_evidence_records_can_satisfy_rollup",
+            )
+        )
+    if (
+        boundary_mapping.get("unknown_or_duplicate_evidence_records_result_status")
+        != "typed_blocker_required"
+    ):
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:unknown_or_duplicate_evidence_records_result_status",
+            )
+        )
     return violations
 
 
@@ -135,6 +152,11 @@ def live_runtime_evidence_rollup_summary(
     tail_blocker_count = int(tail_summary.get("typed_blocker_count") or 0)
     gap_blocker_count = int(gap_summary.get("typed_blocker_count") or 0)
     total_blocker_count = tail_blocker_count + gap_blocker_count
+    tail_intake_violation_count = int(tail_summary.get("intake_violation_count") or 0)
+    gap_intake_violation_count = int(gap_summary.get("intake_violation_count") or 0)
+    total_intake_violation_count = (
+        tail_intake_violation_count + gap_intake_violation_count
+    )
     tail_satisfied_count = int(tail_summary.get("satisfied_count") or 0)
     gap_satisfied_count = int(gap_summary.get("satisfied_count") or 0)
     total_work_order_count = int(tail_summary.get("total_work_order_count") or 0) + int(
@@ -154,6 +176,7 @@ def live_runtime_evidence_rollup_summary(
         "total_work_order_count": total_work_order_count,
         "satisfied_count": tail_satisfied_count + gap_satisfied_count,
         "typed_blocker_count": total_blocker_count,
+        "intake_violation_count": total_intake_violation_count,
         "live_tail": tail_summary,
         "live_runtime_gaps": gap_summary,
         "typed_blocker_surface_ids": tail_summary.get("typed_blocker_surface_ids", []),

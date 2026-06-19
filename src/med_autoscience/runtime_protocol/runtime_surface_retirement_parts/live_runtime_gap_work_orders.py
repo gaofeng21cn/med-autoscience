@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import re
 from typing import Any
 
 
@@ -46,6 +47,20 @@ def validate_live_runtime_gap_work_order_contract(
     )
     if not set(FORBIDDEN_CLAIM_TERMS).issubset(schema_forbidden_terms):
         violations.append(_violation("<contract>", "missing_forbidden_claim_terms"))
+    schema = _evidence_record_schema(contract)
+    if schema.get("unknown_evidence_record_id_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "missing_unknown_id_typed_blocker_status"))
+    if schema.get("duplicate_evidence_record_id_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "missing_duplicate_id_typed_blocker_status"))
+    if schema.get("unknown_or_duplicate_evidence_record_can_satisfy_work_order") is not False:
+        violations.append(_violation("<contract>", "unknown_or_duplicate_can_satisfy_work_order"))
+    if (
+        schema.get("unknown_or_duplicate_evidence_record_blocks_live_runtime_readiness_claim")
+        is not True
+    ):
+        violations.append(
+            _violation("<contract>", "unknown_or_duplicate_does_not_block_live_readiness")
+        )
 
     expected = {
         order["gap_id"]: order
@@ -129,11 +144,10 @@ def live_runtime_gap_evidence_intake_summary(
         records_iterable = [record for record in evidence_records if isinstance(record, Mapping)]
     else:
         records_iterable = []
-    records = {
-        str(record.get("gap_id")): record
-        for record in records_iterable
-        if _text(record.get("gap_id")) is not None
-    }
+    records, unknown_gap_ids, duplicate_gap_ids = _records_by_gap_id(
+        records_iterable,
+        orders,
+    )
     forbidden_claim_terms = _evidence_record_schema(contract).get("forbidden_claim_terms", [])
     results = [
         evaluate_live_runtime_gap_evidence_record(
@@ -151,15 +165,38 @@ def live_runtime_gap_evidence_intake_summary(
     satisfied = [
         result["gap_id"] for result in results if result["status"] == "satisfied_by_accepted_ref"
     ]
+    intake_violations = [
+        {
+            "violation_id": f"unknown_gap_id:{gap_id}",
+            "status": "typed_blocker_required",
+            "gap_id": gap_id,
+            "typed_blocker": "unknown_live_runtime_gap_evidence_gap_id",
+        }
+        for gap_id in unknown_gap_ids
+    ] + [
+        {
+            "violation_id": f"duplicate_gap_id:{gap_id}",
+            "status": "typed_blocker_required",
+            "gap_id": gap_id,
+            "typed_blocker": "duplicate_live_runtime_gap_evidence_gap_id",
+        }
+        for gap_id in duplicate_gap_ids
+    ]
     return {
         "surface_kind": "mas_live_runtime_gap_evidence_intake_summary",
         "total_work_order_count": len(orders),
         "satisfied_count": len(satisfied),
-        "typed_blocker_count": len(blocked),
+        "typed_blocker_count": len(blocked) + len(intake_violations),
         "satisfied_gap_ids": satisfied,
         "typed_blocker_gap_ids": blocked,
+        "intake_violation_count": len(intake_violations),
+        "intake_violations": intake_violations,
+        "unknown_gap_ids": unknown_gap_ids,
+        "duplicate_gap_ids": duplicate_gap_ids,
         "repo_source_retirement_blocked": False,
-        "live_runtime_readiness_claim_allowed": bool(orders) and not blocked,
+        "live_runtime_readiness_claim_allowed": bool(orders)
+        and not blocked
+        and not intake_violations,
         "results": results,
     }
 
@@ -262,6 +299,28 @@ def _text_list(value: Any) -> list[str]:
     return [text] if text is not None else []
 
 
+def _records_by_gap_id(
+    evidence_records: list[Mapping[str, Any]],
+    orders: Mapping[str, Mapping[str, Any]],
+) -> tuple[dict[str, Mapping[str, Any]], list[str], list[str]]:
+    records: dict[str, Mapping[str, Any]] = {}
+    seen: set[str] = set()
+    duplicate_gap_ids: set[str] = set()
+    unknown_gap_ids: set[str] = set()
+    for record in evidence_records:
+        gap_id = _text(record.get("gap_id"))
+        if gap_id is None:
+            continue
+        if gap_id in seen:
+            duplicate_gap_ids.add(gap_id)
+        else:
+            records[gap_id] = record
+            seen.add(gap_id)
+        if gap_id not in orders:
+            unknown_gap_ids.add(gap_id)
+    return records, sorted(unknown_gap_ids), sorted(duplicate_gap_ids)
+
+
 def _text(value: Any) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -287,7 +346,15 @@ def _forbidden_claim_terms(
         or work_order.get("forbidden_claim_terms")
         or list(FORBIDDEN_CLAIM_TERMS)
     )
-    return sorted(term for term in terms if term.casefold() in claim)
+    return sorted(term for term in terms if _claim_contains_term(claim, term))
+
+
+def _claim_contains_term(claim: str, term: str) -> bool:
+    folded_term = term.casefold().strip()
+    if not folded_term:
+        return False
+    pattern = rf"(?<![a-z0-9]){re.escape(folded_term)}(?![a-z0-9])"
+    return re.search(pattern, claim) is not None
 
 
 def _violation(gap_id: str, reason: str) -> dict[str, str]:

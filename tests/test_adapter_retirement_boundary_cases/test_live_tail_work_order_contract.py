@@ -69,6 +69,13 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
         "publication-ready",
         "production-ready",
     } <= set(schema["forbidden_claim_terms"])
+    assert schema["unknown_evidence_record_id_status"] == "typed_blocker_required"
+    assert schema["duplicate_evidence_record_id_status"] == "typed_blocker_required"
+    assert schema["unknown_or_duplicate_evidence_record_can_satisfy_work_order"] is False
+    assert (
+        schema["unknown_or_duplicate_evidence_record_blocks_live_runtime_readiness_claim"]
+        is True
+    )
     assert {
         "same_identity_opl_live_readback",
         "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
@@ -151,6 +158,20 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
     ]
     assert false_ready_claim["live_runtime_readiness_claim_allowed"] is False
 
+    non_forbidden_word_boundary = work_orders.evaluate_live_tail_evidence_record(
+        runtime_health,
+        {
+            "surface_id": "runtime_health_kernel",
+            "claim": "accepted readback already recorded",
+            "evidence_source": "runtime_readback:observability:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [
+                "runtime_health_kernel_opl_observability_live_readback_ref"
+            ],
+        },
+    )
+    assert non_forbidden_word_boundary["status"] == "satisfied_by_accepted_ref"
+    assert non_forbidden_word_boundary["forbidden_claim_terms_present"] == []
+
     missing = work_orders.evaluate_live_tail_evidence_record(runtime_health, {})
     assert missing["status"] == "typed_blocker_required"
     assert missing["matched_evidence_ref_families"] == []
@@ -218,3 +239,45 @@ def test_live_tail_evidence_intake_summary_does_not_claim_ready_until_all_tails_
     assert complete["satisfied_count"] == 7
     assert complete["typed_blocker_count"] == 0
     assert complete["live_runtime_readiness_claim_allowed"] is True
+
+
+def test_live_tail_evidence_intake_fails_closed_on_unknown_or_duplicate_records() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+    )
+    contract = _contract()
+    all_records = [
+        {
+            "surface_id": order["surface_id"],
+            "evidence_source": f"owner_readback:{order['surface_id']}",
+            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
+        }
+        for order in contract["work_orders"]
+    ]
+
+    polluted = work_orders.live_tail_evidence_intake_summary(
+        contract,
+        [
+            *all_records,
+            {
+                **all_records[0],
+                "evidence_source": "owner_readback:duplicate",
+            },
+            {
+                "surface_id": "unknown_private_surface",
+                "evidence_source": "owner_readback:unknown",
+                "evidence_ref_families": ["runtime_health_kernel_opl_observability_live_readback_ref"],
+            },
+        ],
+    )
+
+    assert polluted["satisfied_count"] == 7
+    assert polluted["typed_blocker_count"] == 2
+    assert polluted["intake_violation_count"] == 2
+    assert polluted["duplicate_surface_ids"] == [all_records[0]["surface_id"]]
+    assert polluted["unknown_surface_ids"] == ["unknown_private_surface"]
+    assert polluted["live_runtime_readiness_claim_allowed"] is False
+    assert {
+        "duplicate_live_tail_evidence_surface_id",
+        "unknown_live_tail_evidence_surface_id",
+    } == {violation["typed_blocker"] for violation in polluted["intake_violations"]}

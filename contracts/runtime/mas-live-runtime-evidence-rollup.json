@@ -34,7 +34,9 @@
       "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema"
     ],
     "accepted_rollup_result_status": "all_work_orders_satisfied",
-    "missing_or_forbidden_result_status": "typed_blocker_required"
+    "missing_or_forbidden_result_status": "typed_blocker_required",
+    "unknown_or_duplicate_evidence_records_can_satisfy_rollup": false,
+    "unknown_or_duplicate_evidence_records_result_status": "typed_blocker_required"
   },
   "source_refs": [
     "contracts/runtime/mas-runtime-live-tail-work-orders.json",

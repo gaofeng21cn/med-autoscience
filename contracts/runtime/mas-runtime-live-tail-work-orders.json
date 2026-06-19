@@ -43,7 +43,11 @@
       "accepted_result_status": "satisfied_by_accepted_ref",
       "missing_or_forbidden_result_status": "typed_blocker_required",
       "repo_source_retirement_blocked_by_missing_evidence_record": false,
-      "live_runtime_readiness_claim_requires_all_work_orders_satisfied": true
+      "live_runtime_readiness_claim_requires_all_work_orders_satisfied": true,
+      "unknown_evidence_record_id_status": "typed_blocker_required",
+      "duplicate_evidence_record_id_status": "typed_blocker_required",
+      "unknown_or_duplicate_evidence_record_can_satisfy_work_order": false,
+      "unknown_or_duplicate_evidence_record_blocks_live_runtime_readiness_claim": true
     }
   },
   "source_refs": [

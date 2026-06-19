@@ -988,13 +988,6 @@ def _paper_recovery_state_blocks_provider_admission(
         },
     ):
         return {}
-    if _accepted_owner_gate_transition_matches_admission_pending_recovery(
-        identity,
-        study=study,
-        recovery=recovery,
-        next_safe_action=next_safe_action,
-    ):
-        return {}
     if _non_empty_text(recovery.get("phase")) == "admission_pending" and (
         next_safe_action.get("provider_admission_requires_opl_runtime_result") is False
         or _non_empty_text(next_safe_action.get("kind")) == "admit_provider_attempt"
@@ -1040,31 +1033,6 @@ def _request_only_transition_matches_recovery_successor(
         _identity_matches(source, identity=identity)
         for source in _recovery_successor_identity_sources(recovery)
     )
-
-
-def _accepted_owner_gate_transition_matches_admission_pending_recovery(
-    identity: Mapping[str, Any],
-    *,
-    study: Mapping[str, Any],
-    recovery: Mapping[str, Any],
-    next_safe_action: Mapping[str, Any],
-) -> bool:
-    if not _accepted_owner_gate_transition_request_candidate(identity):
-        return False
-    if _non_empty_text(recovery.get("phase")) != "admission_pending":
-        return False
-    if _non_empty_text(next_safe_action.get("kind")) != "admit_identity_bound_stage_packet":
-        return False
-    if next_safe_action.get("provider_admission_allowed") is not True:
-        return False
-    if not any(
-        _non_empty_text(_mapping(item).get("condition")) == "accepted_owner_gate_decision"
-        and _non_empty_text(_mapping(item).get("decision"))
-        == "admit_identity_bound_stage_packet"
-        for item in recovery.get("conditions") or []
-    ):
-        return False
-    return _paper_recovery_state_matches_identity(study, recovery=recovery, identity=identity)
 
 
 def _recovery_successor_identity_sources(recovery: Mapping[str, Any]) -> list[Mapping[str, Any]]:
