@@ -587,13 +587,9 @@ def _current_control_payload_for_provider_admission(
 
 
 def _accepted_owner_gate_admission_pending(payload: Mapping[str, Any]) -> bool:
-    recovery = _mapping_copy(payload.get("paper_recovery_state"))
-    if _non_empty_text(recovery.get("phase")) != "admission_pending":
-        return False
-    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
-    return (
-        _non_empty_text(next_safe_action.get("kind")) == "admit_identity_bound_stage_packet"
-        and next_safe_action.get("provider_admission_allowed") is True
+    return provider_admission.accepted_owner_gate_admission_matches_selected_dispatch_blocker(
+        study=payload,
+        recovery=_mapping_copy(payload.get("paper_recovery_state")),
     )
 
 

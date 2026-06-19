@@ -5,6 +5,9 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers import control_identity
 from med_autoscience.controllers import paper_progress_policy_adapter
+from med_autoscience.controllers.current_work_unit_parts.stage_packet_blockers import (
+    is_selected_dispatch_stage_packet_blocker as _is_selected_dispatch_stage_packet_blocker,
+)
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     currentness_identity,
 )
@@ -420,13 +423,12 @@ def _current_action_from_accepted_owner_gate_admission(
     study: Mapping[str, Any],
 ) -> dict[str, Any]:
     recovery = _mapping(study.get("paper_recovery_state"))
-    if _non_empty_text(recovery.get("phase")) != "admission_pending":
+    if not accepted_owner_gate_admission_matches_selected_dispatch_blocker(
+        study=study,
+        recovery=recovery,
+    ):
         return {}
     next_safe_action = _mapping(recovery.get("next_safe_action"))
-    if _non_empty_text(next_safe_action.get("kind")) != "admit_identity_bound_stage_packet":
-        return {}
-    if next_safe_action.get("provider_admission_allowed") is not True:
-        return {}
     current_work_unit = _mapping(study.get("current_work_unit"))
     action_type = _non_empty_text(current_work_unit.get("action_type"))
     work_unit_id = _non_empty_text(current_work_unit.get("work_unit_id"))
@@ -468,6 +470,77 @@ def _current_action_from_accepted_owner_gate_admission(
         "owner_route_currentness_basis": basis,
         "currentness_basis": basis,
     }
+
+
+def accepted_owner_gate_admission_matches_selected_dispatch_blocker(
+    *,
+    study: Mapping[str, Any],
+    recovery: Mapping[str, Any] | None = None,
+) -> bool:
+    recovery_payload = _mapping(recovery) or _mapping(study.get("paper_recovery_state"))
+    if _non_empty_text(recovery_payload.get("phase")) != "admission_pending":
+        return False
+    next_safe_action = _mapping(recovery_payload.get("next_safe_action"))
+    if _non_empty_text(next_safe_action.get("kind")) != "admit_identity_bound_stage_packet":
+        return False
+    if next_safe_action.get("provider_admission_allowed") is not True:
+        return False
+    if not _recovery_records_accepted_identity_bound_stage_packet(recovery_payload):
+        return False
+    if not _recovery_has_owner_gate_stage_packet_ref(recovery_payload):
+        return False
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "typed_blocker":
+        return False
+    return _is_selected_dispatch_stage_packet_blocker(
+        _selected_dispatch_typed_blocker_reason(study)
+    )
+
+
+def _recovery_records_accepted_identity_bound_stage_packet(
+    recovery: Mapping[str, Any],
+) -> bool:
+    for item in recovery.get("conditions") or []:
+        condition = _mapping(item)
+        if (
+            _non_empty_text(condition.get("condition")) == "accepted_owner_gate_decision"
+            and _non_empty_text(condition.get("decision")) == "admit_identity_bound_stage_packet"
+        ):
+            return True
+    return False
+
+
+def _recovery_has_owner_gate_stage_packet_ref(recovery: Mapping[str, Any]) -> bool:
+    refs = _text_items(recovery.get("evidence_refs"))
+    has_owner_gate = any(ref.startswith("owner-gate-decision:") for ref in refs)
+    has_stage_packet = any(
+        ref.startswith("stage-packet:")
+        or "stage_packet" in ref
+        or "default_executor_dispatches" in ref
+        for ref in refs
+    )
+    return has_owner_gate and has_stage_packet
+
+
+def _selected_dispatch_typed_blocker_reason(study: Mapping[str, Any]) -> str | None:
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    current_execution = _mapping(study.get("current_execution_envelope"))
+    for blocker in (
+        _mapping(_mapping(current_work_unit.get("state")).get("typed_blocker")),
+        _mapping(current_work_unit.get("typed_blocker")),
+        _mapping(current_execution.get("typed_blocker")),
+        _mapping(current_work_unit.get("state")),
+        current_execution,
+    ):
+        reason = (
+            _non_empty_text(blocker.get("blocker_id"))
+            or _non_empty_text(blocker.get("blocker_type"))
+            or _non_empty_text(blocker.get("reason"))
+            or _non_empty_text(blocker.get("blocked_reason"))
+        )
+        if reason is not None:
+            return reason
+    return None
 
 
 def _provider_admission_action_key(action: Mapping[str, Any]) -> tuple[str | None, str | None, str | None]:
