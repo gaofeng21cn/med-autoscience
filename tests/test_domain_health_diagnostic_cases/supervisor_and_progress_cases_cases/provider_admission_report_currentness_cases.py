@@ -982,3 +982,118 @@ def test_domain_health_diagnostic_retains_owner_gate_transition_request_over_acc
         control["stage_route_arbiter_decisions"][0]["decision"]
         == "opl_transition_readback_required"
     )
+
+
+def test_provider_admission_report_sync_keeps_owner_gate_transition_request_over_typed_blocker() -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    transition_request = {
+        "surface_kind": "mas_domain_progress_transition_request",
+        "recommended_transition_kind": "StartProviderAttempt",
+        "idempotency_key": "paper-policy-request:owner-gate-dm003",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+    }
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "status": "transition_request_pending",
+        "source": "opl_current_control_state.study_current_executable_owner_action",
+        "mas_owner_action_source": "paper_recovery_state.accepted_owner_gate_decision",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "stage_packet_ref": (
+            f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+            "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
+        ),
+        "route_identity_key": f"paper-recovery::{study_id}::{action_type}::{fingerprint}",
+        "attempt_idempotency_key": f"paper-recovery::{study_id}::{action_type}::{fingerprint}",
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "provider_attempt_or_lease_required": False,
+        "currentness_basis": {
+            "source": "paper_recovery_state.accepted_owner_gate_decision",
+            "mas_owner_action_source": "paper_recovery_state.accepted_owner_gate_decision",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+        },
+        "opl_domain_progress_transition_request": transition_request,
+        "paper_progress_policy_result": {
+            "opl_domain_progress_transition_request": transition_request,
+        },
+    }
+    report = {
+        "current_execution_evidence": {
+            "progress_currentness": {
+                study_id: {
+                    "transition_request_candidates": [dict(candidate)],
+                    "current_work_unit": {
+                        "status": "typed_blocker",
+                        "owner": "one-person-lab",
+                        "action_type": action_type,
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "state": {
+                            "typed_blocker": {
+                                "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                                "action_type": action_type,
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": fingerprint,
+                            }
+                        },
+                    },
+                    "current_execution_envelope": {
+                        "state_kind": "typed_blocker",
+                        "owner": "one-person-lab",
+                        "typed_blocker": {
+                            "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                            "action_type": action_type,
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                        },
+                    },
+                }
+            },
+        },
+        "managed_study_actions": [],
+    }
+    current_control_state = {
+        "transition_request_candidates": [dict(candidate)],
+        "provider_admission_candidates": [],
+        "stage_route_arbiter_decisions": [
+            {
+                "decision": "current_typed_blocker_precedes_provider_admission",
+                "evidence_status": "typed_blocker",
+                "study_id": study_id,
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            }
+        ],
+    }
+
+    report_module.sync_report_provider_admission_current_control_state(
+        report,
+        current_control_state=current_control_state,
+    )
+
+    assert report["provider_admission_pending_count"] == 0
+    assert report["transition_request_pending_count"] == 1
+    assert report["managed_study_opl_provider_admission_candidates"] == []
+    candidates = report["managed_study_opl_transition_request_candidates"]
+    assert len(candidates) == 1
+    assert candidates[0]["mas_owner_action_source"] == "paper_recovery_state.accepted_owner_gate_decision"
+    assert candidates[0]["provider_admission_requires_opl_runtime_result"] is True

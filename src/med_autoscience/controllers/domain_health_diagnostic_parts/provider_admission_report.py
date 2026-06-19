@@ -244,12 +244,47 @@ def _filter_transition_requests_consumed_by_currentness(
         if _transition_request_key(candidate) in protected_keys:
             filtered.append(dict(candidate))
             continue
+        if _accepted_owner_gate_transition_request_candidate(candidate):
+            filtered.append(dict(candidate))
+            continue
         study_id = _non_empty_text(candidate.get("study_id"))
         currentness = currentness_by_study.get(study_id or "")
         if currentness and _transition_request_consumed_by_currentness(candidate, currentness):
             continue
         filtered.append(dict(candidate))
     return filtered
+
+
+def _accepted_owner_gate_transition_request_candidate(candidate: Mapping[str, Any]) -> bool:
+    if candidate_opl_transition_readback(candidate):
+        return False
+    transition_request = _mapping(candidate.get("opl_domain_progress_transition_request"))
+    if not transition_request:
+        transition_request = _mapping(
+            _mapping(candidate.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    if not transition_request:
+        return False
+    if candidate.get("provider_admission_requires_opl_runtime_result") is not True:
+        return False
+    if (
+        _non_empty_text(candidate.get("source"))
+        != "opl_current_control_state.study_current_executable_owner_action"
+    ):
+        return False
+    basis = _mapping(candidate.get("currentness_basis"))
+    return (
+        _non_empty_text(candidate.get("mas_owner_action_source"))
+        == "paper_recovery_state.accepted_owner_gate_decision"
+        or _non_empty_text(candidate.get("authority"))
+        == "paper_recovery_state.accepted_owner_gate_decision"
+        or _non_empty_text(basis.get("source"))
+        == "paper_recovery_state.accepted_owner_gate_decision"
+        or _non_empty_text(basis.get("mas_owner_action_source"))
+        == "paper_recovery_state.accepted_owner_gate_decision"
+    )
 
 
 def _current_control_non_advancing_transition_request_keys(
