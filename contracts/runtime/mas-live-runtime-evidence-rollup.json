@@ -8,6 +8,20 @@
   "live_runtime_readiness_claim_allowed": false,
   "live_tail_work_order_ref": "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders",
   "live_runtime_gap_work_order_ref": "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders",
+  "typed_blocker_details_readback": {
+    "surface_kind": "mas_live_runtime_evidence_rollup_typed_blocker_details",
+    "purpose": "Expose next_owner, typed_blocker and acceptable evidence families for every live-tail or live-runtime-gap blocker so operators do not reinterpret docs, tests, queue-empty or repo-source retirement as live readiness evidence.",
+    "required_fields": [
+      "work_order_kind",
+      "next_owner",
+      "typed_blocker",
+      "acceptable_evidence_ref_families",
+      "repo_source_retirement_blocked",
+      "live_runtime_readiness_claim_allowed"
+    ],
+    "live_tail_identity_field": "surface_id",
+    "live_runtime_gap_identity_field": "gap_id"
+  },
   "live_tail_surface_ids": [
     "agent_tool_arsenal_scientific_capability_registry",
     "domain_health_diagnostic_obligation_actuator",

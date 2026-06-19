@@ -89,6 +89,29 @@ def validate_live_runtime_evidence_rollup_contract(
         violations.append(_violation("<contract>", "repo_source_retirement_blocked"))
     if contract.get("live_runtime_readiness_claim_allowed") is not False:
         violations.append(_violation("<contract>", "live_runtime_claim_allowed"))
+    typed_blocker_details = contract.get("typed_blocker_details_readback")
+    typed_blocker_details_mapping = (
+        typed_blocker_details if isinstance(typed_blocker_details, Mapping) else {}
+    )
+    if (
+        typed_blocker_details_mapping.get("surface_kind")
+        != "mas_live_runtime_evidence_rollup_typed_blocker_details"
+    ):
+        violations.append(_violation("<contract>", "typed_blocker_details_surface_kind_mismatch"))
+    expected_detail_fields = [
+        "acceptable_evidence_ref_families",
+        "live_runtime_readiness_claim_allowed",
+        "next_owner",
+        "repo_source_retirement_blocked",
+        "typed_blocker",
+        "work_order_kind",
+    ]
+    if _text_list(typed_blocker_details_mapping.get("required_fields")) != expected_detail_fields:
+        violations.append(_violation("<contract>", "typed_blocker_details_fields_mismatch"))
+    if typed_blocker_details_mapping.get("live_tail_identity_field") != "surface_id":
+        violations.append(_violation("<contract>", "typed_blocker_details_tail_identity_mismatch"))
+    if typed_blocker_details_mapping.get("live_runtime_gap_identity_field") != "gap_id":
+        violations.append(_violation("<contract>", "typed_blocker_details_gap_identity_mismatch"))
 
     expected_tail_ids = _work_order_ids(live_tail_contract, "surface_id")
     expected_gap_ids = _work_order_ids(live_runtime_gap_contract, "gap_id")
@@ -309,6 +332,12 @@ def live_runtime_evidence_rollup_summary(
         gap_summary.get("total_work_order_count") or 0
     )
     all_work_orders_satisfied = bool(total_work_order_count) and total_blocker_count == 0
+    typed_blocker_details = _typed_blocker_details(
+        live_tail_contract=live_tail_contract,
+        live_runtime_gap_contract=live_runtime_gap_contract,
+        live_tail_summary=tail_summary,
+        live_runtime_gap_summary=gap_summary,
+    )
     return {
         "surface_kind": "mas_live_runtime_evidence_rollup_summary",
         "version": VERSION,
@@ -327,8 +356,74 @@ def live_runtime_evidence_rollup_summary(
         "live_runtime_gaps": gap_summary,
         "typed_blocker_surface_ids": tail_summary.get("typed_blocker_surface_ids", []),
         "typed_blocker_gap_ids": gap_summary.get("typed_blocker_gap_ids", []),
+        "typed_blocker_details": typed_blocker_details,
         "satisfied_surface_ids": tail_summary.get("satisfied_surface_ids", []),
         "satisfied_gap_ids": gap_summary.get("satisfied_gap_ids", []),
+    }
+
+
+def _typed_blocker_details(
+    *,
+    live_tail_contract: Mapping[str, Any],
+    live_runtime_gap_contract: Mapping[str, Any],
+    live_tail_summary: Mapping[str, Any],
+    live_runtime_gap_summary: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    tail_orders = _work_orders_by_id(live_tail_contract, "surface_id")
+    gap_orders = _work_orders_by_id(live_runtime_gap_contract, "gap_id")
+    return [
+        _tail_blocker_detail(surface_id, tail_orders.get(surface_id, {}))
+        for surface_id in _text_list(live_tail_summary.get("typed_blocker_surface_ids"))
+    ] + [
+        _gap_blocker_detail(gap_id, gap_orders.get(gap_id, {}))
+        for gap_id in _text_list(live_runtime_gap_summary.get("typed_blocker_gap_ids"))
+    ]
+
+
+def _tail_blocker_detail(surface_id: str, order: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "work_order_kind": "live_tail",
+        "surface_id": surface_id,
+        "next_owner": _text(order.get("next_owner")) or "surface owner",
+        "typed_blocker": _text(order.get("typed_blocker_when_missing"))
+        or f"{surface_id}_live_runtime_readiness_evidence_required",
+        "acceptable_evidence_ref_families": _text_list(
+            order.get("acceptable_evidence_ref_families")
+        ),
+        "forbidden_evidence_substitutes": _text_list(
+            order.get("forbidden_evidence_substitutes")
+        ),
+        "repo_source_retirement_blocked": False,
+        "live_runtime_readiness_claim_allowed": False,
+    }
+
+
+def _gap_blocker_detail(gap_id: str, order: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "work_order_kind": "live_runtime_gap",
+        "gap_id": gap_id,
+        "gap_text": _text(order.get("gap_text")),
+        "next_owner": _text(order.get("next_owner")) or "runtime owner",
+        "typed_blocker": _text(order.get("typed_blocker_when_missing"))
+        or f"{gap_id}_live_runtime_evidence_required",
+        "acceptable_evidence_ref_families": _text_list(
+            order.get("acceptable_evidence_ref_families")
+        ),
+        "forbidden_evidence_substitutes": _text_list(
+            order.get("forbidden_evidence_substitutes")
+        ),
+        "repo_source_retirement_blocked": False,
+        "live_runtime_readiness_claim_allowed": False,
+    }
+
+
+def _work_orders_by_id(contract: Mapping[str, Any], key: str) -> dict[str, Mapping[str, Any]]:
+    raw_orders = contract.get("work_orders")
+    orders = raw_orders if isinstance(raw_orders, list) else []
+    return {
+        text: order
+        for order in orders
+        if isinstance(order, Mapping) and (text := _text(order.get(key))) is not None
     }
 
 

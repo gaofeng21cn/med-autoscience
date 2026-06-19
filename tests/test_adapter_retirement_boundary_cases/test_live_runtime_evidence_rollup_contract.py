@@ -155,6 +155,32 @@ def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> N
     assert readback["summary"]["total_work_order_count"] == 12
     assert readback["summary"]["typed_blocker_count"] == 12
     assert readback["summary"]["rollup_result_status"] == "typed_blocker_required"
+    assert len(readback["summary"]["typed_blocker_details"]) == 12
+    runtime_health_detail = next(
+        item
+        for item in readback["summary"]["typed_blocker_details"]
+        if item.get("surface_id") == "runtime_health_kernel"
+    )
+    assert runtime_health_detail["work_order_kind"] == "live_tail"
+    assert runtime_health_detail["next_owner"] == (
+        "one-person-lab Observability / RouteReconciler owner"
+    )
+    assert runtime_health_detail["typed_blocker"] == (
+        "runtime_health_kernel_live_runtime_readiness_evidence_required"
+    )
+    assert runtime_health_detail["acceptable_evidence_ref_families"]
+    dhd_apply_detail = next(
+        item
+        for item in readback["summary"]["typed_blocker_details"]
+        if item.get("gap_id") == "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated"
+    )
+    assert dhd_apply_detail["work_order_kind"] == "live_runtime_gap"
+    assert dhd_apply_detail["next_owner"] == (
+        "MAS DHD apply owner with OPL runtime authorization"
+    )
+    assert "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref" in (
+        dhd_apply_detail["acceptable_evidence_ref_families"]
+    )
     assert readback["completion_claim_allowed"] is False
     assert {
         "typed_blocker_required_live_runtime_evidence_rollup",

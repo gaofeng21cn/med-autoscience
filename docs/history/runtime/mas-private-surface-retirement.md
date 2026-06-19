@@ -257,3 +257,13 @@ Retained MAS role: MAS may still publish owner-readback, operator-readback, live
 Forbidden interpretation: `focused_tests`, `repo_tests`, `scripts_verify`, `make_test_meta`, docs updates, queue-empty readbacks, DHD dry-runs, replay fixtures or repo-source retirement claims cannot satisfy live-tail or live-runtime-gap work orders, even when the record names an accepted evidence ref family and carries a concrete-looking ref field.
 
 Rollup note: `contracts/runtime/mas-live-runtime-evidence-rollup.json` now requires tail and gap work-order schemas to declare this source boundary. A forbidden or unaccepted evidence source keeps the work order at `typed_blocker_required` and cannot claim live runtime readiness.
+
+## live_runtime_rollup_blocker_details_readback
+
+Disposition: `readback_only_live_evidence_operator_context`
+
+Replacement: `med_autoscience.cli doctor live-runtime-evidence-rollup --format json` now projects `typed_blocker_details` for every remaining live-tail and live-runtime-gap blocker.
+
+Retained MAS role: MAS still owns typed blockers and authority refs. The rollup only echoes work-order owner and acceptable evidence metadata from existing contracts.
+
+Forbidden interpretation: blocker details are not action authorization, provider admission, runtime readiness or paper progress. They only make the fail-closed owner/evidence gate explicit so operators do not treat docs, focused tests, queue-empty, dry-run or repo-source retirement as live evidence.
