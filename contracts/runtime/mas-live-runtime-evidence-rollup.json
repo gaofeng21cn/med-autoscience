@@ -56,6 +56,23 @@
       "live_runtime_readiness_claim_allowed"
     ]
   },
+  "owner_handoff_readback": {
+    "surface_kind": "mas_live_runtime_evidence_rollup_owner_handoff_queue",
+    "purpose": "Group remaining live-tail and live-runtime-gap blockers by next_owner with their typed blocker details and fillable evidence templates, so MAS/OPL owners can take the next evidence-producing action without a MAS private control plane.",
+    "handoff_status": "owner_evidence_required",
+    "handoff_is_action_authorization": false,
+    "handoff_can_satisfy_work_orders": false,
+    "handoff_can_claim_live_runtime_ready": false,
+    "required_handoff_fields": [
+      "next_owner",
+      "work_order_count",
+      "work_order_keys",
+      "typed_blockers",
+      "evidence_record_templates",
+      "repo_source_retirement_blocked",
+      "live_runtime_readiness_claim_allowed"
+    ]
+  },
   "live_tail_surface_ids": [
     "agent_tool_arsenal_scientific_capability_registry",
     "domain_health_diagnostic_obligation_actuator",

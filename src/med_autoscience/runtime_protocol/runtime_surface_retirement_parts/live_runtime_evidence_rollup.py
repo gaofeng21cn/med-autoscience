@@ -172,6 +172,35 @@ def validate_live_runtime_evidence_rollup_contract(
     ]
     if _text_list(templates_mapping.get("required_template_fields")) != expected_template_fields:
         violations.append(_violation("<contract>", "evidence_templates_fields_mismatch"))
+    owner_handoff = contract.get("owner_handoff_readback")
+    owner_handoff_mapping = owner_handoff if isinstance(owner_handoff, Mapping) else {}
+    if (
+        owner_handoff_mapping.get("surface_kind")
+        != "mas_live_runtime_evidence_rollup_owner_handoff_queue"
+    ):
+        violations.append(_violation("<contract>", "owner_handoff_surface_kind_mismatch"))
+    if owner_handoff_mapping.get("handoff_status") != "owner_evidence_required":
+        violations.append(_violation("<contract>", "owner_handoff_status_mismatch"))
+    if owner_handoff_mapping.get("handoff_is_action_authorization") is not False:
+        violations.append(_violation("<contract>", "owner_handoff_is_authorization"))
+    if owner_handoff_mapping.get("handoff_can_satisfy_work_orders") is not False:
+        violations.append(_violation("<contract>", "owner_handoff_can_satisfy"))
+    if owner_handoff_mapping.get("handoff_can_claim_live_runtime_ready") is not False:
+        violations.append(_violation("<contract>", "owner_handoff_can_claim_ready"))
+    expected_handoff_fields = [
+        "evidence_record_templates",
+        "live_runtime_readiness_claim_allowed",
+        "next_owner",
+        "repo_source_retirement_blocked",
+        "typed_blockers",
+        "work_order_count",
+        "work_order_keys",
+    ]
+    if (
+        _text_list(owner_handoff_mapping.get("required_handoff_fields"))
+        != expected_handoff_fields
+    ):
+        violations.append(_violation("<contract>", "owner_handoff_fields_mismatch"))
 
     expected_tail_ids = _work_order_ids(live_tail_contract, "surface_id")
     expected_gap_ids = _work_order_ids(live_runtime_gap_contract, "gap_id")
@@ -404,6 +433,10 @@ def live_runtime_evidence_rollup_summary(
         live_tail_summary=tail_summary,
         live_runtime_gap_summary=gap_summary,
     )
+    owner_handoffs = _owner_handoffs(
+        typed_blocker_details=typed_blocker_details,
+        evidence_record_templates=evidence_record_templates,
+    )
     return {
         "surface_kind": "mas_live_runtime_evidence_rollup_summary",
         "version": VERSION,
@@ -434,6 +467,7 @@ def live_runtime_evidence_rollup_summary(
         "typed_blocker_gap_ids": gap_summary.get("typed_blocker_gap_ids", []),
         "typed_blocker_details": typed_blocker_details,
         "evidence_record_templates": evidence_record_templates,
+        "owner_handoffs": owner_handoffs,
         "satisfied_surface_ids": tail_summary.get("satisfied_surface_ids", []),
         "satisfied_gap_ids": gap_summary.get("satisfied_gap_ids", []),
     }
@@ -483,6 +517,66 @@ def _evidence_record_templates(
         )
         for gap_id in _text_list(live_runtime_gap_summary.get("typed_blocker_gap_ids"))
     ]
+
+
+def _owner_handoffs(
+    *,
+    typed_blocker_details: list[dict[str, Any]],
+    evidence_record_templates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    details_by_key = {
+        _work_order_key(detail): detail
+        for detail in typed_blocker_details
+        if _work_order_key(detail) is not None
+    }
+    templates_by_key = {
+        _work_order_key(template): template
+        for template in evidence_record_templates
+        if _work_order_key(template) is not None
+    }
+    owners = sorted(
+        {
+            _text(detail.get("next_owner")) or "runtime owner"
+            for detail in details_by_key.values()
+        }
+    )
+    handoffs: list[dict[str, Any]] = []
+    for owner in owners:
+        owner_keys = sorted(
+            key
+            for key, detail in details_by_key.items()
+            if (_text(detail.get("next_owner")) or "runtime owner") == owner
+        )
+        handoffs.append(
+            {
+                "surface_kind": "mas_live_runtime_evidence_rollup_owner_handoff",
+                "next_owner": owner,
+                "handoff_status": "owner_evidence_required",
+                "work_order_count": len(owner_keys),
+                "work_order_keys": owner_keys,
+                "typed_blockers": [details_by_key[key] for key in owner_keys],
+                "evidence_record_templates": [
+                    templates_by_key[key] for key in owner_keys if key in templates_by_key
+                ],
+                "handoff_is_action_authorization": False,
+                "handoff_can_satisfy_work_orders": False,
+                "handoff_can_claim_live_runtime_ready": False,
+                "repo_source_retirement_blocked": False,
+                "live_runtime_readiness_claim_allowed": False,
+            }
+        )
+    return handoffs
+
+
+def _work_order_key(item: Mapping[str, Any]) -> str | None:
+    work_order_kind = _text(item.get("work_order_kind"))
+    if work_order_kind == "live_tail":
+        surface_id = _text(item.get("surface_id"))
+        return f"live_tail:{surface_id}" if surface_id is not None else None
+    if work_order_kind == "live_runtime_gap":
+        gap_id = _text(item.get("gap_id"))
+        return f"live_runtime_gap:{gap_id}" if gap_id is not None else None
+    return None
 
 
 def _tail_evidence_record_template(

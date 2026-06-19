@@ -287,3 +287,13 @@ Replacement: `med_autoscience.cli doctor live-runtime-evidence-rollup --format j
 Retained MAS role: MAS still owns owner receipt, typed blocker, human gate and route-back authority refs. The template readback only shows the canonical evidence-record shape that a responsible MAS or OPL owner must fill with concrete refs.
 
 Forbidden interpretation: evidence templates are not evidence records, action authorization, OPL runtime readback, provider admission, runtime readiness, paper progress or production readiness. Feeding the template objects back into the rollup keeps the result at `typed_blocker_required`.
+
+## live_runtime_owner_handoff_readback
+
+Disposition: `readback_only_owner_evidence_queue`
+
+Replacement: `med_autoscience.cli doctor live-runtime-evidence-rollup --format json` now groups remaining typed blockers and evidence-record templates by `next_owner` under `owner_handoffs`.
+
+Retained MAS role: MAS remains responsible only for domain authority refs such as owner receipt, typed blocker, human gate and route-back. OPL owners remain responsible for OPL runtime, StageRun, outbox, observability, workbench, lifecycle and storage evidence.
+
+Forbidden interpretation: owner handoffs are not MAS action queues, dispatchers, outboxes, StageRun packets, provider admission, runtime readiness, paper progress or production readiness. They only group fail-closed evidence work by owner.

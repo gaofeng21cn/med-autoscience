@@ -86,6 +86,28 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
             "live_runtime_readiness_claim_allowed",
         ],
     }
+    assert rollup_contract["owner_handoff_readback"] == {
+        "surface_kind": "mas_live_runtime_evidence_rollup_owner_handoff_queue",
+        "purpose": (
+            "Group remaining live-tail and live-runtime-gap blockers by next_owner with "
+            "their typed blocker details and fillable evidence templates, so MAS/OPL "
+            "owners can take the next evidence-producing action without a MAS private "
+            "control plane."
+        ),
+        "handoff_status": "owner_evidence_required",
+        "handoff_is_action_authorization": False,
+        "handoff_can_satisfy_work_orders": False,
+        "handoff_can_claim_live_runtime_ready": False,
+        "required_handoff_fields": [
+            "next_owner",
+            "work_order_count",
+            "work_order_keys",
+            "typed_blockers",
+            "evidence_record_templates",
+            "repo_source_retirement_blocked",
+            "live_runtime_readiness_claim_allowed",
+        ],
+    }
     assert rollup_contract["completion_claim_boundary"] == {
         "repo_source_retirement_blocked_by_missing_live_evidence": False,
         "docs_tests_inventory_or_queue_empty_can_satisfy_rollup": False,
@@ -231,6 +253,25 @@ def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> N
     assert readback["summary"]["rollup_result_status"] == "typed_blocker_required"
     assert len(readback["summary"]["typed_blocker_details"]) == 12
     assert len(readback["summary"]["evidence_record_templates"]) == 12
+    assert sum(
+        handoff["work_order_count"]
+        for handoff in readback["summary"]["owner_handoffs"]
+    ) == 12
+    observability_handoff = next(
+        handoff
+        for handoff in readback["summary"]["owner_handoffs"]
+        if handoff["next_owner"] == "one-person-lab Observability / RouteReconciler owner"
+    )
+    assert observability_handoff["handoff_status"] == "owner_evidence_required"
+    assert observability_handoff["handoff_is_action_authorization"] is False
+    assert observability_handoff["handoff_can_satisfy_work_orders"] is False
+    assert observability_handoff["handoff_can_claim_live_runtime_ready"] is False
+    assert observability_handoff["live_runtime_readiness_claim_allowed"] is False
+    assert observability_handoff["work_order_keys"] == ["live_tail:runtime_health_kernel"]
+    assert observability_handoff["typed_blockers"][0]["surface_id"] == "runtime_health_kernel"
+    assert observability_handoff["evidence_record_templates"][0]["surface_id"] == (
+        "runtime_health_kernel"
+    )
     runtime_health_detail = next(
         item
         for item in readback["summary"]["typed_blocker_details"]
