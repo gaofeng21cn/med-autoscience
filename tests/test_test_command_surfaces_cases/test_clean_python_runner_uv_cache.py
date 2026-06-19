@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -270,6 +271,86 @@ def test_clean_python_runner_reuse_marker_is_independent_of_checkout_path(tmp_pa
     assert first.stdout.strip() == "runner-ok"
     assert second.stdout.strip() == "runner-ok"
     assert sync_log.read_text(encoding="utf-8").splitlines() == [str(checkouts[0])]
+
+
+def test_clean_python_runner_serializes_reused_dependency_sync(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    sync_log = tmp_path / "uv-sync.log"
+    sync_started = tmp_path / "uv-sync.started"
+    host_python = repr(sys.executable)
+    fake_uv = fake_bin / "uv"
+    fake_uv.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "if [[ \"${1:-}\" != \"sync\" ]]; then\n"
+        "  echo \"fake uv only supports sync\" >&2\n"
+        "  exit 64\n"
+        "fi\n"
+        "printf 'sync-start\\n' >>\"${MAS_TEST_SYNC_LOG}\"\n"
+        "touch \"${MAS_TEST_SYNC_STARTED}\"\n"
+        "sleep 0.4\n"
+        "mkdir -p \"${UV_PROJECT_ENVIRONMENT}/bin\"\n"
+        "cat >\"${UV_PROJECT_ENVIRONMENT}/bin/python\" <<'PY'\n"
+        "#!/usr/bin/env python3\n"
+        "import os\n"
+        "import sys\n"
+        f"os.execv({host_python}, [{host_python}, *sys.argv[1:]])\n"
+        "PY\n"
+        "chmod +x \"${UV_PROJECT_ENVIRONMENT}/bin/python\"\n"
+        "printf 'sync-end\\n' >>\"${MAS_TEST_SYNC_LOG}\"\n",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+
+    reuse_root = tmp_path / "shared-clean-runner"
+    command = [str(REPO_ROOT / "scripts/run-python-clean.sh"), "-c", "print('runner-ok')"]
+    env = _clean_runner_env(
+        CI="",
+        PATH=f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        MAS_CLEAN_RUNNER_REUSE_ENV="1",
+        MAS_CLEAN_RUNNER_REUSE_ROOT=str(reuse_root),
+        MAS_CLEAN_RUNNER_SYNC_LOCK_TIMEOUT_SECONDS="30",
+        MAS_CLEAN_RUNNER_SYNC_LOCK_POLL_SECONDS="0.05",
+        MAS_TEST_SYNC_LOG=str(sync_log),
+        MAS_TEST_SYNC_STARTED=str(sync_started),
+        PYTHONPATH="",
+    )
+
+    first = subprocess.Popen(command, cwd=REPO_ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        deadline = time.monotonic() + 5
+        while not sync_started.exists():
+            if first.poll() is not None:
+                stdout, stderr = first.communicate()
+                raise AssertionError(f"first runner exited before sync started: {stdout=} {stderr=}")
+            if time.monotonic() > deadline:
+                first.kill()
+                stdout, stderr = first.communicate()
+                raise AssertionError(f"timed out waiting for fake uv sync start: {stdout=} {stderr=}")
+            time.sleep(0.02)
+
+        second = subprocess.Popen(
+            command,
+            cwd=REPO_ROOT,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        second_stdout, second_stderr = second.communicate(timeout=10)
+        first_stdout, first_stderr = first.communicate(timeout=10)
+    finally:
+        if first.poll() is None:
+            first.kill()
+            first.communicate()
+
+    assert first.returncode == 0, first_stderr
+    assert second.returncode == 0, second_stderr
+    assert first_stdout.strip() == "runner-ok"
+    assert second_stdout.strip() == "runner-ok"
+    assert sync_log.read_text(encoding="utf-8").splitlines() == ["sync-start", "sync-end"]
+    assert not (reuse_root / "uv-sync.done.lock").exists()
 
 
 def test_clean_python_runner_rejects_checkout_local_default_uv_cache(tmp_path: Path) -> None:

@@ -8,6 +8,8 @@ cd "${repo_root}"
 stable_cache_root="${MAS_CLEAN_RUNNER_CACHE_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/med-autoscience/clean-runner}"
 cleanup_tmp_root=0
 reuse_env_enabled=0
+clean_runner_sync_lock_dir=""
+clean_runner_sync_lock_acquired=0
 if [[ -z "${CI:-}" && -z "${MAS_CLEAN_RUNNER_REUSE_ENV:-}" && -z "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then
   export MAS_CLEAN_RUNNER_REUSE_ENV=1
 fi
@@ -25,7 +27,16 @@ else
   cleanup_tmp_root=1
 fi
 
+release_clean_runner_sync_lock() {
+  if [[ "${clean_runner_sync_lock_acquired:-0}" == "1" && -n "${clean_runner_sync_lock_dir:-}" ]]; then
+    rm -f "${clean_runner_sync_lock_dir}/owner" 2>/dev/null || true
+    rmdir "${clean_runner_sync_lock_dir}" 2>/dev/null || true
+    clean_runner_sync_lock_acquired=0
+  fi
+}
+
 cleanup() {
+  release_clean_runner_sync_lock
   if [[ "${cleanup_tmp_root}" == "1" ]]; then
     rm -rf "${tmp_root}"
   fi
@@ -227,27 +238,64 @@ clean_runner_sync_fingerprint() {
 }
 sync_fingerprint="$(clean_runner_sync_fingerprint "${analysis_extra_enabled}")"
 venv_python="${UV_PROJECT_ENVIRONMENT}/bin/python"
-sync_required=1
-if [[ -f "${sync_marker}" && -x "${venv_python}" ]]; then
+clean_runner_sync_marker_is_current() {
+  if [[ ! -f "${sync_marker}" || ! -x "${venv_python}" ]]; then
+    return 1
+  fi
   if [[ "${reuse_env_enabled}" == "1" ]]; then
     if [[ "$(cat "${sync_marker}")" == "${sync_fingerprint}" ]]; then
-      sync_required=0
+      return 0
     fi
   elif [[ "${MAS_CLEAN_RUNNER_SKIP_SYNC:-0}" == "1" ]]; then
-    sync_required=0
+    return 0
   fi
+  return 1
+}
+
+acquire_clean_runner_sync_lock() {
+  local timeout_seconds="${MAS_CLEAN_RUNNER_SYNC_LOCK_TIMEOUT_SECONDS:-600}"
+  local poll_seconds="${MAS_CLEAN_RUNNER_SYNC_LOCK_POLL_SECONDS:-0.2}"
+  local started_at="${SECONDS}"
+
+  clean_runner_sync_lock_dir="${sync_marker}.lock"
+  while ! mkdir "${clean_runner_sync_lock_dir}" 2>/dev/null; do
+    if (( SECONDS - started_at >= timeout_seconds )); then
+      echo "run-python-clean.sh: timed out waiting for dependency sync lock: ${clean_runner_sync_lock_dir}" >&2
+      exit 1
+    fi
+    sleep "${poll_seconds}"
+  done
+  clean_runner_sync_lock_acquired=1
+  {
+    printf 'pid=%s\n' "$$"
+    printf 'repo_root=%s\n' "${repo_root}"
+    printf 'sync_marker=%s\n' "${sync_marker}"
+  } >"${clean_runner_sync_lock_dir}/owner"
+}
+
+sync_required=1
+if clean_runner_sync_marker_is_current; then
+  sync_required=0
 fi
 if [[ "${sync_required}" == "1" ]]; then
-  uv_sync_args=(uv sync --frozen --group dev --no-install-project --inexact)
-  uv_sync_args+=("-C--global-option=egg_info" "-C--global-option=--egg-base=${egg_info_base}")
-  if [[ "${analysis_extra_enabled}" == "1" ]]; then
-    uv_sync_args+=(--extra analysis)
+  acquire_clean_runner_sync_lock
+  sync_required=1
+  if clean_runner_sync_marker_is_current; then
+    sync_required=0
   fi
-  UV_NO_SYNC=0 "${uv_sync_args[@]}"
-  printf '%s\n' "${sync_fingerprint}" >"${sync_marker}"
-  if [[ "${analysis_extra_enabled}" == "1" ]]; then
-    printf '%s\n' "$(clean_runner_sync_fingerprint 0)" >"${tmp_root}/uv-sync.done"
+  if [[ "${sync_required}" == "1" ]]; then
+    uv_sync_args=(uv sync --frozen --group dev --no-install-project --inexact)
+    uv_sync_args+=("-C--global-option=egg_info" "-C--global-option=--egg-base=${egg_info_base}")
+    if [[ "${analysis_extra_enabled}" == "1" ]]; then
+      uv_sync_args+=(--extra analysis)
+    fi
+    UV_NO_SYNC=0 "${uv_sync_args[@]}"
+    printf '%s\n' "${sync_fingerprint}" >"${sync_marker}"
+    if [[ "${analysis_extra_enabled}" == "1" ]]; then
+      printf '%s\n' "$(clean_runner_sync_fingerprint 0)" >"${tmp_root}/uv-sync.done"
+    fi
   fi
+  release_clean_runner_sync_lock
 fi
 export MAS_CLEAN_RUNNER_SKIP_SYNC=1
 
