@@ -188,6 +188,20 @@ def refresh_existing_projection_current_owner_surfaces(
             profile_ref=profile_ref,
             study_root=study_root,
         )
+    if (
+        _payload_typed_blocker_without_current_action(updated)
+        and not _mapping_copy(updated.get("current_executable_owner_action"))
+        and build_current_executable_owner_action(updated) is None
+        and not current_control_executable_owner_action(handoff)
+        and not _current_control_handoff_is_typed_blocker(handoff)
+    ):
+        updated = _typed_blocker_stop_projection(updated, source_payload=updated)
+        return attach_delivery_inspection_projection_fn(
+            updated,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_root=study_root,
+        )
     current_control_executable_action = current_control_executable_owner_action(handoff)
     if current_control_executable_action and not _handoff_is_active_provider_control(handoff):
         recomputed_action = build_current_executable_owner_action(updated)
@@ -219,6 +233,7 @@ def refresh_existing_projection_current_owner_surfaces(
             "admission_pending": False,
             "reason": "current_control_typed_blocker",
         }
+        updated = _sync_owner_action_admission_into_monitoring(updated)
         updated = sync_current_execution_evidence(updated, handoff=currentness_handoff)
         updated["paper_recovery_state"] = build_paper_recovery_state(updated)
         updated = refresh_paper_recovery_successor_surfaces(
@@ -227,6 +242,8 @@ def refresh_existing_projection_current_owner_surfaces(
             handoff=currentness_handoff,
             study_root=study_root,
         )
+        if not _mapping_copy(payload.get("current_executable_owner_action")):
+            updated = _typed_blocker_stop_projection(updated, source_payload=payload)
         updated = apply_paper_recovery_state_user_visible_status(updated)
         updated["user_visible_projection"] = build_user_visible_projection(updated)
         return attach_delivery_inspection_projection_fn(
@@ -253,6 +270,10 @@ def refresh_existing_projection_current_owner_surfaces(
             status=status,
             handoff=currentness_handoff,
         )
+        if _payload_typed_blocker_without_current_action(payload) and not _mapping_copy(
+            payload.get("current_executable_owner_action")
+        ):
+            updated = _typed_blocker_stop_projection(updated, source_payload=payload)
         if _mapping_copy(updated.get("current_executable_owner_action")) or _mapping_copy(
             updated.get("progress_first_monitoring_summary")
         ):
@@ -401,6 +422,60 @@ def _paper_recovery_state_unless_successor_current(payload: Mapping[str, Any]) -
         ):
             return recovery
     return build_paper_recovery_state(payload)
+
+
+def _sync_owner_action_admission_into_monitoring(payload: dict[str, Any]) -> dict[str, Any]:
+    monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
+    admission = _mapping_copy(payload.get("owner_action_admission"))
+    if not monitoring or not admission:
+        return payload
+    updated = dict(payload)
+    monitoring["owner_action_admission"] = admission
+    updated["progress_first_monitoring_summary"] = monitoring
+    return updated
+
+
+def _typed_blocker_stop_projection(
+    payload: dict[str, Any],
+    *,
+    source_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    updated = dict(payload)
+    if _mapping_copy(source_payload.get("current_work_unit")):
+        updated["current_work_unit"] = _mapping_copy(source_payload.get("current_work_unit"))
+    if _mapping_copy(source_payload.get("current_execution_envelope")):
+        updated["current_execution_envelope"] = _mapping_copy(
+            source_payload.get("current_execution_envelope")
+        )
+    updated["current_executable_owner_action"] = None
+    updated.update(
+        {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+        }
+    )
+    updated["owner_action_admission"] = {
+        "admission_pending": False,
+        "reason": "current_control_typed_blocker",
+    }
+    updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+    updated = _sync_owner_action_admission_into_monitoring(updated)
+    updated = sync_current_execution_evidence(updated, handoff={})
+    updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+    return updated
+
+
+def _payload_typed_blocker_without_current_action(payload: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    execution = _mapping_copy(payload.get("current_execution_envelope"))
+    if _mapping_copy(payload.get("current_executable_owner_action")):
+        return False
+    return _non_empty_text(current_work_unit.get("status")) in {
+        "typed_blocker",
+        "blocked_current_work_unit",
+    } or _non_empty_text(execution.get("state_kind")) == "typed_blocker"
 
 
 def _handoff_is_active_provider_control(handoff: Mapping[str, Any]) -> bool:

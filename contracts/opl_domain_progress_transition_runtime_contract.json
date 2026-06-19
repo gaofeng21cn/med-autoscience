@@ -108,6 +108,20 @@
       "projection_metadata"
     ],
     "accepted_outcome_kind": "provider_admission_enqueued_or_blocked",
+    "accepted_outcome_kinds": [
+      "provider_admission_enqueued_or_blocked",
+      "non_advancing_apply_typed_blocker_ref"
+    ],
+    "provider_admission_outcome_kind": "provider_admission_enqueued_or_blocked",
+    "non_advancing_apply_outcome_kind": "non_advancing_apply_typed_blocker_ref",
+    "non_advancing_apply_consumption": {
+      "same_identity_live_readback_consumes_transition_request_pending": true,
+      "provider_admission_allowed": false,
+      "current_executable_owner_action_allowed": false,
+      "paper_progress_delta": false,
+      "mas_can_apply_non_advancing_transition": false,
+      "mas_consumes_as_typed_blocker_projection": true
+    },
     "transaction_consistency": {
       "identity_latest_refs_match_causality": true,
       "identity_latest_refs_match_latest_transaction_readback": true,

@@ -5,8 +5,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
-    candidate_opl_transition_readback as _candidate_opl_transition_readback,
-    has_opl_transition_readback as _has_opl_transition_readback,
+    non_advancing_apply_opl_transition_readback as _non_advancing_apply_opl_transition_readback,
     provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.current_work_unit import action_supersedes_typed_blocker
@@ -62,6 +61,13 @@ def provider_admission_projection_fields(
             "provider_admission_pending_count": 0,
             "provider_admission_candidates": [],
         }
+    if _payload_typed_blocker_without_current_action(payload):
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+        }
     current_control_payload = _current_control_payload_for_provider_admission(
         payload=payload,
         handoff=handoff,
@@ -82,17 +88,26 @@ def provider_admission_projection_fields(
         )
         for candidate in candidates
     ]
+    non_advancing_consumed = _non_advancing_apply_consumed(normalized_candidates)
+    if non_advancing_consumed is not None:
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+            "opl_transition_non_advancing_apply_consumed": non_advancing_consumed,
+        }
     provider_admission_candidates = [
         candidate
         for candidate in normalized_candidates
-        if _has_opl_transition_readback(candidate)
+        if _provider_admission_opl_transition_readback(candidate)
         and not _request_only_owner_action_candidate(candidate)
     ]
     transition_request_candidates = [
         candidate
         for candidate in normalized_candidates
         if not (
-            _has_opl_transition_readback(candidate)
+            _provider_admission_opl_transition_readback(candidate)
             and not _request_only_owner_action_candidate(candidate)
         )
     ]
@@ -190,7 +205,7 @@ def _candidate_with_opl_runtime_readback(
     study_root: Path,
 ) -> dict[str, Any]:
     payload = dict(candidate)
-    inline_readback = _candidate_opl_transition_readback(payload)
+    inline_readback = _provider_admission_opl_transition_readback(payload)
     if inline_readback:
         payload["opl_transition_readback_source"] = _opl_transition_readback_source(inline_readback)
         payload["status"] = "provider_admission_pending"
@@ -198,6 +213,67 @@ def _candidate_with_opl_runtime_readback(
         payload["provider_attempt_or_lease_required"] = True
         payload["provider_admission_requires_opl_runtime_result"] = False
     return payload
+
+
+def _non_advancing_apply_consumed(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for candidate in candidates:
+        readback = _non_advancing_apply_opl_transition_readback(candidate)
+        if readback:
+            return _non_advancing_apply_consumption_projection(candidate, readback=readback)
+    return None
+
+
+def _non_advancing_apply_consumption_projection(
+    candidate: Mapping[str, Any],
+    *,
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    identity = _mapping_copy(readback.get("identity"))
+    aggregate_identity = _mapping_copy(identity.get("aggregate_identity"))
+    stage_run_identity = _mapping_copy(identity.get("stage_run_identity"))
+    latest_transaction = _mapping_copy(readback.get("latest_transaction_readback"))
+    return {
+        key: value
+        for key, value in {
+            "surface_kind": "opl_transition_non_advancing_apply_consumed",
+            "source": "opl_domain_progress_transition_runtime_live_readback",
+            "blocker_type": "non_advancing_apply",
+            "blocked_reason": "opl_transition_request_missing_for_authorized_stage_packet",
+            "study_id": _non_empty_text(candidate.get("study_id"))
+            or _non_empty_text(aggregate_identity.get("study_id")),
+            "action_type": _non_empty_text(candidate.get("action_type")),
+            "work_unit_id": _non_empty_text(candidate.get("work_unit_id"))
+            or _non_empty_text(aggregate_identity.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(candidate.get("work_unit_fingerprint"))
+            or _non_empty_text(candidate.get("action_fingerprint"))
+            or _non_empty_text(aggregate_identity.get("work_unit_fingerprint")),
+            "route_identity_key": _non_empty_text(candidate.get("route_identity_key"))
+            or _non_empty_text(stage_run_identity.get("route_identity_key")),
+            "attempt_idempotency_key": _non_empty_text(candidate.get("attempt_idempotency_key"))
+            or _non_empty_text(stage_run_identity.get("attempt_idempotency_key")),
+            "event_id": _non_empty_text(identity.get("latest_event_id"))
+            or _non_empty_text(latest_transaction.get("event_id")),
+            "outbox_item_id": _non_empty_text(identity.get("latest_outbox_item_id"))
+            or _non_empty_text(latest_transaction.get("outbox_item_id")),
+            "transaction_id": _non_empty_text(identity.get("latest_transaction_id"))
+            or _non_empty_text(latest_transaction.get("transaction_id")),
+            "provider_admission_allowed": False,
+            "current_executable_owner_action_allowed": False,
+            "paper_progress_delta": False,
+            "provider_completion_is_domain_completion": False,
+            "authority_boundary": {
+                "projection_only": True,
+                "runtime_owner": "one-person-lab",
+                "domain_truth_owner": "med-autoscience",
+                "can_authorize_provider_admission": False,
+                "can_start_provider_attempt": False,
+                "provider_running_is_paper_progress": False,
+                "provider_completion_is_domain_completion": False,
+                "paper_progress_delta": False,
+            },
+        }.items()
+        if value not in (None, "", [], {})
+    }
 
 
 def _opl_transition_readback_source(readback: Mapping[str, Any]) -> str:
@@ -375,7 +451,7 @@ def _identity_bound_handoff_provider_admission_fields(
         _candidate_with_opl_runtime_readback(dict(item), study_root=study_root)
         for item in handoff.get("provider_admission_candidates") or []
         if isinstance(item, Mapping)
-        and _has_opl_transition_readback(item)
+        and _provider_admission_opl_transition_readback(item)
     ]
     pending_count = int(handoff.get("provider_admission_pending_count") or 0)
     if pending_count <= 0 and not candidates:
@@ -442,6 +518,17 @@ def _handoff_typed_blocker_consumes_current_action(
         current_action,
         typed_blocker,
     )
+
+
+def _payload_typed_blocker_without_current_action(payload: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    execution = _mapping_copy(payload.get("current_execution_envelope"))
+    if _mapping_copy(payload.get("current_executable_owner_action")):
+        return False
+    return _non_empty_text(current_work_unit.get("status")) in {
+        "typed_blocker",
+        "blocked_current_work_unit",
+    } or _non_empty_text(execution.get("state_kind")) == "typed_blocker"
 
 
 def _same_action_identity(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:

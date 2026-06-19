@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 
+from tests.provider_admission_current_control_helpers import opl_transition_readback
+
 from . import shared as _shared
 
 
@@ -16,6 +18,198 @@ _module_reexport(_shared)
 
 def _runtime_state_path(quest_root: Path) -> Path:
     return quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
+
+
+def _non_advancing_opl_transition_readback(
+    *,
+    study_id: str,
+    work_unit_id: str,
+    fingerprint: str,
+    route_key: str,
+) -> dict[str, object]:
+    readback = opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+    )
+    readback["identity"]["transition_kind"] = "NonAdvancingApply"
+    readback["identity"]["outcome_kind"] = "non_advancing_apply_typed_blocker_ref"
+    readback["exactly_one_outcome"]["transition_kind"] = "NonAdvancingApply"
+    readback["exactly_one_outcome"]["outcome_kind"] = "non_advancing_apply_typed_blocker_ref"
+    readback["exactly_one_outcome"]["non_advancing_apply"] = True
+    readback["read_model_readback"]["identity"] = readback["identity"]
+    readback["read_model_readback"]["exactly_one_outcome"] = readback["exactly_one_outcome"]
+    return readback
+
+
+def test_non_advancing_apply_readback_demotes_current_control_to_typed_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    work_unit = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    route_key = f"provider-admission::{study_id}::{fingerprint}"
+    stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
+    )
+    runtime_readback = _non_advancing_opl_transition_readback(
+        study_id=study_id,
+        work_unit_id=work_unit,
+        fingerprint=fingerprint,
+        route_key=route_key,
+    )
+    handoff_path = (
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
+    non_advancing_readback = {
+        "surface_kind": "opl_current_control_transition_non_advancing_apply_readback",
+        "status": "transition_non_advancing_apply_recorded",
+        "reason": "opl_transition_request_missing_for_authorized_stage_packet",
+        "study_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit,
+        "work_unit_fingerprint": fingerprint,
+        "idempotency_key": route_key,
+        "route_identity_key": route_key,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+        "runtime_live_readback": runtime_readback,
+        "exactly_one_outcome": runtime_readback["exactly_one_outcome"],
+        "authority_boundary": {
+            "domain_truth_owner": "med-autoscience",
+            "substrate_owner": "one-person-lab",
+            "opl_can_write_mas_truth": False,
+            "provider_completion_is_domain_completion": False,
+            "paper_progress_delta": False,
+        },
+    }
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-19T12:30:00+00:00",
+            "authority": "observability_only",
+            "provider_admission_pending_count": 0,
+            "transition_request_pending_count": 0,
+            "current_executable_owner_action": None,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "quest_status": "blocked",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "current_control_action": {
+                        "status": "transition_non_advancing_apply_recorded",
+                        "provider_admission_requires_opl_runtime_result": False,
+                        "paper_progress_delta": False,
+                        "non_advancing_apply": True,
+                    },
+                    "current_executable_owner_action": None,
+                    "provider_admission_pending_count": 0,
+                    "transition_request_pending_count": 0,
+                    "provider_admission_candidates": [],
+                    "domain_progress_transition_non_advancing_apply_readback": (
+                        non_advancing_readback
+                    ),
+                    "domain_progress_transition_projection_metadata": {
+                        "surface_kind": "opl_current_control_domain_progress_transition_projection_metadata",
+                        "projection_role": "non_advancing_apply_current_transition_readback",
+                        "authority": False,
+                        "runtime_readback_status": "complete_transaction",
+                        "transaction_complete": True,
+                        "provider_admission_allowed": False,
+                        "current_executable_owner_action_allowed": False,
+                        "paper_progress_delta": False,
+                        "non_advancing_apply": True,
+                    },
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": quest_id,
+            "quest_root": str(profile.runtime_root / quest_id),
+            "quest_status": "active",
+            "decision": "continue",
+            "reason": "quality_repair_followthrough",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": work_unit,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": work_unit,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [{"status": "stale"}],
+            "transition_request_pending_count": 1,
+            "transition_request_candidates": [{"status": "stale"}],
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-event-current",
+                "runtime_liveness_status": "none",
+                "health_status": "none",
+            },
+        },
+    )
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
+
+    result = module.read_study_progress(profile=profile, study_id=study_id)
+
+    handoff = result["opl_current_control_state_handoff"]
+    assert handoff["typed_blocker"]["blocker_type"] == "non_advancing_apply"
+    assert handoff["current_work_unit"]["status"] == "typed_blocker"
+    assert handoff["current_execution_envelope"]["state_kind"] == "typed_blocker"
+    assert handoff["provider_admission_pending_count"] == 0
+    assert handoff["transition_request_pending_count"] == 0
+    assert result["current_executable_owner_action"] is None
+    assert result["current_work_unit"]["status"] == "typed_blocker"
+    assert result["current_work_unit"]["state"]["typed_blocker"]["non_advancing_apply"] is True
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 0
+    assert result["transition_request_candidates"] == []
+    assert result.get("owner_action_admission") in (None, {})
+    assert result["paper_recovery_state"]["phase"] == "domain_blocked"
 
 
 def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markdown(

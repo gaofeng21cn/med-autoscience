@@ -10,6 +10,7 @@ OPL_TRANSITION_RUNTIME_KIND = transition_contract.RUNTIME_KIND
 OPL_TRANSITION_LIVE_READBACK_SURFACE = transition_contract.LIVE_READBACK_SURFACE
 OPL_TRANSITION_RESULT_SURFACE = OPL_TRANSITION_LIVE_READBACK_SURFACE
 LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME = transition_contract.PROVIDER_ADMISSION_OUTCOME
+LIVE_READBACK_NON_ADVANCING_APPLY_OUTCOME = transition_contract.NON_ADVANCING_APPLY_OUTCOME
 LIVE_READBACK_COMPLETE_STATUS = transition_contract.LIVE_READBACK_COMPLETE_STATUS
 
 REQUIRED_READBACK_SECTIONS = transition_contract.REQUIRED_READBACK_SECTIONS
@@ -132,12 +133,22 @@ def _valid_live_authority_boundary(boundary: Mapping[str, Any]) -> bool:
 
 
 def _valid_live_exactly_one_outcome(outcome: Mapping[str, Any]) -> bool:
-    return (
-        outcome.get("selected") is True
-        and outcome.get("exactly_one_transition") is True
-        and outcome.get("stable_outcome") is True
+    outcome_kind = _text(outcome.get("outcome_kind"))
+    return outcome.get("selected") is True and outcome.get("exactly_one_transition") is True and (
+        outcome.get("stable_outcome") is True
         and outcome.get("fail_closed") is False
-        and _text(outcome.get("outcome_kind")) == LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME
+        and outcome_kind
+        in {
+            LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME,
+            LIVE_READBACK_NON_ADVANCING_APPLY_OUTCOME,
+        }
+        and (
+            outcome_kind != LIVE_READBACK_NON_ADVANCING_APPLY_OUTCOME
+            or (
+                outcome.get("non_advancing_apply") is True
+                and _text(outcome.get("transition_kind")) == "NonAdvancingApply"
+            )
+        )
     )
 
 
@@ -247,6 +258,12 @@ def candidate_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str,
         _mapping(candidate.get("state")).get("opl_domain_progress_transition_live_readback"),
         _mapping(candidate.get("state")).get("opl_runtime_result"),
         _mapping(candidate.get("state")).get("domain_progress_transition_runtime"),
+        _mapping(candidate.get("domain_progress_transition_non_advancing_apply_readback")).get(
+            "runtime_live_readback"
+        ),
+        _mapping(candidate.get("domain_progress_transition_non_advancing_apply_readback")).get(
+            "runtime_result"
+        ),
     ):
         result = _prebuilt_opl_transition_readback(value)
         if result:
@@ -258,6 +275,19 @@ def has_opl_transition_readback(candidate: Mapping[str, Any]) -> bool:
     return bool(candidate_opl_transition_readback(candidate))
 
 
+def non_advancing_apply_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    readback = candidate_opl_transition_readback(candidate)
+    if not readback:
+        return {}
+    if not _readback_is_non_advancing_apply(readback):
+        return {}
+    return readback
+
+
+def has_non_advancing_apply_opl_transition_readback(candidate: Mapping[str, Any]) -> bool:
+    return bool(non_advancing_apply_opl_transition_readback(candidate))
+
+
 def provider_admission_opl_transition_readback(
     candidate: Mapping[str, Any],
     *,
@@ -265,6 +295,8 @@ def provider_admission_opl_transition_readback(
 ) -> dict[str, Any]:
     readback = candidate_opl_transition_readback(candidate)
     if not readback:
+        return {}
+    if not _readback_is_provider_admission(readback):
         return {}
     if not _readback_matches_provider_admission_identity(
         candidate,
@@ -277,6 +309,26 @@ def provider_admission_opl_transition_readback(
 
 def has_provider_admission_opl_transition_readback(candidate: Mapping[str, Any]) -> bool:
     return bool(provider_admission_opl_transition_readback(candidate))
+
+
+def _readback_is_provider_admission(readback: Mapping[str, Any]) -> bool:
+    return _readback_outcome_kind(readback) == LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME
+
+
+def _readback_is_non_advancing_apply(readback: Mapping[str, Any]) -> bool:
+    outcome = _mapping(readback.get("exactly_one_outcome"))
+    return (
+        _readback_outcome_kind(readback) == LIVE_READBACK_NON_ADVANCING_APPLY_OUTCOME
+        and outcome.get("non_advancing_apply") is True
+        and _text(outcome.get("transition_kind")) == "NonAdvancingApply"
+    )
+
+
+def _readback_outcome_kind(readback: Mapping[str, Any]) -> str | None:
+    outcome = _mapping(readback.get("exactly_one_outcome"))
+    return _text(outcome.get("outcome_kind")) or _text(
+        _mapping(readback.get("identity")).get("outcome_kind")
+    )
 
 
 def _prebuilt_opl_transition_readback(value: object) -> dict[str, Any]:
@@ -422,7 +474,11 @@ def _provider_admission_identity(
         "route_identity_key": route_identity_key,
         "attempt_idempotency_key": attempt_idempotency_key,
         "request_idempotency_key": (
-            _text(transition_request.get("idempotency_key"))
+            _text(candidate.get("idempotency_key"))
+            or _text(candidate.get("request_idempotency_key"))
+            or _text(candidate.get("route_identity_key"))
+            or _text(candidate.get("attempt_idempotency_key"))
+            or _text(transition_request.get("idempotency_key"))
             or _text(transition_request.get("request_idempotency_key"))
             or _text(state_request.get("idempotency_key"))
             or _text(state_request.get("request_idempotency_key"))
@@ -431,7 +487,6 @@ def _provider_admission_identity(
             or _text(transition_identity.get("request_idempotency_key"))
             or _text(state_transition_identity.get("request_idempotency_key"))
             or _text(policy_transition_identity.get("request_idempotency_key"))
-            or _text(candidate.get("idempotency_key"))
             or route_identity_key
             or attempt_idempotency_key
         ),
@@ -466,8 +521,10 @@ __all__ = [
     "OPL_TRANSITION_RUNTIME_OWNER",
     "OPL_TRANSITION_RESULT_SURFACE",
     "candidate_opl_transition_readback",
+    "has_non_advancing_apply_opl_transition_readback",
     "has_provider_admission_opl_transition_readback",
     "has_opl_transition_readback",
+    "non_advancing_apply_opl_transition_readback",
     "opl_transition_readback_source_claimability",
     "provider_admission_opl_transition_readback",
     "required_opl_transition_readback_shape",
