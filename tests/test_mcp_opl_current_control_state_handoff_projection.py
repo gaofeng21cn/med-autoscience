@@ -83,7 +83,7 @@ def test_study_progress_opl_current_control_state_handoff_projection_preserves_s
     assert projection["why_not_applied"] == ["repeat_suppressed"]
 
 
-def test_study_progress_opl_current_control_state_handoff_merges_top_level_provider_admission_candidate(tmp_path) -> None:
+def test_study_progress_opl_current_control_state_handoff_rejects_incomplete_top_level_provider_admission_candidate(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
@@ -129,13 +129,81 @@ def test_study_progress_opl_current_control_state_handoff_merges_top_level_provi
 
     projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
 
+    assert projection["provider_admission_pending_count"] == 0
+    assert projection["provider_admission_candidates"] == []
+    assert projection["blocked_reason"] == "domain_owner_action_dispatch_apply_selected_zero_dispatch"
+    assert projection["typed_blocker"]["blocker_type"] == (
+        "domain_owner_action_dispatch_apply_selected_zero_dispatch"
+    )
+
+
+def test_study_progress_opl_current_control_state_handoff_merges_complete_top_level_provider_admission_readback(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::abc"
+    route_key = "paper-policy-request:abc"
+    readback = opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+        stage_run_id="sr-001",
+    )
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-17T02:51:08+00:00",
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "status": "provider_admission_pending",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "route_identity_key": route_key,
+                    "attempt_idempotency_key": route_key,
+                    "provider_admission_identity": {
+                        "stage_packet_ref": f"studies/{study_id}/artifacts/packet.json",
+                        "route_identity_key": route_key,
+                        "attempt_idempotency_key": route_key,
+                        "opl_domain_progress_transition_runtime_live_readback": readback,
+                    },
+                    "opl_domain_progress_transition_runtime_live_readback": readback,
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_status": "blocked",
+                    "blocked_reason": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+                    "typed_blocker": {
+                        "blocker_type": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+                    },
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": fingerprint,
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id=study_id)
+
     assert projection["provider_admission_pending_count"] == 1
-    assert projection["provider_admission_candidates"][0]["work_unit_id"] == "medical_prose_write_repair"
-    assert projection["provider_admission_candidates"][0]["domain_progress_transition_runtime"][
-        "transition_event"
-    ] == {"event_id": "evt-001"}
+    assert projection["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
+    assert projection["provider_admission_candidates"][0][
+        "opl_domain_progress_transition_runtime_live_readback"
+    ]["runtime_readback_status"] == "complete_transaction"
     assert projection["action_type"] == "run_quality_repair_batch"
-    assert projection["work_unit_id"] == "medical_prose_write_repair"
+    assert projection["work_unit_id"] == work_unit_id
     assert projection["blocked_reason"] is None
     assert "typed_blocker" not in projection
 
@@ -143,6 +211,19 @@ def test_study_progress_opl_current_control_state_handoff_merges_top_level_provi
 def test_study_progress_opl_current_control_state_handoff_consumes_provider_admission_with_matching_terminal_closeout(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::abc"
+    route_key = "paper-policy-request:abc"
+    readback = opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+        stage_run_id="sat-terminal",
+    )
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
@@ -153,18 +234,27 @@ def test_study_progress_opl_current_control_state_handoff_consumes_provider_admi
             "provider_admission_candidates": [
                 {
                     "status": "provider_admission_pending",
-                    "study_id": "001-risk",
+                    "study_id": study_id,
                     "action_type": "run_quality_repair_batch",
-                    "work_unit_id": "medical_prose_write_repair",
-                    "work_unit_fingerprint": "publication-blockers::abc",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "route_identity_key": route_key,
+                    "attempt_idempotency_key": route_key,
+                    "provider_admission_identity": {
+                        "route_identity_key": route_key,
+                        "attempt_idempotency_key": route_key,
+                        "opl_domain_progress_transition_runtime_live_readback": readback,
+                    },
+                    "opl_domain_progress_transition_runtime_live_readback": readback,
                 }
             ],
             "studies": [
                 {
-                    "study_id": "001-risk",
+                    "study_id": study_id,
                     "quest_status": "blocked",
-                    "work_unit_id": "medical_prose_write_repair",
-                    "work_unit_fingerprint": "publication-blockers::abc",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
                 }
             ],
         },
@@ -187,6 +277,10 @@ def test_study_progress_opl_current_control_state_handoff_consumes_provider_admi
             "stage_id": "domain_owner/default-executor-dispatch",
             "stage_attempt_id": "sat-terminal",
             "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "route_identity_key": route_key,
+            "attempt_idempotency_key": route_key,
             "status": "closed_with_domain_owner_refs",
             "owner_receipt_ref": "studies/001-risk/artifacts/controller/repair_execution_receipts/latest.json",
             "paper_stage_log": {
@@ -216,9 +310,9 @@ def test_study_progress_opl_current_control_state_handoff_consumes_provider_admi
     assert projection["provider_admission_pending_count"] == 0
     assert projection["provider_admission_candidates"] == []
     assert projection["provider_admission_terminal_closeout_consumed"]["stage_attempt_id"] == "sat-terminal"
-    assert projection["provider_admission_terminal_closeout_consumed"]["work_unit_id"] == "medical_prose_write_repair"
+    assert projection["provider_admission_terminal_closeout_consumed"]["work_unit_id"] == work_unit_id
     assert projection["provider_admission_terminal_closeout_consumed"]["work_unit_fingerprint"] == (
-        "publication-blockers::abc"
+        fingerprint
     )
     assert projection["latest_terminal_stage_log"]["owner_receipt_ref"] == (
         "studies/001-risk/artifacts/controller/repair_execution_receipts/latest.json"

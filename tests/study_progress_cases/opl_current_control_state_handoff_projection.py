@@ -144,6 +144,42 @@ def test_non_advancing_apply_readback_demotes_current_control_to_typed_blocker(
             ],
         },
     )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "owner_callable_adapter_receipts"
+        / "latest.json",
+        {
+            "surface": "owner_callable_adapter_receipt_study_latest",
+            "study_id": study_id,
+            "executions": [
+                {
+                    "surface": "owner_callable_adapter_receipt",
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "execution_id": "sat-stale-no-selected-dispatch",
+                    "stage_attempt_id": "sat-stale-no-selected-dispatch",
+                    "generated_at": "2026-06-19T14:58:00+00:00",
+                    "status": "blocked",
+                    "execution_status": "typed_blocker",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+                    "typed_blocker": {
+                        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit,
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                }
+            ],
+        },
+    )
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
@@ -379,6 +415,163 @@ def test_provider_admission_readback_supersedes_stale_typed_blocker_stop_project
     assert result["provider_admission_candidates"][0][
         "opl_domain_progress_transition_runtime_live_readback"
     ]["runtime_readback_status"] == "complete_transaction"
+
+
+def test_provider_admission_readback_supersedes_matching_stale_selector_closeout(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    work_unit = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    route_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    stage_attempt_id = "sat-stale-no-selected-dispatch"
+    stage_packet_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
+    )
+    runtime_readback = opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+    )
+    candidate = {
+        "status": "provider_admission_pending",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "opl_domain_progress_transition_runtime_live_readback": runtime_readback,
+    }
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-19T14:59:00+00:00",
+            "authority": "observability_only",
+            "provider_admission_pending_count": 1,
+            "transition_request_pending_count": 0,
+            "provider_admission_candidates": [candidate],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "provider_admission_pending_count": 1,
+                    "transition_request_pending_count": 0,
+                    "current_control_action": {
+                        "status": "provider_admission_pending",
+                        "reason": "opl_transition_runtime_readback_published",
+                        "provider_admission_requires_opl_runtime_result": False,
+                    },
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "schema_version": 1,
+                        "status": "owner_receipt_recorded",
+                        "study_id": study_id,
+                        "quest_id": quest_id,
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                    },
+                    "provider_admission_candidates": [candidate],
+                    "action_queue": [],
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / f"{stage_attempt_id}.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "stage_attempt_id": stage_attempt_id,
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "generated_at": "2026-06-19T14:58:00Z",
+            "status": "blocked",
+            "execution_status": "typed_blocker",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "stage_packet_ref": stage_packet_ref,
+            "typed_blocker_ref": (
+                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                f"{stage_attempt_id}.closeout.json"
+            ),
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "schema_version": 1,
+                "status": "available",
+                "stage_name": "run_quality_repair_batch",
+                "stage_work_done": ["Recorded a stale selector typed blocker."],
+                "paper_work_done": [
+                    "No paper, manuscript, current package, or publication gate surface was edited."
+                ],
+                "changed_stage_surfaces": [
+                    f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                    f"{stage_attempt_id}.closeout.json"
+                ],
+                "changed_paper_surfaces": [],
+                "outcome": "typed_blocker",
+                "remaining_blockers": ["no_selected_dispatch_for_authorized_stage_packet"],
+                "progress_delta_classification": "typed_blocker",
+                "next_forced_delta": {
+                    "required_delta_kind": "typed_blocker_consumption_or_owner_route_selector_reconcile",
+                    "work_unit_id": work_unit,
+                    "owner_action": {
+                        "next_owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit,
+                    },
+                },
+            },
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(
+        profile=profile,
+        study_id=study_id,
+    )
+
+    assert projection["provider_admission_pending_count"] == 1
+    assert len(projection["provider_admission_candidates"]) == 1
+    assert projection["provider_admission_candidates"][0]["attempt_idempotency_key"] == route_key
+    assert projection["provider_admission_candidates"][0][
+        "opl_domain_progress_transition_runtime_live_readback"
+    ]["runtime_readback_status"] == "complete_transaction"
+    assert "provider_admission_terminal_closeout_consumed" not in projection
+    assert projection.get("blocked_reason") in (None, "")
 
 
 def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markdown(

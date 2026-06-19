@@ -14,6 +14,7 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_curre
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
     non_advancing_apply_opl_transition_readback,
+    provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
     default_executor_execution_candidates,
@@ -412,10 +413,11 @@ def opl_current_control_state_study_handoff_projection(
         terminal_stage_log=latest_terminal_stage_log or matching_terminal_stage_log,
     ):
         typed_closeout = _observability_mapping(latest_typed_closeout)
-        projection["blocked_reason"] = _non_empty_text(typed_closeout.get("blocked_reason"))
-        projection["next_owner"] = _non_empty_text(typed_closeout.get("next_owner")) or projection["next_owner"]
         projection["latest_typed_default_executor_closeout"] = typed_closeout
-        projection = _apply_typed_default_executor_closeout_to_handoff(projection)
+        if not _handoff_has_complete_current_transition_readback(projection):
+            projection["blocked_reason"] = _non_empty_text(typed_closeout.get("blocked_reason"))
+            projection["next_owner"] = _non_empty_text(typed_closeout.get("next_owner")) or projection["next_owner"]
+            projection = _apply_typed_default_executor_closeout_to_handoff(projection)
     if latest_terminal_stage_log is not None:
         projection["latest_terminal_stage_log"] = latest_terminal_stage_log
     elif matching_terminal_stage_log:
@@ -441,9 +443,18 @@ def _apply_top_level_provider_admissions_to_handoff(
     candidates: list[dict[str, Any]],
 ) -> dict[str, Any]:
     updated = dict(projection)
-    updated["provider_admission_pending_count"] = len(candidates)
-    updated["provider_admission_candidates"] = [dict(item) for item in candidates]
-    current = candidates[0]
+    provider_candidates = [
+        dict(item)
+        for item in candidates
+        if provider_admission_opl_transition_readback(item)
+    ]
+    if not provider_candidates:
+        updated["provider_admission_pending_count"] = 0
+        updated["provider_admission_candidates"] = []
+        return updated
+    updated["provider_admission_pending_count"] = len(provider_candidates)
+    updated["provider_admission_candidates"] = provider_candidates
+    current = provider_candidates[0]
     for key in ("action_type", "work_unit_fingerprint", "action_fingerprint"):
         text = _non_empty_text(current.get(key))
         if text is not None:
@@ -451,7 +462,7 @@ def _apply_top_level_provider_admissions_to_handoff(
     work_unit_id = _work_unit_identity(current.get("work_unit_id"))
     if work_unit_id is not None:
         updated["work_unit_id"] = work_unit_id
-    if _non_empty_text(current.get("status")) == "provider_admission_pending":
+    if _non_empty_text(current.get("status")) == "provider_admission_pending" and provider_candidates:
         updated["blocked_reason"] = None
         updated.pop("typed_blocker", None)
     return updated
@@ -806,6 +817,10 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
         return projection
     updated = dict(projection)
     terminal = _observability_mapping(updated.get("latest_terminal_stage_log"))
+    if _handoff_has_complete_current_transition_readback(updated) and not _terminal_closeout_has_domain_delta(
+        terminal,
+    ):
+        return projection
     updated["running_provider_attempt"] = False
     updated["runtime_owner"] = None
     updated["provider_attempt_owner"] = None
@@ -1277,6 +1292,8 @@ def _apply_typed_default_executor_closeout_to_handoff(
     typed_closeout = _observability_mapping(projection.get("latest_typed_default_executor_closeout"))
     if not typed_closeout:
         return projection
+    if _handoff_has_complete_current_transition_readback(projection):
+        return projection
     matching_actions = [
         item
         for item in projection.get("action_queue") or []
@@ -1319,6 +1336,48 @@ def _apply_typed_default_executor_closeout_to_handoff(
     updated["provider_attempt_owner"] = None
     updated["queue_owner"] = None
     return updated
+
+
+def _handoff_has_complete_current_transition_readback(projection: Mapping[str, Any]) -> bool:
+    if candidate_opl_transition_readback(projection):
+        return True
+    non_advancing = _observability_mapping(
+        projection.get("domain_progress_transition_non_advancing_apply_readback")
+    )
+    if non_advancing and candidate_opl_transition_readback(
+        {
+            **non_advancing,
+            "opl_domain_progress_transition_runtime_live_readback": _observability_mapping(
+                non_advancing.get("runtime_live_readback")
+            ),
+        }
+    ):
+        return True
+    return any(
+        candidate_opl_transition_readback(candidate)
+        or provider_admission_opl_transition_readback(candidate)
+        for candidate in projection.get("provider_admission_candidates") or []
+        if isinstance(candidate, Mapping)
+    )
+
+
+def _terminal_closeout_has_domain_delta(terminal: Mapping[str, Any]) -> bool:
+    if _non_empty_text(terminal.get("owner_receipt_ref")):
+        return True
+    if _string_list(terminal.get("owner_receipt_refs")):
+        return True
+    if _non_empty_text(terminal.get("route_outcome")) == "owner_receipt":
+        return True
+    domain_refs = _observability_mapping(terminal.get("domain_owner_refs"))
+    if _non_empty_text(domain_refs.get("route_back_evidence_ref")):
+        return True
+    paper_stage_log = _observability_mapping(terminal.get("paper_stage_log"))
+    if _string_list(paper_stage_log.get("changed_paper_surfaces")):
+        return True
+    outcome = _non_empty_text(paper_stage_log.get("outcome"))
+    if outcome in {"owner_receipt", "owner_receipt_recorded", "handoff_ready", "next_handoff"}:
+        return True
+    return False
 
 
 def _typed_closeout_matches_handoff_action(

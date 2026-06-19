@@ -216,15 +216,23 @@ def _read_model_rebuild_matches_live_sections(
         return False
     expected_sections = {
         "identity": identity,
-        "causality": causality,
+        "causality": _read_model_causality_core(causality),
         "authority_boundary": authority_boundary,
         "exactly_one_outcome": exactly_one_outcome,
         "projection_metadata": projection_metadata,
     }
-    return all(
-        _mapping(read_model.get(section)) == dict(expected)
-        for section, expected in expected_sections.items()
-    )
+    for section, expected in expected_sections.items():
+        actual = _mapping(read_model.get(section))
+        if section == "causality":
+            actual = _read_model_causality_core(actual)
+        if actual != dict(expected):
+            return False
+    return True
+
+
+def _read_model_causality_core(causality: Mapping[str, Any]) -> dict[str, Any]:
+    envelope_fields = {"runtime_readback_status", "transaction_complete", "fail_closed_reason"}
+    return {key: value for key, value in dict(causality).items() if key not in envelope_fields}
 
 
 def candidate_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str, Any]:

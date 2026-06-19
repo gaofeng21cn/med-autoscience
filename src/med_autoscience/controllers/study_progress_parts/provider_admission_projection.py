@@ -45,13 +45,6 @@ def provider_admission_projection_fields(
     )
     if running_proof is not None:
         return running_proof
-    if not accepted_owner_gate_admission:
-        terminal_closeout = _handoff_terminal_closeout_consumes_provider_admission(
-            payload=payload,
-            handoff=handoff,
-        )
-        if terminal_closeout is not None:
-            return terminal_closeout
     handoff_fields = _identity_bound_handoff_provider_admission_fields(
         handoff=handoff,
         payload=payload,
@@ -59,6 +52,13 @@ def provider_admission_projection_fields(
     )
     if handoff_fields is not None:
         return handoff_fields
+    if not accepted_owner_gate_admission:
+        terminal_closeout = _handoff_terminal_closeout_consumes_provider_admission(
+            payload=payload,
+            handoff=handoff,
+        )
+        if terminal_closeout is not None:
+            return terminal_closeout
     if _handoff_typed_blocker_consumes_current_action(payload=payload, handoff=handoff):
         return {
             "provider_admission_pending_count": 0,
