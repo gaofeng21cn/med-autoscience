@@ -428,6 +428,21 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["runtime_storage_maintenance"]["apply_authorization_surface"] == (
         "opl_runtime_storage_maintenance_authorization"
     )
+    assert open_surfaces["runtime_lifecycle_payload_retention"]["authority_status"] == (
+        "opl_authorized_maintenance_callable_adapter_live_tail_open"
+    )
+    assert open_surfaces["runtime_lifecycle_payload_retention"]["allowed_effect"] == (
+        "mutate_only_when_bound_opl_maintenance_authorization_is_present"
+    )
+    assert open_surfaces["runtime_lifecycle_payload_retention"][
+        "apply_authorization_surface"
+    ] == "opl_runtime_lifecycle_maintenance_authorization"
+    assert open_surfaces["runtime_storage_maintenance"]["authority_status"] == (
+        "opl_authorized_maintenance_callable_adapter_live_tail_open"
+    )
+    assert open_surfaces["runtime_storage_maintenance"]["allowed_effect"] == (
+        "mutate_only_when_bound_opl_maintenance_authorization_is_present"
+    )
     assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
         "authority_status"
     ] == "opl_capability_runtime_projection_live_owner_soak_tail_open"

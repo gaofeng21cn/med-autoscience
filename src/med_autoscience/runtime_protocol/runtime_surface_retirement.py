@@ -9,6 +9,8 @@ from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.private_r
     validate_domain_action_request_materializer_surface as _validate_domain_action_request_materializer_surface,
     validate_domain_owner_action_dispatch as _validate_domain_owner_action_dispatch,
     validate_progress_portal_study_workbench_overview_action_projection as _validate_progress_portal_study_workbench_overview_action_projection,
+    validate_runtime_lifecycle_payload_retention as _validate_runtime_lifecycle_payload_retention,
+    validate_runtime_storage_maintenance as _validate_runtime_storage_maintenance,
 )
 
 
@@ -149,6 +151,10 @@ def validate_runtime_surface_retirement_inventory(
             violations.extend(_validate_agent_tool_arsenal_scientific_capability_registry(surface_id, surface))
         if surface_id == "progress_portal_study_workbench_overview_action_projection":
             violations.extend(_validate_progress_portal_study_workbench_overview_action_projection(surface_id, surface))
+        if surface_id == "runtime_lifecycle_payload_retention":
+            violations.extend(_validate_runtime_lifecycle_payload_retention(surface_id, surface))
+        if surface_id == "runtime_storage_maintenance":
+            violations.extend(_validate_runtime_storage_maintenance(surface_id, surface))
         if surface.get("current_disposition") != "physically_retired":
             violations.extend(_validate_open_surface(surface_id, surface))
     return violations
