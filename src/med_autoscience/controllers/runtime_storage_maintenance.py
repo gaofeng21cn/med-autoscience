@@ -51,10 +51,42 @@ _TERMINAL_RUNTIME_STATUSES = frozenset({"completed", "failed", "stopped", "termi
 _PRIMARY_BUCKETS = ("bash_exec", "codex_homes", "runs", "codex_history", "worktrees")
 _WORKSPACE_STORAGE_MAINTENANCE_SURFACE = "workspace_runtime_storage_maintenance"
 _WORKSPACE_STORAGE_MAINTENANCE_OPERATION = "workspace_storage_apply"
+OPL_RUNTIME_STORAGE_MAINTENANCE_TAIL_PROOF_REQUIRED = (
+    "opl_runtime_storage_policy_live_readback",
+    "opl_restore_retention_shell_live_readback",
+    "opl_state_index_storage_ref_readback",
+    "no_active_storage_maintenance_adapter_caller_scan",
+    "no_forbidden_write_proof",
+    "replacement_parity_ref",
+    "tombstone_or_provenance_ref",
+)
+OPL_RUNTIME_STORAGE_MAINTENANCE_TAIL_READBACK_REQUIREMENT = {
+    "surface_kind": "opl_runtime_storage_maintenance_tail_readback_requirement",
+    "runtime_owner": "one-person-lab",
+    "runtime_kind": "OPL RuntimeStorageMaintenance/RestoreRetentionShell/StateIndex",
+    "required_before_physical_delete": list(
+        OPL_RUNTIME_STORAGE_MAINTENANCE_TAIL_PROOF_REQUIRED
+    ),
+    "required_active_caller_readbacks": [
+        "opl_runtime_storage_policy_live_readback",
+        "opl_restore_retention_shell_live_readback",
+        "opl_state_index_storage_ref_readback",
+    ],
+    "apply_authorization_can_satisfy_live_takeover": False,
+    "dry_run_projection_can_satisfy_live_takeover": False,
+    "restore_canary_can_satisfy_live_takeover": False,
+    "refs_only_index_projection_can_satisfy_live_takeover": False,
+    "repo_tests_can_satisfy_live_takeover": False,
+    "physical_delete_allowed_without_tail_proof": False,
+}
 
 
 def _utc_now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
+
+
+def opl_runtime_storage_maintenance_tail_readback_requirement() -> dict[str, Any]:
+    return dict(OPL_RUNTIME_STORAGE_MAINTENANCE_TAIL_READBACK_REQUIREMENT)
 
 
 def _artifact_slug(recorded_at: str) -> str:

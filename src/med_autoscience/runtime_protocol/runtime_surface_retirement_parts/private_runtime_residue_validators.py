@@ -296,6 +296,41 @@ def validate_runtime_lifecycle_payload_retention(
             operations_key="applies_to_operations",
         )
 
+    _validate_maintenance_tail_readback(
+        surface_id,
+        surface,
+        violations,
+        tail_key="opl_runtime_lifecycle_maintenance_tail_readback",
+        reason_prefix="lifecycle_retention_tail",
+        expected_kind="opl_runtime_lifecycle_maintenance_tail_readback_requirement",
+        expected_runtime_kind="OPL RuntimeLifecycleCleanup/RetentionPolicy",
+        required_readbacks={
+            "opl_runtime_lifecycle_cleanup_policy_live_readback",
+            "opl_runtime_retention_policy_live_readback",
+        },
+        required_physical_refs={
+            "opl_runtime_lifecycle_cleanup_policy_live_readback",
+            "opl_runtime_retention_policy_live_readback",
+            "no_active_lifecycle_maintenance_adapter_caller_scan",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        },
+        no_active_key="no_active_lifecycle_maintenance_adapter_caller_proven",
+        forbidden_false_keys={
+            "apply_authorization_can_satisfy_live_takeover",
+            "dry_run_plan_can_satisfy_live_takeover",
+            "maintenance_receipt_can_satisfy_live_takeover",
+            "repo_tests_can_satisfy_live_takeover",
+        },
+        required_false_completion_claims={
+            "opl_maintenance_authorization_as_live_cleanup_policy_takeover",
+            "runtime_lifecycle_apply_gate_as_live_takeover",
+            "runtime_lifecycle_dry_run_plan_as_live_takeover",
+            "runtime_lifecycle_receipt_as_physical_delete",
+            "repo_tests_green_as_runtime_lifecycle_physical_delete",
+        },
+    )
     _validate_forbidden_completion_claims(
         surface_id,
         surface,
@@ -420,6 +455,45 @@ def validate_runtime_storage_maintenance(
     ):
         violations.append(_violation(surface_id, "storage_maintenance_allowed_without_auth_incomplete"))
 
+    _validate_maintenance_tail_readback(
+        surface_id,
+        surface,
+        violations,
+        tail_key="opl_runtime_storage_maintenance_tail_readback",
+        reason_prefix="storage_maintenance_tail",
+        expected_kind="opl_runtime_storage_maintenance_tail_readback_requirement",
+        expected_runtime_kind="OPL RuntimeStorageMaintenance/RestoreRetentionShell/StateIndex",
+        required_readbacks={
+            "opl_runtime_storage_policy_live_readback",
+            "opl_restore_retention_shell_live_readback",
+            "opl_state_index_storage_ref_readback",
+        },
+        required_physical_refs={
+            "opl_runtime_storage_policy_live_readback",
+            "opl_restore_retention_shell_live_readback",
+            "opl_state_index_storage_ref_readback",
+            "no_active_storage_maintenance_adapter_caller_scan",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        },
+        no_active_key="no_active_storage_maintenance_adapter_caller_proven",
+        forbidden_false_keys={
+            "apply_authorization_can_satisfy_live_takeover",
+            "dry_run_projection_can_satisfy_live_takeover",
+            "restore_canary_can_satisfy_live_takeover",
+            "refs_only_index_projection_can_satisfy_live_takeover",
+            "repo_tests_can_satisfy_live_takeover",
+        },
+        required_false_completion_claims={
+            "opl_storage_maintenance_authorization_as_live_storage_policy_takeover",
+            "runtime_storage_apply_gate_as_live_takeover",
+            "runtime_storage_dry_run_projection_as_live_takeover",
+            "restore_proof_canary_as_live_takeover",
+            "refs_only_state_index_projection_as_storage_takeover",
+            "repo_tests_green_as_runtime_storage_physical_delete",
+        },
+    )
     _validate_forbidden_completion_claims(
         surface_id,
         surface,
@@ -481,6 +555,57 @@ def _validate_maintenance_authority_boundary(
         violations.append(_violation(surface_id, f"{reason_prefix}_missing_opl_authorized_mutation_flag"))
     if dry_run_projection_key and authority.get(dry_run_projection_key) is not True:
         violations.append(_violation(surface_id, f"{reason_prefix}_missing_dry_run_projection_boundary"))
+
+
+def _validate_maintenance_tail_readback(
+    surface_id: str,
+    surface: Mapping[str, Any],
+    violations: list[dict[str, str]],
+    *,
+    tail_key: str,
+    reason_prefix: str,
+    expected_kind: str,
+    expected_runtime_kind: str,
+    required_readbacks: set[str],
+    required_physical_refs: set[str],
+    no_active_key: str,
+    forbidden_false_keys: set[str],
+    required_false_completion_claims: set[str],
+) -> None:
+    tail = surface.get(tail_key)
+    if not isinstance(tail, Mapping):
+        violations.append(_violation(surface_id, f"{reason_prefix}_missing_readback"))
+        return
+    if tail.get("surface_kind") != expected_kind:
+        violations.append(_violation(surface_id, f"{reason_prefix}_kind_invalid"))
+    if tail.get("runtime_owner") != "one-person-lab":
+        violations.append(_violation(surface_id, f"{reason_prefix}_owner_not_opl"))
+    if tail.get("runtime_kind") != expected_runtime_kind:
+        violations.append(_violation(surface_id, f"{reason_prefix}_runtime_kind_invalid"))
+    active_readbacks = tail.get("required_active_caller_readbacks")
+    if not isinstance(active_readbacks, list) or not required_readbacks <= {
+        str(item) for item in active_readbacks
+    }:
+        violations.append(_violation(surface_id, f"{reason_prefix}_active_readbacks_incomplete"))
+    physical_delete_requires = tail.get("physical_delete_requires")
+    if not isinstance(physical_delete_requires, list) or not required_physical_refs <= {
+        str(item) for item in physical_delete_requires
+    }:
+        violations.append(_violation(surface_id, f"{reason_prefix}_physical_delete_refs_incomplete"))
+    if tail.get("tail_readback_proven") is not False:
+        violations.append(_violation(surface_id, f"{reason_prefix}_must_not_claim_readback_proven"))
+    if tail.get(no_active_key) is not False:
+        violations.append(_violation(surface_id, f"{reason_prefix}_must_not_claim_no_active_caller"))
+    if tail.get("physical_delete_allowed") is not False:
+        violations.append(_violation(surface_id, f"{reason_prefix}_must_not_allow_physical_delete"))
+    for key in sorted(forbidden_false_keys):
+        if tail.get(key) is not False:
+            violations.append(_violation(surface_id, f"{reason_prefix}_forbidden:{key}"))
+    forbidden_claims = tail.get("forbidden_completion_claims")
+    if not isinstance(forbidden_claims, list) or not required_false_completion_claims <= {
+        str(item) for item in forbidden_claims
+    }:
+        violations.append(_violation(surface_id, f"{reason_prefix}_missing_false_completion_guards"))
 
 
 def _validate_required_apply_gate_values(

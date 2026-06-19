@@ -32,6 +32,31 @@ _PAYLOAD_TABLE_COLUMNS = {
     "report_index": ("payload_json",),
     "dispatch_receipts": ("payload_json",),
 }
+OPL_RUNTIME_LIFECYCLE_MAINTENANCE_TAIL_PROOF_REQUIRED = (
+    "opl_runtime_lifecycle_cleanup_policy_live_readback",
+    "opl_runtime_retention_policy_live_readback",
+    "no_active_lifecycle_maintenance_adapter_caller_scan",
+    "no_forbidden_write_proof",
+    "replacement_parity_ref",
+    "tombstone_or_provenance_ref",
+)
+OPL_RUNTIME_LIFECYCLE_MAINTENANCE_TAIL_READBACK_REQUIREMENT = {
+    "surface_kind": "opl_runtime_lifecycle_maintenance_tail_readback_requirement",
+    "runtime_owner": "one-person-lab",
+    "runtime_kind": "OPL RuntimeLifecycleCleanup/RetentionPolicy",
+    "required_before_physical_delete": list(
+        OPL_RUNTIME_LIFECYCLE_MAINTENANCE_TAIL_PROOF_REQUIRED
+    ),
+    "required_active_caller_readbacks": [
+        "opl_runtime_lifecycle_cleanup_policy_live_readback",
+        "opl_runtime_retention_policy_live_readback",
+    ],
+    "apply_authorization_can_satisfy_live_takeover": False,
+    "dry_run_plan_can_satisfy_live_takeover": False,
+    "maintenance_receipt_can_satisfy_live_takeover": False,
+    "repo_tests_can_satisfy_live_takeover": False,
+    "physical_delete_allowed_without_tail_proof": False,
+}
 
 
 def run_runtime_lifecycle_payload_retention(
@@ -223,6 +248,10 @@ def run_runtime_lifecycle_payload_retention(
     )
     _write_receipt(db_path=resolved_db_path, receipt=receipt, recorded_at=recorded_at)
     return receipt
+
+
+def opl_runtime_lifecycle_maintenance_tail_readback_requirement() -> dict[str, Any]:
+    return dict(OPL_RUNTIME_LIFECYCLE_MAINTENANCE_TAIL_READBACK_REQUIREMENT)
 
 
 def repair_runtime_lifecycle_sqlite_sidecars(
@@ -1087,4 +1116,8 @@ def _sample_entries(entries: Iterable[Mapping[str, Any]], limit: int = 20) -> li
 def _actionable_cold_payload_candidate_count(entries: Iterable[Mapping[str, Any]]) -> int:
     return sum(1 for entry in entries if entry.get("status") != "skipped_below_threshold")
 
-__all__ = ["repair_runtime_lifecycle_sqlite_sidecars", "run_runtime_lifecycle_payload_retention"]
+__all__ = [
+    "opl_runtime_lifecycle_maintenance_tail_readback_requirement",
+    "repair_runtime_lifecycle_sqlite_sidecars",
+    "run_runtime_lifecycle_payload_retention",
+]

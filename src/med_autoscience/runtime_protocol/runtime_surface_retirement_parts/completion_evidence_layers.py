@@ -81,6 +81,8 @@ def _physical_delete_required_refs(surface: Mapping[str, Any]) -> list[str]:
         ("live_owner_consumption_soak_boundary",),
         ("opl_obligation_actuator_tail_readback",),
         ("opl_runtime_health_observability_tail_readback",),
+        ("opl_runtime_lifecycle_maintenance_tail_readback",),
+        ("opl_runtime_storage_maintenance_tail_readback",),
     )
     for path in nested_paths:
         container: Any = surface
@@ -188,6 +190,16 @@ def _surface_live_or_no_active_proven(
             "opl_runtime_health_observability_tail_readback",
             "no_active_diagnostic_projection_caller_proven",
         ),
+        ("opl_runtime_lifecycle_maintenance_tail_readback", "tail_readback_proven"),
+        (
+            "opl_runtime_lifecycle_maintenance_tail_readback",
+            "no_active_lifecycle_maintenance_adapter_caller_proven",
+        ),
+        ("opl_runtime_storage_maintenance_tail_readback", "tail_readback_proven"),
+        (
+            "opl_runtime_storage_maintenance_tail_readback",
+            "no_active_storage_maintenance_adapter_caller_proven",
+        ),
     )
     if any(_nested_value(surface, path) is True for path in proof_fields):
         return True
@@ -242,6 +254,8 @@ def _completion_interpretation_containers(surface: Mapping[str, Any]) -> list[Ma
         ("legacy_stage_run_abi_boundary", "active_stage_run_abi_caller_scan"),
         ("opl_obligation_actuator_tail_readback",),
         ("opl_runtime_health_observability_tail_readback",),
+        ("opl_runtime_lifecycle_maintenance_tail_readback",),
+        ("opl_runtime_storage_maintenance_tail_readback",),
     ):
         value: Any = surface
         for key in path:

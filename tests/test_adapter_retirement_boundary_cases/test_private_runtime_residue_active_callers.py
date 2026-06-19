@@ -487,6 +487,36 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "mas_runtime_health_snapshot_as_opl_observability_readback"
         in runtime_health_tail["forbidden_completion_interpretations"]
     )
+    lifecycle_tail = evidence_tails["runtime_lifecycle_payload_retention"]
+    assert (
+        "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_maintenance_tail_readback_ref"
+        in lifecycle_tail["required_ref_families"]
+    )
+    assert (
+        "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_cleanup_policy_live_readback_ref"
+        in lifecycle_tail["required_ref_families"]
+    )
+    assert (
+        "opl_maintenance_authorization_as_live_cleanup_policy_takeover"
+        in lifecycle_tail["forbidden_completion_interpretations"]
+    )
+    storage_tail = evidence_tails["runtime_storage_maintenance"]
+    assert (
+        "runtime_storage_maintenance_opl_runtime_storage_maintenance_tail_readback_ref"
+        in storage_tail["required_ref_families"]
+    )
+    assert (
+        "runtime_storage_maintenance_opl_runtime_storage_policy_live_readback_ref"
+        in storage_tail["required_ref_families"]
+    )
+    assert (
+        "runtime_storage_maintenance_opl_restore_retention_shell_live_readback_ref"
+        in storage_tail["required_ref_families"]
+    )
+    assert (
+        "runtime_storage_apply_gate_as_live_takeover"
+        in storage_tail["forbidden_completion_interpretations"]
+    )
     arsenal_tail = evidence_tails["agent_tool_arsenal_scientific_capability_registry"]
     assert (
         "agent_tool_arsenal_scientific_capability_registry_live_owner_consumption_soak_ref"
@@ -516,6 +546,8 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "domain_health_diagnostic_obligation_actuator",
         "runtime_health_kernel",
         "agent_tool_arsenal_scientific_capability_registry",
+        "runtime_lifecycle_payload_retention",
+        "runtime_storage_maintenance",
     } <= {item["surface_id"] for item in layers["physical_retirement"]["open_surface_tails"]}
     assert audit["repo_no_authority_guard_satisfied"] is True
     assert audit["live_soak_or_no_active_caller_proven"] is False
@@ -676,12 +708,42 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["runtime_lifecycle_payload_retention"][
         "apply_authorization_surface"
     ] == "opl_runtime_lifecycle_maintenance_authorization"
+    assert open_surfaces["runtime_lifecycle_payload_retention"][
+        "runtime_lifecycle_maintenance_tail_status"
+    ] == "tail_open"
+    assert open_surfaces["runtime_lifecycle_payload_retention"][
+        "runtime_lifecycle_maintenance_tail_readback_proven"
+    ] is False
+    assert open_surfaces["runtime_lifecycle_payload_retention"][
+        "runtime_lifecycle_maintenance_no_active_caller_proven"
+    ] is False
+    assert open_surfaces["runtime_lifecycle_payload_retention"][
+        "runtime_lifecycle_maintenance_physical_delete_allowed"
+    ] is False
+    assert open_surfaces["runtime_lifecycle_payload_retention"][
+        "runtime_lifecycle_maintenance_required_active_caller_readback_count"
+    ] == 2
     assert open_surfaces["runtime_storage_maintenance"]["authority_status"] == (
         "opl_authorized_maintenance_callable_adapter_live_tail_open"
     )
     assert open_surfaces["runtime_storage_maintenance"]["allowed_effect"] == (
         "mutate_only_when_bound_opl_maintenance_authorization_is_present"
     )
+    assert open_surfaces["runtime_storage_maintenance"][
+        "runtime_storage_maintenance_tail_status"
+    ] == "tail_open"
+    assert open_surfaces["runtime_storage_maintenance"][
+        "runtime_storage_maintenance_tail_readback_proven"
+    ] is False
+    assert open_surfaces["runtime_storage_maintenance"][
+        "runtime_storage_maintenance_no_active_caller_proven"
+    ] is False
+    assert open_surfaces["runtime_storage_maintenance"][
+        "runtime_storage_maintenance_physical_delete_allowed"
+    ] is False
+    assert open_surfaces["runtime_storage_maintenance"][
+        "runtime_storage_maintenance_required_active_caller_readback_count"
+    ] == 3
     assert open_surfaces["agent_tool_arsenal_scientific_capability_registry"][
         "authority_status"
     ] == "opl_capability_runtime_projection_live_owner_soak_tail_open"
@@ -1197,6 +1259,90 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
             "runtime_health_tail_missing_false_completion_guards",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in runtime_health_violations}
+
+    maintenance_bad_inventory = json.loads(json.dumps(inventory))
+    maintenance_surfaces = {
+        surface["surface_id"]: surface for surface in maintenance_bad_inventory["surfaces"]
+    }
+    lifecycle_retention = maintenance_surfaces["runtime_lifecycle_payload_retention"]
+    lifecycle_retention["opl_runtime_lifecycle_maintenance_tail_readback"][
+        "tail_readback_proven"
+    ] = True
+    lifecycle_retention["opl_runtime_lifecycle_maintenance_tail_readback"][
+        "no_active_lifecycle_maintenance_adapter_caller_proven"
+    ] = True
+    lifecycle_retention["opl_runtime_lifecycle_maintenance_tail_readback"][
+        "physical_delete_allowed"
+    ] = True
+    lifecycle_retention["opl_runtime_lifecycle_maintenance_tail_readback"][
+        "apply_authorization_can_satisfy_live_takeover"
+    ] = True
+    lifecycle_retention["opl_runtime_lifecycle_maintenance_tail_readback"][
+        "forbidden_completion_claims"
+    ] = []
+    storage_maintenance = maintenance_surfaces["runtime_storage_maintenance"]
+    storage_maintenance["opl_runtime_storage_maintenance_tail_readback"][
+        "tail_readback_proven"
+    ] = True
+    storage_maintenance["opl_runtime_storage_maintenance_tail_readback"][
+        "no_active_storage_maintenance_adapter_caller_proven"
+    ] = True
+    storage_maintenance["opl_runtime_storage_maintenance_tail_readback"][
+        "physical_delete_allowed"
+    ] = True
+    storage_maintenance["opl_runtime_storage_maintenance_tail_readback"][
+        "dry_run_projection_can_satisfy_live_takeover"
+    ] = True
+    storage_maintenance["opl_runtime_storage_maintenance_tail_readback"][
+        "forbidden_completion_claims"
+    ] = []
+
+    maintenance_violations = retirement.validate_runtime_surface_retirement_inventory(
+        maintenance_bad_inventory
+    )
+
+    assert {
+        (
+            "runtime_lifecycle_payload_retention",
+            "lifecycle_retention_tail_must_not_claim_readback_proven",
+        ),
+        (
+            "runtime_lifecycle_payload_retention",
+            "lifecycle_retention_tail_must_not_claim_no_active_caller",
+        ),
+        (
+            "runtime_lifecycle_payload_retention",
+            "lifecycle_retention_tail_must_not_allow_physical_delete",
+        ),
+        (
+            "runtime_lifecycle_payload_retention",
+            "lifecycle_retention_tail_forbidden:apply_authorization_can_satisfy_live_takeover",
+        ),
+        (
+            "runtime_lifecycle_payload_retention",
+            "lifecycle_retention_tail_missing_false_completion_guards",
+        ),
+        (
+            "runtime_storage_maintenance",
+            "storage_maintenance_tail_must_not_claim_readback_proven",
+        ),
+        (
+            "runtime_storage_maintenance",
+            "storage_maintenance_tail_must_not_claim_no_active_caller",
+        ),
+        (
+            "runtime_storage_maintenance",
+            "storage_maintenance_tail_must_not_allow_physical_delete",
+        ),
+        (
+            "runtime_storage_maintenance",
+            "storage_maintenance_tail_forbidden:dry_run_projection_can_satisfy_live_takeover",
+        ),
+        (
+            "runtime_storage_maintenance",
+            "storage_maintenance_tail_missing_false_completion_guards",
+        ),
+    } <= {(item["surface_id"], item["reason"]) for item in maintenance_violations}
 
     owner_dispatch_bad_inventory = json.loads(json.dumps(inventory))
     owner_dispatch = next(

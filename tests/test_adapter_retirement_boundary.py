@@ -844,9 +844,85 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     assert "mas_owned_generic_runtime" in runtime_storage["forbidden_claims"]
     assert "runtime_storage_apply_as_paper_progress" in runtime_storage["forbidden_claims"]
     assert "provider_completion_as_domain_ready" in runtime_storage["forbidden_claims"]
+    storage_tail = runtime_storage["opl_runtime_storage_maintenance_tail_readback"]
+    assert storage_tail == {
+        "surface_kind": "opl_runtime_storage_maintenance_tail_readback_requirement",
+        "status": "tail_open",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "OPL RuntimeStorageMaintenance/RestoreRetentionShell/StateIndex",
+        "required_active_caller_readbacks": [
+            "opl_runtime_storage_policy_live_readback",
+            "opl_restore_retention_shell_live_readback",
+            "opl_state_index_storage_ref_readback",
+        ],
+        "required_before_physical_delete": (
+            "runtime_storage_maintenance_opl_runtime_storage_maintenance_tail_readback_ref"
+        ),
+        "physical_delete_requires": [
+            "opl_runtime_storage_policy_live_readback",
+            "opl_restore_retention_shell_live_readback",
+            "opl_state_index_storage_ref_readback",
+            "no_active_storage_maintenance_adapter_caller_scan",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        ],
+        "tail_readback_proven": False,
+        "no_active_storage_maintenance_adapter_caller_proven": False,
+        "physical_delete_allowed": False,
+        "apply_authorization_can_satisfy_live_takeover": False,
+        "dry_run_projection_can_satisfy_live_takeover": False,
+        "restore_canary_can_satisfy_live_takeover": False,
+        "refs_only_index_projection_can_satisfy_live_takeover": False,
+        "repo_tests_can_satisfy_live_takeover": False,
+        "forbidden_completion_claims": [
+            "opl_storage_maintenance_authorization_as_live_storage_policy_takeover",
+            "runtime_storage_apply_gate_as_live_takeover",
+            "runtime_storage_dry_run_projection_as_live_takeover",
+            "restore_proof_canary_as_live_takeover",
+            "refs_only_state_index_projection_as_storage_takeover",
+            "repo_tests_green_as_runtime_storage_physical_delete",
+        ],
+    }
     assert runtime_storage["retirement_gate"]["active_caller_alone_retains_surface"] is False
 
     lifecycle_retention = surfaces["runtime_lifecycle_payload_retention"]
+    lifecycle_tail = lifecycle_retention["opl_runtime_lifecycle_maintenance_tail_readback"]
+    assert lifecycle_tail == {
+        "surface_kind": "opl_runtime_lifecycle_maintenance_tail_readback_requirement",
+        "status": "tail_open",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "OPL RuntimeLifecycleCleanup/RetentionPolicy",
+        "required_active_caller_readbacks": [
+            "opl_runtime_lifecycle_cleanup_policy_live_readback",
+            "opl_runtime_retention_policy_live_readback",
+        ],
+        "required_before_physical_delete": (
+            "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_maintenance_tail_readback_ref"
+        ),
+        "physical_delete_requires": [
+            "opl_runtime_lifecycle_cleanup_policy_live_readback",
+            "opl_runtime_retention_policy_live_readback",
+            "no_active_lifecycle_maintenance_adapter_caller_scan",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        ],
+        "tail_readback_proven": False,
+        "no_active_lifecycle_maintenance_adapter_caller_proven": False,
+        "physical_delete_allowed": False,
+        "apply_authorization_can_satisfy_live_takeover": False,
+        "dry_run_plan_can_satisfy_live_takeover": False,
+        "maintenance_receipt_can_satisfy_live_takeover": False,
+        "repo_tests_can_satisfy_live_takeover": False,
+        "forbidden_completion_claims": [
+            "opl_maintenance_authorization_as_live_cleanup_policy_takeover",
+            "runtime_lifecycle_apply_gate_as_live_takeover",
+            "runtime_lifecycle_dry_run_plan_as_live_takeover",
+            "runtime_lifecycle_receipt_as_physical_delete",
+            "repo_tests_green_as_runtime_lifecycle_physical_delete",
+        ],
+    }
     assert lifecycle_retention["retirement_gate"]["active_caller_alone_retains_surface"] is False
 
 

@@ -917,6 +917,8 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     live_owner_consumption_soak = surface.get("live_owner_consumption_soak_boundary")
     obligation_tail = surface.get("opl_obligation_actuator_tail_readback")
     runtime_health_tail = surface.get("opl_runtime_health_observability_tail_readback")
+    lifecycle_maintenance_tail = surface.get("opl_runtime_lifecycle_maintenance_tail_readback")
+    storage_maintenance_tail = surface.get("opl_runtime_storage_maintenance_tail_readback")
     return {
         "surface_id": surface["surface_id"],
         "current_disposition": surface["current_disposition"],
@@ -1069,6 +1071,68 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             len(runtime_health_tail.get("required_active_caller_readbacks"))
             if isinstance(runtime_health_tail, Mapping)
             and isinstance(runtime_health_tail.get("required_active_caller_readbacks"), list)
+            else None
+        ),
+        "runtime_lifecycle_maintenance_tail_status": (
+            lifecycle_maintenance_tail.get("status")
+            if isinstance(lifecycle_maintenance_tail, Mapping)
+            else None
+        ),
+        "runtime_lifecycle_maintenance_tail_readback_proven": (
+            lifecycle_maintenance_tail.get("tail_readback_proven")
+            if isinstance(lifecycle_maintenance_tail, Mapping)
+            else None
+        ),
+        "runtime_lifecycle_maintenance_no_active_caller_proven": (
+            lifecycle_maintenance_tail.get(
+                "no_active_lifecycle_maintenance_adapter_caller_proven"
+            )
+            if isinstance(lifecycle_maintenance_tail, Mapping)
+            else None
+        ),
+        "runtime_lifecycle_maintenance_physical_delete_allowed": (
+            lifecycle_maintenance_tail.get("physical_delete_allowed")
+            if isinstance(lifecycle_maintenance_tail, Mapping)
+            else None
+        ),
+        "runtime_lifecycle_maintenance_required_active_caller_readback_count": (
+            len(lifecycle_maintenance_tail.get("required_active_caller_readbacks"))
+            if isinstance(lifecycle_maintenance_tail, Mapping)
+            and isinstance(
+                lifecycle_maintenance_tail.get("required_active_caller_readbacks"),
+                list,
+            )
+            else None
+        ),
+        "runtime_storage_maintenance_tail_status": (
+            storage_maintenance_tail.get("status")
+            if isinstance(storage_maintenance_tail, Mapping)
+            else None
+        ),
+        "runtime_storage_maintenance_tail_readback_proven": (
+            storage_maintenance_tail.get("tail_readback_proven")
+            if isinstance(storage_maintenance_tail, Mapping)
+            else None
+        ),
+        "runtime_storage_maintenance_no_active_caller_proven": (
+            storage_maintenance_tail.get(
+                "no_active_storage_maintenance_adapter_caller_proven"
+            )
+            if isinstance(storage_maintenance_tail, Mapping)
+            else None
+        ),
+        "runtime_storage_maintenance_physical_delete_allowed": (
+            storage_maintenance_tail.get("physical_delete_allowed")
+            if isinstance(storage_maintenance_tail, Mapping)
+            else None
+        ),
+        "runtime_storage_maintenance_required_active_caller_readback_count": (
+            len(storage_maintenance_tail.get("required_active_caller_readbacks"))
+            if isinstance(storage_maintenance_tail, Mapping)
+            and isinstance(
+                storage_maintenance_tail.get("required_active_caller_readbacks"),
+                list,
+            )
             else None
         ),
         **_audit_workbench_projection_fields(surface),
