@@ -625,7 +625,7 @@ def test_provider_admission_report_merges_candidate_root_closeout_into_existing_
     }
 
 
-def test_provider_admission_report_keeps_candidate_root_record_only_closeout_without_currentness_as_pending(
+def test_provider_admission_report_demotes_candidate_root_record_only_closeout_without_currentness(
     tmp_path: Path,
 ) -> None:
     report = importlib.import_module(
@@ -664,8 +664,14 @@ def test_provider_admission_report_keeps_candidate_root_record_only_closeout_wit
     )
 
     assert result is not None
-    assert result["provider_admission_pending_count"] == 1
-    assert result["stage_route_arbiter"]["pending_count"] == 1
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_candidates"] == []
+    assert result["stage_route_arbiter"]["pending_count"] == 0
     assert result["stage_route_arbiter"]["decision_counts"] == {
-        "pending_provider_admission": 1,
+        "opl_transition_readback_required": 1,
     }
+    [decision] = result["stage_route_arbiter_decisions"]
+    assert decision["decision"] == "opl_transition_readback_required"
+    assert decision["evidence_status"] == "NonAdvancingApply"
