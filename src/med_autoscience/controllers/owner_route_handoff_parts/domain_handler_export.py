@@ -47,6 +47,7 @@ from .export_study_projection import (
 from .guarded_apply_tasks import DEFAULT_GUARDED_APPLY_TARGETS, provider_hosted_guarded_apply_tasks
 from .owner_route_handoff_tasks import owner_route_handoff_task
 from .owner_source_refs import owner_controller_decision_refs
+from .opl_supervisor_decision_request_tasks import opl_supervisor_decision_request_task
 from .paper_recovery_default_executor_tasks import (
     paper_recovery_default_executor_dispatch_tasks,
 )
@@ -296,6 +297,15 @@ def _pending_family_tasks(
                 study_id=study_id,
             )
             if resolution_task is not None:
+                supervisor_request_task = opl_supervisor_decision_request_task(
+                    resolution_task=resolution_task,
+                    current_progress=current_progress,
+                    profile=profile,
+                    profile_ref=profile_ref,
+                    study_id=study_id,
+                )
+                if supervisor_request_task is not None:
+                    tasks.append(supervisor_request_task)
                 tasks.append(resolution_task)
             continue
         current_work_unit = mapping(current_progress.get("current_work_unit"))

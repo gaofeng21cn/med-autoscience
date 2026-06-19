@@ -185,6 +185,42 @@ def test_domain_handler_export_materializes_opl_typed_blocker_owner_resolution_t
                     "required_input": "OPL provider attempt, active lease, and execution authorization decision",
                 },
             },
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "domain_blocked",
+                "current_authority": {
+                    "owner": "one-person-lab",
+                    "obligation": {
+                        "study_id": study_id,
+                        "quest_id": study_id,
+                        "stage_id": "publication_supervision",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": "sha256:gate-replay-current",
+                    },
+                },
+                "next_safe_action": {
+                    "kind": "resolve_typed_blocker",
+                    "owner": "one-person-lab",
+                    "provider_admission_allowed": False,
+                },
+                "supervisor_decision": {
+                    "surface_kind": "paper_progress_policy_result_projection",
+                    "decision": "opl_supervisor_decision_readback_required",
+                    "decision_authority": False,
+                    "requires_opl_supervisor_decision_engine_readback": True,
+                    "mas_can_run_supervisor_decision_engine": False,
+                    "mas_can_store_recovery_obligation": False,
+                    "paper_autonomy_obligation_identity": {
+                        "study_id": study_id,
+                        "quest_id": study_id,
+                        "stage_id": "publication_supervision",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": "sha256:gate-replay-current",
+                    },
+                },
+            },
             "current_executable_owner_action": None,
         }
 
@@ -199,8 +235,35 @@ def test_domain_handler_export_materializes_opl_typed_blocker_owner_resolution_t
         for task in payload["pending_family_tasks"]
         if task.get("payload", {}).get("study_id") == study_id
     ]
-    assert len(tasks) == 1
-    task = tasks[0]
+    assert {task["task_kind"] for task in tasks} == {
+        "domain_route/reconcile-apply",
+        "paper_autonomy/supervisor-decision",
+    }
+    supervisor_task = next(
+        task for task in tasks if task["task_kind"] == "paper_autonomy/supervisor-decision"
+    )
+    supervisor_request = supervisor_task["payload"]["paper_autonomy_supervisor_decision_request"]
+    assert supervisor_task["queue_owner"] == "one-person-lab"
+    assert supervisor_task["dispatch_owner"] == "one-person-lab"
+    assert supervisor_task["reason"] == "opl_supervisor_decision_readback_required"
+    assert supervisor_request["surface_kind"] == (
+        "mas_opl_paper_autonomy_supervisor_decision_request"
+    )
+    assert supervisor_request["requested_opl_command"] == (
+        "opl family-runtime paper-autonomy supervisor decide"
+    )
+    assert supervisor_request["authority_boundary"]["decision_authority"] is False
+    assert supervisor_request["authority_boundary"]["mas_can_run_supervisor_decision_engine"] is False
+    assert supervisor_request["authority_boundary"]["mas_can_store_recovery_obligation"] is False
+    assert supervisor_request["authority_boundary"]["decision_engine_owner"] == "one-person-lab"
+    assert supervisor_request["current_identity"]["work_unit_fingerprint"] == "sha256:gate-replay-current"
+    assert supervisor_request["current_identity"]["stage_packet_refs"]
+    assert supervisor_request["paper_autonomy_obligation_identity"]["route_identity_key"]
+    assert supervisor_request["paper_autonomy_obligation_identity"]["attempt_idempotency_key"]
+    assert supervisor_request["recommended_decision_evidence"]["typed_blocker_ref"] == (
+        "opl_execution_authorization_required"
+    )
+    task = next(task for task in tasks if task["task_kind"] == "domain_route/reconcile-apply")
     assert task["task_kind"] == "domain_route/reconcile-apply"
     assert task["reason"] == "current_work_unit_typed_blocker_owner_resolution"
     assert task["queue_owner"] == "one-person-lab"
