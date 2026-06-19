@@ -49,7 +49,7 @@ def _authorized(
     owner_route_basis: str | None,
     current_study: Mapping[str, Any],
 ) -> bool:
-    provider_hosted_authorization = _provider_hosted_stage_attempt_authorization(dispatch=dispatch)
+    provider_hosted_authorization = _provider_hosted_stage_attempt_authority(dispatch=dispatch)
     if provider_hosted_authorization is not None:
         return True
     if owner_route_basis == "live_provider_attempt_dispatch":
@@ -70,7 +70,7 @@ def _authorized(
 
 def with_provider_hosted_opl_authorization(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     result = dict(dispatch)
-    authorization = _provider_hosted_stage_attempt_authorization(dispatch=result)
+    authorization = _provider_hosted_stage_attempt_authority(dispatch=result)
     if authorization is None:
         return result
     result["opl_execution_authorization"] = dict(authorization)
@@ -84,7 +84,7 @@ def with_provider_hosted_opl_authorization(dispatch: Mapping[str, Any]) -> dict[
 
 
 def provider_hosted_stage_attempt_authorizes_dispatch(dispatch: Mapping[str, Any]) -> bool:
-    return _provider_hosted_stage_attempt_authorization(dispatch=dispatch) is not None
+    return _provider_hosted_stage_attempt_authority(dispatch=dispatch) is not None
 
 
 def provider_hosted_exact_stage_run_current_execution_authority(
@@ -129,11 +129,33 @@ def provider_hosted_canonical_stage_packet_dispatch(
     return None
 
 
-def _provider_hosted_stage_attempt_authorization(*, dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
+def _provider_hosted_stage_attempt_authority(*, dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
+    identity = _provider_hosted_stage_attempt_identity(dispatch=dispatch)
+    if identity is None:
+        return None
+    trusted = first_trusted_opl_execution_authorization(identity)
+    if trusted is not None:
+        return trusted
+    return {
+        **identity,
+        "authorization_kind": "provider_hosted_exact_stage_packet_execution_authority",
+        "authorization_scope": "exact_stage_packet_only",
+        "provider_admission_authority": False,
+        "attempt_lifecycle_authority": False,
+        "queue_authority": False,
+        "provider_completion_is_domain_completion": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_stage_run": False,
+    }
+
+
+def _provider_hosted_stage_attempt_identity(*, dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
     stage_attempt_id = _env_text("OPL_STAGE_ATTEMPT_ID")
     stage_packet_ref = _env_text("OPL_STAGE_PACKET_REF")
     stage_id = _env_text("OPL_STAGE_ID")
-    if stage_attempt_id is None or stage_packet_ref is None:
+    provider_attempt_ref = _env_text("OPL_PROVIDER_ATTEMPT_REF")
+    if stage_attempt_id is None or stage_packet_ref is None or provider_attempt_ref is None:
         return None
     if stage_id is not None and stage_id != "domain_owner/default-executor-dispatch":
         return None
@@ -141,11 +163,11 @@ def _provider_hosted_stage_attempt_authorization(*, dispatch: Mapping[str, Any])
         return None
     env_study_id = _env_text("OPL_STUDY_ID")
     dispatch_study_id = _text(dispatch.get("study_id"))
-    if env_study_id is not None and dispatch_study_id is not None and env_study_id != dispatch_study_id:
+    if env_study_id is None or dispatch_study_id is None or env_study_id != dispatch_study_id:
         return None
     env_action_type = _env_text("OPL_ACTION_TYPE")
     dispatch_action_type = _text(dispatch.get("action_type"))
-    if env_action_type is not None and dispatch_action_type is not None and env_action_type != dispatch_action_type:
+    if env_action_type is None or dispatch_action_type is None or env_action_type != dispatch_action_type:
         return None
     env_work_unit_id = _env_text("OPL_WORK_UNIT_ID")
     dispatch_work_unit_id = _dispatch_work_unit_id(dispatch)
@@ -156,26 +178,24 @@ def _provider_hosted_stage_attempt_authorization(*, dispatch: Mapping[str, Any])
         dispatch=dispatch,
     ):
         return None
-    return first_trusted_opl_execution_authorization(
-        {
-            "owner": "one-person-lab",
-            "executor_kind": "codex_cli",
-            "provider_attempt_ref": _env_text("OPL_PROVIDER_ATTEMPT_REF"),
-            "stage_attempt_id": stage_attempt_id,
-            "attempt_lease_ref": _env_text("OPL_ATTEMPT_LEASE_REF"),
-            "attempt_lease_status": _env_text("OPL_ATTEMPT_LEASE_STATUS"),
-            "execution_authorization_decision_ref": _env_text("OPL_EXECUTION_AUTHORIZATION_DECISION_REF"),
-            "source_fingerprint": _env_text("OPL_SOURCE_FINGERPRINT"),
-            "idempotency_key": _env_text("OPL_IDEMPOTENCY_KEY"),
-            "stage_run_id": _env_text("OPL_STAGE_RUN_ID"),
-            "stage_manifest_ref": _env_text("OPL_STAGE_MANIFEST_REF"),
-            "current_pointer_ref": _env_text("OPL_CURRENT_POINTER_REF"),
-            "stage_packet_ref": stage_packet_ref,
-            "workflow_id": _env_text("OPL_WORKFLOW_ID"),
-            "task_id": _env_text("OPL_TASK_ID"),
-            "runtime_owner": "one-person-lab",
-        }
-    )
+    return {
+        "owner": "one-person-lab",
+        "executor_kind": "codex_cli",
+        "provider_attempt_ref": provider_attempt_ref,
+        "stage_attempt_id": stage_attempt_id,
+        "attempt_lease_ref": _env_text("OPL_ATTEMPT_LEASE_REF"),
+        "attempt_lease_status": _env_text("OPL_ATTEMPT_LEASE_STATUS"),
+        "execution_authorization_decision_ref": _env_text("OPL_EXECUTION_AUTHORIZATION_DECISION_REF"),
+        "source_fingerprint": _env_text("OPL_SOURCE_FINGERPRINT"),
+        "idempotency_key": _env_text("OPL_IDEMPOTENCY_KEY"),
+        "stage_run_id": _env_text("OPL_STAGE_RUN_ID"),
+        "stage_manifest_ref": _env_text("OPL_STAGE_MANIFEST_REF"),
+        "current_pointer_ref": _env_text("OPL_CURRENT_POINTER_REF"),
+        "stage_packet_ref": stage_packet_ref,
+        "workflow_id": _env_text("OPL_WORKFLOW_ID"),
+        "task_id": _env_text("OPL_TASK_ID"),
+        "runtime_owner": "one-person-lab",
+    }
 
 
 def _stage_packet_ref_matches_dispatch(*, stage_packet_ref: str, dispatch: Mapping[str, Any]) -> bool:
@@ -337,7 +357,7 @@ def _canonical_stage_packet_matches(
         return False
     if not _stage_packet_ref_matches_dispatch(stage_packet_ref=stage_packet_ref, dispatch=packet):
         return False
-    if _provider_hosted_stage_attempt_authorization(dispatch=packet) is None:
+    if _provider_hosted_stage_attempt_authority(dispatch=packet) is None:
         return False
     for env_key, packet_value in (
         ("OPL_STUDY_ID", packet.get("study_id")),

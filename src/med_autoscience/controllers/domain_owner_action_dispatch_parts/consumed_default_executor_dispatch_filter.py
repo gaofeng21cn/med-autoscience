@@ -8,6 +8,7 @@ from med_autoscience.controllers.study_transition_receipt_consumption import (
 from med_autoscience.profiles import WorkspaceProfile
 
 from . import current_writer_handoff
+from . import opl_execution_preflight
 
 
 def without_consumed_default_executor_dispatches(
@@ -33,6 +34,10 @@ def consumed_default_executor_dispatch(
     study_id: str,
     dispatch: dict[str, Any],
 ) -> bool:
+    if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
+        dispatch
+    ):
+        return False
     action_type = _text(dispatch.get("action_type"))
     if action_type is None:
         return False

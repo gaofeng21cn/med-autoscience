@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-19：provider-hosted exact StageRun packet 可作为 selector authority
+
+- 决策：当 OPL provider-hosted `domain_owner/default-executor-dispatch` 环境同时精确绑定 `OPL_STAGE_ATTEMPT_ID`、`OPL_STAGE_PACKET_REF`、`OPL_PROVIDER_ATTEMPT_REF`、study、action 与 work-unit identity，且这些字段匹配 immutable `default_executor_dispatch_request` 时，MAS `domain-owner-action-dispatch` selector 必须把该 exact stage packet 视为当前执行选择 authority。这个 authority 只允许恢复并选择同一个 immutable packet，不允许选择其它历史 dispatch，也不允许绕过 study/action/work-unit/stage-packet identity。
+- 决策：该 selector authority 不等价于 provider admission、running proof、attempt lifecycle authority、queue authority、OPL command/event/outbox/StageRun authority 或 paper progress receipt。全局 `trusted_opl_execution_authorization` 仍要求 provider attempt ref、active lease ref 和 execution authorization decision ref；缺这些字段时，MAS 只能把 exact packet 用于当前 provider-hosted owner callable selection，不能把它包装成新的 provider start、handoff ready、submission-ready 或 domain-ready。
+- 决策：已有 terminal closeout / default-executor receipt consumption 仍会过滤普通已消费 dispatch；但遇到上述 exact provider-hosted current execution authority 时，不得把该同一 packet 当作历史 closeout residue 提前移除，否则会复发 `no_selected_dispatch_for_authorized_stage_packet`。
+- 理由：DM003 暴露出 OPL 已授权 immutable `run_quality_repair_batch / medical_prose_write_repair` stage packet，但 MAS selector 先因缺旧式 lease/decision ref 判定 provider-hosted authority 不成立，再被 consumed closeout filter 当成历史 receipt 移除，导致 provider attempt terminal closeout 为 `no_selected_dispatch_for_authorized_stage_packet`。根因是 selector currentness 与 OPL execution/admission authority 混用，不是论文正文或 Yang artifact 可手写修复的问题。
+- 影响：这是 MAS selector / currentness 边界修复，不执行 live DHD apply、hydrate、tick、redrive、provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker 或 human gate。focused tests 和 live selector dry-run 只能证明 exact packet 现在可被选择；真实论文推进仍必须由后续 fresh owner receipt、stable typed blocker supersession、human gate、route-back evidence、strict running proof 或 canonical paper/gate/artifact semantic delta 证明。
+
 ## 2026-06-19：独立 reviewer 修订循环必须有三轮 stop-loss 与中文残留意见面
 
 - 决策：MAS 论文阶段 07 的 independent reviewer / revision loop 继续要求独立 reviewer context、独立 invocation、独立 receipt；但非硬阻塞 reviewer 意见不能无限阻断论文推进。自动 review-repair-recheck 最多三轮；若三轮后仍只剩非硬阻塞、可人工取舍的 reviewer 意见，read model 必须允许进入下一 stage，并生成中文 `residual_reviewer_issues` 人工审阅面供最终投稿包前由用户判断。
