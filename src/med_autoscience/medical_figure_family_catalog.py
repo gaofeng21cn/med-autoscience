@@ -5,6 +5,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.medical_figure_family_recipes import (
+    StarterRecipe,
+    parse_starter_recipes,
+    validate_starter_recipe_refs,
+)
+
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CATALOG_ROOT = _REPO_ROOT / "contracts" / "medical-figure-family-catalog"
@@ -78,9 +84,12 @@ class MedicalFigureFamilyCatalog:
     palette_tokens: tuple[PaletteToken, ...]
     qa_gates: tuple[QualityGate, ...]
     external_sources: tuple[ExternalSource, ...]
+    starter_recipe_policy: dict[str, Any]
+    starter_recipes: tuple[StarterRecipe, ...]
     categories: tuple[FigureFamilyCategory, ...]
     families_by_id: dict[str, FigureFamily]
     categories_by_id: dict[str, FigureFamilyCategory]
+    starter_recipes_by_id: dict[str, StarterRecipe]
     loose_terms_by_family_id: dict[str, tuple[str, ...]]
 
     @property
@@ -294,6 +303,7 @@ def _validate_family_refs(
     palette_token_ids: set[str],
     qa_gate_ids: set[str],
     external_source_ids: set[str],
+    starter_recipes_by_id: dict[str, StarterRecipe],
 ) -> dict[str, FigureFamily]:
     families_by_id: dict[str, FigureFamily] = {}
     for category in categories:
@@ -312,6 +322,17 @@ def _validate_family_refs(
             unknown_sources = set(family.external_refs) - external_source_ids
             if unknown_sources:
                 raise ValueError(f"{family.family_id} references unknown external sources {sorted(unknown_sources)!r}")
+            unknown_recipes = set(family.starter_recipe_refs) - set(starter_recipes_by_id)
+            if unknown_recipes:
+                raise ValueError(
+                    f"{family.family_id} references unknown starter recipes {sorted(unknown_recipes)!r}"
+                )
+            for recipe_id in family.starter_recipe_refs:
+                recipe = starter_recipes_by_id[recipe_id]
+                if recipe.family_id != family.family_id:
+                    raise ValueError(f"starter recipe `{recipe_id}` family_id must equal `{family.family_id}`")
+                if recipe.category_id != family.category_id:
+                    raise ValueError(f"starter recipe `{recipe_id}` category_id must equal `{family.category_id}`")
             families_by_id[family.family_id] = family
     return families_by_id
 
@@ -348,6 +369,41 @@ def load_medical_figure_family_catalog(
     palette_tokens = _parse_palette_tokens(_load_ref_payload(normalized_root, index, "palette_tokens_ref"))
     qa_gates = _parse_quality_gates(_load_ref_payload(normalized_root, index, "qa_gates_ref"))
     external_sources = _parse_external_sources(_load_ref_payload(normalized_root, index, "external_sources_ref"))
+    starter_policy_payload = _load_ref_payload(normalized_root, index, "starter_recipe_policy_ref")
+    starter_recipe_policy = dict(starter_policy_payload.get("starter_recipe_policy") or {})
+    if not starter_recipe_policy:
+        raise ValueError("starter_recipe_policy must be present")
+    starter_policy_id = _expect_str(starter_recipe_policy, "policy_id", context="starter_recipe_policy")
+    _expect_bool(
+        starter_recipe_policy,
+        "starter_recipe_is_floor_not_ceiling",
+        context="starter_recipe_policy",
+    )
+    _expect_str_tuple(starter_recipe_policy, "required_request_refs", context="starter_recipe_policy")
+    _expect_str_tuple(starter_recipe_policy, "default_ai_may_change", context="starter_recipe_policy")
+    _expect_str_tuple(starter_recipe_policy, "default_ai_must_preserve", context="starter_recipe_policy")
+    _expect_str_tuple(starter_recipe_policy, "required_output_refs", context="starter_recipe_policy")
+    _expect_str_tuple(starter_recipe_policy, "quality_gate_route", context="starter_recipe_policy")
+
+    starter_recipe_refs = _expect_str_tuple(index, "starter_recipe_refs", context="index")
+    starter_recipes = tuple(
+        recipe
+        for ref_index, ref in enumerate(starter_recipe_refs)
+        for recipe in parse_starter_recipes(
+            _resolve_catalog_ref(normalized_root, ref, context=f"index.starter_recipe_refs[{ref_index}]"),
+            read_json_object=_read_json_object,
+            expect_str=lambda payload, key: _expect_str(payload, key, context="starter_recipe"),
+            expect_str_tuple=lambda payload, key: _expect_str_tuple(payload, key, context="starter_recipe"),
+            expect_object_list=lambda payload, key: _expect_object_list(payload, key, context="starter_recipe"),
+        )
+    )
+    starter_recipes_by_id = validate_starter_recipe_refs(
+        starter_recipes,
+        style_profile_ids={item.profile_id for item in style_profiles},
+        palette_token_ids={item.token_id for item in palette_tokens},
+        qa_gate_ids={item.gate_id for item in qa_gates},
+        policy_id=starter_policy_id,
+    )
 
     category_refs = _expect_str_tuple(index, "category_refs", context="index")
     categories = tuple(
@@ -366,6 +422,7 @@ def load_medical_figure_family_catalog(
         palette_token_ids={item.token_id for item in palette_tokens},
         qa_gate_ids={item.gate_id for item in qa_gates},
         external_source_ids={item.source_id for item in external_sources},
+        starter_recipes_by_id=starter_recipes_by_id,
     )
     loose_terms_by_family_id = {
         family_id: tuple(term.casefold() for term in family.loose_match_terms)
@@ -384,8 +441,11 @@ def load_medical_figure_family_catalog(
         palette_tokens=palette_tokens,
         qa_gates=qa_gates,
         external_sources=external_sources,
+        starter_recipe_policy=starter_recipe_policy,
+        starter_recipes=starter_recipes,
         categories=categories,
         families_by_id=families_by_id,
         categories_by_id=categories_by_id,
+        starter_recipes_by_id=starter_recipes_by_id,
         loose_terms_by_family_id=loose_terms_by_family_id,
     )

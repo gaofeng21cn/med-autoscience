@@ -1,0 +1,47 @@
+{
+  "starter_recipe_policy": {
+    "policy_id": "medical_starter_recipe_policy.v1",
+    "starter_recipe_is_floor_not_ceiling": true,
+    "required_request_refs": [
+      "claim_ref",
+      "data_ref",
+      "paper_target",
+      "publication_style_profile_ref"
+    ],
+    "default_ai_may_change": [
+      "figure_family",
+      "variant",
+      "geoms",
+      "layout",
+      "panel_structure",
+      "annotation_strategy",
+      "palette",
+      "legend_placement",
+      "scale_transform",
+      "rendering_backend",
+      "multi_family_composition"
+    ],
+    "default_ai_must_preserve": [
+      "scientific_claim_semantics",
+      "data_role_meaning",
+      "statistical_estimand",
+      "cohort_endpoint_model_bindings",
+      "source_data_and_statistics_refs",
+      "target_journal_export_constraints",
+      "auditability"
+    ],
+    "required_output_refs": [
+      "figure_request_or_typed_blocker",
+      "rendered_artifact_ref_when_rendered",
+      "layout_sidecar_ref_when_rendered",
+      "visual_audit_receipt_or_residual_audit_item",
+      "paper_local_modification_trace"
+    ],
+    "quality_gate_route": [
+      "schema_validation",
+      "deterministic_qc",
+      "rendered_visual_audit",
+      "owner_or_reviewer_gate_when_claim_bearing"
+    ]
+  }
+}

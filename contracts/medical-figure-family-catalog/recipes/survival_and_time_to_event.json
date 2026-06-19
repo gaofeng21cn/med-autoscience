@@ -1,0 +1,157 @@
+{
+  "category_id": "survival_and_time_to_event",
+  "recipes": [
+    {
+      "recipe_id": "km_curve_risk_table",
+      "category_id": "survival_and_time_to_event",
+      "family_id": "kaplan_meier_with_risk_table",
+      "title": "Kaplan-Meier Curve with Risk Table starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show survival probability over time with number at risk and censoring information.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "time",
+        "survival",
+        "lower_ci",
+        "upper_ci",
+        "group",
+        "n_risk",
+        "censor"
+      ],
+      "recommended_template_seed_ids": [
+        "kaplan_meier_grouped"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "journal_export"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "cif_curve",
+      "category_id": "survival_and_time_to_event",
+      "family_id": "cumulative_incidence_competing_risk",
+      "title": "Cumulative Incidence with Competing Risks starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show event incidence over time when competing events matter.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "time",
+        "incidence",
+        "event_type",
+        "group",
+        "lower_ci",
+        "upper_ci"
+      ],
+      "recommended_template_seed_ids": [
+        "cumulative_incidence_grouped",
+        "time_to_event_stratified_cumulative_incidence_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "hazard_curve",
+      "category_id": "survival_and_time_to_event",
+      "family_id": "hazard_over_time",
+      "title": "Hazard over Time starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show time-varying hazard or hazard ratio patterns.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "time",
+        "hazard",
+        "lower_ci",
+        "upper_ci",
+        "group"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "landmark_survival_panel",
+      "category_id": "survival_and_time_to_event",
+      "family_id": "landmark_survival",
+      "title": "Landmark Survival Panel starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show survival or prediction performance from a clinically meaningful landmark time.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "landmark_time",
+        "time",
+        "survival",
+        "group",
+        "metric"
+      ],
+      "recommended_template_seed_ids": [
+        "time_to_event_landmark_performance_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "rmst_difference_panel",
+      "category_id": "survival_and_time_to_event",
+      "family_id": "rmst_difference",
+      "title": "Restricted Mean Survival Time Difference starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show absolute survival-time differences over clinically relevant horizons.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "effect_interval_or_table_figure",
+      "required_data_roles": [
+        "horizon",
+        "rmst",
+        "difference",
+        "lower_ci",
+        "upper_ci",
+        "group"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

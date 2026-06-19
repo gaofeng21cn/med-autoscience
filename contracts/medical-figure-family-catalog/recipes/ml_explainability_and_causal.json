@@ -1,0 +1,191 @@
+{
+  "category_id": "ml_explainability_and_causal",
+  "recipes": [
+    {
+      "recipe_id": "shap_summary_beeswarm",
+      "category_id": "ml_explainability_and_causal",
+      "family_id": "shap_summary",
+      "title": "SHAP or Feature Importance Summary starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show global model explanation, feature importance, and directionality.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "coordinate_scatter_or_map",
+      "required_data_roles": [
+        "feature",
+        "importance",
+        "shap_value",
+        "feature_value",
+        "model"
+      ],
+      "recommended_template_seed_ids": [
+        "shap_summary_beeswarm",
+        "shap_bar_importance",
+        "shap_signed_importance_panel"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "diverging_centered",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "shap_waterfall_or_force",
+      "category_id": "ml_explainability_and_causal",
+      "family_id": "shap_local_explanation",
+      "title": "Local Model Explanation starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show patient-level or sample-level explanation of model prediction.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "ordered_bar_or_waterfall_panel",
+      "required_data_roles": [
+        "feature",
+        "contribution",
+        "baseline",
+        "prediction",
+        "sample_id"
+      ],
+      "recommended_template_seed_ids": [
+        "shap_waterfall_local_explanation_panel",
+        "shap_force_like_summary_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "diverging_centered"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "pdp_ice_ale_panel",
+      "category_id": "ml_explainability_and_causal",
+      "family_id": "pdp_ice_ale",
+      "title": "Feature Response Curve starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show marginal or conditional model response to feature changes.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "feature_value",
+        "prediction",
+        "feature",
+        "subgroup",
+        "support_density"
+      ],
+      "recommended_template_seed_ids": [
+        "partial_dependence_ice_panel",
+        "partial_dependence_interaction_contour_panel"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "causal_dag",
+      "category_id": "ml_explainability_and_causal",
+      "family_id": "causal_dag",
+      "title": "Causal DAG starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show assumed causal structure, confounding, mediation, or adjustment set.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "schematic_or_graph_panel",
+      "required_data_roles": [
+        "node",
+        "edge",
+        "role",
+        "adjustment_set"
+      ],
+      "recommended_template_seed_ids": [
+        "submission_graphical_abstract"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "love_plot",
+      "category_id": "ml_explainability_and_causal",
+      "family_id": "propensity_balance_love_plot",
+      "title": "Propensity Balance Love Plot starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show covariate balance before and after matching, weighting, or adjustment.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "covariate",
+        "standardized_difference",
+        "adjustment_state",
+        "threshold"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "threshold_governance_panel",
+      "category_id": "ml_explainability_and_causal",
+      "family_id": "threshold_governance",
+      "title": "Decision Threshold Governance starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show threshold choice, utility tradeoffs, subgroup consequences, or operating points.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "threshold",
+        "metric",
+        "value",
+        "subgroup",
+        "policy_choice"
+      ],
+      "recommended_template_seed_ids": [
+        "time_to_event_threshold_governance_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

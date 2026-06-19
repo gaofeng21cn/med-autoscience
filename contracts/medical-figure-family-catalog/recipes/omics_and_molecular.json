@@ -1,0 +1,231 @@
+{
+  "category_id": "omics_and_molecular",
+  "recipes": [
+    {
+      "recipe_id": "volcano_with_label_policy",
+      "category_id": "omics_and_molecular",
+      "family_id": "volcano_or_ma_plot",
+      "title": "Volcano or MA Plot starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show differential signal magnitude and significance for genes, proteins, metabolites, or features.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "feature",
+        "effect_size",
+        "p_value",
+        "adjusted_p_value",
+        "label_flag"
+      ],
+      "recommended_template_seed_ids": [
+        "omics_volcano_panel"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "diverging_centered",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "complex_heatmap_annotated",
+      "category_id": "omics_and_molecular",
+      "family_id": "annotated_heatmap",
+      "title": "Annotated Heatmap starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show matrix patterns with sample, feature, group, or pathway annotations.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "annotated_matrix_or_dotplot",
+      "required_data_roles": [
+        "row_id",
+        "column_id",
+        "value",
+        "row_annotation",
+        "column_annotation"
+      ],
+      "recommended_template_seed_ids": [
+        "heatmap_group_comparison",
+        "clustered_heatmap",
+        "celltype_signature_heatmap"
+      ],
+      "style_tokens": [
+        "medpub_neutral",
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual",
+        "diverging_centered",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "embedding_scatter",
+      "category_id": "omics_and_molecular",
+      "family_id": "dimension_reduction_scatter",
+      "title": "Dimension Reduction Scatter starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show PCA, UMAP, t-SNE, PHATE, or diffusion-map embedding colored by group or continuous signal.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "coordinate_scatter_or_map",
+      "required_data_roles": [
+        "x",
+        "y",
+        "sample_id",
+        "group",
+        "continuous_value"
+      ],
+      "recommended_template_seed_ids": [
+        "pca_scatter_grouped",
+        "umap_scatter_grouped",
+        "tsne_scatter_grouped",
+        "phate_scatter_grouped"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "enrichment_dotplot",
+      "category_id": "omics_and_molecular",
+      "family_id": "enrichment_dotplot",
+      "title": "Pathway Enrichment Dotplot starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show pathway or gene-set enrichment magnitude, significance, and gene ratio.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "annotated_matrix_or_dotplot",
+      "required_data_roles": [
+        "term",
+        "gene_ratio",
+        "p_adjust",
+        "count",
+        "direction"
+      ],
+      "recommended_template_seed_ids": [
+        "pathway_enrichment_dotplot_panel"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual",
+        "diverging_centered"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "gsea_curve",
+      "category_id": "omics_and_molecular",
+      "family_id": "gsea_running_score",
+      "title": "GSEA Running Score starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show gene-set enrichment running score, hits, and ranked-list metric.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "rank",
+        "running_score",
+        "hit_flag",
+        "rank_metric",
+        "pathway"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "oncoplot_landscape",
+      "category_id": "omics_and_molecular",
+      "family_id": "oncoplot_landscape",
+      "title": "Genomic Alteration Landscape starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show mutation, CNV, fusion, or alteration landscape across samples and genes.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "sample",
+        "gene",
+        "alteration_type",
+        "clinical_annotation"
+      ],
+      "recommended_template_seed_ids": [
+        "oncoplot_mutation_landscape_panel",
+        "genomic_alteration_landscape_panel"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "cnv_recurrence_summary",
+      "category_id": "omics_and_molecular",
+      "family_id": "cnv_or_circos_summary",
+      "title": "CNV or Genome-wide Summary starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show genomic copy-number or chromosome-level alteration patterns.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "chromosome",
+        "position",
+        "segment",
+        "copy_number",
+        "sample_or_group"
+      ],
+      "recommended_template_seed_ids": [
+        "cnv_recurrence_summary_panel"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "diverging_centered",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "color_accessibility",
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

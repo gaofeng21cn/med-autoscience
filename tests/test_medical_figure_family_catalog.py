@@ -55,6 +55,31 @@ def test_ai_policy_keeps_templates_as_loose_quality_floor() -> None:
     } <= set(policy["ai_must_preserve"])
 
 
+def test_starter_recipe_policy_and_definitions_are_machine_loaded() -> None:
+    catalog = load_medical_figure_family_catalog()
+
+    policy = catalog.starter_recipe_policy
+    assert policy["starter_recipe_is_floor_not_ceiling"] is True
+    assert {"layout", "panel_structure", "palette", "rendering_backend"} <= set(policy["default_ai_may_change"])
+    assert {"claim_ref", "data_ref", "publication_style_profile_ref"} <= set(policy["required_request_refs"])
+    assert {"statistical_estimand", "source_data_and_statistics_refs", "auditability"} <= set(
+        policy["default_ai_must_preserve"]
+    )
+    assert len(catalog.starter_recipes) == 72
+    assert set(catalog.starter_recipes_by_id) == {
+        recipe_ref
+        for family in catalog.families_by_id.values()
+        for recipe_ref in family.starter_recipe_refs
+    }
+
+    roc_recipe = catalog.starter_recipes_by_id["roc_pr_curve"]
+    assert roc_recipe.family_id == "discrimination_curve"
+    assert roc_recipe.panel_grammar == "curve_panel_with_statistical_guides"
+    assert "threshold" in roc_recipe.required_data_roles
+    assert "roc_curve_binary" in roc_recipe.recommended_template_seed_ids
+    assert "layout_readability" in roc_recipe.qa_gate_ids
+
+
 def test_representative_medical_figure_families_are_present() -> None:
     catalog = load_medical_figure_family_catalog()
 
@@ -137,6 +162,30 @@ def test_catalog_rejects_unknown_family_references(tmp_path: Path) -> None:
         load_medical_figure_family_catalog(catalog_root)
 
 
+def test_catalog_rejects_missing_starter_recipe_definitions(tmp_path: Path) -> None:
+    catalog_root = tmp_path / "medical-figure-family-catalog"
+    shutil.copytree(DEFAULT_CATALOG_ROOT, catalog_root)
+    recipe_path = catalog_root / "recipes" / "diagnosis_and_prediction.json"
+    payload = json.loads(recipe_path.read_text(encoding="utf-8"))
+    payload["recipes"] = [item for item in payload["recipes"] if item["recipe_id"] != "roc_pr_curve"]
+    recipe_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unknown starter recipes"):
+        load_medical_figure_family_catalog(catalog_root)
+
+
+def test_catalog_rejects_recipe_reference_drift(tmp_path: Path) -> None:
+    catalog_root = tmp_path / "medical-figure-family-catalog"
+    shutil.copytree(DEFAULT_CATALOG_ROOT, catalog_root)
+    recipe_path = catalog_root / "recipes" / "diagnosis_and_prediction.json"
+    payload = json.loads(recipe_path.read_text(encoding="utf-8"))
+    payload["recipes"][0]["qa_gate_ids"].append("missing_gate")
+    recipe_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unknown QA gates"):
+        load_medical_figure_family_catalog(catalog_root)
+
+
 def test_catalog_files_stay_split_by_natural_boundaries() -> None:
     new_files = [
         CATALOG_ROOT / "index.json",
@@ -145,10 +194,12 @@ def test_catalog_files_stay_split_by_natural_boundaries() -> None:
         CATALOG_ROOT / "palette_tokens.json",
         CATALOG_ROOT / "qa_gates.json",
         CATALOG_ROOT / "external_sources.json",
+        CATALOG_ROOT / "starter_recipe_policy.json",
         REPO_ROOT / "src" / "med_autoscience" / "medical_figure_family_catalog.py",
         Path(__file__),
     ]
     new_files.extend(sorted((CATALOG_ROOT / "categories").glob("*.json")))
+    new_files.extend(sorted((CATALOG_ROOT / "recipes").glob("*.json")))
 
     oversized = {
         path.relative_to(REPO_ROOT).as_posix(): len(path.read_text(encoding="utf-8").splitlines())

@@ -1,0 +1,218 @@
+{
+  "category_id": "single_cell_and_spatial",
+  "recipes": [
+    {
+      "recipe_id": "single_cell_dimplot",
+      "category_id": "single_cell_and_spatial",
+      "family_id": "single_cell_embedding",
+      "title": "Single-cell Embedding starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show single-cell clusters, cell types, samples, or conditions in low-dimensional embedding.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "coordinate_scatter_or_map",
+      "required_data_roles": [
+        "cell_id",
+        "x",
+        "y",
+        "cell_type",
+        "sample",
+        "condition"
+      ],
+      "recommended_template_seed_ids": [
+        "single_cell_atlas_overview_panel"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "feature_expression_embedding",
+      "category_id": "single_cell_and_spatial",
+      "family_id": "feature_expression_map",
+      "title": "Feature Expression Map starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show marker, gene, module score, or continuous feature on an embedding or spatial map.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "coordinate_scatter_or_map",
+      "required_data_roles": [
+        "cell_id",
+        "x",
+        "y",
+        "feature_value",
+        "feature_name"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "marker_dotplot",
+      "category_id": "single_cell_and_spatial",
+      "family_id": "marker_dotplot",
+      "title": "Marker Dotplot starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show marker expression prevalence and magnitude across cell types or clusters.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "annotated_matrix_or_dotplot",
+      "required_data_roles": [
+        "cell_type",
+        "feature",
+        "mean_expression",
+        "percent_expressing",
+        "group"
+      ],
+      "recommended_template_seed_ids": [
+        "celltype_marker_dotplot_panel"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "cell_composition_bar_or_dot",
+      "category_id": "single_cell_and_spatial",
+      "family_id": "cell_composition",
+      "title": "Cell Composition starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show cell-type abundance or proportions across samples, groups, tissues, or regions.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "ordered_bar_or_waterfall_panel",
+      "required_data_roles": [
+        "sample",
+        "group",
+        "cell_type",
+        "count",
+        "proportion"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "trajectory_pseudotime_panel",
+      "category_id": "single_cell_and_spatial",
+      "family_id": "trajectory_pseudotime",
+      "title": "Trajectory and Pseudotime starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show inferred cellular trajectory, pseudotime, lineage branches, or progression states.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "time_or_trajectory_panel",
+      "required_data_roles": [
+        "cell_id",
+        "x",
+        "y",
+        "pseudotime",
+        "branch",
+        "feature"
+      ],
+      "recommended_template_seed_ids": [
+        "trajectory_progression_panel"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "spatial_feature_map",
+      "category_id": "single_cell_and_spatial",
+      "family_id": "spatial_feature_map",
+      "title": "Spatial Feature Map starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show spatial localization of expression, cell types, niches, or histology-linked signals.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "coordinate_scatter_or_map",
+      "required_data_roles": [
+        "x",
+        "y",
+        "feature_value",
+        "region",
+        "cell_type",
+        "image_ref"
+      ],
+      "recommended_template_seed_ids": [
+        "spatial_niche_map_panel"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "cell_interaction_network_or_heatmap",
+      "category_id": "single_cell_and_spatial",
+      "family_id": "cell_cell_interaction",
+      "title": "Cell-cell Interaction starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show inferred ligand-receptor, neighborhood, or interaction strengths between cell types.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "annotated_matrix_or_dotplot",
+      "required_data_roles": [
+        "source_cell_type",
+        "target_cell_type",
+        "interaction",
+        "strength",
+        "p_value"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

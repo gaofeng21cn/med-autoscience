@@ -1,0 +1,172 @@
+{
+  "category_id": "meta_analysis",
+  "recipes": [
+    {
+      "recipe_id": "meta_analysis_forest",
+      "category_id": "meta_analysis",
+      "family_id": "meta_forest",
+      "title": "Meta-analysis Forest starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show study-specific and pooled effect estimates with weights and intervals.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "effect_interval_or_table_figure",
+      "required_data_roles": [
+        "study",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "weight",
+        "subgroup"
+      ],
+      "recommended_template_seed_ids": [
+        "forest_effect_main"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "funnel_plot",
+      "category_id": "meta_analysis",
+      "family_id": "funnel_bias",
+      "title": "Funnel Plot and Bias Diagnostics starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show study-size or precision relationship to effect estimates for small-study effect assessment.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "study",
+        "estimate",
+        "standard_error",
+        "precision"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "leave_one_out_panel",
+      "category_id": "meta_analysis",
+      "family_id": "leave_one_out_influence",
+      "title": "Leave-one-out Influence starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show effect of removing each study or cohort on pooled estimate.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "omitted_study",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "influence_metric"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "baujat_plot",
+      "category_id": "meta_analysis",
+      "family_id": "baujat_heterogeneity",
+      "title": "Baujat Heterogeneity starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show study contribution to heterogeneity and pooled effect.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "study",
+        "heterogeneity_contribution",
+        "effect_influence"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "network_meta_graph",
+      "category_id": "meta_analysis",
+      "family_id": "network_meta_map",
+      "title": "Network Meta-analysis Map starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show treatment comparison network and evidence density.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "treatment",
+        "comparison",
+        "study_count",
+        "sample_size"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "evidence_grade_heatmap",
+      "category_id": "meta_analysis",
+      "family_id": "evidence_grade_map",
+      "title": "Evidence Grade Map starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show evidence certainty, risk of bias, and recommendation strength across outcomes.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "annotated_matrix_or_dotplot",
+      "required_data_roles": [
+        "outcome",
+        "domain",
+        "rating",
+        "certainty",
+        "reason"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "category_id": "trial_response_and_safety",
+  "recipes": [
+    {
+      "recipe_id": "swimmer_plot",
+      "category_id": "trial_response_and_safety",
+      "family_id": "swimmer_treatment_course",
+      "title": "Swimmer Treatment Course starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show individual patient treatment duration, response, progression, and follow-up events.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "time_or_trajectory_panel",
+      "required_data_roles": [
+        "patient_id",
+        "start",
+        "end",
+        "event",
+        "response",
+        "treatment"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status",
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "response_waterfall",
+      "category_id": "trial_response_and_safety",
+      "family_id": "waterfall_response",
+      "title": "Waterfall Response starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show best percentage change in lesion burden or biomarker response by patient.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "ordered_bar_or_waterfall_panel",
+      "required_data_roles": [
+        "patient_id",
+        "percent_change",
+        "response_class",
+        "subgroup"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "spider_plot",
+      "category_id": "trial_response_and_safety",
+      "family_id": "spider_response",
+      "title": "Spider Response starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show longitudinal tumor or biomarker change for individual patients.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "ordered_bar_or_waterfall_panel",
+      "required_data_roles": [
+        "patient_id",
+        "time",
+        "percent_change",
+        "response_class"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "ae_severity_bar_heatmap",
+      "category_id": "trial_response_and_safety",
+      "family_id": "adverse_event_profile",
+      "title": "Adverse Event Profile starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show adverse event frequency and severity by arm or subgroup.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "annotated_matrix_or_dotplot",
+      "required_data_roles": [
+        "event",
+        "grade",
+        "arm",
+        "count",
+        "proportion"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "dose_escalation_grid",
+      "category_id": "trial_response_and_safety",
+      "family_id": "dose_escalation_schema",
+      "title": "Dose Escalation Schema starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show dose levels, cohorts, DLTs, and escalation/de-escalation decisions.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "dose_level",
+        "cohort",
+        "patients",
+        "dlt",
+        "decision"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

@@ -32,5 +32,20 @@
       "scripts/run-pytest-clean.sh tests/test_medical_figure_family_catalog.py",
       "scripts/verify.sh"
     ]
-  }
+  },
+  "starter_recipe_policy_ref": "starter_recipe_policy.json",
+  "starter_recipe_refs": [
+    "recipes/diagnosis_and_prediction.json",
+    "recipes/effect_estimation.json",
+    "recipes/longitudinal_and_patient_trajectory.json",
+    "recipes/meta_analysis.json",
+    "recipes/ml_explainability_and_causal.json",
+    "recipes/omics_and_molecular.json",
+    "recipes/population_and_baseline.json",
+    "recipes/publication_shells.json",
+    "recipes/single_cell_and_spatial.json",
+    "recipes/study_design_and_flow.json",
+    "recipes/survival_and_time_to_event.json",
+    "recipes/trial_response_and_safety.json"
+  ]
 }

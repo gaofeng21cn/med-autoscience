@@ -1,0 +1,269 @@
+{
+  "category_id": "diagnosis_and_prediction",
+  "recipes": [
+    {
+      "recipe_id": "roc_pr_curve",
+      "category_id": "diagnosis_and_prediction",
+      "family_id": "discrimination_curve",
+      "title": "Discrimination Curve starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show model discrimination using ROC, PR, time-dependent ROC, AUC, or C-statistic curves.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "threshold",
+        "sensitivity",
+        "specificity",
+        "precision",
+        "recall",
+        "auc",
+        "model",
+        "time_horizon"
+      ],
+      "recommended_template_seed_ids": [
+        "roc_curve_binary",
+        "pr_curve_binary",
+        "time_dependent_roc_horizon",
+        "time_dependent_roc_comparison_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "time_dependent_roc_panel",
+      "category_id": "diagnosis_and_prediction",
+      "family_id": "discrimination_curve",
+      "title": "Discrimination Curve starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show model discrimination using ROC, PR, time-dependent ROC, AUC, or C-statistic curves.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "threshold",
+        "sensitivity",
+        "specificity",
+        "precision",
+        "recall",
+        "auc",
+        "model",
+        "time_horizon"
+      ],
+      "recommended_template_seed_ids": [
+        "roc_curve_binary",
+        "pr_curve_binary",
+        "time_dependent_roc_horizon",
+        "time_dependent_roc_comparison_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "calibration_curve_with_histogram",
+      "category_id": "diagnosis_and_prediction",
+      "family_id": "calibration_panel",
+      "title": "Calibration Panel starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show agreement between predicted and observed risk with uncertainty and calibration summaries.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "predicted_risk",
+        "observed_risk",
+        "lower_ci",
+        "upper_ci",
+        "horizon",
+        "model"
+      ],
+      "recommended_template_seed_ids": [
+        "calibration_curve_binary",
+        "time_to_event_multihorizon_calibration_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "decision_curve_clinical_impact",
+      "category_id": "diagnosis_and_prediction",
+      "family_id": "decision_curve_analysis",
+      "title": "Decision Curve Analysis starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show net benefit or clinical utility across threshold probabilities.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "threshold",
+        "net_benefit",
+        "strategy",
+        "model",
+        "event_count"
+      ],
+      "recommended_template_seed_ids": [
+        "decision_curve_binary",
+        "clinical_impact_curve_binary",
+        "binary_calibration_decision_curve_panel",
+        "time_to_event_decision_curve"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "confusion_matrix_heatmap",
+      "category_id": "diagnosis_and_prediction",
+      "family_id": "confusion_matrix",
+      "title": "Confusion Matrix starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show classification results by predicted and observed classes.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "annotated_matrix_or_dotplot",
+      "required_data_roles": [
+        "observed_class",
+        "predicted_class",
+        "count",
+        "proportion"
+      ],
+      "recommended_template_seed_ids": [
+        "confusion_matrix_heatmap_binary"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "risk_layering_bars",
+      "category_id": "diagnosis_and_prediction",
+      "family_id": "risk_stratification",
+      "title": "Risk Stratification starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show risk group separation, observed event rates, or monotonic risk layering.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "ordered_bar_or_waterfall_panel",
+      "required_data_roles": [
+        "risk_group",
+        "predicted_risk",
+        "observed_event_rate",
+        "count",
+        "group"
+      ],
+      "recommended_template_seed_ids": [
+        "risk_layering_monotonic_bars",
+        "time_to_event_risk_group_summary"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "multi_cohort_performance_panel",
+      "category_id": "diagnosis_and_prediction",
+      "family_id": "external_validation_performance",
+      "title": "External Validation Performance starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show model performance across cohorts, centers, countries, or temporal splits.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "counted_flow_diagram",
+      "required_data_roles": [
+        "cohort",
+        "metric",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "model"
+      ],
+      "recommended_template_seed_ids": [
+        "multicenter_generalizability_overview",
+        "performance_heatmap"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "nomogram_score_chart",
+      "category_id": "diagnosis_and_prediction",
+      "family_id": "nomogram",
+      "title": "Nomogram or Scoring Rule starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show clinical score points, total score, and risk translation.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "predictor",
+        "value",
+        "points",
+        "total_score",
+        "risk"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "journal_export"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

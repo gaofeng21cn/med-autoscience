@@ -1,0 +1,220 @@
+{
+  "category_id": "study_design_and_flow",
+  "recipes": [
+    {
+      "recipe_id": "flow_diagram_rectangular_counts",
+      "category_id": "study_design_and_flow",
+      "family_id": "consort_trial_flow",
+      "title": "CONSORT Trial Flow starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show randomized trial participant screening, allocation, follow-up, and analysis populations.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "counted_flow_diagram",
+      "required_data_roles": [
+        "assessed",
+        "excluded",
+        "randomized",
+        "allocated",
+        "follow_up",
+        "analysed",
+        "exclusion_reason"
+      ],
+      "recommended_template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "trial_arm_flow",
+      "category_id": "study_design_and_flow",
+      "family_id": "consort_trial_flow",
+      "title": "CONSORT Trial Flow starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show randomized trial participant screening, allocation, follow-up, and analysis populations.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "counted_flow_diagram",
+      "required_data_roles": [
+        "assessed",
+        "excluded",
+        "randomized",
+        "allocated",
+        "follow_up",
+        "analysed",
+        "exclusion_reason"
+      ],
+      "recommended_template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "cohort_flow_with_exclusion_branches",
+      "category_id": "study_design_and_flow",
+      "family_id": "strobe_cohort_flow",
+      "title": "Observational Cohort Flow starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show source population, eligibility filters, exclusions, final analytic cohorts, and endpoint availability.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "counted_flow_diagram",
+      "required_data_roles": [
+        "source_population",
+        "eligibility_filter",
+        "exclusion_reason",
+        "analytic_cohort",
+        "endpoint_inventory"
+      ],
+      "recommended_template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "prisma_2020_flow",
+      "category_id": "study_design_and_flow",
+      "family_id": "prisma_review_flow",
+      "title": "PRISMA Review Flow starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show systematic review identification, screening, eligibility, inclusion, automation exclusions, and reasons for exclusion.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "counted_flow_diagram",
+      "required_data_roles": [
+        "records_identified",
+        "duplicates_removed",
+        "screened",
+        "excluded",
+        "reports_assessed",
+        "studies_included"
+      ],
+      "recommended_template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "diagnostic_flow",
+      "category_id": "study_design_and_flow",
+      "family_id": "stard_diagnostic_flow",
+      "title": "Diagnostic Accuracy Flow starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show participant flow through index test, reference standard, exclusions, indeterminate results, and analysis set.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "counted_flow_diagram",
+      "required_data_roles": [
+        "eligible",
+        "index_test",
+        "reference_standard",
+        "indeterminate",
+        "analysis_set"
+      ],
+      "recommended_template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "waterfall_attrition_counts",
+      "category_id": "study_design_and_flow",
+      "family_id": "eligibility_waterfall",
+      "title": "Eligibility Waterfall starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show stepwise sample attrition from source population to final analytic set.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "ordered_bar_or_waterfall_panel",
+      "required_data_roles": [
+        "step",
+        "remaining_n",
+        "excluded_n",
+        "reason"
+      ],
+      "recommended_template_seed_ids": [
+        "cohort_flow_figure"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "timeline_gantt",
+      "category_id": "study_design_and_flow",
+      "family_id": "study_timeline",
+      "title": "Study Timeline starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show enrollment, exposure, follow-up, assessment windows, and analysis milestones.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "time_or_trajectory_panel",
+      "required_data_roles": [
+        "event",
+        "start",
+        "end",
+        "cohort",
+        "milestone"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

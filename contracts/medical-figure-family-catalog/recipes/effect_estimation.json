@@ -1,0 +1,154 @@
+{
+  "category_id": "effect_estimation",
+  "recipes": [
+    {
+      "recipe_id": "forest_dot_whisker",
+      "category_id": "effect_estimation",
+      "family_id": "effect_forest",
+      "title": "Effect Estimate Forest starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show point estimates and intervals for effects, odds ratios, hazard ratios, risk differences, or coefficients.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "effect_interval_or_table_figure",
+      "required_data_roles": [
+        "term",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "reference",
+        "model"
+      ],
+      "recommended_template_seed_ids": [
+        "forest_effect_main",
+        "multivariable_forest"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "journal_export"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "subgroup_forest_with_interaction",
+      "category_id": "effect_estimation",
+      "family_id": "subgroup_interaction_forest",
+      "title": "Subgroup and Interaction Forest starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show treatment or exposure effect heterogeneity across clinically meaningful subgroups.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "effect_interval_or_table_figure",
+      "required_data_roles": [
+        "subgroup",
+        "level",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "p_interaction"
+      ],
+      "recommended_template_seed_ids": [
+        "subgroup_forest"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "spline_with_rug_and_ci",
+      "category_id": "effect_estimation",
+      "family_id": "dose_response_spline",
+      "title": "Dose-response or Spline Curve starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show nonlinear association between continuous exposure and outcome.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "curve_panel_with_statistical_guides",
+      "required_data_roles": [
+        "exposure",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "reference_value"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "coefficient_path_line",
+      "category_id": "effect_estimation",
+      "family_id": "coefficient_path",
+      "title": "Coefficient Path starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show variable coefficient evolution across regularization strength or model sequence.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "lambda",
+        "term",
+        "coefficient",
+        "selected_flag"
+      ],
+      "recommended_template_seed_ids": [
+        "coefficient_path_panel"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "robustness_forest_panel",
+      "category_id": "effect_estimation",
+      "family_id": "sensitivity_analysis_panel",
+      "title": "Sensitivity Analysis Panel starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show robustness of estimates across alternative definitions, adjustments, exclusions, or assumptions.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "effect_interval_or_table_figure",
+      "required_data_roles": [
+        "analysis",
+        "estimate",
+        "lower_ci",
+        "upper_ci",
+        "assumption"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

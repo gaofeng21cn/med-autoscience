@@ -1,0 +1,177 @@
+{
+  "category_id": "population_and_baseline",
+  "recipes": [
+    {
+      "recipe_id": "table_shell_baseline",
+      "category_id": "population_and_baseline",
+      "family_id": "table_one_baseline",
+      "title": "Table 1 Baseline Characteristics starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Summarize baseline variables by cohort, group, or treatment arm with appropriate summaries.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "table_like_companion_panel",
+      "required_data_roles": [
+        "variable",
+        "group",
+        "summary",
+        "standardized_difference",
+        "missingness"
+      ],
+      "recommended_template_seed_ids": [
+        "table1_baseline_characteristics"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "box_violin_raincloud",
+      "category_id": "population_and_baseline",
+      "family_id": "distribution_comparison",
+      "title": "Distribution Comparison starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Compare continuous or ordinal variable distributions across groups.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "value",
+        "group",
+        "stratum",
+        "timepoint"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "paired_slope_plot",
+      "category_id": "population_and_baseline",
+      "family_id": "paired_change",
+      "title": "Paired or Within-subject Change starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show paired baseline-to-follow-up changes or matched observations.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "subject_id",
+        "timepoint",
+        "value",
+        "group"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "missingness_heatmap_or_upset",
+      "category_id": "population_and_baseline",
+      "family_id": "missingness_map",
+      "title": "Missingness Map starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show missing data patterns across variables, cohorts, or timepoints.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "annotated_matrix_or_dotplot",
+      "required_data_roles": [
+        "sample_id",
+        "variable",
+        "missing_flag",
+        "group"
+      ],
+      "recommended_template_seed_ids": [
+        "performance_heatmap"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "annotated_correlation_heatmap",
+      "category_id": "population_and_baseline",
+      "family_id": "correlation_matrix",
+      "title": "Correlation Matrix starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show relationships among variables, biomarkers, or model features.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "annotated_matrix_or_dotplot",
+      "required_data_roles": [
+        "row_variable",
+        "column_variable",
+        "correlation",
+        "p_value"
+      ],
+      "recommended_template_seed_ids": [
+        "heatmap_group_comparison"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "diverging_centered"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "composition_stacked_bar",
+      "category_id": "population_and_baseline",
+      "family_id": "composition_profile",
+      "title": "Composition Profile starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show categorical composition such as sex, race, cell type, event type, or response class across groups.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "ordered_bar_or_waterfall_panel",
+      "required_data_roles": [
+        "group",
+        "category",
+        "count",
+        "proportion"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "color_accessibility",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

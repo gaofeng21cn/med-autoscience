@@ -1,0 +1,147 @@
+{
+  "category_id": "longitudinal_and_patient_trajectory",
+  "recipes": [
+    {
+      "recipe_id": "spaghetti_plot",
+      "category_id": "longitudinal_and_patient_trajectory",
+      "family_id": "spaghetti_trajectory",
+      "title": "Longitudinal Spaghetti Trajectory starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show repeated measurement trajectories by patient, group, or subgroup.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "time_or_trajectory_panel",
+      "required_data_roles": [
+        "subject_id",
+        "time",
+        "value",
+        "group"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "event_timeline",
+      "category_id": "longitudinal_and_patient_trajectory",
+      "family_id": "event_timeline",
+      "title": "Event Timeline starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show clinical events, exposures, outcomes, or interventions over patient time.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "time_or_trajectory_panel",
+      "required_data_roles": [
+        "subject_id",
+        "time",
+        "event_type",
+        "duration",
+        "group"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "alluvial_transition",
+      "category_id": "longitudinal_and_patient_trajectory",
+      "family_id": "alluvial_transition",
+      "title": "Alluvial Transition starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show categorical state transitions across time, treatment lines, or care pathways.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "subject_id",
+        "timepoint",
+        "state",
+        "count",
+        "transition"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "recurrent_event_panel",
+      "category_id": "longitudinal_and_patient_trajectory",
+      "family_id": "recurrent_event_plot",
+      "title": "Recurrent Event Plot starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show repeated events over follow-up by subject or group.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "time_or_trajectory_panel",
+      "required_data_roles": [
+        "subject_id",
+        "event_time",
+        "event_type",
+        "group",
+        "cumulative_count"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "lab_marker_trajectory",
+      "category_id": "longitudinal_and_patient_trajectory",
+      "family_id": "lab_marker_trajectory",
+      "title": "Laboratory or Biomarker Trajectory starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show longitudinal biomarker, lab, or physiological marker changes.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "time_or_trajectory_panel",
+      "required_data_roles": [
+        "subject_id",
+        "time",
+        "marker",
+        "value",
+        "clinical_threshold",
+        "group"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}

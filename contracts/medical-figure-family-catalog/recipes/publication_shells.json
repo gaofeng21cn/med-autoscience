@@ -1,0 +1,149 @@
+{
+  "category_id": "publication_shells",
+  "recipes": [
+    {
+      "recipe_id": "patchwork_multipanel_layout",
+      "category_id": "publication_shells",
+      "family_id": "multipanel_storyboard",
+      "title": "Multipanel Storyboard starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Compose multiple evidence panels into a coherent manuscript figure narrative.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "panel_id",
+        "panel_role",
+        "family_id",
+        "caption_claim"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "nature_portfolio",
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "journal_export",
+        "ai_redesign_trace"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "graphical_abstract_shell",
+      "category_id": "publication_shells",
+      "family_id": "graphical_abstract",
+      "title": "Graphical Abstract starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Summarize study question, data, method, and main finding in a visual overview.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "schematic_or_graph_panel",
+      "required_data_roles": [
+        "study_question",
+        "data_source",
+        "method",
+        "finding",
+        "clinical_implication"
+      ],
+      "recommended_template_seed_ids": [
+        "submission_graphical_abstract"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability",
+        "ai_redesign_trace"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "mechanism_schematic",
+      "category_id": "publication_shells",
+      "family_id": "mechanism_schematic",
+      "title": "Mechanism Schematic starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show biological, clinical, or algorithmic mechanism supporting the manuscript narrative.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "schematic_or_graph_panel",
+      "required_data_roles": [
+        "node",
+        "edge",
+        "process",
+        "evidence_ref"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "source_data_companion_panel",
+      "category_id": "publication_shells",
+      "family_id": "source_data_companion",
+      "title": "Source Data Companion starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Show compact source-data, reproducibility, or evidence trace companion panel.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "table_like_companion_panel",
+      "required_data_roles": [
+        "source",
+        "assay",
+        "sample_count",
+        "availability",
+        "digest_ref"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "source_data_traceability",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "supplement_dense_patchwork",
+      "category_id": "publication_shells",
+      "family_id": "supplement_dense_panel",
+      "title": "Supplement Dense Panel starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for Pack many secondary checks into a readable supplement figure.",
+      "starter_kind": "contract_only_seed",
+      "panel_grammar": "paper_local_panel_grammar",
+      "required_data_roles": [
+        "panel_id",
+        "check_type",
+        "metric",
+        "value",
+        "group"
+      ],
+      "recommended_template_seed_ids": [],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "layout_readability",
+        "journal_export"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    }
+  ]
+}
