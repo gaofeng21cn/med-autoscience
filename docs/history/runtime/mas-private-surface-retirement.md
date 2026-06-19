@@ -54,6 +54,18 @@ Replacement: canonical carrier is `domain_progress_transition_requests`; executa
 
 Forbidden interpretation: `default_executor_dispatches` / `task_kind=domain_owner/default-executor-dispatch` are provenance or OPL StageRun ABI only. They cannot authorize provider admission, attempt lease, event, outbox, StageRun, running proof or next action from MAS.
 
+## default_executor_dispatch_residue_cleanup
+
+Disposition: `physically_retired`
+
+Retired command: `medautosci default-executor-dispatch-residue-cleanup`
+
+Retired code path: `src/med_autoscience/controllers/default_executor_dispatch_residue_cleanup.py`
+
+Replacement: no current executable replacement. The one-time DM002/DM003 mutable dispatch cleanup is preserved only as historical migration receipt refs in `contracts/standard_agent_completion_evidence_status.json#/historical_default_executor_dispatch_residue_cleanup_receipt`.
+
+Forbidden interpretation: the old cleanup command, parser entry, controller module or compat test must not be restored as a MAS-owned migration tool, backlog scanner, dispatch mutator, provider-admission unblocker, runtime readiness proof or paper-progress proof.
+
 ## domain_action_request_materializer_local_carrier_persistence_api
 
 Disposition: `physically_retired`

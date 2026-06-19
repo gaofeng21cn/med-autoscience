@@ -99,9 +99,6 @@ paper_clean_room_rebuild = _LazyModuleProxy(lambda: _load_controller("paper_clea
 study_workspace_status = _LazyModuleProxy(lambda: _load_controller("study_workspace_status"))
 workspace_target_state_cleanup = _LazyModuleProxy(lambda: _load_controller("workspace_target_state_cleanup"))
 study_config_migration = _LazyModuleProxy(lambda: _load_controller("study_config_migration"))
-default_executor_dispatch_residue_cleanup = _LazyModuleProxy(
-    lambda: _load_controller("default_executor_dispatch_residue_cleanup")
-)
 agent_lab_medical_manuscript_quality = _LazyModuleProxy(
     lambda: _load_controller("agent_lab_medical_manuscript_quality")
 )
@@ -611,15 +608,6 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "study-config-clean-migration":
         result = study_config_migration.run_study_config_clean_migration(
-            profile_path=Path(args.profile),
-            study_ids=tuple(args.studies or ()),
-            apply=bool(args.apply),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "default-executor-dispatch-residue-cleanup":
-        result = default_executor_dispatch_residue_cleanup.run_default_executor_dispatch_residue_cleanup(
             profile_path=Path(args.profile),
             study_ids=tuple(args.studies or ()),
             apply=bool(args.apply),

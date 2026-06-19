@@ -359,6 +359,15 @@
         "source_dispatch_claimed_provider_admission_pending_field": "source_dispatch_claimed_provider_admission_pending",
         "source_dispatch_claims_are_diagnostic_only": true
       },
+      "legacy_residue_cleanup_surface": {
+        "active_cli_command_retired": true,
+        "active_compat_test_retired": true,
+        "active_controller_module_retired": true,
+        "current_entry_allowed": false,
+        "historical_receipt_ref": "contracts/standard_agent_completion_evidence_status.json#/historical_default_executor_dispatch_residue_cleanup_receipt",
+        "retired_command": "default-executor-dispatch-residue-cleanup",
+        "retired_module": "med_autoscience.controllers.default_executor_dispatch_residue_cleanup"
+      },
       "legacy_stage_run_abi_provenance_boundary": {
         "carrier_kind": "opl_domain_progress_transition_request_carrier",
         "legacy_surface": "default_executor_dispatch_request",

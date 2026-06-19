@@ -165,6 +165,18 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "provider_attempt_or_lease_required": False,
         "transition_request_pending_only": True,
     }
+    assert default_dispatch["legacy_residue_cleanup_surface"] == {
+        "active_cli_command_retired": True,
+        "active_compat_test_retired": True,
+        "active_controller_module_retired": True,
+        "current_entry_allowed": False,
+        "historical_receipt_ref": (
+            "contracts/standard_agent_completion_evidence_status.json#/"
+            "historical_default_executor_dispatch_residue_cleanup_receipt"
+        ),
+        "retired_command": "default-executor-dispatch-residue-cleanup",
+        "retired_module": "med_autoscience.controllers.default_executor_dispatch_residue_cleanup",
+    }
     assert default_dispatch["legacy_stage_run_abi_provenance_boundary"] == {
         "carrier_kind": "opl_domain_progress_transition_request_carrier",
         "legacy_surface": "default_executor_dispatch_request",
@@ -1158,6 +1170,20 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         ],
     }
     assert lifecycle_retention["retirement_gate"]["active_caller_alone_retains_surface"] is False
+
+
+def test_default_executor_dispatch_residue_cleanup_surface_is_physically_retired() -> None:
+    assert not (
+        SRC_ROOT / "controllers" / "default_executor_dispatch_residue_cleanup.py"
+    ).exists()
+    assert not (REPO_ROOT / "tests" / "test_default_executor_dispatch_residue_cleanup.py").exists()
+
+    cli_text = (SRC_ROOT / "cli.py").read_text(encoding="utf-8")
+    parser_text = (SRC_ROOT / "cli_parts" / "parser.py").read_text(encoding="utf-8")
+    assert "_load_controller(\"default_executor_dispatch_residue_cleanup\")" not in cli_text
+    assert "default_executor_dispatch_residue_cleanup =" not in cli_text
+    assert "args.command == \"default-executor-dispatch-residue-cleanup\"" not in cli_text
+    assert "add_parser(\"default-executor-dispatch-residue-cleanup\"" not in parser_text
 
 
 def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -> None:

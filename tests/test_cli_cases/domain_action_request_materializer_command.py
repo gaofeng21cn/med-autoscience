@@ -143,6 +143,33 @@ def test_domain_owner_refresh_controller_decisions_command_is_retired(
     assert "domain-owner-action-refresh-controller-decisions" in captured.err
 
 
+def test_default_executor_dispatch_residue_cleanup_command_is_retired(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "default-executor-dispatch-residue-cleanup",
+                "--profile",
+                str(profile_path),
+                "--studies",
+                "DM002",
+                "DM003",
+                "--dry-run",
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert "invalid choice" in captured.err
+    assert "default-executor-dispatch-residue-cleanup" in captured.err
+
+
 def test_medical_paper_readiness_owner_blocker_command_materializes_controller_decision(
     tmp_path: Path,
     capsys,
