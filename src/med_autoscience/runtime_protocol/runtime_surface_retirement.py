@@ -761,6 +761,7 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
         if isinstance(legacy_stage_run_boundary, Mapping)
         else None
     )
+    active_caller_soak = surface.get("active_caller_soak_boundary")
     return {
         "surface_id": surface["surface_id"],
         "current_disposition": surface["current_disposition"],
@@ -814,6 +815,30 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             len(legacy_stage_run_scan.get("active_callers"))
             if isinstance(legacy_stage_run_scan, Mapping)
             and isinstance(legacy_stage_run_scan.get("active_callers"), list)
+            else None
+        ),
+        "domain_owner_action_dispatch_live_soak_status": (
+            active_caller_soak.get("status") if isinstance(active_caller_soak, Mapping) else None
+        ),
+        "domain_owner_action_dispatch_live_every_active_caller_soak_proven": (
+            active_caller_soak.get("live_every_active_caller_soak_proven")
+            if isinstance(active_caller_soak, Mapping)
+            else None
+        ),
+        "domain_owner_action_dispatch_no_active_caller_proven": (
+            active_caller_soak.get("no_active_caller_proven")
+            if isinstance(active_caller_soak, Mapping)
+            else None
+        ),
+        "domain_owner_action_dispatch_physical_delete_allowed": (
+            active_caller_soak.get("physical_delete_allowed")
+            if isinstance(active_caller_soak, Mapping)
+            else None
+        ),
+        "domain_owner_action_dispatch_active_caller_family_count": (
+            len(active_caller_soak.get("active_caller_families"))
+            if isinstance(active_caller_soak, Mapping)
+            and isinstance(active_caller_soak.get("active_caller_families"), list)
             else None
         ),
         "domain_authority_refs_no_active_replay_local_inspection_caller_proven": (

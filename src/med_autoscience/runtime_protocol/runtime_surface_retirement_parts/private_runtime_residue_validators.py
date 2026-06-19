@@ -67,6 +67,52 @@ def validate_domain_owner_action_dispatch(
         if coverage.get("live_tail") != "live_every_active_caller_soak_or_no_active_caller_proof":
             violations.append(_violation(surface_id, "owner_dispatch_live_tail_not_explicit"))
 
+    soak = surface.get("active_caller_soak_boundary")
+    if not isinstance(soak, Mapping):
+        violations.append(_violation(surface_id, "owner_dispatch_missing_active_caller_soak_boundary"))
+    else:
+        active_caller_families = soak.get("active_caller_families")
+        active_caller_family_list = (
+            active_caller_families if isinstance(active_caller_families, list) else []
+        )
+        required_families = {
+            "domain_owner_action_dispatch.execute_dispatch",
+            "domain_owner_action_dispatch.stage_native_owner_action",
+            "domain_owner_action_dispatch.provider_hosted_exact_stage_packet_selection",
+            "domain_owner_action_dispatch.ai_reviewer_provider_hosted_authorization",
+            "domain_owner_action_dispatch.gate_clearing_authorization",
+            "current_execution_envelope.running_provider_attempt_priority",
+            "study_progress.provider_admission_running_proof",
+        }
+        if soak.get("status") != "live_every_active_caller_soak_tail_open":
+            violations.append(_violation(surface_id, "owner_dispatch_soak_status_not_tail_open"))
+        if not required_families <= {str(item) for item in active_caller_family_list}:
+            violations.append(_violation(surface_id, "owner_dispatch_soak_active_caller_families_incomplete"))
+        if soak.get("live_every_active_caller_soak_proven") is not False:
+            violations.append(_violation(surface_id, "owner_dispatch_soak_must_not_claim_live_every_active_caller"))
+        if soak.get("no_active_caller_proven") is not False:
+            violations.append(_violation(surface_id, "owner_dispatch_soak_must_not_claim_no_active_caller"))
+        if soak.get("physical_delete_allowed") is not False:
+            violations.append(_violation(surface_id, "owner_dispatch_soak_must_not_allow_physical_delete"))
+        if soak.get("allowed_effect") != "execute_only_with_trusted_opl_authorization_or_bound_readback":
+            violations.append(_violation(surface_id, "owner_dispatch_soak_allowed_effect_not_opl_authorized"))
+        if (
+            soak.get("required_before_physical_delete")
+            != "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref"
+        ):
+            violations.append(_violation(surface_id, "owner_dispatch_soak_missing_physical_delete_ref"))
+        forbidden_claims = soak.get("forbidden_completion_claims")
+        required_false_claims = {
+            "repo_authorization_coverage_as_live_every_active_caller_soak",
+            "active_caller_migrated_as_no_active_caller_proof",
+            "focused_tests_green_as_physical_delete",
+            "provider_completion_as_dispatch_retirement",
+        }
+        if not isinstance(forbidden_claims, list) or not required_false_claims <= {
+            str(item) for item in forbidden_claims
+        }:
+            violations.append(_violation(surface_id, "owner_dispatch_soak_missing_false_completion_guards"))
+
     consumer = surface.get("consumer_input_boundary")
     if not isinstance(consumer, Mapping):
         violations.append(_violation(surface_id, "owner_dispatch_missing_consumer_input_boundary"))

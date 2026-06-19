@@ -493,6 +493,31 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         "live_readback_required_before_retirement": True,
         "live_tail": "live_every_active_caller_soak_or_no_active_caller_proof",
     }
+    assert owner_dispatch["active_caller_soak_boundary"] == {
+        "status": "live_every_active_caller_soak_tail_open",
+        "live_every_active_caller_soak_proven": False,
+        "no_active_caller_proven": False,
+        "physical_delete_allowed": False,
+        "required_before_physical_delete": (
+            "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref"
+        ),
+        "active_caller_families": [
+            "domain_owner_action_dispatch.execute_dispatch",
+            "domain_owner_action_dispatch.stage_native_owner_action",
+            "domain_owner_action_dispatch.provider_hosted_exact_stage_packet_selection",
+            "domain_owner_action_dispatch.ai_reviewer_provider_hosted_authorization",
+            "domain_owner_action_dispatch.gate_clearing_authorization",
+            "current_execution_envelope.running_provider_attempt_priority",
+            "study_progress.provider_admission_running_proof",
+        ],
+        "allowed_effect": "execute_only_with_trusted_opl_authorization_or_bound_readback",
+        "forbidden_completion_claims": [
+            "repo_authorization_coverage_as_live_every_active_caller_soak",
+            "active_caller_migrated_as_no_active_caller_proof",
+            "focused_tests_green_as_physical_delete",
+            "provider_completion_as_dispatch_retirement",
+        ],
+    }
     assert "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py" in owner_dispatch[
         "verified_by"
     ]

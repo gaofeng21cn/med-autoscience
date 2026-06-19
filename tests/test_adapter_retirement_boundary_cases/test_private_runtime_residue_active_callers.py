@@ -395,6 +395,21 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["domain_owner_action_dispatch"]["authority_status"] == (
         "opl_authorized_owner_callable_adapter_live_tail_open"
     )
+    assert open_surfaces["domain_owner_action_dispatch"][
+        "domain_owner_action_dispatch_live_soak_status"
+    ] == "live_every_active_caller_soak_tail_open"
+    assert open_surfaces["domain_owner_action_dispatch"][
+        "domain_owner_action_dispatch_live_every_active_caller_soak_proven"
+    ] is False
+    assert open_surfaces["domain_owner_action_dispatch"][
+        "domain_owner_action_dispatch_no_active_caller_proven"
+    ] is False
+    assert open_surfaces["domain_owner_action_dispatch"][
+        "domain_owner_action_dispatch_physical_delete_allowed"
+    ] is False
+    assert open_surfaces["domain_owner_action_dispatch"][
+        "domain_owner_action_dispatch_active_caller_family_count"
+    ] >= 7
     assert open_surfaces["default_executor_execution_latest_wire_projection"]["authority_status"] == (
         "legacy_latest_history_only_stage_run_abi_provenance_tail_open"
     )
@@ -760,6 +775,20 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     owner_dispatch["execution_authorization_boundary"][
         "running_provider_attempt_selector_boundary"
     ]["running_provider_attempt_without_opl_proof_can_select_route"] = True
+    owner_dispatch["active_caller_soak_boundary"][
+        "live_every_active_caller_soak_proven"
+    ] = True
+    owner_dispatch["active_caller_soak_boundary"]["no_active_caller_proven"] = True
+    owner_dispatch["active_caller_soak_boundary"]["physical_delete_allowed"] = True
+    owner_dispatch["active_caller_soak_boundary"][
+        "required_before_physical_delete"
+    ] = "repo_tests_green"
+    owner_dispatch["active_caller_soak_boundary"]["active_caller_families"] = [
+        "domain_owner_action_dispatch.execute_dispatch"
+    ]
+    owner_dispatch["active_caller_soak_boundary"]["forbidden_completion_claims"].remove(
+        "repo_authorization_coverage_as_live_every_active_caller_soak"
+    )
     owner_dispatch["consumer_input_boundary"][
         "inline_default_executor_dispatch_request_candidate_allowed"
     ] = True
@@ -798,6 +827,30 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "domain_owner_action_dispatch",
             "owner_dispatch_running_attempt_selector_allows_no_proof",
+        ),
+        (
+            "domain_owner_action_dispatch",
+            "owner_dispatch_soak_active_caller_families_incomplete",
+        ),
+        (
+            "domain_owner_action_dispatch",
+            "owner_dispatch_soak_must_not_claim_live_every_active_caller",
+        ),
+        (
+            "domain_owner_action_dispatch",
+            "owner_dispatch_soak_must_not_claim_no_active_caller",
+        ),
+        (
+            "domain_owner_action_dispatch",
+            "owner_dispatch_soak_must_not_allow_physical_delete",
+        ),
+        (
+            "domain_owner_action_dispatch",
+            "owner_dispatch_soak_missing_physical_delete_ref",
+        ),
+        (
+            "domain_owner_action_dispatch",
+            "owner_dispatch_soak_missing_false_completion_guards",
         ),
         (
             "domain_owner_action_dispatch",
