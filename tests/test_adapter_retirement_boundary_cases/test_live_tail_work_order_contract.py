@@ -83,6 +83,19 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
         schema["missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim"]
         is True
     )
+    assert schema["concrete_evidence_ref_fields"] == [
+        "evidence_refs",
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref",
+    ]
+    assert schema["missing_concrete_evidence_ref_status"] == "typed_blocker_required"
+    assert schema["accepted_family_without_concrete_ref_can_satisfy_work_order"] is False
+    assert (
+        schema["missing_concrete_evidence_ref_blocks_live_runtime_readiness_claim"]
+        is True
+    )
     assert {
         "same_identity_opl_live_readback",
         "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
@@ -120,6 +133,9 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
             "evidence_ref_families": [
                 "runtime_health_kernel_opl_observability_live_readback_ref"
             ],
+            "evidence_refs": [
+                "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
+            ],
         },
     )
     assert accepted["status"] == "satisfied_by_accepted_ref"
@@ -134,6 +150,9 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
             "evidence_source": "focused_tests",
             "evidence_ref_families": [
                 "runtime_health_kernel_opl_observability_live_readback_ref"
+            ],
+            "evidence_refs": [
+                "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
             ],
             "evidence_substitutes": [
                 "repo_no_authority_guard_as_runtime_health_tail_readback"
@@ -156,6 +175,9 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
             "evidence_ref_families": [
                 "runtime_health_kernel_opl_observability_live_readback_ref"
             ],
+            "evidence_refs": [
+                "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
+            ],
         },
     )
     assert false_ready_claim["status"] == "typed_blocker_required"
@@ -174,6 +196,9 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
             "evidence_ref_families": [
                 "runtime_health_kernel_opl_observability_live_readback_ref"
             ],
+            "evidence_refs": [
+                "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
+            ],
         },
     )
     assert non_forbidden_word_boundary["status"] == "satisfied_by_accepted_ref"
@@ -187,6 +212,48 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
     )
 
 
+def test_live_tail_evidence_record_requires_concrete_evidence_ref() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+    )
+    contract = _contract()
+    runtime_health = {
+        order["surface_id"]: order for order in contract["work_orders"]
+    }["runtime_health_kernel"]
+    ref_family = "runtime_health_kernel_opl_observability_live_readback_ref"
+
+    family_only = work_orders.evaluate_live_tail_evidence_record(
+        runtime_health,
+        {
+            "surface_id": "runtime_health_kernel",
+            "evidence_source": "runtime_readback:observability:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [ref_family],
+        },
+    )
+
+    assert family_only["status"] == "typed_blocker_required"
+    assert family_only["missing_concrete_evidence_ref_families"] == [ref_family]
+    assert family_only["concrete_evidence_ref_fields_present"] == []
+    assert family_only["live_runtime_readiness_claim_allowed"] is False
+
+    concrete_ref = work_orders.evaluate_live_tail_evidence_record(
+        runtime_health,
+        {
+            "surface_id": "runtime_health_kernel",
+            "evidence_source": "runtime_readback:observability:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [ref_family],
+            "evidence_refs": [
+                "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
+            ],
+        },
+    )
+
+    assert concrete_ref["status"] == "satisfied_by_accepted_ref"
+    assert concrete_ref["missing_concrete_evidence_ref_families"] == []
+    assert concrete_ref["concrete_evidence_ref_fields_present"] == ["evidence_refs"]
+    assert concrete_ref["live_runtime_readiness_claim_allowed"] is True
+
+
 def test_live_tail_evidence_intake_summary_does_not_claim_ready_until_all_tails_satisfied() -> None:
     work_orders = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
@@ -197,6 +264,9 @@ def test_live_tail_evidence_intake_summary_does_not_claim_ready_until_all_tails_
         "evidence_source": "runtime_readback:observability:2026-06-20T00:00:00Z",
         "evidence_ref_families": [
             "runtime_health_kernel_opl_observability_live_readback_ref"
+        ],
+        "evidence_refs": [
+            "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
         ],
     }
 
@@ -234,14 +304,7 @@ def test_live_tail_evidence_intake_summary_does_not_claim_ready_until_all_tails_
     assert "runtime_health_kernel" in false_claim["typed_blocker_surface_ids"]
     assert "runtime_health_kernel" not in false_claim["satisfied_surface_ids"]
 
-    all_records = [
-        {
-            "surface_id": order["surface_id"],
-            "evidence_source": f"owner_readback:{order['surface_id']}",
-            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
-        }
-        for order in contract["work_orders"]
-    ]
+    all_records = [_satisfying_tail_record(order) for order in contract["work_orders"]]
     complete = work_orders.live_tail_evidence_intake_summary(contract, all_records)
     assert complete["satisfied_count"] == 7
     assert complete["typed_blocker_count"] == 0
@@ -253,14 +316,7 @@ def test_live_tail_evidence_intake_fails_closed_on_unknown_or_duplicate_records(
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
     )
     contract = _contract()
-    all_records = [
-        {
-            "surface_id": order["surface_id"],
-            "evidence_source": f"owner_readback:{order['surface_id']}",
-            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
-        }
-        for order in contract["work_orders"]
-    ]
+    all_records = [_satisfying_tail_record(order) for order in contract["work_orders"]]
 
     polluted = work_orders.live_tail_evidence_intake_summary(
         contract,
@@ -297,3 +353,13 @@ def test_live_tail_evidence_intake_fails_closed_on_unknown_or_duplicate_records(
         "missing_live_tail_evidence_surface_id",
         "unknown_live_tail_evidence_surface_id",
     } == {violation["typed_blocker"] for violation in polluted["intake_violations"]}
+
+
+def _satisfying_tail_record(order: dict) -> dict:
+    ref_family = order["acceptable_evidence_ref_families"][0]
+    return {
+        "surface_id": order["surface_id"],
+        "evidence_source": f"owner_readback:{order['surface_id']}",
+        "evidence_ref_families": [ref_family],
+        "evidence_refs": [f"live-tail-evidence:{order['surface_id']}:{ref_family}"],
+    }

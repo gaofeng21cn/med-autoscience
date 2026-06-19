@@ -18,6 +18,13 @@ FORBIDDEN_CLAIM_TERMS = (
     "runtime ready",
     "production-ready",
 )
+CONCRETE_EVIDENCE_REF_FIELDS = (
+    "evidence_refs",
+    "owner_receipt_ref",
+    "typed_blocker_ref",
+    "human_gate_ref",
+    "route_back_ref",
+)
 
 
 def live_tail_work_orders_from_audit(audit: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -72,6 +79,23 @@ def validate_live_tail_work_order_contract(
     ):
         violations.append(
             _violation("<contract>", "missing_or_malformed_does_not_block_live_readiness")
+        )
+    if _text_list(schema.get("concrete_evidence_ref_fields")) != list(
+        CONCRETE_EVIDENCE_REF_FIELDS
+    ):
+        violations.append(_violation("<contract>", "concrete_evidence_ref_fields_mismatch"))
+    if schema.get("missing_concrete_evidence_ref_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "missing_concrete_evidence_ref_status"))
+    if schema.get("accepted_family_without_concrete_ref_can_satisfy_work_order") is not False:
+        violations.append(
+            _violation("<contract>", "accepted_family_without_concrete_ref_can_satisfy")
+        )
+    if (
+        schema.get("missing_concrete_evidence_ref_blocks_live_runtime_readiness_claim")
+        is not True
+    ):
+        violations.append(
+            _violation("<contract>", "missing_concrete_ref_does_not_block_live_readiness")
         )
 
     expected = {
@@ -128,6 +152,8 @@ def evaluate_live_tail_evidence_record(
     forbidden_matches = sorted(forbidden_substitutes & provided_substitutes)
     claim = _text(evidence_record.get("claim"))
     forbidden_claim_terms = _forbidden_claim_terms(work_order, evidence_record)
+    concrete_ref_fields = _concrete_evidence_ref_fields_present(evidence_record)
+    missing_concrete_evidence_ref_families = matched_refs if not concrete_ref_fields else []
     evidence_source = _text(evidence_record.get("evidence_source"))
     typed_blocker = _text(work_order.get("typed_blocker_when_missing")) or (
         f"{surface_id}_live_runtime_readiness_evidence_required"
@@ -136,6 +162,7 @@ def evaluate_live_tail_evidence_record(
         bool(matched_refs)
         and not forbidden_matches
         and not forbidden_claim_terms
+        and not missing_concrete_evidence_ref_families
         and evidence_source is not None
     )
     return {
@@ -144,6 +171,8 @@ def evaluate_live_tail_evidence_record(
         "matched_evidence_ref_families": matched_refs,
         "forbidden_evidence_substitutes_present": forbidden_matches,
         "forbidden_claim_terms_present": forbidden_claim_terms,
+        "missing_concrete_evidence_ref_families": missing_concrete_evidence_ref_families,
+        "concrete_evidence_ref_fields_present": concrete_ref_fields,
         "typed_blocker": None if satisfied else typed_blocker,
         "live_runtime_readiness_claim_allowed": satisfied,
         "repo_source_retirement_blocked": False,
@@ -287,6 +316,20 @@ def _text_set(value: Any) -> set[str]:
     return {text} if text is not None else set()
 
 
+def _concrete_evidence_ref_fields_present(evidence_record: Mapping[str, Any]) -> list[str]:
+    return sorted(
+        field
+        for field in CONCRETE_EVIDENCE_REF_FIELDS
+        if _has_concrete_evidence_ref(evidence_record.get(field))
+    )
+
+
+def _has_concrete_evidence_ref(value: Any) -> bool:
+    if isinstance(value, list):
+        return any(_text(item) is not None for item in value)
+    return _text(value) is not None
+
+
 def _records_by_surface_id(
     evidence_records: list[Mapping[str, Any]],
     orders: Mapping[str, Mapping[str, Any]],
@@ -363,6 +406,7 @@ def _violation(surface_id: str, reason: str) -> dict[str, str]:
 __all__ = [
     "SURFACE_KIND",
     "VERSION",
+    "CONCRETE_EVIDENCE_REF_FIELDS",
     "FORBIDDEN_CLAIM_TERMS",
     "evaluate_live_tail_evidence_record",
     "live_tail_evidence_intake_summary",

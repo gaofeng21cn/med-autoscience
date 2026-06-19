@@ -62,6 +62,8 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
         "missing_or_malformed_evidence_records_result_status": "typed_blocker_required",
         "authority_family_without_outcome_ref_can_satisfy_rollup": False,
         "missing_authority_outcome_ref_result_status": "typed_blocker_required",
+        "accepted_tail_family_without_concrete_ref_can_satisfy_rollup": False,
+        "missing_tail_concrete_evidence_ref_result_status": "typed_blocker_required",
     }
     assert rollup_contract["live_tail_surface_ids"] == sorted(
         order["surface_id"] for order in tail_contract["work_orders"]
@@ -100,6 +102,12 @@ def test_live_runtime_evidence_rollup_fails_closed_when_any_tail_or_gap_is_missi
                 "surface_id": one_tail["surface_id"],
                 "evidence_source": f"owner_readback:{one_tail['surface_id']}",
                 "evidence_ref_families": [one_tail["acceptable_evidence_ref_families"][0]],
+                "evidence_refs": [
+                    (
+                        "live-tail-evidence:"
+                        f"{one_tail['surface_id']}:{one_tail['acceptable_evidence_ref_families'][0]}"
+                    )
+                ],
             }
         ],
         live_runtime_gap_evidence_records=[
@@ -149,14 +157,7 @@ def test_live_runtime_evidence_rollup_requires_all_tail_and_gap_records() -> Non
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
-    tail_records = [
-        {
-            "surface_id": order["surface_id"],
-            "evidence_source": f"owner_readback:{order['surface_id']}",
-            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
-        }
-        for order in tail_contract["work_orders"]
-    ]
+    tail_records = [_satisfying_tail_record(order) for order in tail_contract["work_orders"]]
     gap_records = [_satisfying_gap_record(order) for order in gap_contract["work_orders"]]
 
     complete = rollup.live_runtime_evidence_rollup_summary(
@@ -179,14 +180,7 @@ def test_live_runtime_evidence_rollup_fails_closed_on_unknown_or_duplicate_recor
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
-    tail_records = [
-        {
-            "surface_id": order["surface_id"],
-            "evidence_source": f"owner_readback:{order['surface_id']}",
-            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
-        }
-        for order in tail_contract["work_orders"]
-    ]
+    tail_records = [_satisfying_tail_record(order) for order in tail_contract["work_orders"]]
     gap_records = [_satisfying_gap_record(order) for order in gap_contract["work_orders"]]
 
     polluted = rollup.live_runtime_evidence_rollup_summary(
@@ -245,14 +239,7 @@ def test_live_runtime_evidence_rollup_rejects_authority_family_without_outcome_r
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
-    tail_records = [
-        {
-            "surface_id": order["surface_id"],
-            "evidence_source": f"owner_readback:{order['surface_id']}",
-            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
-        }
-        for order in tail_contract["work_orders"]
-    ]
+    tail_records = [_satisfying_tail_record(order) for order in tail_contract["work_orders"]]
     authority_family = (
         "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
     )
@@ -292,6 +279,38 @@ def test_live_runtime_evidence_rollup_rejects_authority_family_without_outcome_r
     assert summary["live_runtime_readiness_claim_allowed"] is False
 
 
+def test_live_runtime_evidence_rollup_rejects_tail_family_without_concrete_ref() -> None:
+    rollup = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+    )
+    tail_contract = _live_tail_contract()
+    gap_contract = _live_gap_contract()
+    tail_records = [_satisfying_tail_record(order) for order in tail_contract["work_orders"]]
+    first_tail = tail_records[0]
+    first_tail.pop("evidence_refs")
+    gap_records = [_satisfying_gap_record(order) for order in gap_contract["work_orders"]]
+
+    summary = rollup.live_runtime_evidence_rollup_summary(
+        live_tail_contract=tail_contract,
+        live_runtime_gap_contract=gap_contract,
+        live_tail_evidence_records=tail_records,
+        live_runtime_gap_evidence_records=gap_records,
+    )
+    result = next(
+        item
+        for item in summary["live_tail"]["results"]
+        if item["surface_id"] == first_tail["surface_id"]
+    )
+
+    assert result["status"] == "typed_blocker_required"
+    assert result["missing_concrete_evidence_ref_families"] == first_tail[
+        "evidence_ref_families"
+    ]
+    assert result["concrete_evidence_ref_fields_present"] == []
+    assert summary["rollup_result_status"] == "typed_blocker_required"
+    assert summary["live_runtime_readiness_claim_allowed"] is False
+
+
 def test_live_runtime_evidence_rollup_cli_outputs_readback_json(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
@@ -323,14 +342,7 @@ def test_live_runtime_evidence_rollup_cli_consumes_evidence_files(tmp_path: Path
     cli = importlib.import_module("med_autoscience.cli")
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
-    tail_records = [
-        {
-            "surface_id": order["surface_id"],
-            "evidence_source": f"owner_readback:{order['surface_id']}",
-            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
-        }
-        for order in tail_contract["work_orders"]
-    ]
+    tail_records = [_satisfying_tail_record(order) for order in tail_contract["work_orders"]]
     gap_records = [_satisfying_gap_record(order) for order in gap_contract["work_orders"]]
     tail_file = tmp_path / "tail-evidence.json"
     gap_file = tmp_path / "gap-evidence.json"
@@ -367,14 +379,7 @@ def test_live_runtime_evidence_rollup_cli_rejects_polluted_evidence_files(
     cli = importlib.import_module("med_autoscience.cli")
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
-    tail_records = [
-        {
-            "surface_id": order["surface_id"],
-            "evidence_source": f"owner_readback:{order['surface_id']}",
-            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
-        }
-        for order in tail_contract["work_orders"]
-    ]
+    tail_records = [_satisfying_tail_record(order) for order in tail_contract["work_orders"]]
     gap_records = [_satisfying_gap_record(order) for order in gap_contract["work_orders"]]
     tail_file = tmp_path / "polluted-tail-evidence.json"
     gap_file = tmp_path / "polluted-gap-evidence.json"
@@ -445,3 +450,13 @@ def _satisfying_gap_record(order: dict) -> dict:
     if ref_family == "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref":
         record["typed_blocker_ref"] = f"typed-blocker:{order['gap_id']}"
     return record
+
+
+def _satisfying_tail_record(order: dict) -> dict:
+    ref_family = order["acceptable_evidence_ref_families"][0]
+    return {
+        "surface_id": order["surface_id"],
+        "evidence_source": f"owner_readback:{order['surface_id']}",
+        "evidence_ref_families": [ref_family],
+        "evidence_refs": [f"live-tail-evidence:{order['surface_id']}:{ref_family}"],
+    }
