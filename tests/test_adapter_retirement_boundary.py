@@ -2086,7 +2086,9 @@ def test_paper_recovery_export_consumes_only_canonical_transition_request_previe
     assert task["provider_admission_pending"] is False
     assert task["provider_admission_requires_opl_runtime_result"] is True
     assert task["opl_domain_progress_transition_request"]["target_runtime_owner"] == "one-person-lab"
-    assert task["payload"]["default_executor_dispatch_request"]["dispatch_status"] == (
+    default_dispatch_request = task["payload"]["default_executor_dispatch_request"]
+    assert default_dispatch_request["dispatch_status"] == "ready"
+    assert default_dispatch_request["source_transition_request_status"] == (
         "transition_request_pending"
     )
 
