@@ -46,7 +46,19 @@
       "missing_evidence_record_id_status": "typed_blocker_required",
       "malformed_evidence_record_status": "typed_blocker_required",
       "missing_or_malformed_evidence_record_can_satisfy_work_order": false,
-      "missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim": true
+      "missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim": true,
+      "authority_outcome_ref_required_for_families": [
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
+      ],
+      "authority_outcome_ref_fields": [
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref"
+      ],
+      "missing_authority_outcome_ref_status": "typed_blocker_required",
+      "authority_family_without_outcome_ref_can_satisfy_work_order": false,
+      "missing_authority_outcome_ref_blocks_live_runtime_readiness_claim": true
     }
   },
   "source_refs": [

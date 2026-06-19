@@ -18,6 +18,15 @@ FORBIDDEN_CLAIM_TERMS = (
     "runtime ready",
     "production-ready",
 )
+AUTHORITY_OUTCOME_REF_REQUIRED_FAMILIES = (
+    "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref",
+)
+AUTHORITY_OUTCOME_REF_FIELDS = (
+    "owner_receipt_ref",
+    "typed_blocker_ref",
+    "human_gate_ref",
+    "route_back_ref",
+)
 
 
 def live_runtime_gap_work_orders_from_completion_audit(
@@ -74,6 +83,29 @@ def validate_live_runtime_gap_work_order_contract(
         violations.append(
             _violation("<contract>", "missing_or_malformed_does_not_block_live_readiness")
         )
+    if (
+        _text_list(schema.get("authority_outcome_ref_required_for_families"))
+        != sorted(AUTHORITY_OUTCOME_REF_REQUIRED_FAMILIES)
+    ):
+        violations.append(_violation("<contract>", "authority_outcome_ref_families_mismatch"))
+    if (
+        _text_list(schema.get("authority_outcome_ref_fields"))
+        != sorted(AUTHORITY_OUTCOME_REF_FIELDS)
+    ):
+        violations.append(_violation("<contract>", "authority_outcome_ref_fields_mismatch"))
+    if schema.get("missing_authority_outcome_ref_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "missing_authority_outcome_ref_status"))
+    if schema.get("authority_family_without_outcome_ref_can_satisfy_work_order") is not False:
+        violations.append(
+            _violation("<contract>", "authority_family_without_outcome_ref_can_satisfy")
+        )
+    if (
+        schema.get("missing_authority_outcome_ref_blocks_live_runtime_readiness_claim")
+        is not True
+    ):
+        violations.append(
+            _violation("<contract>", "missing_authority_outcome_ref_does_not_block_live_readiness")
+        )
 
     expected = {
         order["gap_id"]: order
@@ -120,6 +152,10 @@ def evaluate_live_runtime_gap_evidence_record(
     matched_refs = sorted(accepted_refs & provided_refs)
     forbidden_matches = sorted(forbidden_substitutes & provided_substitutes)
     forbidden_claim_terms = _forbidden_claim_terms(work_order, evidence_record)
+    missing_authority_outcome_refs = _missing_authority_outcome_ref_families(
+        matched_refs,
+        evidence_record,
+    )
     evidence_source = _text(evidence_record.get("evidence_source"))
     typed_blocker = _text(work_order.get("typed_blocker_when_missing")) or (
         f"{gap_id}_live_runtime_evidence_required"
@@ -128,6 +164,7 @@ def evaluate_live_runtime_gap_evidence_record(
         bool(matched_refs)
         and not forbidden_matches
         and not forbidden_claim_terms
+        and not missing_authority_outcome_refs
         and evidence_source is not None
     )
     return {
@@ -136,6 +173,10 @@ def evaluate_live_runtime_gap_evidence_record(
         "matched_evidence_ref_families": matched_refs,
         "forbidden_evidence_substitutes_present": forbidden_matches,
         "forbidden_claim_terms_present": forbidden_claim_terms,
+        "missing_authority_outcome_ref_families": missing_authority_outcome_refs,
+        "authority_outcome_ref_fields_present": _authority_outcome_ref_fields_present(
+            evidence_record
+        ),
         "typed_blocker": None if satisfied else typed_blocker,
         "live_runtime_readiness_claim_allowed": satisfied,
         "repo_source_retirement_blocked": False,
@@ -332,6 +373,27 @@ def _text_list(value: Any) -> list[str]:
     return [text] if text is not None else []
 
 
+def _authority_outcome_ref_fields_present(evidence_record: Mapping[str, Any]) -> list[str]:
+    return sorted(
+        field
+        for field in AUTHORITY_OUTCOME_REF_FIELDS
+        if _text(evidence_record.get(field)) is not None
+    )
+
+
+def _missing_authority_outcome_ref_families(
+    matched_refs: list[str],
+    evidence_record: Mapping[str, Any],
+) -> list[str]:
+    required_families = set(AUTHORITY_OUTCOME_REF_REQUIRED_FAMILIES)
+    matched_required_families = sorted(required_families & set(matched_refs))
+    if not matched_required_families:
+        return []
+    if _authority_outcome_ref_fields_present(evidence_record):
+        return []
+    return matched_required_families
+
+
 def _records_by_gap_id(
     evidence_records: list[Any],
     orders: Mapping[str, Mapping[str, Any]],
@@ -414,6 +476,8 @@ __all__ = [
     "SURFACE_KIND",
     "VERSION",
     "FORBIDDEN_CLAIM_TERMS",
+    "AUTHORITY_OUTCOME_REF_FIELDS",
+    "AUTHORITY_OUTCOME_REF_REQUIRED_FAMILIES",
     "evaluate_live_runtime_gap_evidence_record",
     "live_runtime_gap_evidence_intake_summary",
     "live_runtime_gap_work_orders_from_completion_audit",

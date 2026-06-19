@@ -59,6 +59,21 @@ def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None
         schema["missing_or_malformed_evidence_record_blocks_live_runtime_readiness_claim"]
         is True
     )
+    assert schema["authority_outcome_ref_required_for_families"] == [
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
+    ]
+    assert schema["authority_outcome_ref_fields"] == [
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref",
+    ]
+    assert schema["missing_authority_outcome_ref_status"] == "typed_blocker_required"
+    assert schema["authority_family_without_outcome_ref_can_satisfy_work_order"] is False
+    assert (
+        schema["missing_authority_outcome_ref_blocks_live_runtime_readiness_claim"]
+        is True
+    )
 
     expected = {
         order["gap_id"]: order
@@ -158,6 +173,52 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
     assert non_forbidden_word_boundary["forbidden_claim_terms_present"] == []
 
 
+def test_live_runtime_gap_evidence_requires_concrete_authority_outcome_ref() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+    )
+    contract = _contract()
+    dhd_apply = next(
+        order
+        for order in contract["work_orders"]
+        if order["gap_id"] == "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated"
+    )
+    authority_family = (
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
+    )
+
+    family_only = work_orders.evaluate_live_runtime_gap_evidence_record(
+        dhd_apply,
+        {
+            "gap_id": dhd_apply["gap_id"],
+            "evidence_source": "mas_owner_gate:typed-blocker-recorded",
+            "evidence_ref_families": [authority_family],
+        },
+    )
+
+    assert family_only["status"] == "typed_blocker_required"
+    assert family_only["missing_authority_outcome_ref_families"] == [authority_family]
+    assert family_only["authority_outcome_ref_fields_present"] == []
+    assert family_only["live_runtime_readiness_claim_allowed"] is False
+
+    concrete_typed_blocker = work_orders.evaluate_live_runtime_gap_evidence_record(
+        dhd_apply,
+        {
+            "gap_id": dhd_apply["gap_id"],
+            "evidence_source": "mas_owner_gate:typed-blocker-recorded",
+            "evidence_ref_families": [authority_family],
+            "typed_blocker_ref": "typed-blocker:dm003:no-selected-dispatch",
+        },
+    )
+
+    assert concrete_typed_blocker["status"] == "satisfied_by_accepted_ref"
+    assert concrete_typed_blocker["missing_authority_outcome_ref_families"] == []
+    assert concrete_typed_blocker["authority_outcome_ref_fields_present"] == [
+        "typed_blocker_ref"
+    ]
+    assert concrete_typed_blocker["live_runtime_readiness_claim_allowed"] is True
+
+
 def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
     work_orders = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
@@ -206,14 +267,7 @@ def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
     assert first_order["gap_id"] in false_claim["typed_blocker_gap_ids"]
     assert first_order["gap_id"] not in false_claim["satisfied_gap_ids"]
 
-    complete_records = [
-        {
-            "gap_id": order["gap_id"],
-            "evidence_source": f"owner_readback:{order['gap_id']}",
-            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
-        }
-        for order in contract["work_orders"]
-    ]
+    complete_records = [_satisfying_gap_record(order) for order in contract["work_orders"]]
     complete = work_orders.live_runtime_gap_evidence_intake_summary(
         contract,
         complete_records,
@@ -228,14 +282,7 @@ def test_live_runtime_gap_intake_fails_closed_on_unknown_or_duplicate_records() 
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
     )
     contract = _contract()
-    complete_records = [
-        {
-            "gap_id": order["gap_id"],
-            "evidence_source": f"owner_readback:{order['gap_id']}",
-            "evidence_ref_families": [order["acceptable_evidence_ref_families"][0]],
-        }
-        for order in contract["work_orders"]
-    ]
+    complete_records = [_satisfying_gap_record(order) for order in contract["work_orders"]]
 
     polluted = work_orders.live_runtime_gap_evidence_intake_summary(
         contract,
@@ -276,3 +323,15 @@ def test_live_runtime_gap_intake_fails_closed_on_unknown_or_duplicate_records() 
         "missing_live_runtime_gap_evidence_gap_id",
         "unknown_live_runtime_gap_evidence_gap_id",
     } == {violation["typed_blocker"] for violation in polluted["intake_violations"]}
+
+
+def _satisfying_gap_record(order: dict) -> dict:
+    ref_family = order["acceptable_evidence_ref_families"][0]
+    record = {
+        "gap_id": order["gap_id"],
+        "evidence_source": f"owner_readback:{order['gap_id']}",
+        "evidence_ref_families": [ref_family],
+    }
+    if ref_family == "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref":
+        record["typed_blocker_ref"] = f"typed-blocker:{order['gap_id']}"
+    return record

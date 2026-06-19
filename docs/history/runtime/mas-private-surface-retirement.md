@@ -203,3 +203,13 @@ Replacement: OPL runtime storage maintenance authorization / retention shell plu
 Retained MAS role: maintenance callable adapter and body-free diagnostic projection.
 
 Forbidden interpretation: MAS storage maintenance checks, restore/retention helpers or apply results cannot become generic runtime storage shell, queue/attempt ownership, provider admission, runtime readiness, paper progress or publication readiness.
+
+## live_runtime_gap_authority_outcome_refs
+
+Disposition: `fail_closed_live_evidence_intake_guard`
+
+Replacement: `contracts/runtime/mas-live-runtime-gap-work-orders.json` requires concrete MAS authority outcome refs when an evidence record uses `MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref`.
+
+Retained MAS role: MAS still owns owner receipt, typed blocker, human gate and route-back refs; the live evidence rollup only consumes these refs as proof inputs.
+
+Forbidden interpretation: the generic authority ref family name alone cannot satisfy a live runtime gap, live DHD apply outcome, paper-line accepted outcome, provider running proof, runtime readiness or production readiness. A record without `owner_receipt_ref`, `typed_blocker_ref`, `human_gate_ref` or `route_back_ref` remains `typed_blocker_required`.

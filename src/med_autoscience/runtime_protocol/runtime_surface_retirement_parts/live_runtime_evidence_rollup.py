@@ -148,6 +148,23 @@ def validate_live_runtime_evidence_rollup_contract(
                 "boundary_mismatch:missing_or_malformed_evidence_records_result_status",
             )
         )
+    if boundary_mapping.get("authority_family_without_outcome_ref_can_satisfy_rollup") is not False:
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:authority_family_without_outcome_ref_can_satisfy_rollup",
+            )
+        )
+    if (
+        boundary_mapping.get("missing_authority_outcome_ref_result_status")
+        != "typed_blocker_required"
+    ):
+        violations.append(
+            _violation(
+                "<contract>",
+                "boundary_mismatch:missing_authority_outcome_ref_result_status",
+            )
+        )
     return violations
 
 
