@@ -491,7 +491,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance.py",
             "src/med_autoscience/cli.py",
-            "src/med_autoscience/cli_parts/parser.py",
             "src/med_autoscience/mcp_server.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/control_plane_gate.py",
@@ -522,6 +521,28 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
         commands=(
             "make test-control-plane",
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="cli_parser_surface",
+        exact_paths=(
+            "src/med_autoscience/cli_parts/parser.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_lifecycle_payload_retention.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="runtime_lifecycle_payload_retention_surface",
+        exact_paths=(
+            "src/med_autoscience/cli_parts/retention_commands.py",
+            "src/med_autoscience/controllers/runtime_lifecycle_payload_retention.py",
+            "tests/test_runtime_lifecycle_payload_retention.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_lifecycle_payload_retention.py -q",
         ),
     ),
     PreflightCategorySpec(

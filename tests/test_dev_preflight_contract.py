@@ -483,6 +483,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/owner_route_handoff.py",
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
+            "src/med_autoscience/mcp_server.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/control_plane_gate.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/managed_wakeup.py",
@@ -504,6 +505,38 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
         "control_plane_surface",
     )
     assert result.unclassified_changes == ()
+
+
+def test_classify_changed_files_matches_cli_parser_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(["src/med_autoscience/cli_parts/parser.py"])
+
+    assert result.matched_categories == ("cli_parser_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        "scripts/run-pytest-clean.sh tests/test_runtime_lifecycle_payload_retention.py -q",
+    ]
+
+
+def test_classify_changed_files_matches_runtime_lifecycle_payload_retention_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "src/med_autoscience/cli_parts/retention_commands.py",
+            "src/med_autoscience/controllers/runtime_lifecycle_payload_retention.py",
+            "tests/test_runtime_lifecycle_payload_retention.py",
+        ]
+    )
+
+    assert result.matched_categories == (
+        "runtime_lifecycle_payload_retention_surface",
+    )
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        "scripts/run-pytest-clean.sh tests/test_runtime_lifecycle_payload_retention.py -q",
+    ]
 
 
 def test_classify_changed_files_matches_paper_progress_transition_boundary_surface() -> None:
