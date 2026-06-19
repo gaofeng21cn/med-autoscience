@@ -114,6 +114,77 @@ def test_provider_admission_current_control_treats_mas_request_without_opl_readb
     assert decision["evidence"]["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
 
 
+def test_provider_admission_current_control_treats_current_transition_authority_as_non_advancing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    action_fingerprint = "sha256:current-transition-authority-no-opl-readback"
+    candidate = _provider_candidate(
+        profile,
+        study_id,
+        action_fingerprint=action_fingerprint,
+    )
+    candidate["current_transition_authority_confirmed"] = True
+    candidate["current_transition_authority_sources"] = ["opl_transition_log_readback"]
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-18T18:05:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "active",
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": action_fingerprint,
+                    "action_fingerprint": action_fingerprint,
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_pending_count"] == 1
+    [transition_request_candidate] = result["transition_request_candidates"]
+    assert transition_request_candidate["provider_admission_pending"] is False
+    assert (
+        transition_request_candidate["provider_admission_requires_opl_runtime_result"]
+        is True
+    )
+    action = result["action_queue"][0]
+    assert action["status"] == "transition_request_pending"
+    assert action["provider_admission_pending"] is False
+    assert action["provider_attempt_or_lease_required"] is False
+    assert action["provider_admission_requires_opl_runtime_result"] is True
+    assert result["stage_route_arbiter"]["pending_count"] == 0
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "opl_transition_readback_required": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "opl_transition_readback_required"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["evidence_status"] == "NonAdvancingApply"
+    assert decision["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
+
+
 def test_provider_admission_current_control_consumes_opl_readback_inside_provider_identity(
     tmp_path: Path,
 ) -> None:
