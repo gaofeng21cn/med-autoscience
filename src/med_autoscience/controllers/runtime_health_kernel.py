@@ -50,6 +50,29 @@ OPL_OBSERVABILITY_READBACK_BOUNDARY = {
     "retry_budget_is_diagnostic_hint": True,
     "attempt_state_is_diagnostic_hint": True,
 }
+OPL_RUNTIME_HEALTH_TAIL_PROOF_REQUIRED = (
+    "opl_observability_live_readback",
+    "opl_route_reconciler_live_readback",
+    "no_active_diagnostic_projection_caller_scan",
+    "no_forbidden_write_proof",
+    "replacement_parity_ref",
+    "tombstone_or_provenance_ref",
+)
+OPL_RUNTIME_HEALTH_LIVE_READBACK_REQUIREMENT = {
+    "surface_kind": "opl_runtime_health_observability_tail_readback_requirement",
+    "runtime_owner": "one-person-lab",
+    "runtime_kind": "OPL Observability/StageRun/RouteReconciler",
+    "required_before_physical_delete": list(OPL_RUNTIME_HEALTH_TAIL_PROOF_REQUIRED),
+    "required_active_caller_readbacks": [
+        "opl_observability_live_readback",
+        "opl_route_reconciler_live_readback",
+    ],
+    "mas_diagnostic_projection_can_satisfy_readback": False,
+    "mas_runtime_health_snapshot_can_satisfy_readback": False,
+    "focused_tests_can_satisfy_readback": False,
+    "repo_no_authority_guard_can_satisfy_readback": False,
+    "physical_delete_allowed_without_tail_proof": False,
+}
 ATTEMPT_LEDGER_AUTHORITY_BOUNDARY = {
     "surface_kind": "opl_attempt_ledger_authority_boundary",
     "runtime_owner": "one-person-lab",
@@ -187,6 +210,10 @@ def runtime_health_events_path(*, study_root: Path) -> Path:
 
 def runtime_health_snapshot_path(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / SNAPSHOT_RELATIVE_PATH
+
+
+def opl_runtime_health_tail_readback_requirement() -> dict[str, Any]:
+    return dict(OPL_RUNTIME_HEALTH_LIVE_READBACK_REQUIREMENT)
 
 
 def _text(value: object) -> str | None:

@@ -470,6 +470,23 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "mas_policy_projection_as_opl_recovery_obligation_store_readback"
         in actuator_tail["forbidden_completion_interpretations"]
     )
+    runtime_health_tail = evidence_tails["runtime_health_kernel"]
+    assert (
+        "runtime_health_kernel_opl_runtime_health_observability_tail_readback_ref"
+        in runtime_health_tail["required_ref_families"]
+    )
+    assert (
+        "runtime_health_kernel_opl_observability_live_readback_ref"
+        in runtime_health_tail["required_ref_families"]
+    )
+    assert (
+        "runtime_health_kernel_opl_route_reconciler_live_readback_ref"
+        in runtime_health_tail["required_ref_families"]
+    )
+    assert (
+        "mas_runtime_health_snapshot_as_opl_observability_readback"
+        in runtime_health_tail["forbidden_completion_interpretations"]
+    )
     arsenal_tail = evidence_tails["agent_tool_arsenal_scientific_capability_registry"]
     assert (
         "agent_tool_arsenal_scientific_capability_registry_live_owner_consumption_soak_ref"
@@ -497,6 +514,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert {
         "domain_authority_refs_index",
         "domain_health_diagnostic_obligation_actuator",
+        "runtime_health_kernel",
         "agent_tool_arsenal_scientific_capability_registry",
     } <= {item["surface_id"] for item in layers["physical_retirement"]["open_surface_tails"]}
     assert audit["repo_no_authority_guard_satisfied"] is True
@@ -596,6 +614,22 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     ] is False
     assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
         "obligation_actuator_required_active_caller_readback_count"
+    ] == 2
+    assert open_surfaces["runtime_health_kernel"]["authority_status"] == (
+        "read_only_projection_no_authority"
+    )
+    assert open_surfaces["runtime_health_kernel"]["runtime_health_tail_status"] == "tail_open"
+    assert open_surfaces["runtime_health_kernel"][
+        "runtime_health_tail_readback_proven"
+    ] is False
+    assert open_surfaces["runtime_health_kernel"][
+        "runtime_health_no_active_caller_proven"
+    ] is False
+    assert open_surfaces["runtime_health_kernel"][
+        "runtime_health_physical_delete_allowed"
+    ] is False
+    assert open_surfaces["runtime_health_kernel"][
+        "runtime_health_required_active_caller_readback_count"
     ] == 2
     assert open_surfaces["domain_owner_action_dispatch"]["authority_status"] == (
         "opl_authorized_owner_callable_adapter_live_tail_open"
@@ -1051,6 +1085,21 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     runtime_health["diagnostic_consumer_gate_boundary"][
         "canonical_runtime_action_hint_can_authorize_recovery"
     ] = True
+    runtime_health["opl_runtime_health_observability_tail_readback"][
+        "tail_readback_proven"
+    ] = True
+    runtime_health["opl_runtime_health_observability_tail_readback"][
+        "no_active_diagnostic_projection_caller_proven"
+    ] = True
+    runtime_health["opl_runtime_health_observability_tail_readback"][
+        "physical_delete_allowed"
+    ] = True
+    runtime_health["opl_runtime_health_observability_tail_readback"][
+        "mas_runtime_health_snapshot_can_satisfy_readback"
+    ] = True
+    runtime_health["opl_runtime_health_observability_tail_readback"][
+        "forbidden_completion_claims"
+    ] = []
     runtime_health["retirement_gate"][
         "runtime_health_live_opl_observability_readback_required"
     ] = False
@@ -1126,6 +1175,26 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "runtime_health_kernel",
             "runtime_health_missing_live_opl_observability_gate",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_tail_must_not_claim_readback_proven",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_tail_must_not_claim_no_active_caller",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_tail_must_not_allow_physical_delete",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_tail_forbidden:mas_runtime_health_snapshot_can_satisfy_readback",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_tail_missing_false_completion_guards",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in runtime_health_violations}
 

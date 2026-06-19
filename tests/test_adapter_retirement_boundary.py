@@ -558,6 +558,42 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "opl_runtime_readback_required_for_runtime_health_decision"
         ),
     }
+    runtime_health_tail = runtime_health["opl_runtime_health_observability_tail_readback"]
+    assert runtime_health_tail == {
+        "surface_kind": "opl_runtime_health_observability_tail_readback_requirement",
+        "status": "tail_open",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "OPL Observability/StageRun/RouteReconciler",
+        "required_active_caller_readbacks": [
+            "opl_observability_live_readback",
+            "opl_route_reconciler_live_readback",
+        ],
+        "required_before_physical_delete": (
+            "runtime_health_kernel_opl_runtime_health_observability_tail_readback_ref"
+        ),
+        "physical_delete_requires": [
+            "opl_observability_live_readback",
+            "opl_route_reconciler_live_readback",
+            "no_active_diagnostic_projection_caller_scan",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        ],
+        "tail_readback_proven": False,
+        "no_active_diagnostic_projection_caller_proven": False,
+        "physical_delete_allowed": False,
+        "mas_diagnostic_projection_can_satisfy_readback": False,
+        "mas_runtime_health_snapshot_can_satisfy_readback": False,
+        "repo_no_authority_guard_can_satisfy_readback": False,
+        "focused_tests_can_satisfy_readback": False,
+        "forbidden_completion_claims": [
+            "repo_no_authority_guard_as_runtime_health_tail_readback",
+            "mas_runtime_health_snapshot_as_opl_observability_readback",
+            "mas_diagnostic_projection_as_route_reconciler_readback",
+            "focused_tests_green_as_no_active_runtime_health_caller",
+            "runtime_health_decision_gate_as_opl_runtime_readback",
+        ],
+    }
     assert runtime_health["retirement_gate"][
         "runtime_health_live_opl_observability_readback_required"
     ] is True

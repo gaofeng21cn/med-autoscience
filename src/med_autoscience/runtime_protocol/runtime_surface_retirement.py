@@ -705,6 +705,65 @@ def _validate_runtime_health_kernel(
         ):
             violations.append(_violation(surface_id, "runtime_health_consumer_gate_wrong_missing_readback_outcome"))
 
+    tail = surface.get("opl_runtime_health_observability_tail_readback")
+    if not isinstance(tail, Mapping):
+        violations.append(_violation(surface_id, "runtime_health_missing_opl_observability_tail_readback"))
+    else:
+        if tail.get("surface_kind") != "opl_runtime_health_observability_tail_readback_requirement":
+            violations.append(_violation(surface_id, "runtime_health_tail_readback_kind_invalid"))
+        if tail.get("runtime_owner") != GENERIC_RUNTIME_OWNER:
+            violations.append(_violation(surface_id, "runtime_health_tail_owner_not_opl"))
+        if tail.get("runtime_kind") != "OPL Observability/StageRun/RouteReconciler":
+            violations.append(_violation(surface_id, "runtime_health_tail_runtime_kind_invalid"))
+        required_readbacks = {
+            "opl_observability_live_readback",
+            "opl_route_reconciler_live_readback",
+        }
+        active_readbacks = tail.get("required_active_caller_readbacks")
+        if not isinstance(active_readbacks, list) or not required_readbacks <= {
+            str(item) for item in active_readbacks
+        }:
+            violations.append(_violation(surface_id, "runtime_health_tail_active_readbacks_incomplete"))
+        required_tail_refs = {
+            "opl_observability_live_readback",
+            "opl_route_reconciler_live_readback",
+            "no_active_diagnostic_projection_caller_scan",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        }
+        physical_tail_requires = tail.get("physical_delete_requires")
+        if not isinstance(physical_tail_requires, list) or not required_tail_refs <= {
+            str(item) for item in physical_tail_requires
+        }:
+            violations.append(_violation(surface_id, "runtime_health_tail_physical_delete_refs_incomplete"))
+        if tail.get("tail_readback_proven") is not False:
+            violations.append(_violation(surface_id, "runtime_health_tail_must_not_claim_readback_proven"))
+        if tail.get("no_active_diagnostic_projection_caller_proven") is not False:
+            violations.append(_violation(surface_id, "runtime_health_tail_must_not_claim_no_active_caller"))
+        if tail.get("physical_delete_allowed") is not False:
+            violations.append(_violation(surface_id, "runtime_health_tail_must_not_allow_physical_delete"))
+        for key in (
+            "mas_diagnostic_projection_can_satisfy_readback",
+            "mas_runtime_health_snapshot_can_satisfy_readback",
+            "repo_no_authority_guard_can_satisfy_readback",
+            "focused_tests_can_satisfy_readback",
+        ):
+            if tail.get(key) is not False:
+                violations.append(_violation(surface_id, f"runtime_health_tail_forbidden:{key}"))
+        forbidden_claims = tail.get("forbidden_completion_claims")
+        required_false_claims = {
+            "repo_no_authority_guard_as_runtime_health_tail_readback",
+            "mas_runtime_health_snapshot_as_opl_observability_readback",
+            "mas_diagnostic_projection_as_route_reconciler_readback",
+            "focused_tests_green_as_no_active_runtime_health_caller",
+            "runtime_health_decision_gate_as_opl_runtime_readback",
+        }
+        if not isinstance(forbidden_claims, list) or not required_false_claims <= {
+            str(item) for item in forbidden_claims
+        }:
+            violations.append(_violation(surface_id, "runtime_health_tail_missing_false_completion_guards"))
+
     gate = surface.get("retirement_gate")
     if not isinstance(gate, Mapping):
         violations.append(_violation(surface_id, "runtime_health_missing_retirement_gate"))
@@ -857,6 +916,7 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     active_caller_soak = surface.get("active_caller_soak_boundary")
     live_owner_consumption_soak = surface.get("live_owner_consumption_soak_boundary")
     obligation_tail = surface.get("opl_obligation_actuator_tail_readback")
+    runtime_health_tail = surface.get("opl_runtime_health_observability_tail_readback")
     return {
         "surface_id": surface["surface_id"],
         "current_disposition": surface["current_disposition"],
@@ -983,6 +1043,32 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             len(obligation_tail.get("required_active_caller_readbacks"))
             if isinstance(obligation_tail, Mapping)
             and isinstance(obligation_tail.get("required_active_caller_readbacks"), list)
+            else None
+        ),
+        "runtime_health_tail_status": (
+            runtime_health_tail.get("status")
+            if isinstance(runtime_health_tail, Mapping)
+            else None
+        ),
+        "runtime_health_tail_readback_proven": (
+            runtime_health_tail.get("tail_readback_proven")
+            if isinstance(runtime_health_tail, Mapping)
+            else None
+        ),
+        "runtime_health_no_active_caller_proven": (
+            runtime_health_tail.get("no_active_diagnostic_projection_caller_proven")
+            if isinstance(runtime_health_tail, Mapping)
+            else None
+        ),
+        "runtime_health_physical_delete_allowed": (
+            runtime_health_tail.get("physical_delete_allowed")
+            if isinstance(runtime_health_tail, Mapping)
+            else None
+        ),
+        "runtime_health_required_active_caller_readback_count": (
+            len(runtime_health_tail.get("required_active_caller_readbacks"))
+            if isinstance(runtime_health_tail, Mapping)
+            and isinstance(runtime_health_tail.get("required_active_caller_readbacks"), list)
             else None
         ),
         **_audit_workbench_projection_fields(surface),
