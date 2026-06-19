@@ -12,6 +12,9 @@ from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.private_r
     validate_runtime_lifecycle_payload_retention as _validate_runtime_lifecycle_payload_retention,
     validate_runtime_storage_maintenance as _validate_runtime_storage_maintenance,
 )
+from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.completion_evidence_layers import (
+    completion_evidence_layers as _completion_evidence_layers,
+)
 
 
 SURFACE_KIND = "mas_runtime_surface_retirement_no_authority_audit"
@@ -86,6 +89,11 @@ def audit_runtime_surface_retirement_inventory(
     ]
     surface_audits = [_audit_surface(surface) for surface in open_surfaces]
     violations = validate_runtime_surface_retirement_inventory(inventory)
+    evidence_layers = _completion_evidence_layers(
+        open_surfaces,
+        surface_audits=surface_audits,
+        violations=violations,
+    )
     return {
         "surface_kind": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
@@ -99,6 +107,15 @@ def audit_runtime_surface_retirement_inventory(
         "open_surface_ids": [surface["surface_id"] for surface in open_surfaces],
         "open_surfaces": surface_audits,
         "no_active_authority_caller_proven": not violations,
+        "repo_no_authority_guard_satisfied": evidence_layers["repo_no_authority_guard"][
+            "status"
+        ]
+        == "satisfied_with_repo_evidence",
+        "live_soak_or_no_active_caller_proven": evidence_layers[
+            "live_soak_or_no_active_caller"
+        ]["proven"],
+        "physical_delete_allowed": evidence_layers["physical_retirement"]["allowed"],
+        "completion_evidence_layers": evidence_layers,
         "completion_claim_allowed": False,
         "physical_retirement_tail_open": True,
         "violations": violations,
@@ -107,6 +124,7 @@ def audit_runtime_surface_retirement_inventory(
             "active_caller_migrated_as_physical_retirement",
             "inventory_entry_updated_as_live_takeover",
             "focused_tests_green_as_runtime_ready",
+            "repo_no_authority_guard_satisfied_without_live_soak",
             "maintenance_apply_gate_as_paper_progress",
             "read_only_projection_as_execution_authority",
         ],

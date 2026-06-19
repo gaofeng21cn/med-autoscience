@@ -328,6 +328,25 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert audit["completion_claim_allowed"] is False
     assert audit["physical_retirement_tail_open"] is True
     assert audit["no_active_authority_caller_proven"] is True
+    layers = audit["completion_evidence_layers"]
+    assert layers["repo_no_authority_guard"]["status"] == "satisfied_with_repo_evidence"
+    assert layers["repo_no_authority_guard"]["violations_count"] == 0
+    assert layers["live_soak_or_no_active_caller"]["status"] == "evidence_required"
+    assert layers["live_soak_or_no_active_caller"]["proven"] is False
+    assert (
+        "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert layers["physical_retirement"]["status"] == "evidence_required"
+    assert layers["physical_retirement"]["allowed"] is False
+    assert "domain_owner_action_dispatch" in layers["physical_retirement"]["blocked_surface_ids"]
+    assert audit["repo_no_authority_guard_satisfied"] is True
+    assert audit["live_soak_or_no_active_caller_proven"] is False
+    assert audit["physical_delete_allowed"] is False
+    assert (
+        "repo_no_authority_guard_satisfied_without_live_soak"
+        in audit["forbidden_completion_interpretations"]
+    )
     assert audit["violations"] == []
     assert "active_caller_exists_as_retention_reason" in audit["forbidden_completion_interpretations"]
     assert "maintenance_apply_gate_as_paper_progress" in audit["forbidden_completion_interpretations"]
