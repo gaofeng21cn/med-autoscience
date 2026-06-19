@@ -77,6 +77,20 @@ def live_runtime_evidence_rollup_readback(
     }
 
 
+def evidence_records_from_bundle(
+    bundle: Mapping[str, Any],
+) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]]]:
+    if not isinstance(bundle, Mapping):
+        raise TypeError("live runtime evidence bundle must be a JSON object")
+    tail_records = bundle.get("live_tail_evidence_records", [])
+    gap_records = bundle.get("live_runtime_gap_evidence_records", [])
+    if not isinstance(tail_records, list):
+        raise TypeError("live_tail_evidence_records must be a JSON list")
+    if not isinstance(gap_records, list):
+        raise TypeError("live_runtime_gap_evidence_records must be a JSON list")
+    return tail_records, gap_records
+
+
 def validate_live_runtime_evidence_rollup_contract(
     contract: Mapping[str, Any],
     *,
@@ -201,6 +215,30 @@ def validate_live_runtime_evidence_rollup_contract(
         != expected_handoff_fields
     ):
         violations.append(_violation("<contract>", "owner_handoff_fields_mismatch"))
+    evidence_bundle = contract.get("evidence_bundle_intake")
+    evidence_bundle_mapping = evidence_bundle if isinstance(evidence_bundle, Mapping) else {}
+    if (
+        evidence_bundle_mapping.get("surface_kind")
+        != "mas_live_runtime_evidence_rollup_bundle_intake"
+    ):
+        violations.append(_violation("<contract>", "evidence_bundle_surface_kind_mismatch"))
+    if evidence_bundle_mapping.get("bundle_status") != "operator_input_required":
+        violations.append(_violation("<contract>", "evidence_bundle_status_mismatch"))
+    if evidence_bundle_mapping.get("bundle_is_evidence_record") is not False:
+        violations.append(_violation("<contract>", "evidence_bundle_is_record"))
+    if evidence_bundle_mapping.get("bundle_can_satisfy_work_orders_without_records") is not False:
+        violations.append(_violation("<contract>", "evidence_bundle_can_satisfy_without_records"))
+    if evidence_bundle_mapping.get("bundle_can_claim_live_runtime_ready") is not False:
+        violations.append(_violation("<contract>", "evidence_bundle_can_claim_ready"))
+    expected_bundle_fields = [
+        "live_runtime_gap_evidence_records",
+        "live_tail_evidence_records",
+    ]
+    if (
+        _text_list(evidence_bundle_mapping.get("required_bundle_fields"))
+        != expected_bundle_fields
+    ):
+        violations.append(_violation("<contract>", "evidence_bundle_fields_mismatch"))
 
     expected_tail_ids = _work_order_ids(live_tail_contract, "surface_id")
     expected_gap_ids = _work_order_ids(live_runtime_gap_contract, "gap_id")
@@ -437,6 +475,7 @@ def live_runtime_evidence_rollup_summary(
         typed_blocker_details=typed_blocker_details,
         evidence_record_templates=evidence_record_templates,
     )
+    evidence_bundle_template = _evidence_bundle_template(evidence_record_templates)
     return {
         "surface_kind": "mas_live_runtime_evidence_rollup_summary",
         "version": VERSION,
@@ -467,9 +506,34 @@ def live_runtime_evidence_rollup_summary(
         "typed_blocker_gap_ids": gap_summary.get("typed_blocker_gap_ids", []),
         "typed_blocker_details": typed_blocker_details,
         "evidence_record_templates": evidence_record_templates,
+        "evidence_bundle_template": evidence_bundle_template,
         "owner_handoffs": owner_handoffs,
         "satisfied_surface_ids": tail_summary.get("satisfied_surface_ids", []),
         "satisfied_gap_ids": gap_summary.get("satisfied_gap_ids", []),
+    }
+
+
+def _evidence_bundle_template(
+    evidence_record_templates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_live_runtime_evidence_rollup_bundle_template",
+        "template_status": "operator_input_required",
+        "live_tail_evidence_records": [
+            template["record_template"]
+            for template in evidence_record_templates
+            if template.get("work_order_kind") == "live_tail"
+        ],
+        "live_runtime_gap_evidence_records": [
+            template["record_template"]
+            for template in evidence_record_templates
+            if template.get("work_order_kind") == "live_runtime_gap"
+        ],
+        "bundle_is_evidence_record": False,
+        "bundle_can_satisfy_work_orders_without_filled_records": False,
+        "bundle_can_claim_live_runtime_ready": False,
+        "repo_source_retirement_blocked": False,
+        "live_runtime_readiness_claim_allowed": False,
     }
 
 

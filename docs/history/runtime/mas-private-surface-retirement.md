@@ -297,3 +297,13 @@ Replacement: `med_autoscience.cli doctor live-runtime-evidence-rollup --format j
 Retained MAS role: MAS remains responsible only for domain authority refs such as owner receipt, typed blocker, human gate and route-back. OPL owners remain responsible for OPL runtime, StageRun, outbox, observability, workbench, lifecycle and storage evidence.
 
 Forbidden interpretation: owner handoffs are not MAS action queues, dispatchers, outboxes, StageRun packets, provider admission, runtime readiness, paper progress or production readiness. They only group fail-closed evidence work by owner.
+
+## live_runtime_evidence_bundle_intake
+
+Disposition: `machine_readback_evidence_intake_container`
+
+Replacement: `med_autoscience.cli doctor live-runtime-evidence-rollup --evidence-bundle-file <bundle.json> --format json` accepts a single owner-provided bundle with `live_tail_evidence_records` and `live_runtime_gap_evidence_records`. This is equivalent to the split `--tail-evidence-file` / `--gap-evidence-file` intake and uses the same fail-closed validators.
+
+Retained MAS role: MAS still only validates owner receipt, typed blocker, human gate and route-back refs when those refs are supplied as concrete evidence. OPL owners remain responsible for producing live OPL runtime, StageRun, outbox, observability, workbench, lifecycle and storage readbacks.
+
+Forbidden interpretation: an evidence bundle is not an evidence record by itself, not an owner action queue, not a MAS dispatcher, not a provider admission, and not runtime readiness. A bundle containing unfilled templates or malformed evidence records keeps the rollup at `typed_blocker_required`.

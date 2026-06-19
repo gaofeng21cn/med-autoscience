@@ -73,6 +73,23 @@
       "live_runtime_readiness_claim_allowed"
     ]
   },
+  "evidence_bundle_intake": {
+    "surface_kind": "mas_live_runtime_evidence_rollup_bundle_intake",
+    "purpose": "Accept one canonical owner-provided evidence bundle containing live-tail and live-runtime-gap evidence records, while preserving the same fail-closed record validators used by split evidence files.",
+    "bundle_status": "operator_input_required",
+    "bundle_is_evidence_record": false,
+    "bundle_can_satisfy_work_orders_without_records": false,
+    "bundle_can_claim_live_runtime_ready": false,
+    "required_bundle_fields": [
+      "live_runtime_gap_evidence_records",
+      "live_tail_evidence_records"
+    ],
+    "split_file_compatibility": {
+      "tail_evidence_file_field": "live_tail_evidence_records",
+      "gap_evidence_file_field": "live_runtime_gap_evidence_records",
+      "bundle_and_split_files_can_be_combined": false
+    }
+  },
   "live_tail_surface_ids": [
     "agent_tool_arsenal_scientific_capability_registry",
     "domain_health_diagnostic_obligation_actuator",

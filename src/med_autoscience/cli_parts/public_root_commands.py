@@ -84,13 +84,25 @@ def handle_public_root_command(
 
     if args.command == "live-runtime-evidence-rollup":
         from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup import (
+            evidence_records_from_bundle,
             live_runtime_evidence_rollup_readback,
         )
 
+        tail_records = _load_optional_json_list(args.tail_evidence_file)
+        gap_records = _load_optional_json_list(args.gap_evidence_file)
+        if args.evidence_bundle_file is not None:
+            if tail_records is not None or gap_records is not None:
+                raise TypeError(
+                    "--evidence-bundle-file cannot be combined with "
+                    "--tail-evidence-file or --gap-evidence-file"
+                )
+            tail_records, gap_records = evidence_records_from_bundle(
+                _load_json_payload(args.evidence_bundle_file)
+            )
         result = live_runtime_evidence_rollup_readback(
             repo_root=Path(args.repo_root).resolve(),
-            live_tail_evidence_records=_load_optional_json_list(args.tail_evidence_file),
-            live_runtime_gap_evidence_records=_load_optional_json_list(args.gap_evidence_file),
+            live_tail_evidence_records=tail_records,
+            live_runtime_gap_evidence_records=gap_records,
         )
         _print_json(result)
         return 0
@@ -136,10 +148,14 @@ def _print_json(payload: object) -> None:
 def _load_optional_json_list(path_value: str | None) -> list[Any] | None:
     if path_value is None:
         return None
-    payload = json.loads(Path(path_value).read_text(encoding="utf-8"))
+    payload = _load_json_payload(path_value)
     if not isinstance(payload, list):
         raise TypeError(f"{path_value} must contain a JSON list")
     return payload
+
+
+def _load_json_payload(path_value: str) -> Any:
+    return json.loads(Path(path_value).read_text(encoding="utf-8"))
 
 
 __all__ = ["handle_public_root_command"]

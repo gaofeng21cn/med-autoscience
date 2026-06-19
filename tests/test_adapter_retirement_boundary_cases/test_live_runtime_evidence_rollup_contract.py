@@ -108,6 +108,27 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
             "live_runtime_readiness_claim_allowed",
         ],
     }
+    assert rollup_contract["evidence_bundle_intake"] == {
+        "surface_kind": "mas_live_runtime_evidence_rollup_bundle_intake",
+        "purpose": (
+            "Accept one canonical owner-provided evidence bundle containing live-tail "
+            "and live-runtime-gap evidence records, while preserving the same fail-closed "
+            "record validators used by split evidence files."
+        ),
+        "bundle_status": "operator_input_required",
+        "bundle_is_evidence_record": False,
+        "bundle_can_satisfy_work_orders_without_records": False,
+        "bundle_can_claim_live_runtime_ready": False,
+        "required_bundle_fields": [
+            "live_runtime_gap_evidence_records",
+            "live_tail_evidence_records",
+        ],
+        "split_file_compatibility": {
+            "tail_evidence_file_field": "live_tail_evidence_records",
+            "gap_evidence_file_field": "live_runtime_gap_evidence_records",
+            "bundle_and_split_files_can_be_combined": False,
+        },
+    }
     assert rollup_contract["completion_claim_boundary"] == {
         "repo_source_retirement_blocked_by_missing_live_evidence": False,
         "docs_tests_inventory_or_queue_empty_can_satisfy_rollup": False,
@@ -253,6 +274,33 @@ def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> N
     assert readback["summary"]["rollup_result_status"] == "typed_blocker_required"
     assert len(readback["summary"]["typed_blocker_details"]) == 12
     assert len(readback["summary"]["evidence_record_templates"]) == 12
+    assert readback["summary"]["evidence_bundle_template"]["surface_kind"] == (
+        "mas_live_runtime_evidence_rollup_bundle_template"
+    )
+    assert (
+        len(readback["summary"]["evidence_bundle_template"]["live_tail_evidence_records"])
+        == 7
+    )
+    assert (
+        len(
+            readback["summary"]["evidence_bundle_template"][
+                "live_runtime_gap_evidence_records"
+            ]
+        )
+        == 5
+    )
+    assert (
+        readback["summary"]["evidence_bundle_template"][
+            "bundle_can_satisfy_work_orders_without_filled_records"
+        ]
+        is False
+    )
+    assert (
+        readback["summary"]["evidence_bundle_template"][
+            "bundle_can_claim_live_runtime_ready"
+        ]
+        is False
+    )
     assert sum(
         handoff["work_order_count"]
         for handoff in readback["summary"]["owner_handoffs"]
@@ -392,6 +440,16 @@ def test_live_runtime_evidence_templates_are_not_evidence_records() -> None:
             if item["work_order_kind"] == "live_runtime_gap"
         ],
     )
+    template_bundle = summary["evidence_bundle_template"]
+    tail_bundle_records, gap_bundle_records = rollup.evidence_records_from_bundle(
+        template_bundle
+    )
+    bundle_templates_as_evidence = rollup.live_runtime_evidence_rollup_summary(
+        live_tail_contract=tail_contract,
+        live_runtime_gap_contract=gap_contract,
+        live_tail_evidence_records=tail_bundle_records,
+        live_runtime_gap_evidence_records=gap_bundle_records,
+    )
 
     assert summary["typed_blocker_count"] == 12
     assert summary["live_runtime_readiness_claim_allowed"] is False
@@ -406,6 +464,12 @@ def test_live_runtime_evidence_templates_are_not_evidence_records() -> None:
     assert record_templates_as_evidence["typed_blocker_count"] == 12
     assert record_templates_as_evidence["rollup_result_status"] == "typed_blocker_required"
     assert record_templates_as_evidence["live_runtime_readiness_claim_allowed"] is False
+    assert template_bundle["bundle_is_evidence_record"] is False
+    assert template_bundle["bundle_can_satisfy_work_orders_without_filled_records"] is False
+    assert bundle_templates_as_evidence["satisfied_count"] == 0
+    assert bundle_templates_as_evidence["typed_blocker_count"] == 12
+    assert bundle_templates_as_evidence["rollup_result_status"] == "typed_blocker_required"
+    assert bundle_templates_as_evidence["live_runtime_readiness_claim_allowed"] is False
 
 
 def test_live_runtime_evidence_rollup_fails_closed_on_unknown_or_duplicate_records() -> None:
@@ -686,6 +750,105 @@ def test_live_runtime_evidence_rollup_cli_consumes_evidence_files(tmp_path: Path
     assert output["summary"]["typed_blocker_count"] == 0
     assert output["summary"]["intake_violation_count"] == 0
     assert output["completion_claim_allowed"] is True
+
+
+def test_live_runtime_evidence_rollup_cli_consumes_evidence_bundle_file(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    tail_contract = _live_tail_contract()
+    gap_contract = _live_gap_contract()
+    tail_records = [_satisfying_tail_record(order) for order in tail_contract["work_orders"]]
+    gap_records = [_satisfying_gap_record(order) for order in gap_contract["work_orders"]]
+    bundle_file = tmp_path / "live-evidence-bundle.json"
+    bundle_file.write_text(
+        json.dumps(
+            {
+                "surface_kind": "mas_live_runtime_evidence_rollup_evidence_bundle",
+                "live_tail_evidence_records": tail_records,
+                "live_runtime_gap_evidence_records": gap_records,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "doctor",
+            "live-runtime-evidence-rollup",
+            "--repo-root",
+            str(REPO_ROOT),
+            "--evidence-bundle-file",
+            str(bundle_file),
+            "--format",
+            "json",
+        ]
+    )
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert output["summary"]["rollup_result_status"] == "all_work_orders_satisfied"
+    assert output["summary"]["satisfied_count"] == 12
+    assert output["summary"]["typed_blocker_count"] == 0
+    assert output["summary"]["intake_violation_count"] == 0
+    assert output["completion_claim_allowed"] is True
+
+
+def test_live_runtime_evidence_rollup_cli_rejects_bundle_combined_with_split_file(
+    tmp_path: Path,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    bundle_file = tmp_path / "live-evidence-bundle.json"
+    tail_file = tmp_path / "tail-evidence.json"
+    bundle_file.write_text(
+        json.dumps(
+            {
+                "live_tail_evidence_records": [],
+                "live_runtime_gap_evidence_records": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    tail_file.write_text("[]", encoding="utf-8")
+
+    try:
+        cli.main(
+            [
+                "doctor",
+                "live-runtime-evidence-rollup",
+                "--repo-root",
+                str(REPO_ROOT),
+                "--evidence-bundle-file",
+                str(bundle_file),
+                "--tail-evidence-file",
+                str(tail_file),
+                "--format",
+                "json",
+            ]
+        )
+    except TypeError as exc:
+        assert "--evidence-bundle-file cannot be combined" in str(exc)
+    else:
+        raise AssertionError("combined bundle and split evidence files should fail closed")
+
+
+def test_live_runtime_evidence_rollup_bundle_rejects_malformed_record_lists() -> None:
+    rollup = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+    )
+
+    try:
+        rollup.evidence_records_from_bundle(
+            {
+                "live_tail_evidence_records": {},
+                "live_runtime_gap_evidence_records": [],
+            }
+        )
+    except TypeError as exc:
+        assert "live_tail_evidence_records must be a JSON list" in str(exc)
+    else:
+        raise AssertionError("malformed tail evidence bundle should fail closed")
 
 
 def test_live_runtime_evidence_rollup_cli_rejects_polluted_evidence_files(
