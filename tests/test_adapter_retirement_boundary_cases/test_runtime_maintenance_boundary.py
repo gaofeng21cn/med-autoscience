@@ -75,6 +75,9 @@ def test_runtime_lifecycle_payload_retention_requires_bound_opl_authorization() 
 def test_runtime_lifecycle_payload_retention_rejects_mas_cleanup_authority_regression() -> None:
     inventory = _inventory()
     lifecycle = _surface(inventory, "runtime_lifecycle_payload_retention")
+    tail = lifecycle["opl_runtime_lifecycle_maintenance_tail_readback"]
+    tail["status"] = "satisfied_with_apply_gate"
+    tail["required_before_physical_delete"] = "runtime_lifecycle_apply_gate_ref"
     lifecycle["authority_boundary"]["can_authorize_generic_cleanup_policy"] = True
     lifecycle["authority_boundary"][
         "mutates_derived_runtime_lifecycle_payload_only_when_opl_authorized"
@@ -123,6 +126,14 @@ def test_runtime_lifecycle_payload_retention_rejects_mas_cleanup_authority_regre
         (
             "runtime_lifecycle_payload_retention",
             "lifecycle_retention_apply_gate_operations_incomplete",
+        ),
+        (
+            "runtime_lifecycle_payload_retention",
+            "lifecycle_retention_tail_status_not_open",
+        ),
+        (
+            "runtime_lifecycle_payload_retention",
+            "lifecycle_retention_tail_required_before_physical_delete_invalid",
         ),
         (
             "runtime_lifecycle_payload_retention",
@@ -200,6 +211,9 @@ def test_runtime_storage_maintenance_requires_opl_authorized_physical_apply() ->
 def test_runtime_storage_maintenance_rejects_mas_storage_authority_regression() -> None:
     inventory = _inventory()
     storage = _surface(inventory, "runtime_storage_maintenance")
+    tail = storage["opl_runtime_storage_maintenance_tail_readback"]
+    tail["status"] = "satisfied_with_restore_canary"
+    tail["required_before_physical_delete"] = "runtime_storage_restore_canary_ref"
     storage["authority_boundary"]["can_claim_paper_progress"] = True
     storage["authority_boundary"]["dry_run_projection_only"] = False
     storage["authority_boundary"]["mutates_runtime_storage_payload_only_when_opl_authorized"] = False
@@ -276,6 +290,14 @@ def test_runtime_storage_maintenance_rejects_mas_storage_authority_regression() 
         (
             "runtime_storage_maintenance",
             "storage_maintenance_allowed_without_auth_incomplete",
+        ),
+        (
+            "runtime_storage_maintenance",
+            "storage_maintenance_tail_status_not_open",
+        ),
+        (
+            "runtime_storage_maintenance",
+            "storage_maintenance_tail_required_before_physical_delete_invalid",
         ),
         (
             "runtime_storage_maintenance",

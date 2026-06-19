@@ -496,6 +496,10 @@ def validate_runtime_lifecycle_payload_retention(
         reason_prefix="lifecycle_retention_tail",
         expected_kind="opl_runtime_lifecycle_maintenance_tail_readback_requirement",
         expected_runtime_kind="OPL RuntimeLifecycleCleanup/RetentionPolicy",
+        expected_required_before_physical_delete=(
+            "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_maintenance_"
+            "tail_readback_ref"
+        ),
         required_readbacks={
             "opl_runtime_lifecycle_cleanup_policy_live_readback",
             "opl_runtime_retention_policy_live_readback",
@@ -655,6 +659,9 @@ def validate_runtime_storage_maintenance(
         reason_prefix="storage_maintenance_tail",
         expected_kind="opl_runtime_storage_maintenance_tail_readback_requirement",
         expected_runtime_kind="OPL RuntimeStorageMaintenance/RestoreRetentionShell/StateIndex",
+        expected_required_before_physical_delete=(
+            "runtime_storage_maintenance_opl_runtime_storage_maintenance_tail_readback_ref"
+        ),
         required_readbacks={
             "opl_runtime_storage_policy_live_readback",
             "opl_restore_retention_shell_live_readback",
@@ -758,6 +765,7 @@ def _validate_maintenance_tail_readback(
     reason_prefix: str,
     expected_kind: str,
     expected_runtime_kind: str,
+    expected_required_before_physical_delete: str,
     required_readbacks: set[str],
     required_physical_refs: set[str],
     no_active_key: str,
@@ -770,10 +778,16 @@ def _validate_maintenance_tail_readback(
         return
     if tail.get("surface_kind") != expected_kind:
         violations.append(_violation(surface_id, f"{reason_prefix}_kind_invalid"))
+    if tail.get("status") != "tail_open":
+        violations.append(_violation(surface_id, f"{reason_prefix}_status_not_open"))
     if tail.get("runtime_owner") != "one-person-lab":
         violations.append(_violation(surface_id, f"{reason_prefix}_owner_not_opl"))
     if tail.get("runtime_kind") != expected_runtime_kind:
         violations.append(_violation(surface_id, f"{reason_prefix}_runtime_kind_invalid"))
+    if tail.get("required_before_physical_delete") != expected_required_before_physical_delete:
+        violations.append(
+            _violation(surface_id, f"{reason_prefix}_required_before_physical_delete_invalid")
+        )
     active_readbacks = tail.get("required_active_caller_readbacks")
     if not isinstance(active_readbacks, list) or not required_readbacks <= {
         str(item) for item in active_readbacks
