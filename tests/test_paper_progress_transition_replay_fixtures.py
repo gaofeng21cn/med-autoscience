@@ -754,6 +754,26 @@ def test_paper_progress_replay_live_evidence_status_contract_keeps_live_acceptan
     assert "provider_admission_same_identity_live_readback_consumes_transition_request" in replay_trace_ids
     assert "provider_admission_cross_identity_readback_remains_request_pending" in replay_trace_ids
     assert "provider_admission_bare_transaction_fragments_rejected" in replay_trace_ids
+    separation_gate = contract["replay_to_live_separation_gate"]
+    assert separation_gate["status"] == "evidence_tail_open"
+    assert set(separation_gate["covered_replay_traces"]) == {
+        "provider_admission_same_identity_live_readback_consumes_transition_request",
+        "provider_admission_cross_identity_readback_remains_request_pending",
+        "provider_admission_bare_transaction_fragments_rejected",
+    }
+    assert {
+        "fresh DM002/DM003 OPL current-control or StageRun live readback",
+        "provider attempt running proof",
+        "live paper-line progress, paper closure, publication readiness, or production readiness",
+    } <= set(separation_gate["replay_does_not_prove"])
+    assert {
+        "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
+        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
+        "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
+    } <= set(separation_gate["live_tails_that_remain_open"])
+    assert set(separation_gate["live_tails_that_remain_open"]) <= set(
+        contract["remaining_evidence_tails"]
+    )
     assert contract["projection_metadata_completion_gate"]["required_fields"] == [
         "authority",
         "derived_from_event_id",

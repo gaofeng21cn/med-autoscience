@@ -19,6 +19,8 @@
     "mas_opl_live_readback_consumer_status": "transaction_consistency_fail_closed_single_sourced_contract_helper_consumer",
     "mas_opl_transition_abi_status": "single_sourced_contract_and_helper_landed_not_live_progress",
     "mas_opl_transition_transaction_consistency_status": "single_sourced_contract_helper_and_readback_validator_not_live_progress",
+    "same_identity_provider_admission_replay_status": "covered_by_focused_test_not_fresh_live_acceptance",
+    "replay_to_live_separation_status": "active_gate_evidence_tail_open",
     "live_paper_progress_claim_allowed": false,
     "dhd_dirty_lane_written": false,
     "yang_workspace_runtime_artifacts_written": false
@@ -145,6 +147,38 @@
       "scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnostic --profile <profile> --studies <study_id>... --request-opl-stage-attempts --dry-run"
     ]
   },
+  "replay_to_live_separation_gate": {
+    "status": "evidence_tail_open",
+    "purpose": "Prevent replay fixture coverage, including same-identity provider-admission readback fixtures, from being interpreted as fresh DM002/DM003 OPL live readback or paper-line progress.",
+    "covered_replay_traces": [
+      "provider_admission_same_identity_live_readback_consumes_transition_request",
+      "provider_admission_cross_identity_readback_remains_request_pending",
+      "provider_admission_bare_transaction_fragments_rejected"
+    ],
+    "covered_by": [
+      "tests/test_paper_recovery_provider_admission_state.py::test_same_identity_live_readback_promotes_request_to_provider_admission",
+      "tests/test_paper_recovery_provider_admission_state.py::test_cross_identity_live_readback_remains_request_pending",
+      "tests/test_paper_recovery_provider_admission_state.py::test_bare_event_outbox_or_stagerun_fragments_do_not_authorize_admission",
+      "tests/test_paper_progress_transition_runtime_completion_audit.py::test_transition_runtime_completion_audit_matches_replay_status_open_tails"
+    ],
+    "replay_proves": [
+      "same-identity OPL-shaped readback consumes transition_request_pending in provider-admission projection logic",
+      "cross-identity OPL-shaped readback remains transition_request_pending",
+      "bare event/outbox/StageRun fragments do not authorize provider admission"
+    ],
+    "replay_does_not_prove": [
+      "fresh DM002/DM003 OPL current-control or StageRun live readback",
+      "provider attempt running proof",
+      "MAS owner receipt, stable typed blocker, human gate, route-back evidence, or paper/gate/artifact semantic delta",
+      "live paper-line progress, paper closure, publication readiness, or production readiness"
+    ],
+    "live_tails_that_remain_open": [
+      "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
+      "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
+      "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
+      "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family"
+    ]
+  },
   "projection_metadata_completion_gate": {
     "required_fields": [
       "authority",
@@ -207,6 +241,9 @@
     "contract_landed",
     "refs_only_ledger",
     "active_run_id_present_without_same_identity_running_proof",
+    "provider_admission_same_identity_replay_as_fresh_opl_readback",
+    "provider_admission_same_identity_replay_as_live_paper_progress",
+    "same_identity_readback_consumes_transition_request_as_paper_line_outcome",
     "provider_completion_without_mas_owner_acceptance",
     "recorded_only_owner_receipt_without_consumption_or_next_delta",
     "stale_transition_request_after_terminal_owner_receipt_closeout_as_pending_progress",
@@ -216,7 +253,9 @@
     "OPL outbox and StageRun identity live readback for the same transition request",
     "fresh live StageRun identity and transaction consistency readback from OPL for current DM002/DM003 transition requests",
     "DHD apply exactly-one live outcome when explicitly delegated",
+    "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
     "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
+    "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
     "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family"
   ],
   "verification_refs": [

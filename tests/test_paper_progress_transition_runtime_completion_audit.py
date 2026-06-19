@@ -113,6 +113,11 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
             "fresh live OPL event/outbox/StageRun consumption readback reaches provider "
             "admission arbiter for current DM002/DM003 transition identity"
         ),
+        (
+            "fresh DM002/DM003 same-identity OPL provider-admission live readback "
+            "instead of replay fixture readback"
+        ),
+        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
         (
             "legacy default-executor carrier no-active StageRun ABI caller physical delete "
@@ -169,6 +174,20 @@ def test_transition_runtime_completion_audit_matches_replay_status_open_tails() 
 
     assert replay["current_status"]["live_paper_progress_claim_allowed"] is False
     assert set(replay["remaining_evidence_tails"]) <= set(audit["open_evidence_tails"])
+    separation_gate = replay["replay_to_live_separation_gate"]
+    assert separation_gate["status"] == "evidence_tail_open"
+    assert set(separation_gate["live_tails_that_remain_open"]) <= set(
+        replay["remaining_evidence_tails"]
+    )
+    assert {
+        "provider_admission_same_identity_live_readback_consumes_transition_request",
+        "provider_admission_cross_identity_readback_remains_request_pending",
+        "provider_admission_bare_transaction_fragments_rejected",
+    } <= {item["trace_id"] for item in replay["replay_coverage"]}
+    assert {
+        "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
+        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
+    } <= set(replay["remaining_evidence_tails"])
     assert {
         "queue_empty",
         "DHD_dry_run",
@@ -177,10 +196,18 @@ def test_transition_runtime_completion_audit_matches_replay_status_open_tails() 
         "docs_updated",
         "contract_landed",
         "command_event_log_readback_extraction",
+        "provider_admission_same_identity_replay_as_fresh_opl_readback",
+        "provider_admission_same_identity_replay_as_live_paper_progress",
+        "same_identity_readback_consumes_transition_request_as_paper_line_outcome",
     } <= set(replay["forbidden_completion_interpretations"])
     assert set(replay["forbidden_completion_interpretations"]) & set(
         audit["rejected_completion_claims"]
     )
+    assert {
+        "provider_admission_same_identity_replay_as_fresh_opl_readback",
+        "provider_admission_same_identity_replay_as_live_paper_progress",
+        "same_identity_readback_consumes_transition_request_as_paper_line_outcome",
+    } <= set(audit["rejected_completion_claims"])
 
 
 def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails() -> None:
@@ -427,9 +454,22 @@ def test_transition_runtime_completion_audit_records_provider_admission_repo_con
             "fresh live OPL event/outbox/StageRun consumption readback reaches provider "
             "admission arbiter for current DM002/DM003 transition identity"
         ),
+        (
+            "fresh DM002/DM003 same-identity OPL provider-admission live readback "
+            "instead of replay fixture readback"
+        ),
+        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
         "DHD apply exactly-one live outcome when explicitly delegated",
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
     } <= set(lane["missing_evidence_tails"])
+    assert "contracts/paper_progress_replay_live_evidence_status.json#/replay_to_live_separation_gate" in (
+        lane["observed_refs"]
+    )
+    assert {
+        "provider_admission_same_identity_replay_as_fresh_opl_readback",
+        "provider_admission_same_identity_replay_as_live_paper_progress",
+        "same_identity_readback_consumes_transition_request_as_paper_line_outcome",
+    } <= set(lane["false_completion_boundary"])
     provider_gate = required["provider_admission_event_consumption"]
     assert provider_gate["status"] == "open"
     assert "live DM002/DM003" in provider_gate["repo_side_evidence"]
