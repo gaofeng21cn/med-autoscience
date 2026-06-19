@@ -212,40 +212,12 @@ def _surface_live_or_no_active_proven(
         ),
         ("live_owner_consumption_soak_boundary", "no_active_caller_proven"),
         ("opl_default_executor_carrier_tail_readback", "tail_readback_proven"),
-        (
-            "opl_default_executor_carrier_tail_readback",
-            "no_active_default_executor_carrier_caller_proven",
-        ),
         ("opl_obligation_actuator_tail_readback", "tail_readback_proven"),
-        (
-            "opl_obligation_actuator_tail_readback",
-            "no_active_mas_obligation_actuator_caller_proven",
-        ),
         ("opl_runtime_health_observability_tail_readback", "tail_readback_proven"),
-        (
-            "opl_runtime_health_observability_tail_readback",
-            "no_active_diagnostic_projection_caller_proven",
-        ),
         ("opl_materializer_projection_tail_readback", "tail_readback_proven"),
-        (
-            "opl_materializer_projection_tail_readback",
-            "no_active_materializer_projection_caller_proven",
-        ),
         ("opl_workbench_shell_readback_tail", "tail_readback_proven"),
-        (
-            "opl_workbench_shell_readback_tail",
-            "no_active_workbench_projection_action_caller_proven",
-        ),
         ("opl_runtime_lifecycle_maintenance_tail_readback", "tail_readback_proven"),
-        (
-            "opl_runtime_lifecycle_maintenance_tail_readback",
-            "no_active_lifecycle_maintenance_adapter_caller_proven",
-        ),
         ("opl_runtime_storage_maintenance_tail_readback", "tail_readback_proven"),
-        (
-            "opl_runtime_storage_maintenance_tail_readback",
-            "no_active_storage_maintenance_adapter_caller_proven",
-        ),
     )
     if any(_nested_value(surface, path) is True for path in proof_fields):
         return True
