@@ -312,6 +312,35 @@ def test_live_tail_evidence_record_requires_concrete_evidence_ref() -> None:
     assert concrete_ref["live_runtime_readiness_claim_allowed"] is True
 
 
+def test_live_tail_direct_evaluator_rejects_mismatched_surface_id() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+    )
+    contract = _contract()
+    runtime_health = {
+        order["surface_id"]: order for order in contract["work_orders"]
+    }["runtime_health_kernel"]
+    ref_family = "runtime_health_kernel_opl_observability_live_readback_ref"
+
+    mismatched = work_orders.evaluate_live_tail_evidence_record(
+        runtime_health,
+        {
+            "surface_id": "domain_owner_action_dispatch",
+            "evidence_source": "runtime_readback:observability:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [ref_family],
+            "evidence_refs": [
+                "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
+            ],
+        },
+    )
+
+    assert mismatched["status"] == "typed_blocker_required"
+    assert mismatched["evidence_record_surface_id"] == "domain_owner_action_dispatch"
+    assert mismatched["evidence_record_id_mismatch"] is True
+    assert mismatched["matched_evidence_ref_families"] == [ref_family]
+    assert mismatched["live_runtime_readiness_claim_allowed"] is False
+
+
 def test_live_tail_authority_outcome_family_requires_authority_ref() -> None:
     work_orders = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"

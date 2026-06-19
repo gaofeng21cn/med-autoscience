@@ -230,6 +230,8 @@ Validator note: concrete proof fields must be declared as required or optional e
 
 Authority outcome note: live-tail work orders may accept MAS owner receipt, stable typed blocker, human gate or route-back outcomes, but those outcomes must arrive through `owner_receipt_ref`, `typed_blocker_ref`, `human_gate_ref` or `route_back_ref`. A generic `evidence_refs` payload cannot stand in for a MAS authority outcome ref.
 
+Identity binding note: live-tail evidence records are bound to their `surface_id`. A record for a different surface remains `typed_blocker_required` even when its evidence family, source and concrete refs are otherwise acceptable.
+
 ## live_runtime_gap_concrete_evidence_refs
 
 Disposition: `fail_closed_live_evidence_intake_guard`
@@ -241,3 +243,5 @@ Retained MAS role: MAS may still publish owner receipt, typed blocker, human gat
 Forbidden interpretation: an OPL outbox, StageRun, provider-admission, DHD apply, paper-line or route-back evidence record that only names an accepted ref family cannot satisfy live-runtime readiness. Missing concrete refs remain `typed_blocker_required`.
 
 Validator note: concrete proof fields must be declared as required or optional evidence-record fields. The contract validator rejects undeclared concrete proof fields so producers cannot satisfy live-runtime gap work orders through hidden payload keys.
+
+Identity binding note: live-runtime gap evidence records are bound to their `gap_id`. A record for a different gap remains `typed_blocker_required` even when its evidence family, source and concrete refs are otherwise acceptable.

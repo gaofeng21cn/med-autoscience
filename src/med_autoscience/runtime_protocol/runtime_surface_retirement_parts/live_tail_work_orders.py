@@ -186,6 +186,10 @@ def evaluate_live_tail_evidence_record(
     evidence_record: Mapping[str, Any],
 ) -> dict[str, Any]:
     surface_id = _text(work_order.get("surface_id")) or "<missing>"
+    evidence_surface_id = _text(evidence_record.get("surface_id"))
+    evidence_record_id_mismatch = (
+        evidence_surface_id is not None and evidence_surface_id != surface_id
+    )
     accepted_refs = _text_set(work_order.get("acceptable_evidence_ref_families"))
     forbidden_substitutes = _text_set(work_order.get("forbidden_evidence_substitutes"))
     provided_refs = _text_set(evidence_record.get("evidence_ref_families"))
@@ -207,6 +211,7 @@ def evaluate_live_tail_evidence_record(
     )
     satisfied = (
         bool(matched_refs)
+        and not evidence_record_id_mismatch
         and not forbidden_matches
         and not forbidden_claim_terms
         and not missing_authority_outcome_refs
@@ -215,6 +220,8 @@ def evaluate_live_tail_evidence_record(
     )
     return {
         "surface_id": surface_id,
+        "evidence_record_surface_id": evidence_surface_id,
+        "evidence_record_id_mismatch": evidence_record_id_mismatch,
         "status": "satisfied_by_accepted_ref" if satisfied else "typed_blocker_required",
         "matched_evidence_ref_families": matched_refs,
         "forbidden_evidence_substitutes_present": forbidden_matches,

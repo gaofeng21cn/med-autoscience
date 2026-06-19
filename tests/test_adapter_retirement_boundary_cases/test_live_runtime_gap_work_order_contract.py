@@ -332,6 +332,43 @@ def test_live_runtime_gap_evidence_requires_concrete_evidence_ref_for_opl_famili
     assert concrete_ref["live_runtime_readiness_claim_allowed"] is True
 
 
+def test_live_runtime_gap_direct_evaluator_rejects_mismatched_gap_id() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+    )
+    contract = _contract()
+    provider_readback = next(
+        order
+        for order in contract["work_orders"]
+        if (
+            "same_identity_opl_provider_admission_live_readback_ref"
+            in order["acceptable_evidence_ref_families"]
+        )
+    )
+    ref_family = "same_identity_opl_provider_admission_live_readback_ref"
+
+    mismatched = work_orders.evaluate_live_runtime_gap_evidence_record(
+        provider_readback,
+        {
+            "gap_id": "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated",
+            "evidence_source": "opl_live_readback:provider-admission:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [ref_family],
+            "evidence_refs": [
+                f"live-gap-evidence:{provider_readback['gap_id']}:{ref_family}"
+            ],
+        },
+    )
+
+    assert mismatched["status"] == "typed_blocker_required"
+    assert (
+        mismatched["evidence_record_gap_id"]
+        == "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated"
+    )
+    assert mismatched["evidence_record_id_mismatch"] is True
+    assert mismatched["matched_evidence_ref_families"] == [ref_family]
+    assert mismatched["live_runtime_readiness_claim_allowed"] is False
+
+
 def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
     work_orders = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"

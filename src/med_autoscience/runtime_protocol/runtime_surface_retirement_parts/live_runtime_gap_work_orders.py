@@ -171,6 +171,8 @@ def evaluate_live_runtime_gap_evidence_record(
     evidence_record: Mapping[str, Any],
 ) -> dict[str, Any]:
     gap_id = _text(work_order.get("gap_id")) or "<missing>"
+    evidence_gap_id = _text(evidence_record.get("gap_id"))
+    evidence_record_id_mismatch = evidence_gap_id is not None and evidence_gap_id != gap_id
     accepted_refs = set(_text_list(work_order.get("acceptable_evidence_ref_families")))
     forbidden_substitutes = set(_text_list(work_order.get("forbidden_evidence_substitutes")))
     provided_refs = set(_text_list(evidence_record.get("evidence_ref_families")))
@@ -190,6 +192,7 @@ def evaluate_live_runtime_gap_evidence_record(
     )
     satisfied = (
         bool(matched_refs)
+        and not evidence_record_id_mismatch
         and not forbidden_matches
         and not forbidden_claim_terms
         and not missing_authority_outcome_refs
@@ -198,6 +201,8 @@ def evaluate_live_runtime_gap_evidence_record(
     )
     return {
         "gap_id": gap_id,
+        "evidence_record_gap_id": evidence_gap_id,
+        "evidence_record_id_mismatch": evidence_record_id_mismatch,
         "status": "satisfied_by_accepted_ref" if satisfied else "typed_blocker_required",
         "matched_evidence_ref_families": matched_refs,
         "forbidden_evidence_substitutes_present": forbidden_matches,
