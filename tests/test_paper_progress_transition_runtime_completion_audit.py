@@ -148,9 +148,13 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     }["lane_4_projection_demotion_and_physical_retirement"]
 
     assert repo_source["scope"] == "code_contract_test_docs_physical_retirement_only"
-    assert repo_source["status"] == "partial"
+    assert repo_source["status"] == "done"
+    assert repo_source["completion_percent"] == 100
+    assert repo_source["all_repo_source_retirement_complete"] is True
+    assert repo_source["completion_claim_allowed"] is True
     assert repo_source["live_runtime_evidence_required"] is False
     assert repo_source["item_completion_claim_allowed_when_criteria_satisfied"] is True
+    assert repo_source["open_repo_source_gaps"] == []
     assert {
         "active callsites migrated to OPL primitives or MAS minimal PaperProgressPolicyAdapter / authority adapter",
         (
@@ -170,12 +174,19 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
         "missing provider running proof",
         "missing DM002/DM003 fresh paper-line outcome",
     } <= set(repo_source["non_blocking_live_runtime_tails"])
+    assert {
+        "runtime_surface_retirement audit reports repo_source_retirement_completion.status=complete",
+        "runtime_surface_retirement audit reports open_surface_count=0 and open_surface_ids=[] for repo-source retirement",
+        "runtime_surface_retirement validator reports violation_count=0",
+    } <= set(repo_source["completed_repo_source_retirement_evidence"])
     assert "DHD_dry_run_missing" in repo_source["false_repo_source_blockers"]
 
     assert live_runtime["scope"] == (
         "OPL live readback, DHD apply exactly-one, provider running proof, "
         "DM002/DM003 live paper-line outcome"
     )
+    assert live_runtime["status"] == "partial"
+    assert live_runtime["completion_claim_allowed"] is False
     assert live_runtime["blocks_repo_source_retirement"] is False
     assert live_runtime["blocks_final_runtime_paper_acceptance"] is True
     assert {
@@ -203,10 +214,13 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     } <= set(audit["rejected_completion_claims"])
 
     assert physical_gate["repo_source_retirement_status"] == repo_source["status"]
+    assert physical_gate["repo_source_retirement_completion_percent"] == 100
+    assert physical_gate["repo_source_retirement_completion_claim_allowed"] is True
     assert physical_gate["live_runtime_readiness_status"] == live_runtime["status"]
     assert physical_gate["live_runtime_evidence_blocks_repo_source_retirement"] is False
+    assert physical_gate["repo_source_missing_evidence_tails"] == []
     assert set(physical_gate["missing_evidence_tails"]) == set(
-        physical_gate["repo_source_missing_evidence_tails"]
+        physical_gate["live_runtime_readiness_missing_evidence_tails"]
     )
     assert set(live_runtime["open_live_runtime_gaps"]) <= set(
         physical_gate["live_runtime_readiness_missing_evidence_tails"]
@@ -430,19 +444,11 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "required_authorization_surface"
     ] == "opl_runtime_storage_maintenance_authorization"
 
-    assert {
-        "remaining old MAS runtime-like entries must be individually deleted, tombstoned, or explicitly reclassified as retained minimal MAS authority / OPL-authorized adapter surfaces",
-        (
-            "runtime inventory gates still need source-level reclassification where they encode "
-            "live OPL readback as a physical-delete prerequisite rather than a live-runtime readiness tail"
-        ),
-        (
-            "default-executor carrier and latest-wire history surfaces still need final physical "
-            "delete/tombstone or explicit history-only provenance closeout once active callsites are migrated"
-        ),
-    } <= set(physical_gate["repo_source_missing_evidence_tails"])
+    assert physical_gate["repo_source_retirement_status"] == "done"
+    assert physical_gate["repo_source_retirement_completion_percent"] == 100
+    assert physical_gate["repo_source_missing_evidence_tails"] == []
     assert set(physical_gate["missing_evidence_tails"]) == set(
-        physical_gate["repo_source_missing_evidence_tails"]
+        physical_gate["live_runtime_readiness_missing_evidence_tails"]
     )
     assert {
         "OPL outbox and StageRun identity live readback for the same transition request",

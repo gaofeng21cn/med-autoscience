@@ -19,16 +19,16 @@
     "goal_complete": false,
     "completion_claim_allowed": false,
     "classification": "repo_source_retirement_split_from_live_runtime_readiness",
-    "current_summary": "Completion evidence is now split into repo-source retirement and live-runtime readiness. Repo-source physical retirement is not blocked by missing live OPL readback, DHD apply, provider running proof, or DM002/DM003 paper-line outcome. A repo-source retirement item can be marked done when active callsites have migrated to OPL primitives or MAS minimal PaperProgressPolicyAdapter / authority adapter, old modules/aliases/wrappers/compat shims/private scheduler-log-outbox-projection authority are physically deleted or tombstoned, missing live proof fails closed as a typed blocker, focused/meta/default verification passes, and docs/contracts/runtime inventory are updated. Live-runtime readiness remains a separate final acceptance tail: OPL command/event/outbox/StageRun readback, DHD apply exactly-one, provider admission/running proof, and fresh DM002/DM003 owner/paper-line outcomes are still required before runtime or paper progress can be claimed. OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, live readback transaction-consistency fail-closed validation, terminal closeout currentness, provider-hosted stale admission recovery, terminal handoff fixed-point projection rebuild, consumed terminal-blocker precedence over owner-receipt handoff surfaces, read-model rebuild proof-gating, and MAS runtime-health local event append retirement have landed. The MAS-facing OPL DomainProgressTransitionRuntime ABI is now single-sourced in contracts/opl_domain_progress_transition_runtime_contract.json and src/med_autoscience/controllers/opl_domain_progress_transition_contract.py, and request projection, MAS policy adapter, provider-admission boundary, and live-readback validator consume that shape. The OPL live-readback transaction-consistency ABI is also single-sourced in the same contract/helper and the MAS readback validator consumes the helper-defined identity, causality, latest-transaction refs, required command/event/outbox flags, and required read-model rebuild sections. The MAS validator now rejects read_model_readback when identity, causality, authority_boundary, exactly_one_outcome, or projection_metadata differ from the top-level live readback. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, live DM002/DM003 provider-admission/running proof, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present; terminal typed-blocker handoff consumption rebuilds paper_recovery_state and current_executable_owner_action so stale successor actions cannot survive the same refresh; current_execution_surfaces now consume same-identity terminal typed blockers even when the handoff current_work_unit still projects owner_receipt_recorded; OPL current-control terminal closeout consumption no longer lets identity-bound admissions fall back to weak action/work-unit/fingerprint matching; MAS OPL transition readback consumer rejects thin StageRun identity, stale event/outbox/transaction refs, stale read-model rebuild sections, and provider-admission live readbacks whose study/work-unit/fingerprint/route/attempt/request identity does not match the current transition; and MAS provider-admission arbiter pending decisions now expose a non-authoritative opl_transition_event_consumption proof derived from the same provider-bound live readback instead of retaining empty-evidence pending decisions. Legacy default-executor latest wire fallback is now explicit-history-only: current provider admission, current provider handoff export, and current clean-migration recovery readers require canonical owner_callable_adapter_receipts/latest.json and do not consume default_executor_execution/latest.json. Request-task alias retirement now removes the top-level materializer request_tasks field entirely; legacy request task refs survive only under legacy_request_task_diagnostics.legacy_request_task_refs as body-free diagnostic refs. Recovery successor consumption is now fingerprint-bound, so stale repair_progress_projection cannot consume a newer paper_recovery_state successor during fixed-point projection refresh. Domain-owner dispatch latest payload reads are now canonical-only by default; legacy default_executor_execution/latest.json can only be merged with explicit history/provenance opt-in and remains non-authority. Legacy default-executor StageRun closeout packets are now machine-proven as OPL StageRun ABI/provenance and identity-recovery evidence only, not latest-wire fallback, provider-admission authority, execution authority, attempt lifecycle authority, or running/progress proof. Runtime lifecycle payload retention and runtime storage maintenance are now OPL-authorized maintenance callable adapters with fail-closed apply gates and repo-wide no-authority audit coverage; those repo-side guards do not claim OPL live takeover, physical delete, runtime readiness, or paper progress. OPL family adoption and product-entry persistence projections now consume the OPL StateIndex source-adapter manifest instead of inspecting domain_authority_refs.sqlite; legacy SQLite payload reads are explicit history replay/local inspection only and cannot satisfy StateIndex takeover. Completion evidence aggregation now rejects no-active caller scans as substitutes for OPL live-readback tail proof across default-executor carrier, DHD obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; b958148f8 adds the guard matrix. Fresh read-only DM002/DM003 readback at MAS b958148f87 / OPL b2f707de08 on 2026-06-19T09:07-09:08Z still shows no active_run, no active_stage_attempt, no provider admission, no transition request, no current executable owner action, DHD observe_only candidate_count=0, and both studies stopped with OPL supervisor-decision-backed stable typed blockers, so live paper acceptance remains open."
+    "current_summary": "Completion evidence is now split into repo-source retirement and live-runtime readiness. Repo-source physical retirement is not blocked by missing live OPL readback, DHD apply, provider running proof, or DM002/DM003 paper-line outcome. A repo-source retirement item can be marked done when active callsites have migrated to OPL primitives or MAS minimal PaperProgressPolicyAdapter / authority adapter, old modules/aliases/wrappers/compat shims/private scheduler-log-outbox-projection authority are physically deleted or tombstoned, missing live proof fails closed as a typed blocker, focused/meta/default verification passes, and docs/contracts/runtime inventory are updated. Live-runtime readiness remains a separate final acceptance tail: OPL command/event/outbox/StageRun readback, DHD apply exactly-one, provider admission/running proof, and fresh DM002/DM003 owner/paper-line outcomes are still required before runtime or paper progress can be claimed. OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, live readback transaction-consistency fail-closed validation, terminal closeout currentness, provider-hosted stale admission recovery, terminal handoff fixed-point projection rebuild, consumed terminal-blocker precedence over owner-receipt handoff surfaces, read-model rebuild proof-gating, and MAS runtime-health local event append retirement have landed. The MAS-facing OPL DomainProgressTransitionRuntime ABI is now single-sourced in contracts/opl_domain_progress_transition_runtime_contract.json and src/med_autoscience/controllers/opl_domain_progress_transition_contract.py, and request projection, MAS policy adapter, provider-admission boundary, and live-readback validator consume that shape. The OPL live-readback transaction-consistency ABI is also single-sourced in the same contract/helper and the MAS readback validator consumes the helper-defined identity, causality, latest-transaction refs, required command/event/outbox flags, and required read-model rebuild sections. The MAS validator now rejects read_model_readback when identity, causality, authority_boundary, exactly_one_outcome, or projection_metadata differ from the top-level live readback. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, live DM002/DM003 provider-admission/running proof, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present; terminal typed-blocker handoff consumption rebuilds paper_recovery_state and current_executable_owner_action so stale successor actions cannot survive the same refresh; current_execution_surfaces now consume same-identity terminal typed blockers even when the handoff current_work_unit still projects owner_receipt_recorded; OPL current-control terminal closeout consumption no longer lets identity-bound admissions fall back to weak action/work-unit/fingerprint matching; MAS OPL transition readback consumer rejects thin StageRun identity, stale event/outbox/transaction refs, stale read-model rebuild sections, and provider-admission live readbacks whose study/work-unit/fingerprint/route/attempt/request identity does not match the current transition; and MAS provider-admission arbiter pending decisions now expose a non-authoritative opl_transition_event_consumption proof derived from the same provider-bound live readback instead of retaining empty-evidence pending decisions. Legacy default-executor latest wire fallback is now explicit-history-only: current provider admission, current provider handoff export, and current clean-migration recovery readers require canonical owner_callable_adapter_receipts/latest.json and do not consume default_executor_execution/latest.json. Request-task alias retirement now removes the top-level materializer request_tasks field entirely; legacy request task refs survive only under legacy_request_task_diagnostics.legacy_request_task_refs as body-free diagnostic refs. Recovery successor consumption is now fingerprint-bound, so stale repair_progress_projection cannot consume a newer paper_recovery_state successor during fixed-point projection refresh. Domain-owner dispatch latest payload reads are now canonical-only by default; legacy default_executor_execution/latest.json can only be merged with explicit history/provenance opt-in and remains non-authority. Legacy default-executor StageRun closeout packets are now machine-proven as OPL StageRun ABI/provenance and identity-recovery evidence only, not latest-wire fallback, provider-admission authority, execution authority, attempt lifecycle authority, or running/progress proof. Runtime lifecycle payload retention and runtime storage maintenance are now OPL-authorized maintenance callable adapters with fail-closed apply gates and repo-wide no-authority audit coverage; those repo-side guards do not claim OPL live takeover, physical delete, runtime readiness, or paper progress. OPL family adoption and product-entry persistence projections now consume the OPL StateIndex source-adapter manifest instead of inspecting domain_authority_refs.sqlite; legacy SQLite payload reads are explicit history replay/local inspection only and cannot satisfy StateIndex takeover. Completion evidence aggregation now rejects no-active caller scans as substitutes for OPL live-readback tail proof across default-executor carrier, DHD obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails. Repo-source private-surface retirement is complete in the runtime_surface_retirement inventory at MAS 8de3658e with violation_count=0; live-runtime readiness remains evidence_required and cannot be claimed from source retirement. Fresh read-only DM002/DM003 readback at MAS b958148f87 / OPL b2f707de08 on 2026-06-19T09:07-09:08Z still shows no active_run, no active_stage_attempt, no provider admission, no transition request, no current executable owner action, DHD observe_only candidate_count=0, and both studies stopped with OPL supervisor-decision-backed stable typed blockers, so live paper acceptance remains open."
   },
   "completion_columns": {
     "repo_source_retirement_completion": {
       "column_id": "repo_source_retirement_completion",
       "scope": "code_contract_test_docs_physical_retirement_only",
-      "status": "partial",
-      "completion_percent": 82,
-      "all_repo_source_retirement_complete": false,
-      "completion_claim_allowed": false,
+      "status": "done",
+      "completion_percent": 100,
+      "all_repo_source_retirement_complete": true,
+      "completion_claim_allowed": true,
       "item_completion_claim_allowed_when_criteria_satisfied": true,
       "live_runtime_evidence_required": false,
       "blocks_live_runtime_readiness": false,
@@ -47,20 +47,25 @@
         "tests/test_adapter_retirement_boundary_cases/test_physical_retirement_blocked_surface_guard.py",
         "commit:ab86955df Require retirement gate for open runtime surfaces",
         "commit:82ab04cac Block physical retirement when surface tails remain blocked",
-        "commit:07ab91312 Generalize physical retirement blocked tail detection"
+        "commit:07ab91312 Generalize physical retirement blocked tail detection",
+        "commit:584e7814a Tighten runtime health OPL observability tail gate",
+        "commit:967e142ac Tighten runtime maintenance live-tail guards",
+        "commit:0e6b71d95 Tighten workbench projection OPL tail guards",
+        "commit:82f5f8b96 Guard obligation actuator OPL tail interpretation",
+        "commit:8de3658ea Tighten owner dispatch OPL tail guards",
+        "runtime_surface_retirement_audit:repo_source_physical_retirement_complete@8de3658e",
+        "runtime_surface_retirement_audit:violation_count=0@8de3658e"
       ],
-      "open_repo_source_gaps": [
-        "remaining old MAS runtime-like entries must be individually deleted, tombstoned, or explicitly reclassified as retained minimal MAS authority / OPL-authorized adapter surfaces",
-        "runtime inventory gates still need source-level reclassification where they encode live OPL readback as a physical-delete prerequisite rather than a live-runtime readiness tail",
-        "default-executor carrier and latest-wire history surfaces still need final physical delete/tombstone or explicit history-only provenance closeout once active callsites are migrated",
-        "domain_owner_action_dispatch, DHD obligation actuator, Workbench/Portal projections, runtime maintenance wrappers, runtime-health diagnostics, and capability-registry projections still need repo-source closeout per active caller and authority classification",
-        "each deletion/tombstone slice still needs fresh focused, meta, and default verification before its repo-source item can be marked done"
-      ],
+      "open_repo_source_gaps": [],
       "non_blocking_live_runtime_tails": [
         "missing OPL outbox / StageRun live readback",
         "missing DHD apply exactly-one live outcome",
         "missing provider running proof",
-        "missing DM002/DM003 fresh paper-line outcome"
+        "missing DM002/DM003 fresh paper-line outcome",
+        "missing live OPL Workbench Shell action transport/readback",
+        "missing live OPL Observability / RouteReconciler readback",
+        "missing live OPL RecoveryObligationStore / SupervisorDecisionEngine readback",
+        "missing Tool Arsenal direct-hosted parity and live owner consumption soak"
       ],
       "false_repo_source_blockers": [
         "DHD_dry_run_missing",
@@ -74,6 +79,14 @@
         "projection_demoted_without_active_callsite_migration",
         "compat_alias_retained_as_diagnostic_body",
         "fail_open_path_without_typed_blocker"
+      ],
+      "completed_repo_source_retirement_evidence": [
+        "runtime_surface_retirement audit reports repo_source_retirement_completion.status=complete",
+        "runtime_surface_retirement audit reports open_surface_count=0 and open_surface_ids=[] for repo-source retirement",
+        "runtime_surface_retirement validator reports violation_count=0",
+        "old MAS private control surfaces are physically retired, tombstoned, or reclassified as OPL-authorized adapter / body-free projection / MAS minimal authority adapter in contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+        "missing live runtime proof remains fail-closed typed blocker or evidence_required tail instead of restoring MAS private command/event/outbox/queue/attempt authority",
+        "focused owner/runtime retirement tests, make test-meta, and scripts/verify.sh passed on main 8de3658e"
       ]
     },
     "live_runtime_readiness_completion": {
@@ -503,7 +516,9 @@
         "Fresh read-only DHD dry-run on 2026-06-19T05:58:56+00:00 from the stable-blocker-preview-suppression worktree produced DM003 domain_handler_owner_resolution_preview_task_count=0 with action_class=observe_only and no provider/transition pending candidates.",
         "Fresh domain-handler export on 2026-06-19T05:58:36Z from the same worktree produced no DM003 pending_family_tasks, proving the closed stop_with_stable_typed_blocker readback is no longer re-exported as domain_route/reconcile-apply."
       ],
-      "open_gap": "DM002 remains an accepted stable typed blocker for the current anti-loop owner-resolution lane, but it still needs owner resolution, route-back, human gate, semantic paper/gate/artifact delta, or delegated DHD apply exactly-one closure before broader paper-line progress can be claimed. DM003 now reads as a closed stable typed blocker (no_selected_dispatch_for_authorized_stage_packet) with OPL supervisor decision readback consumed and no longer re-exported as owner-resolution preview; this closes the preview loop but is still not provider running proof or semantic paper/gate/artifact progress. queue empty, DHD observe_only, provider_admission_pending_count=0, transition_request_pending_count=0, and focused tests remain non-progress evidence."
+      "open_gap": "DM002 remains an accepted stable typed blocker for the current anti-loop owner-resolution lane, but it still needs owner resolution, route-back, human gate, semantic paper/gate/artifact delta, or delegated DHD apply exactly-one closure before broader paper-line progress can be claimed. DM003 now reads as a closed stable typed blocker (no_selected_dispatch_for_authorized_stage_packet) with OPL supervisor decision readback consumed and no longer re-exported as owner-resolution preview; this closes the preview loop but is still not provider running proof or semantic paper/gate/artifact progress. queue empty, DHD observe_only, provider_admission_pending_count=0, transition_request_pending_count=0, and focused tests remain non-progress evidence.",
+      "repo_source_retirement_status": "done",
+      "live_runtime_readiness_status": "partial"
     }
   ],
   "phase_audit": [
@@ -581,8 +596,8 @@
     },
     {
       "phase_id": "lane_7_legacy_retirement",
-      "status": "partial",
-      "completion_percent": 71,
+      "status": "done",
+      "completion_percent": 100,
       "evidence": [
         "Runtime-health local append API is retired and inventory tracks remaining surfaces.",
         "domain_owner_action_dispatch repo tests cover fail-closed typed blockers for missing proof across every supported action, trusted OPL authorization, bound transition readback, and exact provider-hosted StageRun authorization.",
@@ -600,7 +615,7 @@
         "domain_owner_action_dispatch active-caller soak tail now requires explicit live readback for execute_dispatch, stage-native owner action, provider-hosted stage packet selection, AI reviewer authorization, gate clearing authorization, current-execution running proof, and study-progress running proof, or a no-active owner-callable adapter caller scan; repo authorization coverage, provider completion, focused tests, or running-proof projections without OPL readback remain false completion evidence.",
         "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for default-executor carrier, DHD obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path."
       ],
-      "open_gap": "Repo guard coverage improved, but physical retirement and live OPL takeover tails remain open; do not claim full retirement from no-active scan, tests, docs, or dry-run."
+      "open_gap": "Repo-source retirement is closed. Live OPL takeover tails remain in live-runtime readiness and must not be reported as paper progress or production readiness."
     },
     {
       "phase_id": "lane_8_live_paper_acceptance",
@@ -1035,11 +1050,11 @@
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#domain_owner_action_dispatch_required_active_caller_readbacks"
       ],
       "missing_evidence_tails": [
-        "remaining old MAS runtime-like entries must be individually deleted, tombstoned, or explicitly reclassified as retained minimal MAS authority / OPL-authorized adapter surfaces",
-        "runtime inventory gates still need source-level reclassification where they encode live OPL readback as a physical-delete prerequisite rather than a live-runtime readiness tail",
-        "default-executor carrier and latest-wire history surfaces still need final physical delete/tombstone or explicit history-only provenance closeout once active callsites are migrated",
-        "domain_owner_action_dispatch, DHD obligation actuator, Workbench/Portal projections, runtime maintenance wrappers, runtime-health diagnostics, and capability-registry projections still need repo-source closeout per active caller and authority classification",
-        "each deletion/tombstone slice still needs fresh focused, meta, and default verification before its repo-source item can be marked done"
+        "OPL outbox and StageRun identity live readback for the same transition request",
+        "DHD apply exactly-one live outcome when explicitly delegated",
+        "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
+        "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
+        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption"
       ],
       "false_completion_boundary": [
         "active_caller_exists_as_retention_reason",
@@ -1110,23 +1125,24 @@
         "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback",
         "wildcard_guard_as_live_owner_consumption_soak"
       ],
-      "repo_source_retirement_status": "partial",
-      "repo_source_retirement_completion_percent": 82,
+      "repo_source_retirement_status": "done",
+      "repo_source_retirement_completion_percent": 100,
       "live_runtime_readiness_status": "partial",
       "live_runtime_evidence_blocks_repo_source_retirement": false,
-      "repo_source_missing_evidence_tails": [
-        "remaining old MAS runtime-like entries must be individually deleted, tombstoned, or explicitly reclassified as retained minimal MAS authority / OPL-authorized adapter surfaces",
-        "runtime inventory gates still need source-level reclassification where they encode live OPL readback as a physical-delete prerequisite rather than a live-runtime readiness tail",
-        "default-executor carrier and latest-wire history surfaces still need final physical delete/tombstone or explicit history-only provenance closeout once active callsites are migrated",
-        "domain_owner_action_dispatch, DHD obligation actuator, Workbench/Portal projections, runtime maintenance wrappers, runtime-health diagnostics, and capability-registry projections still need repo-source closeout per active caller and authority classification",
-        "each deletion/tombstone slice still needs fresh focused, meta, and default verification before its repo-source item can be marked done"
-      ],
+      "repo_source_missing_evidence_tails": [],
       "live_runtime_readiness_missing_evidence_tails": [
         "OPL outbox and StageRun identity live readback for the same transition request",
         "DHD apply exactly-one live outcome when explicitly delegated",
         "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
         "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
         "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption"
+      ],
+      "repo_source_retirement_completion_claim_allowed": true,
+      "repo_source_retirement_evidence_refs": [
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+        "runtime_surface_retirement_audit:repo_source_physical_retirement_complete@8de3658e",
+        "runtime_surface_retirement_audit:violation_count=0@8de3658e",
+        "commit:8de3658ea Tighten owner dispatch OPL tail guards"
       ]
     },
     {
