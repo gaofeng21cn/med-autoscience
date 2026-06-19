@@ -949,6 +949,7 @@ def build_study_progress_projection(
         runtime_facts=runtime_facts,
         supervision_health_status=supervision_health_status,
         refs=refs,
+        profile=profile,
         materialize_sidecar_observation=materialize_read_model_artifacts,
     )
     return _progress_projection_respecting_current_domain_truth(

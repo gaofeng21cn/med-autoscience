@@ -9,3 +9,4 @@ globals().update({
 })
 
 from .test_study_runtime_typed_surface_cases.status_type_cases import *  # noqa: F403,F401
+from .test_study_runtime_typed_surface_cases.runtime_health_decision_gate_cases import *  # noqa: F403,F401

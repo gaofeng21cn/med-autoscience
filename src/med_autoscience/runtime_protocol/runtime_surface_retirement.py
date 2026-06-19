@@ -612,6 +612,36 @@ def _validate_runtime_health_kernel(
             if projection.get(key) is not True:
                 violations.append(_violation(surface_id, f"runtime_health_missing_diagnostic_hint_boundary:{key}"))
 
+    consumer_gate = surface.get("diagnostic_consumer_gate_boundary")
+    if not isinstance(consumer_gate, Mapping):
+        violations.append(_violation(surface_id, "runtime_health_missing_diagnostic_consumer_gate_boundary"))
+    else:
+        if consumer_gate.get("consumer_gate") != "runtime_health_decision_gate":
+            violations.append(_violation(surface_id, "runtime_health_consumer_gate_not_runtime_health_decision_gate"))
+        if consumer_gate.get("decision_authority_owner") != GENERIC_RUNTIME_OWNER:
+            violations.append(_violation(surface_id, "runtime_health_consumer_gate_owner_not_opl"))
+        if consumer_gate.get("mas_role") != "read_only_diagnostic_consumer":
+            violations.append(_violation(surface_id, "runtime_health_consumer_gate_mas_role_not_read_only"))
+        for key in (
+            "identity_bound_opl_readback_required",
+        ):
+            if consumer_gate.get(key) is not True:
+                violations.append(_violation(surface_id, f"runtime_health_consumer_gate_missing:{key}"))
+        for key in (
+            "unbound_opl_ref_can_authorize_decision",
+            "runtime_health_snapshot_authority_can_authorize_decision",
+            "canonical_runtime_action_hint_can_authorize_recovery",
+            "worker_liveness_hint_can_authorize_recovery",
+        ):
+            if consumer_gate.get(key, False) is not False:
+                violations.append(_violation(surface_id, f"runtime_health_consumer_gate_forbidden:{key}"))
+        if consumer_gate.get("allowed_decision_source") != "opl_runtime_readback":
+            violations.append(_violation(surface_id, "runtime_health_consumer_gate_wrong_decision_source"))
+        if consumer_gate.get("missing_or_cross_identity_readback_outcome") != (
+            "opl_runtime_readback_required_for_runtime_health_decision"
+        ):
+            violations.append(_violation(surface_id, "runtime_health_consumer_gate_wrong_missing_readback_outcome"))
+
     gate = surface.get("retirement_gate")
     if not isinstance(gate, Mapping):
         violations.append(_violation(surface_id, "runtime_health_missing_retirement_gate"))

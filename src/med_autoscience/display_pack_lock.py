@@ -106,6 +106,11 @@ def _collect_template_entry(
     template_root = record.template_path.parent
     render_script_path = template_root / "render.R"
     candidate_render_script_path = template_root / "render_candidate.R"
+    render_script_is_default = (
+        record.template_manifest.execution_mode == "subprocess"
+        and record.template_manifest.entrypoint == "Rscript render.R --request {request_json}"
+        and render_script_path.is_file()
+    )
     payload = {
         "template_id": record.template_manifest.template_id,
         "full_template_id": record.template_manifest.full_template_id,
@@ -117,10 +122,10 @@ def _collect_template_entry(
         "template_manifest_path": _relative_or_absolute(record.template_path, repo_root=repo_root),
         "template_manifest_sha256": _sha256_file(record.template_path),
         "render_script_path": _relative_or_absolute(render_script_path, repo_root=repo_root)
-        if render_script_path.is_file()
+        if render_script_is_default
         else None,
         "render_script_sha256": _sha256_file(render_script_path)
-        if render_script_path.is_file()
+        if render_script_is_default
         else None,
         "candidate_execution_mode": "subprocess" if candidate_render_script_path.is_file() else None,
         "candidate_entrypoint": "Rscript render_candidate.R --request {request_json}"

@@ -15,19 +15,24 @@ from med_autoscience.controllers.study_runtime_types import (
 )
 
 
-_OPL_RECOVERY_READBACK_REF_KEYS = (
-    "opl_lifecycle_proof_ref",
-    "opl_lifecycle_ref",
-    "opl_current_control_state_ref",
-    "opl_command_ref",
-    "opl_event_ref",
-    "opl_outbox_ref",
-    "opl_stage_run_ref",
-    "opl_stage_attempt_id",
-    "stage_attempt_id",
+_OPL_STAGE_ATTEMPT_PREFIX = "opl-stage-attempt://"
+_OPL_RECOVERY_IDENTITY_KEYS = (
+    "active_run_id",
     "active_stage_attempt_id",
+    "stage_attempt_id",
+    "opl_stage_attempt_id",
     "active_workflow_id",
     "provider_attempt_ref",
+    "opl_stage_run_ref",
+)
+_TRUSTED_OPL_RUNTIME_READBACK_SURFACE_KINDS = frozenset(
+    {
+        "opl_current_control_state_handoff",
+        "opl_current_control_state_study_handoff",
+        "opl_current_control_state_provider_attempt_handoff",
+        "opl_stage_run_readback",
+        "opl_terminal_stage_log",
+    }
 )
 
 
@@ -98,10 +103,88 @@ def _runtime_health_requires_live_recovery(
     return worker_state == "activity_timeout"
 
 
-def _contains_opl_runtime_readback_ref(payload: Mapping[str, object]) -> bool:
-    for key in _OPL_RECOVERY_READBACK_REF_KEYS:
-        if _text(payload.get(key)) is not None:
-            return True
+def _identity_tokens(value: object) -> set[str]:
+    text = _text(value)
+    if text is None:
+        return set()
+    return _identity_tokens_for_text(text, stage_attempt_alias=False)
+
+
+def _stage_attempt_identity_tokens(value: object) -> set[str]:
+    text = _text(value)
+    if text is None:
+        return set()
+    return _identity_tokens_for_text(text, stage_attempt_alias=True)
+
+
+def _identity_tokens_for_text(text: str, *, stage_attempt_alias: bool) -> set[str]:
+    tokens = {text}
+    if text.startswith(_OPL_STAGE_ATTEMPT_PREFIX):
+        suffix = text[len(_OPL_STAGE_ATTEMPT_PREFIX) :].strip()
+        if suffix:
+            tokens.add(suffix)
+    elif stage_attempt_alias and "://" not in text:
+        tokens.add(f"{_OPL_STAGE_ATTEMPT_PREFIX}{text}")
+    return tokens
+
+
+def _identity_tokens_from_payload(payload: Mapping[str, object]) -> set[str]:
+    tokens: set[str] = set()
+    for key in _OPL_RECOVERY_IDENTITY_KEYS:
+        identity = (
+            _stage_attempt_identity_tokens(payload.get(key))
+            if key in {"active_stage_attempt_id", "stage_attempt_id", "opl_stage_attempt_id"}
+            else _identity_tokens(payload.get(key))
+        )
+        tokens.update(identity)
+    runtime_liveness_audit = _mapping(payload.get("runtime_liveness_audit"))
+    if runtime_liveness_audit:
+        tokens.update(_identity_tokens_from_payload(runtime_liveness_audit))
+    runtime_audit = _mapping(payload.get("runtime_audit"))
+    if runtime_audit:
+        tokens.update(_identity_tokens_from_payload(runtime_audit))
+    worker_liveness = _mapping(payload.get("worker_liveness_state"))
+    if worker_liveness:
+        tokens.update(_identity_tokens_from_payload(worker_liveness))
+    return tokens
+
+
+def _runtime_health_recovery_identity_tokens(
+    *,
+    status_payload: Mapping[str, object],
+    runtime_health_snapshot: Mapping[str, object],
+) -> set[str]:
+    tokens = set()
+    tokens.update(_identity_tokens(runtime_health_snapshot.get("active_run_id")))
+    tokens.update(_identity_tokens_from_payload(_mapping(runtime_health_snapshot.get("worker_liveness_state"))))
+    if tokens:
+        return tokens
+    tokens.update(_identity_tokens(status_payload.get("active_run_id")))
+    tokens.update(_identity_tokens_from_payload(_mapping(status_payload.get("runtime_liveness_audit"))))
+    return tokens
+
+
+def _trusted_opl_runtime_readback(payload: Mapping[str, object]) -> bool:
+    if _text(payload.get("surface_kind")) in _TRUSTED_OPL_RUNTIME_READBACK_SURFACE_KINDS:
+        return True
+    return (
+        _text(payload.get("source")) == "opl_current_control_state_provider_attempt"
+        and payload.get("running_provider_attempt") is True
+    )
+
+
+def _collect_identity_bound_opl_readback_tokens(
+    payload: Mapping[str, object],
+    *,
+    source: str,
+) -> tuple[set[str], list[str]]:
+    tokens: set[str] = set()
+    sources: list[str] = []
+    if _trusted_opl_runtime_readback(payload):
+        payload_tokens = _identity_tokens_from_payload(payload)
+        if payload_tokens:
+            tokens.update(payload_tokens)
+            sources.append(source)
     for nested_key in (
         "opl_lifecycle_readback",
         "opl_current_control_state",
@@ -112,40 +195,66 @@ def _contains_opl_runtime_readback_ref(payload: Mapping[str, object]) -> bool:
         nested = _mapping(payload.get(nested_key))
         if not nested:
             continue
-        if _contains_opl_runtime_readback_ref(nested):
-            return True
-        if _text(nested.get("surface_kind")) in {
-            "opl_current_control_state_handoff",
-            "opl_current_control_state_study_handoff",
-            "opl_current_control_state_provider_attempt_handoff",
-            "opl_stage_run_readback",
-            "opl_terminal_stage_log",
-        }:
-            return True
-    return False
+        nested_tokens, nested_sources = _collect_identity_bound_opl_readback_tokens(
+            nested,
+            source=f"{source}.{nested_key}",
+        )
+        tokens.update(nested_tokens)
+        sources.extend(nested_sources)
+    return tokens, sources
 
 
-def _runtime_health_recovery_decision_authorized_by_opl_readback(
+def _runtime_health_recovery_authorization_details(
     *,
     status: ProgressProjectionStatus,
     runtime_health_snapshot: Mapping[str, object],
-) -> bool:
+) -> dict[str, object]:
     if runtime_health_snapshot.get("authority") is True:
-        return False
+        return {
+            "authorized": False,
+            "suppressed_reason": "runtime_health_snapshot_authority_forbidden",
+            "required_runtime_identity": [],
+            "readback_runtime_identities": [],
+            "matched_runtime_identity": [],
+            "readback_sources": [],
+        }
     status_payload = status.to_dict()
-    runtime_liveness_audit = _mapping(status_payload.get("runtime_liveness_audit"))
-    if _text(runtime_liveness_audit.get("source")) == "opl_current_control_state_provider_attempt":
-        return True
-    return any(
-        _contains_opl_runtime_readback_ref(payload)
-        for payload in (
-            status_payload,
-            runtime_liveness_audit,
-            _mapping(runtime_liveness_audit.get("runtime_audit")),
-            _mapping(status_payload.get("opl_current_control_state")),
-            _mapping(status_payload.get("current_control_state")),
-        )
+    required_tokens = _runtime_health_recovery_identity_tokens(
+        status_payload=status_payload,
+        runtime_health_snapshot=runtime_health_snapshot,
     )
+    readback_tokens: set[str] = set()
+    readback_sources: list[str] = []
+    for source, payload in (
+        ("runtime_liveness_audit", _mapping(status_payload.get("runtime_liveness_audit"))),
+        (
+            "runtime_liveness_audit.runtime_audit",
+            _mapping(_mapping(status_payload.get("runtime_liveness_audit")).get("runtime_audit")),
+        ),
+        ("opl_current_control_state", _mapping(status_payload.get("opl_current_control_state"))),
+        ("current_control_state", _mapping(status_payload.get("current_control_state"))),
+        ("opl_lifecycle_readback", _mapping(status_payload.get("opl_lifecycle_readback"))),
+        ("stage_run_readback", _mapping(status_payload.get("stage_run_readback"))),
+        ("latest_terminal_stage_log", _mapping(status_payload.get("latest_terminal_stage_log"))),
+    ):
+        if not payload:
+            continue
+        tokens, sources = _collect_identity_bound_opl_readback_tokens(payload, source=source)
+        readback_tokens.update(tokens)
+        readback_sources.extend(sources)
+    matched_tokens = sorted(required_tokens & readback_tokens)
+    return {
+        "authorized": bool(required_tokens and matched_tokens),
+        "suppressed_reason": (
+            None
+            if required_tokens and matched_tokens
+            else "opl_runtime_readback_required_for_runtime_health_decision"
+        ),
+        "required_runtime_identity": sorted(required_tokens),
+        "readback_runtime_identities": sorted(readback_tokens),
+        "matched_runtime_identity": matched_tokens,
+        "readback_sources": sorted(dict.fromkeys(readback_sources)),
+    }
 
 
 def _record_runtime_health_decision_gate(
@@ -153,7 +262,10 @@ def _record_runtime_health_decision_gate(
     status: ProgressProjectionStatus,
     runtime_health_snapshot: Mapping[str, object],
     decision_authorized: bool,
+    authorization_details: Mapping[str, object] | None = None,
 ) -> None:
+    details = _mapping(authorization_details)
+    suppressed_reason = _text(details.get("suppressed_reason"))
     status.extras["runtime_health_decision_gate"] = {
         "surface_kind": "runtime_health_diagnostic_consumer_gate",
         "runtime_owner": "one-person-lab",
@@ -163,8 +275,14 @@ def _record_runtime_health_decision_gate(
         "suppressed_reason": (
             None
             if decision_authorized
-            else "opl_runtime_readback_required_for_runtime_health_decision"
+            else suppressed_reason or "opl_runtime_readback_required_for_runtime_health_decision"
         ),
+        "identity_bound_opl_readback_required": True,
+        "required_runtime_identity": list(details.get("required_runtime_identity") or []),
+        "readback_runtime_identities": list(details.get("readback_runtime_identities") or []),
+        "matched_runtime_identity": list(details.get("matched_runtime_identity") or []),
+        "readback_sources": list(details.get("readback_sources") or []),
+        "unbound_opl_ref_can_authorize_decision": False,
         "runtime_health_snapshot_authority": runtime_health_snapshot.get("authority") is True,
         "runtime_health_hint_only": runtime_health_snapshot.get("diagnostic_only") is True,
         "canonical_runtime_action_hint": runtime_health_snapshot.get("canonical_runtime_action"),
@@ -264,14 +382,16 @@ def _record_runtime_health_dominance(
         recorded_at=recorded_at,
     )
     if _runtime_health_requires_live_recovery(status=status, runtime_health_snapshot=runtime_health_snapshot):
-        decision_authorized = _runtime_health_recovery_decision_authorized_by_opl_readback(
+        authorization_details = _runtime_health_recovery_authorization_details(
             status=status,
             runtime_health_snapshot=runtime_health_snapshot,
         )
+        decision_authorized = authorization_details["authorized"] is True
         _record_runtime_health_decision_gate(
             status=status,
             runtime_health_snapshot=runtime_health_snapshot,
             decision_authorized=decision_authorized,
+            authorization_details=authorization_details,
         )
         try:
             runtime_liveness = status.runtime_liveness_audit_record

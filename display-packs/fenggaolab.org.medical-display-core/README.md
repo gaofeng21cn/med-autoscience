@@ -25,13 +25,13 @@ Evidence-figure renderer assets are split by execution mode:
 
 - R/ggplot2 evidence templates use `execution_mode = "subprocess"` and template-local `entrypoint = "Rscript render.R --request {request_json}"`.
 - Python evidence templates use `execution_mode = "python_plugin"` and `fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure`.
-- P1 evidence templates have been promoted to default R/ggplot2 `subprocess` renderers. Their former Python implementation remains baseline / legacy comparison provenance rather than the default route.
+- P1 evidence templates have been promoted to default R/ggplot2 `subprocess` renderers where R layout/QC parity is sufficient. A/B locked composites that still depend on Python multi-panel sidecars remain Python-first.
 
 The current evidence inventory is tracked in `renderer_migration_ledger.json`:
 
 - P0: 22 R/ggplot2 evidence templates landed as subprocess assets with local `render.R`.
-- P1: 33 evidence templates have been promoted to default R/ggplot2 subprocess assets with local `render.R`; `render_candidate.R` remains a legacy comparison receipt entrypoint.
-- P2: 29 Python templates remain Python-first or later dual-stack candidates because they are MAS-specific composites, storyboards, or custom layouts.
+- P1: 29 evidence templates have been promoted to default R/ggplot2 subprocess assets with local `render.R`; `render_candidate.R` remains a legacy comparison receipt entrypoint.
+- P2: 33 Python templates remain Python-first or later dual-stack candidates because they are MAS-specific composites, storyboards, custom layouts, or A/B locked composites whose R layout parity is not yet landed.
 
 Renderer runtime dependencies are tracked in `renderer_dependency_profile.json`.
 

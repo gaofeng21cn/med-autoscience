@@ -142,6 +142,7 @@ def required_readback_shape() -> dict[str, Any]:
             "required_fields": list(PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS),
             "request_identity_field": PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD,
             "readback_must_match_current_transition_identity": True,
+            "same_identity_live_readback_consumes_transition_request_pending": True,
             "stale_or_cross_identity_readback_counts_as_request_pending": True,
             "owner_callable_dispatch_uses_same_identity_binding": True,
             "missing_route_or_attempt_identity_counts_as_missing_opl_authorization": True,

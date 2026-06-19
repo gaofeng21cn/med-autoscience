@@ -204,7 +204,9 @@
         "MAS runtime-health local event append API is retired.",
         "contracts/opl_domain_progress_transition_runtime_contract.json and src/med_autoscience/controllers/opl_domain_progress_transition_contract.py now require read_model_rebuild_required_sections for identity, causality, authority_boundary, exactly_one_outcome, and projection_metadata.",
         "src/med_autoscience/controllers/domain_health_diagnostic_parts/opl_transition_readback.py now rejects read_model_readback unless those five sections exactly match the top-level live readback sections.",
-        "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape rejects stale read_model_readback identity refs."
+        "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape rejects stale read_model_readback identity refs.",
+        "src/med_autoscience/controllers/study_progress_parts/opl_supervisor_decision_readback.py consumes OPL SupervisorDecisionEngine readback from family-runtime/paper-autonomy/supervisor/supervisor-decisions.jsonl as a read-only study_progress projection.",
+        "tests/study_progress_cases/opl_supervisor_decision_readback_projection.py proves the consumed supervisor decision readback updates paper_recovery_state and refs without creating provider admission or MAS truth."
       ],
       "open_gap": "Workbench and all downstream projections still need fresh live proof of full event-driven rebuild under real paper-line flow."
     },
@@ -236,6 +238,7 @@
         "MAS OPL transition readback contract tests reject StageRun identity without stage_run_id/stage_run_identity_ref and reject mismatched latest transaction, causality, and projection refs.",
         "MAS OPL transition readback contract tests reject read_model_readback when rebuilt identity refs differ from the top-level live identity readback.",
         "Provider admission now consumes provider_admission_opl_transition_readback, which requires complete OPL live readback plus matching study_id, work_unit_id, work_unit_fingerprint, route_identity_key, attempt_idempotency_key, and request idempotency key.",
+        "Paper recovery provider-admission state now consumes transition_request_pending only when the same candidate/current_work_unit lacks same-identity OPL live readback; once complete same-identity readback is present it is provider_admission_pending only, while stale/cross-identity readback and bare event/outbox/StageRun fragments remain request pending.",
         "Paper autonomy supervisor gate now accepts materialize_recovery_action provider admission only when a provider-admission identity-bound OPL live readback matches the current paper autonomy obligation; request-only carriers cannot bypass via admission_pending or provider_admission_requires_opl_runtime_result=false recovery state.",
         "Provider-admission arbiter pending decisions now expose opl_transition_event_consumption proof with event_id, outbox_item_id, transaction_id, stage_run identity, route identity, attempt idempotency, request idempotency, same-transaction flag, and MAS non-authority flags; request-only event/outbox/StageRun fragments remain transition_request_pending.",
         "Provider-admission running-proof consumption now requires provider_admission_opl_transition_readback for the current action identity; a handoff running_provider_attempt flag without same-identity OPL live readback remains observability only, while a matching provider_admission_candidate may supply the readback without authorizing MAS to start the provider."
@@ -255,7 +258,8 @@
         "Identity-bound current-control admissions are not cleared by stale terminal closeouts that only match action/work-unit/fingerprint.",
         "Current work unit provider-admission evidence is now checked against the current action identity before provider_admission_pending can become true.",
         "Paper autonomy supervisor tests prove current request-only provider-admission carriers remain blocked unless the OPL live readback is provider-admission identity-bound to the current obligation.",
-        "Current work unit and current_execution_envelope now require same-identity OPL DomainProgressTransitionRuntime live readback before projecting running_provider_attempt; weak live_provider_attempt and weak handoff running flags stay diagnostic and cannot consume current execution."
+        "Current work unit and current_execution_envelope now require same-identity OPL DomainProgressTransitionRuntime live readback before projecting running_provider_attempt; weak live_provider_attempt and weak handoff running flags stay diagnostic and cannot consume current execution.",
+        "Paper recovery provider-admission state no longer projects transition_request_pending after the same current_work_unit has complete same-identity OPL live readback; cross-identity readback and bare transaction fragments stay request-pending diagnostics."
       ],
       "open_gap": "Full consume-only derivation from OPL transition event remains tied to live apply/readback closure."
     },
@@ -287,7 +291,8 @@
         "Current-control handoff projection keeps live-readback-backed admission pending until the terminal closeout binds the same OPL identity.",
         "Terminal handoff typed-blocker refresh now rebuilds stale materialize_successor_owner_action recovery state into domain_blocked / resolve_typed_blocker after current_work_unit consumption.",
         "Consumed terminal typed-blocker precedence covers handoffs whose current_work_unit still projects owner_receipt_recorded, so paper_recovery_state cannot retain a stale successor over the blocker.",
-        "Recovery successor fixed-point follow-through now binds repair-progress consumption to the successor work-unit fingerprint, closing the stale repair-progress over current paper-recovery successor path without authorizing provider admission."
+        "Recovery successor fixed-point follow-through now binds repair-progress consumption to the successor work-unit fingerprint, closing the stale repair-progress over current paper-recovery successor path without authorizing provider admission.",
+        "OPL supervisor decision readback consumption now lets paper_recovery_state replace opl_supervisor_decision_readback_required with an identity-bound SupervisorDecisionEngine readback while preserving MAS non-authority over the OPL ledger."
       ],
       "open_gap": "Remaining live materialization and closeout paths must prove OPL runtime-backed transitions."
     },
@@ -401,7 +406,8 @@
         "Current execution surface refresh consumes provider_admission_terminal_closeout_consumed typed blockers before owner-receipt successor projection when their identity overlaps without conflict.",
         "Top-level materializer request_tasks alias is retired; DHD preview and stability evidence consume only nested legacy_request_task_diagnostics refs.",
         "Repair-progress consumption of paper recovery successors is fingerprint-bound, preventing stale projection demotion during fixed-point refresh.",
-        "OPL transition readback validation now requires read_model_readback to rebuild identity, causality, authority_boundary, exactly_one_outcome, and projection_metadata from the same live sections."
+        "OPL transition readback validation now requires read_model_readback to rebuild identity, causality, authority_boundary, exactly_one_outcome, and projection_metadata from the same live sections.",
+        "study_progress now consumes OPL SupervisorDecisionEngine readback JSONL as refs-only projection evidence, so MAS no longer has to synthesize or stall the paper autonomy supervisor decision locally."
       ],
       "open_gap": "All downstream read models must still rebuild from OPL event plus MAS policy result, and live paper-line acceptance remains open."
     },
@@ -661,7 +667,11 @@
         "tests/test_provider_admission_current_control_cases/transition_request_consume_only_cases.py::test_provider_admission_current_control_treats_mas_request_without_opl_readback_as_non_advancing#bare_event_outbox_stage_run_fragment_rejected",
         "contracts/opl_domain_progress_transition_runtime_contract.json#/live_readback_contract/read_model_rebuild_required_sections",
         "src/med_autoscience/controllers/domain_health_diagnostic_parts/opl_transition_readback.py::_read_model_rebuild_matches_live_sections",
-        "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape#read_model_identity_mismatch"
+        "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape#read_model_identity_mismatch",
+        "tests/test_paper_recovery_provider_admission_state.py::test_same_identity_live_readback_promotes_request_to_provider_admission",
+        "tests/test_paper_recovery_provider_admission_state.py::test_cross_identity_live_readback_remains_request_pending",
+        "tests/test_paper_recovery_provider_admission_state.py::test_bare_event_outbox_or_stagerun_fragments_do_not_authorize_admission",
+        "tests/test_paper_recovery_provider_admission_state.py::test_current_work_unit_requires_same_identity_live_readback_for_admission"
       ],
       "missing_evidence_tails": [
         "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
@@ -762,7 +772,12 @@
         "src/med_autoscience/opl_domain_pack/family_adoption.py::build_opl_family_adoption_surface#state_index_source_adapter",
         "src/med_autoscience/controllers/product_entry_parts/family_lifecycle_surfaces.py::_build_family_persistence_policy_surface#state_index_source_adapter",
         "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_source_adapter_manifest",
-        "tests/test_opl_family_persistence_adapter.py::test_legacy_authority_refs_payload_helper_is_history_replay_only"
+        "tests/test_opl_family_persistence_adapter.py::test_legacy_authority_refs_payload_helper_is_history_replay_only",
+        "src/med_autoscience/controllers/study_runtime_decision_parts/runtime_health_dominance.py::_runtime_health_recovery_authorization_details#identity_bound_opl_readback_required",
+        "tests/test_study_runtime_typed_surface_cases/runtime_health_decision_gate_cases.py::test_runtime_health_recovery_decision_rejects_cross_identity_opl_readback",
+        "tests/test_study_runtime_typed_surface_cases/runtime_health_decision_gate_cases.py::test_runtime_health_recovery_decision_rejects_top_level_opl_readback_claim",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_health_kernel#diagnostic_consumer_gate_boundary",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_runtime_health_kernel#diagnostic_consumer_gate_boundary"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
@@ -787,7 +802,10 @@
         "legacy_helper_active_scan_as_physical_delete",
         "legacy_helper_active_callers_as_no_active_caller",
         "legacy_sqlite_payload_projection_as_state_index_kernel_takeover",
-        "explicit_replay_opt_in_as_live_opl_readback"
+        "explicit_replay_opt_in_as_live_opl_readback",
+        "runtime_health_unbound_opl_ref_as_recovery_authority",
+        "runtime_health_cross_identity_readback_as_recovery_authority",
+        "runtime_health_top_level_read_model_claim_as_opl_readback"
       ]
     },
     {
