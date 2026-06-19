@@ -468,6 +468,38 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
+        "domain_owner_action_dispatch_execute_dispatch_live_readback_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
+        "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
+        "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
+        "domain_owner_action_dispatch_ai_reviewer_authorization_live_readback_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
+        "domain_owner_action_dispatch_gate_clearing_authorization_live_readback_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
+        "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
+        "domain_owner_action_dispatch_study_progress_running_proof_live_readback_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
+        "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref"
+        in layers["live_soak_or_no_active_caller"]["required_ref_families"]
+    )
+    assert (
         "domain_health_diagnostic_obligation_actuator_owner_retirement_decision_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
@@ -561,6 +593,31 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert (
         "mas_policy_projection_as_opl_recovery_obligation_store_readback"
         in actuator_tail["forbidden_completion_interpretations"]
+    )
+    owner_dispatch_tail = evidence_tails["domain_owner_action_dispatch"]
+    assert (
+        "domain_owner_action_dispatch_execute_dispatch_live_readback_ref"
+        in owner_dispatch_tail["required_ref_families"]
+    )
+    assert (
+        "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref"
+        in owner_dispatch_tail["required_ref_families"]
+    )
+    assert (
+        "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref"
+        in owner_dispatch_tail["required_ref_families"]
+    )
+    assert (
+        "repo_authorization_coverage_as_live_every_active_caller_soak"
+        in owner_dispatch_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "provider_completion_as_dispatch_retirement"
+        in owner_dispatch_tail["forbidden_completion_interpretations"]
+    )
+    assert (
+        "current_execution_running_proof_without_opl_readback_as_soak"
+        in owner_dispatch_tail["forbidden_completion_interpretations"]
     )
     runtime_health_tail = evidence_tails["runtime_health_kernel"]
     assert (
@@ -1002,6 +1059,9 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         surface["active_caller_retains_runtime_authority"] is False
         for surface in open_surfaces.values()
     )
+    assert open_surfaces["domain_owner_action_dispatch"][
+        "domain_owner_action_dispatch_active_caller_family_count"
+    ] == 7
 
     bad_inventory = json.loads(json.dumps(inventory))
     refs_surface = next(
@@ -1742,6 +1802,12 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     owner_dispatch["active_caller_soak_boundary"][
         "required_before_physical_delete"
     ] = "repo_tests_green"
+    owner_dispatch["active_caller_soak_boundary"]["physical_delete_requires"] = [
+        "repo_tests_green_ref"
+    ]
+    owner_dispatch["active_caller_soak_boundary"]["required_active_caller_readbacks"] = [
+        "repo_authorization_coverage"
+    ]
     owner_dispatch["active_caller_soak_boundary"]["active_caller_families"] = [
         "domain_owner_action_dispatch.execute_dispatch"
     ]
@@ -1806,6 +1872,14 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "domain_owner_action_dispatch",
             "owner_dispatch_soak_missing_physical_delete_ref",
+        ),
+        (
+            "domain_owner_action_dispatch",
+            "owner_dispatch_soak_physical_delete_refs_incomplete",
+        ),
+        (
+            "domain_owner_action_dispatch",
+            "owner_dispatch_soak_active_readbacks_incomplete",
         ),
         (
             "domain_owner_action_dispatch",

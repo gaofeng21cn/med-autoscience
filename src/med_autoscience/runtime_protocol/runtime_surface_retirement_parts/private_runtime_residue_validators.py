@@ -942,12 +942,46 @@ def validate_domain_owner_action_dispatch(
             != "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref"
         ):
             violations.append(_violation(surface_id, "owner_dispatch_soak_missing_physical_delete_ref"))
+        physical_delete_requires = soak.get("physical_delete_requires")
+        required_physical_refs = {
+            "domain_owner_action_dispatch_execute_dispatch_live_readback_ref",
+            "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref",
+            "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref",
+            "domain_owner_action_dispatch_ai_reviewer_authorization_live_readback_ref",
+            "domain_owner_action_dispatch_gate_clearing_authorization_live_readback_ref",
+            "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref",
+            "domain_owner_action_dispatch_study_progress_running_proof_live_readback_ref",
+            "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref",
+            "no_forbidden_write_proof",
+            "replacement_parity_ref",
+            "tombstone_or_provenance_ref",
+        }
+        if not isinstance(physical_delete_requires, list) or not required_physical_refs <= {
+            str(item) for item in physical_delete_requires
+        }:
+            violations.append(_violation(surface_id, "owner_dispatch_soak_physical_delete_refs_incomplete"))
+        required_active_readbacks = {
+            "execute_dispatch_live_readback",
+            "stage_native_owner_action_live_readback",
+            "provider_hosted_stage_packet_selection_live_readback",
+            "ai_reviewer_provider_hosted_authorization_live_readback",
+            "gate_clearing_authorization_live_readback",
+            "current_execution_running_proof_live_readback",
+            "study_progress_provider_admission_running_proof_live_readback",
+        }
+        active_readbacks = soak.get("required_active_caller_readbacks")
+        if not isinstance(active_readbacks, list) or not required_active_readbacks <= {
+            str(item) for item in active_readbacks
+        }:
+            violations.append(_violation(surface_id, "owner_dispatch_soak_active_readbacks_incomplete"))
         forbidden_claims = soak.get("forbidden_completion_claims")
         required_false_claims = {
             "repo_authorization_coverage_as_live_every_active_caller_soak",
             "active_caller_migrated_as_no_active_caller_proof",
             "focused_tests_green_as_physical_delete",
             "provider_completion_as_dispatch_retirement",
+            "current_execution_running_proof_without_opl_readback_as_soak",
+            "study_progress_running_proof_without_opl_readback_as_soak",
         }
         if not isinstance(forbidden_claims, list) or not required_false_claims <= {
             str(item) for item in forbidden_claims
