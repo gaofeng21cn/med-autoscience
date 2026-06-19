@@ -856,6 +856,7 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     )
     active_caller_soak = surface.get("active_caller_soak_boundary")
     live_owner_consumption_soak = surface.get("live_owner_consumption_soak_boundary")
+    obligation_tail = surface.get("opl_obligation_actuator_tail_readback")
     return {
         "surface_id": surface["surface_id"],
         "current_disposition": surface["current_disposition"],
@@ -958,6 +959,30 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
         "agent_tool_arsenal_physical_delete_allowed": (
             live_owner_consumption_soak.get("physical_delete_allowed")
             if isinstance(live_owner_consumption_soak, Mapping)
+            else None
+        ),
+        "obligation_actuator_tail_status": (
+            obligation_tail.get("status") if isinstance(obligation_tail, Mapping) else None
+        ),
+        "obligation_actuator_tail_readback_proven": (
+            obligation_tail.get("tail_readback_proven")
+            if isinstance(obligation_tail, Mapping)
+            else None
+        ),
+        "obligation_actuator_no_active_caller_proven": (
+            obligation_tail.get("no_active_mas_obligation_actuator_caller_proven")
+            if isinstance(obligation_tail, Mapping)
+            else None
+        ),
+        "obligation_actuator_physical_delete_allowed": (
+            obligation_tail.get("physical_delete_allowed")
+            if isinstance(obligation_tail, Mapping)
+            else None
+        ),
+        "obligation_actuator_required_active_caller_readback_count": (
+            len(obligation_tail.get("required_active_caller_readbacks"))
+            if isinstance(obligation_tail, Mapping)
+            and isinstance(obligation_tail.get("required_active_caller_readbacks"), list)
             else None
         ),
         **_audit_workbench_projection_fields(surface),

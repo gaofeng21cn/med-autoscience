@@ -481,7 +481,29 @@
       "supervisor_disallowed_outcome_is_success": false,
       "readback_result_validator_boundary_required": true,
       "readback_result_validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
-      "local_allowed_outcome_table_role": "contract_bound_result_shape_validation_not_supervisor_decision_engine"
+      "local_allowed_outcome_table_role": "contract_bound_result_shape_validation_not_supervisor_decision_engine",
+      "opl_obligation_actuator_tail_readback_requirement": {
+        "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
+        "required_before_physical_delete": [
+          "opl_recovery_obligation_store_active_caller_readback",
+          "opl_supervisor_decision_engine_active_caller_readback",
+          "no_active_mas_obligation_actuator_caller_scan",
+          "no_forbidden_write_proof",
+          "owner_retirement_decision",
+          "tombstone_or_provenance"
+        ],
+        "required_active_caller_readbacks": [
+          "opl_recovery_obligation_store_active_caller_readback",
+          "opl_supervisor_decision_engine_active_caller_readback"
+        ],
+        "mas_policy_projection_can_satisfy_readback": false,
+        "mas_request_projection_can_satisfy_readback": false,
+        "focused_tests_can_satisfy_readback": false,
+        "repo_no_authority_guard_can_satisfy_readback": false,
+        "physical_delete_allowed_without_tail_proof": false
+      }
     },
     "consume_only_readback_boundary": {
       "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
@@ -525,7 +547,51 @@
         "mas_can_replay_obligation": false,
         "mas_can_create_opl_command_event_or_outbox": false,
         "mas_can_generate_human_gate_resume_token": false,
-        "request_projection_only_can_satisfy_success": false
+        "request_projection_only_can_satisfy_success": false,
+        "opl_obligation_actuator_tail_readback_requirement": {
+          "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
+          "runtime_owner": "one-person-lab",
+          "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
+          "required_before_physical_delete": [
+            "opl_recovery_obligation_store_active_caller_readback",
+            "opl_supervisor_decision_engine_active_caller_readback",
+            "no_active_mas_obligation_actuator_caller_scan",
+            "no_forbidden_write_proof",
+            "owner_retirement_decision",
+            "tombstone_or_provenance"
+          ],
+          "required_active_caller_readbacks": [
+            "opl_recovery_obligation_store_active_caller_readback",
+            "opl_supervisor_decision_engine_active_caller_readback"
+          ],
+          "mas_policy_projection_can_satisfy_readback": false,
+          "mas_request_projection_can_satisfy_readback": false,
+          "focused_tests_can_satisfy_readback": false,
+          "repo_no_authority_guard_can_satisfy_readback": false,
+          "physical_delete_allowed_without_tail_proof": false
+        }
+      },
+      "opl_obligation_actuator_tail_readback_requirement": {
+        "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
+        "required_before_physical_delete": [
+          "opl_recovery_obligation_store_active_caller_readback",
+          "opl_supervisor_decision_engine_active_caller_readback",
+          "no_active_mas_obligation_actuator_caller_scan",
+          "no_forbidden_write_proof",
+          "owner_retirement_decision",
+          "tombstone_or_provenance"
+        ],
+        "required_active_caller_readbacks": [
+          "opl_recovery_obligation_store_active_caller_readback",
+          "opl_supervisor_decision_engine_active_caller_readback"
+        ],
+        "mas_policy_projection_can_satisfy_readback": false,
+        "mas_request_projection_can_satisfy_readback": false,
+        "focused_tests_can_satisfy_readback": false,
+        "repo_no_authority_guard_can_satisfy_readback": false,
+        "physical_delete_allowed_without_tail_proof": false
       }
     },
     "opl_transition_readback_contract": {

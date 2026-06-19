@@ -10,6 +10,64 @@ import pytest
 pytestmark = pytest.mark.meta
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+OBLIGATION_ACTUATOR_TAIL_READBACK_REQUIREMENT = {
+    "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
+    "runtime_owner": "one-person-lab",
+    "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
+    "required_before_physical_delete": [
+        "opl_recovery_obligation_store_active_caller_readback",
+        "opl_supervisor_decision_engine_active_caller_readback",
+        "no_active_mas_obligation_actuator_caller_scan",
+        "no_forbidden_write_proof",
+        "owner_retirement_decision",
+        "tombstone_or_provenance",
+    ],
+    "required_active_caller_readbacks": [
+        "opl_recovery_obligation_store_active_caller_readback",
+        "opl_supervisor_decision_engine_active_caller_readback",
+    ],
+    "mas_policy_projection_can_satisfy_readback": False,
+    "mas_request_projection_can_satisfy_readback": False,
+    "focused_tests_can_satisfy_readback": False,
+    "repo_no_authority_guard_can_satisfy_readback": False,
+    "physical_delete_allowed_without_tail_proof": False,
+}
+OBLIGATION_ACTUATOR_TAIL_READBACK = {
+    "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
+    "status": "tail_open",
+    "runtime_owner": "one-person-lab",
+    "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
+    "required_active_caller_readbacks": [
+        "opl_recovery_obligation_store_active_caller_readback",
+        "opl_supervisor_decision_engine_active_caller_readback",
+    ],
+    "required_before_physical_delete": (
+        "domain_health_diagnostic_obligation_actuator_"
+        "opl_obligation_actuator_tail_readback_ref"
+    ),
+    "physical_delete_requires": [
+        "opl_recovery_obligation_store_active_caller_readback",
+        "opl_supervisor_decision_engine_active_caller_readback",
+        "no_active_mas_obligation_actuator_caller_scan",
+        "no_forbidden_write_proof",
+        "owner_retirement_decision",
+        "tombstone_or_provenance",
+    ],
+    "tail_readback_proven": False,
+    "no_active_mas_obligation_actuator_caller_proven": False,
+    "physical_delete_allowed": False,
+    "mas_policy_projection_can_satisfy_readback": False,
+    "mas_request_projection_can_satisfy_readback": False,
+    "repo_no_authority_guard_can_satisfy_readback": False,
+    "focused_tests_can_satisfy_readback": False,
+    "forbidden_completion_claims": [
+        "repo_no_authority_guard_as_obligation_actuator_tail_readback",
+        "mas_policy_projection_as_opl_recovery_obligation_store_readback",
+        "mas_transition_request_as_supervisor_decision_engine_readback",
+        "focused_tests_green_as_no_active_obligation_actuator_caller",
+        "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback",
+    ],
+}
 
 
 def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only() -> None:
@@ -281,6 +339,9 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         ],
         "request_projection_only_can_satisfy_success": False,
     }
+    assert actuator["opl_obligation_actuator_tail_readback"] == (
+        OBLIGATION_ACTUATOR_TAIL_READBACK
+    )
     assert actuator["obligation_readback_boundary"] == {
         "request_projection_is_success_outcome": False,
         "success_proof_required_for_postcondition_ok": True,
@@ -303,6 +364,9 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         ),
         "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
         "actuator_can_write_private_blocker_surface": False,
+        "opl_obligation_actuator_tail_readback_requirement": (
+            OBLIGATION_ACTUATOR_TAIL_READBACK_REQUIREMENT
+        ),
     }
     assert actuator["mas_typed_blocker_authority_result_adapter"] == (
         "med_autoscience.controllers.domain_health_diagnostic_parts."
@@ -391,12 +455,20 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     )
     actuator_tail = evidence_tails["domain_health_diagnostic_obligation_actuator"]
     assert (
+        "domain_health_diagnostic_obligation_actuator_opl_obligation_actuator_tail_readback_ref"
+        in actuator_tail["required_ref_families"]
+    )
+    assert (
         "domain_health_diagnostic_obligation_actuator_owner_retirement_decision_ref"
         in actuator_tail["required_ref_families"]
     )
     assert (
         "domain_health_diagnostic_obligation_actuator_no_active_caller_scan_ref"
         in actuator_tail["required_ref_families"]
+    )
+    assert (
+        "mas_policy_projection_as_opl_recovery_obligation_store_readback"
+        in actuator_tail["forbidden_completion_interpretations"]
     )
     arsenal_tail = evidence_tails["agent_tool_arsenal_scientific_capability_registry"]
     assert (
@@ -510,6 +582,21 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces["domain_health_diagnostic_obligation_actuator"]["authority_status"] == (
         "consume_only_readback_projection_live_tail_open"
     )
+    assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
+        "obligation_actuator_tail_status"
+    ] == "tail_open"
+    assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
+        "obligation_actuator_tail_readback_proven"
+    ] is False
+    assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
+        "obligation_actuator_no_active_caller_proven"
+    ] is False
+    assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
+        "obligation_actuator_physical_delete_allowed"
+    ] is False
+    assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
+        "obligation_actuator_required_active_caller_readback_count"
+    ] == 2
     assert open_surfaces["domain_owner_action_dispatch"]["authority_status"] == (
         "opl_authorized_owner_callable_adapter_live_tail_open"
     )
@@ -1187,6 +1274,21 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     obligation["obligation_readback_boundary"][
         "read_model_evidence_refs_can_satisfy_success"
     ] = True
+    obligation["obligation_readback_boundary"][
+        "opl_obligation_actuator_tail_readback_requirement"
+    ]["repo_no_authority_guard_can_satisfy_readback"] = True
+    obligation["obligation_readback_boundary"][
+        "opl_obligation_actuator_tail_readback_requirement"
+    ]["mas_request_projection_can_satisfy_readback"] = True
+    obligation["opl_obligation_actuator_tail_readback"]["tail_readback_proven"] = True
+    obligation["opl_obligation_actuator_tail_readback"][
+        "no_active_mas_obligation_actuator_caller_proven"
+    ] = True
+    obligation["opl_obligation_actuator_tail_readback"]["physical_delete_allowed"] = True
+    obligation["opl_obligation_actuator_tail_readback"][
+        "mas_policy_projection_can_satisfy_readback"
+    ] = True
+    obligation["opl_obligation_actuator_tail_readback"]["forbidden_completion_claims"] = []
     obligation["typed_blocker_authority_result_adapter_boundary"][
         "actuator_private_write_authority"
     ] = True
@@ -1243,6 +1345,30 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         ),
         (
             "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_readback_tail_forbidden:repo_no_authority_guard_can_satisfy_readback",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_tail_must_not_claim_readback_proven",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_tail_must_not_claim_no_active_caller",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_tail_must_not_allow_physical_delete",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_tail_forbidden:mas_policy_projection_can_satisfy_readback",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_tail_missing_false_completion_guards",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
             (
                 "truthy_authority_flag:typed_blocker_authority_result_adapter_boundary."
                 "actuator_private_write_authority"
@@ -1265,6 +1391,33 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "domain_health_diagnostic_obligation_actuator",
             "obligation_actuator_direct_filesystem_write_not_retired",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_tail_must_not_claim_readback_proven",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_tail_must_not_claim_no_active_caller",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_tail_must_not_allow_physical_delete",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_tail_forbidden:mas_policy_projection_can_satisfy_readback",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            "obligation_actuator_tail_missing_false_completion_guards",
+        ),
+        (
+            "domain_health_diagnostic_obligation_actuator",
+            (
+                "obligation_actuator_readback_tail_forbidden:"
+                "mas_request_projection_can_satisfy_readback"
+            ),
         ),
         (
             "domain_health_diagnostic_obligation_actuator",

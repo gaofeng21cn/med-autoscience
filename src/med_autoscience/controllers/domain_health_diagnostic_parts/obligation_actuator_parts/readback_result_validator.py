@@ -28,6 +28,29 @@ OPL_FOUNDATION_CONSUMED_SURFACES = (
     "HumanGateTransport",
     "StageRunIdentityPacket",
 )
+OPL_OBLIGATION_ACTUATOR_TAIL_PROOF_REQUIRED = (
+    "opl_recovery_obligation_store_active_caller_readback",
+    "opl_supervisor_decision_engine_active_caller_readback",
+    "no_active_mas_obligation_actuator_caller_scan",
+    "no_forbidden_write_proof",
+    "owner_retirement_decision",
+    "tombstone_or_provenance",
+)
+OPL_OBLIGATION_ACTUATOR_LIVE_READBACK_REQUIREMENT = {
+    "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
+    "runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
+    "required_before_physical_delete": list(OPL_OBLIGATION_ACTUATOR_TAIL_PROOF_REQUIRED),
+    "required_active_caller_readbacks": [
+        "opl_recovery_obligation_store_active_caller_readback",
+        "opl_supervisor_decision_engine_active_caller_readback",
+    ],
+    "mas_policy_projection_can_satisfy_readback": False,
+    "mas_request_projection_can_satisfy_readback": False,
+    "focused_tests_can_satisfy_readback": False,
+    "repo_no_authority_guard_can_satisfy_readback": False,
+    "physical_delete_allowed_without_tail_proof": False,
+}
 CONSUMED_READBACK_IDENTITY_SURFACE = "consumed_obligation_readback_identity"
 ACCEPTED_OBLIGATION_OUTCOME_KINDS = (
     "transition_request_pending",
@@ -94,6 +117,9 @@ VALIDATOR_AUTHORITY_BOUNDARY = {
     "consumed_readback_identity_surface_kind": CONSUMED_READBACK_IDENTITY_SURFACE,
     "mas_domain_authority_readback_requires_authority_boundary": True,
     "read_model_evidence_refs_can_satisfy_success": False,
+    "opl_obligation_actuator_tail_readback_requirement": dict(
+        OPL_OBLIGATION_ACTUATOR_LIVE_READBACK_REQUIREMENT
+    ),
 }
 CONSUME_ONLY_READBACK_BOUNDARY = {
     "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
@@ -121,6 +147,9 @@ CONSUME_ONLY_READBACK_BOUNDARY = {
     "mas_domain_authority_readback_requires_authority_boundary": True,
     "read_model_evidence_refs_can_satisfy_success": False,
     "readback_result_validator_boundary": dict(VALIDATOR_AUTHORITY_BOUNDARY),
+    "opl_obligation_actuator_tail_readback_requirement": dict(
+        OPL_OBLIGATION_ACTUATOR_LIVE_READBACK_REQUIREMENT
+    ),
 }
 ACTUATOR_AUTHORITY_BOUNDARY = {
     "surface_kind": "mas_obligation_outcome_projection_authority_boundary",
@@ -166,6 +195,9 @@ ACTUATOR_AUTHORITY_BOUNDARY = {
     "read_model_evidence_refs_can_satisfy_success": False,
     "readback_result_validator_boundary": dict(VALIDATOR_AUTHORITY_BOUNDARY),
     "consume_only_readback_boundary": dict(CONSUME_ONLY_READBACK_BOUNDARY),
+    "opl_obligation_actuator_tail_readback_requirement": dict(
+        OPL_OBLIGATION_ACTUATOR_LIVE_READBACK_REQUIREMENT
+    ),
 }
 
 
@@ -175,6 +207,10 @@ def readback_result_validator_boundary() -> dict[str, Any]:
 
 def consume_only_readback_boundary() -> dict[str, Any]:
     return dict(CONSUME_ONLY_READBACK_BOUNDARY)
+
+
+def opl_obligation_actuator_tail_readback_requirement() -> dict[str, Any]:
+    return dict(OPL_OBLIGATION_ACTUATOR_LIVE_READBACK_REQUIREMENT)
 
 
 def allowed_outcomes_for_policy_label(policy_label: str | None) -> set[str]:

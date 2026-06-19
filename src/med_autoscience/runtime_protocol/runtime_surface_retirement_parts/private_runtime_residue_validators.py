@@ -759,6 +759,65 @@ def validate_domain_health_diagnostic_obligation_actuator(
         if not isinstance(physical_delete_requires, list) or not required_physical_delete <= set(physical_delete_requires):
             violations.append(_violation(surface_id, "obligation_actuator_physical_delete_gate_incomplete"))
 
+    tail = surface.get("opl_obligation_actuator_tail_readback")
+    if not isinstance(tail, Mapping):
+        violations.append(_violation(surface_id, "obligation_actuator_missing_opl_tail_readback_requirement"))
+    else:
+        if tail.get("surface_kind") != "opl_obligation_actuator_tail_readback_requirement":
+            violations.append(_violation(surface_id, "obligation_actuator_tail_readback_kind_invalid"))
+        if tail.get("runtime_owner") != "one-person-lab":
+            violations.append(_violation(surface_id, "obligation_actuator_tail_runtime_owner_not_opl"))
+        if tail.get("runtime_kind") != "RecoveryObligationStore/SupervisorDecisionEngine":
+            violations.append(_violation(surface_id, "obligation_actuator_tail_runtime_kind_invalid"))
+        required_readbacks = {
+            "opl_recovery_obligation_store_active_caller_readback",
+            "opl_supervisor_decision_engine_active_caller_readback",
+        }
+        active_readbacks = tail.get("required_active_caller_readbacks")
+        if not isinstance(active_readbacks, list) or not required_readbacks <= {
+            str(item) for item in active_readbacks
+        }:
+            violations.append(_violation(surface_id, "obligation_actuator_tail_active_readbacks_incomplete"))
+        required_tail_refs = {
+            "opl_recovery_obligation_store_active_caller_readback",
+            "opl_supervisor_decision_engine_active_caller_readback",
+            "no_active_mas_obligation_actuator_caller_scan",
+            "no_forbidden_write_proof",
+            "owner_retirement_decision",
+            "tombstone_or_provenance",
+        }
+        physical_tail_requires = tail.get("physical_delete_requires")
+        if not isinstance(physical_tail_requires, list) or not required_tail_refs <= {
+            str(item) for item in physical_tail_requires
+        }:
+            violations.append(_violation(surface_id, "obligation_actuator_tail_physical_delete_refs_incomplete"))
+        if tail.get("tail_readback_proven") is not False:
+            violations.append(_violation(surface_id, "obligation_actuator_tail_must_not_claim_readback_proven"))
+        if tail.get("no_active_mas_obligation_actuator_caller_proven") is not False:
+            violations.append(_violation(surface_id, "obligation_actuator_tail_must_not_claim_no_active_caller"))
+        if tail.get("physical_delete_allowed") is not False:
+            violations.append(_violation(surface_id, "obligation_actuator_tail_must_not_allow_physical_delete"))
+        for key in (
+            "mas_policy_projection_can_satisfy_readback",
+            "mas_request_projection_can_satisfy_readback",
+            "repo_no_authority_guard_can_satisfy_readback",
+            "focused_tests_can_satisfy_readback",
+        ):
+            if tail.get(key) is not False:
+                violations.append(_violation(surface_id, f"obligation_actuator_tail_forbidden:{key}"))
+        forbidden_claims = tail.get("forbidden_completion_claims")
+        required_false_claims = {
+            "repo_no_authority_guard_as_obligation_actuator_tail_readback",
+            "mas_policy_projection_as_opl_recovery_obligation_store_readback",
+            "mas_transition_request_as_supervisor_decision_engine_readback",
+            "focused_tests_green_as_no_active_obligation_actuator_caller",
+            "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback",
+        }
+        if not isinstance(forbidden_claims, list) or not required_false_claims <= {
+            str(item) for item in forbidden_claims
+        }:
+            violations.append(_violation(surface_id, "obligation_actuator_tail_missing_false_completion_guards"))
+
     readback = surface.get("obligation_readback_boundary")
     if not isinstance(readback, Mapping):
         violations.append(_violation(surface_id, "obligation_actuator_missing_readback_boundary"))
@@ -787,6 +846,25 @@ def validate_domain_health_diagnostic_obligation_actuator(
             violations.append(_violation(surface_id, "obligation_actuator_readback_table_is_decision_engine"))
         if readback.get("actuator_can_write_private_blocker_surface") is not False:
             violations.append(_violation(surface_id, "obligation_actuator_readback_can_write_private_blocker"))
+        tail_requirement = readback.get("opl_obligation_actuator_tail_readback_requirement")
+        if not isinstance(tail_requirement, Mapping):
+            violations.append(_violation(surface_id, "obligation_actuator_readback_missing_tail_requirement"))
+        else:
+            if tail_requirement.get("runtime_owner") != "one-person-lab":
+                violations.append(_violation(surface_id, "obligation_actuator_readback_tail_owner_not_opl"))
+            if tail_requirement.get("runtime_kind") != "RecoveryObligationStore/SupervisorDecisionEngine":
+                violations.append(_violation(surface_id, "obligation_actuator_readback_tail_kind_invalid"))
+            for key in (
+                "mas_policy_projection_can_satisfy_readback",
+                "mas_request_projection_can_satisfy_readback",
+                "focused_tests_can_satisfy_readback",
+                "repo_no_authority_guard_can_satisfy_readback",
+                "physical_delete_allowed_without_tail_proof",
+            ):
+                if tail_requirement.get(key) is not False:
+                    violations.append(
+                        _violation(surface_id, f"obligation_actuator_readback_tail_forbidden:{key}")
+                    )
         source_families = readback.get("success_outcome_source_families")
         required_families = {
             "opl_runtime_readback",

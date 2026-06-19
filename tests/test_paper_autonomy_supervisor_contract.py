@@ -10,6 +10,28 @@ pytestmark = pytest.mark.meta
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "paper_autonomy_supervisor_contract.json"
+OBLIGATION_ACTUATOR_TAIL_READBACK_REQUIREMENT = {
+    "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
+    "runtime_owner": "one-person-lab",
+    "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
+    "required_before_physical_delete": [
+        "opl_recovery_obligation_store_active_caller_readback",
+        "opl_supervisor_decision_engine_active_caller_readback",
+        "no_active_mas_obligation_actuator_caller_scan",
+        "no_forbidden_write_proof",
+        "owner_retirement_decision",
+        "tombstone_or_provenance",
+    ],
+    "required_active_caller_readbacks": [
+        "opl_recovery_obligation_store_active_caller_readback",
+        "opl_supervisor_decision_engine_active_caller_readback",
+    ],
+    "mas_policy_projection_can_satisfy_readback": False,
+    "mas_request_projection_can_satisfy_readback": False,
+    "focused_tests_can_satisfy_readback": False,
+    "repo_no_authority_guard_can_satisfy_readback": False,
+    "physical_delete_allowed_without_tail_proof": False,
+}
 
 
 def _contract() -> dict[str, object]:
@@ -400,6 +422,9 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         "local_allowed_outcome_table_role": (
             "contract_bound_result_shape_validation_not_supervisor_decision_engine"
         ),
+        "opl_obligation_actuator_tail_readback_requirement": (
+            OBLIGATION_ACTUATOR_TAIL_READBACK_REQUIREMENT
+        ),
     }
     assert readback["consume_only_readback_boundary"] == {
         "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
@@ -446,7 +471,13 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
             "mas_can_create_opl_command_event_or_outbox": False,
             "mas_can_generate_human_gate_resume_token": False,
             "request_projection_only_can_satisfy_success": False,
+            "opl_obligation_actuator_tail_readback_requirement": (
+                OBLIGATION_ACTUATOR_TAIL_READBACK_REQUIREMENT
+            ),
         },
+        "opl_obligation_actuator_tail_readback_requirement": (
+            OBLIGATION_ACTUATOR_TAIL_READBACK_REQUIREMENT
+        ),
     }
     opl_readback = readback["opl_transition_readback_contract"]
     assert opl_readback["surface_kind"] == "opl_domain_progress_transition_result"

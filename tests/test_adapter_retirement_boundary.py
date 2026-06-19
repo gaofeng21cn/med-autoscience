@@ -601,7 +601,20 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
         ),
         "fail_closed_typed_blocker_surface": "mas_domain_typed_blocker",
         "actuator_can_write_private_blocker_surface": False,
+        "opl_obligation_actuator_tail_readback_requirement": obligation_actuator[
+            "obligation_readback_boundary"
+        ]["opl_obligation_actuator_tail_readback_requirement"],
     }
+    tail = obligation_actuator["opl_obligation_actuator_tail_readback"]
+    assert tail["status"] == "tail_open"
+    assert tail["tail_readback_proven"] is False
+    assert tail["no_active_mas_obligation_actuator_caller_proven"] is False
+    assert tail["physical_delete_allowed"] is False
+    assert tail["mas_policy_projection_can_satisfy_readback"] is False
+    assert tail["mas_request_projection_can_satisfy_readback"] is False
+    assert obligation_actuator["obligation_readback_boundary"][
+        "opl_obligation_actuator_tail_readback_requirement"
+    ]["physical_delete_allowed_without_tail_proof"] is False
     assert obligation_actuator["mas_typed_blocker_authority_result_adapter"] == (
         "med_autoscience.controllers.domain_health_diagnostic_parts."
         "obligation_actuator_parts.mas_domain_typed_blocker_authority_result"
