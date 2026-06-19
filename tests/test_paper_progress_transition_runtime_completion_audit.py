@@ -214,22 +214,32 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     assert live_runtime["live_tail_work_order_refs"] == [
         "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
     ]
-    assert live_runtime["live_tail_evidence_intake_refs"] == [
+    assert live_runtime["live_tail_evidence_intake_refs"][:1] == [
         (
             "contracts/runtime/mas-runtime-live-tail-work-orders.json#/"
             "completion_claim_boundary/evidence_record_schema"
         )
     ]
+    assert (
+        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/"
+        "completion_claim_boundary/evidence_record_schema/"
+        "transition_identity_ref_required_for_families"
+    ) in live_runtime["live_tail_evidence_intake_refs"]
     assert live_runtime["open_live_runtime_work_order_surface_ids"] == live_tail_surface_ids
     assert live_runtime["live_runtime_gap_work_order_refs"] == [
         "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
     ]
-    assert live_runtime["live_runtime_gap_evidence_intake_refs"] == [
+    assert live_runtime["live_runtime_gap_evidence_intake_refs"][:1] == [
         (
             "contracts/runtime/mas-live-runtime-gap-work-orders.json#/"
             "completion_claim_boundary/evidence_record_schema"
         )
     ]
+    assert (
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/"
+        "completion_claim_boundary/evidence_record_schema/"
+        "transition_identity_ref_required_for_families"
+    ) in live_runtime["live_runtime_gap_evidence_intake_refs"]
     assert live_runtime["open_live_runtime_gap_work_order_ids"] == live_runtime_gap_ids
     assert live_runtime["live_runtime_evidence_rollup_refs"] == [
         "contracts/runtime/mas-live-runtime-evidence-rollup.json"
@@ -252,8 +262,32 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
             "fresh DM002/DM003 owner receipt, stable typed blocker, human gate, "
             "route-back evidence, strict running proof, or paper/gate/artifact semantic delta"
         ),
+        (
+            "live evidence records for same-transition gaps must carry study_id, "
+            "work_unit_id, work_unit_fingerprint, route_identity_key, and "
+            "attempt_idempotency_key"
+        ),
+        (
+            "live-tail readback evidence for active runtime surfaces must carry "
+            "the same current transition identity unless it is no-active-caller/"
+            "tombstone/replacement evidence"
+        ),
     } <= set(live_runtime["required_evidence"])
-    assert "repo_source_retirement_complete" in live_runtime["false_live_completion_claims"]
+    assert {
+        "repo_source_retirement_complete",
+        "accepted_ref_family_without_current_transition_identity",
+        "concrete_evidence_ref_without_current_transition_identity",
+        "cross_identity_live_readback_as_same_transition_evidence",
+    } <= set(live_runtime["false_live_completion_claims"])
+    assert live_runtime["live_runtime_gap_evidence_transition_identity_required"] is True
+    assert live_runtime["live_tail_readback_evidence_transition_identity_required"] is True
+    assert live_runtime["live_evidence_transition_identity_fields"] == [
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key",
+    ]
 
     policy = audit["completion_claim_policy"]
     assert policy["repo_source_retirement_can_complete_without_live_runtime_evidence"] is True

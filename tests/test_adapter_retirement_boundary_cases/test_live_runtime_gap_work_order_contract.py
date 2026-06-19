@@ -114,6 +114,32 @@ def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None
         schema["missing_concrete_evidence_ref_blocks_live_runtime_readiness_claim"]
         is True
     )
+    assert schema["transition_identity_ref_required_for_families"] == [
+        "DHD_apply_exactly_one_live_outcome_ref",
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref",
+        "OPL_command_event_outbox_live_readback_ref",
+        "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref",
+        "StageRun_identity_packet_currentness_ref",
+        "fresh_DM002_DM003_paper_line_accepted_outcome_ref",
+        "provider_admission_arbiter_consumes_opl_transition_event_ref",
+        "same_identity_opl_provider_admission_live_readback_ref",
+    ]
+    assert schema["transition_identity_ref_fields"] == [
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key",
+    ]
+    assert schema["missing_transition_identity_ref_status"] == "typed_blocker_required"
+    assert (
+        schema["same_identity_family_without_transition_identity_can_satisfy_work_order"]
+        is False
+    )
+    assert (
+        schema["missing_transition_identity_ref_blocks_live_runtime_readiness_claim"]
+        is True
+    )
 
     expected = {
         order["gap_id"]: order
@@ -159,6 +185,7 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
                     "same_identity_opl_provider_admission_live_readback_ref"
                 )
             ],
+            **_transition_identity(),
         },
     )
     assert accepted["status"] == "satisfied_by_accepted_ref"
@@ -183,6 +210,7 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
             "evidence_substitutes": [
                 "provider_admission_same_identity_replay_as_fresh_opl_readback"
             ],
+            **_transition_identity(),
         },
     )
     assert forbidden["status"] == "typed_blocker_required"
@@ -208,6 +236,7 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
                     "same_identity_opl_provider_admission_live_readback_ref"
                 )
             ],
+            **_transition_identity(),
         },
     )
     assert false_ready_claim["status"] == "typed_blocker_required"
@@ -235,6 +264,7 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
                     "same_identity_opl_provider_admission_live_readback_ref"
                 )
             ],
+            **_transition_identity(),
         },
     )
     assert non_forbidden_word_boundary["status"] == "satisfied_by_accepted_ref"
@@ -298,6 +328,28 @@ def test_live_runtime_gap_contract_rejects_undeclared_concrete_evidence_ref_fiel
     } in violations
 
 
+def test_live_runtime_gap_contract_rejects_missing_transition_identity_schema() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+    )
+    completion = _completion_audit()
+    contract = _contract()
+    bad_contract = json.loads(json.dumps(contract))
+    bad_contract["completion_claim_boundary"]["evidence_record_schema"].pop(
+        "transition_identity_ref_required_for_families"
+    )
+
+    violations = work_orders.validate_live_runtime_gap_work_order_contract(
+        bad_contract,
+        completion,
+    )
+
+    assert {
+        "gap_id": "<contract>",
+        "reason": "transition_identity_ref_families_mismatch",
+    } in violations
+
+
 def test_live_runtime_gap_evidence_requires_concrete_authority_outcome_ref() -> None:
     work_orders = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
@@ -333,6 +385,7 @@ def test_live_runtime_gap_evidence_requires_concrete_authority_outcome_ref() -> 
             "evidence_source": "mas_owner_gate:typed-blocker-recorded",
             "evidence_ref_families": [authority_family],
             "typed_blocker_ref": "typed-blocker:dm003:no-selected-dispatch",
+            **_transition_identity(),
         },
     )
 
@@ -386,6 +439,7 @@ def test_live_runtime_gap_evidence_requires_concrete_evidence_ref_for_opl_famili
             "evidence_refs": [
                 f"live-gap-evidence:{provider_readback['gap_id']}:{ref_family}"
             ],
+            **_transition_identity(),
         },
     )
 
@@ -393,6 +447,64 @@ def test_live_runtime_gap_evidence_requires_concrete_evidence_ref_for_opl_famili
     assert concrete_ref["missing_concrete_evidence_ref_families"] == []
     assert concrete_ref["concrete_evidence_ref_fields_present"] == ["evidence_refs"]
     assert concrete_ref["live_runtime_readiness_claim_allowed"] is True
+
+
+def test_live_runtime_gap_evidence_requires_current_transition_identity() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+    )
+    contract = _contract()
+    provider_readback = next(
+        order
+        for order in contract["work_orders"]
+        if (
+            "same_identity_opl_provider_admission_live_readback_ref"
+            in order["acceptable_evidence_ref_families"]
+        )
+    )
+    ref_family = "same_identity_opl_provider_admission_live_readback_ref"
+
+    generic_live_ref = work_orders.evaluate_live_runtime_gap_evidence_record(
+        provider_readback,
+        {
+            "gap_id": provider_readback["gap_id"],
+            "evidence_source": "opl_live_readback:provider-admission:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [ref_family],
+            "evidence_refs": [
+                f"live-gap-evidence:{provider_readback['gap_id']}:{ref_family}"
+            ],
+        },
+    )
+
+    assert generic_live_ref["status"] == "typed_blocker_required"
+    assert generic_live_ref["missing_transition_identity_ref_families"] == [ref_family]
+    assert generic_live_ref["transition_identity_ref_fields_present"] == []
+    assert generic_live_ref["live_runtime_readiness_claim_allowed"] is False
+
+    incomplete_identity = work_orders.evaluate_live_runtime_gap_evidence_record(
+        provider_readback,
+        {
+            "gap_id": provider_readback["gap_id"],
+            "evidence_source": "opl_live_readback:provider-admission:2026-06-20T00:00:00Z",
+            "evidence_ref_families": [ref_family],
+            "evidence_refs": [
+                f"live-gap-evidence:{provider_readback['gap_id']}:{ref_family}"
+            ],
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        },
+    )
+
+    assert incomplete_identity["status"] == "typed_blocker_required"
+    assert incomplete_identity["missing_transition_identity_ref_families"] == [
+        ref_family
+    ]
+    assert incomplete_identity["transition_identity_ref_fields_present"] == [
+        "study_id",
+        "work_unit_fingerprint",
+        "work_unit_id",
+    ]
 
 
 def test_live_runtime_gap_direct_evaluator_rejects_mismatched_gap_id() -> None:
@@ -419,6 +531,7 @@ def test_live_runtime_gap_direct_evaluator_rejects_mismatched_gap_id() -> None:
             "evidence_refs": [
                 f"live-gap-evidence:{provider_readback['gap_id']}:{ref_family}"
             ],
+            **_transition_identity(),
         },
     )
 
@@ -461,6 +574,7 @@ def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
                         f"{first_order['acceptable_evidence_ref_families'][0]}"
                     )
                 ],
+                **_transition_identity(),
             }
         ],
     )
@@ -483,6 +597,7 @@ def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
                         f"{first_order['acceptable_evidence_ref_families'][0]}"
                     )
                 ],
+                **_transition_identity(),
             }
         ],
     )
@@ -562,4 +677,15 @@ def _satisfying_gap_record(order: dict) -> dict:
     }
     if ref_family == "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref":
         record["typed_blocker_ref"] = f"typed-blocker:{order['gap_id']}"
+    record.update(_transition_identity())
     return record
+
+
+def _transition_identity() -> dict[str, str]:
+    return {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "route_identity_key": "provider-admission::003::publication-blockers",
+        "attempt_idempotency_key": "provider-admission::003::publication-blockers",
+    }

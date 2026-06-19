@@ -58,6 +58,13 @@ FORBIDDEN_EVIDENCE_SOURCE_PREFIXES = (
     "repo_tests",
     "scripts_verify",
 )
+TRANSITION_IDENTITY_REF_FIELDS = (
+    "study_id",
+    "work_unit_id",
+    "work_unit_fingerprint",
+    "route_identity_key",
+    "attempt_idempotency_key",
+)
 
 
 def live_tail_work_orders_from_audit(audit: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -182,6 +189,45 @@ def validate_live_tail_work_order_contract(
                     "missing_authority_outcome_ref_does_not_block_live_readiness",
                 )
             )
+    required_transition_families = set(
+        _text_list(schema.get("transition_identity_ref_required_for_families"))
+    )
+    accepted_ref_families = {
+        text
+        for order in contract.get("work_orders", [])
+        if isinstance(order, Mapping)
+        for text in _text_list(order.get("acceptable_evidence_ref_families"))
+    }
+    expected_transition_families = {
+        family
+        for family in accepted_ref_families
+        if _tail_family_requires_transition_identity(family)
+    }
+    if required_transition_families != expected_transition_families:
+        violations.append(_violation("<contract>", "transition_identity_ref_families_mismatch"))
+    if _text_list(schema.get("transition_identity_ref_fields")) != list(
+        TRANSITION_IDENTITY_REF_FIELDS
+    ):
+        violations.append(_violation("<contract>", "transition_identity_ref_fields_mismatch"))
+    if schema.get("missing_transition_identity_ref_status") != "typed_blocker_required":
+        violations.append(_violation("<contract>", "missing_transition_identity_ref_status"))
+    if (
+        schema.get("same_identity_family_without_transition_identity_can_satisfy_work_order")
+        is not False
+    ):
+        violations.append(
+            _violation("<contract>", "same_identity_without_transition_identity_can_satisfy")
+        )
+    if (
+        schema.get("missing_transition_identity_ref_blocks_live_runtime_readiness_claim")
+        is not True
+    ):
+        violations.append(
+            _violation(
+                "<contract>",
+                "missing_transition_identity_ref_does_not_block_live_readiness",
+            )
+        )
 
     expected = {
         order["surface_id"]: order
@@ -247,6 +293,10 @@ def evaluate_live_tail_evidence_record(
         evidence_record,
     )
     missing_concrete_evidence_ref_families = matched_refs if not concrete_ref_fields else []
+    missing_transition_identity_ref_families = _missing_transition_identity_ref_families(
+        matched_refs,
+        evidence_record,
+    )
     evidence_source = _text(evidence_record.get("evidence_source"))
     accepted_source_prefix = _accepted_evidence_source_prefix(evidence_source)
     forbidden_source_prefixes = _forbidden_evidence_source_prefixes(evidence_source)
@@ -260,6 +310,7 @@ def evaluate_live_tail_evidence_record(
         and not forbidden_claim_terms
         and not missing_authority_outcome_refs
         and not missing_concrete_evidence_ref_families
+        and not missing_transition_identity_ref_families
         and accepted_source_prefix is not None
         and not forbidden_source_prefixes
     )
@@ -277,6 +328,10 @@ def evaluate_live_tail_evidence_record(
         ),
         "missing_concrete_evidence_ref_families": missing_concrete_evidence_ref_families,
         "concrete_evidence_ref_fields_present": concrete_ref_fields,
+        "missing_transition_identity_ref_families": missing_transition_identity_ref_families,
+        "transition_identity_ref_fields_present": _transition_identity_ref_fields_present(
+            evidence_record
+        ),
         "accepted_evidence_source_prefix": accepted_source_prefix,
         "forbidden_evidence_source_prefixes_present": forbidden_source_prefixes,
         "typed_blocker": None if satisfied else typed_blocker,
@@ -481,6 +536,51 @@ def _missing_authority_outcome_ref_families(
     return matched_required_families
 
 
+def _transition_identity_ref_fields_present(evidence_record: Mapping[str, Any]) -> list[str]:
+    return sorted(
+        field
+        for field in TRANSITION_IDENTITY_REF_FIELDS
+        if _text(evidence_record.get(field)) is not None
+    )
+
+
+def _missing_transition_identity_ref_families(
+    matched_refs: list[str],
+    evidence_record: Mapping[str, Any],
+) -> list[str]:
+    matched_required_families = sorted(
+        family for family in matched_refs if _tail_family_requires_transition_identity(family)
+    )
+    if not matched_required_families:
+        return []
+    if set(_transition_identity_ref_fields_present(evidence_record)) == set(
+        TRANSITION_IDENTITY_REF_FIELDS
+    ):
+        return []
+    return matched_required_families
+
+
+def _tail_family_requires_transition_identity(ref_family: str) -> bool:
+    markers = (
+        "live_readback",
+        "running_proof",
+        "current_owner_delta_readback",
+        "current_control_readback",
+        "domain_progress_transition_runtime_readback",
+        "provider_hosted_stage_packet",
+        "stage_native_owner_action",
+        "execute_dispatch",
+        "authorization_live_readback",
+        "live_every_active_caller_soak",
+        "live_opl",
+        "tail_readback",
+    )
+    excluded = ("no_active", "tombstone", "replacement_parity", "no_forbidden_write")
+    return any(marker in ref_family for marker in markers) and not any(
+        marker in ref_family for marker in excluded
+    )
+
+
 def _undeclared_concrete_evidence_ref_fields(schema: Mapping[str, Any]) -> list[str]:
     declared_fields = set(_text_list(schema.get("required_fields"))) | set(
         _text_list(schema.get("optional_fields"))
@@ -577,6 +677,7 @@ __all__ = [
     "CONCRETE_EVIDENCE_REF_FIELDS",
     "FORBIDDEN_EVIDENCE_SOURCE_PREFIXES",
     "FORBIDDEN_CLAIM_TERMS",
+    "TRANSITION_IDENTITY_REF_FIELDS",
     "evaluate_live_tail_evidence_record",
     "live_tail_evidence_intake_summary",
     "live_tail_work_orders_from_audit",

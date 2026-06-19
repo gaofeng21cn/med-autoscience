@@ -28,7 +28,12 @@
         "owner_receipt_ref",
         "typed_blocker_ref",
         "human_gate_ref",
-        "route_back_ref"
+        "route_back_ref",
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key"
       ],
       "forbidden_claim_terms": [
         "domain-ready",
@@ -99,7 +104,44 @@
       ],
       "missing_authority_outcome_ref_status": "typed_blocker_required",
       "authority_family_without_outcome_ref_can_satisfy_work_order": false,
-      "missing_authority_outcome_ref_blocks_live_runtime_readiness_claim": true
+      "missing_authority_outcome_ref_blocks_live_runtime_readiness_claim": true,
+      "transition_identity_ref_required_for_families": [
+        "agent_tool_arsenal_explicit_capability_request_resolution_live_readback_ref",
+        "agent_tool_arsenal_live_owner_consumption_soak_current_owner_delta_readback_ref",
+        "domain_health_diagnostic_obligation_actuator_opl_obligation_actuator_tail_readback_ref",
+        "domain_owner_action_dispatch_ai_reviewer_authorization_live_readback_ref",
+        "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref",
+        "domain_owner_action_dispatch_execute_dispatch_live_readback_ref",
+        "domain_owner_action_dispatch_gate_clearing_authorization_live_readback_ref",
+        "domain_owner_action_dispatch_live_every_active_caller_soak_ref",
+        "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref",
+        "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref",
+        "domain_owner_action_dispatch_study_progress_running_proof_live_readback_ref",
+        "progress_portal_study_workbench_overview_action_projection_opl_current_control_readback_ref",
+        "progress_portal_study_workbench_overview_action_projection_opl_domain_progress_transition_runtime_readback_ref",
+        "runtime_health_kernel_live_opl_observability_readback_ref",
+        "runtime_health_kernel_opl_observability_live_readback_ref",
+        "runtime_health_kernel_opl_route_reconciler_live_readback_ref",
+        "runtime_health_kernel_opl_runtime_health_observability_tail_readback_ref",
+        "runtime_lifecycle_payload_retention_live_opl_cleanup_policy_takeover_ref",
+        "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_cleanup_policy_live_readback_ref",
+        "runtime_lifecycle_payload_retention_opl_runtime_lifecycle_maintenance_tail_readback_ref",
+        "runtime_lifecycle_payload_retention_opl_runtime_retention_policy_live_readback_ref",
+        "runtime_storage_maintenance_live_opl_storage_policy_takeover_ref",
+        "runtime_storage_maintenance_opl_restore_retention_shell_live_readback_ref",
+        "runtime_storage_maintenance_opl_runtime_storage_maintenance_tail_readback_ref",
+        "runtime_storage_maintenance_opl_runtime_storage_policy_live_readback_ref"
+      ],
+      "transition_identity_ref_fields": [
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key"
+      ],
+      "missing_transition_identity_ref_status": "typed_blocker_required",
+      "same_identity_family_without_transition_identity_can_satisfy_work_order": false,
+      "missing_transition_identity_ref_blocks_live_runtime_readiness_claim": true
     }
   },
   "source_refs": [

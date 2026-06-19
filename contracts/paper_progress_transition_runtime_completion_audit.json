@@ -101,7 +101,9 @@
         "same-transition OPL command/event/outbox/StageRun identity readback",
         "DHD apply exactly-one live outcome when explicitly delegated",
         "provider admission or running proof backed by same-identity OPL runtime readback",
-        "fresh DM002/DM003 owner receipt, stable typed blocker, human gate, route-back evidence, strict running proof, or paper/gate/artifact semantic delta"
+        "fresh DM002/DM003 owner receipt, stable typed blocker, human gate, route-back evidence, strict running proof, or paper/gate/artifact semantic delta",
+        "live evidence records for same-transition gaps must carry study_id, work_unit_id, work_unit_fingerprint, route_identity_key, and attempt_idempotency_key",
+        "live-tail readback evidence for active runtime surfaces must carry the same current transition identity unless it is no-active-caller/tombstone/replacement evidence"
       ],
       "fresh_readonly_evidence_refs": [
         "/tmp/mas-progress-dm002-07ab91312-oplb2f707de0-20260619T093631Z.json",
@@ -125,7 +127,10 @@
         "queue_empty",
         "DHD_dry_run",
         "provider_admission_pending_count=0",
-        "transition_request_pending_count=0"
+        "transition_request_pending_count=0",
+        "accepted_ref_family_without_current_transition_identity",
+        "concrete_evidence_ref_without_current_transition_identity",
+        "cross_identity_live_readback_as_same_transition_evidence"
       ],
       "live_tail_work_order_refs": [
         "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
@@ -140,13 +145,15 @@
         "runtime_storage_maintenance"
       ],
       "live_tail_evidence_intake_refs": [
-        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema"
+        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema",
+        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema/transition_identity_ref_required_for_families"
       ],
       "live_runtime_gap_work_order_refs": [
         "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
       ],
       "live_runtime_gap_evidence_intake_refs": [
-        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema"
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema",
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema/transition_identity_ref_required_for_families"
       ],
       "open_live_runtime_gap_work_order_ids": [
         "opl_outbox_and_stagerun_identity_live_readback_for_the_same_transition_request",
@@ -164,7 +171,16 @@
         "repo_source_retirement_blocked_by_missing_live_evidence": false,
         "live_runtime_readiness_claim_requires_all_tail_and_gap_work_orders_satisfied": true,
         "docs_tests_inventory_or_queue_empty_can_satisfy_rollup": false
-      }
+      },
+      "live_runtime_gap_evidence_transition_identity_required": true,
+      "live_tail_readback_evidence_transition_identity_required": true,
+      "live_evidence_transition_identity_fields": [
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key"
+      ]
     }
   },
   "status_values": [
@@ -226,7 +242,21 @@
       "DHD apply exactly-one live outcome when explicitly delegated",
       "provider admission or running proof backed by same-identity OPL runtime readback",
       "fresh DM002/DM003 owner receipt, stable typed blocker, human gate, route-back evidence, strict running proof, or paper/gate/artifact semantic delta"
-    ]
+    ],
+    "live_evidence_transition_identity_gate": {
+      "current_transition_identity_fields": [
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key"
+      ],
+      "gap_evidence_requires_transition_identity_for_all_accepted_families": true,
+      "tail_evidence_requires_transition_identity_for_live_readback_families": true,
+      "missing_transition_identity_ref_result_status": "typed_blocker_required",
+      "same_identity_family_without_transition_identity_can_satisfy_live_readiness": false,
+      "repo_source_retirement_blocked_by_missing_transition_identity": false
+    }
   },
   "feature_audit": [
     {
@@ -719,7 +749,10 @@
     "registry_projection_no_active_scan_as_physical_delete",
     "repo_authorization_coverage_as_live_every_active_caller_soak",
     "current_execution_running_proof_without_opl_readback_as_soak",
-    "study_progress_running_proof_without_opl_readback_as_soak"
+    "study_progress_running_proof_without_opl_readback_as_soak",
+    "accepted_ref_family_without_current_transition_identity",
+    "concrete_evidence_ref_without_current_transition_identity",
+    "cross_identity_live_readback_as_same_transition_evidence"
   ],
   "overall_status": "evidence_tail_open_not_complete",
   "completion_claim_allowed": false,
@@ -915,7 +948,9 @@
         "tests/test_paper_recovery_provider_admission_state.py::test_cross_identity_live_readback_remains_request_pending",
         "tests/test_paper_recovery_provider_admission_state.py::test_bare_event_outbox_or_stagerun_fragments_do_not_authorize_admission",
         "tests/test_paper_recovery_provider_admission_state.py::test_current_work_unit_requires_same_identity_live_readback_for_admission",
-        "contracts/paper_progress_replay_live_evidence_status.json#/replay_to_live_separation_gate"
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_to_live_separation_gate",
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema/transition_identity_ref_required_for_families",
+        "tests/test_adapter_retirement_boundary_cases/test_live_runtime_gap_work_order_contract.py::test_live_runtime_gap_evidence_requires_current_transition_identity"
       ],
       "missing_evidence_tails": [
         "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
@@ -940,7 +975,10 @@
         "provider_admission_same_identity_replay_as_fresh_opl_readback",
         "provider_admission_same_identity_replay_as_live_paper_progress",
         "same_identity_readback_consumes_transition_request_as_paper_line_outcome",
-        "valid_opl_readback_shape_without_claimable_evidence_source"
+        "valid_opl_readback_shape_without_claimable_evidence_source",
+        "accepted_ref_family_without_current_transition_identity",
+        "concrete_evidence_ref_without_current_transition_identity",
+        "cross_identity_live_readback_as_same_transition_evidence"
       ],
       "blocks_repo_source_retirement": false,
       "blocks_final_runtime_paper_acceptance": true,
@@ -1091,7 +1129,10 @@
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_owner_action_dispatch#active_caller_soak_boundary.physical_delete_requires",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_owner_action_dispatch#active_caller_soak_boundary.required_active_caller_readbacks",
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement_parts/private_runtime_residue_validators.py::validate_domain_owner_action_dispatch#owner_dispatch_soak_physical_delete_refs_incomplete",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#domain_owner_action_dispatch_required_active_caller_readbacks"
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#domain_owner_action_dispatch_required_active_caller_readbacks",
+        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema/transition_identity_ref_required_for_families",
+        "tests/test_adapter_retirement_boundary_cases/test_live_tail_work_order_contract.py::test_live_tail_evidence_requires_current_transition_identity_for_readback_families",
+        "tests/test_adapter_retirement_boundary_cases/test_live_tail_work_order_contract.py::test_live_tail_no_active_caller_evidence_does_not_require_transition_identity"
       ],
       "missing_evidence_tails": [
         "OPL outbox and StageRun identity live readback for the same transition request",
@@ -1174,7 +1215,9 @@
         "study_progress_running_proof_without_opl_readback_as_soak",
         "transition_request_pending_as_opl_live_readback",
         "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback",
-        "wildcard_guard_as_live_owner_consumption_soak"
+        "wildcard_guard_as_live_owner_consumption_soak",
+        "live_tail_readback_without_current_transition_identity",
+        "no_active_scan_as_cross_identity_live_readback"
       ],
       "repo_source_retirement_status": "done",
       "repo_source_retirement_completion_percent": 100,
@@ -1329,7 +1372,8 @@
     "domain_owner_action_dispatch gate clearing authorization live readback",
     "domain_owner_action_dispatch current-execution running proof live readback",
     "domain_owner_action_dispatch study-progress running proof live readback",
-    "domain_owner_action_dispatch no-active owner-callable adapter caller scan proof"
+    "domain_owner_action_dispatch no-active owner-callable adapter caller scan proof",
+    "live evidence records still require current transition identity for claimable same-transition readback families"
   ],
   "non_claims": {
     "all_mas_private_surfaces_physically_retired": false,

@@ -141,6 +141,28 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
         is True
     )
     assert {
+        "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref",
+        "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref",
+        "progress_portal_study_workbench_overview_action_projection_opl_domain_progress_transition_runtime_readback_ref",
+        "runtime_health_kernel_opl_route_reconciler_live_readback_ref",
+    } <= set(schema["transition_identity_ref_required_for_families"])
+    assert schema["transition_identity_ref_fields"] == [
+        "study_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key",
+    ]
+    assert schema["missing_transition_identity_ref_status"] == "typed_blocker_required"
+    assert (
+        schema["same_identity_family_without_transition_identity_can_satisfy_work_order"]
+        is False
+    )
+    assert (
+        schema["missing_transition_identity_ref_blocks_live_runtime_readiness_claim"]
+        is True
+    )
+    assert {
         "same_identity_opl_live_readback",
         "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
         "no_active_production_caller_scan_with_owner_retirement_decision",
@@ -201,6 +223,28 @@ def test_live_tail_contract_rejects_missing_authority_outcome_schema() -> None:
     } in violations
 
 
+def test_live_tail_contract_rejects_missing_transition_identity_schema() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+    )
+    contract = _contract()
+    audit = _audit()
+    bad_contract = json.loads(json.dumps(contract))
+    bad_contract["completion_claim_boundary"]["evidence_record_schema"].pop(
+        "transition_identity_ref_required_for_families"
+    )
+
+    violations = work_orders.validate_live_tail_work_order_contract(
+        bad_contract,
+        audit,
+    )
+
+    assert {
+        "surface_id": "<contract>",
+        "reason": "transition_identity_ref_families_mismatch",
+    } in violations
+
+
 def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None:
     work_orders = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
@@ -222,6 +266,7 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
             "evidence_refs": [
                 "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
             ],
+            **_transition_identity(),
         },
     )
     assert accepted["status"] == "satisfied_by_accepted_ref"
@@ -243,6 +288,7 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
             "evidence_substitutes": [
                 "repo_no_authority_guard_as_runtime_health_tail_readback"
             ],
+            **_transition_identity(),
         },
     )
     assert forbidden["status"] == "typed_blocker_required"
@@ -264,6 +310,7 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
             "evidence_refs": [
                 "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
             ],
+            **_transition_identity(),
         },
     )
     assert false_ready_claim["status"] == "typed_blocker_required"
@@ -285,6 +332,7 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
             "evidence_refs": [
                 "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
             ],
+            **_transition_identity(),
         },
     )
     assert non_forbidden_word_boundary["status"] == "satisfied_by_accepted_ref"
@@ -363,6 +411,7 @@ def test_live_tail_evidence_record_requires_concrete_evidence_ref() -> None:
             "evidence_refs": [
                 "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
             ],
+            **_transition_identity(),
         },
     )
 
@@ -370,6 +419,85 @@ def test_live_tail_evidence_record_requires_concrete_evidence_ref() -> None:
     assert concrete_ref["missing_concrete_evidence_ref_families"] == []
     assert concrete_ref["concrete_evidence_ref_fields_present"] == ["evidence_refs"]
     assert concrete_ref["live_runtime_readiness_claim_allowed"] is True
+
+
+def test_live_tail_evidence_requires_current_transition_identity_for_readback_families() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+    )
+    contract = _contract()
+    owner_dispatch = {
+        order["surface_id"]: order for order in contract["work_orders"]
+    }["domain_owner_action_dispatch"]
+    readback_family = "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref"
+
+    generic_readback = work_orders.evaluate_live_tail_evidence_record(
+        owner_dispatch,
+        {
+            "surface_id": "domain_owner_action_dispatch",
+            "evidence_source": "runtime_readback:current-execution-running-proof",
+            "evidence_ref_families": [readback_family],
+            "evidence_refs": [
+                "live-tail-evidence:domain_owner_action_dispatch:current_execution"
+            ],
+        },
+    )
+
+    assert generic_readback["status"] == "typed_blocker_required"
+    assert generic_readback["missing_transition_identity_ref_families"] == [
+        readback_family
+    ]
+    assert generic_readback["transition_identity_ref_fields_present"] == []
+    assert generic_readback["live_runtime_readiness_claim_allowed"] is False
+
+    complete_identity = work_orders.evaluate_live_tail_evidence_record(
+        owner_dispatch,
+        {
+            "surface_id": "domain_owner_action_dispatch",
+            "evidence_source": "runtime_readback:current-execution-running-proof",
+            "evidence_ref_families": [readback_family],
+            "evidence_refs": [
+                "live-tail-evidence:domain_owner_action_dispatch:current_execution"
+            ],
+            **_transition_identity(),
+        },
+    )
+
+    assert complete_identity["status"] == "satisfied_by_accepted_ref"
+    assert complete_identity["missing_transition_identity_ref_families"] == []
+    assert complete_identity["transition_identity_ref_fields_present"] == [
+        "attempt_idempotency_key",
+        "route_identity_key",
+        "study_id",
+        "work_unit_fingerprint",
+        "work_unit_id",
+    ]
+
+
+def test_live_tail_no_active_caller_evidence_does_not_require_transition_identity() -> None:
+    work_orders = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+    )
+    contract = _contract()
+    owner_dispatch = {
+        order["surface_id"]: order for order in contract["work_orders"]
+    }["domain_owner_action_dispatch"]
+    no_active_family = "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref"
+
+    no_active_scan = work_orders.evaluate_live_tail_evidence_record(
+        owner_dispatch,
+        {
+            "surface_id": "domain_owner_action_dispatch",
+            "evidence_source": "no_active_caller_scan:owner-callable-adapter",
+            "evidence_ref_families": [no_active_family],
+            "evidence_refs": ["repo-scan:domain_owner_action_dispatch:no-active-caller"],
+        },
+    )
+
+    assert no_active_scan["status"] == "satisfied_by_accepted_ref"
+    assert no_active_scan["missing_transition_identity_ref_families"] == []
+    assert no_active_scan["transition_identity_ref_fields_present"] == []
+    assert no_active_scan["live_runtime_readiness_claim_allowed"] is True
 
 
 def test_live_tail_direct_evaluator_rejects_mismatched_surface_id() -> None:
@@ -391,6 +519,7 @@ def test_live_tail_direct_evaluator_rejects_mismatched_surface_id() -> None:
             "evidence_refs": [
                 "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
             ],
+            **_transition_identity(),
         },
     )
 
@@ -442,6 +571,7 @@ def test_live_tail_authority_outcome_family_requires_authority_ref() -> None:
             "evidence_source": "mas_owner_gate:typed-blocker-recorded",
             "evidence_ref_families": [authority_family],
             "typed_blocker_ref": "typed-blocker:future-tail",
+            **_transition_identity(),
         },
     )
 
@@ -467,6 +597,7 @@ def test_live_tail_evidence_intake_summary_does_not_claim_ready_until_all_tails_
         "evidence_refs": [
             "opl-observability-readback:runtime-health-kernel:2026-06-20T00:00:00Z"
         ],
+        **_transition_identity(),
     }
 
     partial = work_orders.live_tail_evidence_intake_summary(
@@ -556,9 +687,43 @@ def test_live_tail_evidence_intake_fails_closed_on_unknown_or_duplicate_records(
 
 def _satisfying_tail_record(order: dict) -> dict:
     ref_family = order["acceptable_evidence_ref_families"][0]
-    return {
+    record = {
         "surface_id": order["surface_id"],
         "evidence_source": f"owner_readback:{order['surface_id']}",
         "evidence_ref_families": [ref_family],
         "evidence_refs": [f"live-tail-evidence:{order['surface_id']}:{ref_family}"],
     }
+    if _tail_family_requires_transition_identity(ref_family):
+        record.update(_transition_identity())
+    return record
+
+
+def _transition_identity() -> dict[str, str]:
+    return {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+        "route_identity_key": "provider-admission::003::publication-blockers",
+        "attempt_idempotency_key": "provider-admission::003::publication-blockers",
+    }
+
+
+def _tail_family_requires_transition_identity(ref_family: str) -> bool:
+    markers = (
+        "live_readback",
+        "running_proof",
+        "current_owner_delta_readback",
+        "current_control_readback",
+        "domain_progress_transition_runtime_readback",
+        "provider_hosted_stage_packet",
+        "stage_native_owner_action",
+        "execute_dispatch",
+        "authorization_live_readback",
+        "live_every_active_caller_soak",
+        "live_opl",
+        "tail_readback",
+    )
+    excluded = ("no_active", "tombstone", "replacement_parity", "no_forbidden_write")
+    return any(marker in ref_family for marker in markers) and not any(
+        marker in ref_family for marker in excluded
+    )
