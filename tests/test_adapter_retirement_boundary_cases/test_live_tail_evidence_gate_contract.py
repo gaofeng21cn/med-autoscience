@@ -59,4 +59,3 @@ def test_live_tail_evidence_gate_names_owner_and_does_not_block_repo_source_reti
         ]
         assert gate["acceptable_evidence_ref_families"]
         assert gate["forbidden_evidence_substitutes"]
-
