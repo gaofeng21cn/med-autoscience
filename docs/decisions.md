@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-19：DHD 必须消费完整 OPL provider-admission readback
+
+- 决策：当同一 study、action、work-unit 和 fingerprint 已经携带完整 OPL `DomainProgressTransitionRuntime` provider-admission readback，DHD current-control / provider-admission report 必须把它读成当前 `provider_admission_pending`，并优先于旧 MAS `paper_recovery_state` blocker、current typed-blocker residue、unsupported dispatch closeout 和 request-only transition residue。旧 residue 只能作为历史 drilldown 或被同 identity readback 消费，不能把顶层 DHD 再压回 `provider_admission_pending_count=0` 或同时报告 provider admission 与 transition request。
+- 决策：从 raw OPL readback 提取 `route_identity_key`、`attempt_idempotency_key` 和 request idempotency key 只用于恢复 OPL 已签出的 canonical identity；它不得放宽 provider-admission validator，不得把 request-only、NonAdvancingApply、缺 aggregate identity 或 aggregate identity 冲突的 readback 升级成 provider admission。弱 identity 的 OPL authorization stage-packet gap 仍必须 fail closed 为 typed blocker，不得被该规则绕过。
+- 理由：DM003 暴露出 `study_progress` 已能看到 OPL complete provider-admission readback，但 DHD 顶层仍被旧 paper recovery / typed blocker / unsupported dispatch closeout residue 吃掉，导致 operator 面显示没有 provider admission candidate。这是 MAS readback/currentness 消费缺口，不是 OPL 已 running，也不是论文正文或 Yang artifact 可手写推进的问题。
+- 影响：这是 DHD readback/platform repair，不执行 live DHD apply、hydrate、tick、redrive、provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。`provider_admission_pending_count=1` 只能证明 MAS/DHD 对 OPL readback 的消费对齐；真实论文推进仍必须由 fresh OPL queue/running/terminal proof、owner receipt、stable typed blocker supersession、human gate、route-back evidence 或 canonical semantic paper/gate/artifact delta 证明。
+
 ## 2026-06-19：provider-hosted exact StageRun packet 可作为 selector authority
 
 - 决策：当 OPL provider-hosted `domain_owner/default-executor-dispatch` 环境同时精确绑定 `OPL_STAGE_ATTEMPT_ID`、`OPL_STAGE_PACKET_REF`、`OPL_PROVIDER_ATTEMPT_REF`、study、action 与 work-unit identity，且这些字段匹配 immutable `default_executor_dispatch_request` 时，MAS `domain-owner-action-dispatch` selector 必须把该 exact stage packet 视为当前执行选择 authority。这个 authority 只允许恢复并选择同一个 immutable packet，不允许选择其它历史 dispatch，也不允许绕过 study/action/work-unit/stage-packet identity。
