@@ -30,6 +30,29 @@ def _opl_transition_result(
     )
 
 
+def _non_advancing_opl_transition_result(
+    *,
+    study_id: str = "003-dpcc-primary-care-phenotype-treatment-gap",
+    work_unit_id: str = "medical_prose_write_repair",
+    fingerprint: str = "publication-blockers::0915410f804b3697",
+    stage_run_id: str = "stage-run-provider-admission",
+) -> dict[str, object]:
+    readback = _opl_transition_result(
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+        fingerprint=fingerprint,
+        stage_run_id=stage_run_id,
+    )
+    readback["identity"]["transition_kind"] = "NonAdvancingApply"
+    readback["identity"]["outcome_kind"] = "non_advancing_apply_typed_blocker_ref"
+    readback["exactly_one_outcome"]["transition_kind"] = "NonAdvancingApply"
+    readback["exactly_one_outcome"]["outcome_kind"] = "non_advancing_apply_typed_blocker_ref"
+    readback["exactly_one_outcome"]["non_advancing_apply"] = True
+    readback["read_model_readback"]["identity"] = readback["identity"]
+    readback["read_model_readback"]["exactly_one_outcome"] = readback["exactly_one_outcome"]
+    return readback
+
+
 def _write_ready_quality_repair_dispatch(study_root, *, study_id: str, fingerprint: str) -> None:
     dispatch_path = (
         study_root
@@ -866,6 +889,57 @@ def test_provider_admission_projection_keeps_handoff_live_readback_for_successor
     )
 
 
+def test_provider_admission_projection_consumes_non_advancing_apply_without_provider_admission(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    handoff = _quality_repair_handoff(study_id=study_id, fingerprint=fingerprint)
+    handoff["action_queue"][0]["opl_domain_progress_transition_runtime_live_readback"] = (
+        _non_advancing_opl_transition_result(
+            study_id=study_id,
+            work_unit_id=work_unit_id,
+            fingerprint=fingerprint,
+        )
+    )
+
+    fields = module.provider_admission_projection_fields(
+        payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "current_work_unit": _quality_repair_current_work_unit(
+                study_id=study_id,
+                fingerprint=fingerprint,
+                status="executable_owner_action",
+            ),
+        },
+        handoff=handoff,
+        study_root=study_root,
+    )
+
+    assert fields["provider_admission_pending_count"] == 0
+    assert fields["provider_admission_candidates"] == []
+    assert fields["transition_request_pending_count"] == 0
+    assert fields["transition_request_candidates"] == []
+
+
 def test_provider_admission_projection_materializes_gate_followthrough_owner_action_without_pending_flag(
     tmp_path,
 ) -> None:
@@ -1018,7 +1092,12 @@ def test_provider_admission_projection_uses_current_work_unit_pending_identity(t
             "work_unit_fingerprint": fingerprint,
             "action_fingerprint": fingerprint,
             "dispatch_path": str(dispatch_path),
-            "opl_domain_progress_transition_result": _opl_transition_result(),
+            "opl_domain_progress_transition_result": _opl_transition_result(
+                study_id=study_id,
+                work_unit_id="publication_gate_replay",
+                fingerprint=fingerprint,
+                stage_run_id="stage-run-gate-replay",
+            ),
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
         },
     )
@@ -1157,7 +1236,12 @@ def test_existing_projection_refresh_promotes_progress_first_owner_action_admiss
             "work_unit_fingerprint": fingerprint,
             "action_fingerprint": fingerprint,
             "dispatch_path": str(dispatch_path),
-            "opl_domain_progress_transition_result": _opl_transition_result(),
+            "opl_domain_progress_transition_result": _opl_transition_result(
+                study_id=study_id,
+                work_unit_id="publication_gate_replay",
+                fingerprint=fingerprint,
+                stage_run_id="stage-run-gate-replay",
+            ),
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
         },
     )
@@ -1400,13 +1484,18 @@ def test_existing_projection_refresh_prefers_live_attempt_over_stale_handoff(
         materialize_read_model_artifacts=False,
     )
 
-    assert result["active_run_id"] == "opl-stage-attempt://sat-live-gate-replay"
-    assert result["active_stage_attempt_id"] == "sat-live-gate-replay"
-    assert result["active_workflow_id"] == "wf-live-gate-replay"
+    assert result.get("active_run_id") is None
+    assert result.get("active_stage_attempt_id") is None
+    assert result.get("active_workflow_id") is None
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
-    assert result["current_work_unit"]["status"] == "running_provider_attempt"
-    assert result["current_execution_envelope"]["state_kind"] == "running_provider_attempt"
+    assert result["current_work_unit"]["status"] == "typed_blocker"
+    assert result["current_execution_envelope"]["state_kind"] == "typed_blocker"
+    monitoring = result["progress_first_monitoring_summary"]
+    assert monitoring["running_provider_attempt"] is False
+    assert monitoring["worker_liveness"]["stale_active_run_id"] == (
+        "opl-stage-attempt://sat-live-gate-replay"
+    )
 
 
 def test_existing_projection_refresh_rejects_superseded_live_attempt_identity(
@@ -1514,7 +1603,7 @@ def test_existing_projection_refresh_rejects_superseded_live_attempt_identity(
     assert monitoring["worker_liveness"]["stale_active_run_id"] == (
         "opl-stage-attempt://sat-stale-gate-replay"
     )
-    assert result["active_run_id"] is None
+    assert result.get("active_run_id") is None
 
 
 from .provider_admission_projection_cases.current_control_typed_blocker import *  # noqa: F403,F401,E402

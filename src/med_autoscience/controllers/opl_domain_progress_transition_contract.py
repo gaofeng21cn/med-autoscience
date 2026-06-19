@@ -9,6 +9,7 @@ RUNTIME_KIND = "DomainProgressTransitionRuntime"
 LIVE_READBACK_SURFACE = "opl_domain_progress_transition_runtime_live_readback"
 LIVE_READBACK_COMPLETE_STATUS = "complete_transaction"
 PROVIDER_ADMISSION_OUTCOME = "provider_admission_enqueued_or_blocked"
+NON_ADVANCING_APPLY_OUTCOME = "non_advancing_apply_typed_blocker_ref"
 CONTRACT_REF = "contracts/opl_domain_progress_transition_runtime_contract.json"
 
 TRANSITION_KINDS = (
@@ -162,6 +163,20 @@ def required_readback_shape() -> dict[str, Any]:
             "missing_route_or_attempt_identity_counts_as_missing_opl_authorization": True,
         },
         "accepted_outcome_kind": PROVIDER_ADMISSION_OUTCOME,
+        "accepted_outcome_kinds": [
+            PROVIDER_ADMISSION_OUTCOME,
+            NON_ADVANCING_APPLY_OUTCOME,
+        ],
+        "provider_admission_outcome_kind": PROVIDER_ADMISSION_OUTCOME,
+        "non_advancing_apply_outcome_kind": NON_ADVANCING_APPLY_OUTCOME,
+        "non_advancing_apply_consumption": {
+            "same_identity_live_readback_consumes_transition_request_pending": True,
+            "provider_admission_allowed": False,
+            "current_executable_owner_action_allowed": False,
+            "paper_progress_delta": False,
+            "mas_can_apply_non_advancing_transition": False,
+            "mas_consumes_as_typed_blocker_projection": True,
+        },
         "deprecated_projection_fields_not_authority": [
             "opl_domain_progress_transition_result.surface_kind",
             "stage_run_id",
@@ -314,6 +329,7 @@ __all__ = [
     "LIVE_READBACK_SURFACE",
     "LIVE_READBACK_TRANSACTION_CONSISTENCY",
     "MAS_PROJECTION_CANNOT_REPLACE",
+    "NON_ADVANCING_APPLY_OUTCOME",
     "PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS",
     "PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD",
     "PROVIDER_ADMISSION_OUTCOME",

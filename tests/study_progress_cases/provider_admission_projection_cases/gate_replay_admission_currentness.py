@@ -196,13 +196,12 @@ def test_existing_projection_refresh_replays_gate_admission_after_recovery_state
         publication_eval_payload=None,
     )
 
-    assert result["paper_recovery_state"]["phase"] == "admission_pending"
+    assert result["paper_recovery_state"]["phase"] == "owner_action_ready"
     admission = result["owner_action_admission"]
-    assert admission["admission_pending"] is True
+    assert admission["admission_pending"] is False
+    assert admission["hard_gate_blocked"] is True
     assert admission["provider_attempt_running_proven"] is False
-    assert result["provider_admission_pending_count"] == 1
-    candidate = result["provider_admission_candidates"][0]
-    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
-    assert candidate["action_type"] == "run_gate_clearing_batch"
-    assert candidate["work_unit_id"] == "publication_gate_replay"
-    assert candidate["work_unit_fingerprint"] == fingerprint
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+    assert result["current_work_unit"]["work_unit_id"] == "publication_gate_replay"

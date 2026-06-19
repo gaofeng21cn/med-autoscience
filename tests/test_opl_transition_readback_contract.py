@@ -20,6 +20,21 @@ def _live_readback() -> dict[str, object]:
     )
 
 
+def _non_advancing_live_readback() -> dict[str, object]:
+    readback = copy.deepcopy(_live_readback())
+    identity = readback["identity"]
+    identity["transition_kind"] = "NonAdvancingApply"
+    identity["outcome_kind"] = "non_advancing_apply_typed_blocker_ref"
+    outcome = readback["exactly_one_outcome"]
+    outcome["transition_kind"] = "NonAdvancingApply"
+    outcome["outcome_kind"] = "non_advancing_apply_typed_blocker_ref"
+    outcome["non_advancing_apply"] = True
+    read_model = readback["read_model_readback"]
+    read_model["identity"] = identity
+    read_model["exactly_one_outcome"] = outcome
+    return readback
+
+
 def _legacy_result() -> dict[str, object]:
     return {
         "surface_kind": "opl_domain_progress_transition_result",
@@ -148,6 +163,29 @@ def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() 
     assert module.valid_opl_transition_readback(read_model_identity_mismatch) is False
 
 
+def test_trusted_opl_transition_live_readback_accepts_non_advancing_apply_without_provider_admission() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+    )
+    readback = _non_advancing_live_readback()
+    candidate = {
+        "study_id": STUDY_ID,
+        "work_unit_id": WORK_UNIT_ID,
+        "work_unit_fingerprint": FINGERPRINT,
+        "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "opl_domain_progress_transition_live_readback": readback,
+    }
+
+    assert module.valid_opl_transition_readback(readback) is True
+    assert module.candidate_opl_transition_readback(candidate) == readback
+    assert module.non_advancing_apply_opl_transition_readback(candidate) == readback
+    assert module.has_non_advancing_apply_opl_transition_readback(candidate) is True
+    assert module.provider_admission_opl_transition_readback(candidate) == {}
+    assert module.has_provider_admission_opl_transition_readback(candidate) is False
+
+
 def test_opl_transition_readback_exposes_source_claimability() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
@@ -253,6 +291,16 @@ def test_provider_admission_readback_must_match_current_transition_identity() ->
         "idempotency_key": "provider-admission::stale-request",
     }
     assert module.provider_admission_opl_transition_readback(stale_request_key) == {}
+
+    nested_policy_request = {
+        **matching_candidate,
+        "paper_progress_policy_result": {
+            "opl_domain_progress_transition_request": {
+                "idempotency_key": "paper-policy-request:stale-nested",
+            }
+        },
+    }
+    assert module.provider_admission_opl_transition_readback(nested_policy_request) == trusted
 
 
 def test_legacy_transition_result_and_bare_projection_are_not_trusted() -> None:
