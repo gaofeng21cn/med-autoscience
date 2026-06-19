@@ -33,7 +33,7 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 - Table shells: `7`
 - Total audited templates: `66`
 
-这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。未证明优于 R/ggplot2 的 Python evidence 已从当前 pack 清理，旧 template id 只保留为 retired provenance。
+这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。未证明优于 R/ggplot2 的 Python evidence 已从当前 pack 清理，旧 Python evidence template id 不维护为当前库存或候选池。
 
 ## Historical Anchor-Driven Cleanup
 
@@ -78,7 +78,7 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 - `D/E/G / broader omics-only matrix follow-on` 不再作为当前 active 候选保留：
   - 原因：如果先扩到更宽的 matrix / heatmap lane，容易脱离 atlas / spatial / trajectory 的 joint paper question，并和现有 `celltype_signature_heatmap` / storyboard lower bound 产生模糊重叠。
 - `C/H / coefficient-path follow-on` 已收口为 `coefficient_path_panel`，不再保留在 backlog 候选池。
-- `H / broader QC / batch-effect / transportability shell follow-on` 旧实现 `transportability_recalibration_governance_panel` 已退役为 Python evidence retired history；当前 F5 统一回到 R/ggplot2 `generalizability_subgroup_composite_panel`，不再保留在 backlog 候选池。
+- `H / broader QC / batch-effect / transportability shell follow-on` 旧 Python evidence 实现已清出当前 pack；当前 F5 统一回到 R/ggplot2 `generalizability_subgroup_composite_panel`，不再保留在 backlog 候选池。
 - `F / support-domain explanation panel follow-on beyond the current higher-order partial-dependence lower bound` 已收口为 `feature_response_support_domain_panel`，不再留在 backlog 候选池。
 - `F / stronger explanation-panel readability or higher-order explanation scene beyond the current grouped-local + multigroup decision-path lower bound` 已收口为 `shap_grouped_local_support_domain_panel`，当前 `F` 家族后续只保留更高阶 explanation scene 候选，不再保留这条旧 backlog 表述。
 - `F / multi-group decision-path follow-on` 已收口为 `shap_multigroup_decision_path_panel`，不再保留在 backlog 候选池。
@@ -92,7 +92,7 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 - `F / higher-order partial-dependence follow-on` 已收口为 `partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel` 与 `accumulated_local_effects_panel`，不再保留为当前候选。
 - `H / workflow_fact_sheet_panel` 已提升为 audited illustration shell，不再保留为当前候选。
 - `H / design_evidence_composite_shell` 已提升为 audited illustration shell，不再保留为当前候选。
-- `H / baseline-balance / missingness / QC-shell follow-on` 旧实现 `baseline_missingness_qc_panel` 已退役为 Python evidence retired history，不再保留为当前候选。
+- `H / baseline-balance / missingness / QC-shell follow-on` 旧 Python evidence 实现已清出当前 pack，不再保留为当前候选。
 - `D/E/G / atlas_spatial_bridge_panel` 已提升为 audited four-block bridge baseline，不再保留为当前候选。
 - `F / richer grouped-local-explanation variants beyond the first audited baseline` 当前降级为 monitor-only：
   - 原因：当前 grouped-local 合同已经支持最多 `3` 个 panel；后续只有在新的真实论文 demand 明确证明现有 grouped-local lower bound 不足时，才重新提升优先级。

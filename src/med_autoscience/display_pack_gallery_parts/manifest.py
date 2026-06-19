@@ -130,7 +130,6 @@ def build_manifest(
             "gallery_default_surface": "r_first_evidence_canonical_families_plus_design_shells",
             "active_inventory_is_visual_canonical_only": True,
             "canonical_non_visual_inventory_preserved_in_manifest": True,
-            "retired_python_evidence_templates_removed_from_current_manifest": True,
             "migrated_alias_templates_hidden_from_default_cards": True,
             "explicit_alias_requests_migrate_to_canonical_template": True,
             "evidence_figures_default_to_r_ggplot2": True,

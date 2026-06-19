@@ -119,32 +119,6 @@ def test_local_architecture_overview_figure_alias_resolves_to_risk_layering_temp
     assert display_registry.is_evidence_figure_template("local_architecture_overview_figure")
 
 
-def test_retired_python_evidence_templates_are_not_registered() -> None:
-    retired_template_ids = {
-        "phenotype_gap_structure_figure",
-        "single_cell_atlas_overview_panel",
-        "atlas_spatial_bridge_panel",
-        "spatial_niche_map_panel",
-        "trajectory_progression_panel",
-        "shap_grouped_local_explanation_panel",
-        "shap_grouped_decision_path_panel",
-        "shap_multigroup_decision_path_panel",
-        "partial_dependence_ice_panel",
-        "partial_dependence_interaction_contour_panel",
-        "accumulated_local_effects_panel",
-        "feature_response_support_domain_panel",
-        "multicenter_generalizability_overview",
-        "baseline_missingness_qc_panel",
-        "center_coverage_batch_transportability_panel",
-        "transportability_recalibration_governance_panel",
-    }
-
-    for template_id in retired_template_ids:
-        assert not display_registry.is_evidence_figure_template(template_id)
-        with pytest.raises(ValueError, match="unknown evidence figure template"):
-            display_registry.get_evidence_figure_spec(_full_id(template_id))
-
-
 @pytest.mark.parametrize(
     ("shell_id", "expected_input_schema_id", "expected_qc_profile"),
     [

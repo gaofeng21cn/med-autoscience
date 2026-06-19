@@ -114,7 +114,7 @@
 - Add `trajectory_progression_panel` as the first audited `D/E/G` trajectory progression composite slice in the core display pack.
 - Lock its pack-facing contract to `trajectory_progression_inputs_v1`, `publication_trajectory_progression_panel`, and the Python trajectory progression + branch-composition + kinetics renderer path.
 - Add `shap_force_like_summary_panel` as the next audited `F` representative-case force-like explanation slice in the core display pack.
-- Lock its pack-facing contract to `shap_force_like_summary_panel_inputs_v1`, `publication_shap_force_like_summary_panel`, and the Python baseline-marker + directional contribution-lane renderer path.
+- Lock its pack-facing contract to `shap_force_like_summary_panel_inputs_v1`, `publication_shap_force_like_summary_panel`, and the then-current baseline-marker + directional contribution-lane renderer path.
 
 ## 0.1.5 - 2026-04-08
 

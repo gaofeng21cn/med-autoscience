@@ -169,7 +169,7 @@ h1{{margin:0 0 8px;font-size:25px;letter-spacing:0}}
 <body>
 <header>
   <h1>MAS Display Pack Canonical Gallery</h1>
-  <div class="sub">默认展示 R/ggplot2 数据证据图和设计/流程类 composition shell；未证明优于 R/ggplot2 的 Python evidence 模板已从当前 pack 退役。</div>
+  <div class="sub">默认展示 R/ggplot2 数据证据图和设计/流程类 composition shell；未证明优于 R/ggplot2 的 Python evidence 模板不进入当前 pack。</div>
   <div class="meta">{meta}</div>
   <div class="palette">{swatches}</div>
 </header>

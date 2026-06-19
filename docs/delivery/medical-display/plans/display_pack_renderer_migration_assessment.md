@@ -17,7 +17,6 @@ Machine boundary: 本文是人读结构评估。机器真相继续归 `display-p
 | `renderer_family = "r_ggplot2"` | 55 | 当前全部 evidence templates 的一等默认 renderer。 |
 | `renderer_family = "python"` evidence | 0 | 当前 pack 不保留 Python evidence。 |
 | `execution_mode = "subprocess"` evidence | 55 | 全部 evidence templates 均由 template-local `render.R` 调用。 |
-| Retired Python evidence ids | 32 | 仅作为 `renderer_migration_ledger.json` / canonical catalog 的 retired history，不作为可发现模板。 |
 | Python illustration shells | 4 | 仅用于 design / flow / graphical abstract composition，不承担统计证据 authority。 |
 | Table shells | 7 | 由 table shell renderer 生成，不属于 evidence figure。 |
 
@@ -62,7 +61,7 @@ display-packs/fenggaolab.org.medical-display-core/
 | 设计/流程 shell | `python` | `python_plugin` | `fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell` |
 | Table shell | `n/a` | `python_plugin` | `fenggaolab_org_medical_display_core.table_shells:render_table_shell` |
 
-新增或修改 evidence template 时，bootstrap、registry、canonical catalog、Gallery manifest、agent discover、figure renderer contract 和 focused tests 必须一起读回 `Python evidence retained count = 0`，除非该模板按 re-entry 规则正式进入当前 pack。
+新增或修改 evidence template 时，bootstrap、registry、canonical catalog、Gallery manifest、agent discover、figure renderer contract 和 focused tests 必须一起读回 current Python evidence count = `0`，除非该模板按 re-entry 规则正式进入当前 pack。
 
 ## R 生态证据
 

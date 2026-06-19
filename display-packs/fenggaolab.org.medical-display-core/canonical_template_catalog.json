@@ -9,14 +9,13 @@
     "agent_recommendations_use_canonical_templates_by_default": true,
     "gallery_shows_canonical_families_by_default": true,
     "evidence_figures_default_to_r_ggplot2": true,
-    "python_evidence_figures_require_explicit_justification_before_default_visibility": false,
+    "python_evidence_figures_not_retained_without_advantage_proof": true,
     "python_illustration_shells_may_be_default_visible": true,
     "data_evidence_figures_require_programmatic_renderer": true,
     "design_and_flow_shells_may_use_svg_or_imagegen_assisted_composition": true,
     "migrated_aliases_are_not_default_visible": true,
     "explicit_alias_requests_may_be_migrated_to_canonical_template": true,
-    "python_evidence_templates_not_retained_without_advantage_proof": true,
-    "retired_python_evidence_templates_removed_from_current_pack": true
+    "python_evidence_templates_not_retained_without_advantage_proof": true
   },
   "external_learning_refs": {
     "nature_skills_project": "https://github.com/Yuan1z0825/nature-skills",
@@ -280,39 +279,5 @@
       ],
       "migration_reason": "Table shells should present as one tabular family in default discovery; exact table numbering is paper-local."
     }
-  ],
-  "retired_python_evidence_template_ids": [
-    "accumulated_local_effects_panel",
-    "atlas_spatial_bridge_panel",
-    "atlas_spatial_trajectory_context_support_panel",
-    "atlas_spatial_trajectory_density_coverage_panel",
-    "atlas_spatial_trajectory_multimanifold_context_support_panel",
-    "atlas_spatial_trajectory_storyboard_panel",
-    "baseline_missingness_qc_panel",
-    "center_coverage_batch_transportability_panel",
-    "center_transportability_governance_summary_panel",
-    "feature_response_support_domain_panel",
-    "multicenter_generalizability_overview",
-    "partial_dependence_ice_panel",
-    "partial_dependence_interaction_contour_panel",
-    "partial_dependence_interaction_slice_panel",
-    "partial_dependence_subgroup_comparison_panel",
-    "phenotype_gap_structure_figure",
-    "practical_factor_dot_figure",
-    "preferred_class_sensitivity_figure",
-    "shap_grouped_decision_path_panel",
-    "shap_grouped_local_explanation_panel",
-    "shap_grouped_local_support_domain_panel",
-    "shap_multigroup_decision_path_panel",
-    "shap_multigroup_decision_path_support_domain_panel",
-    "shap_signed_importance_local_support_domain_panel",
-    "shap_signed_importance_panel",
-    "single_cell_atlas_overview_panel",
-    "site_held_out_stability_figure",
-    "spatial_niche_map_panel",
-    "trajectory_progression_panel",
-    "transportability_recalibration_governance_panel",
-    "treatment_gap_alignment_figure",
-    "treatment_shift_alignment_figure"
   ]
 }

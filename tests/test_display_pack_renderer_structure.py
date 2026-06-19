@@ -121,17 +121,13 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
     assert ledger["summary"]["evidence_template_count"] == 55
     assert ledger["summary"]["r_ggplot2_subprocess_evidence_count"] == 55
     assert ledger["summary"]["python_evidence_retained_count"] == 0
-    assert ledger["summary"]["retired_python_evidence_template_count"] == 32
+    assert "retired_python_evidence_template_count" not in ledger["summary"]
+    assert "retired_python_evidence_template_ids" not in ledger
     assert {item["migration_lane"] for item in records} == {"R_CURRENT"}
     assert records_by_template["risk_layering_monotonic_bars"]["migration_status"] == "current_r_ggplot2_subprocess"
     assert records_by_template["time_to_event_landmark_performance_panel"]["migration_status"] == "current_r_ggplot2_subprocess"
     assert records_by_template["time_to_event_multihorizon_calibration_panel"]["migration_status"] == "current_r_ggplot2_subprocess"
     assert records_by_template["time_to_event_threshold_governance_panel"]["migration_status"] == "current_r_ggplot2_subprocess"
-    assert "multicenter_generalizability_overview" in ledger["retired_python_evidence_template_ids"]
-    assert "center_transportability_governance_summary_panel" in ledger["retired_python_evidence_template_ids"]
-    assert "baseline_missingness_qc_panel" in ledger["retired_python_evidence_template_ids"]
-    assert "center_coverage_batch_transportability_panel" in ledger["retired_python_evidence_template_ids"]
-    assert "transportability_recalibration_governance_panel" in ledger["retired_python_evidence_template_ids"]
 
 
 def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> None:

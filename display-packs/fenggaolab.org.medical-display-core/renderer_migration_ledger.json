@@ -7,7 +7,6 @@
     "evidence_template_count": 55,
     "r_ggplot2_subprocess_evidence_count": 55,
     "python_evidence_retained_count": 0,
-    "retired_python_evidence_template_count": 32,
     "python_evidence_reentry_rule": "Only a current audited template with documented advantage over the R/ggplot2 baseline may re-enter; no hidden legacy Python evidence inventory is retained."
   },
   "records": [
@@ -616,39 +615,5 @@
       "retained_in_current_pack": true,
       "advantage_proof_required_for_python_reentry": true
     }
-  ],
-  "retired_python_evidence_template_ids": [
-    "accumulated_local_effects_panel",
-    "atlas_spatial_bridge_panel",
-    "atlas_spatial_trajectory_context_support_panel",
-    "atlas_spatial_trajectory_density_coverage_panel",
-    "atlas_spatial_trajectory_multimanifold_context_support_panel",
-    "atlas_spatial_trajectory_storyboard_panel",
-    "baseline_missingness_qc_panel",
-    "center_coverage_batch_transportability_panel",
-    "center_transportability_governance_summary_panel",
-    "feature_response_support_domain_panel",
-    "multicenter_generalizability_overview",
-    "partial_dependence_ice_panel",
-    "partial_dependence_interaction_contour_panel",
-    "partial_dependence_interaction_slice_panel",
-    "partial_dependence_subgroup_comparison_panel",
-    "phenotype_gap_structure_figure",
-    "practical_factor_dot_figure",
-    "preferred_class_sensitivity_figure",
-    "shap_grouped_decision_path_panel",
-    "shap_grouped_local_explanation_panel",
-    "shap_grouped_local_support_domain_panel",
-    "shap_multigroup_decision_path_panel",
-    "shap_multigroup_decision_path_support_domain_panel",
-    "shap_signed_importance_local_support_domain_panel",
-    "shap_signed_importance_panel",
-    "single_cell_atlas_overview_panel",
-    "site_held_out_stability_figure",
-    "spatial_niche_map_panel",
-    "trajectory_progression_panel",
-    "transportability_recalibration_governance_panel",
-    "treatment_gap_alignment_figure",
-    "treatment_shift_alignment_figure"
   ]
 }

@@ -16,10 +16,9 @@ Current `fenggaolab.org.medical-display-core` inventory:
 - `55` evidence figures, all `r_ggplot2` subprocess renderers;
 - `0` Python evidence figures;
 - `4` Python illustration shells for design / flow / graphical-abstract composition;
-- `7` table shells;
-- `32` retired Python evidence IDs retained only in `renderer_migration_ledger.json` / `canonical_template_catalog.json` as provenance.
+- `7` table shells.
 
-Retired Python evidence IDs are not hidden defaults, explicit-request inventory, Gallery comparison cards, or runtime fallback templates.
+Python evidence templates are absent from current inventory, hidden defaults, explicit-request inventory, Gallery comparison cards, and runtime fallback templates unless a future current audited template proves advantage over R/ggplot2.
 
 ## Source Of Truth
 

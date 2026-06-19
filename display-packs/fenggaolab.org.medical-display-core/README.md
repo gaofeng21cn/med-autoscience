@@ -31,7 +31,7 @@ The current evidence inventory is tracked in `renderer_migration_ledger.json`:
 
 - 55 evidence templates are current R/ggplot2 subprocess renderers with local `render.R`.
 - 0 Python evidence templates are retained.
-- 32 former Python evidence template ids are listed only as retired history.
+- Python evidence template ids are absent from current pack inventory unless a future audited template proves advantage over R/ggplot2.
 
 Renderer runtime dependencies are tracked in `renderer_dependency_profile.json`.
 
