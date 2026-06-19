@@ -17,6 +17,9 @@ RETIREMENT_INVENTORY_PATH = (
 LIVE_TAIL_WORK_ORDERS_PATH = (
     REPO_ROOT / "contracts" / "runtime" / "mas-runtime-live-tail-work-orders.json"
 )
+LIVE_RUNTIME_GAP_WORK_ORDERS_PATH = (
+    REPO_ROOT / "contracts" / "runtime" / "mas-live-runtime-gap-work-orders.json"
+)
 
 
 def _audit() -> dict[str, object]:
@@ -33,6 +36,10 @@ def _retirement_inventory() -> dict[str, object]:
 
 def _live_tail_work_orders() -> dict[str, object]:
     return json.loads(LIVE_TAIL_WORK_ORDERS_PATH.read_text(encoding="utf-8"))
+
+
+def _live_runtime_gap_work_orders() -> dict[str, object]:
+    return json.loads(LIVE_RUNTIME_GAP_WORK_ORDERS_PATH.read_text(encoding="utf-8"))
 
 
 def test_transition_runtime_completion_audit_declares_non_completion_boundary() -> None:
@@ -200,6 +207,10 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     live_tail_surface_ids = [
         order["surface_id"] for order in live_tail_work_orders["work_orders"]
     ]
+    live_runtime_gap_work_orders = _live_runtime_gap_work_orders()
+    live_runtime_gap_ids = [
+        order["gap_id"] for order in live_runtime_gap_work_orders["work_orders"]
+    ]
     assert live_runtime["live_tail_work_order_refs"] == [
         "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
     ]
@@ -210,6 +221,16 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
         )
     ]
     assert live_runtime["open_live_runtime_work_order_surface_ids"] == live_tail_surface_ids
+    assert live_runtime["live_runtime_gap_work_order_refs"] == [
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
+    ]
+    assert live_runtime["live_runtime_gap_evidence_intake_refs"] == [
+        (
+            "contracts/runtime/mas-live-runtime-gap-work-orders.json#/"
+            "completion_claim_boundary/evidence_record_schema"
+        )
+    ]
+    assert live_runtime["open_live_runtime_gap_work_order_ids"] == live_runtime_gap_ids
     assert {
         "same-transition OPL command/event/outbox/StageRun identity readback",
         "DHD apply exactly-one live outcome when explicitly delegated",
@@ -242,6 +263,15 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     assert physical_gate["repo_source_missing_evidence_tails"] == []
     assert physical_gate["live_runtime_work_order_refs"] == [
         "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
+    ]
+    assert physical_gate["live_runtime_gap_work_order_refs"] == [
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
+    ]
+    assert physical_gate["live_runtime_gap_evidence_intake_refs"] == [
+        (
+            "contracts/runtime/mas-live-runtime-gap-work-orders.json#/"
+            "completion_claim_boundary/evidence_record_schema"
+        )
     ]
     assert physical_gate["live_tail_evidence_intake_refs"] == [
         (

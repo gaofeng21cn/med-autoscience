@@ -141,6 +141,19 @@
       ],
       "live_tail_evidence_intake_refs": [
         "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema"
+      ],
+      "live_runtime_gap_work_order_refs": [
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
+      ],
+      "live_runtime_gap_evidence_intake_refs": [
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema"
+      ],
+      "open_live_runtime_gap_work_order_ids": [
+        "opl_outbox_and_stagerun_identity_live_readback_for_the_same_transition_request",
+        "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated",
+        "fresh_dm002_dm003_same_identity_opl_provider_admission_live_readback_instead_of_replay_fixture_r",
+        "fresh_live_opl_event_outbox_stagerun_consumption_readback_reaches_provider_admission_arbiter_for",
+        "fresh_dm002_dm003_paper_line_accepted_outcome_after_provider_admission_readback_consumption"
       ]
     }
   },
@@ -920,7 +933,13 @@
         "valid_opl_readback_shape_without_claimable_evidence_source"
       ],
       "blocks_repo_source_retirement": false,
-      "blocks_final_runtime_paper_acceptance": true
+      "blocks_final_runtime_paper_acceptance": true,
+      "live_runtime_gap_work_order_refs": [
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
+      ],
+      "live_runtime_gap_evidence_intake_refs": [
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema"
+      ]
     },
     {
       "gate_id": "lane_4_projection_demotion_and_physical_retirement",
@@ -1187,6 +1206,12 @@
       ],
       "live_tail_evidence_intake_refs": [
         "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema"
+      ],
+      "live_runtime_gap_work_order_refs": [
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
+      ],
+      "live_runtime_gap_evidence_intake_refs": [
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema"
       ]
     },
     {
@@ -1226,7 +1251,13 @@
         "active_run_id_present_without_same_identity_running_proof"
       ],
       "blocks_repo_source_retirement": false,
-      "blocks_final_runtime_paper_acceptance": true
+      "blocks_final_runtime_paper_acceptance": true,
+      "live_runtime_gap_work_order_refs": [
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
+      ],
+      "live_runtime_gap_evidence_intake_refs": [
+        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema"
+      ]
     }
   ],
   "rejected_completion_claims": [

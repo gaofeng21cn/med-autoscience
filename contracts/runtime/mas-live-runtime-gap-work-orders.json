@@ -1,0 +1,168 @@
+{
+  "surface_kind": "mas_live_runtime_gap_work_orders",
+  "version": "mas-live-runtime-gap-work-orders.v1",
+  "state": "active_live_runtime_gap_work_order_contract",
+  "owner": "MAS owner-surface coordinator plus one-person-lab runtime owners",
+  "purpose": "Make the remaining live-runtime readiness gaps executable and machine-checkable without blocking repo-source private-surface retirement or restoring MAS private control planes.",
+  "repo_source_retirement_blocked": false,
+  "live_runtime_readiness_claim_allowed": false,
+  "completion_claim_boundary": {
+    "repo_source_retirement_can_complete_without_these_work_orders": true,
+    "these_work_orders_can_claim_live_runtime_ready_without_evidence": false,
+    "docs_tests_inventory_or_queue_empty_can_satisfy_work_order": false,
+    "live_runtime_readiness_claim_requires_all_work_orders_satisfied": true,
+    "evidence_record_schema": {
+      "required_fields": [
+        "gap_id",
+        "evidence_source",
+        "evidence_ref_families"
+      ],
+      "optional_fields": [
+        "claim",
+        "evidence_substitutes",
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref"
+      ],
+      "accepted_result_status": "satisfied_by_accepted_ref",
+      "missing_or_forbidden_result_status": "typed_blocker_required",
+      "repo_source_retirement_blocked_by_missing_evidence_record": false
+    }
+  },
+  "source_refs": [
+    "contracts/paper_progress_transition_runtime_completion_audit.json#/completion_columns/live_runtime_readiness_completion/open_live_runtime_gaps",
+    "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders.live_runtime_gap_work_orders_from_completion_audit"
+  ],
+  "work_orders": [
+    {
+      "gap_id": "opl_outbox_and_stagerun_identity_live_readback_for_the_same_transition_request",
+      "gap_text": "OPL outbox and StageRun identity live readback for the same transition request",
+      "status": "evidence_required",
+      "next_owner": "one-person-lab DomainProgressTransitionRuntime / StageRun owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "typed_blocker_when_missing": "opl_outbox_and_stagerun_identity_live_readback_for_the_same_transition_request_live_runtime_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref",
+        "OPL_command_event_outbox_live_readback_ref",
+        "StageRun_identity_packet_currentness_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "repo_source_retirement_complete",
+        "docs_updated",
+        "contract_landed",
+        "focused_tests_passed",
+        "make_test_meta_passed",
+        "scripts_verify_passed",
+        "queue_empty",
+        "DHD_dry_run",
+        "provider_admission_pending_count=0",
+        "transition_request_pending_count=0"
+      ]
+    },
+    {
+      "gap_id": "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated",
+      "gap_text": "DHD apply exactly-one live outcome when explicitly delegated",
+      "status": "evidence_required",
+      "next_owner": "MAS DHD apply owner with OPL runtime authorization",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "typed_blocker_when_missing": "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated_live_runtime_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "DHD_apply_exactly_one_live_outcome_ref",
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "repo_source_retirement_complete",
+        "docs_updated",
+        "contract_landed",
+        "focused_tests_passed",
+        "make_test_meta_passed",
+        "scripts_verify_passed",
+        "queue_empty",
+        "DHD_dry_run",
+        "provider_admission_pending_count=0",
+        "transition_request_pending_count=0"
+      ]
+    },
+    {
+      "gap_id": "fresh_dm002_dm003_same_identity_opl_provider_admission_live_readback_instead_of_replay_fixture_r",
+      "gap_text": "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
+      "status": "evidence_required",
+      "next_owner": "one-person-lab DomainProgressTransitionRuntime owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "typed_blocker_when_missing": "fresh_dm002_dm003_same_identity_opl_provider_admission_live_readback_instead_of_replay_fixture_r_live_runtime_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "same_identity_opl_provider_admission_live_readback_ref",
+        "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "repo_source_retirement_complete",
+        "docs_updated",
+        "contract_landed",
+        "focused_tests_passed",
+        "make_test_meta_passed",
+        "scripts_verify_passed",
+        "queue_empty",
+        "DHD_dry_run",
+        "provider_admission_pending_count=0",
+        "transition_request_pending_count=0",
+        "provider_admission_same_identity_replay_as_fresh_opl_readback"
+      ]
+    },
+    {
+      "gap_id": "fresh_live_opl_event_outbox_stagerun_consumption_readback_reaches_provider_admission_arbiter_for",
+      "gap_text": "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
+      "status": "evidence_required",
+      "next_owner": "MAS provider-admission arbiter owner plus OPL transition runtime owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "typed_blocker_when_missing": "fresh_live_opl_event_outbox_stagerun_consumption_readback_reaches_provider_admission_arbiter_for_live_runtime_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "provider_admission_arbiter_consumes_opl_transition_event_ref",
+        "OPL_command_event_outbox_live_readback_ref",
+        "StageRun_identity_packet_currentness_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "repo_source_retirement_complete",
+        "docs_updated",
+        "contract_landed",
+        "focused_tests_passed",
+        "make_test_meta_passed",
+        "scripts_verify_passed",
+        "queue_empty",
+        "DHD_dry_run",
+        "provider_admission_pending_count=0",
+        "transition_request_pending_count=0"
+      ]
+    },
+    {
+      "gap_id": "fresh_dm002_dm003_paper_line_accepted_outcome_after_provider_admission_readback_consumption",
+      "gap_text": "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
+      "status": "evidence_required",
+      "next_owner": "MAS study owner / paper-line owner",
+      "repo_source_retirement_blocked": false,
+      "live_runtime_readiness_claim_allowed": false,
+      "typed_blocker_when_missing": "fresh_dm002_dm003_paper_line_accepted_outcome_after_provider_admission_readback_consumption_live_runtime_evidence_required",
+      "acceptable_evidence_ref_families": [
+        "fresh_DM002_DM003_paper_line_accepted_outcome_ref",
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "repo_source_retirement_complete",
+        "docs_updated",
+        "contract_landed",
+        "focused_tests_passed",
+        "make_test_meta_passed",
+        "scripts_verify_passed",
+        "queue_empty",
+        "DHD_dry_run",
+        "provider_admission_pending_count=0",
+        "transition_request_pending_count=0",
+        "same_identity_readback_consumes_transition_request_as_paper_line_outcome"
+      ]
+    }
+  ]
+}
