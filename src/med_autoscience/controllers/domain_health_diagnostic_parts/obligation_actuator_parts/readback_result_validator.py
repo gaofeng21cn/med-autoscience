@@ -36,6 +36,13 @@ OPL_OBLIGATION_ACTUATOR_TAIL_PROOF_REQUIRED = (
     "owner_retirement_decision",
     "tombstone_or_provenance",
 )
+OPL_OBLIGATION_ACTUATOR_FORBIDDEN_COMPLETION_CLAIMS = (
+    "repo_no_authority_guard_as_obligation_actuator_tail_readback",
+    "mas_policy_projection_as_opl_recovery_obligation_store_readback",
+    "mas_transition_request_as_supervisor_decision_engine_readback",
+    "focused_tests_green_as_no_active_obligation_actuator_caller",
+    "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback",
+)
 OPL_OBLIGATION_ACTUATOR_LIVE_READBACK_REQUIREMENT = {
     "surface_kind": "opl_obligation_actuator_tail_readback_requirement",
     "runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
@@ -50,6 +57,9 @@ OPL_OBLIGATION_ACTUATOR_LIVE_READBACK_REQUIREMENT = {
     "focused_tests_can_satisfy_readback": False,
     "repo_no_authority_guard_can_satisfy_readback": False,
     "physical_delete_allowed_without_tail_proof": False,
+    "forbidden_completion_claims": list(
+        OPL_OBLIGATION_ACTUATOR_FORBIDDEN_COMPLETION_CLAIMS
+    ),
 }
 CONSUMED_READBACK_IDENTITY_SURFACE = "consumed_obligation_readback_identity"
 ACCEPTED_OBLIGATION_OUTCOME_KINDS = (

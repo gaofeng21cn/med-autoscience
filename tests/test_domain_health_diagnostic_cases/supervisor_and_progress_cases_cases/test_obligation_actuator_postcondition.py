@@ -1296,6 +1296,19 @@ def test_obligation_actuator_readback_validator_is_not_supervisor_decision_engin
     )
     assert boundary["mas_domain_authority_readback_requires_authority_boundary"] is True
     assert boundary["read_model_evidence_refs_can_satisfy_success"] is False
+    tail_requirement = validator.opl_obligation_actuator_tail_readback_requirement()
+    forbidden_completion_claims = set(tail_requirement["forbidden_completion_claims"])
+    assert {
+        "repo_no_authority_guard_as_obligation_actuator_tail_readback",
+        "mas_policy_projection_as_opl_recovery_obligation_store_readback",
+        "mas_transition_request_as_supervisor_decision_engine_readback",
+        "focused_tests_green_as_no_active_obligation_actuator_caller",
+        "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback",
+    } <= forbidden_completion_claims
+    assert tail_requirement["mas_policy_projection_can_satisfy_readback"] is False
+    assert tail_requirement["mas_request_projection_can_satisfy_readback"] is False
+    assert tail_requirement["repo_no_authority_guard_can_satisfy_readback"] is False
+    assert tail_requirement["focused_tests_can_satisfy_readback"] is False
 
     assert validator.allowed_outcomes_for_policy_label("consume_terminal_closeout") == {
         "owner_receipt_ref",
@@ -1408,6 +1421,16 @@ def test_obligation_actuator_transition_request_is_projection_not_success(
     assert consume_only["mas_can_store_recovery_obligation"] is False
     assert consume_only["mas_can_run_fixed_point_runtime"] is False
     assert consume_only["request_projection_is_success_outcome"] is False
+    tail_requirement = consume_only["opl_obligation_actuator_tail_readback_requirement"]
+    assert tail_requirement["mas_request_projection_can_satisfy_readback"] is False
+    assert tail_requirement["focused_tests_can_satisfy_readback"] is False
+    assert {
+        "repo_no_authority_guard_as_obligation_actuator_tail_readback",
+        "mas_policy_projection_as_opl_recovery_obligation_store_readback",
+        "mas_transition_request_as_supervisor_decision_engine_readback",
+        "focused_tests_green_as_no_active_obligation_actuator_caller",
+        "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback",
+    } <= set(tail_requirement["forbidden_completion_claims"])
 
 
 def test_obligation_actuator_disallowed_supervisor_outcome_fails_postcondition(
