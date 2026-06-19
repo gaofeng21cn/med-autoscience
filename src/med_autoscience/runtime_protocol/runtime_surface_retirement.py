@@ -962,6 +962,10 @@ def _validate_runtime_health_kernel(
             str(item) for item in active_readbacks
         }:
             violations.append(_violation(surface_id, "runtime_health_tail_active_readbacks_incomplete"))
+        if tail.get("required_tail_readback_families_must_match_same_runtime_identity") is not True:
+            violations.append(_violation(surface_id, "runtime_health_tail_missing_same_identity_family_gate"))
+        if tail.get("current_control_or_stage_run_readback_alone_can_satisfy_tail") is not False:
+            violations.append(_violation(surface_id, "runtime_health_tail_allows_generic_readback_as_tail"))
         required_tail_refs = {
             "opl_observability_live_readback",
             "opl_route_reconciler_live_readback",
@@ -996,6 +1000,8 @@ def _validate_runtime_health_kernel(
             "mas_diagnostic_projection_as_route_reconciler_readback",
             "focused_tests_green_as_no_active_runtime_health_caller",
             "runtime_health_decision_gate_as_opl_runtime_readback",
+            "current_control_readback_alone_as_runtime_health_tail",
+            "stage_run_readback_alone_as_runtime_health_tail",
         }
         if not isinstance(forbidden_claims, list) or not required_false_claims <= {
             str(item) for item in forbidden_claims

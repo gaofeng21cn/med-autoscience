@@ -27,13 +27,26 @@ _OPL_RECOVERY_IDENTITY_KEYS = (
 )
 _TRUSTED_OPL_RUNTIME_READBACK_SURFACE_KINDS = frozenset(
     {
-        "opl_current_control_state_handoff",
-        "opl_current_control_state_study_handoff",
-        "opl_current_control_state_provider_attempt_handoff",
+        "opl_runtime_health_observability_readback",
+        "opl_runtime_health_route_reconciler_readback",
         "opl_stage_run_readback",
         "opl_terminal_stage_log",
     }
 )
+_OPL_RUNTIME_HEALTH_TAIL_FAMILIES = frozenset(
+    {
+        "opl_observability_live_readback",
+        "opl_route_reconciler_live_readback",
+    }
+)
+_OPL_RUNTIME_HEALTH_FAMILY_BY_SURFACE_KIND = {
+    "opl_runtime_health_observability_readback": "opl_observability_live_readback",
+    "opl_runtime_health_route_reconciler_readback": "opl_route_reconciler_live_readback",
+}
+_OPL_RUNTIME_HEALTH_FAMILY_BY_SOURCE = {
+    "opl_runtime_health_observability": "opl_observability_live_readback",
+    "opl_route_reconciler": "opl_route_reconciler_live_readback",
+}
 
 
 def _mapping(value: object) -> Mapping[str, object]:
@@ -164,28 +177,41 @@ def _runtime_health_recovery_identity_tokens(
     return tokens
 
 
-def _trusted_opl_runtime_readback(payload: Mapping[str, object]) -> bool:
-    if _text(payload.get("surface_kind")) in _TRUSTED_OPL_RUNTIME_READBACK_SURFACE_KINDS:
-        return True
-    return (
-        _text(payload.get("source")) == "opl_current_control_state_provider_attempt"
-        and payload.get("running_provider_attempt") is True
-    )
+def _trusted_opl_runtime_readback_family(payload: Mapping[str, object]) -> str | None:
+    surface_kind = _text(payload.get("surface_kind"))
+    if surface_kind in _OPL_RUNTIME_HEALTH_FAMILY_BY_SURFACE_KIND:
+        return _OPL_RUNTIME_HEALTH_FAMILY_BY_SURFACE_KIND[surface_kind]
+    if surface_kind in _TRUSTED_OPL_RUNTIME_READBACK_SURFACE_KINDS:
+        family = _text(payload.get("runtime_health_readback_family"))
+        return family if family in _OPL_RUNTIME_HEALTH_TAIL_FAMILIES else None
+    source = _text(payload.get("source"))
+    if source in _OPL_RUNTIME_HEALTH_FAMILY_BY_SOURCE:
+        return _OPL_RUNTIME_HEALTH_FAMILY_BY_SOURCE[source]
+    return None
 
 
 def _collect_identity_bound_opl_readback_tokens(
     payload: Mapping[str, object],
     *,
     source: str,
-) -> tuple[set[str], list[str]]:
+) -> tuple[set[str], list[str], dict[str, set[str]]]:
     tokens: set[str] = set()
     sources: list[str] = []
-    if _trusted_opl_runtime_readback(payload):
+    tokens_by_family: dict[str, set[str]] = {
+        family: set() for family in _OPL_RUNTIME_HEALTH_TAIL_FAMILIES
+    }
+    family = _trusted_opl_runtime_readback_family(payload)
+    if family is not None:
         payload_tokens = _identity_tokens_from_payload(payload)
         if payload_tokens:
             tokens.update(payload_tokens)
             sources.append(source)
+            tokens_by_family[family].update(payload_tokens)
     for nested_key in (
+        "opl_observability_readback",
+        "opl_route_reconciler_readback",
+        "runtime_health_observability_readback",
+        "runtime_health_route_reconciler_readback",
         "opl_lifecycle_readback",
         "opl_current_control_state",
         "current_control_state",
@@ -195,13 +221,15 @@ def _collect_identity_bound_opl_readback_tokens(
         nested = _mapping(payload.get(nested_key))
         if not nested:
             continue
-        nested_tokens, nested_sources = _collect_identity_bound_opl_readback_tokens(
+        nested_tokens, nested_sources, nested_tokens_by_family = _collect_identity_bound_opl_readback_tokens(
             nested,
             source=f"{source}.{nested_key}",
         )
         tokens.update(nested_tokens)
         sources.extend(nested_sources)
-    return tokens, sources
+        for nested_family, family_tokens in nested_tokens_by_family.items():
+            tokens_by_family.setdefault(nested_family, set()).update(family_tokens)
+    return tokens, sources, tokens_by_family
 
 
 def _runtime_health_recovery_authorization_details(
@@ -225,6 +253,9 @@ def _runtime_health_recovery_authorization_details(
     )
     readback_tokens: set[str] = set()
     readback_sources: list[str] = []
+    readback_tokens_by_family: dict[str, set[str]] = {
+        family: set() for family in _OPL_RUNTIME_HEALTH_TAIL_FAMILIES
+    }
     for source, payload in (
         ("runtime_liveness_audit", _mapping(status_payload.get("runtime_liveness_audit"))),
         (
@@ -239,19 +270,35 @@ def _runtime_health_recovery_authorization_details(
     ):
         if not payload:
             continue
-        tokens, sources = _collect_identity_bound_opl_readback_tokens(payload, source=source)
+        tokens, sources, tokens_by_family = _collect_identity_bound_opl_readback_tokens(payload, source=source)
         readback_tokens.update(tokens)
         readback_sources.extend(sources)
-    matched_tokens = sorted(required_tokens & readback_tokens)
+        for family, family_tokens in tokens_by_family.items():
+            readback_tokens_by_family.setdefault(family, set()).update(family_tokens)
+    matched_tokens_by_family = {
+        family: sorted(required_tokens & readback_tokens_by_family.get(family, set()))
+        for family in sorted(_OPL_RUNTIME_HEALTH_TAIL_FAMILIES)
+    }
+    missing_tail_families = [
+        family for family, family_tokens in matched_tokens_by_family.items() if not family_tokens
+    ]
+    matched_tokens = sorted(set().union(*(set(tokens) for tokens in matched_tokens_by_family.values())))
+    authorized = bool(required_tokens and matched_tokens and not missing_tail_families)
     return {
-        "authorized": bool(required_tokens and matched_tokens),
+        "authorized": authorized,
         "suppressed_reason": (
             None
-            if required_tokens and matched_tokens
+            if authorized
             else "opl_runtime_readback_required_for_runtime_health_decision"
         ),
         "required_runtime_identity": sorted(required_tokens),
         "readback_runtime_identities": sorted(readback_tokens),
+        "required_runtime_health_tail_families": sorted(_OPL_RUNTIME_HEALTH_TAIL_FAMILIES),
+        "matched_runtime_health_tail_families": [
+            family for family, family_tokens in matched_tokens_by_family.items() if family_tokens
+        ],
+        "missing_runtime_health_tail_families": missing_tail_families,
+        "matched_runtime_identity_by_tail_family": matched_tokens_by_family,
         "matched_runtime_identity": matched_tokens,
         "readback_sources": sorted(dict.fromkeys(readback_sources)),
     }
@@ -280,6 +327,18 @@ def _record_runtime_health_decision_gate(
         "identity_bound_opl_readback_required": True,
         "required_runtime_identity": list(details.get("required_runtime_identity") or []),
         "readback_runtime_identities": list(details.get("readback_runtime_identities") or []),
+        "required_runtime_health_tail_families": list(
+            details.get("required_runtime_health_tail_families") or []
+        ),
+        "matched_runtime_health_tail_families": list(
+            details.get("matched_runtime_health_tail_families") or []
+        ),
+        "missing_runtime_health_tail_families": list(
+            details.get("missing_runtime_health_tail_families") or []
+        ),
+        "matched_runtime_identity_by_tail_family": dict(
+            _mapping(details.get("matched_runtime_identity_by_tail_family"))
+        ),
         "matched_runtime_identity": list(details.get("matched_runtime_identity") or []),
         "readback_sources": list(details.get("readback_sources") or []),
         "unbound_opl_ref_can_authorize_decision": False,

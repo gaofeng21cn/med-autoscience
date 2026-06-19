@@ -1511,13 +1511,16 @@
           "required_before_physical_delete": "runtime_health_kernel_no_active_diagnostic_projection_caller_physical_delete_ref",
           "status": "active_diagnostic_projection_callers_present_tail_open"
         },
+        "current_control_or_stage_run_readback_alone_can_satisfy_tail": false,
         "focused_tests_can_satisfy_readback": false,
         "forbidden_completion_claims": [
           "repo_no_authority_guard_as_runtime_health_tail_readback",
           "mas_runtime_health_snapshot_as_opl_observability_readback",
           "mas_diagnostic_projection_as_route_reconciler_readback",
           "focused_tests_green_as_no_active_runtime_health_caller",
-          "runtime_health_decision_gate_as_opl_runtime_readback"
+          "runtime_health_decision_gate_as_opl_runtime_readback",
+          "current_control_readback_alone_as_runtime_health_tail",
+          "stage_run_readback_alone_as_runtime_health_tail"
         ],
         "mas_diagnostic_projection_can_satisfy_readback": false,
         "mas_runtime_health_snapshot_can_satisfy_readback": false,
@@ -1537,6 +1540,7 @@
           "opl_route_reconciler_live_readback"
         ],
         "required_before_physical_delete": "runtime_health_kernel_opl_runtime_health_observability_tail_readback_ref",
+        "required_tail_readback_families_must_match_same_runtime_identity": true,
         "runtime_kind": "OPL Observability/StageRun/RouteReconciler",
         "runtime_owner": "one-person-lab",
         "status": "tail_open",

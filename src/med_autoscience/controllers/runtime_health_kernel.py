@@ -67,6 +67,8 @@ OPL_RUNTIME_HEALTH_LIVE_READBACK_REQUIREMENT = {
         "opl_observability_live_readback",
         "opl_route_reconciler_live_readback",
     ],
+    "required_tail_readback_families_must_match_same_runtime_identity": True,
+    "current_control_or_stage_run_readback_alone_can_satisfy_tail": False,
     "mas_diagnostic_projection_can_satisfy_readback": False,
     "mas_runtime_health_snapshot_can_satisfy_readback": False,
     "focused_tests_can_satisfy_readback": False,

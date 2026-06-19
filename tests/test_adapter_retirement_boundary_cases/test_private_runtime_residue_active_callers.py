@@ -1241,6 +1241,12 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "mas_runtime_health_snapshot_can_satisfy_readback"
     ] = True
     runtime_health["opl_runtime_health_observability_tail_readback"][
+        "required_tail_readback_families_must_match_same_runtime_identity"
+    ] = False
+    runtime_health["opl_runtime_health_observability_tail_readback"][
+        "current_control_or_stage_run_readback_alone_can_satisfy_tail"
+    ] = True
+    runtime_health["opl_runtime_health_observability_tail_readback"][
         "forbidden_completion_claims"
     ] = []
     runtime_health["opl_runtime_health_observability_tail_readback"][
@@ -1346,6 +1352,14 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         (
             "runtime_health_kernel",
             "runtime_health_tail_forbidden:mas_runtime_health_snapshot_can_satisfy_readback",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_tail_missing_same_identity_family_gate",
+        ),
+        (
+            "runtime_health_kernel",
+            "runtime_health_tail_allows_generic_readback_as_tail",
         ),
         (
             "runtime_health_kernel",

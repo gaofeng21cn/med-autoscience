@@ -693,6 +693,8 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "opl_observability_live_readback",
             "opl_route_reconciler_live_readback",
         ],
+        "required_tail_readback_families_must_match_same_runtime_identity": True,
+        "current_control_or_stage_run_readback_alone_can_satisfy_tail": False,
         "required_before_physical_delete": (
             "runtime_health_kernel_opl_runtime_health_observability_tail_readback_ref"
         ),
@@ -747,6 +749,8 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
             "mas_diagnostic_projection_as_route_reconciler_readback",
             "focused_tests_green_as_no_active_runtime_health_caller",
             "runtime_health_decision_gate_as_opl_runtime_readback",
+            "current_control_readback_alone_as_runtime_health_tail",
+            "stage_run_readback_alone_as_runtime_health_tail",
         ],
     }
     assert runtime_health["retirement_gate"][
