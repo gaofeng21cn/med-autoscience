@@ -144,6 +144,79 @@ style_grid_color <- function(display_payload) {
   style_color(display_payload, role_name = "grid_line", palette_key = palette_key, fallback = "#E6EDF2")
 }
 
+publication_legend_guides <- function(display_payload) {
+  typography <- style_typography(display_payload)
+  guide_legend(
+    nrow = 1,
+    byrow = TRUE,
+    override.aes = list(linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.0) * 0.42),
+    label.position = "right",
+    label.hjust = 0
+  )
+}
+
+publication_colorbar_guide <- function(display_payload, title = NULL, bar_orientation = "vertical") {
+  typography <- style_typography(display_payload)
+  guide_colourbar(
+    title = title,
+    title.position = "top",
+    title.hjust = 0.5,
+    label.position = if (identical(bar_orientation, "horizontal")) "bottom" else "right",
+    label.hjust = if (identical(bar_orientation, "horizontal")) 0.5 else 0,
+    barwidth = unit(style_numeric(typography, "colorbar_width", 5.0), "pt"),
+    barheight = unit(style_numeric(typography, "colorbar_height", 42.0), "pt"),
+    ticks = TRUE,
+    frame.colour = NA,
+    nbin = 80
+  )
+}
+
+continuous_scale_breaks <- function(values, max_breaks = 4) {
+  finite_values <- values[is.finite(values)]
+  if (length(finite_values) < 1) {
+    return(waiver())
+  }
+  range_values <- range(finite_values, na.rm = TRUE)
+  pretty(range_values, n = max_breaks)
+}
+
+heatmap_fill_scale <- function(display_payload, values, name = NULL, limits = NULL, midpoint = NULL) {
+  finite_values <- values[is.finite(values)]
+  if (length(finite_values) < 1) {
+    finite_values <- c(0, 1)
+  }
+  value_range <- range(finite_values, na.rm = TRUE)
+  crosses_zero <- value_range[[1]] < 0 && value_range[[2]] > 0
+  if (is.null(midpoint)) {
+    midpoint <- if (crosses_zero) 0 else mean(value_range)
+  }
+  breaks <- if (is.null(limits)) continuous_scale_breaks(finite_values) else continuous_scale_breaks(limits)
+  guide <- publication_colorbar_guide(display_payload, title = name)
+  if (crosses_zero) {
+    return(scale_fill_gradient2(
+      low = style_color(display_payload, "heatmap_low", "heatmap_low", "#2166AC"),
+      mid = style_color(display_payload, "heatmap_mid", "heatmap_mid", "#F7F7F7"),
+      high = style_color(display_payload, "heatmap_high", "heatmap_high", "#B2182B"),
+      midpoint = midpoint,
+      limits = limits,
+      breaks = breaks,
+      name = name,
+      guide = guide
+    ))
+  }
+  scale_fill_gradientn(
+    colours = c(
+      style_color(display_payload, "heatmap_seq_low", "heatmap_seq_low", "#F4F8FA"),
+      style_color(display_payload, "heatmap_seq_mid", "heatmap_seq_mid", "#9DD2D3"),
+      style_color(display_payload, "heatmap_seq_high", "heatmap_seq_high", "#0B4F6C")
+    ),
+    limits = limits,
+    breaks = breaks,
+    name = name,
+    guide = guide
+  )
+}
+
 style_series_palette <- function(display_payload, labels) {
   labels <- as.character(labels)
   if (length(labels) < 1) {
@@ -185,9 +258,15 @@ theme_publication <- function(display_payload = list()) {
   axis_title_size <- style_numeric(typography, "axis_title_size", 11.0)
   tick_size <- style_numeric(typography, "tick_size", 10.0)
   legend_size <- style_numeric(typography, "legend_size", tick_size)
+  legend_key_width <- style_numeric(typography, "legend_key_width", 18.0)
+  legend_key_height <- style_numeric(typography, "legend_key_height", 7.0)
+  legend_key_spacing_x <- style_numeric(typography, "legend_key_spacing_x", 5.0)
+  legend_key_spacing_y <- style_numeric(typography, "legend_key_spacing_y", 3.0)
   text_color <- style_text_color(display_payload)
   grid_linewidth <- style_numeric(stroke, "grid_linewidth", 0.25)
+  axis_linewidth <- style_numeric(stroke, "axis_linewidth", 0.35)
   grid_color <- style_grid_color(display_payload)
+  axis_color <- style_color(display_payload, role_name = "axis_line", palette_key = "axis", fallback = text_color)
   major_axis <- tolower(trimws(as.character(grid_spec$major_axis %||% "both")))
   minor_axis <- tolower(trimws(as.character(grid_spec$minor_axis %||% "none")))
   major_grid <- if (style_bool(grid_spec, "major", TRUE)) {
@@ -206,9 +285,24 @@ theme_publication <- function(display_payload = list()) {
       plot.title = element_text(face = "bold", colour = text_color, size = title_size),
       axis.title = element_text(face = "bold", colour = text_color, size = axis_title_size),
       axis.text = element_text(colour = text_color, size = tick_size),
-      legend.text = element_text(size = legend_size, colour = text_color),
+      axis.line = element_line(colour = axis_color, linewidth = axis_linewidth),
+      axis.ticks = element_line(colour = axis_color, linewidth = axis_linewidth),
+      axis.ticks.length = unit(1.6, "pt"),
+      legend.text = element_text(size = legend_size, colour = text_color, margin = margin(r = 4, unit = "pt")),
       legend.position = "bottom",
+      legend.box = "horizontal",
+      legend.justification = "center",
       legend.title = element_blank(),
+      legend.background = element_blank(),
+      legend.box.background = element_blank(),
+      legend.key = element_blank(),
+      legend.key.height = unit(legend_key_height, "pt"),
+      legend.key.width = unit(legend_key_width, "pt"),
+      legend.spacing.x = unit(legend_key_spacing_x, "pt"),
+      legend.spacing.y = unit(legend_key_spacing_y, "pt"),
+      legend.box.spacing = unit(5, "pt"),
+      panel.background = element_rect(fill = style_color(display_payload, role_name = "figure_background", palette_key = "background", fallback = "#FFFFFF"), colour = NA),
+      panel.border = element_blank(),
       panel.grid.major.x = if (major_axis %in% c("x", "both", "all")) major_grid else element_blank(),
       panel.grid.major.y = if (major_axis %in% c("y", "both", "all")) major_grid else element_blank(),
       panel.grid.minor.x = if (minor_axis %in% c("x", "both", "all")) minor_grid else element_blank(),

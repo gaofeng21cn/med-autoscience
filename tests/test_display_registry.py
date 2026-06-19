@@ -128,7 +128,7 @@ def test_time_to_event_threshold_governance_panel_is_registered() -> None:
 
     assert spec.paper_family_ids == ("A", "B")
     assert spec.evidence_class == "clinical_utility"
-    assert spec.renderer_family == "r_ggplot2"
+    assert spec.renderer_family == "python"
     assert spec.input_schema_id == "time_to_event_threshold_governance_inputs_v1"
     assert spec.layout_qc_profile == "publication_time_to_event_threshold_governance_panel"
 
@@ -158,7 +158,7 @@ def test_time_to_event_multihorizon_calibration_panel_is_registered() -> None:
 
     assert spec.paper_family_ids == ("A", "B")
     assert spec.evidence_class == "time_to_event"
-    assert spec.renderer_family == "r_ggplot2"
+    assert spec.renderer_family == "python"
     assert spec.input_schema_id == "time_to_event_multihorizon_calibration_inputs_v1"
     assert spec.layout_qc_profile == "publication_time_to_event_multihorizon_calibration_panel"
 
@@ -789,7 +789,7 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure8.layout_qc_profile == "publication_evidence_curve"
     assert figure8b.paper_family_ids == ("A", "B")
     assert figure8b.evidence_class == "time_to_event"
-    assert figure8b.renderer_family == "r_ggplot2"
+    assert figure8b.renderer_family == "python"
     assert figure8b.input_schema_id == "time_to_event_landmark_performance_inputs_v1"
     assert figure8b.layout_qc_profile == "publication_landmark_performance_panel"
     assert figure9.layout_qc_profile == "publication_embedding_scatter"
@@ -863,9 +863,9 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure19.renderer_family == "r_ggplot2"
     assert figure19.input_schema_id == "time_to_event_stratified_cumulative_incidence_inputs_v1"
     assert figure19.layout_qc_profile == "publication_survival_curve"
-    assert figure22.renderer_family == "r_ggplot2"
     assert figure22.input_schema_id == "risk_layering_monotonic_inputs_v1"
     assert figure22.layout_qc_profile == "publication_risk_layering_bars"
+    assert figure22.renderer_family == "python"
     assert figure3.input_schema_id == "binary_calibration_decision_curve_panel_inputs_v1"
     assert figure3.layout_qc_profile == "publication_binary_calibration_decision_curve"
     assert figure3.renderer_family == "r_ggplot2"

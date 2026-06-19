@@ -288,7 +288,7 @@ def test_build_display_pack_lock_payload_projects_core_p1_promoted_default_rende
         and item["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
     ]
 
-    assert len(p1_promoted) == 33
+    assert len(p1_promoted) == 29
     assert template_entries["time_to_event_risk_group_summary"]["renderer_family"] == "r_ggplot2"
     assert template_entries["time_to_event_risk_group_summary"]["execution_mode"] == "subprocess"
     assert template_entries["time_to_event_risk_group_summary"]["entrypoint"] == "Rscript render.R --request {request_json}"
@@ -304,4 +304,10 @@ def test_build_display_pack_lock_payload_projects_core_p1_promoted_default_rende
     )
     assert template_entries["shap_summary_beeswarm"]["render_script_path"].endswith(
         "templates/shap_summary_beeswarm/render.R"
+    )
+    assert template_entries["time_to_event_landmark_performance_panel"]["renderer_family"] == "python"
+    assert template_entries["time_to_event_landmark_performance_panel"]["execution_mode"] == "python_plugin"
+    assert template_entries["time_to_event_landmark_performance_panel"]["render_script_path"] is None
+    assert template_entries["time_to_event_landmark_performance_panel"]["candidate_render_script_path"].endswith(
+        "templates/time_to_event_landmark_performance_panel/render_candidate.R"
     )

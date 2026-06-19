@@ -103,7 +103,7 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
             assert "render_r_evidence_figure" not in payload["entrypoint"]
             assert (manifest_path.parent / "render.R").is_file()
 
-    assert len(r_templates) == 55
+    assert len(r_templates) == 51
 
 
 def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> None:
@@ -124,11 +124,14 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
     assert sorted(records_by_template) == sorted(manifest_ids)
     assert ledger["summary"]["evidence_template_count"] == 84
     assert ledger["summary"]["p0_landed_r_ggplot2_subprocess"] == 22
-    assert ledger["summary"]["p1_promoted_to_default_r_ggplot2_subprocess"] == 33
-    assert ledger["summary"]["p2_retained_python_or_dual_stack_later"] == 29
+    assert ledger["summary"]["p1_promoted_to_default_r_ggplot2_subprocess"] == 29
+    assert ledger["summary"]["p2_retained_python_or_dual_stack_later"] == 33
     assert ledger["summary"]["unclassified"] == 0
-    assert lane_counts == {"P0": 22, "P1": 33, "P2": 29}
-    assert records_by_template["risk_layering_monotonic_bars"]["migration_lane"] == "P1"
+    assert lane_counts == {"P0": 22, "P1": 29, "P2": 33}
+    assert records_by_template["risk_layering_monotonic_bars"]["migration_lane"] == "P2"
+    assert records_by_template["time_to_event_landmark_performance_panel"]["migration_lane"] == "P2"
+    assert records_by_template["time_to_event_multihorizon_calibration_panel"]["migration_lane"] == "P2"
+    assert records_by_template["time_to_event_threshold_governance_panel"]["migration_lane"] == "P2"
     assert records_by_template["celltype_signature_heatmap"]["migration_lane"] == "P1"
     assert records_by_template["multicenter_generalizability_overview"]["migration_lane"] == "P2"
     assert records_by_template["center_transportability_governance_summary_panel"]["migration_lane"] == "P2"
@@ -138,7 +141,7 @@ def test_core_pack_p1_renderers_are_promoted_r_subprocess_defaults() -> None:
     ledger = json.loads((CORE_PACK_ROOT / "renderer_migration_ledger.json").read_text(encoding="utf-8"))
     p1_records = [item for item in ledger["records"] if item["migration_lane"] == "P1"]
 
-    assert len(p1_records) == 33
+    assert len(p1_records) == 29
     for record in p1_records:
         template_root = CORE_PACK_ROOT / "templates" / record["template_id"]
         render_path = template_root / "render.R"
