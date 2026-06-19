@@ -3,6 +3,11 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.private_runtime_residue_validators import (
+    validate_domain_health_diagnostic_obligation_actuator as _validate_domain_health_diagnostic_obligation_actuator,
+    validate_domain_owner_action_dispatch as _validate_domain_owner_action_dispatch,
+)
+
 
 SURFACE_KIND = "mas_runtime_surface_retirement_no_authority_audit"
 SCHEMA_VERSION = 1
@@ -42,6 +47,8 @@ FORBIDDEN_TRUE_AUTHORITY_FLAGS = frozenset(
         "active_caller_retains_authority",
         "active_caller_retains_runtime_authority",
         "can_write_fail_closed_typed_control_blocker",
+        "closeout_binding_authorizes_execution",
+        "actuator_private_write_authority",
         "stage_closeout_packets_can_authorize_provider_admission",
         "stage_closeout_packets_can_authorize_execution",
         "stage_closeout_packets_can_create_provider_attempt",
@@ -121,6 +128,10 @@ def validate_runtime_surface_retirement_inventory(
             violations.extend(_validate_legacy_stage_run_abi(surface_id, surface))
         if surface_id == "domain_authority_refs_index":
             violations.extend(_validate_domain_authority_refs_index(surface_id, surface))
+        if surface_id == "domain_owner_action_dispatch":
+            violations.extend(_validate_domain_owner_action_dispatch(surface_id, surface))
+        if surface_id == "domain_health_diagnostic_obligation_actuator":
+            violations.extend(_validate_domain_health_diagnostic_obligation_actuator(surface_id, surface))
         if surface_id == "runtime_health_kernel":
             violations.extend(_validate_runtime_health_kernel(surface_id, surface))
         if surface.get("current_disposition") != "physically_retired":

@@ -424,7 +424,8 @@
         "Legacy default_executor_execution/latest.json is no longer a default current receipt reader for default_executor_execution_candidates, default_executor_execution_receipt_consumption, or default_executor_execution_nonconsumable_closeout; tests migrate current fixtures to canonical owner_callable_adapter_receipts/latest.json and keep legacy fallback explicit for history/provenance only.",
         "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention projections remain authorization-free and non-progress claims.",
         "runtime_surface_retirement_no_authority_audit now derives a repo-wide no-authority guard from the retirement inventory, proving open active callers are refs-only, consume-only, read-only, or OPL-authorized adapters rather than MAS private runtime authority.",
-        "default_executor_dispatch_request legacy_source_contamination_boundary is now enforced by tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py and src/med_autoscience/runtime_protocol/runtime_surface_retirement.py, so source payloads claiming MAS authority or OPL writes cannot be reinterpreted as admission, execution, or readback authority."
+        "default_executor_dispatch_request legacy_source_contamination_boundary is now enforced by tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py and src/med_autoscience/runtime_protocol/runtime_surface_retirement.py, so source payloads claiming MAS authority or OPL writes cannot be reinterpreted as admission, execution, or readback authority.",
+        "runtime_surface_retirement_parts/private_runtime_residue_validators.py now has dedicated fail-closed validators for domain_owner_action_dispatch and domain_health_diagnostic_obligation_actuator, rejecting weak owner-dispatch selection/execution authority, MAS supervisor decision engine revival, MAS recovery obligation store mutation, request-projection success, and actuator-private blocker writes."
       ],
       "open_gap": "Remaining private runtime residue still needs live OPL takeover/no-active-caller/tombstone evidence for physical deletion; legacy latest fallback retirement proves current readers are canonical-only by default but does not physically delete legacy carrier/provenance paths; storage maintenance is now an OPL-authorized MAS callable adapter, not a MAS-owned runtime storage shell."
     },
@@ -738,7 +739,11 @@
         "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#legacy_default_executor_carrier_stage_run_abi_boundary",
         "tests/test_adapter_retirement_boundary.py::test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
         "tests/test_adapter_retirement_boundary.py::test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_default_executor_carrier_authority_regression"
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_default_executor_carrier_authority_regression",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement_parts/private_runtime_residue_validators.py::validate_domain_owner_action_dispatch",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement_parts/private_runtime_residue_validators.py::validate_domain_health_diagnostic_obligation_actuator",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#domain_owner_action_dispatch_authority_regression",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#domain_health_diagnostic_obligation_actuator_authority_regression"
       ],
       "missing_evidence_tails": [
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
