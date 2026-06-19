@@ -36,11 +36,12 @@ def completion_evidence_layers(
         )
         for surface_id in blocked_surface_ids
     ]
-    live_soak_proven = bool(required_refs) and all(
+    repo_no_authority_guard_satisfied = not violations
+    live_soak_proven = repo_no_authority_guard_satisfied and bool(required_refs) and all(
         _surface_live_or_no_active_proven(surfaces_by_id.get(str(audit["surface_id"]), {}), audit)
         for audit in surface_audits
     )
-    physical_delete_allowed = bool(surface_audits) and all(
+    physical_delete_allowed = repo_no_authority_guard_satisfied and bool(surface_audits) and all(
         audit.get("physical_delete_gate_open") is False for audit in surface_audits
     )
     return {
