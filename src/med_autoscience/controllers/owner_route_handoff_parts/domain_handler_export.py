@@ -31,7 +31,10 @@ from ..study_domain_transition_table_parts import family_transition_spec
 from .accepted_owner_gate_route_back import accepted_owner_gate_route_back_action
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
-from .default_executor_dispatch_tasks import default_executor_dispatch_tasks
+from .default_executor_dispatch_tasks import (
+    default_executor_dispatch_tasks,
+    legacy_default_executor_dispatch_diagnostics,
+)
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
@@ -95,7 +98,7 @@ def export_family_domain_handler(
         opl_production_proof=opl_production_proof,
         opl_production_proof_ref=opl_production_proof_ref,
     )
-    pending_tasks = _pending_family_tasks(
+    pending_tasks, legacy_dispatch_diagnostics = _pending_family_tasks(
         studies=studies,
         profile=profile,
         profile_ref=profile_ref,
@@ -234,6 +237,7 @@ def export_family_domain_handler(
             },
         },
         "pending_family_tasks": pending_tasks,
+        "legacy_default_executor_dispatch_diagnostics": legacy_dispatch_diagnostics,
         "studies": studies,
     }
 
@@ -245,8 +249,9 @@ def _pending_family_tasks(
     profile_ref: Path,
     provider_availability: Mapping[str, Any],
     opl_production_proof_ref: str | Path | None,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     tasks: list[dict[str, Any]] = []
+    legacy_dispatch_diagnostics: list[dict[str, Any]] = []
     guarded_apply_targets = _guarded_apply_targets(studies)
     tasks.extend(
         provider_hosted_guarded_apply_tasks(
@@ -268,6 +273,12 @@ def _pending_family_tasks(
         study_id = text(study.get("study_id"))
         if study_id is None:
             continue
+        legacy_diagnostic = legacy_default_executor_dispatch_diagnostics(
+            profile=profile,
+            study_id=study_id,
+        )
+        if legacy_diagnostic is not None:
+            legacy_dispatch_diagnostics.append(legacy_diagnostic)
         current_progress = _fresh_study_progress(
             study=study,
             profile=profile,
@@ -385,7 +396,7 @@ def _pending_family_tasks(
         )
         if controller_task is not None:
             tasks.append(controller_task)
-    return tasks
+    return tasks, legacy_dispatch_diagnostics
 
 
 def _current_control_transition_request_tasks(

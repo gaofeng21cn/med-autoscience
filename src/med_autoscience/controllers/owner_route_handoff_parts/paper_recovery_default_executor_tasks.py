@@ -49,6 +49,7 @@ def paper_recovery_default_executor_dispatch_tasks(
             continue
         task = _materialized_default_executor_dispatch_task(
             dispatch=dispatch,
+            current_progress=current_progress,
             profile=profile,
             profile_ref=profile_ref,
             study_id=study_id,
@@ -66,6 +67,7 @@ def paper_recovery_default_executor_dispatch_tasks(
         return []
     task = _materialized_default_executor_dispatch_task(
         dispatch=dispatch,
+        current_progress=current_progress,
         profile=profile,
         profile_ref=profile_ref,
         study_id=study_id,
@@ -93,6 +95,7 @@ def _paper_recovery_requests_default_executor_dispatch(current_progress: Mapping
 def _materialized_default_executor_dispatch_task(
     *,
     dispatch: Mapping[str, Any],
+    current_progress: Mapping[str, Any],
     profile: WorkspaceProfile,
     profile_ref: Path,
     study_id: str,
@@ -101,7 +104,15 @@ def _materialized_default_executor_dispatch_task(
     if action_type is None:
         return None
     owner_route = _mapping(dispatch.get("owner_route"))
-    source_refs = _materialized_dispatch_source_refs(dispatch=dispatch, profile=profile)
+    source_action = _materialized_source_action(
+        dispatch=dispatch,
+        current_progress=current_progress,
+    )
+    source_refs = _materialized_dispatch_source_refs(
+        dispatch=dispatch,
+        profile=profile,
+        source_action=source_action,
+    )
     source_fingerprint = (
         _text(dispatch.get("source_fingerprint"))
         or _text(dispatch.get("action_fingerprint"))
@@ -186,12 +197,13 @@ def _materialized_default_executor_dispatch_task(
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
         "owner_route_currentness_basis": owner_route_currentness_basis or None,
-        "paper_autonomy_supervisor_decision": _mapping(
-            _mapping(dispatch.get("source_action")).get("supervisor_decision")
-        )
+        "paper_autonomy_supervisor_decision": _source_action_supervisor_decision(source_action)
         or None,
-        "paper_recovery_source_action": _mapping(dispatch.get("source_action")) or None,
-        "default_executor_dispatch_request": dict(dispatch),
+        "paper_recovery_source_action": source_action or None,
+        "default_executor_dispatch_request": _default_executor_dispatch_request_payload(
+            dispatch=dispatch,
+            source_action=source_action,
+        ),
     }
     return {
         "domain_id": "medautoscience",
@@ -311,7 +323,9 @@ def _successor_owner_action_dispatch(
     source_action = {
         "authority": "paper_recovery_state",
         "reason": _text(obligation.get("blocker_type")) or _text(current_work_unit.get("status")),
+        "paper_autonomy_supervisor_decision": supervisor_decision or None,
         "supervisor_decision": supervisor_decision or None,
+        "supervisor_decision_ref": _text(supervisor_decision.get("decision_id")),
         "next_safe_action": next_safe_action,
         "successor_owner_action": successor,
     }
@@ -341,6 +355,7 @@ def _materialized_dispatch_source_refs(
     *,
     dispatch: Mapping[str, Any],
     profile: WorkspaceProfile,
+    source_action: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     refs: list[dict[str, Any]] = []
     dispatch_ref = _text(_mapping(dispatch.get("refs")).get("dispatch_path"))
@@ -353,16 +368,17 @@ def _materialized_dispatch_source_refs(
                 "exists": dispatch_path.exists(),
             }
         )
-    source_action = _mapping(dispatch.get("source_action"))
-    supervisor_decision = _mapping(source_action.get("supervisor_decision"))
-    if supervisor_decision:
+    source_action = _mapping(source_action) or _mapping(dispatch.get("source_action"))
+    supervisor_decision = _source_action_supervisor_decision(source_action)
+    supervisor_decision_ref = _text(source_action.get("supervisor_decision_ref"))
+    if supervisor_decision or supervisor_decision_ref is not None:
         refs.append(
             {
                 "role": "paper_autonomy_supervisor_decision",
-                "ref": _text(source_action.get("supervisor_decision_ref"))
+                "ref": supervisor_decision_ref
                 or _text(supervisor_decision.get("decision_id"))
                 or "default_executor_dispatch_request.source_action.supervisor_decision",
-                "exists": True,
+                "exists": bool(supervisor_decision),
                 "decision": _text(supervisor_decision.get("decision")),
             }
         )
@@ -389,6 +405,73 @@ def _materialized_dispatch_source_refs(
             }
         )
     return refs
+
+
+def _materialized_source_action(
+    *,
+    dispatch: Mapping[str, Any],
+    current_progress: Mapping[str, Any],
+) -> dict[str, Any]:
+    source_action = (
+        _mapping(dispatch.get("source_action"))
+        or _mapping(dispatch.get("source_action_ref"))
+    )
+    supervisor_decision = _matching_current_supervisor_decision(
+        source_action=source_action,
+        current_progress=current_progress,
+    )
+    if supervisor_decision:
+        source_action.setdefault("paper_autonomy_supervisor_decision", supervisor_decision)
+        source_action.setdefault("supervisor_decision", supervisor_decision)
+        source_action.setdefault(
+            "supervisor_decision_ref",
+            _text(supervisor_decision.get("decision_id")),
+        )
+    return {key: value for key, value in source_action.items() if value not in (None, "", [], {})}
+
+
+def _matching_current_supervisor_decision(
+    *,
+    source_action: Mapping[str, Any],
+    current_progress: Mapping[str, Any],
+) -> dict[str, Any]:
+    recovery = _mapping(current_progress.get("paper_recovery_state"))
+    decision = (
+        _mapping(recovery.get("paper_autonomy_supervisor_decision"))
+        or _mapping(recovery.get("supervisor_decision"))
+        or _mapping(current_progress.get("paper_autonomy_supervisor_decision"))
+    )
+    if not decision:
+        return {}
+    expected_ref = _text(source_action.get("supervisor_decision_ref"))
+    decision_ref = _text(decision.get("decision_id"))
+    if expected_ref is not None and decision_ref != expected_ref:
+        return {}
+    if expected_ref is None and decision_ref is None:
+        return {}
+    return decision
+
+
+def _source_action_supervisor_decision(source_action: Mapping[str, Any]) -> dict[str, Any]:
+    return (
+        _mapping(source_action.get("paper_autonomy_supervisor_decision"))
+        or _mapping(source_action.get("supervisor_decision"))
+    )
+
+
+def _default_executor_dispatch_request_payload(
+    *,
+    dispatch: Mapping[str, Any],
+    source_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(dispatch)
+    source_dispatch_status = _text(payload.get("dispatch_status"))
+    if source_dispatch_status is not None:
+        payload["source_transition_request_status"] = source_dispatch_status
+    payload["dispatch_status"] = "ready"
+    if source_action:
+        payload["source_action"] = dict(source_action)
+    return payload
 
 
 def _consumer_latest_path_for_source_ref(profile: WorkspaceProfile) -> Path:

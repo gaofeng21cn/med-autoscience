@@ -1576,14 +1576,27 @@ def test_domain_handler_export_does_not_treat_nonconsumable_redrive_budget_as_do
             }
         )
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
+            "canonical_surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_id,
+            "projection_authority": False,
+            "owner_callable_receipt_projection": True,
+            "execution_ledger_authority": False,
+            "attempt_lifecycle_authority": False,
+            "queue_authority": False,
             "executed_count": len(executions),
             "blocked_count": 0,
-            "executions": executions,
+            "executions": [
+                {
+                    "canonical_surface": "owner_callable_adapter_receipt",
+                    **execution,
+                    "surface": "owner_callable_adapter_receipt",
+                }
+                for execution in executions
+            ],
         },
     )
 

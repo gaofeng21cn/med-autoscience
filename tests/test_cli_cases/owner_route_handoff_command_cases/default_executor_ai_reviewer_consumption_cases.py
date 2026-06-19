@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .shared import *  # noqa: F403,F401
+from .default_executor_dispatch_export_cases import _write_owner_callable_adapter_receipt
 
 
 def test_domain_handler_export_skips_consumed_ai_reviewer_dispatch_after_publication_eval_written(
@@ -97,47 +98,36 @@ def test_domain_handler_export_skips_consumed_ai_reviewer_dispatch_after_publica
             "reviewer_operating_system": {"contract_id": "medical_publication_ai_reviewer_os_v1"},
         },
     )
-    _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
-        {
-            "surface": "default_executor_dispatch_execution_study_latest",
-            "schema_version": 1,
+    _write_owner_callable_adapter_receipt(
+        study_root=study_root,
+        execution={
             "study_id": study_id,
-            "executed_count": 1,
-            "blocked_count": 0,
-            "executions": [
-                {
-                    "surface": "default_executor_dispatch_execution",
-                    "schema_version": 1,
-                    "study_id": study_id,
-                    "quest_id": study_id,
-                    "action_type": "return_to_ai_reviewer_workflow",
-                    "execution_status": "executed",
-                    "execution_id": (
-                        f"execution::{study_id}::return_to_ai_reviewer_workflow::"
-                        "2026-05-28T02:02:18+00:00"
-                    ),
-                    "idempotency_key": owner_route["idempotency_key"],
-                    "current_owner_route": owner_route,
-                    "prompt_contract": {"owner_route": owner_route},
-                    "owner_result": {
-                        "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-                        "publication_eval_surface": "artifacts/publication_eval/latest.json",
-                        "eval_id": eval_id,
-                        "reviewer_operating_system": {
-                            "contract_id": "medical_publication_ai_reviewer_os_v1",
-                        },
-                        "controller_decision_refresh": {
-                            "refresh_status": "materialized",
-                            "study_decision_ref": {
-                                "artifact_path": str(
-                                    study_root / "artifacts" / "controller_decisions" / "latest.json"
-                                ),
-                            },
-                        },
+            "quest_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "execution_status": "executed",
+            "execution_id": (
+                f"execution::{study_id}::return_to_ai_reviewer_workflow::"
+                "2026-05-28T02:02:18+00:00"
+            ),
+            "idempotency_key": owner_route["idempotency_key"],
+            "current_owner_route": owner_route,
+            "prompt_contract": {"owner_route": owner_route},
+            "owner_result": {
+                "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                "publication_eval_surface": "artifacts/publication_eval/latest.json",
+                "eval_id": eval_id,
+                "reviewer_operating_system": {
+                    "contract_id": "medical_publication_ai_reviewer_os_v1",
+                },
+                "controller_decision_refresh": {
+                    "refresh_status": "materialized",
+                    "study_decision_ref": {
+                        "artifact_path": str(
+                            study_root / "artifacts" / "controller_decisions" / "latest.json"
+                        ),
                     },
-                }
-            ],
+                },
+            },
         },
     )
 

@@ -98,6 +98,39 @@ def _write_default_executor_dispatch(
     )
 
 
+def _write_owner_callable_adapter_receipt(
+    *,
+    study_root: Path,
+    execution: dict[str, object],
+) -> str:
+    receipt_ref = "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
+    _write_json(
+        study_root / receipt_ref,
+        {
+            "surface": "owner_callable_adapter_receipt_study_latest",
+            "canonical_surface": "owner_callable_adapter_receipt_study_latest",
+            "schema_version": 1,
+            "study_id": study_root.name,
+            "projection_authority": False,
+            "owner_callable_receipt_projection": True,
+            "execution_ledger_authority": False,
+            "attempt_lifecycle_authority": False,
+            "queue_authority": False,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "owner_callable_adapter_receipt",
+                    "canonical_surface": "owner_callable_adapter_receipt",
+                    "schema_version": 1,
+                    **execution,
+                }
+            ],
+        },
+    )
+    return receipt_ref
+
+
 def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
@@ -153,6 +186,7 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
         "dispatch_ref": dispatch_ref,
         "owner_route_currentness_basis": {
             "source_eval_id": "publication-eval::002::current",
+            "source_fingerprint": "truth-snapshot::002",
             "work_unit_id": "medical_prose_write_repair",
             "work_unit_fingerprint": "medical-prose-routeback::write::fp",
             "truth_epoch": "publication-eval::002::current",
@@ -389,6 +423,87 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
     )
 
 
+def test_domain_handler_export_demotes_unbound_default_executor_dispatch_to_diagnostics(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = workspace_root / "studies" / study_id
+    dispatch_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "run_quality_repair_batch.json"
+    )
+    dispatch_path = workspace_root / dispatch_ref
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_default_executor_dispatch(
+        dispatch_path=dispatch_path,
+        study_root=study_root,
+        include_owner_route=False,
+    )
+    dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    dispatch["refs"]["dispatch_path"] = str(dispatch_path)
+    dispatch["prompt_contract"]["owner_route"] = {
+        "surface": "domain_route_owner_route",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": "legacy-truth-epoch",
+        "runtime_health_epoch": "legacy-runtime-health-epoch",
+        "work_unit_fingerprint": "legacy-work-unit-fingerprint",
+        "source_fingerprint": "legacy-source-fingerprint",
+        "current_owner": "legacy_default_executor_dispatch",
+        "next_owner": "write",
+        "source_refs": {},
+        "owner_reason": "manuscript_story_surface_delta_missing",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "idempotency_key": "legacy-default-executor-dispatch",
+    }
+    _write_json(dispatch_path, dispatch)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ] == []
+    diagnostics = payload["legacy_default_executor_dispatch_diagnostics"]
+    assert len(diagnostics) == 1
+    diagnostic = diagnostics[0]
+    assert diagnostic == {
+        "surface_kind": "legacy_default_executor_dispatch_diagnostics",
+        "study_id": study_id,
+        "status": "projection_only_not_pending_family_task",
+        "legacy_surface": "default_executor_dispatch_request",
+        "legacy_carrier_projection": True,
+        "legacy_dispatch_ref_count": 1,
+        "refs": [
+            {
+                "role": "legacy_default_executor_dispatch_request",
+                "ref": dispatch_ref,
+                "action_type": "run_quality_repair_batch",
+                "dispatch_status": "ready",
+                "body_included": False,
+                "schedulable": False,
+            }
+        ],
+        "body_included": False,
+        "schedulable": False,
+        "provider_admission_pending": False,
+        "provider_attempt_or_lease_required": False,
+        "mas_dispatch_authority": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_stage_run": False,
+        "opl_transition_runtime_required": True,
+        "completion_claim_allowed": False,
+    }
+
+
 def test_default_executor_dispatch_dedupe_key_tracks_owner_route_currentness(
     tmp_path: Path,
     capsys,
@@ -469,49 +584,30 @@ def test_domain_handler_export_skips_consumed_default_executor_dispatch(
     )
     dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
     owner_route = dispatch["prompt_contract"]["owner_route"]
-    _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
-        {
-            "surface": "default_executor_dispatch_execution_study_latest",
-            "schema_version": 1,
+    _write_owner_callable_adapter_receipt(
+        study_root=study_root,
+        execution={
             "study_id": study_root.name,
-            "executed_count": 1,
-            "blocked_count": 0,
-            "executions": [
-                {
-                    "surface": "default_executor_dispatch_execution",
-                    "schema_version": 1,
-                    "study_id": study_root.name,
-                    "quest_id": study_root.name,
-                    "action_type": "run_quality_repair_batch",
-                    "execution_status": "executed",
-                    "execution_id": "execution::dm002::run_quality_repair_batch::consumed",
-                    "idempotency_key": "owner-route::previous-runtime-health",
-                    "current_owner_route": {
-                        **owner_route,
-                        "idempotency_key": "owner-route::previous-runtime-health",
-                        "runtime_health_epoch": "runtime-health-event-previous",
-                        "source_refs": {
-                            **owner_route["source_refs"],
-                            "runtime_health_epoch": "runtime-health-event-previous",
-                        },
-                    },
-                    "prompt_contract": {"owner_route": owner_route},
-                    "owner_result": {
-                        "status": "executed",
-                        "ok": True,
-                        "repair_execution_evidence": {
-                            "status": "progress_delta_candidate",
-                            "changed_artifact_refs": [
-                                {"path": str(study_root / "paper" / "build" / "review_manuscript.md")},
-                            ],
-                        },
-                        "quality_authorized": False,
-                        "submission_authorized": False,
-                        "current_package_write_authorized": False,
-                    },
-                }
-            ],
+            "quest_id": study_root.name,
+            "action_type": "run_quality_repair_batch",
+            "execution_status": "executed",
+            "execution_id": "execution::dm002::run_quality_repair_batch::consumed",
+            "idempotency_key": owner_route["idempotency_key"],
+            "current_owner_route": owner_route,
+            "prompt_contract": {"owner_route": owner_route},
+            "owner_result": {
+                "status": "executed",
+                "ok": True,
+                "repair_execution_evidence": {
+                    "status": "progress_delta_candidate",
+                    "changed_artifact_refs": [
+                        {"path": str(study_root / "paper" / "build" / "review_manuscript.md")},
+                    ],
+                },
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
         },
     )
 
@@ -559,41 +655,30 @@ def test_domain_handler_export_keeps_default_executor_dispatch_when_receipt_work
             "work_unit_id": "previous_work_unit",
         },
     }
-    _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
-        {
-            "surface": "default_executor_dispatch_execution_study_latest",
-            "schema_version": 1,
+    _write_owner_callable_adapter_receipt(
+        study_root=study_root,
+        execution={
             "study_id": study_root.name,
-            "executed_count": 1,
-            "blocked_count": 0,
-            "executions": [
-                {
-                    "surface": "default_executor_dispatch_execution",
-                    "schema_version": 1,
-                    "study_id": study_root.name,
-                    "quest_id": study_root.name,
-                    "action_type": "run_quality_repair_batch",
-                    "execution_status": "executed",
-                    "execution_id": "execution::dm002::run_quality_repair_batch::previous",
-                    "idempotency_key": previous_route["idempotency_key"],
-                    "current_owner_route": previous_route,
-                    "prompt_contract": {"owner_route": previous_route},
-                    "owner_result": {
-                        "status": "executed",
-                        "ok": True,
-                        "repair_execution_evidence": {
-                            "status": "progress_delta_candidate",
-                            "changed_artifact_refs": [
-                                {"path": str(study_root / "paper" / "build" / "review_manuscript.md")},
-                            ],
-                        },
-                        "quality_authorized": False,
-                        "submission_authorized": False,
-                        "current_package_write_authorized": False,
-                    },
-                }
-            ],
+            "quest_id": study_root.name,
+            "action_type": "run_quality_repair_batch",
+            "execution_status": "executed",
+            "execution_id": "execution::dm002::run_quality_repair_batch::previous",
+            "idempotency_key": previous_route["idempotency_key"],
+            "current_owner_route": previous_route,
+            "prompt_contract": {"owner_route": previous_route},
+            "owner_result": {
+                "status": "executed",
+                "ok": True,
+                "repair_execution_evidence": {
+                    "status": "progress_delta_candidate",
+                    "changed_artifact_refs": [
+                        {"path": str(study_root / "paper" / "build" / "review_manuscript.md")},
+                    ],
+                },
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
         },
     )
 
@@ -643,45 +728,34 @@ def test_domain_handler_export_redrives_nonconsumable_same_work_unit_closeout(
     )
     dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
     owner_route = dispatch["prompt_contract"]["owner_route"]
-    _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
-        {
-            "surface": "default_executor_dispatch_execution_study_latest",
-            "schema_version": 1,
+    receipt_ref = _write_owner_callable_adapter_receipt(
+        study_root=study_root,
+        execution={
             "study_id": study_root.name,
-            "executed_count": 1,
-            "blocked_count": 0,
-            "executions": [
-                {
-                    "surface": "default_executor_dispatch_execution",
-                    "schema_version": 1,
-                    "study_id": study_root.name,
-                    "quest_id": study_root.name,
-                    "action_type": "run_quality_repair_batch",
-                    "execution_status": "executed",
-                    "execution_id": "execution::dm002::run_quality_repair_batch::ledger-only",
-                    "idempotency_key": owner_route["idempotency_key"],
-                    "current_owner_route": owner_route,
-                    "prompt_contract": {"owner_route": owner_route},
-                    "owner_result": {
-                        "status": "executed",
-                        "ok": True,
-                        "repair_execution_evidence": {
-                            "status": "progress_delta_candidate",
-                            "manuscript_surface_hygiene": {
-                                "story_surface_delta_required": True,
-                                "story_surface_delta_present": False,
-                            },
-                            "changed_artifact_refs": [
-                                {"path": str(study_root / "paper" / "claim_evidence_map.json")},
-                            ],
-                        },
-                        "quality_authorized": False,
-                        "submission_authorized": False,
-                        "current_package_write_authorized": False,
+            "quest_id": study_root.name,
+            "action_type": "run_quality_repair_batch",
+            "execution_status": "executed",
+            "execution_id": "execution::dm002::run_quality_repair_batch::ledger-only",
+            "idempotency_key": owner_route["idempotency_key"],
+            "current_owner_route": owner_route,
+            "prompt_contract": {"owner_route": owner_route},
+            "owner_result": {
+                "status": "executed",
+                "ok": True,
+                "repair_execution_evidence": {
+                    "status": "progress_delta_candidate",
+                    "manuscript_surface_hygiene": {
+                        "story_surface_delta_required": True,
+                        "story_surface_delta_present": False,
                     },
-                }
-            ],
+                    "changed_artifact_refs": [
+                        {"path": str(study_root / "paper" / "claim_evidence_map.json")},
+                    ],
+                },
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
         },
     )
 
@@ -699,7 +773,7 @@ def test_domain_handler_export_redrives_nonconsumable_same_work_unit_closeout(
     assert second_task["payload"]["redrive_context"] == {
         "status": "non_consumable_closeout",
         "receipt_kind": "default_executor_execution",
-        "receipt_ref": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+        "receipt_ref": receipt_ref,
         "execution_id": "execution::dm002::run_quality_repair_batch::ledger-only",
         "action_type": "run_quality_repair_batch",
         "execution_status": "executed",
@@ -798,6 +872,7 @@ def test_domain_handler_export_projects_bridged_dm003_writer_handoff(tmp_path: P
     assert task["payload"]["work_unit_id"] == "medical_prose_write_repair"
     assert task["payload"]["owner_route_currentness_basis"] == {
         "source_eval_id": source_eval_id,
+        "source_fingerprint": "truth-source::dm003::medical-prose",
         "work_unit_id": "medical_prose_write_repair",
         "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
         "truth_epoch": "truth-event-dm003-medical-prose",
@@ -947,6 +1022,7 @@ def test_domain_handler_export_projects_ai_reviewer_default_executor_dispatch_re
     assert "provider_admission_identity" not in task["payload"]
     assert task["payload"]["owner_route_currentness_basis"] == {
         "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        "source_fingerprint": "truth-snapshot::085b4164f248a2f4c92bf66b",
         "work_unit_fingerprint": "truth-snapshot::085b4164f248a2f4c92bf66b",
         "truth_epoch": "truth-event-000017-bac190eb1c889a78",
         "runtime_health_epoch": "runtime-health-event-006195-9cdb58e3383bd0a9",

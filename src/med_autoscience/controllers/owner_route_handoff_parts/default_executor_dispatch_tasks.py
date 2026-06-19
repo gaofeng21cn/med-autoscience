@@ -537,6 +537,76 @@ def _current_dispatch_candidates(
     return [_newest_candidate(unresolved)]
 
 
+def _dispatch_has_currentness_identity(dispatch: Mapping[str, Any]) -> bool:
+    owner_route = current_dispatch_identity.dispatch_owner_route(dispatch)
+    if not owner_route:
+        return False
+    action_type = _text(dispatch.get("action_type"))
+    if action_type is None:
+        return False
+    if action_type not in set(_string_list(owner_route.get("allowed_actions"))):
+        return False
+    return (
+        current_dispatch_identity.owner_route_work_unit_id(owner_route) is not None
+        and current_dispatch_identity.dispatch_work_unit_fingerprint(dispatch) is not None
+        and (
+            _text(owner_route.get("truth_epoch")) is not None
+            or _text(owner_route.get("runtime_health_epoch")) is not None
+            or _text(owner_route.get("source_fingerprint")) is not None
+        )
+    )
+
+
+def legacy_default_executor_dispatch_diagnostics(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> dict[str, Any] | None:
+    dispatch_root = profile.studies_root / study_id / DISPATCH_RELATIVE_ROOT
+    if not dispatch_root.is_dir():
+        return None
+    refs: list[dict[str, Any]] = []
+    for dispatch_path in sorted(dispatch_root.glob("*.json")):
+        dispatch = _read_json_object(dispatch_path)
+        if dispatch is None:
+            continue
+        if _text(dispatch.get("surface")) != REQUIRED_SURFACE:
+            continue
+        if _dispatch_has_currentness_identity(dispatch):
+            continue
+        refs.append(
+            {
+                "role": "legacy_default_executor_dispatch_request",
+                "ref": _workspace_relative(dispatch_path, workspace_root=profile.workspace_root),
+                "action_type": _text(dispatch.get("action_type")),
+                "dispatch_status": _text(dispatch.get("dispatch_status")),
+                "body_included": False,
+                "schedulable": False,
+            }
+        )
+    if not refs:
+        return None
+    return {
+        "surface_kind": "legacy_default_executor_dispatch_diagnostics",
+        "study_id": study_id,
+        "status": "projection_only_not_pending_family_task",
+        "legacy_surface": REQUIRED_SURFACE,
+        "legacy_carrier_projection": True,
+        "legacy_dispatch_ref_count": len(refs),
+        "refs": refs,
+        "body_included": False,
+        "schedulable": False,
+        "provider_admission_pending": False,
+        "provider_attempt_or_lease_required": False,
+        "mas_dispatch_authority": False,
+        "mas_creates_opl_event": False,
+        "mas_creates_opl_outbox": False,
+        "mas_creates_opl_stage_run": False,
+        "opl_transition_runtime_required": True,
+        "completion_claim_allowed": False,
+    }
+
+
 def _dispatch_matches_canonical_current_identity(
     dispatch: Mapping[str, Any],
     canonical_identity: Mapping[str, Any],
@@ -1106,4 +1176,8 @@ def _normalized_path_text(value: object) -> str | None:
     return text.replace("\\", "/")
 
 
-__all__ = ["TASK_KIND", "default_executor_dispatch_tasks"]
+__all__ = [
+    "TASK_KIND",
+    "default_executor_dispatch_tasks",
+    "legacy_default_executor_dispatch_diagnostics",
+]

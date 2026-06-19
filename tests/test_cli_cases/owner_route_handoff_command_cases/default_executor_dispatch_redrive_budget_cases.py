@@ -54,15 +54,31 @@ def test_domain_handler_export_stops_repeated_nonconsumable_same_work_unit_close
         },
     }
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
+            "canonical_surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_root.name,
+            "projection_authority": False,
+            "owner_callable_receipt_projection": True,
+            "execution_ledger_authority": False,
+            "attempt_lifecycle_authority": False,
+            "queue_authority": False,
             "executions": [],
             "execution_ledger": [
-                {**execution_base, "execution_id": "execution::dm002::run_quality_repair_batch::first"},
-                {**execution_base, "execution_id": "execution::dm002::run_quality_repair_batch::second"},
+                {
+                    **execution_base,
+                    "surface": "owner_callable_adapter_receipt",
+                    "canonical_surface": "owner_callable_adapter_receipt",
+                    "execution_id": "execution::dm002::run_quality_repair_batch::first",
+                },
+                {
+                    **execution_base,
+                    "surface": "owner_callable_adapter_receipt",
+                    "canonical_surface": "owner_callable_adapter_receipt",
+                    "execution_id": "execution::dm002::run_quality_repair_batch::second",
+                },
             ],
         },
     )

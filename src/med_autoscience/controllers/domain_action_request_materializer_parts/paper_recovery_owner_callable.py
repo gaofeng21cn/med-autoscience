@@ -564,6 +564,7 @@ def _supervisor_policy_projection_fields(supervisor_decision: Mapping[str, Any])
     if not decision:
         return {}
     return {
+        "paper_autonomy_supervisor_decision": decision,
         "supervisor_decision": decision,
         "supervisor_decision_ref": _text(decision.get("decision_id")),
         "supervisor_policy_projection": SUPERVISOR_POLICY_PROJECTION_SURFACE,
