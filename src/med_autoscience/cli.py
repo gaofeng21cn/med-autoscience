@@ -41,6 +41,9 @@ from med_autoscience.cli_parts.study_owner_gate_commands import handle_study_own
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
 from med_autoscience.cli_parts.domain_health_diagnostic_commands import handle_domain_health_diagnostic_command
 from med_autoscience.cli_parts.domain_handler_commands import handle_domain_handler_command
+from med_autoscience.cli_parts.domain_owner_action_dispatch_commands import (
+    handle_domain_owner_action_dispatch_command,
+)
 from med_autoscience.cli_parts.evo_scientist_sidecar_commands import (
     handle_evo_scientist_sidecar_command,
 )
@@ -135,6 +138,7 @@ quality_repair_batch = _lazy_controller_module("quality_repair_batch")
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
 domain_health_diagnostic = _LazyModuleProxy(lambda: _load_controller("domain_health_diagnostic"))
 owner_route_handoff = _lazy_controller_module("owner_route_handoff")
+domain_owner_action_dispatch = _lazy_controller_module("domain_owner_action_dispatch")
 stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
 publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"))
 real_paper_autonomy_soak_inventory = _LazyModuleProxy(lambda: _load_controller("real_paper_autonomy_soak_inventory"))
@@ -534,6 +538,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     if domain_health_diagnostic_result is not None:
         return domain_health_diagnostic_result
+
+    domain_owner_action_dispatch_result = handle_domain_owner_action_dispatch_command(
+        args,
+        domain_owner_action_dispatch=domain_owner_action_dispatch,
+        load_profile=load_profile,
+    )
+    if domain_owner_action_dispatch_result is not None:
+        return domain_owner_action_dispatch_result
 
     if args.command == "owner-route-reconcile":
         profile = load_profile(args.profile)

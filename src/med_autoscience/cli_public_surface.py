@@ -45,6 +45,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("data", "asset-gate"): "data-asset-gate",
     ("data", "tooluniverse-status"): "tooluniverse-status",
     ("runtime", "domain-health-diagnostic"): "domain-health-diagnostic",
+    ("runtime", "domain-owner-action-dispatch"): "domain-owner-action-dispatch",
     ("runtime", "reconcile-health"): "reconcile-runtime-health",
     ("runtime", "paper-autonomy-stability-evidence"): "paper-autonomy-stability-evidence",
     ("runtime", "workspace-monolith-migrate"): "workspace-monolith-migrate",

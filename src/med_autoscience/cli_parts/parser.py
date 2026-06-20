@@ -162,6 +162,20 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_health_diagnostic_apply.add_argument("--dry-run", action="store_true")
     domain_health_diagnostic_apply.add_argument("--apply", action="store_true")
 
+    domain_owner_action_dispatch_parser = subparsers.add_parser("domain-owner-action-dispatch")
+    domain_owner_action_dispatch_parser.add_argument("--profile", required=True)
+    domain_owner_action_dispatch_parser.add_argument("--studies", nargs="+")
+    domain_owner_action_dispatch_parser.add_argument("--study-id")
+    domain_owner_action_dispatch_parser.add_argument(
+        "--mode",
+        choices=("internal_only", "external_observe", "developer_apply_safe"),
+        default="external_observe",
+    )
+    domain_owner_action_dispatch_parser.add_argument("--action-type", action="append", dest="action_types")
+    domain_owner_action_dispatch_apply = domain_owner_action_dispatch_parser.add_mutually_exclusive_group()
+    domain_owner_action_dispatch_apply.add_argument("--dry-run", action="store_true")
+    domain_owner_action_dispatch_apply.add_argument("--apply", action="store_true")
+
     domain_handler_parser = subparsers.add_parser("domain-handler")
     domain_handler_subparsers = domain_handler_parser.add_subparsers(
         dest="domain_handler_command",
