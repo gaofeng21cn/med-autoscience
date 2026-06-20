@@ -94,8 +94,16 @@ def refresh_current_execution_surfaces(
         )
         return updated
     handoff_executable_action = current_control_executable_owner_action(handoff)
-    if handoff_executable_action is None and active_provider_control(handoff):
-        handoff_executable_action = current_control_provider_admission_action(handoff)
+    provider_admission_action = (
+        current_control_provider_admission_action(handoff) if active_provider_control(handoff) else None
+    )
+    if provider_admission_action is not None and _provider_admission_supersedes_request_action(
+        provider_admission_action,
+        request_action=handoff_executable_action,
+    ):
+        handoff_executable_action = provider_admission_action
+    if handoff_executable_action is None:
+        handoff_executable_action = provider_admission_action
     payload_executable_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if (
         payload_executable_action
@@ -134,6 +142,29 @@ def refresh_current_execution_surfaces(
                 next_owner=_non_empty_text(handoff.get("next_owner")),
                 runtime_health=runtime_health_snapshot,
             )
+            if _non_empty_text(current_work.get("status")) == "executable_owner_action":
+                updated["current_work_unit"] = current_work
+                updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+                    status=status,
+                    progress=updated,
+                    actions=[handoff_executable_action],
+                    blocked_reason=None,
+                    next_owner=_non_empty_text(handoff_executable_action.get("next_owner")),
+                    typed_blocker={},
+                    runtime_health=runtime_health_snapshot,
+                    live_provider_attempt=handoff,
+                    current_work_unit_payload=current_work,
+                )
+                updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+                    action_queue=_execution_evidence_actions_for_payload(payload=updated, handoff=handoff),
+                    runtime_health=runtime_health_snapshot,
+                    extra={
+                        "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+                    },
+                )
+                return updated
+        if handoff_executable_action.get("provider_admission_pending") is True:
+            current_work = _mapping_copy(handoff.get("current_work_unit"))
             if _non_empty_text(current_work.get("status")) == "executable_owner_action":
                 updated["current_work_unit"] = current_work
                 updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
@@ -1101,6 +1132,25 @@ def _handoff_has_bound_running_provider_attempt(handoff: Mapping[str, Any]) -> b
     )
 
 
+def _provider_admission_supersedes_request_action(
+    provider_action: Mapping[str, Any],
+    *,
+    request_action: Mapping[str, Any] | None,
+) -> bool:
+    if provider_action.get("provider_admission_pending") is not True:
+        return False
+    if _non_empty_text(provider_action.get("opl_transition_readback_source")) != (
+        "opl_domain_progress_transition_runtime_live_readback"
+    ):
+        return False
+    request_payload = _mapping_copy(request_action)
+    if not request_payload:
+        return True
+    provider_identity = _identity_values(provider_action)
+    request_identity = _identity_values(request_payload)
+    return not _identities_conflict(provider_identity, request_identity)
+
+
 def _running_handoff_conflicts_current_surface(
     *,
     payload: Mapping[str, Any],
@@ -1154,13 +1204,25 @@ def _identity_values(value: Mapping[str, Any]) -> dict[str, str | None]:
         or _non_empty_text(runtime_health.get("work_unit_fingerprint"))
         or _non_empty_text(runtime_health.get("action_fingerprint"))
         or _non_empty_text(basis.get("work_unit_fingerprint")),
+        "route_identity_key": _non_empty_text(value.get("route_identity_key"))
+        or _non_empty_text(runtime_health.get("route_identity_key"))
+        or _non_empty_text(basis.get("route_identity_key")),
+        "attempt_idempotency_key": _non_empty_text(value.get("attempt_idempotency_key"))
+        or _non_empty_text(runtime_health.get("attempt_idempotency_key"))
+        or _non_empty_text(basis.get("attempt_idempotency_key")),
     }
 
 
 def _identities_conflict(left: Mapping[str, str | None], right: Mapping[str, str | None]) -> bool:
     return any(
         left.get(key) is not None and right.get(key) is not None and left.get(key) != right.get(key)
-        for key in ("action_type", "work_unit_id", "fingerprint")
+        for key in (
+            "action_type",
+            "work_unit_id",
+            "fingerprint",
+            "route_identity_key",
+            "attempt_idempotency_key",
+        )
     )
 
 

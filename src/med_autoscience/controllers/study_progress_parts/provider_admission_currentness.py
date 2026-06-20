@@ -72,6 +72,9 @@ def current_control_provider_admission_action(handoff: Mapping[str, Any]) -> dic
             or _non_empty_text(candidate.get("attempt_idempotency_key"))
             or _non_empty_text(candidate.get("route_identity_key")),
             "provider_admission_pending": True,
+            "provider_attempt_or_lease_required": True,
+            "provider_admission_requires_opl_runtime_result": False,
+            "opl_transition_runtime_required": False,
             "opl_transition_readback_source": LIVE_READBACK_SOURCE,
             "authority_boundary": {
                 "projection_only": True,
@@ -136,6 +139,10 @@ def with_provider_admission_executable_currentness(
             "state_kind": "executable_owner_action",
             "source": SOURCE,
             "provider_admission_pending": True,
+            "transition_request_pending": False,
+            "provider_attempt_or_lease_required": True,
+            "provider_admission_requires_opl_runtime_result": False,
+            "opl_transition_runtime_required": False,
         },
         "authority_boundary": {
             "projection_only": True,

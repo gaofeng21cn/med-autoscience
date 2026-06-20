@@ -76,6 +76,10 @@ def test_provider_admission_current_control_wrappers_preserve_stage_authority_bo
         assert authority_boundary["legacy_diagnostic"] == "kept"
         assert authority_boundary["can_write_current_owner_delta"] is False
         assert authority_boundary["can_mark_provider_attempt_running"] is False
+    assert study["provider_admission_candidates"][0]["status"] == "queued"
+    assert study["provider_admission_candidates"][0]["provider_admission_pending"] is True
+    assert study["provider_admission_candidates"][0]["provider_attempt_or_lease_required"] is True
+    assert study["provider_admission_candidates"][0]["provider_admission_requires_opl_runtime_result"] is False
 
 
 def test_provider_admission_identity_prefers_opl_transition_request_identity() -> None:

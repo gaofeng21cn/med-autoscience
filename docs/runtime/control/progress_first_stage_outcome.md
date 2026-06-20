@@ -199,6 +199,8 @@ Post-apply current-control precedence 读法：
 
 Request-only owner action 必须在 `current_executable_owner_action` 与 canonical `current_work_unit.state` 两层同时暴露 `transition_request_pending=true`、`provider_admission_pending=false`、`provider_admission_requires_opl_runtime_result=true` 和 `opl_transition_runtime_required=true`。这些字段表示 MAS 已把 next owner/action/work-unit 投影为等待 OPL `DomainProgressTransitionRuntime` command/event/outbox/StageRun readback 的 handoff；它不是 provider admission、running proof、owner receipt、paper semantic delta 或 publication readiness。
 
+若同一 identity 的 OPL `complete_transaction` readback 已经出现，request-only transition 必须被消费为 provider-admission/readback outcome。`current_executable_owner_action`、canonical `current_work_unit`、DHD current-control study entry 和 top-level candidate counters 必须统一显示 `provider_admission_pending=true`、`provider_attempt_or_lease_required=true`、`provider_admission_requires_opl_runtime_result=false`，并清掉同 identity 的 `transition_request_pending`。identity 至少包含 study、action、work-unit id / fingerprint、`route_identity_key` 和 `attempt_idempotency_key`；不同 identity 或缺关键 route / attempt key 时，readback 只能作为 audit evidence，不得覆盖 request-only handoff。
+
 Strict running proof 的优先级高于 stale transition request / budget blocker。若 same identity 已有 OPL current-control `running_provider_attempt=true` 且未被 terminal closeout 消费，operator outcome 必须是 running watch；不得因为旧 `anti_loop_budget_exhausted` 或 stale transition request 再次 materialize 同一 owner action。若缺 running proof但存在 request-only transition，则 outcome 是 `ready_for_owner_action` / OPL transition readback required，而不是 idle、queue empty 或 stop-loss。
 
 recent non-authoritative recovery sample（debug context only）：

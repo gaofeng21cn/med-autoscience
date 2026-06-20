@@ -30,6 +30,22 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
     attempt_key = attempt_idempotency_key(provider_identity)
     opl_readback = provider_admission_opl_transition_readback(provider_identity)
     provider_admission_pending = bool(opl_readback)
+    provider_candidate = {
+        **dict(provider_identity),
+        **{
+            key: value
+            for key, value in {
+                "status": action.get("status"),
+                "provider_admission_pending": action.get("provider_admission_pending"),
+                "provider_attempt_or_lease_required": action.get("provider_attempt_or_lease_required"),
+                "provider_admission_requires_opl_runtime_result": action.get(
+                    "provider_admission_requires_opl_runtime_result"
+                ),
+                "opl_transition_runtime_required": action.get("opl_transition_runtime_required"),
+            }.items()
+            if value not in (None, "", [], {})
+        },
+    }
     state_kind = "provider_admission_pending" if provider_admission_pending else "transition_request_pending"
     blocked_reason = (
         "provider_admission_current_control_state_required"
@@ -73,7 +89,7 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
         "transition_request_identity": None if provider_admission_pending else provider_identity,
         "transition_request_identity_key": None if provider_admission_pending else route_key,
         "attempt_idempotency_key": attempt_key,
-        "provider_admission_candidates": [dict(provider_identity)] if provider_admission_pending else [],
+        "provider_admission_candidates": [provider_candidate] if provider_admission_pending else [],
         "provider_admission_pending_count": 1 if provider_admission_pending else 0,
         "transition_request_candidates": [dict(provider_identity)] if not provider_admission_pending else [],
         "transition_request_pending_count": 0 if provider_admission_pending else 1,
