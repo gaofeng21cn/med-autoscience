@@ -205,7 +205,40 @@ def refresh_current_execution_surfaces(
             progress=updated,
         ):
             updated["current_executable_owner_action"] = successor_action
-            handoff_work_unit = {}
+            actions = _canonical_actions_for_execution_refresh(payload=updated, handoff=handoff)
+            evidence_actions = _execution_evidence_actions_for_payload(payload=updated, handoff=handoff)
+            next_owner = _non_empty_text(_mapping_copy(successor_action).get("next_owner"))
+            updated["current_work_unit"] = current_work_unit.build_current_work_unit(
+                status=status,
+                progress=updated,
+                actions=actions,
+                current_executable_owner_action=successor_action,
+                provider_admission=handoff,
+                live_provider_attempt=handoff,
+                typed_blocker={},
+                blocked_reason=None,
+                next_owner=next_owner,
+                runtime_health=runtime_health_snapshot,
+            )
+            updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+                status=status,
+                progress=updated,
+                actions=actions,
+                blocked_reason=None,
+                next_owner=next_owner,
+                typed_blocker={},
+                runtime_health=runtime_health_snapshot,
+                live_provider_attempt=handoff,
+                current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
+            )
+            updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+                action_queue=evidence_actions,
+                runtime_health=runtime_health_snapshot,
+                extra={
+                    "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+                },
+            )
+            return updated
         else:
             updated["current_executable_owner_action"] = None
     if handoff_work_unit:

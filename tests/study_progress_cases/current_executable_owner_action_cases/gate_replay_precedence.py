@@ -690,6 +690,149 @@ def test_refresh_current_execution_surfaces_promotes_live_gate_followthrough_ove
     assert result["current_execution_envelope"]["owner"] == "write"
 
 
+def test_refresh_current_execution_surfaces_rebuilds_selected_successor_over_stale_handoff_blocker() -> None:
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    stale_fingerprint = "publication-blockers::0915410f804b3697"
+    selected_fingerprint = "publication-blockers::2a234f3e48d8beb5"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "003-dpcc-primary-care-phenotype-treatment-gap::2026-06-20T05:46:03+00:00"
+    )
+
+    result = surfaces.refresh_current_execution_surfaces(
+        payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "queued",
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "gate_replay_status": "blocked",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": stale_fingerprint,
+                "work_unit_currentness": {
+                    "explicit_publication_work_unit_id": "analysis_claim_evidence_repair",
+                    "selected_publication_work_unit_id": "analysis_claim_evidence_repair",
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "explicit_work_unit_fingerprint": "publication-blockers::2a234f3e48d8beb5",
+                    "current_work_unit_fingerprint": stale_fingerprint,
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "explicit_publication_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                },
+            },
+            "publication_eval": {
+                "recommended_actions": [
+                    {
+                        "action_type": "route_back_same_line",
+                        "priority": "now",
+                        "next_work_unit": {
+                            "unit_id": "analysis_claim_evidence_repair",
+                            "lane": "analysis-campaign",
+                        },
+                        "specificity_targets": [
+                            {
+                                "target_kind": "table",
+                                "target_id": "submission_minimal_authority",
+                                "source_path": "/tmp/submission_manifest.json",
+                                "blocking_reason": "stale_submission_minimal_authority",
+                            },
+                            {
+                                "target_kind": "claim",
+                                "target_id": "review_ledger",
+                                "source_path": "/tmp/review_ledger.json",
+                                "blocking_reason": "reviewer_first_concerns_unresolved",
+                            },
+                            {
+                                "target_kind": "figure",
+                                "target_id": "figure_catalog",
+                                "source_path": "/tmp/figure_catalog.json",
+                                "blocking_reason": "stale_submission_minimal_authority",
+                            },
+                        ],
+                        "blockers": [
+                            "stale_submission_minimal_authority",
+                            "medical_publication_surface_blocked",
+                            "reviewer_first_concerns_unresolved",
+                            "submission_hardening_incomplete",
+                        ],
+                    },
+                ],
+            },
+        },
+        status={"study_id": study_id},
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "running_provider_attempt": False,
+            "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+            "next_owner": "one-person-lab",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "typed_blocker",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": stale_fingerprint,
+                "action_fingerprint": stale_fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "source": "accepted_closeout_consumed_pending",
+                    "typed_blocker": {
+                        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                        "owner": "one-person-lab",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": stale_fingerprint,
+                    },
+                },
+            },
+            "typed_blocker": {
+                "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": stale_fingerprint,
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "one-person-lab",
+                "typed_blocker": {
+                    "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                    "owner": "one-person-lab",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": stale_fingerprint,
+                },
+            },
+        },
+        runtime_health_snapshot={},
+    )
+
+    action = result["current_executable_owner_action"]
+    assert action["next_owner"] == "analysis-campaign"
+    assert action["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert action["work_unit_fingerprint"] == selected_fingerprint
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+    assert result["current_work_unit"]["owner"] == "analysis-campaign"
+    assert result["current_work_unit"]["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+    assert result["current_execution_envelope"]["owner"] == "analysis-campaign"
+
+
 def test_publication_eval_repair_action_survives_zero_selected_materialized_dispatch_blocker() -> None:
     surfaces = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
