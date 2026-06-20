@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from tests.provider_admission_current_control_helpers import opl_transition_readback
+
 from .. import shared as _shared
 
 
@@ -22,6 +24,30 @@ AI_REVIEWER_WORK_UNIT = "ai_reviewer_medical_prose_quality_review"
 AI_REVIEWER_FINGERPRINT = (
     "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review"
 )
+
+
+def _opl_transition_live_readback(
+    study_id: str,
+    *,
+    work_unit_id: str,
+    fingerprint: str,
+    stage_run_id: str,
+) -> dict[str, object]:
+    route_key = f"provider-admission::{study_id}::{fingerprint}"
+    readback = opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+        stage_run_id=stage_run_id,
+    )
+    readback["evidence_source"] = {
+        "source_kind": "opl_runtime_live_readback",
+        "source_ref": f"opl://runtime/domain-progress/transactions/{stage_run_id}",
+    }
+    return readback
 
 
 def _dm003_post_write_repair_payload() -> dict:
@@ -1491,16 +1517,29 @@ def test_progress_first_projects_running_ai_reviewer_handoff_over_consumed_write
         },
     }
     payload["opl_current_control_state_handoff"] = {
+        "study_id": STUDY_ID,
+        "quest_id": STUDY_ID,
         "running_provider_attempt": True,
         "active_run_id": "opl-stage-attempt://sat_current_ai_reviewer",
         "active_stage_attempt_id": "sat_current_ai_reviewer",
         "active_workflow_id": "wf_current_ai_reviewer",
+        "opl_domain_progress_transition_runtime_live_readback": _opl_transition_live_readback(
+            STUDY_ID,
+            work_unit_id=AI_REVIEWER_WORK_UNIT,
+            fingerprint=AI_REVIEWER_FINGERPRINT,
+            stage_run_id="sat_current_ai_reviewer",
+        ),
         "next_owner": "ai_reviewer",
         "owner": "ai_reviewer",
         "action_type": "return_to_ai_reviewer_workflow",
         "work_unit_id": AI_REVIEWER_WORK_UNIT,
         "work_unit_fingerprint": AI_REVIEWER_FINGERPRINT,
         "action_fingerprint": AI_REVIEWER_FINGERPRINT,
+        "route_identity_key": f"provider-admission::{STUDY_ID}::{AI_REVIEWER_FINGERPRINT}",
+        "attempt_idempotency_key": (
+            f"provider-admission::{STUDY_ID}::{AI_REVIEWER_FINGERPRINT}"
+        ),
+        "idempotency_key": f"provider-admission::{STUDY_ID}::{AI_REVIEWER_FINGERPRINT}",
         "owner_route_currentness_basis": {
             "work_unit_id": AI_REVIEWER_WORK_UNIT,
             "work_unit_fingerprint": AI_REVIEWER_FINGERPRINT,

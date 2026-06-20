@@ -37,6 +37,10 @@ Review / repair 是 Progress-first 的有界质量循环，不是默认安全截
 4. 若剩余 gap 均非 fatal，输出 `CarryForwardRiskReceipt`，关闭本轮 bounded repair loop，并把下一 owner / next required delta 投影出来。
 5. read-model / operator surface 必须显示这是 ordinary progress carry-forward，不是 publication-ready、submission-ready、quality-clean 或 paper closure。
 
+当前 repo-native materialization 行为固定如下：非 fatal `mas_progress_first_budget_exhausted_decision` 只有在 `decision=advance_with_carry_forward_risk`、`fatal=false`、`ordinary_progress_may_advance=true` 且包含 `mas_progress_first_carry_forward_risk_receipt` 时，才会物化 successor owner action。该 successor 是 `run_quality_repair_batch` / `publishability_repair_sprint`，source/authority 固定为 `progress_first_budget_exhausted.carry_forward_risk_receipt`，required delta 为 `carry_forward_risk_repair_delta_or_typed_blocker`，并携带 `carry_forward_risk` 与 `forbidden_claims` 进入 `current_work_unit.state`、domain action materializer 和 Progress Portal operator projection。fatal budget exhausted 不得物化 successor；它必须投影为 stable typed blocker，携带 `fatal_budget_exhausted_risk`、currentness basis 和禁止写入边界。
+
+这条 materializer 路径是 repo-native 可执行合同，不等于 live runtime 已消费。声称 live runtime 自动推进真实下一 work unit 时，仍必须读取 fresh OPL current-control / provider attempt / owner receipt / workspace artifact evidence。
+
 Budget exhaustion 的错误路径包括：重复同一 work unit repair、把 queue empty 写成安全截停、把 focused tests / docs clean 写成质量闭环、把 OPL loop-risk signal 写成 MAS medical severity、把非 fatal reviewer concern 升级成默认 provider block，或把 carry-forward receipt 写成 publication readiness。
 
 ## CarryForwardRiskReceipt

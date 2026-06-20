@@ -118,6 +118,8 @@ def action_work_unit(
             "state_kind": "executable_owner_action",
             "source": _action_source(action),
             "next_work_unit": work_unit_id,
+            "carry_forward_risk": _mapping(action.get("carry_forward_risk")),
+            "forbidden_claims": _text_items(action.get("forbidden_claims")),
             "owner_answer_missing": action.get("owner_answer_missing") is True,
             "owner_answer_still_required": action.get("owner_answer_still_required") is True,
             "latest_owner_answer_ref": _text(action.get("latest_owner_answer_ref")),

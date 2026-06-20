@@ -96,6 +96,21 @@ def refresh_current_execution_surfaces(
     handoff_executable_action = current_control_executable_owner_action(handoff)
     if handoff_executable_action is None and active_provider_control(handoff):
         handoff_executable_action = current_control_provider_admission_action(handoff)
+    payload_executable_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if (
+        payload_executable_action
+        and handoff_executable_action
+        and _identities_conflict(
+            _identity_values(payload_executable_action),
+            _identity_values(handoff_executable_action),
+        )
+        and current_control_typed_blocker_successor_action(
+            payload_executable_action,
+            typed_blocker=_canonical_current_control_typed_blocker(handoff),
+            progress=payload,
+        )
+    ):
+        handoff_executable_action = payload_executable_action
     if handoff_executable_action:
         updated["current_executable_owner_action"] = handoff_executable_action
         handoff = current_control_executable_currentness_handoff(
@@ -198,7 +213,9 @@ def refresh_current_execution_surfaces(
         handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
         if handoff_envelope:
             updated["current_execution_envelope"] = handoff_envelope
-        successor_action = build_current_executable_owner_action(updated)
+        successor_action = _mapping_copy(payload.get("current_executable_owner_action"))
+        if not successor_action:
+            successor_action = build_current_executable_owner_action(updated)
         if current_control_typed_blocker_successor_action(
             successor_action,
             typed_blocker=_canonical_current_control_typed_blocker(handoff),

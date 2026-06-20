@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from tests.test_current_work_unit_cases.guarded_apply_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.gate_followthrough_currentness_cases import *  # noqa: F403,F401
+from tests.test_current_work_unit_cases.dm002_budget_successor_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.progress_first_embedded_action_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.readiness_identity_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.repair_progress_current_action_cases import *  # noqa: F403,F401
@@ -12,6 +13,101 @@ from tests.test_current_work_unit_cases.terminal_authorization_cases import *  #
 from tests.test_current_work_unit_cases.terminal_closeout_currentness_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.terminal_closeout_identity_cases import *  # noqa: F403,F401
 from tests.test_current_work_unit_cases.terminal_non_advancing_apply_cases import *  # noqa: F403,F401
+
+
+def test_current_work_unit_projects_nonfatal_budget_exhaustion_as_carry_forward_successor() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "quest-dm002",
+            "current_stage": "publication_supervision",
+            "budget_exhausted_decision": {
+                "surface_kind": "mas_progress_first_budget_exhausted_decision",
+                "schema_version": 1,
+                "decision": "advance_with_carry_forward_risk",
+                "severity": "carry_forward_advisory",
+                "fatal": False,
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "ai_reviewer_recheck",
+                "work_unit_fingerprint": "ai-reviewer-recheck::repeat",
+                "blocker_reason": "ai_reviewer_request_missing",
+                "ordinary_progress_may_advance": True,
+                "readiness_claim_allowed": False,
+                "next_allowed_outcomes": [
+                    "carry_forward_risk_receipt",
+                    "advance_next_route",
+                ],
+                "carry_forward_risk_receipt": {
+                    "surface_kind": "mas_progress_first_carry_forward_risk_receipt",
+                    "schema_version": 1,
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": "ai_reviewer_recheck",
+                    "work_unit_fingerprint": "ai-reviewer-recheck::repeat",
+                    "unresolved_reason": "ai_reviewer_request_missing",
+                    "severity": "carry_forward_advisory",
+                    "risk_owner": "MedAutoScience",
+                    "next_route_policy": "advance_ordinary_progress_without_readiness_claim",
+                },
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "publishability_repair_sprint"
+    assert work_unit["work_unit_fingerprint"].startswith(
+        "carry-forward-risk::002-dm-china-us-mortality-attribution::"
+    )
+    assert work_unit["required_output_contract"]["required_delta_kind"] == (
+        "carry_forward_risk_repair_delta_or_typed_blocker"
+    )
+    assert work_unit["state"]["source"] == "progress_first_budget_exhausted.carry_forward_risk_receipt"
+    assert work_unit["state"]["carry_forward_risk"]["status"] == "advanced_with_carry_forward_risk"
+    assert work_unit["state"]["carry_forward_risk"]["readiness_claim_allowed"] is False
+    assert "publication_ready" in work_unit["state"]["forbidden_claims"]
+
+
+def test_current_work_unit_keeps_fatal_budget_exhaustion_blocked() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "quest-dm002",
+            "current_stage": "publication_supervision",
+            "budget_exhausted_decision": {
+                "surface_kind": "mas_progress_first_budget_exhausted_decision",
+                "schema_version": 1,
+                "decision": "block_for_fatal_risk",
+                "severity": "fatal_blocker",
+                "fatal": True,
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "ai_reviewer_recheck",
+                "work_unit_fingerprint": "ai-reviewer-recheck::fatal",
+                "blocker_reason": "unsupported_claim",
+                "ordinary_progress_may_advance": False,
+                "readiness_claim_allowed": False,
+                "carry_forward_risk_receipt": None,
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "MedAutoScience"
+    assert work_unit["action_type"] == "return_to_ai_reviewer_workflow"
+    assert work_unit["work_unit_id"] == "ai_reviewer_recheck"
+    assert work_unit["state"]["blocker_type"] == "unsupported_claim"
+    assert work_unit["state"]["typed_blocker"]["fatal_budget_exhausted_risk"]["status"] == (
+        "blocked_for_fatal_risk"
+    )
 
 
 def test_current_work_unit_projection_metadata_demotes_transition_authority() -> None:

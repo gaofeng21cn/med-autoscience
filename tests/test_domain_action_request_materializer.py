@@ -28,6 +28,152 @@ def _isolated_opl_state_dir(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
 
 
+def _budget_exhausted_decision(
+    *,
+    study_id: str,
+    fatal: bool = False,
+) -> dict[str, object]:
+    return {
+        "surface_kind": "mas_progress_first_budget_exhausted_decision",
+        "schema_version": 1,
+        "decision": "block_for_fatal_risk" if fatal else "advance_with_carry_forward_risk",
+        "severity": "fatal_blocker" if fatal else "carry_forward_advisory",
+        "fatal": fatal,
+        "study_id": study_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": "ai_reviewer_recheck",
+        "work_unit_fingerprint": f"{study_id}::ai-reviewer-recheck-repeat",
+        "blocker_reason": "unsupported_claim" if fatal else "ai_reviewer_request_missing",
+        "ordinary_progress_may_advance": not fatal,
+        "readiness_claim_allowed": False,
+        "next_allowed_outcomes": (
+            ["single_typed_blocker", "human_or_operator_gate"]
+            if fatal
+            else ["carry_forward_risk_receipt", "advance_next_route"]
+        ),
+        "carry_forward_risk_receipt": None
+        if fatal
+        else {
+            "surface_kind": "mas_progress_first_carry_forward_risk_receipt",
+            "schema_version": 1,
+            "study_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": "ai_reviewer_recheck",
+            "work_unit_fingerprint": f"{study_id}::ai-reviewer-recheck-repeat",
+            "unresolved_reason": "ai_reviewer_request_missing",
+            "severity": "carry_forward_advisory",
+            "risk_owner": "MedAutoScience",
+            "next_route_policy": "advance_ordinary_progress_without_readiness_claim",
+        },
+    }
+
+
+def test_materialize_domain_action_requests_materializes_nonfatal_budget_exhausted_successor(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": "quest-dm002"}],
+        },
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": "quest-dm002",
+            "generated_at": "2026-06-20T00:00:00+00:00",
+            "budget_exhausted_decision": _budget_exhausted_decision(study_id=study_id),
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["domain_progress_transition_request_count"] == 1
+    request = result["domain_progress_transition_requests"][0]
+    assert request["action_type"] == "run_quality_repair_batch"
+    assert request["study_id"] == study_id
+    assert request["next_executable_owner"] == "write"
+    assert request["dispatch_status"] == "dry_run"
+    assert request["prompt_contract_ref"]["required_output_surface"] == (
+        "canonical manuscript story-surface delta or "
+        "typed blocker:manuscript_story_surface_delta_missing"
+    )
+    source_action = request["source_action_ref"]
+    assert source_action["authority"] == "progress_first_budget_exhausted.carry_forward_risk_receipt"
+    assert source_action["work_unit_id"] == "publishability_repair_sprint"
+    assert source_action["work_unit_fingerprint"].startswith(f"carry-forward-risk::{study_id}::")
+    assert source_action["required_delta_kind"] == "carry_forward_risk_repair_delta_or_typed_blocker"
+
+
+def test_materialize_domain_action_requests_does_not_materialize_fatal_budget_exhausted_successor(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": "quest-dm002"}],
+        },
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": "quest-dm002",
+            "generated_at": "2026-06-20T00:00:00+00:00",
+            "budget_exhausted_decision": _budget_exhausted_decision(
+                study_id=study_id,
+                fatal=True,
+            ),
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["domain_progress_transition_request_count"] == 0
+    assert result["domain_progress_transition_requests"] == []
+
+
 def test_materialize_domain_action_requests_prefers_fresh_progress_ticket_over_stale_readiness_scan(
     monkeypatch,
     tmp_path: Path,
