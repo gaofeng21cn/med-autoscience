@@ -98,6 +98,11 @@ def provider_admission_projection_fields(
         )
         for candidate in candidates
     ]
+    normalized_candidates = _merge_handoff_transition_request_candidates(
+        normalized_candidates,
+        handoff=handoff,
+        payload=payload,
+    )
     owner_receipt_consumed = _owner_receipt_recorded_consumes_transition_request(
         payload=payload,
         candidates=normalized_candidates,
@@ -318,6 +323,42 @@ def _transition_request_only_candidate(candidate: Mapping[str, Any]) -> dict[str
     payload["provider_admission_requires_opl_runtime_result"] = True
     payload["opl_transition_runtime_required"] = True
     return payload
+
+
+def _merge_handoff_transition_request_candidates(
+    candidates: list[dict[str, Any]],
+    *,
+    handoff: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    merged = list(candidates)
+    for item in handoff.get("transition_request_candidates") or []:
+        if not isinstance(item, Mapping):
+            continue
+        candidate = _transition_request_only_candidate(item)
+        if not _request_only_owner_action_candidate(candidate):
+            continue
+        if _provider_admission_opl_transition_readback(candidate):
+            continue
+        if not _same_current_transition_identity(candidate, payload=payload):
+            continue
+        if any(_same_action_identity(candidate, existing) for existing in merged):
+            continue
+        merged.append(candidate)
+    return merged
+
+
+def _same_current_transition_identity(
+    candidate: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+) -> bool:
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    return (current_action and _same_action_identity(candidate, current_action)) or _same_action_identity(
+        candidate,
+        current_work_unit,
+    )
 
 
 def _owner_receipt_recorded_consumes_transition_request(
