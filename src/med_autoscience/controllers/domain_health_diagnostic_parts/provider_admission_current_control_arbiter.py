@@ -136,6 +136,23 @@ def _stage_route_arbiter_decisions(
             identity=candidate,
         )
         if paper_recovery_block:
+            if (
+                readback_required
+                and _request_only_transition_request_candidate(candidate)
+                and not _paper_recovery_block_is_hard_blocker(paper_recovery_block)
+            ):
+                decisions.append(
+                    _arbiter_decision(
+                        candidate,
+                        decision="opl_transition_readback_required",
+                        effect="suppress_provider_admission_pending",
+                        evidence={
+                            **readback_required,
+                            "paper_recovery_state": dict(paper_recovery_block),
+                        },
+                    )
+                )
+                continue
             if not _request_only_transition_can_bypass_paper_recovery_block(
                 candidate,
                 block=paper_recovery_block,

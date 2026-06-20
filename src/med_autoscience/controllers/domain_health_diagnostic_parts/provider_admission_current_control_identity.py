@@ -310,10 +310,12 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
     )
     readback_keys = _opl_readback_identity_keys(payload)
     transition_request_keys = _transition_request_identity_keys(payload)
+    source_refs = _mapping(payload.get("source_refs"))
     route_key = (
         _non_empty_text(readback_keys.get("route_identity_key"))
-        or _non_empty_text(transition_request_keys.get("route_identity_key"))
         or route_identity_key(payload)
+        or _non_empty_text(source_refs.get("route_identity_key"))
+        or _non_empty_text(transition_request_keys.get("route_identity_key"))
     )
     if route_key is None and can_bind_progress_currentness:
         study_id = _non_empty_text(payload.get("study_id"))
@@ -321,8 +323,9 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
             route_key = f"provider-admission::{study_id}::{fingerprint}"
     attempt_key = (
         _non_empty_text(readback_keys.get("attempt_idempotency_key"))
-        or _non_empty_text(transition_request_keys.get("attempt_idempotency_key"))
         or attempt_idempotency_key(payload)
+        or _non_empty_text(source_refs.get("attempt_idempotency_key"))
+        or _non_empty_text(transition_request_keys.get("attempt_idempotency_key"))
     )
     if attempt_key is None and can_bind_progress_currentness:
         attempt_key = route_key

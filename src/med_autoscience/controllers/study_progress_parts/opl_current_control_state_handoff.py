@@ -278,12 +278,17 @@ def opl_current_control_state_study_handoff_projection(
         payload,
         study_id=study_id,
     )
+    matching_top_level_transition_requests = _top_level_transition_request_candidates_for_study(
+        payload,
+        study_id=study_id,
+    )
     latest_opl_terminal_closeout = _latest_opl_terminal_provider_attempt_closeout_projection(
         profile=profile,
         study_id=study_id,
         payload=payload,
         matching=matching,
         matching_top_level_provider_admissions=matching_top_level_provider_admissions,
+        matching_top_level_transition_requests=matching_top_level_transition_requests,
     )
     if latest_opl_terminal_closeout is not None:
         latest_terminal_stage_log = latest_opl_terminal_closeout
@@ -292,6 +297,7 @@ def opl_current_control_state_study_handoff_projection(
             latest_terminal_stage_log is None
             and latest_typed_closeout is None
             and not matching_top_level_provider_admissions
+            and not matching_top_level_transition_requests
         ):
             return None
         projection = _closeout_only_study_handoff_projection(
@@ -305,6 +311,11 @@ def opl_current_control_state_study_handoff_projection(
             projection = _apply_top_level_provider_admissions_to_handoff(
                 projection,
                 matching_top_level_provider_admissions,
+            )
+        if matching_top_level_transition_requests:
+            projection = _apply_top_level_transition_requests_to_handoff(
+                projection,
+                matching_top_level_transition_requests,
             )
         return projection
     action_queue = [
@@ -420,6 +431,11 @@ def opl_current_control_state_study_handoff_projection(
             projection,
             matching_top_level_provider_admissions,
         )
+    if matching_top_level_transition_requests:
+        projection = _apply_top_level_transition_requests_to_handoff(
+            projection,
+            matching_top_level_transition_requests,
+        )
     if _typed_closeout_supersedes_terminal(
         typed_closeout=latest_typed_closeout,
         terminal_stage_log=latest_terminal_stage_log or matching_terminal_stage_log,
@@ -450,6 +466,18 @@ def _top_level_provider_admission_candidates_for_study(
     ]
 
 
+def _top_level_transition_request_candidates_for_study(
+    payload: Mapping[str, Any],
+    *,
+    study_id: str,
+) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in payload.get("transition_request_candidates") or []
+        if isinstance(item, Mapping) and _non_empty_text(item.get("study_id")) == study_id
+    ]
+
+
 def _latest_opl_terminal_provider_attempt_closeout_projection(
     *,
     profile: WorkspaceProfile,
@@ -457,11 +485,13 @@ def _latest_opl_terminal_provider_attempt_closeout_projection(
     payload: Mapping[str, Any],
     matching: Mapping[str, Any] | None,
     matching_top_level_provider_admissions: list[dict[str, Any]],
+    matching_top_level_transition_requests: list[dict[str, Any]],
 ) -> dict[str, Any] | None:
     preferred_actions = _current_control_provider_admission_candidates(
         payload=payload,
         matching=matching,
         matching_top_level_provider_admissions=matching_top_level_provider_admissions,
+        matching_top_level_transition_requests=matching_top_level_transition_requests,
     )
     if not preferred_actions:
         return None
@@ -532,12 +562,18 @@ def _current_control_provider_admission_candidates(
     payload: Mapping[str, Any],
     matching: Mapping[str, Any] | None,
     matching_top_level_provider_admissions: list[dict[str, Any]],
+    matching_top_level_transition_requests: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     candidates = [
         dict(item)
         for item in matching_top_level_provider_admissions
         if isinstance(item, Mapping) and provider_admission_opl_transition_readback(item)
     ]
+    candidates.extend(
+        dict(item)
+        for item in matching_top_level_transition_requests or []
+        if isinstance(item, Mapping) and _transition_request_candidate_can_anchor_terminal_probe(item)
+    )
     if isinstance(matching, Mapping):
         candidates.extend(
             dict(item)
@@ -606,6 +642,36 @@ def _apply_top_level_provider_admissions_to_handoff(
     if _non_empty_text(current.get("status")) == "provider_admission_pending" and provider_candidates:
         updated["blocked_reason"] = None
         updated.pop("typed_blocker", None)
+    return updated
+
+
+def _apply_top_level_transition_requests_to_handoff(
+    projection: Mapping[str, Any],
+    candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    request_candidates = [
+        dict(item)
+        for item in candidates
+        if _transition_request_candidate_can_anchor_terminal_probe(item)
+        and not provider_admission_opl_transition_readback(item)
+    ]
+    if not request_candidates:
+        return dict(projection)
+    updated = dict(projection)
+    updated["transition_request_pending_count"] = len(request_candidates)
+    updated["transition_request_candidates"] = request_candidates
+    updated.setdefault("provider_admission_pending_count", 0)
+    updated.setdefault("provider_admission_candidates", [])
+    current = request_candidates[0]
+    for key in ("action_type", "work_unit_fingerprint", "action_fingerprint"):
+        text = _non_empty_text(current.get(key))
+        if text is not None:
+            updated[key] = text
+    work_unit_id = _work_unit_identity(current.get("work_unit_id"))
+    if work_unit_id is not None:
+        updated["work_unit_id"] = work_unit_id
+    updated["next_owner"] = _non_empty_text(current.get("next_owner")) or updated.get("next_owner")
+    updated["blocked_reason"] = _non_empty_text(current.get("blocked_reason")) or updated.get("blocked_reason")
     return updated
 
 

@@ -823,6 +823,71 @@ def test_study_progress_opl_current_control_state_handoff_uses_transition_reques
     assert projection["latest_terminal_stage_log"]["stage_attempt_id"] == "sat_91d23a554175ea9288d903ad"
 
 
+def test_study_progress_opl_current_control_state_handoff_projects_top_level_transition_request_without_study_entry(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    work_unit_id = "medical_prose_write_repair"
+    idempotency_key = "paper-policy-request:5c447e99601513e78e08ca8f"
+    transition_candidate = {
+        "status": "transition_request_pending",
+        "study_id": study_id,
+        "action_type": "request_opl_stage_attempt",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "blocked_reason": "opl_execution_authorization_required",
+        "source_refs": {
+            "route_identity_key": idempotency_key,
+            "attempt_idempotency_key": idempotency_key,
+        },
+    }
+    handoff_path = (
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-20T13:59:38+00:00",
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 1,
+            "transition_request_candidates": [transition_candidate],
+            "studies": [],
+        },
+    )
+
+    def fake_terminal_closeout(**kwargs):
+        assert kwargs["study_id"] == study_id
+        assert kwargs["preferred_actions"][0]["action_type"] == "request_opl_stage_attempt"
+        assert kwargs["preferred_actions"][0]["source_refs"]["attempt_idempotency_key"] == idempotency_key
+        return None
+
+    monkeypatch.setattr(module, "terminal_provider_attempt_closeout_for_study", fake_terminal_closeout)
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id=study_id)
+
+    assert projection is not None
+    assert projection["provider_admission_pending_count"] == 0
+    assert projection["provider_admission_candidates"] == []
+    assert projection["transition_request_pending_count"] == 1
+    assert projection["transition_request_candidates"] == [transition_candidate]
+    assert projection["action_type"] == "request_opl_stage_attempt"
+    assert projection["work_unit_id"] == work_unit_id
+    assert projection["work_unit_fingerprint"] == fingerprint
+    assert projection["blocked_reason"] == "opl_execution_authorization_required"
+
+
 def test_study_progress_opl_current_control_state_handoff_projects_latest_terminal_stage_log(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
