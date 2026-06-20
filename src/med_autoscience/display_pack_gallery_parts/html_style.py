@@ -154,8 +154,8 @@ h1{
 }
 .storyboard{
   display:grid;
-  grid-template-columns:1.35fr 1fr 1fr 1fr;
-  gap:8px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
   margin:10px 0 13px;
 }
 .story-panel{
@@ -165,7 +165,6 @@ h1{
   min-width:0;
   overflow:hidden;
 }
-.story-panel.hero{grid-row:span 2}
 .panel-letter{
   position:absolute;
   top:7px;
@@ -183,14 +182,22 @@ h1{
   z-index:1;
 }
 .story-image{
-  background:linear-gradient(180deg,#fbfcfd,#f4f6f8);
-  height:136px;
+  background:#fff;
+  height:220px;
   display:flex;
   align-items:center;
   justify-content:center;
   border-bottom:1px solid #edf0f3;
+  padding:7px;
 }
-.story-panel.hero .story-image{height:283px}
+.story-panel.hero .story-image{height:220px}
+.story-panel-image{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:#fff;
+}
 .story-placeholder{
   width:78%;
   min-height:58%;
@@ -322,7 +329,6 @@ h1{
   .nav{position:static;border-right:0;border-bottom:1px solid var(--line);padding:0 0 12px;margin-bottom:18px}
   .metrics,.workflow,.composition-summary,.composition-bottom,.cards{grid-template-columns:1fr}
   .storyboard{grid-template-columns:1fr 1fr}
-  .story-panel.hero{grid-column:1/-1}
 }
 @media print{
   @page{size:A4;margin:10mm}
@@ -337,6 +343,7 @@ h1{
   .metric strong{font-size:18px}
   .metric span{font-size:9px}
   .section{margin-bottom:20px}
+  #how-to-read{display:none}
   #evidence-primitives{break-before:page;page-break-before:always}
   .section h2{font-size:18px}
   .section-lead{font-size:10px;margin-bottom:10px}
@@ -349,11 +356,11 @@ h1{
   .composition-kicker{font-size:9px}
   .composition-summary{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:7px}
   .composition-summary p{font-size:9px}
-  .storyboard{grid-template-columns:repeat(4,1fr);gap:5px;margin:6px 0 8px}
-  .story-panel.hero{grid-row:auto}
+  .storyboard{grid-template-columns:repeat(2,1fr);gap:6px;margin:6px 0 8px}
   .story-panel{break-inside:avoid;page-break-inside:avoid}
-  .story-image{height:98px}
-  .story-panel.hero .story-image{height:98px}
+  .story-image{height:132px}
+  .story-panel.hero .story-image{height:132px}
+  .story-image{padding:4px}
   .story-placeholder{width:82%;min-height:58%;font-size:8px;padding:6px;border-top-width:2px}
   .panel-letter{top:4px;left:4px;width:16px;height:16px;font-size:9px}
   .story-meta{padding:4px;font-size:7px}

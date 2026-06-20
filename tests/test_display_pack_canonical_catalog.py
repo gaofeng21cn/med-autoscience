@@ -435,6 +435,7 @@ def test_gallery_html_exposes_composition_recipe_storyboards_without_counting_th
     assert "从论文论点到可审计图件" in html
     assert "页面级图页方案" in html
     assert html.count('class="composition-card"') == 6
+    assert html.count('class="story-panel-image"') >= 20
     assert html.count('id="template-') == 28
     assert "临床预测模型主图" in html
     assert "核心表达" in html
@@ -446,6 +447,10 @@ def test_gallery_html_exposes_composition_recipe_storyboards_without_counting_th
     assert "适用场景" in html
     assert "decision_curve_binary" in html
     assert "组学景观与功能后果图页" in html
+    assert 'src="assets/roc_curve_binary.gallery.png"' in html
+    assert 'src="assets/calibration_curve_binary.gallery.png"' in html
+    assert 'src="assets/decision_curve_binary.gallery.png"' in html
+    assert "storyboard 占位" in html
     assert "本页为图页组织示例，使用合成数据或示意性面板" in html
     assert "Python evidence: 0" not in html
     assert "默认 Python 数据证据模板" not in html

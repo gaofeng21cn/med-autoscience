@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 from typing import Any
 
+from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
 from med_autoscience.display_pack_gallery_parts.gallery_copy import composition_copy
 
 
@@ -10,22 +11,51 @@ def _ordered_list(values: tuple[str, ...]) -> str:
     return "".join(f"<li>{html.escape(value)}</li>" for value in values)
 
 
-def _panel_html(panel: dict[str, Any], *, index: int) -> str:
+def _panel_visual_html(
+    *,
+    asset: RenderedAsset | None,
+    fallback_title: str,
+    label: str,
+) -> str:
+    if asset and asset.status == "rendered":
+        image_ref = asset.preview_image_ref or asset.image_ref
+        if image_ref:
+            return (
+                f'<img class="story-panel-image" src="{html.escape(image_ref)}" '
+                f'alt="{html.escape(label)} · {html.escape(fallback_title)}">'
+            )
+    return f"""
+    <div class="story-placeholder">
+      <span>storyboard 占位 · {html.escape(fallback_title)}</span>
+    </div>"""
+
+
+def _panel_html(
+    panel: dict[str, Any],
+    *,
+    index: int,
+    rendered: dict[str, RenderedAsset],
+) -> str:
     template_id = str(panel.get("template_id") or "")
     kind = str(panel.get("panel_kind") or "")
     family_id = str(panel.get("evidence_primitive_family_id") or "")
     title = str(panel.get("canonical_family_title") or family_id or "storyboard placeholder")
+    role = str(panel.get("panel_role") or "")
+    visual_status = str(panel.get("visual_status") or "")
     label = chr(ord("A") + index)
+    asset = rendered.get(template_id) if template_id else None
+    visual_html = _panel_visual_html(asset=asset, fallback_title=title, label=label)
+    meta_label = "真实预览" if asset and asset.status == "rendered" else "设计占位"
     return f"""
 <div class="story-panel {html.escape(kind)}">
   <div class="panel-letter">{html.escape(label)}</div>
   <div class="story-image">
-    <div class="story-placeholder">
-      <span>{html.escape(title)}</span>
-    </div>
+    {visual_html}
   </div>
   <div class="story-meta">
-    <span>证据图起点：{html.escape(template_id or family_id)}</span>
+    <strong>{html.escape(title)}</strong>
+    <span>{html.escape(meta_label)}：{html.escape(template_id or family_id)}</span>
+    <span>{html.escape(role or visual_status)}</span>
   </div>
 </div>"""
 
@@ -43,7 +73,7 @@ def render_composition_gallery_html(
             continue
         panels = item.get("storyboard_panels")
         panel_html = "".join(
-            _panel_html(panel, index=index)
+            _panel_html(panel, index=index, rendered=rendered)
             for index, panel in enumerate(panels)
             if isinstance(panel, dict)
         ) if isinstance(panels, list) else ""
