@@ -188,6 +188,54 @@ def test_display_pack_lock_payload_includes_figure_quality_refs(tmp_path: Path) 
             ],
         },
     )
+    _write_json(
+        paper_root / "figure_workflow_packet.json",
+        {
+            "schema_version": 1,
+            "surface_kind": "display_pack_figure_workflow_packet",
+            "packet_id": "display-pack-workflow-F1",
+            "policy_ref": "mas_nature_skills_figure_workflow_lifecycle.v1",
+            "workflow_status": "rendered_needs_audit",
+            "phase": "rendered",
+            "nonblocking_progress_policy": {
+                "blocks_default_evidence_progress": False,
+                "manual_template_browsing_required": False,
+                "paper_use_acceptance_required_before_final_claim": True,
+            },
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "figure_brief": {
+                        "core_conclusion": "The primary model discriminates the endpoint.",
+                        "claim_ref": "claim:primary",
+                        "data_ref": "paper/data/frozen/primary.json",
+                        "figure_archetype": "quantitative_grid",
+                        "selected_backend": "r_ggplot2",
+                    },
+                    "storyboard": {
+                        "hero_panel": "discrimination_curve",
+                        "supporting_panel_roles": ["threshold_context"],
+                    },
+                    "render_inspect_revise": {
+                        "inspect_at_final_size": True,
+                        "required_receipt_refs": ["paper/figure_visual_audit_receipt.json"],
+                    },
+                    "paper_use_acceptance": {
+                        "required_before_paper_use": [
+                            "core_conclusion_and_evidence_chain_locked",
+                            "visual_audit_receipt_or_residual_item_recorded",
+                        ],
+                        "publication_readiness_authorized": False,
+                    },
+                }
+            ],
+            "authority_boundary": {
+                "can_authorize_publication_readiness": False,
+                "can_authorize_quality_verdict": False,
+                "can_mutate_data_or_statistics": False,
+            },
+        },
+    )
 
     payload = build_display_pack_lock_payload(repo_root=repo_root, paper_root=paper_root)
 
@@ -197,4 +245,5 @@ def test_display_pack_lock_payload_includes_figure_quality_refs(tmp_path: Path) 
     assert refs["figure_visual_audit_receipt"]["status"] == "present"
     assert refs["figure_render_receipt"]["status"] == "present"
     assert refs["figure_polish_lifecycle"]["status"] == "present"
+    assert refs["figure_workflow_packet"]["status"] == "present"
     assert refs["ai_illustration_receipt"]["status"] == "missing"

@@ -300,6 +300,82 @@ def test_load_figure_render_receipt_rejects_cross_backend_fallback(tmp_path: Pat
         load_figure_render_receipt(path)
 
 
+def test_load_figure_workflow_packet_requires_nonblocking_storyboard_and_paper_gate(tmp_path: Path) -> None:
+    from med_autoscience.publication_figure_quality_contract import load_figure_workflow_packet
+
+    path = tmp_path / "figure_workflow_packet.json"
+    _write_json(
+        path,
+        {
+            "schema_version": 1,
+            "surface_kind": "display_pack_figure_workflow_packet",
+            "packet_id": "display-pack-workflow-F1",
+            "policy_ref": "mas_nature_skills_figure_workflow_lifecycle.v1",
+            "workflow_status": "audit_clear",
+            "phase": "rendered",
+            "nonblocking_progress_policy": {
+                "blocks_default_evidence_progress": False,
+                "manual_template_browsing_required": False,
+                "paper_use_acceptance_required_before_final_claim": True,
+            },
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "figure_brief": {
+                        "core_conclusion": "The model discriminates the endpoint in the target cohort.",
+                        "claim_ref": "claim:primary",
+                        "data_ref": "paper/data/frozen/primary.json",
+                        "target_journal_or_output": "nature_medicine",
+                        "figure_family_id": "discrimination_curve",
+                        "figure_archetype": "quantitative_grid",
+                        "selected_backend": "r_ggplot2",
+                    },
+                    "storyboard": {
+                        "hero_panel": "discrimination_curve",
+                        "supporting_panel_roles": ["threshold_context"],
+                        "panel_drop_policy": "drop_or_merge_panels_without_unique_evidence",
+                        "starter_template": {
+                            "template_id": "roc_curve_binary",
+                            "quality_floor_only": True,
+                        },
+                    },
+                    "render_inspect_revise": {
+                        "loop_states": ["draft_render", "deterministic_qc", "visual_audit"],
+                        "inspect_at_final_size": True,
+                        "required_receipt_refs": [
+                            "paper/figure_render_receipt.json",
+                            "paper/figure_visual_audit_receipt.json",
+                        ],
+                        "revision_record_required": True,
+                    },
+                    "paper_use_acceptance": {
+                        "required_before_paper_use": [
+                            "core_conclusion_and_evidence_chain_locked",
+                            "visual_audit_receipt_or_residual_item_recorded",
+                            "owner_or_publication_gate_receipt_present_for_claim_bearing_figures",
+                        ],
+                        "missing_contract_items": [],
+                        "real_paper_visual_audit_required": True,
+                        "owner_or_publication_gate_required": True,
+                        "publication_readiness_authorized": False,
+                    },
+                }
+            ],
+            "authority_boundary": {
+                "can_authorize_publication_readiness": False,
+                "can_authorize_quality_verdict": False,
+                "can_mutate_data_or_statistics": False,
+            },
+        },
+    )
+
+    payload = load_figure_workflow_packet(path)
+
+    assert payload["workflow_status"] == "audit_clear"
+    assert payload["figures"][0]["storyboard"]["hero_panel"] == "discrimination_curve"
+    assert payload["authority_boundary"]["can_authorize_publication_readiness"] is False
+
+
 def test_collect_publication_figure_quality_refs_reports_present_and_missing_surfaces(tmp_path: Path) -> None:
     from med_autoscience.publication_figure_quality_contract import collect_publication_figure_quality_refs
 
@@ -326,6 +402,7 @@ def test_collect_publication_figure_quality_refs_reports_present_and_missing_sur
     assert refs["figure_intent"]["status"] == "present"
     assert refs["figure_render_receipt"]["status"] == "missing"
     assert refs["figure_style_reference_bundle"]["status"] == "missing"
+    assert refs["figure_workflow_packet"]["status"] == "missing"
 
 
 def test_root_contract_indexes_publication_figure_quality_surfaces() -> None:
@@ -333,6 +410,7 @@ def test_root_contract_indexes_publication_figure_quality_surfaces() -> None:
         AI_ILLUSTRATION_RECEIPT_BASENAME,
         FIGURE_RENDER_RECEIPT_BASENAME,
         FIGURE_POLISH_LIFECYCLE_BASENAME,
+        FIGURE_WORKFLOW_PACKET_BASENAME,
         FIGURE_INTENT_BASENAME,
         FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME,
         FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME,
@@ -358,6 +436,10 @@ def test_root_contract_indexes_publication_figure_quality_surfaces() -> None:
     assert (
         contract["paper_surfaces"]["figure_polish_lifecycle"]["path"]
         == f"paper/{FIGURE_POLISH_LIFECYCLE_BASENAME}"
+    )
+    assert (
+        contract["paper_surfaces"]["figure_workflow_packet"]["path"]
+        == f"paper/{FIGURE_WORKFLOW_PACKET_BASENAME}"
     )
     assert contract["paper_surfaces"]["ai_illustration_receipt"]["path"] == f"paper/{AI_ILLUSTRATION_RECEIPT_BASENAME}"
     assert contract["consumers"]["display_pack_lock"]["field"] == "publication_figure_quality_refs"

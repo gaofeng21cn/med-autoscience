@@ -10,6 +10,10 @@ from med_autoscience.display_pack_agent_parts.template_fit import (
 from med_autoscience.display_pack_agent_parts.publication_polish_policy import (
     publication_polish_policy,
 )
+from med_autoscience.display_pack_agent_parts.figure_workflow import (
+    build_figure_workflow_packet,
+    figure_workflow_policy,
+)
 from med_autoscience.display_pack_agent_parts.query_family_route import resolve_query_family_route
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
 
@@ -38,6 +42,7 @@ FIGURE_CONTRACT_POLICY = {
         "backend_exclusive_render_export_receipt",
         "journal_export_contract_before_styling",
         "final_visual_qa_after_render",
+        "figure_brief_storyboard_render_inspect_revise_packet",
     ],
     "mas_adaptations": [
         "r_ggplot2_is_default_for_data_evidence",
@@ -46,6 +51,7 @@ FIGURE_CONTRACT_POLICY = {
         "missing_refs_become_typed_repair_routes_not_manual_template_browsing",
         "starter_template_is_quality_floor_not_ceiling",
         "ai_may_redesign_layout_palette_panel_structure_and_backend_when_semantics_are_preserved",
+        "nature_style_lifecycle_is_nonblocking_until_paper_use_gate",
     ],
     "rejected_patterns": [
         {
@@ -176,6 +182,14 @@ def figure_contract_policy() -> dict[str, Any]:
         "visual_qa_requirements": list(VISUAL_QA_REQUIREMENTS),
         "authority_boundary": dict(DEFAULT_AUTHORITY_BOUNDARY),
         "publication_polish_policy": publication_polish_policy(),
+        "figure_workflow_policy": figure_workflow_policy(),
+    }
+
+
+def figure_policy_surfaces() -> dict[str, Any]:
+    return {
+        "figure_contract_policy": figure_contract_policy(),
+        "figure_workflow_policy": figure_workflow_policy(),
     }
 
 
@@ -320,6 +334,10 @@ def compile_display_figure_intent(
         intent_text=intent_text,
         compiled_request=compiled_request,
     )
+    workflow_packet = build_figure_workflow_packet(
+        compiled_request=compiled_request,
+        figure_contract=figure_contract,
+    )
     return {
         "schema_version": 1,
         "surface_kind": "display_pack_agent_figure_intent",
@@ -338,6 +356,7 @@ def compile_display_figure_intent(
         "intent_text": intent_text,
         "compiled_figure_request": compiled_request,
         "figure_contract": figure_contract,
+        "figure_workflow_packet": workflow_packet,
         "figure_contract_policy": figure_contract_policy(),
         "missing_inputs": [
             field

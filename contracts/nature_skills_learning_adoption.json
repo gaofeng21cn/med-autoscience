@@ -51,7 +51,10 @@
     "publication_polish_policy_surface",
     "section_contract_draft_source_map_readback",
     "claim_evidence_citation_support_matrix",
-    "reviewer_comment_typed_repair_action_projection"
+    "reviewer_comment_typed_repair_action_projection",
+    "figure_brief_storyboard_workflow_packet",
+    "render_inspect_revise_receipt_packet",
+    "nonblocking_paper_use_acceptance_gate"
   ],
   "publication_display_external_style_refs": [
     {
@@ -376,6 +379,37 @@
         "visual_audit_replacement",
         "mas_truth_write_authority",
         "agent_progress_blocking_advisory_gate"
+      ]
+    },
+    {
+      "pattern_id": "figure_brief_storyboard_render_inspect_revise_packet",
+      "classification": "adopt_template",
+      "landing_status": "owner_surface_landed",
+      "owner_surfaces": [
+        "display_pack_agent_figure_intent",
+        "display_pack_agent_figure_plan",
+        "display_pack_render_receipt",
+        "publication_figure_quality_contract",
+        "display_pack_gallery_manifest"
+      ],
+      "consumable_surfaces": [
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.figure_workflow_policy",
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_rendered_figure_workflow_packet",
+        "paper/figure_workflow_packet.json",
+        "contracts/publication_figure_quality_contract.json#/paper_surfaces/figure_workflow_packet",
+        "docs/delivery/medical-display/examples/ggplot2_template_reference_assets/gallery_manifest.json#/figure_workflow_policy"
+      ],
+      "gap_status": [
+        "real_paper_visual_audit_still_required",
+        "publication_gate_still_authoritative",
+        "owner_receipt_still_required_for_claim_bearing_final_artwork"
+      ],
+      "forbidden_authority": [
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "data_or_statistics_mutation_authority",
+        "default_progress_blocker"
       ]
     }
   ],

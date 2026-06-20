@@ -16,6 +16,7 @@ FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME = "figure_style_reference_bundle.json"
 FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME = "figure_visual_audit_receipt.json"
 FIGURE_RENDER_RECEIPT_BASENAME = "figure_render_receipt.json"
 FIGURE_POLISH_LIFECYCLE_BASENAME = "figure_polish_lifecycle.json"
+FIGURE_WORKFLOW_PACKET_BASENAME = "figure_workflow_packet.json"
 AI_ILLUSTRATION_RECEIPT_BASENAME = "ai_illustration_receipt.json"
 
 VALID_FIGURE_KINDS = frozenset(("evidence_figure", "illustration_shell", "table_shell"))
@@ -45,6 +46,15 @@ VALID_VISUAL_AUDIT_FINAL_STATUS = frozenset(("clear", "findings_open", "blocked"
 VALID_ILLUSTRATION_ACCEPTANCE = frozenset(("ai_recommended", "human_accepted", "human_rejected"))
 VALID_RENDER_BACKENDS = frozenset(("python", "r_ggplot2", "html_svg"))
 VALID_RENDER_EXECUTION_MODES = frozenset(("python_plugin", "subprocess"))
+VALID_WORKFLOW_STATUSES = frozenset(
+    (
+        "planning_ready",
+        "rendered_needs_audit",
+        "audit_clear",
+        "residual_items_open",
+        "blocked_needs_repair",
+    )
+)
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:
@@ -451,6 +461,54 @@ def _load_figure_polish_lifecycle(path: Path) -> dict[str, Any]:
     return load_figure_polish_lifecycle(path)
 
 
+def load_figure_workflow_packet(path: Path) -> dict[str, Any]:
+    payload = _read_json_object(path)
+    _require_schema_version(payload, contract_name="figure_workflow_packet")
+    packet_id = _require_non_empty_string(payload, "packet_id", context="figure_workflow_packet")
+    policy_ref = _require_non_empty_string(payload, "policy_ref", context="figure_workflow_packet")
+    workflow_status = _require_non_empty_string(payload, "workflow_status", context="figure_workflow_packet")
+    if workflow_status not in VALID_WORKFLOW_STATUSES:
+        raise ValueError(
+            "figure_workflow_packet.workflow_status must be one of "
+            f"{sorted(VALID_WORKFLOW_STATUSES)!r}"
+        )
+    progress = payload.get("nonblocking_progress_policy")
+    if not isinstance(progress, dict):
+        raise ValueError("figure_workflow_packet.nonblocking_progress_policy must be a JSON object")
+    for field_name in ("blocks_default_evidence_progress", "manual_template_browsing_required"):
+        if progress.get(field_name) is not False:
+            raise ValueError(f"figure_workflow_packet.nonblocking_progress_policy.{field_name} must be false")
+    figures = _require_object_list(payload, "figures", contract_name="figure_workflow_packet")
+    normalized_figures: list[dict[str, Any]] = []
+    for index, item in enumerate(figures):
+        context = f"figure_workflow_packet.figures[{index}]"
+        figure_id = _require_non_empty_string(item, "figure_id", context=context)
+        for object_field in ("figure_brief", "storyboard", "render_inspect_revise", "paper_use_acceptance"):
+            if not isinstance(item.get(object_field), dict):
+                raise ValueError(f"{context}.{object_field} must be a JSON object")
+        brief = dict(item["figure_brief"])
+        storyboard = dict(item["storyboard"])
+        paper_use = dict(item["paper_use_acceptance"])
+        render_loop = dict(item["render_inspect_revise"])
+        _require_non_empty_string(brief, "core_conclusion", context=f"{context}.figure_brief")
+        _require_non_empty_string(brief, "figure_archetype", context=f"{context}.figure_brief")
+        _require_non_empty_string(storyboard, "hero_panel", context=f"{context}.storyboard")
+        _require_string_list(paper_use, "required_before_paper_use", context=f"{context}.paper_use_acceptance")
+        if paper_use.get("publication_readiness_authorized") is not False:
+            raise ValueError(f"{context}.paper_use_acceptance.publication_readiness_authorized must be false")
+        if render_loop.get("inspect_at_final_size") is not True:
+            raise ValueError(f"{context}.render_inspect_revise.inspect_at_final_size must be true")
+        normalized_figures.append({**item, "figure_id": figure_id})
+    return {
+        **payload,
+        "packet_id": packet_id,
+        "policy_ref": policy_ref,
+        "workflow_status": workflow_status,
+        "figures": normalized_figures,
+        "authority_boundary": _require_authority_boundary(payload, context="figure_workflow_packet"),
+    }
+
+
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -522,6 +580,11 @@ def collect_publication_figure_quality_refs(*, paper_root: Path) -> dict[str, di
             paper_root=resolved_paper_root,
             basename=FIGURE_POLISH_LIFECYCLE_BASENAME,
             loader=_load_figure_polish_lifecycle,
+        ),
+        "figure_workflow_packet": _surface_ref(
+            paper_root=resolved_paper_root,
+            basename=FIGURE_WORKFLOW_PACKET_BASENAME,
+            loader=load_figure_workflow_packet,
         ),
         "ai_illustration_receipt": _surface_ref(
             paper_root=resolved_paper_root,

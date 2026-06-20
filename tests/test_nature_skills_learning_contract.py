@@ -444,6 +444,36 @@ def test_nature_figure_contract_learning_lands_in_mas_display_owner_surfaces() -
     } <= set(adoption["forbidden_authority"])
 
 
+def test_figure_workflow_packet_learning_lands_as_consumable_nonblocking_surface() -> None:
+    payload = _load_nature_skills_adoption_contract()
+    adoption = _adoptions_by_pattern(payload)["figure_brief_storyboard_render_inspect_revise_packet"]
+
+    assert "figure_brief_storyboard_workflow_packet" in payload["learned_patterns"]
+    assert "render_inspect_revise_receipt_packet" in payload["learned_patterns"]
+    assert adoption["classification"] == "adopt_template"
+    assert adoption["landing_status"] == "owner_surface_landed"
+    assert {
+        "display_pack_agent_figure_intent",
+        "display_pack_agent_figure_plan",
+        "display_pack_render_receipt",
+        "publication_figure_quality_contract",
+        "display_pack_gallery_manifest",
+    } <= set(adoption["owner_surfaces"])
+    assert {
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.figure_workflow_policy",
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_rendered_figure_workflow_packet",
+        "paper/figure_workflow_packet.json",
+        "contracts/publication_figure_quality_contract.json#/paper_surfaces/figure_workflow_packet",
+    } <= set(adoption["consumable_surfaces"])
+    assert {
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "data_or_statistics_mutation_authority",
+        "default_progress_blocker",
+    } <= set(adoption["forbidden_authority"])
+
+
 def test_publication_polish_policy_surface_lands_without_blocking_progress() -> None:
     payload = _load_nature_skills_adoption_contract()
     adoption = _adoptions_by_pattern(payload)["publication_polish_policy_surface"]

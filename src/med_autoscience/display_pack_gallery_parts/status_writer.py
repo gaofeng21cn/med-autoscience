@@ -51,9 +51,19 @@ def build_gallery_status_markdown(manifest: dict[str, Any]) -> str:
         if isinstance(manifest.get("publication_polish_policy"), dict)
         else {}
     )
+    workflow_policy = (
+        manifest.get("figure_workflow_policy")
+        if isinstance(manifest.get("figure_workflow_policy"), dict)
+        else {}
+    )
     required_before_paper = "\n".join(
         f"- `{item}`"
         for item in policy.get("required_before_paper_use", [])
+        if isinstance(item, str)
+    ) or "- none"
+    required_workflow_before_paper = "\n".join(
+        f"- `{item}`"
+        for item in workflow_policy.get("paper_use_acceptance", [])
         if isinstance(item, str)
     ) or "- none"
     return f"""# MAS Display Pack Gallery Status
@@ -90,6 +100,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - gallery lower-bound admission: `{quality.get("gallery_lower_bound_admission_status", "")}`
 - publication quality profile coverage: `{profile_coverage.get("complete_profile_template_count", 0)}/{profile_coverage.get("current_template_count", 0)}` ({profile_coverage.get("complete_profile_percent", 0)}%)
 - publication polish policy: `{policy.get("policy_id", "")}`
+- figure workflow policy: `{workflow_policy.get("policy_id", "")}`
 
 ## Analysis Responsibility
 
@@ -103,6 +114,10 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 ## Paper-use 前置检查
 
 {required_before_paper}
+
+## Figure Workflow 前置检查
+
+{required_workflow_before_paper}
 
 ## Gallery 分类
 

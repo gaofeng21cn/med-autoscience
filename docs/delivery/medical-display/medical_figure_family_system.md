@@ -167,11 +167,12 @@ Operator 使用 family system 时按下面顺序推进：
 3. 用 starter recipe 生成第一版 `figure_request`，不要让 agent 手工拼 raw template 细节。
 4. 通过 Display Pack render / E2E path 生成真实 PNG/PDF/layout sidecar。
 5. 运行 deterministic QC，检查 schema、layout、readability、style profile hash、required exports 和 lock refs。
-6. 对真实图像运行 visual audit，记录具体 finding，而不是只读 manifest。
-7. 让 critic 按科学真实性、医学语义、可读性、视觉层级、style coherence、accessibility、journal fit 和 packaging consistency 分类问题。
-8. 修正最窄正确层：paper input、display override、style profile、renderer contract、QC、golden regression 或 family / variant catalog。
-9. 重新 render、QC 和 audit，直到 finding resolved 或 human explicitly accepted。
-10. 进入 display lock、publication manifest 和后续 MAS owner / reviewer / publication gate。
+6. 生成或读取 `paper/figure_workflow_packet.json`：记录 figure brief、storyboard、hero/supporting panel 层级、render-inspect-revise loop、paper-use acceptance checklist 和 receipt refs。该 packet 不能阻断默认 R/ggplot2 evidence 进度，也不能签 publication readiness。
+7. 对真实图像运行 visual audit，记录具体 finding，而不是只读 manifest。
+8. 让 critic 按科学真实性、医学语义、可读性、视觉层级、style coherence、accessibility、journal fit 和 packaging consistency 分类问题。
+9. 修正最窄正确层：paper input、display override、style profile、renderer contract、QC、golden regression 或 family / variant catalog。
+10. 重新 render、QC 和 audit，直到 finding resolved 或 human explicitly accepted。
+11. 进入 display lock、publication manifest 和后续 MAS owner / reviewer / publication gate。
 
 Critic finding 必须具体到可执行修复。推荐字段与 `paper/figure_visual_audit_receipt.json` 对齐：
 
@@ -205,6 +206,7 @@ Family system 是选择和治理语言；Display Pack 是可执行能力面。
 | `paper/display_overrides.json` | 论文局部结构化展示调整。 |
 | `paper/figure_visual_audit_receipt.json` | 真实图像 visual audit findings。 |
 | `paper/figure_polish_lifecycle.json` | AI/VLM polish lifecycle。 |
+| `paper/figure_workflow_packet.json` | Nature-Skills-informed figure brief / storyboard / render-inspect-revise packet；非阻塞进度面，不替代 visual audit 或 owner gate。 |
 | `paper/build/display_pack_lock.json` | pack、style、figure-quality refs 和 artifact refs 锁定。 |
 
 Display Pack 可以提供 starter recipe 的 template anchors 和 deterministic lower bound，但它不能替代 family-level paper question，也不能签 publication verdict。Family system 可以推荐 Display Pack 路径，但不能自己物化图、改数据、改 claim 或签 owner authority。

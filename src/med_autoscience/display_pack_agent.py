@@ -24,6 +24,11 @@ from med_autoscience.display_pack_canonical_catalog import (
 from med_autoscience.display_pack_agent_parts.figure_contract import (
     compile_display_figure_intent,
     figure_contract_policy,
+    figure_policy_surfaces,
+)
+from med_autoscience.display_pack_agent_parts.figure_workflow import (
+    build_planning_figure_workflow_packet,
+    display_pack_agent_receipt_refs,
 )
 from med_autoscience.display_pack_agent_parts.analysis_boundary import (
     analysis_blocker_for_template_summary,
@@ -271,13 +276,7 @@ def display_pack_capability_discover(
             }
             for action in AGENT_CAPABILITY_ACTIONS
         ],
-        "expected_receipt_refs": {
-            "display_pack_lock": "paper/build/display_pack_lock.json",
-            "publication_manifest": "paper/build/display_pack_publication_manifest.json",
-            "visual_audit_receipt": "paper/figure_visual_audit_receipt.json",
-            "figure_render_receipt": "paper/figure_render_receipt.json",
-            "polish_lifecycle": "paper/figure_polish_lifecycle.json",
-        },
+        "expected_receipt_refs": display_pack_agent_receipt_refs(),
         "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
     }
     if include_templates:
@@ -423,6 +422,12 @@ def display_pack_figure_plan(
         "paper_root": str(normalized_paper_root) if normalized_paper_root is not None else "",
         "figure_request": request,
         "figure_intent": intent_payload,
+        "figure_workflow_packet": build_planning_figure_workflow_packet(
+            request=request,
+            figure_intent=intent_payload,
+            recommended_template=recommended,
+            status=status,
+        ),
         "recommended_template": recommended,
         "recommendations": recommendations,
         "candidate_count": len(candidates),
@@ -442,7 +447,7 @@ def display_pack_figure_plan(
         },
         "requested_template_migration": template_migration,
         "minimum_fit_floor": minimum_fit_floor(),
-        "figure_contract_policy": figure_contract_policy(),
+        **figure_policy_surfaces(),
         "next_callable": "display-pack-preflight" if status == "display_plan_ready" else "",
         "typed_blocker": blocker,
         "agent_manual_template_selection_required": False,
@@ -639,7 +644,7 @@ def display_pack_preflight(
                 "requested_template_migration": _mapping(plan.get("requested_template_migration")) or None,
                 "r_runtime": {"required": False, "status": "not_checked"},
                 "style_profile": {"required": True, "status": "not_checked"},
-                "figure_contract_policy": figure_contract_policy(),
+                **figure_policy_surfaces(),
                 "blocking_findings": [analysis_finding_from_blocker(plan_blocker)] if plan_blocker else [],
                 "advisory_findings": [],
                 "typed_repair_routes": [_route_for_finding(analysis_finding_from_blocker(plan_blocker))]
@@ -759,7 +764,7 @@ def display_pack_preflight(
         "requested_template_migration": template_migration,
         "r_runtime": r_runtime,
         "style_profile": style_profile_status,
-        "figure_contract_policy": figure_contract_policy(),
+        **figure_policy_surfaces(),
         "blocking_findings": blocking_findings,
         "advisory_findings": advisory_findings,
         "typed_repair_routes": typed_repair_routes,
@@ -831,7 +836,7 @@ def display_pack_orchestrate(
                 "status": "blocked",
                 "typed_blocker": plan_blocker,
             },
-            "figure_contract_policy": figure_contract_policy(),
+            **figure_policy_surfaces(),
             "quality_floor": _quality_floor(plan=plan, preflight={"status": "blocked"}),
             "typed_repair_routes": typed_routes,
             "next_callable": "display-pack-repair",
@@ -862,7 +867,7 @@ def display_pack_orchestrate(
         "figure_request": compiled_request,
         "plan": plan,
         "preflight": preflight,
-        "figure_contract_policy": figure_contract_policy(),
+        **figure_policy_surfaces(),
         "quality_floor": quality_floor,
         "typed_repair_routes": typed_routes,
         "next_callable": "display-pack-render" if status == "ready_to_render" else "display-pack-repair",
@@ -984,14 +989,9 @@ def display_pack_render(
         "surface_kind": "display_pack_agent_render_receipt",
         "status": result.get("status", "rendered"),
         "render_result": result,
-        "receipt_refs": {
-            "display_pack_lock": "paper/build/display_pack_lock.json",
-            "publication_manifest": "paper/build/display_pack_publication_manifest.json",
-            "visual_audit_receipt": "paper/figure_visual_audit_receipt.json",
-            "figure_render_receipt": "paper/figure_render_receipt.json",
-            "polish_lifecycle": "paper/figure_polish_lifecycle.json",
-        },
-        "figure_contract_policy": figure_contract_policy(),
+        "receipt_refs": display_pack_agent_receipt_refs(),
+        **figure_policy_surfaces(),
+        "figure_workflow_packet": result.get("figure_workflow_packet") or {},
         "route_back_hint": "visual_audit" if result.get("status") == "publication_manifested" else "display_pack_render_repair",
         "publication_readiness_verdict": False,
         "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),

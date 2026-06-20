@@ -14,6 +14,9 @@ from typing import Any
 
 from med_autoscience import display_layout_qc
 from med_autoscience.display_pack_lock import write_display_pack_lock
+from med_autoscience.display_pack_agent_parts.figure_workflow import (
+    build_rendered_figure_workflow_packet,
+)
 from med_autoscience.display_pack_runtime import resolve_display_template_runtime
 from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle
 from med_autoscience.medical_figure_spec_contract import (
@@ -44,6 +47,7 @@ PUBLICATION_MANIFEST_BASENAME = "display_pack_publication_manifest.json"
 DISPLAY_PACK_LOCK_REF = "paper/build/display_pack_lock.json"
 FIGURE_VISUAL_AUDIT_RECEIPT_REF = "paper/figure_visual_audit_receipt.json"
 FIGURE_POLISH_LIFECYCLE_REF = "paper/figure_polish_lifecycle.json"
+FIGURE_WORKFLOW_PACKET_REF = "paper/figure_workflow_packet.json"
 
 
 def _utc_now() -> str:
@@ -669,6 +673,30 @@ def _write_figure_polish_lifecycle(
     return load_figure_polish_lifecycle(lifecycle_path)
 
 
+def _write_figure_workflow_packet(
+    *,
+    paper_root: Path,
+    figure_entries: list[dict[str, Any]],
+    audit_receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    receipt_refs = {
+        "display_pack_lock": DISPLAY_PACK_LOCK_REF,
+        "publication_manifest": f"paper/build/{PUBLICATION_MANIFEST_BASENAME}",
+        "visual_audit_receipt": FIGURE_VISUAL_AUDIT_RECEIPT_REF,
+        "figure_render_receipt": FIGURE_RENDER_RECEIPT_REF,
+        "polish_lifecycle": FIGURE_POLISH_LIFECYCLE_REF,
+        "figure_workflow_packet": FIGURE_WORKFLOW_PACKET_REF,
+    }
+    packet = build_rendered_figure_workflow_packet(
+        figure_entries=figure_entries,
+        audit_receipt=audit_receipt,
+        receipt_refs=receipt_refs,
+    )
+    packet_path = paper_root / "figure_workflow_packet.json"
+    _write_json(packet_path, packet)
+    return packet
+
+
 def _write_display_artifact_manifest(
     *,
     paper_root: Path,
@@ -755,6 +783,11 @@ def materialize_display_pack_publication_manifest(
         figure_entries=figure_entries,
         audit_receipt=audit_receipt,
     )
+    workflow_packet = _write_figure_workflow_packet(
+        paper_root=normalized_paper_root,
+        figure_entries=figure_entries,
+        audit_receipt=audit_receipt,
+    )
     artifact_manifest_refs = [
         _write_display_artifact_manifest(
             paper_root=normalized_paper_root,
@@ -794,6 +827,13 @@ def materialize_display_pack_publication_manifest(
             "path": str(normalized_paper_root / "figure_polish_lifecycle.json"),
             "ref": FIGURE_POLISH_LIFECYCLE_REF,
             "states": [event["state"] for event in lifecycle["events"]],
+        },
+        "figure_workflow_packet": {
+            "path": str(normalized_paper_root / "figure_workflow_packet.json"),
+            "ref": FIGURE_WORKFLOW_PACKET_REF,
+            "workflow_status": workflow_packet["workflow_status"],
+            "figure_count": len(workflow_packet["figures"]),
+            "payload": workflow_packet,
         },
         "visual_audit": {
             "path": str(normalized_paper_root / "figure_visual_audit_receipt.json"),

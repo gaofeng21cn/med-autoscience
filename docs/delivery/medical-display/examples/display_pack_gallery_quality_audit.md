@@ -16,6 +16,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - lower-bound review required: `28`
 - blocked templates: `0`
 - publication polish policy: `mas_publication_polish_policy.v1`
+- figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
 
 ## Paper-use 前置检查
 
@@ -27,6 +28,18 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - `multipanel_hierarchy_and_shared_guides_checked`
 - `vector_or_high_resolution_export_recorded`
 - `visual_audit_receipt_or_residual_item_recorded`
+
+## Figure Workflow 前置检查
+
+- `core_conclusion_and_evidence_chain_locked`
+- `storyboard_panel_hierarchy_declared`
+- `paper_local_data_and_statistics_refs_present`
+- `semantic_palette_roles_resolved_from_article_style_profile`
+- `rendered_artifact_inspected_at_final_size`
+- `guide_legend_colorbar_overlap_checked_after_render`
+- `revision_delta_or_residual_item_recorded`
+- `visual_audit_receipt_or_residual_item_recorded`
+- `owner_or_publication_gate_receipt_present_for_claim_bearing_figures`
 
 ## 高风险图族复核项
 

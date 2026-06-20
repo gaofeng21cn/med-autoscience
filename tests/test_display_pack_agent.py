@@ -79,6 +79,13 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
     assert payload["figure_contract_policy"]["publication_polish_policy"]["nonblocking_agent_policy"][
         "blocks_default_evidence_progress"
     ] is False
+    assert payload["figure_contract_policy"]["figure_workflow_policy"]["policy_id"] == (
+        "mas_nature_skills_figure_workflow_lifecycle.v1"
+    )
+    assert payload["figure_contract_policy"]["figure_workflow_policy"]["authority_boundary"][
+        "can_authorize_publication_readiness"
+    ] is False
+    assert payload["expected_receipt_refs"]["figure_workflow_packet"] == "paper/figure_workflow_packet.json"
     assert {item["command"] for item in payload["callable_actions"]} == {
         "display-pack-capability-discover",
         "display-pack-orchestrate",
@@ -156,6 +163,17 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert payload["figure_intent"]["figure_contract"]["agent_progress_policy"][
         "backend_question_required_for_default_mas_evidence_path"
     ] is False
+    workflow = payload["figure_workflow_packet"]
+    assert workflow["policy_ref"] == "mas_nature_skills_figure_workflow_lifecycle.v1"
+    assert workflow["nonblocking_progress_policy"]["blocks_default_evidence_progress"] is False
+    assert workflow["figures"][0]["figure_brief"]["core_conclusion"]
+    assert workflow["figures"][0]["storyboard"]["starter_template"]["template_id"] == "roc_curve_binary"
+    assert workflow["figures"][0]["storyboard"]["panel_drop_policy"] == (
+        "drop_or_merge_panels_without_unique_evidence"
+    )
+    assert "owner_or_publication_gate_receipt_present_for_claim_bearing_figures" in workflow["figures"][0][
+        "paper_use_acceptance"
+    ]["required_before_paper_use"]
     assert payload["template_surface_policy"]["default_recommendations_are_canonical_only"] is True
     assert payload["template_surface_policy"][
         "nature_skills_backend_question_not_used_on_default_mas_evidence_path"
@@ -223,6 +241,10 @@ def test_compile_display_figure_intent_emits_claim_first_contract_without_blocki
     ]
     assert contract["agent_progress_policy"]["missing_refs_route_to_typed_repair"] is True
     assert contract["agent_progress_policy"]["manual_template_browsing_required"] is False
+    assert payload["figure_workflow_packet"]["figures"][0]["figure_brief"]["core_conclusion"] == (
+        "Show calibration and clinical utility for the final prediction model."
+    )
+    assert payload["figure_workflow_packet"]["figures"][0]["render_inspect_revise"]["inspect_at_final_size"] is True
     assert payload["figure_contract_policy"]["observed_head"] == "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
     assert payload["compiled_figure_request"]["medical_figure_template_seed_ids"]
 
@@ -504,6 +526,12 @@ def test_display_pack_render_returns_agent_receipt_around_scaffold_render(tmp_pa
     assert (paper_root / "figure_visual_audit_receipt.json").is_file()
     assert (paper_root / "figure_render_receipt.json").is_file()
     assert payload["receipt_refs"]["figure_render_receipt"] == "paper/figure_render_receipt.json"
+    assert payload["receipt_refs"]["figure_workflow_packet"] == "paper/figure_workflow_packet.json"
+    assert (paper_root / "figure_workflow_packet.json").is_file()
+    workflow_packet = json.loads((paper_root / "figure_workflow_packet.json").read_text(encoding="utf-8"))
+    assert workflow_packet["workflow_status"] == "audit_clear"
+    assert workflow_packet["figures"][0]["render_inspect_revise"]["visual_audit_final_status"] == "clear"
+    assert payload["render_result"]["figure_workflow_packet"]["workflow_status"] == "audit_clear"
 
 
 def test_display_pack_render_blocks_raw_input_when_direct_template_id_is_summary_only(tmp_path: Path) -> None:

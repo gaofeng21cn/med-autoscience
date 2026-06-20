@@ -15,6 +15,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     read_template_records,
     visual_gallery_records,
 )
+from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit_markdown
 from med_autoscience.display_pack_gallery_parts.payloads import _load_seed_r_payloads
 from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
@@ -304,11 +305,17 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["quality_audit"]["publication_polish_policy"]["policy_id"] == (
         "mas_publication_polish_policy.v1"
     )
+    assert manifest["quality_audit"]["figure_workflow_policy"]["policy_id"] == (
+        "mas_nature_skills_figure_workflow_lifecycle.v1"
+    )
     assert manifest["quality_audit"]["quality_policy"]["ai_authority"] == (
         "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim"
     )
     assert "core_conclusion_and_evidence_chain_locked" in manifest["quality_audit"]["quality_policy"][
         "required_before_paper_use"
+    ]
+    assert "storyboard_panel_hierarchy_declared" in manifest["quality_audit"]["quality_policy"][
+        "required_workflow_before_paper_use"
     ]
 
     status_markdown = build_gallery_status_markdown(manifest)
@@ -319,5 +326,11 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "publication-ready claim authorized: `false`" in status_markdown
     assert "publication quality profile coverage: `31/31` (100%)" in status_markdown
     assert "publication polish policy: `mas_publication_polish_policy.v1`" in status_markdown
+    assert "figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`" in status_markdown
+    assert "- `storyboard_panel_hierarchy_declared`" in status_markdown
     assert "| `computed_in_template` | 3 |" in status_markdown
     assert "| `validated_summary_required` | 25 |" in status_markdown
+
+    quality_markdown = build_quality_audit_markdown(manifest["quality_audit"])
+    assert "figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`" in quality_markdown
+    assert "- `guide_legend_colorbar_overlap_checked_after_render`" in quality_markdown

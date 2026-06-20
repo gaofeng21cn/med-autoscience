@@ -63,6 +63,14 @@
       "relationship": "Binds AI/VLM polish events to figure_visual_audit_receipt and display_pack_lock.publication_figure_quality_refs.",
       "authority_boundary": "Quality lifecycle evidence only; events cannot mutate data/statistics/evidence marks or carry publication verdicts."
     },
+    "figure_workflow_packet": {
+      "path": "paper/figure_workflow_packet.json",
+      "loader": "med_autoscience.publication_figure_quality_contract:load_figure_workflow_packet",
+      "required_top_level": ["schema_version", "packet_id", "policy_ref", "workflow_status", "nonblocking_progress_policy", "figures", "authority_boundary"],
+      "required_entry_fields": ["figure_id", "figure_brief", "storyboard", "render_inspect_revise", "paper_use_acceptance"],
+      "relationship": "Records the Nature-Skills-informed MAS figure brief, storyboard, render-inspect-revise loop, and paper-use acceptance checklist for each paper-facing figure.",
+      "authority_boundary": "Workflow guidance and audit packet only. It cannot block ordinary R/ggplot2 evidence progress, mutate data/statistics, replace visual audit, or authorize publication readiness."
+    },
     "ai_illustration_receipt": {
       "path": "paper/ai_illustration_receipt.json",
       "loader": "med_autoscience.publication_figure_quality_contract:load_ai_illustration_receipt",

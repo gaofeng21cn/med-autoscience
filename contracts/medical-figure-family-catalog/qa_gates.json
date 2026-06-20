@@ -85,6 +85,16 @@
         "vector_or_high_resolution_export_recorded",
         "visual_audit_receipt_or_residual_item_recorded"
       ]
+    },
+    {
+      "gate_id": "figure_brief_storyboard_workflow_packet",
+      "checks": [
+        "figure_brief_core_conclusion_present",
+        "storyboard_hero_panel_declared",
+        "supporting_panel_roles_are_claim_mapped",
+        "render_inspect_revise_loop_declared",
+        "workflow_packet_nonblocking_for_default_progress"
+      ]
     }
   ]
 }
