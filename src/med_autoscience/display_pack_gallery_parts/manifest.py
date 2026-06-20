@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import json
 from typing import Any
 
 from med_autoscience import publication_display_contract as display_contract
@@ -44,6 +45,82 @@ def _asset_payload(asset: RenderedAsset) -> dict[str, Any]:
     }
 
 
+def _layout_sidecar_path(asset: RenderedAsset) -> Any:
+    if not asset.layout_ref:
+        return None
+    return paths.HTML_PATH.parent / asset.layout_ref
+
+
+def _read_layout_sidecar(asset: RenderedAsset) -> dict[str, Any]:
+    layout_path = _layout_sidecar_path(asset)
+    if layout_path is None or not layout_path.is_file():
+        return {}
+    payload = json.loads(layout_path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else {}
+
+
+def _layout_sidecar_readback(
+    *,
+    visual_records: list[TemplateRecord],
+    rendered: dict[str, RenderedAsset],
+) -> dict[str, Any]:
+    expected_style_profile_id = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["style_profile_id"]
+    expected_journal_palette_ref = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["journal_palette_ref"]
+    required_renderer_fields = (
+        "renderer",
+        "renderer_family",
+        "renderer_role",
+        "template_id",
+        "data_fields",
+        "panel_box_present",
+    )
+    rendered_template_ids: list[str] = []
+    missing_renderer_metrics: list[str] = []
+    unexpected_renderer_metrics: list[str] = []
+    missing_style_profile: list[str] = []
+    mismatched_style_profile: list[str] = []
+    nonsquare_previews: list[str] = []
+    for record in visual_records:
+        asset = rendered[record.template_id]
+        if asset.status != "rendered":
+            continue
+        rendered_template_ids.append(record.template_id)
+        if asset.preview_image_size_px[0] != asset.preview_image_size_px[1]:
+            nonsquare_previews.append(record.template_id)
+        sidecar = _read_layout_sidecar(asset)
+        metrics = sidecar.get("metrics")
+        if not isinstance(metrics, dict) or any(field not in metrics for field in required_renderer_fields):
+            missing_renderer_metrics.append(record.template_id)
+        elif metrics.get("renderer_family") != "r_ggplot2" or metrics.get("renderer_role") != "default":
+            unexpected_renderer_metrics.append(record.template_id)
+        style_profile = sidecar.get("style_profile")
+        if not isinstance(style_profile, dict):
+            missing_style_profile.append(record.template_id)
+            continue
+        if (
+            style_profile.get("style_profile_id") != expected_style_profile_id
+            or style_profile.get("journal_palette_ref") != expected_journal_palette_ref
+        ):
+            mismatched_style_profile.append(record.template_id)
+    return {
+        "schema_version": 1,
+        "rendered_layout_sidecar_count": len(rendered_template_ids),
+        "renderer_metrics_template_count": len(rendered_template_ids) - len(missing_renderer_metrics),
+        "expected_renderer_family": "r_ggplot2",
+        "expected_renderer_role": "default",
+        "required_renderer_metric_fields": list(required_renderer_fields),
+        "missing_renderer_metrics": missing_renderer_metrics,
+        "unexpected_renderer_metrics": unexpected_renderer_metrics,
+        "style_profile_template_count": len(rendered_template_ids) - len(missing_style_profile),
+        "expected_style_profile_id": expected_style_profile_id,
+        "expected_journal_palette_ref": expected_journal_palette_ref,
+        "missing_style_profile": missing_style_profile,
+        "mismatched_style_profile": mismatched_style_profile,
+        "square_preview_template_count": len(rendered_template_ids) - len(nonsquare_previews),
+        "nonsquare_previews": nonsquare_previews,
+    }
+
+
 def build_manifest(
     *,
     records: list[TemplateRecord],
@@ -74,9 +151,13 @@ def build_manifest(
         rendered=rendered,
         baseline_rendered=baseline_rendered,
     )
+    layout_sidecar_readback = _layout_sidecar_readback(
+        visual_records=visual_records,
+        rendered=rendered,
+    )
     palette = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["palette"]
     return {
-        "schema_version": 8,
+        "schema_version": 9,
         "status": "rendered",
         "html_path": str(paths.HTML_PATH),
         "pdf_path": str(paths.PDF_PATH),
@@ -88,7 +169,13 @@ def build_manifest(
         "active_template_count": len(visual_records),
         "evidence_gallery_template_count": len(visual_records),
         "non_visual_canonical_template_count": len(non_visual_records),
+        "current_template_count": len(records),
         "migration_inventory_template_count": len(records),
+        "retired_alias_template_count": sum(
+            len(record.migrated_alias_template_ids)
+            for record in records
+            if record.migration_status == "canonical"
+        ),
         "canonical_family_count": len(canonical_family_ontology()),
         "gallery_template_family_count": len({record.canonical_family_id for record in canonical_visual_records}),
         "canonical_representative_template_count": len(canonical_visual_records),
@@ -125,17 +212,18 @@ def build_manifest(
         "figure_family_policy": figure_family_policy(),
         "renderer_policy": default_surface_renderer_policy(),
         "renderer_policy_completion": renderer_policy_completion(records),
+        "layout_sidecar_readback": layout_sidecar_readback,
         "ai_adaptation_policy": ai_adaptation_policy(),
         "quality_audit": quality_audit,
         "canonical_category_ontology": canonical_category_ontology(),
         "canonical_family_ontology": canonical_family_ontology(),
         "gallery_template_family_ontology": gallery_template_family_ontology(records),
         "template_surface_policy": {
-            "gallery_default_surface": "all_r_ggplot2_evidence_templates",
-            "active_inventory_is_full_r_ggplot2_evidence_gallery": True,
-            "canonical_representatives_are_metadata_not_gallery_card_filter": True,
+            "gallery_default_surface": "canonical_current_r_ggplot2_evidence_templates",
+            "active_inventory_is_canonical_current_templates": True,
+            "canonical_representatives_are_gallery_card_filter": True,
             "canonical_non_visual_inventory_preserved_in_manifest": True,
-            "migrated_alias_templates_rendered_when_they_are_current_r_ggplot2_evidence": True,
+            "migrated_alias_templates_rendered_when_they_are_current_r_ggplot2_evidence": False,
             "explicit_alias_requests_migrate_to_canonical_template": True,
             "evidence_figures_default_to_r_ggplot2": True,
             "python_evidence_templates_not_retained_without_advantage_proof": True,
@@ -175,6 +263,20 @@ def build_manifest(
             }
             for record in records
         ],
+        "retired_alias_index": [
+            {
+                "template_id": alias,
+                "canonical_family_id": record.canonical_family_id,
+                "canonical_template_id": record.canonical_template_id,
+                "migration_status": "retired_alias",
+                "default_visible": False,
+                "visual_gallery_visible": False,
+                "migration_reason": record.migration_reason,
+            }
+            for record in records
+            if record.migration_status == "canonical"
+            for alias in record.migrated_alias_template_ids
+        ],
     }
 
 
@@ -191,7 +293,7 @@ def _template_payload(record: TemplateRecord, asset: RenderedAsset) -> dict[str,
         "canonical_family_wording": canonical_family_wording(record),
         "migration_status": record.migration_status,
         "default_visible": record.default_visible,
-        "visual_gallery_visible": record.kind != "table_shell" and record.renderer_family != "n/a",
+        "visual_gallery_visible": record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2",
         "migrated_alias_template_ids": list(record.migrated_alias_template_ids),
         "migration_reason": record.migration_reason,
         "kind": record.kind,

@@ -16,7 +16,7 @@ EXTERNAL_QUALITY_REFERENCES: tuple[dict[str, str], ...] = (
     {
         "ref_id": "nature_final_submission_artwork",
         "url": "https://www.nature.com/nature/for-authors/final-submission",
-        "lesson": "Use consistent sans-serif figure lettering, readable reduced-size labels, vector line art when possible, 0.25-1 pt final line weights, RGB color, and production-quality figure files.",
+        "lesson": "Use consistent figure lettering, readable reduced-size labels, vector line art when possible, RGB color, and production-quality figure files.",
     },
     {
         "ref_id": "ggplot2_theme_system",
@@ -24,9 +24,19 @@ EXTERNAL_QUALITY_REFERENCES: tuple[dict[str, str], ...] = (
         "lesson": "Use a single theme system for titles, labels, fonts, backgrounds, gridlines, and legends so all evidence figures share one article-level visual grammar.",
     },
     {
-        "ref_id": "ggsci",
-        "url": "https://nanx.me/ggsci/",
-        "lesson": "Scientific-journal-inspired ggplot2 palettes are useful references, but MAS keeps one semantic clinical palette instead of exposing many style presets.",
+        "ref_id": "ggsci_npg_palette",
+        "url": "https://nanx.me/ggsci/reference/scale_npg.html",
+        "lesson": "Nature Publishing Group inspired discrete palettes are mature ggplot2-compatible references for publication-style categorical roles.",
+    },
+    {
+        "ref_id": "colorspace_hcl_palettes",
+        "url": "https://colorspace.r-forge.r-project.org/",
+        "lesson": "HCL-based qualitative, sequential and diverging palettes are a stable basis for article-level semantic color roles.",
+    },
+    {
+        "ref_id": "viridis_perceptual_palette",
+        "url": "https://sjmgarnier.github.io/viridis/",
+        "lesson": "Perceptually uniform and color-vision-friendly sequential palettes are preferred for continuous matrix and density-like encodings.",
     },
     {
         "ref_id": "complexheatmap_color_mapping",
@@ -36,11 +46,13 @@ EXTERNAL_QUALITY_REFERENCES: tuple[dict[str, str], ...] = (
 )
 
 FAMILY_BASELINE_BLOCKERS: dict[str, tuple[str, ...]] = {
-    "genomic_landscape_panel": ("low_information_density",),
-    "submission_summary_panel": ("illustration_shell_style_gap",),
-    "cohort_flow_and_design_panel": ("illustration_shell_style_gap",),
-    "model_audit_panel": ("multi_panel_readability_risk",),
-    "local_explanation_panel": ("multi_panel_readability_risk",),
+    "genomic_alteration_landscape_panel": ("oncoprint_annotation_track_gap",),
+    "submission_graphical_abstract": ("illustration_shell_style_gap",),
+    "cohort_flow_figure": ("illustration_shell_style_gap",),
+    "model_complexity_audit_panel": ("multi_panel_readability_risk",),
+    "shap_waterfall_local_explanation_panel": ("multi_panel_readability_risk",),
+    "coefficient_path_panel": ("coefficient_path_renderer_gap",),
+    "kaplan_meier_grouped": ("km_risk_table_and_censor_mark_gap",),
 }
 
 KIND_BASELINE_BLOCKERS: dict[str, tuple[str, ...]] = {
@@ -112,8 +124,12 @@ def recommended_next_actions(record: TemplateRecord, blockers: list[str], warnin
         actions.append("Align design-shell typography, palette roles, export discipline, and composition with the MAS publication style profile.")
     if "legend_or_colorbar_overlap_risk" in warnings:
         actions.append("Check guide boxes after rendering; prefer direct labels or horizontal colorbars when tick labels collide.")
-    if "low_information_density" in blockers:
-        actions.append("Replace sparse synthetic matrices with denser, biologically plausible rows/columns before claiming publication-level quality.")
+    if "oncoprint_annotation_track_gap" in blockers:
+        actions.append("Use the current landscape template as a lower-bound seed; add oncoprint-style annotation tracks before final genomic figure use.")
+    if "coefficient_path_renderer_gap" in blockers:
+        actions.append("Render-inspect the coefficient path carefully; replace dot-summary fallback with a true coefficient-path geometry for paper use.")
+    if "km_risk_table_and_censor_mark_gap" in blockers:
+        actions.append("Add paper-local risk table and censor marks before treating the KM preview as final survival artwork.")
     if "multi_panel_readability_risk" in blockers:
         actions.append("Split overloaded panels or enlarge the device when reduced-size labels are not readable.")
     if "python_evidence_retained_without_advantage_proof" in blockers:
@@ -176,6 +192,7 @@ def build_quality_audit(
             "default_gallery_claim": "lower_bound_reference_templates_only",
             "ai_authority": "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim",
             "not_authority": "gallery_does_not_authorize_publication_readiness_or_final_artwork_acceptance",
+            "current_surface": "canonical_current_templates_not_input_data_specific_variants",
             "required_before_paper_use": [
                 "paper_local_data_payload",
                 "render_inspect_revise",
@@ -209,6 +226,16 @@ def build_quality_audit(
                 "reason": renderer_policy_payload(record)["default_surface_reason"],
             }
             for record in default_surface_excluded_records
+        ],
+        "retired_alias_inventory": [
+            {
+                "template_id": alias,
+                "canonical_template_id": record.canonical_template_id,
+                "canonical_family_id": record.canonical_family_id,
+                "status": "retired_alias_not_gallery_card",
+            }
+            for record in records
+            for alias in record.migrated_alias_template_ids
         ],
     }
 

@@ -82,18 +82,18 @@ def _display_registry_payload() -> dict:
         "source_contract_path": "paper/medical_reporting_contract.json",
         "displays": [
             {
-                "display_id": "discrimination_calibration",
+                "display_id": "time_dependent_roc",
                 "display_kind": "figure",
-                "requirement_key": "time_to_event_discrimination_calibration_panel",
+                "requirement_key": "time_dependent_roc_horizon",
                 "catalog_id": "F2",
-                "shell_path": "paper/figures/discrimination_calibration.shell.json",
+                "shell_path": "paper/figures/time_dependent_roc.shell.json",
             },
             {
-                "display_id": "km_risk_stratification",
+                "display_id": "risk_layering",
                 "display_kind": "figure",
-                "requirement_key": "time_to_event_risk_group_summary",
+                "requirement_key": "risk_layering_monotonic_bars",
                 "catalog_id": "F3",
-                "shell_path": "paper/figures/km_risk_stratification.shell.json",
+                "shell_path": "paper/figures/risk_layering.shell.json",
             },
             {
                 "display_id": "decision_curve",
@@ -108,13 +108,6 @@ def _display_registry_payload() -> dict:
                 "requirement_key": "generalizability_subgroup_composite_panel",
                 "catalog_id": "F5",
                 "shell_path": "paper/figures/multicenter_generalizability.shell.json",
-            },
-            {
-                "display_id": "time_to_event_performance_summary",
-                "display_kind": "table",
-                "requirement_key": "table2_time_to_event_performance_summary",
-                "catalog_id": "T2",
-                "shell_path": "paper/tables/time_to_event_performance_summary.shell.json",
             },
         ],
     }
@@ -256,40 +249,41 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
 
     report = module.run_time_to_event_direct_migration(study_root=study_root, paper_root=paper_root)
 
-    f2 = json.loads((paper_root / "time_to_event_discrimination_calibration_inputs.json").read_text(encoding="utf-8"))
-    f3 = json.loads((paper_root / "time_to_event_grouped_inputs.json").read_text(encoding="utf-8"))
+    f2 = json.loads((paper_root / "binary_prediction_curve_inputs.json").read_text(encoding="utf-8"))
+    f3 = json.loads((paper_root / "risk_layering_monotonic_inputs.json").read_text(encoding="utf-8"))
     f4 = json.loads((paper_root / "time_to_event_decision_curve_inputs.json").read_text(encoding="utf-8"))
     f5 = json.loads((paper_root / "generalizability_subgroup_composite_inputs.json").read_text(encoding="utf-8"))
-    t2 = json.loads((paper_root / "time_to_event_performance_summary.json").read_text(encoding="utf-8"))
     ga = json.loads((paper_root / "submission_graphical_abstract.json").read_text(encoding="utf-8"))
     registry_after = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
 
     assert report["status"] == "synced"
     assert report["blockers"] == []
-    assert len(report["written_files"]) == 7
+    assert len(report["written_files"]) == 6
     assert report["authority_sync"]["status"] == "not_available"
     assert str(paper_root / "display_registry.json") not in report["written_files"]
 
-    assert f2["input_schema_id"] == "time_to_event_discrimination_calibration_inputs_v1"
-    assert f2["displays"][0]["display_id"] == "discrimination_calibration"
+    assert f2["input_schema_id"] == "binary_prediction_curve_inputs_v1"
+    assert f2["displays"][0]["display_id"] == "time_dependent_roc"
     assert f2["displays"][0]["template_id"] == (
-        display_registry.get_evidence_figure_spec("time_to_event_discrimination_calibration_panel").template_id
+        display_registry.get_evidence_figure_spec("time_dependent_roc_horizon").template_id
     )
-    assert f2["displays"][0]["panel_a_title"] == "Validation discrimination"
-    assert [item["label"] for item in f2["displays"][0]["discrimination_points"]] == ["CoxPH", "LassoCox"]
-    assert [item["group_order"] for item in f2["displays"][0]["calibration_summary"]] == [1, 5, 10]
-    assert f2["displays"][0]["calibration_callout"]["group_label"] == "Decile 10"
+    assert [item["label"].split()[0] for item in f2["displays"][0]["series"]] == ["CoxPH", "LassoCox"]
+    assert f2["displays"][0]["reference_line"]["label"] == "Chance"
+    assert f2["displays"][0]["time_horizon_months"] == 60
 
-    assert f3["input_schema_id"] == "time_to_event_grouped_inputs_v1"
-    assert f3["displays"][0]["display_id"] == "km_risk_stratification"
+    assert f3["input_schema_id"] == "risk_layering_monotonic_inputs_v1"
+    assert f3["displays"][0]["display_id"] == "risk_layering"
     assert f3["displays"][0]["template_id"] == (
-        display_registry.get_evidence_figure_spec("time_to_event_risk_group_summary").template_id
+        display_registry.get_evidence_figure_spec("risk_layering_monotonic_bars").template_id
     )
-    assert [item["label"] for item in f3["displays"][0]["risk_group_summaries"]] == [
+    assert [item["label"] for item in f3["displays"][0]["left_bars"]] == [
         "Low risk",
         "Intermediate risk",
         "High risk",
     ]
+    assert [item["risk"] for item in f3["displays"][0]["right_bars"]] == sorted(
+        item["risk"] for item in f3["displays"][0]["right_bars"]
+    )
 
     assert f4["input_schema_id"] == "time_to_event_decision_curve_inputs_v1"
     assert f4["displays"][0]["display_id"] == "decision_curve"
@@ -306,7 +300,7 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
     assert [item["panel_label"] for item in ga["panels"]] == ["A", "B", "C"]
     assert len(ga["footer_pills"]) == 3
 
-    assert registry_after["displays"][1]["requirement_key"] == "time_to_event_risk_group_summary"
+    assert registry_after["displays"][1]["requirement_key"] == "risk_layering_monotonic_bars"
 
     assert f5["input_schema_id"] == "generalizability_subgroup_composite_inputs_v1"
     assert f5["displays"][0]["display_id"] == "multicenter_generalizability"
@@ -342,12 +336,9 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
         {"label": "North", "count": 1},
     ]
 
-    assert t2["table_shell_id"] == (
-        display_registry.get_table_shell_spec("table2_time_to_event_performance_summary").shell_id
-    )
-    assert t2["display_id"] == "time_to_event_performance_summary"
-    assert [item["label"] for item in t2["columns"]] == ["C-index", "Stratification / utility"]
-    assert [item["label"] for item in t2["rows"]] == ["Cardiovascular mortality", "All-cause mortality"]
+    assert not (paper_root / "time_to_event_discrimination_calibration_inputs.json").exists()
+    assert not (paper_root / "time_to_event_grouped_inputs.json").exists()
+    assert not (paper_root / "time_to_event_performance_summary.json").exists()
 
 
 def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_runtime_paper_root(tmp_path: Path) -> None:
@@ -420,14 +411,14 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
             "display_registry_required": True,
             "figure_shell_requirements": [
                 "cohort_flow_figure",
-                "time_to_event_discrimination_calibration_panel",
-                "time_to_event_risk_group_summary",
+                "time_dependent_roc_horizon",
+                "risk_layering_monotonic_bars",
                 "time_to_event_decision_curve",
                 "generalizability_subgroup_composite_panel",
             ],
             "required_evidence_templates": [
-                "time_to_event_discrimination_calibration_panel",
-                "time_to_event_risk_group_summary",
+                "time_dependent_roc_horizon",
+                "risk_layering_monotonic_bars",
                 "time_to_event_decision_curve",
                 "generalizability_subgroup_composite_panel",
             ],
@@ -439,15 +430,15 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
                     "catalog_id": "F1",
                 },
                 {
-                    "display_id": "discrimination_calibration",
+                    "display_id": "time_dependent_roc",
                     "display_kind": "figure",
-                    "requirement_key": "time_to_event_discrimination_calibration_panel",
+                    "requirement_key": "time_dependent_roc_horizon",
                     "catalog_id": "F2",
                 },
                 {
-                    "display_id": "km_risk_stratification",
+                    "display_id": "risk_layering",
                     "display_kind": "figure",
-                    "requirement_key": "time_to_event_risk_group_summary",
+                    "requirement_key": "risk_layering_monotonic_bars",
                     "catalog_id": "F3",
                 },
                 {
@@ -467,12 +458,6 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
                     "display_kind": "table",
                     "requirement_key": "table1_baseline_characteristics",
                     "catalog_id": "T1",
-                },
-                {
-                    "display_id": "time_to_event_performance_summary",
-                    "display_kind": "table",
-                    "requirement_key": "table2_time_to_event_performance_summary",
-                    "catalog_id": "T2",
                 },
             ],
         },
@@ -505,6 +490,32 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
             ]
         )
         + "\n",
+    )
+    prediction_rows = [
+        {"Sequnece": "1", "center": "1", "os_time": "1.0", "cvd_death": "1", "risk_score": "2.4", "predicted_risk_5y": "0.060", "calibration_decile": "10", "risk_tertile": "high"},
+        {"Sequnece": "2", "center": "1", "os_time": "2.0", "cvd_death": "1", "risk_score": "2.1", "predicted_risk_5y": "0.050", "calibration_decile": "10", "risk_tertile": "high"},
+        {"Sequnece": "3", "center": "2", "os_time": "6.0", "cvd_death": "0", "risk_score": "1.2", "predicted_risk_5y": "0.020", "calibration_decile": "5", "risk_tertile": "mid"},
+        {"Sequnece": "4", "center": "2", "os_time": "7.0", "cvd_death": "0", "risk_score": "1.0", "predicted_risk_5y": "0.018", "calibration_decile": "5", "risk_tertile": "mid"},
+        {"Sequnece": "5", "center": "3", "os_time": "4.0", "cvd_death": "0", "risk_score": "-0.5", "predicted_risk_5y": "0.005", "calibration_decile": "1", "risk_tertile": "low"},
+        {"Sequnece": "6", "center": "3", "os_time": "8.0", "cvd_death": "0", "risk_score": "-0.7", "predicted_risk_5y": "0.004", "calibration_decile": "1", "risk_tertile": "low"},
+        {"Sequnece": "7", "center": "4", "os_time": "3.0", "cvd_death": "1", "risk_score": "1.8", "predicted_risk_5y": "0.040", "calibration_decile": "10", "risk_tertile": "high"},
+        {"Sequnece": "8", "center": "4", "os_time": "5.5", "cvd_death": "0", "risk_score": "0.9", "predicted_risk_5y": "0.015", "calibration_decile": "5", "risk_tertile": "mid"},
+        {"Sequnece": "9", "center": "5", "os_time": "2.5", "cvd_death": "0", "risk_score": "-0.8", "predicted_risk_5y": "0.003", "calibration_decile": "1", "risk_tertile": "low"},
+        {"Sequnece": "10", "center": "5", "os_time": "6.5", "cvd_death": "0", "risk_score": "-0.9", "predicted_risk_5y": "0.002", "calibration_decile": "1", "risk_tertile": "low"},
+    ]
+    lasso_rows = [
+        {"Sequnece": row["Sequnece"], "center": row["center"], "os_time": row["os_time"], "cvd_death": row["cvd_death"], "risk_score": str(float(row["risk_score"]) - 0.2)}
+        for row in prediction_rows
+    ]
+    write_csv(
+        study_root / "analysis" / "clean_room_execution" / "10_china_primary_endpoint" / "derived" / "coxph_validation_predictions.csv",
+        ["Sequnece", "center", "os_time", "cvd_death", "risk_score", "predicted_risk_5y", "calibration_decile", "risk_tertile"],
+        prediction_rows,
+    )
+    write_csv(
+        study_root / "analysis" / "clean_room_execution" / "10_china_primary_endpoint" / "derived" / "lassocox_validation_predictions.csv",
+        ["Sequnece", "center", "os_time", "cvd_death", "risk_score"],
+        lasso_rows,
     )
     write_csv(
         study_root / "analysis" / "clean_room_execution" / "10_china_primary_endpoint" / "derived" / "coxph_calibration_5y.csv",
@@ -561,9 +572,10 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
     assert report["authority_sync"]["source_paper_root"] == str(authority_paper_root)
     assert str(runtime_paper_root / "publication_style_profile.json") in report["authority_sync"]["synced_files"]
     assert synced_style_profile["style_profile_id"] == "authority-paper-style"
-    assert "time_to_event_risk_group_summary" in synced_reporting_contract["figure_shell_requirements"]
+    assert "risk_layering_monotonic_bars" in synced_reporting_contract["figure_shell_requirements"]
+    assert "time_to_event_risk_group_summary" not in synced_reporting_contract["figure_shell_requirements"]
     assert "kaplan_meier_grouped" not in synced_reporting_contract["figure_shell_requirements"]
-    assert synced_reporting_contract["display_shell_plan"][2]["requirement_key"] == "time_to_event_risk_group_summary"
+    assert synced_reporting_contract["display_shell_plan"][2]["requirement_key"] == "risk_layering_monotonic_bars"
     assert (runtime_paper_root / "display_registry.json").exists()
     assert (runtime_paper_root / "cohort_flow.json").exists()
     assert (runtime_paper_root / "tables" / "table2_performance_summary.md").exists()
@@ -594,12 +606,12 @@ def test_run_time_to_event_direct_migration_rejects_legacy_risk_group_binding_wi
     registry["displays"][1]["requirement_key"] = "kaplan_meier_grouped"
     write_json(paper_root / "display_registry.json", registry)
 
-    with pytest.raises(ValueError, match="missing required display binding: time_to_event_risk_group_summary"):
+    with pytest.raises(ValueError, match="missing required display binding: risk_layering_monotonic_bars"):
         module.run_time_to_event_direct_migration(study_root=study_root, paper_root=paper_root)
 
     registry_after = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
     assert registry_after["displays"][1]["requirement_key"] == "kaplan_meier_grouped"
-    assert not (paper_root / "time_to_event_grouped_inputs.json").exists()
+    assert not (paper_root / "risk_layering_monotonic_inputs.json").exists()
 
 
 def test_run_time_to_event_direct_migration_materializes_current_transportability_layout_without_old_endpoint_root(
@@ -629,14 +641,7 @@ def test_run_time_to_event_direct_migration_materializes_current_transportabilit
         "input_schema_id": "time_to_event_decision_curve_inputs_v1",
         "displays": [{"display_id": "decision_curve", "preserved": True}],
     }
-    preserved_t2 = {
-        "schema_version": 1,
-        "table_shell_id": "table2_time_to_event_performance_summary",
-        "display_id": "time_to_event_performance_summary",
-        "preserved": True,
-    }
     write_json(paper_root / "time_to_event_decision_curve_inputs.json", preserved_f4)
-    write_json(paper_root / "time_to_event_performance_summary.json", preserved_t2)
     transportability_root = study_root / "analysis" / "clean_room_execution" / "20_transportability"
     write_json(
         transportability_root / "metrics_summary.json",
@@ -707,8 +712,8 @@ def test_run_time_to_event_direct_migration_materializes_current_transportabilit
 
     report = module.run_time_to_event_direct_migration(study_root=study_root, paper_root=paper_root)
 
-    f2 = json.loads((paper_root / "time_to_event_discrimination_calibration_inputs.json").read_text(encoding="utf-8"))
-    f3 = json.loads((paper_root / "time_to_event_grouped_inputs.json").read_text(encoding="utf-8"))
+    f2 = json.loads((paper_root / "binary_prediction_curve_inputs.json").read_text(encoding="utf-8"))
+    f3 = json.loads((paper_root / "risk_layering_monotonic_inputs.json").read_text(encoding="utf-8"))
     f5 = json.loads((paper_root / "generalizability_subgroup_composite_inputs.json").read_text(encoding="utf-8"))
 
     assert report["status"] == "synced"
@@ -718,26 +723,18 @@ def test_run_time_to_event_direct_migration_materializes_current_transportabilit
     assert report["source_paths"]["metrics_summary"] == str(transportability_root / "metrics_summary.json")
     assert not (paper_root / "transportability_recalibration_governance_panel.json").exists()
     assert json.loads((paper_root / "time_to_event_decision_curve_inputs.json").read_text(encoding="utf-8")) == preserved_f4
-    assert json.loads((paper_root / "time_to_event_performance_summary.json").read_text(encoding="utf-8")) == preserved_t2
 
-    assert [item["label"] for item in f2["displays"][0]["discrimination_points"]] == ["China", "NHANES"]
-    assert f2["displays"][0]["calibration_callout"]["group_label"] == "NHANES external cohort"
+    assert [item["label"] for item in f2["displays"][0]["series"]] == ["China", "NHANES"]
+    assert f2["displays"][0]["reference_line"]["label"] == "Chance"
     assert "groups" not in f3["displays"][0]
-    assert [item["label"] for item in f3["displays"][0]["risk_group_summaries"]] == [
+    assert [item["label"] for item in f3["displays"][0]["right_bars"]] == [
         "China Q1 low",
         "China Q2",
         "China Q3",
         "China Q4 high",
         "NHANES Q1 low",
     ]
-    assert [item["cohort_id"] for item in f3["displays"][0]["risk_group_summaries"]] == [
-        "china",
-        "china",
-        "china",
-        "china",
-        "nhanes",
-    ]
-    assert f3["displays"][0]["risk_group_summaries"][-1]["risk_group_label"] == "Q1_low"
+    assert f3["displays"][0]["right_bars"][-1]["cases"] == 5659
     assert f5["input_schema_id"] == "generalizability_subgroup_composite_inputs_v1"
     assert f5["displays"][0]["template_id"] == display_registry.get_evidence_figure_spec(
         "generalizability_subgroup_composite_panel"

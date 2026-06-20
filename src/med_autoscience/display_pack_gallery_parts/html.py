@@ -61,10 +61,10 @@ def _render_html(
         f'<span class="pill">style_profile_id: {html.escape(default_style["style_profile_id"])}</span>'
         f'<span class="pill">journal_palette_ref: {html.escape(default_style["journal_palette_ref"])}</span>'
         f'<span class="pill">gallery cards: {len(visible_records)}</span>'
-        f'<span class="pill">gallery scope: all R/ggplot2 evidence templates</span>'
+        f'<span class="pill">gallery scope: canonical current R/ggplot2 evidence templates</span>'
         f'<span class="pill">R/ggplot2 evidence: {r_evidence_count}</span>'
         f'<span class="pill">Python evidence: 0</span>'
-        f'<span class="pill">canonical default representatives: {len(canonical_visual_records)}</span>'
+        f'<span class="pill">canonical evidence representatives: {len(canonical_visual_records)}</span>'
         f'<span class="pill">rendered images: {rendered_count}</span>'
     )
     swatches = "".join(
@@ -171,7 +171,7 @@ h1{{margin:0 0 8px;font-size:25px;letter-spacing:0}}
 <body>
 <header>
   <h1>MAS Display Pack Evidence Gallery</h1>
-  <div class="sub">默认展示全量 R/ggplot2 数据证据图；未证明优于 R/ggplot2 的 Python evidence 模板不进入当前 pack。设计/流程类 composition shell 不混入这份 ggplot2 evidence Gallery。</div>
+    <div class="sub">默认展示 canonical current R/ggplot2 数据证据图；重复的输入数据变体已退役为 alias，不再作为 Gallery 卡片。未证明优于 R/ggplot2 的 Python evidence 模板不进入当前 pack。设计/流程类 composition shell 不混入这份 ggplot2 evidence Gallery。</div>
   <div class="meta">{meta}</div>
   <div class="palette">{swatches}</div>
 </header>

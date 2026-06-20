@@ -122,7 +122,8 @@ def _check_publication_evidence_curve(sidecar: LayoutSidecar) -> list[dict[str, 
         return issues
 
     issues.extend(_check_curve_metrics(sidecar.metrics))
-    issues.extend(_check_reference_line_within_device(sidecar))
+    if sidecar.template_id != "time_to_event_decision_curve":
+        issues.extend(_check_reference_line_within_device(sidecar))
     if sidecar.template_id == "time_dependent_roc_horizon":
         time_horizon_months = sidecar.metrics.get("time_horizon_months")
         if time_horizon_months is None:

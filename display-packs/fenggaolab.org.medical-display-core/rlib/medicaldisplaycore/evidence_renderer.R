@@ -906,7 +906,6 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     pr_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
     calibration_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
     decision_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
-    clinical_impact_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
     time_dependent_roc_horizon = list(
       series = display_payload$series,
       reference_line = display_payload$reference_line,
@@ -924,34 +923,40 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     ),
     umap_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     pca_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
-    phate_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     tsne_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
-    diffusion_map_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     heatmap_group_comparison = list(metric_scope = "heatmap_group_comparison"),
-    performance_heatmap = list(
-      matrix_cells = display_payload$cells,
-      metric_name = trimws(as.character(display_payload$metric_name %||% ""))
-    ),
     confusion_matrix_heatmap_binary = list(
       matrix_cells = display_payload$cells,
       metric_name = trimws(as.character(display_payload$metric_name %||% "")),
       normalization = trimws(as.character(display_payload$normalization %||% ""))
     ),
-    correlation_heatmap = list(matrix_cells = display_payload$cells),
-    clustered_heatmap = list(matrix_cells = display_payload$cells),
-    gsva_ssgsea_heatmap = list(
-      matrix_cells = display_payload$cells,
-      score_method = trimws(as.character(display_payload$score_method %||% ""))
-    ),
     forest_effect_main = list(rows = display_payload$rows),
-    subgroup_forest = list(rows = display_payload$rows),
-    multivariable_forest = list(rows = display_payload$rows),
     if (exists("build_candidate_metrics", mode = "function")) {
       build_candidate_metrics(template_id, display_payload, panel_box)
     } else {
       list()
     }
   )
+}
+
+default_renderer_metrics <- function(template_id, display_payload, panel_box) {
+  list(
+    renderer = "r_ggplot2_evidence_subprocess_v1",
+    renderer_family = "r_ggplot2",
+    renderer_role = "default",
+    template_id = template_id,
+    data_fields = sort(names(display_payload)),
+    panel_box_present = !is.null(panel_box)
+  )
+}
+
+ensure_renderer_metrics <- function(template_id, display_payload, panel_box, metrics) {
+  if (is.null(metrics) || !is.list(metrics)) {
+    metrics <- list()
+  }
+  renderer_metrics <- default_renderer_metrics(template_id, display_payload, panel_box)
+  missing_fields <- setdiff(names(renderer_metrics), names(metrics))
+  c(renderer_metrics[missing_fields], metrics)
 }
 
 style_profile_sidecar <- function(display_payload) {
@@ -1031,6 +1036,27 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
     guide_boxes <- c(guide_boxes, forest_layout$guide_boxes)
     metrics <- forest_layout$metrics
   }
+  if (exists("build_candidate_layout_override", mode = "function")) {
+    candidate_override <- build_candidate_layout_override(template_id, display_payload, panel_box, guide_box)
+    if (!is.null(candidate_override)) {
+      layout_boxes <- candidate_override$layout_boxes %||% layout_boxes
+      panel_boxes <- candidate_override$panel_boxes %||% Filter(Negate(is.null), list(panel_box))
+      guide_boxes <- candidate_override$guide_boxes %||% guide_boxes
+      metrics <- candidate_override$metrics %||% metrics
+      metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, metrics)
+      return(list(
+        template_id = template_id,
+        device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
+        layout_boxes = layout_boxes,
+        panel_boxes = panel_boxes,
+        guide_boxes = guide_boxes,
+        metrics = metrics,
+        render_context = render_context_from_payload(display_payload),
+        style_profile = style_profile_sidecar(display_payload)
+      ))
+    }
+  }
+  metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, metrics)
   list(
     template_id = template_id,
     device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
@@ -1050,24 +1076,15 @@ build_evidence_plot <- function(template_id, payload) {
     pr_curve_binary = plot_binary_curve(payload),
     calibration_curve_binary = plot_binary_curve(payload),
     decision_curve_binary = plot_binary_curve(payload),
-    clinical_impact_curve_binary = plot_binary_curve(payload),
     time_dependent_roc_horizon = plot_binary_curve(payload),
     kaplan_meier_grouped = plot_kaplan_meier(payload),
     cumulative_incidence_grouped = plot_kaplan_meier(payload),
     umap_scatter_grouped = plot_embedding_scatter(payload),
     pca_scatter_grouped = plot_embedding_scatter(payload),
-    phate_scatter_grouped = plot_embedding_scatter(payload),
     tsne_scatter_grouped = plot_embedding_scatter(payload),
-    diffusion_map_scatter_grouped = plot_embedding_scatter(payload),
     heatmap_group_comparison = plot_heatmap(payload),
-    performance_heatmap = plot_performance_heatmap(payload),
     confusion_matrix_heatmap_binary = plot_confusion_matrix_heatmap(payload),
-    correlation_heatmap = plot_heatmap(payload),
-    clustered_heatmap = plot_heatmap(payload),
-    gsva_ssgsea_heatmap = plot_heatmap(payload),
     forest_effect_main = plot_forest(payload),
-    subgroup_forest = plot_forest(payload),
-    multivariable_forest = plot_forest(payload),
     if (exists("build_candidate_evidence_plot", mode = "function")) {
       build_candidate_evidence_plot(template_id, payload)
     } else {

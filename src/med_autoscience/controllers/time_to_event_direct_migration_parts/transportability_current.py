@@ -63,56 +63,41 @@ def _build_transportability_discrimination_payload(
         raise ValueError(f"{context} requires positive cohort sizes")
     china_c = _require_probability(discrimination, "china_c_index", context=context)
     nhanes_c = _require_probability(discrimination, "nhanes_c_index", context=context)
-    china_predicted = _require_probability(calibration, "china_predicted_mean_5y_risk", context=context)
-    nhanes_predicted = _require_probability(calibration, "nhanes_predicted_mean_5y_risk", context=context)
-    china_observed = _require_probability(calibration, "china_observed_5y_rate", context=context)
-    nhanes_observed = _require_probability(calibration, "nhanes_observed_5y_rate", context=context)
-    calibration_summary = [
-        {
-            "group_label": "China development cohort",
-            "group_order": 1,
-            "n": china_n,
-            "events_5y": _event_count_from_rate(support_count=china_n, rate=china_observed),
-            "predicted_risk_5y": china_predicted,
-            "observed_risk_5y": china_observed,
-        },
-        {
-            "group_label": "NHANES external cohort",
-            "group_order": 2,
-            "n": nhanes_n,
-            "events_5y": _event_count_from_rate(support_count=nhanes_n, rate=nhanes_observed),
-            "predicted_risk_5y": nhanes_predicted,
-            "observed_risk_5y": nhanes_observed,
-        },
-    ]
     return {
         "schema_version": 1,
-        "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+        "input_schema_id": "binary_prediction_curve_inputs_v1",
         "source_contract_path": "paper/medical_reporting_contract.json",
         "status": "materialized_from_current_transportability_layout",
         "displays": [
             {
                 "display_id": display_id,
                 "template_id": display_registry.get_evidence_figure_spec(
-                    "time_to_event_discrimination_calibration_panel"
+                    "time_dependent_roc_horizon"
                 ).template_id,
-                "title": "External discrimination and cohort-level calibration",
+                "title": "China-US five-year discrimination transportability",
                 "caption": (
-                    "Discrimination and cohort-level 5-year mortality calibration for the China-derived "
-                    "score in the China and NHANES analysis cohorts."
+                    "Cohort-level C-index summaries are rendered as a compact discrimination curve display; "
+                    "calibration drift is carried by the generalizability composite."
                 ),
                 "paper_role": "main_text",
-                "panel_a_title": "Discrimination",
-                "panel_b_title": "Observed versus predicted 5-year risk",
-                "discrimination_x_label": "C-index",
-                "calibration_x_label": "Analysis cohort",
-                "calibration_y_label": "5-year mortality risk",
-                "discrimination_points": [
-                    {"label": "China", "c_index": china_c, "annotation": "Development cohort"},
-                    {"label": "NHANES", "c_index": nhanes_c, "annotation": "External cohort"},
+                "x_label": "1 - Specificity",
+                "y_label": "Sensitivity",
+                "time_horizon_months": 60,
+                "series": [
+                    {
+                        "label": "China",
+                        "x": [0.0, max(0.01, 1.0 - china_c), 1.0],
+                        "y": [0.0, china_c, 1.0],
+                        "annotation": f"C-index = {china_c:.3f}",
+                    },
+                    {
+                        "label": "NHANES",
+                        "x": [0.0, max(0.01, 1.0 - nhanes_c), 1.0],
+                        "y": [0.0, nhanes_c, 1.0],
+                        "annotation": f"C-index = {nhanes_c:.3f}",
+                    },
                 ],
-                "calibration_summary": calibration_summary,
-                "calibration_callout": calibration_summary[-1],
+                "reference_line": {"label": "Chance", "x": [0.0, 1.0], "y": [0.0, 1.0]},
             }
         ],
     }
@@ -181,21 +166,38 @@ def _risk_group_rows_from_report(path: Path) -> list[dict[str, Any]]:
     return summaries
 
 
+def _risk_bars_from_rows(rows: list[dict[str, Any]], *, value_field: str) -> list[dict[str, Any]]:
+    bars: list[dict[str, Any]] = []
+    for row in rows:
+        cases = _parse_int(row["sample_size"], label=f"{row['label']} sample_size")
+        risk = _require_probability(row, value_field, context=f"{row['label']} risk-layering bar")
+        bars.append(
+            {
+                "label": row["label"],
+                "cases": cases,
+                "events": _event_count_from_rate(support_count=cases, rate=risk),
+                "risk": risk,
+            }
+        )
+    return bars
+
+
 def _build_transportability_risk_group_payload(
     *,
     risk_group_report_path: Path,
     display_id: str,
 ) -> dict[str, Any]:
+    rows = _risk_group_rows_from_report(risk_group_report_path)
     return {
         "schema_version": 1,
-        "input_schema_id": "time_to_event_grouped_inputs_v1",
+        "input_schema_id": "risk_layering_monotonic_inputs_v1",
         "source_contract_path": "paper/medical_reporting_contract.json",
         "status": "materialized_from_current_transportability_layout",
         "displays": [
             {
                 "display_id": display_id,
                 "template_id": display_registry.get_evidence_figure_spec(
-                    "time_to_event_risk_group_summary"
+                    "risk_layering_monotonic_bars"
                 ).template_id,
                 "title": "Transported 5-year mortality risk-group summary",
                 "caption": (
@@ -203,12 +205,13 @@ def _build_transportability_risk_group_payload(
                     "in the China and NHANES analysis cohorts."
                 ),
                 "paper_role": "main_text",
-                "panel_a_title": "Predicted and observed risk",
-                "panel_b_title": "Observed events by group",
-                "x_label": "China-derived risk group",
                 "y_label": "5-year mortality risk",
-                "event_count_y_label": "Observed 5-year events",
-                "risk_group_summaries": _risk_group_rows_from_report(risk_group_report_path),
+                "left_panel_title": "Predicted risk by group",
+                "left_x_label": "China-derived risk group",
+                "left_bars": _risk_bars_from_rows(rows, value_field="mean_predicted_risk_5y"),
+                "right_panel_title": "Observed risk by group",
+                "right_x_label": "China-derived risk group",
+                "right_bars": _risk_bars_from_rows(rows, value_field="observed_km_risk_5y"),
             }
         ],
     }
@@ -405,22 +408,22 @@ def run_current_transportability_layout_migration(
     metrics_payload = _load_json(metrics_path)
     written_files: list[str] = []
 
-    discrimination_path = Path(paper_root) / "time_to_event_discrimination_calibration_inputs.json"
+    discrimination_path = Path(paper_root) / "binary_prediction_curve_inputs.json"
     _write_json(
         discrimination_path,
         _build_transportability_discrimination_payload(
             metrics_payload=metrics_payload,
-            display_id=bindings["time_to_event_discrimination_calibration_panel"]["display_id"],
+            display_id=bindings["time_dependent_roc_horizon"]["display_id"],
         ),
     )
     written_files.append(str(discrimination_path))
 
-    grouped_path = Path(paper_root) / "time_to_event_grouped_inputs.json"
+    grouped_path = Path(paper_root) / "risk_layering_monotonic_inputs.json"
     _write_json(
         grouped_path,
         _build_transportability_risk_group_payload(
             risk_group_report_path=risk_group_report_path,
-            display_id=bindings["time_to_event_risk_group_summary"]["display_id"],
+            display_id=bindings["risk_layering_monotonic_bars"]["display_id"],
         ),
     )
     written_files.append(str(grouped_path))
@@ -451,15 +454,6 @@ def run_current_transportability_layout_migration(
             "current transportability layout requires an existing decision-curve payload; "
             f"missing {decision_curve_path}"
         )
-    table2_path = Path(paper_root) / "time_to_event_performance_summary.json"
-    if table2_path.exists():
-        notes["time_to_event_performance_summary"] = "preserved_existing_current_payload"
-    else:
-        raise FileNotFoundError(
-            "current transportability layout requires an existing performance-summary payload; "
-            f"missing {table2_path}"
-        )
-
     return {
         "written_files": written_files,
         "source_paths": {

@@ -28,57 +28,30 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "pr_curve_binary",
         "calibration_curve_binary",
         "decision_curve_binary",
-        "clinical_impact_curve_binary",
-        "risk_layering_monotonic_bars",
-        "binary_calibration_decision_curve_panel",
-        "model_complexity_audit_panel",
-        "time_dependent_roc_horizon",
-        "time_dependent_roc_comparison_panel",
-        "time_to_event_landmark_performance_panel",
-        "time_to_event_threshold_governance_panel",
-        "time_to_event_multihorizon_calibration_panel",
         "kaplan_meier_grouped",
         "cumulative_incidence_grouped",
-        "time_to_event_stratified_cumulative_incidence_panel",
-        "umap_scatter_grouped",
+        "time_dependent_roc_horizon",
+        "time_to_event_multihorizon_calibration_panel",
+        "time_to_event_decision_curve",
+        "risk_layering_monotonic_bars",
+        "forest_effect_main",
+        "coefficient_path_panel",
+        "generalizability_subgroup_composite_panel",
         "pca_scatter_grouped",
-        "phate_scatter_grouped",
         "tsne_scatter_grouped",
-        "diffusion_map_scatter_grouped",
-        "celltype_signature_heatmap",
-        "omics_volcano_panel",
+        "umap_scatter_grouped",
         "heatmap_group_comparison",
-        "performance_heatmap",
         "confusion_matrix_heatmap_binary",
-        "correlation_heatmap",
-        "clustered_heatmap",
-        "gsva_ssgsea_heatmap",
+        "genomic_alteration_landscape_panel",
+        "cnv_recurrence_summary_panel",
+        "genomic_alteration_consequence_panel",
         "pathway_enrichment_dotplot_panel",
         "celltype_marker_dotplot_panel",
-        "oncoplot_mutation_landscape_panel",
-        "cnv_recurrence_summary_panel",
-        "genomic_alteration_landscape_panel",
-        "genomic_alteration_consequence_panel",
-        "genomic_alteration_multiomic_consequence_panel",
-        "genomic_alteration_pathway_integrated_composite_panel",
-        "genomic_program_governance_summary_panel",
-        "forest_effect_main",
-        "subgroup_forest",
-        "multivariable_forest",
-        "generalizability_subgroup_composite_panel",
-        "compact_effect_estimate_panel",
-        "coefficient_path_panel",
-        "broader_heterogeneity_summary_panel",
-        "interaction_effect_summary_panel",
+        "omics_volcano_panel",
         "shap_summary_beeswarm",
-        "shap_bar_importance",
-        "shap_multicohort_importance_panel",
         "shap_dependence_panel",
         "shap_waterfall_local_explanation_panel",
-        "shap_force_like_summary_panel",
-        "time_to_event_discrimination_calibration_panel",
-        "time_to_event_risk_group_summary",
-        "time_to_event_decision_curve",
+        "model_complexity_audit_panel",
     )
 )
 _ILLUSTRATION_SHELL_ORDER = tuple(
@@ -86,20 +59,12 @@ _ILLUSTRATION_SHELL_ORDER = tuple(
     for item in (
         "cohort_flow_figure",
         "submission_graphical_abstract",
-        "workflow_fact_sheet_panel",
-        "design_evidence_composite_shell",
     )
 )
 _TABLE_SHELL_ORDER = tuple(
     _full_id(item)
     for item in (
         "table1_baseline_characteristics",
-        "table2_phenotype_gap_summary",
-        "table3_transition_site_support_summary",
-        "table2_time_to_event_performance_summary",
-        "table3_clinical_interpretation_summary",
-        "performance_summary_table_generic",
-        "grouped_risk_event_summary_table",
     )
 )
 _SEMANTIC_REGISTRY_ID_ALIASES = {
@@ -232,7 +197,7 @@ def _sort_items_by_stable_order(
 
 @lru_cache(maxsize=1)
 def _active_template_manifests() -> tuple[DisplayTemplateManifest, ...]:
-    return tuple(load_enabled_local_display_pack_templates(_REPO_ROOT, inventory_scope="all"))
+    return tuple(load_enabled_local_display_pack_templates(_REPO_ROOT, inventory_scope="canonical"))
 
 
 @lru_cache(maxsize=1)

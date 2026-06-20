@@ -104,7 +104,7 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
             assert "render_r_evidence_figure" not in payload["entrypoint"]
             assert (manifest_path.parent / "render.R").is_file()
 
-    assert len(r_templates) == 55
+    assert len(r_templates) == 28
 
 
 def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> None:
@@ -113,28 +113,37 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
     manifest_ids = []
     for manifest_path in sorted((CORE_PACK_ROOT / "templates").glob("*/template.toml")):
         payload = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
-        if payload["kind"] == "evidence_figure":
-            manifest_ids.append(payload["template_id"])
+        manifest_ids.append(payload["template_id"])
 
     records_by_template = {item["template_id"]: item for item in records}
     assert sorted(records_by_template) == sorted(manifest_ids)
-    assert ledger["summary"]["evidence_template_count"] == 55
-    assert ledger["summary"]["r_ggplot2_subprocess_evidence_count"] == 55
+    assert ledger["summary"]["current_template_count"] == 31
+    assert ledger["summary"]["current_evidence_template_count"] == 28
+    assert ledger["summary"]["current_r_ggplot2_subprocess_evidence_count"] == 28
+    assert ledger["summary"]["retired_alias_template_count"] == 35
     assert ledger["summary"]["python_evidence_retained_count"] == 0
     assert "retired_python_evidence_template_count" not in ledger["summary"]
     assert "retired_python_evidence_template_ids" not in ledger
-    assert {item["migration_lane"] for item in records} == {"R_CURRENT"}
-    assert records_by_template["risk_layering_monotonic_bars"]["migration_status"] == "current_r_ggplot2_subprocess"
-    assert records_by_template["time_to_event_landmark_performance_panel"]["migration_status"] == "current_r_ggplot2_subprocess"
-    assert records_by_template["time_to_event_multihorizon_calibration_panel"]["migration_status"] == "current_r_ggplot2_subprocess"
-    assert records_by_template["time_to_event_threshold_governance_panel"]["migration_status"] == "current_r_ggplot2_subprocess"
+    assert {item["migration_lane"] for item in records} == {"CANONICAL_CURRENT"}
+    assert {item["migration_status"] for item in records} == {"current_canonical_template"}
+    assert "retired_aliases" in ledger
+    assert {item["template_id"] for item in ledger["retired_aliases"]}.isdisjoint(records_by_template)
+    assert records_by_template["risk_layering_monotonic_bars"]["migration_status"] == "current_canonical_template"
+    assert records_by_template["time_dependent_roc_horizon"]["migration_status"] == "current_canonical_template"
+    assert records_by_template["time_to_event_multihorizon_calibration_panel"]["migration_status"] == "current_canonical_template"
+    assert records_by_template["time_to_event_decision_curve"]["migration_status"] == "current_canonical_template"
 
 
 def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> None:
     ledger = json.loads((CORE_PACK_ROOT / "renderer_migration_ledger.json").read_text(encoding="utf-8"))
-    current_records = [item for item in ledger["records"] if item["migration_lane"] == "R_CURRENT"]
+    current_records = [
+        item
+        for item in ledger["records"]
+        if item["kind"] == "evidence_figure"
+        and item["renderer_family"] == "r_ggplot2"
+    ]
 
-    assert len(current_records) == 55
+    assert len(current_records) == 28
     for record in current_records:
         template_root = CORE_PACK_ROOT / "templates" / record["template_id"]
         render_path = template_root / "render.R"
@@ -143,7 +152,8 @@ def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> Non
         assert record["execution_mode"] == "subprocess"
         assert record["entrypoint"] == "Rscript render.R --request {request_json}"
         assert record["render_script_path"] == "render.R"
-        assert record["migration_status"] == "current_r_ggplot2_subprocess"
+        assert record["migration_lane"] == "CANONICAL_CURRENT"
+        assert record["migration_status"] == "current_canonical_template"
         wrapper_source = render_path.read_text(encoding="utf-8")
         assert f'expected_template_id = "{record["template_id"]}"' in wrapper_source
 
@@ -175,7 +185,7 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
 
 def test_core_pack_representative_p1_default_renderers_render_with_r_subprocess() -> None:
     promoted_payloads: dict[str, dict[str, object]] = {
-        "time_to_event_risk_group_summary": {
+        "risk_layering_monotonic_bars": {
             "title": "Risk group summary",
             "x_label": "Risk group",
             "y_label": "Five-year risk",
@@ -277,7 +287,7 @@ def test_cli_display_pack_render_candidate_runs_legacy_comparison_surface(tmp_pa
             "--repo-root",
             str(REPO_ROOT),
             "--template-id",
-            "time_to_event_risk_group_summary",
+            "risk_layering_monotonic_bars",
             "--display-payload-file",
             str(payload_path),
             "--output-dir",
@@ -291,7 +301,7 @@ def test_cli_display_pack_render_candidate_runs_legacy_comparison_surface(tmp_pa
     assert result["candidate_only"] is True
     assert result["comparison_only"] is True
     assert result["publication_readiness_verdict"] is False
-    assert result["template_id"] == "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
+    assert result["template_id"] == "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars"
     assert result["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
     assert result["authority_boundary"]["candidate_can_authorize_publication_readiness"] is False
     assert result["authority_boundary"]["candidate_can_mutate_data_or_statistics"] is False

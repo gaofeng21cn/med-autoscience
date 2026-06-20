@@ -296,10 +296,11 @@ def test_build_display_pack_lock_payload_projects_canonical_default_renderers() 
         and item["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
     ]
 
-    assert len(template_entries) == 19
-    assert len(r_ggplot2_default_templates) == 16
-    assert len(r_ggplot2_default_templates_with_candidate) == 11
+    assert len(template_entries) == 31
+    assert len(r_ggplot2_default_templates) == 28
+    assert len(r_ggplot2_default_templates_with_candidate) == 15
     assert "time_to_event_risk_group_summary" not in template_entries
+    assert "time_to_event_discrimination_calibration_panel" not in template_entries
     assert "partial_dependence_ice_panel" not in template_entries
     assert "single_cell_atlas_overview_panel" not in template_entries
     assert "phenotype_gap_structure_figure" not in template_entries
@@ -311,19 +312,17 @@ def test_build_display_pack_lock_payload_projects_canonical_default_renderers() 
         for item in template_entries.values()
         if item["kind"] == "evidence_figure" and item["renderer_family"] == "python"
     ]
-    assert template_entries["time_to_event_discrimination_calibration_panel"]["renderer_family"] == "r_ggplot2"
-    assert template_entries["time_to_event_discrimination_calibration_panel"]["execution_mode"] == "subprocess"
-    assert template_entries["time_to_event_discrimination_calibration_panel"]["entrypoint"] == (
+    assert template_entries["time_dependent_roc_horizon"]["renderer_family"] == "r_ggplot2"
+    assert template_entries["time_dependent_roc_horizon"]["execution_mode"] == "subprocess"
+    assert template_entries["time_dependent_roc_horizon"]["entrypoint"] == (
         "Rscript render.R --request {request_json}"
     )
-    assert template_entries["time_to_event_discrimination_calibration_panel"]["render_script_path"].endswith(
-        "templates/time_to_event_discrimination_calibration_panel/render.R"
+    assert template_entries["time_dependent_roc_horizon"]["render_script_path"].endswith(
+        "templates/time_dependent_roc_horizon/render.R"
     )
-    assert len(template_entries["time_to_event_discrimination_calibration_panel"]["render_script_sha256"]) == 64
-    assert template_entries["time_to_event_discrimination_calibration_panel"][
-        "candidate_render_script_path"
-    ].endswith(
-        "templates/time_to_event_discrimination_calibration_panel/render_candidate.R"
+    assert len(template_entries["time_dependent_roc_horizon"]["render_script_sha256"]) == 64
+    assert template_entries["risk_layering_monotonic_bars"]["candidate_render_script_path"].endswith(
+        "templates/risk_layering_monotonic_bars/render_candidate.R"
     )
     assert template_entries["omics_volcano_panel"]["render_script_path"].endswith(
         "templates/omics_volcano_panel/render.R"

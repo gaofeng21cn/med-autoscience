@@ -60,15 +60,11 @@ _TABLE_INPUT_FILENAME_BY_SCHEMA_ID = TABLE_INPUT_FILENAME_BY_SCHEMA_ID
 _ILLUSTRATION_INPUT_FILENAME_BY_SCHEMA_ID = {
     "cohort_flow_shell_inputs_v1": "cohort_flow.json",
     "submission_graphical_abstract_inputs_v1": "submission_graphical_abstract.json",
-    "workflow_fact_sheet_panel_inputs_v1": "workflow_fact_sheet_panel.json",
-    "design_evidence_composite_shell_inputs_v1": "design_evidence_composite_shell.json",
 }
 
 _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID = {
     "cohort_flow_figure": "cohort_flow",
     "submission_graphical_abstract": "graphical_abstract",
-    "workflow_fact_sheet_panel": "workflow_fact_sheet_panel",
-    "design_evidence_composite_shell": "design_evidence_composite_shell",
 }
 
 _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID = {
@@ -80,14 +76,6 @@ _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID = {
         "Submission graphical abstract",
         "",
     ),
-    "workflow_fact_sheet_panel": (
-        "Study workflow fact sheet",
-        "Structured study-design and workflow summary for the audited manuscript-facing surface.",
-    ),
-    "design_evidence_composite_shell": (
-        "Study design evidence composite",
-        "Bounded study-design overview with workflow ribbon and manuscript-facing summary panels.",
-    ),
 }
 
 _TABLE_OUTPUT_CONFIG_BY_TEMPLATE_SHORT_ID: dict[str, dict[str, Any]] = {
@@ -96,30 +84,6 @@ _TABLE_OUTPUT_CONFIG_BY_TEMPLATE_SHORT_ID: dict[str, dict[str, Any]] = {
         "needs_csv": True,
         "default_title": "Baseline characteristics",
         "default_caption": "Baseline characteristics across prespecified groups.",
-    },
-    "table2_time_to_event_performance_summary": {
-        "stem": "time_to_event_performance_summary",
-        "needs_csv": False,
-        "default_title": "Time-to-event model performance summary",
-        "default_caption": "Time-to-event discrimination and error metrics across analysis cohorts.",
-    },
-    "table3_clinical_interpretation_summary": {
-        "stem": "clinical_interpretation_summary",
-        "needs_csv": False,
-        "default_title": "Clinical interpretation summary",
-        "default_caption": "Clinical interpretation anchors for prespecified risk groups and use cases.",
-    },
-    "performance_summary_table_generic": {
-        "stem": "performance_summary_table_generic",
-        "needs_csv": True,
-        "default_title": "Performance summary",
-        "default_caption": "Structured repeated-validation performance summaries across candidate packages.",
-    },
-    "grouped_risk_event_summary_table": {
-        "stem": "grouped_risk_event_summary_table",
-        "needs_csv": True,
-        "default_title": "Grouped risk event summary",
-        "default_caption": "Observed case counts, event counts, and absolute risks across grouped-risk strata.",
     },
 }
 

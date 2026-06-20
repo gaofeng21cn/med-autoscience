@@ -165,6 +165,28 @@ def patch_evidence_figure_renderer(controller_module, monkeypatch) -> None:
     )
 
 
+def patch_layout_qc_pass(controller_module, monkeypatch) -> None:
+    materialize_module = importlib.import_module(
+        "med_autoscience.controllers.display_surface_materialization.materialize"
+    )
+
+    def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object]) -> dict[str, object]:
+        return {
+            "status": "pass",
+            "checked_at": "2026-06-20T00:00:00+00:00",
+            "engine_id": "test_layout_qc_pass",
+            "qc_profile": qc_profile,
+            "issues": [],
+            "audit_classes": [],
+            "failure_reason": "",
+            "readability_findings": [],
+            "revision_note": "",
+            "metrics": layout_sidecar.get("metrics") or {},
+        }
+
+    monkeypatch.setattr(materialize_module.display_layout_qc, "run_display_layout_qc", run_display_layout_qc)
+
+
 def test_cli_materialize_display_surface_emits_result_json(tmp_path, capsys) -> None:
     module = importlib.import_module("med_autoscience.cli")
     paper_root = build_display_surface_workspace(tmp_path)
@@ -203,6 +225,7 @@ def test_cli_materialize_display_surface_uses_subprocess_renderer_for_subprocess
     subprocess_runtime = importlib.import_module("med_autoscience.display_pack_e2e_runtime")
     paper_root = build_registered_display_surface_workspace(tmp_path, include_extended_evidence=True)
     restrict_display_registry_to_display_ids(paper_root, "Figure14")
+    expected_template_id = "generalizability_subgroup_composite_panel"
 
     def fake_run(argv, *, cwd, capture_output, text, check, timeout, env):
         request_path = Path(env["MAS_DISPLAY_RENDER_REQUEST"])
@@ -245,11 +268,11 @@ def test_cli_materialize_display_surface_uses_subprocess_renderer_for_subprocess
     assert payload["status"] == "materialized"
     assert payload["figures_materialized"] == ["F14"]
     assert request_payload["execution_mode"] == "subprocess"
-    assert request_payload["short_template_id"] == "time_to_event_discrimination_calibration_panel"
-    assert figure["template_id"].endswith("::time_to_event_discrimination_calibration_panel")
+    assert request_payload["short_template_id"] == expected_template_id
+    assert figure["template_id"].endswith(f"::{expected_template_id}")
     assert figure["export_paths"] == [
-        "paper/figures/generated/F14_time_to_event_discrimination_calibration_panel.png",
-        "paper/figures/generated/F14_time_to_event_discrimination_calibration_panel.pdf",
+        f"paper/figures/generated/F14_{expected_template_id}.png",
+        f"paper/figures/generated/F14_{expected_template_id}.pdf",
     ]
 
 
@@ -258,6 +281,7 @@ def test_cli_materialize_display_surface_includes_full_registered_template_set(t
     controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_registered_display_surface_workspace(tmp_path, include_extended_evidence=True)
     patch_evidence_figure_renderer(controller_module, monkeypatch)
+    patch_layout_qc_pass(controller_module, monkeypatch)
 
     exit_code = cli_module.main([*DISPLAY_SURFACE_COMMAND, "--paper-root", str(paper_root)])
 

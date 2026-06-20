@@ -3,8 +3,8 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import json
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -34,38 +34,31 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
             "source_contract_path": "paper/medical_reporting_contract.json",
             "displays": [
                 {
-                    "display_id": "binary_calibration_decision",
+                    "display_id": "time_dependent_roc",
                     "display_kind": "figure",
-                    "requirement_key": "binary_calibration_decision_curve_panel",
+                    "requirement_key": "time_dependent_roc_horizon",
                     "catalog_id": "F1",
-                    "shell_path": "paper/figures/binary_calibration_decision.shell.json",
+                    "shell_path": "paper/figures/time_dependent_roc.shell.json",
                 },
                 {
-                    "display_id": "discrimination_calibration",
+                    "display_id": "risk_layering",
                     "display_kind": "figure",
-                    "requirement_key": "time_to_event_discrimination_calibration_panel",
+                    "requirement_key": "risk_layering_monotonic_bars",
                     "catalog_id": "F2",
-                    "shell_path": "paper/figures/discrimination_calibration.shell.json",
-                },
-                {
-                    "display_id": "km_risk_stratification",
-                    "display_kind": "figure",
-                    "requirement_key": "time_to_event_risk_group_summary",
-                    "catalog_id": "F3",
-                    "shell_path": "paper/figures/km_risk_stratification.shell.json",
+                    "shell_path": "paper/figures/risk_layering.shell.json",
                 },
                 {
                     "display_id": "decision_curve",
                     "display_kind": "figure",
                     "requirement_key": "time_to_event_decision_curve",
-                    "catalog_id": "F4",
+                    "catalog_id": "F3",
                     "shell_path": "paper/figures/decision_curve.shell.json",
                 },
                 {
                     "display_id": "multicenter_generalizability",
                     "display_kind": "figure",
                     "requirement_key": "generalizability_subgroup_composite_panel",
-                    "catalog_id": "F5",
+                    "catalog_id": "F4",
                     "shell_path": "paper/figures/multicenter_generalizability.shell.json",
                 },
             ],
@@ -74,112 +67,54 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
     dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
     dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
     write_default_publication_display_contracts(paper_root)
-
     dump_json(
-        paper_root / "binary_calibration_decision_curve_panel_inputs.json",
+        paper_root / "binary_prediction_curve_inputs.json",
         {
             "schema_version": 1,
-            "input_schema_id": "binary_calibration_decision_curve_panel_inputs_v1",
+            "input_schema_id": "binary_prediction_curve_inputs_v1",
             "displays": [
                 {
-                    "display_id": "binary_calibration_decision",
-                    "template_id": "binary_calibration_decision_curve_panel",
-                    "title": "Clinical coherence and coefficient stability of the clinically informed preoperative model",
-                    "caption": "Calibration and decision-curve evidence across candidate packages.",
-                    "calibration_x_label": "Mean predicted probability",
-                    "calibration_y_label": "Observed probability",
-                    "decision_x_label": "Threshold probability",
-                    "decision_y_label": "Net benefit",
-                    "calibration_axis_window": {"xmin": 0.0, "xmax": 0.65, "ymin": 0.0, "ymax": 0.65},
-                    "calibration_reference_line": {"label": "Ideal", "x": [0.0, 1.0], "y": [0.0, 1.0]},
-                    "calibration_series": [
-                        {
-                            "label": "Core preoperative model",
-                            "x": [0.02, 0.10, 0.22, 0.41, 0.55],
-                            "y": [0.01, 0.06, 0.14, 0.31, 0.50],
-                        },
-                        {
-                            "label": "Clinically informed preoperative model",
-                            "x": [0.01, 0.08, 0.18, 0.39, 0.54],
-                            "y": [0.03, 0.05, 0.20, 0.43, 0.53],
-                        },
+                    "display_id": "time_dependent_roc",
+                    "template_id": "fenggaolab.org.medical-display-core::time_dependent_roc_horizon",
+                    "title": "Five-year cardiovascular mortality discrimination",
+                    "caption": "Fixed-horizon ROC curves summarize discrimination for the primary Cox model and comparator.",
+                    "x_label": "1 - Specificity",
+                    "y_label": "Sensitivity",
+                    "time_horizon_months": 60,
+                    "series": [
+                        {"label": "CoxPH AUC 0.857", "x": [0, 0.08, 0.24, 1], "y": [0, 0.68, 0.88, 1]},
+                        {"label": "LassoCox AUC 0.768", "x": [0, 0.16, 0.38, 1], "y": [0, 0.55, 0.80, 1]},
                     ],
-                    "decision_series": [
-                        {
-                            "label": "Core preoperative model",
-                            "x": [0.15, 0.20, 0.25, 0.30, 0.35],
-                            "y": [0.01, 0.0, -0.01, -0.005, -0.002],
-                        },
-                        {
-                            "label": "Clinically informed preoperative model",
-                            "x": [0.15, 0.20, 0.25, 0.30, 0.35],
-                            "y": [0.06, 0.05, 0.04, 0.03, 0.02],
-                        },
-                    ],
-                    "decision_reference_lines": [
-                        {"label": "Treat none", "x": [0.15, 0.20, 0.25, 0.30, 0.35], "y": [0.0, 0.0, 0.0, 0.0, 0.0]},
-                        {"label": "Treat all", "x": [0.15, 0.20, 0.25, 0.30, 0.35], "y": [0.01, -0.03, -0.08, -0.14, -0.22]},
-                    ],
-                    "decision_focus_window": {"xmin": 0.15, "xmax": 0.35},
+                    "reference_line": {"label": "Chance", "x": [0, 1], "y": [0, 1]},
                 }
             ],
         },
     )
     dump_json(
-        paper_root / "time_to_event_discrimination_calibration_inputs.json",
+        paper_root / "risk_layering_monotonic_inputs.json",
         {
             "schema_version": 1,
-            "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+            "input_schema_id": "risk_layering_monotonic_inputs_v1",
             "displays": [
                 {
-                    "display_id": "discrimination_calibration",
-                    "template_id": "time_to_event_discrimination_calibration_panel",
-                    "title": "Validation discrimination and grouped calibration for 5-year cardiovascular mortality",
-                    "caption": "Validation discrimination remained strong, and grouped calibration showed underprediction in the highest-risk decile.",
-                    "panel_a_title": "Validation discrimination",
-                    "panel_b_title": "Grouped 5-year calibration",
-                    "discrimination_x_label": "Validation C-index",
-                    "calibration_x_label": "Risk decile",
-                    "calibration_y_label": "5-year risk (%)",
-                    "discrimination_points": [
-                        {"label": "CoxPH", "c_index": 0.857306, "annotation": "0.857"},
-                        {"label": "LassoCox", "c_index": 0.849734, "annotation": "0.850"},
-                    ],
-                    "calibration_summary": [
-                        {"group_label": "Decile 1", "group_order": 1, "n": 732, "events_5y": 0, "predicted_risk_5y": 0.0013, "observed_risk_5y": 0.0},
-                        {"group_label": "Decile 10", "group_order": 10, "n": 731, "events_5y": 26, "predicted_risk_5y": 0.0159, "observed_risk_5y": 0.0356},
-                    ],
-                    "calibration_callout": {
-                        "group_label": "Decile 10",
-                        "predicted_risk_5y": 0.0159,
-                        "observed_risk_5y": 0.0356,
-                        "events_5y": 26,
-                        "n": 731,
-                    },
-                }
-            ],
-        },
-    )
-    dump_json(
-        paper_root / "time_to_event_grouped_inputs.json",
-        {
-            "schema_version": 1,
-            "input_schema_id": "time_to_event_grouped_inputs_v1",
-            "displays": [
-                {
-                    "display_id": "km_risk_stratification",
-                    "template_id": "time_to_event_risk_group_summary",
+                    "display_id": "risk_layering",
+                    "template_id": "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars",
                     "title": "Tertile-based 5-year cardiovascular risk stratification",
-                    "caption": "Predicted versus observed 5-year cardiovascular risk and observed event concentration across prespecified validation tertiles.",
-                    "panel_a_title": "Predicted and observed risk by tertile",
-                    "panel_b_title": "Event concentration across tertiles",
-                    "x_label": "Risk tertile",
+                    "caption": "Predicted and observed 5-year cardiovascular risk across prespecified validation tertiles.",
                     "y_label": "5-year risk (%)",
-                    "event_count_y_label": "Observed 5-year events",
-                    "risk_group_summaries": [
-                        {"label": "Low risk", "sample_size": 2437, "events_5y": 0, "mean_predicted_risk_5y": 0.0022, "observed_km_risk_5y": 0.0},
-                        {"label": "Intermediate risk", "sample_size": 2437, "events_5y": 4, "mean_predicted_risk_5y": 0.0047, "observed_km_risk_5y": 0.0016},
-                        {"label": "High risk", "sample_size": 2437, "events_5y": 44, "mean_predicted_risk_5y": 0.0105, "observed_km_risk_5y": 0.0181},
+                    "left_panel_title": "Predicted risk by tertile",
+                    "left_x_label": "Predicted risk tertile",
+                    "left_bars": [
+                        {"label": "Low risk", "cases": 2437, "events": 5, "risk": 0.0022},
+                        {"label": "Intermediate risk", "cases": 2437, "events": 11, "risk": 0.0047},
+                        {"label": "High risk", "cases": 2437, "events": 26, "risk": 0.0105},
+                    ],
+                    "right_panel_title": "Observed risk by tertile",
+                    "right_x_label": "Observed risk tertile",
+                    "right_bars": [
+                        {"label": "Low risk", "cases": 2437, "events": 0, "risk": 0.0},
+                        {"label": "Intermediate risk", "cases": 2437, "events": 4, "risk": 0.0016},
+                        {"label": "High risk", "cases": 2437, "events": 44, "risk": 0.0181},
                     ],
                 }
             ],
@@ -193,7 +128,7 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
             "displays": [
                 {
                     "display_id": "decision_curve",
-                    "template_id": "time_to_event_decision_curve",
+                    "template_id": "fenggaolab.org.medical-display-core::time_to_event_decision_curve",
                     "title": "Five-year decision curve",
                     "caption": "Net benefit for the locked survival model across the prespecified threshold range.",
                     "panel_a_title": "Decision-curve net benefit",
@@ -220,7 +155,7 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
                 {
                     "display_id": "multicenter_generalizability",
                     "template_id": "fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel",
-                    "catalog_id": "F5",
+                    "catalog_id": "F4",
                     "paper_role": "main_text",
                     "title": "Internal multicenter heterogeneity summary",
                     "caption": "Center-level event support with coverage context under the frozen split.",
@@ -229,56 +164,17 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
                     "overview_panel_title": "Center-level event support",
                     "overview_x_label": "Observed event fraction",
                     "overview_rows": [
-                        {
-                            "cohort_id": "center_25",
-                            "cohort_label": "Center 25",
-                            "support_count": 110,
-                            "event_count": 3,
-                            "metric_value": 0.0273,
-                        },
-                        {
-                            "cohort_id": "center_01",
-                            "cohort_label": "Center 01",
-                            "support_count": 100,
-                            "event_count": 2,
-                            "metric_value": 0.0200,
-                        },
-                        {
-                            "cohort_id": "center_02",
-                            "cohort_label": "Center 02",
-                            "support_count": 120,
-                            "event_count": 1,
-                            "metric_value": 0.0083,
-                        },
+                        {"cohort_id": "center_25", "cohort_label": "Center 25", "support_count": 110, "event_count": 3, "metric_value": 0.0273},
+                        {"cohort_id": "center_01", "cohort_label": "Center 01", "support_count": 100, "event_count": 2, "metric_value": 0.0200},
+                        {"cohort_id": "center_02", "cohort_label": "Center 02", "support_count": 120, "event_count": 1, "metric_value": 0.0083},
                     ],
                     "subgroup_panel_title": "Geodemographic support distribution",
                     "subgroup_x_label": "Cohort fraction",
                     "subgroup_reference_value": 0.3333,
                     "subgroup_rows": [
-                        {
-                            "subgroup_id": "region_central",
-                            "subgroup_label": "Region: Central",
-                            "group_n": 72,
-                            "estimate": 0.48,
-                            "lower": 0.40,
-                            "upper": 0.56,
-                        },
-                        {
-                            "subgroup_id": "region_north",
-                            "subgroup_label": "Region: North",
-                            "group_n": 84,
-                            "estimate": 0.56,
-                            "lower": 0.48,
-                            "upper": 0.64,
-                        },
-                        {
-                            "subgroup_id": "urban",
-                            "subgroup_label": "Urban",
-                            "group_n": 101,
-                            "estimate": 0.67,
-                            "lower": 0.60,
-                            "upper": 0.74,
-                        },
+                        {"subgroup_id": "region_central", "subgroup_label": "Region: Central", "group_n": 72, "estimate": 0.48, "lower": 0.40, "upper": 0.56},
+                        {"subgroup_id": "region_north", "subgroup_label": "Region: North", "group_n": 84, "estimate": 0.56, "lower": 0.48, "upper": 0.64},
+                        {"subgroup_id": "urban", "subgroup_label": "Urban", "group_n": 101, "estimate": 0.67, "lower": 0.60, "upper": 0.74},
                     ],
                 }
             ],
@@ -317,20 +213,8 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
                     "rows": [
                         {
                             "cards": [
-                                {
-                                    "card_id": "internal_boundary",
-                                    "title": "Applicability boundary",
-                                    "value": "Internal validation only",
-                                    "detail": "Multicenter support inside the current cohort",
-                                    "accent_role": "contrast",
-                                },
-                                {
-                                    "card_id": "transportability_boundary",
-                                    "title": "Transportability boundary",
-                                    "value": "No external validation",
-                                    "detail": "Do not expand beyond the audited cohort",
-                                    "accent_role": "audit",
-                                },
+                                {"card_id": "internal_boundary", "title": "Applicability boundary", "value": "Internal validation only", "detail": "Multicenter support inside the current cohort", "accent_role": "contrast"},
+                                {"card_id": "transportability_boundary", "title": "Transportability boundary", "value": "No external validation", "detail": "Do not expand beyond the audited cohort", "accent_role": "audit"},
                             ]
                         }
                     ],
@@ -367,7 +251,7 @@ def _copy_materialized_abh_paper_proven_fixture(
     return paper_root, dict(result)
 
 
-def test_materialize_display_surface_preserves_ab_golden_regression_invariants(
+def test_materialize_display_surface_preserves_current_ab_golden_regression_invariants(
     tmp_path: Path,
     materialized_abh_paper_proven_fixture: tuple[Path, dict[str, object]],
 ) -> None:
@@ -377,7 +261,7 @@ def test_materialize_display_surface_preserves_ab_golden_regression_invariants(
     )
 
     assert result["status"] == "materialized"
-    assert result["figures_materialized"] == ["F1", "F2", "F3", "F4", "F5", "GA1"]
+    assert result["figures_materialized"] == ["F1", "F2", "F3", "F4", "GA1"]
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
 
@@ -386,72 +270,40 @@ def test_materialize_display_surface_preserves_ab_golden_regression_invariants(
         assert figures_by_id[figure_id]["qc_result"]["issues"] == []
 
     f1_layout = json.loads(
-        (paper_root / "figures" / "generated" / "F1_binary_calibration_decision_curve_panel.layout.json").read_text(
+        (paper_root / "figures" / "generated" / "F1_time_dependent_roc_horizon.layout.json").read_text(
             encoding="utf-8"
         )
     )
-    assert f1_layout["metrics"]["calibration_axis_window"] == {
-        "xmin": 0.0,
-        "xmax": 0.65,
-        "ymin": 0.0,
-        "ymax": 0.65,
-    }
-    assert not any(item["box_type"] == "title" for item in f1_layout["layout_boxes"])
+    assert f1_layout["metrics"]["time_horizon_months"] == 60
+    assert [item["label"] for item in f1_layout["metrics"]["series"]] == [
+        "CoxPH AUC 0.857",
+        "LassoCox AUC 0.768",
+    ]
+    assert any(item["box_type"] == "legend" for item in f1_layout["guide_boxes"])
 
     f2_layout = json.loads(
-        (paper_root / "figures" / "generated" / "F2_time_to_event_discrimination_calibration_panel.layout.json").read_text(
+        (paper_root / "figures" / "generated" / "F2_risk_layering_monotonic_bars.layout.json").read_text(
             encoding="utf-8"
         )
     )
-    f2_layout_boxes = {item["box_id"]: item for item in f2_layout["layout_boxes"]}
-    f2_panel_boxes = {item["box_id"]: item for item in f2_layout["panel_boxes"]}
-    annotation_box = f2_layout_boxes["annotation_callout"]
-    left_panel = f2_panel_boxes["panel_left"]
-    right_panel = f2_panel_boxes["panel_right"]
-    right_title = f2_layout_boxes["panel_right_title"]
-    assert not any(item["box_type"] == "title" for item in f2_layout["layout_boxes"])
-    assert annotation_box["x0"] >= left_panel["x1"] + 0.02
-    assert annotation_box["x1"] <= right_panel["x0"] + (right_panel["x1"] - right_panel["x0"]) * 0.58
-    assert annotation_box["y1"] <= right_panel["y1"] - 0.03
-    assert annotation_box["y1"] >= right_panel["y0"] + (right_panel["y1"] - right_panel["y0"]) * 0.58
-    assert (
-        annotation_box["y1"] <= right_title["y0"] - 0.005
-        or annotation_box["y0"] >= right_title["y1"] + 0.005
+    assert len(f2_layout["panel_boxes"]) == 2
+    predicted_risks = [item["risk"] for item in f2_layout["metrics"]["left_bars"]]
+    observed_risks = [item["risk"] for item in f2_layout["metrics"]["right_bars"]]
+    assert predicted_risks == sorted(predicted_risks)
+    assert observed_risks == sorted(observed_risks)
+    assert f2_layout["metrics"]["right_bars"][-1]["events"] - f2_layout["metrics"]["right_bars"][0]["events"] >= 1
+
+    f3_layout = json.loads(
+        (paper_root / "figures" / "generated" / "F3_time_to_event_decision_curve.layout.json").read_text(
+            encoding="utf-8"
+        )
     )
-
-    for figure_id, filename in (
-        ("F3", "F3_time_to_event_risk_group_summary.layout.json"),
-        ("F4", "F4_time_to_event_decision_curve.layout.json"),
-    ):
-        layout = json.loads((paper_root / "figures" / "generated" / filename).read_text(encoding="utf-8"))
-        layout_boxes = {item["box_id"]: item for item in layout["layout_boxes"]}
-        panel_boxes = {item["box_id"]: item for item in layout["panel_boxes"]}
-        assert not any(item["box_type"] == "title" for item in layout["layout_boxes"])
-        assert not any(item["box_type"] == "legend" for item in layout["guide_boxes"])
-        assert {"panel_left_title", "panel_right_title", "panel_label_A", "panel_label_B"} <= set(layout_boxes)
-        for label_box_id, panel_box_id in {
-            "panel_label_A": "panel_left",
-            "panel_label_B": "panel_right",
-        }.items():
-            label_box = layout_boxes[label_box_id]
-            panel_box = panel_boxes[panel_box_id]
-            panel_width = panel_box["x1"] - panel_box["x0"]
-            panel_height = panel_box["y1"] - panel_box["y0"]
-            assert panel_box["x0"] <= label_box["x0"] <= panel_box["x0"] + panel_width * 0.08
-            assert panel_box["y1"] - panel_height * 0.10 <= label_box["y1"] <= panel_box["y1"]
-            assert label_box["x1"] <= layout_boxes[f"{panel_box_id}_title"]["x0"]
-        if figure_id == "F3":
-            summaries = layout["metrics"]["risk_group_summaries"]
-            predicted_risks = [item["mean_predicted_risk_5y"] for item in summaries]
-            observed_risks = [item["observed_km_risk_5y"] for item in summaries]
-            event_counts = [item["events_5y"] for item in summaries]
-            assert predicted_risks == sorted(predicted_risks)
-            assert observed_risks == sorted(observed_risks)
-            assert event_counts == sorted(event_counts)
-            assert event_counts[-1] - event_counts[0] >= 1
+    assert len(f3_layout["panel_boxes"]) == 2
+    assert f3_layout["metrics"]["reference_line"]["label"] == "Treat none"
+    assert f3_layout["metrics"]["treated_fraction_series"]["label"] == "Model"
 
 
-def test_materialize_display_surface_preserves_h_golden_regression_invariants(
+def test_materialize_display_surface_preserves_current_h_golden_regression_invariants(
     tmp_path: Path,
     materialized_abh_paper_proven_fixture: tuple[Path, dict[str, object]],
 ) -> None:
@@ -463,55 +315,35 @@ def test_materialize_display_surface_preserves_h_golden_regression_invariants(
     assert result["status"] == "materialized"
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
-    assert figures_by_id["F5"]["qc_result"]["status"] == "pass"
+    assert figures_by_id["F4"]["qc_result"]["status"] == "pass"
     assert figures_by_id["GA1"]["qc_result"]["status"] == "pass"
 
-    f5_layout = json.loads(
+    f4_layout = json.loads(
         (
             paper_root
             / "figures"
             / "generated"
-            / "F5_generalizability_subgroup_composite_panel.layout.json"
+            / "F4_generalizability_subgroup_composite_panel.layout.json"
         ).read_text(encoding="utf-8")
     )
-    f5_layout_boxes = {item["box_id"]: item for item in f5_layout["layout_boxes"]}
-    f5_panel_boxes = {item["box_id"]: item for item in f5_layout["panel_boxes"]}
-    assert figures_by_id["F5"]["template_id"].endswith("::generalizability_subgroup_composite_panel")
-    assert figures_by_id["F5"]["renderer_family"] == "r_ggplot2"
-    assert {"panel_label_A", "panel_label_B"} <= set(f5_layout_boxes)
-    assert {"overview_panel", "subgroup_panel"} <= set(f5_panel_boxes)
-    for label_box_id, panel_box_id in {
-        "panel_label_A": "overview_panel",
-        "panel_label_B": "subgroup_panel",
-    }.items():
-        label_box = f5_layout_boxes[label_box_id]
-        panel_box = f5_panel_boxes[panel_box_id]
-        panel_width = panel_box["x1"] - panel_box["x0"]
-        panel_height = panel_box["y1"] - panel_box["y0"]
-        assert label_box["x0"] <= panel_box["x0"] + panel_width * 0.08
-        assert label_box["y1"] >= panel_box["y1"] - panel_height * 0.10
-    assert f5_layout["metrics"]["metric_family"] == "effect_estimate"
-    assert [item["cohort_label"] for item in f5_layout["metrics"]["overview_rows"]] == [
+    f4_layout_boxes = {item["box_id"]: item for item in f4_layout["layout_boxes"]}
+    f4_panel_boxes = {item["box_id"]: item for item in f4_layout["panel_boxes"]}
+    assert figures_by_id["F4"]["template_id"].endswith("::generalizability_subgroup_composite_panel")
+    assert figures_by_id["F4"]["renderer_family"] == "r_ggplot2"
+    assert {"panel_label_A", "panel_label_B"} <= set(f4_layout_boxes)
+    assert {"overview_panel", "subgroup_panel"} <= set(f4_panel_boxes)
+    assert [item["cohort_label"] for item in f4_layout["metrics"]["overview_rows"]] == [
         "Center 25",
         "Center 01",
         "Center 02",
     ]
-    assert [item["event_count"] for item in f5_layout["metrics"]["overview_rows"]] == [3, 2, 1]
-    assert [item["subgroup_label"] for item in f5_layout["metrics"]["subgroup_rows"]] == [
-        "Region: Central",
-        "Region: North",
-        "Urban",
-    ]
-    assert not any(item["box_type"] == "title" for item in f5_layout["layout_boxes"])
+    assert [item["event_count"] for item in f4_layout["metrics"]["overview_rows"]] == [3, 2, 1]
+    assert not any(item["box_type"] == "title" for item in f4_layout["layout_boxes"])
 
     ga_layout = json.loads(
         (paper_root / "figures" / "generated" / "GA1_graphical_abstract.layout.json").read_text(encoding="utf-8")
     )
-    arrow_boxes = [
-        item
-        for item in ga_layout["guide_boxes"]
-        if item["box_type"] == "arrow_connector"
-    ]
+    arrow_boxes = [item for item in ga_layout["guide_boxes"] if item["box_type"] == "arrow_connector"]
     assert len(arrow_boxes) == 2
     arrow_mid_ys = [((item["y0"] + item["y1"]) / 2.0) for item in arrow_boxes]
     assert max(arrow_mid_ys) - min(arrow_mid_ys) <= 0.03
@@ -528,7 +360,7 @@ def test_materialize_display_surface_preserves_ab_adjacent_grouped_and_time_slic
     registry["displays"] = [
         item
         for item in registry["displays"]
-        if item["display_id"] in {"Figure6", "Figure7", "Figure18"}
+        if item["display_id"] in {"Figure6", "Figure7", "Figure8"}
     ]
     dump_json(registry_path, registry)
 
@@ -589,11 +421,11 @@ def test_materialize_display_surface_preserves_ab_adjacent_grouped_and_time_slic
     result = module.materialize_display_surface(paper_root=paper_root)
 
     assert result["status"] == "materialized"
-    assert result["figures_materialized"] == ["F6", "F7", "F18"]
+    assert result["figures_materialized"] == ["F6", "F7", "F8"]
 
     f6_layout = json.loads((paper_root / "figures" / "generated" / "F6_kaplan_meier_grouped.layout.json").read_text(encoding="utf-8"))
     f7_layout = json.loads((paper_root / "figures" / "generated" / "F7_cumulative_incidence_grouped.layout.json").read_text(encoding="utf-8"))
-    f18_layout = json.loads((paper_root / "figures" / "generated" / "F18_time_dependent_roc_horizon.layout.json").read_text(encoding="utf-8"))
+    f8_layout = json.loads((paper_root / "figures" / "generated" / "F8_time_dependent_roc_horizon.layout.json").read_text(encoding="utf-8"))
 
     f6_terminal_values = [group["values"][-1] for group in f6_layout["metrics"]["groups"]]
     f7_terminal_values = [group["values"][-1] for group in f7_layout["metrics"]["groups"]]
@@ -602,10 +434,10 @@ def test_materialize_display_surface_preserves_ab_adjacent_grouped_and_time_slic
     assert f6_layout["metrics"]["annotation"] == "Log-rank P < .001"
     assert f7_layout["metrics"]["annotation"] == "Gray test P = .002"
 
-    assert f18_layout["metrics"]["title"] == "Time-dependent ROC at 24 months"
-    assert f18_layout["metrics"]["caption"] == (
-        "Horizon-specific discrimination of the locked survival model at 24 months."
+    assert f8_layout["metrics"]["title"] == "Time-dependent ROC at 24 months"
+    assert f8_layout["metrics"]["caption"] == (
+        "Horizon-specific discrimination of the locked survival model."
     )
-    assert f18_layout["metrics"]["series"][0]["label"] == "24-month horizon"
-    assert f18_layout["metrics"]["series"][0]["annotation"] == "AUC = 0.81"
-    assert f18_layout["metrics"]["reference_line"]["label"] == "Chance"
+    assert f8_layout["metrics"]["series"][0]["label"] == "24-month horizon"
+    assert f8_layout["metrics"]["series"][0]["annotation"] == "AUC = 0.81"
+    assert f8_layout["metrics"]["reference_line"]["label"] == "Chance"

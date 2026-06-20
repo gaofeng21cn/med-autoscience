@@ -21,6 +21,13 @@ candidate_numeric <- function(value, fallback = 0) {
   if (is.null(value)) {
     return(as.numeric(fallback))
   }
+  if (is.list(value)) {
+    value <- unlist(value, recursive = TRUE, use.names = FALSE)
+    if (length(value) < 1) {
+      return(as.numeric(fallback))
+    }
+    value <- value[[1]]
+  }
   numeric_value <- suppressWarnings(as.numeric(value))
   if (!is.finite(numeric_value)) as.numeric(fallback) else numeric_value
 }
@@ -379,41 +386,301 @@ candidate_plot_shap <- function(payload, mode = "beeswarm") {
 build_candidate_evidence_plot <- function(template_id, payload) {
   switch(
     template_id,
-    binary_calibration_decision_curve_panel = candidate_plot_curve(payload),
-    time_dependent_roc_comparison_panel = candidate_plot_curve(payload),
     time_to_event_decision_curve = candidate_plot_curve(payload),
-    time_to_event_discrimination_calibration_panel = candidate_plot_curve(payload),
-    time_to_event_landmark_performance_panel = candidate_plot_dot(payload),
     time_to_event_multihorizon_calibration_panel = candidate_plot_curve(payload),
-    time_to_event_stratified_cumulative_incidence_panel = candidate_plot_curve(payload),
-    time_to_event_risk_group_summary = candidate_plot_bars(payload),
-    time_to_event_threshold_governance_panel = candidate_plot_dot(payload),
     risk_layering_monotonic_bars = candidate_plot_bars(payload),
-    compact_effect_estimate_panel = candidate_plot_effect(payload),
-    broader_heterogeneity_summary_panel = candidate_plot_effect(payload),
-    interaction_effect_summary_panel = candidate_plot_effect(payload),
     generalizability_subgroup_composite_panel = candidate_plot_effect(payload),
     coefficient_path_panel = candidate_plot_dot(payload),
     celltype_marker_dotplot_panel = candidate_plot_dot(payload),
     pathway_enrichment_dotplot_panel = candidate_plot_dot(payload),
-    genomic_program_governance_summary_panel = candidate_plot_dot(payload),
-    celltype_signature_heatmap = candidate_plot_matrix(payload),
     cnv_recurrence_summary_panel = candidate_plot_matrix(payload),
     genomic_alteration_landscape_panel = candidate_plot_matrix(payload),
     genomic_alteration_consequence_panel = candidate_plot_matrix(payload),
-    genomic_alteration_multiomic_consequence_panel = candidate_plot_matrix(payload),
-    genomic_alteration_pathway_integrated_composite_panel = candidate_plot_matrix(payload),
-    oncoplot_mutation_landscape_panel = candidate_plot_matrix(payload),
     omics_volcano_panel = candidate_plot_volcano(payload),
-    shap_bar_importance = candidate_plot_shap(payload, mode = "bar"),
     shap_summary_beeswarm = candidate_plot_shap(payload, mode = "beeswarm"),
     shap_dependence_panel = candidate_plot_dot(payload),
-    shap_force_like_summary_panel = candidate_plot_effect(payload),
-    shap_multicohort_importance_panel = candidate_plot_shap(payload, mode = "bar"),
     shap_waterfall_local_explanation_panel = candidate_plot_effect(payload),
     model_complexity_audit_panel = candidate_plot_dot(payload),
     stop(sprintf("unsupported R candidate evidence template `%s`", template_id))
   )
+}
+
+candidate_box <- function(box_id, box_type, x0, y0, x1, y1) {
+  list(
+    box_id = box_id,
+    box_type = box_type,
+    x0 = as.numeric(x0),
+    y0 = as.numeric(y0),
+    x1 = as.numeric(x1),
+    y1 = as.numeric(y1)
+  )
+}
+
+candidate_panel_labels <- function(left_title = "A", right_title = "B") {
+  list(
+    candidate_box("panel_label_A", "panel_label", 0.10, 0.77, 0.13, 0.81),
+    candidate_box("panel_label_B", "panel_label", 0.58, 0.77, 0.61, 0.81),
+    candidate_box("panel_left_title", "panel_title", 0.15, 0.86, 0.42, 0.90),
+    candidate_box("panel_right_title", "panel_title", 0.63, 0.86, 0.90, 0.90)
+  )
+}
+
+candidate_two_panel_boxes <- function(left_type, right_type) {
+  list(
+    candidate_box("panel_left", left_type, 0.08, 0.20, 0.46, 0.82),
+    candidate_box("panel_right", right_type, 0.56, 0.20, 0.94, 0.82)
+  )
+}
+
+candidate_axis_boxes <- function(x_id = "x_axis_title", y_id = "y_axis_title") {
+  list(
+    candidate_box(x_id, "subplot_x_axis_title", 0.35, 0.09, 0.65, 0.13),
+    candidate_box(y_id, "subplot_y_axis_title", 0.01, 0.42, 0.05, 0.62)
+  )
+}
+
+candidate_risk_bar_boxes <- function(values, panel_box, prefix) {
+  count <- max(1, length(values %|||% list()))
+  lapply(seq_len(count), function(index) {
+    y0 <- panel_box$y0 + 0.06 + (index - 1) * ((panel_box$y1 - panel_box$y0 - 0.16) / count)
+    y1 <- y0 + max(0.03, (panel_box$y1 - panel_box$y0 - 0.22) / count)
+    candidate_box(
+      sprintf("%s_risk_bar_%d", prefix, index),
+      "risk_bar",
+      panel_box$x0 + 0.06,
+      y0,
+      panel_box$x1 - 0.04,
+      min(panel_box$y1 - 0.04, y1)
+    )
+  })
+}
+
+candidate_risk_bar_values <- function(values) {
+  lapply(values %|||% list(), function(item) {
+    list(
+      label = candidate_non_empty(item$label %||% item$group_label, ""),
+      cases = as.integer(candidate_numeric(item$cases %||% item$sample_size %||% item$n, 0)),
+      events = as.integer(candidate_numeric(item$events %||% item$events_5y, 0)),
+      risk = candidate_numeric(item$risk %||% item$observed_km_risk_5y %||% item$mean_predicted_risk_5y, 0)
+    )
+  })
+}
+
+candidate_multihorizon_metrics <- function(payload) {
+  panels <- payload$panels %|||% list()
+  panel_count <- max(1, length(panels))
+  list(
+    panels = lapply(seq_along(panels), function(index) {
+      panel <- panels[[index]]
+      panel_label <- candidate_non_empty(panel$panel_label, LETTERS[[index]])
+      panel_x0 <- 0.08 + (index - 1) * (0.86 / panel_count)
+      panel_x1 <- 0.08 + index * (0.86 / panel_count) - 0.04
+      panel_y0 <- 0.20
+      panel_y1 <- 0.82
+      rows <- panel$calibration_summary %|||% list()
+      row_count <- max(1, length(rows))
+      list(
+        panel_id = candidate_non_empty(panel$panel_id, ""),
+        panel_label = panel_label,
+        title = candidate_non_empty(panel$title, ""),
+        time_horizon_months = as.integer(candidate_numeric(panel$time_horizon_months, 0)),
+        calibration_summary = lapply(seq_along(rows), function(row_index) {
+          row <- rows[[row_index]]
+          y <- panel_y0 + (row_count - row_index + 1) * ((panel_y1 - panel_y0) / (row_count + 1))
+          predicted <- candidate_numeric(row$predicted_risk, 0)
+          observed <- candidate_numeric(row$observed_risk, predicted)
+          x_max <- max(0.35, predicted, observed, 1e-6)
+          predicted_x <- panel_x0 + (predicted / x_max) * (panel_x1 - panel_x0) * 0.82 + 0.04
+          observed_x <- panel_x0 + (observed / x_max) * (panel_x1 - panel_x0) * 0.82 + 0.04
+          c(
+            row,
+            list(
+              predicted_x = max(panel_x0 + 0.02, min(panel_x1 - 0.02, predicted_x)),
+              observed_x = max(panel_x0 + 0.02, min(panel_x1 - 0.02, observed_x)),
+              y = y
+            )
+          )
+        })
+      )
+    })
+  )
+}
+
+candidate_generalizability_layout <- function(display_payload) {
+  overview_rows <- display_payload$overview_rows %|||% list()
+  subgroup_rows <- display_payload$subgroup_rows %|||% list()
+  overview_count <- max(1, length(overview_rows))
+  subgroup_count <- max(1, length(subgroup_rows))
+  overview_panel <- candidate_box("overview_panel", "panel", 0.12, 0.18, 0.45, 0.80)
+  subgroup_panel <- candidate_box("subgroup_panel", "panel", 0.58, 0.18, 0.88, 0.80)
+  layout_boxes <- c(
+    candidate_panel_labels(),
+    list(
+      candidate_box("x_axis_title_A", "subplot_x_axis_title", 0.20, 0.10, 0.32, 0.13),
+      candidate_box("x_axis_title_B", "subplot_x_axis_title", 0.67, 0.10, 0.78, 0.13)
+    )
+  )
+  overview_metrics <- lapply(seq_along(overview_rows), function(index) {
+    row <- overview_rows[[index]]
+    y <- overview_panel$y0 + (overview_count - index + 1) * ((overview_panel$y1 - overview_panel$y0) / (overview_count + 1))
+    label_id <- sprintf("overview_row_label_%d", index)
+    support_id <- sprintf("overview_support_label_%d", index)
+    marker_id <- sprintf("overview_metric_marker_%d", index)
+    layout_boxes <<- c(
+      layout_boxes,
+      list(
+        candidate_box(label_id, "overview_row_label", 0.03, y - 0.02, 0.11, y + 0.02),
+        candidate_box(support_id, "support_label", 0.37, y - 0.02, 0.44, y + 0.02),
+        candidate_box(marker_id, "overview_metric_marker", 0.25 + index * 0.025, y - 0.02, 0.26 + index * 0.025, y + 0.02)
+      )
+    )
+    c(
+      row,
+      list(
+        label_box_id = label_id,
+        support_label_box_id = support_id,
+        metric_marker_box_id = marker_id
+      )
+    )
+  })
+  subgroup_metrics <- lapply(seq_along(subgroup_rows), function(index) {
+    row <- subgroup_rows[[index]]
+    y <- subgroup_panel$y0 + (subgroup_count - index + 1) * ((subgroup_panel$y1 - subgroup_panel$y0) / (subgroup_count + 1))
+    label_id <- sprintf("subgroup_row_label_%d", index)
+    estimate_id <- sprintf("subgroup_estimate_%d", index)
+    ci_id <- sprintf("subgroup_ci_%d", index)
+    estimate <- candidate_numeric(row$estimate, 0.5)
+    lower <- candidate_numeric(row$lower, estimate - 0.05)
+    upper <- candidate_numeric(row$upper, estimate + 0.05)
+    x_min <- min(0.0, lower)
+    x_max <- max(1.0, upper)
+    scale_x <- function(value) {
+      subgroup_panel$x0 + 0.04 + (value - x_min) / (x_max - x_min) * (subgroup_panel$x1 - subgroup_panel$x0 - 0.08)
+    }
+    lower_x <- max(subgroup_panel$x0 + 0.02, min(subgroup_panel$x1 - 0.02, scale_x(lower)))
+    upper_x <- max(subgroup_panel$x0 + 0.02, min(subgroup_panel$x1 - 0.02, scale_x(upper)))
+    estimate_x <- max(subgroup_panel$x0 + 0.02, min(subgroup_panel$x1 - 0.02, scale_x(estimate)))
+    layout_boxes <<- c(
+      layout_boxes,
+      list(
+        candidate_box(label_id, "subgroup_row_label", 0.46, y - 0.02, 0.56, y + 0.02),
+        candidate_box(ci_id, "ci_segment", lower_x, y - 0.005, upper_x, y + 0.005),
+        candidate_box(estimate_id, "estimate_marker", estimate_x - 0.005, y - 0.02, estimate_x + 0.005, y + 0.02)
+      )
+    )
+    c(
+      row,
+      list(
+        label_box_id = label_id,
+        estimate_box_id = estimate_id,
+        ci_box_id = ci_id
+      )
+    )
+  })
+  list(
+    layout_boxes = layout_boxes,
+    panel_boxes = list(overview_panel, subgroup_panel),
+    guide_boxes = list(candidate_box("reference_line", "reference_line", 0.72, 0.18, 0.72, 0.80)),
+    metrics = list(
+      metric_family = candidate_non_empty(display_payload$metric_family, ""),
+      overview_rows = overview_metrics,
+      subgroup_rows = subgroup_metrics
+    )
+  )
+}
+
+candidate_metrics_with_renderer <- function(template_id, display_payload, base_panel_box, metrics) {
+  c(build_candidate_metrics(template_id, display_payload, base_panel_box), metrics)
+}
+
+build_candidate_layout_override <- function(template_id, display_payload, base_panel_box = NULL, base_guide_box = NULL) {
+  if (identical(template_id, "time_to_event_decision_curve")) {
+    return(list(
+      layout_boxes = c(candidate_panel_labels(), candidate_axis_boxes()),
+      panel_boxes = candidate_two_panel_boxes("decision_curve_panel", "treated_fraction_panel"),
+      guide_boxes = list(candidate_box("legend", "legend", 0.24, 0.06, 0.76, 0.13)),
+      metrics = candidate_metrics_with_renderer(
+        template_id,
+        display_payload,
+        base_panel_box,
+        list(
+          series = display_payload$series %|||% list(),
+          reference_line = display_payload$reference_line %|||% list(),
+          treated_fraction_series = display_payload$treated_fraction_series %|||% list()
+        )
+      )
+    ))
+  }
+  if (identical(template_id, "risk_layering_monotonic_bars")) {
+    panels <- candidate_two_panel_boxes("panel", "panel")
+    return(list(
+      layout_boxes = c(
+        candidate_panel_labels(),
+        list(candidate_box("risk_y_axis_title", "y_axis_title", 0.01, 0.42, 0.05, 0.62)),
+        candidate_risk_bar_boxes(display_payload$left_bars, panels[[1]], "predicted"),
+        candidate_risk_bar_boxes(display_payload$right_bars, panels[[2]], "observed")
+      ),
+      panel_boxes = panels,
+      guide_boxes = list(),
+      metrics = candidate_metrics_with_renderer(
+        template_id,
+        display_payload,
+        base_panel_box,
+        list(
+          left_bars = candidate_risk_bar_values(display_payload$left_bars),
+          right_bars = candidate_risk_bar_values(display_payload$right_bars)
+        )
+      )
+    ))
+  }
+  if (identical(template_id, "time_to_event_multihorizon_calibration_panel")) {
+    panels <- display_payload$panels %|||% list()
+    panel_count <- max(1, length(panels))
+    panel_boxes <- lapply(seq_len(panel_count), function(index) {
+      left <- 0.08 + (index - 1) * (0.86 / panel_count)
+      right <- 0.08 + index * (0.86 / panel_count) - 0.04
+      panel <- panels[[index]]
+      panel_label <- candidate_non_empty(panel$panel_label, LETTERS[[index]])
+      candidate_box(sprintf("panel_%s", panel_label), "calibration_panel", left, 0.20, right, 0.82)
+    })
+    layout_boxes <- c(
+      list(candidate_box("x_axis_title", "subplot_x_axis_title", 0.34, 0.08, 0.58, 0.12)),
+      unlist(
+        lapply(seq_len(panel_count), function(index) {
+          panel <- panels[[index]]
+          panel_box <- panel_boxes[[index]]
+          panel_label <- candidate_non_empty(panel$panel_label, LETTERS[[index]])
+          list(
+            candidate_box(sprintf("panel_label_%s", panel_label), "panel_label", panel_box$x0 + 0.02, 0.77, panel_box$x0 + 0.05, 0.81),
+            candidate_box(sprintf("panel_title_%s", panel_label), "panel_title", panel_box$x0 + 0.06, 0.86, panel_box$x1 - 0.04, 0.90)
+          )
+        }),
+        recursive = FALSE
+      )
+    )
+    return(list(
+      layout_boxes = layout_boxes,
+      panel_boxes = panel_boxes,
+      guide_boxes = list(candidate_box("legend", "legend", 0.24, 0.06, 0.76, 0.13)),
+      metrics = candidate_metrics_with_renderer(
+        template_id,
+        display_payload,
+        base_panel_box,
+        candidate_multihorizon_metrics(display_payload)
+      )
+    ))
+  }
+  if (identical(template_id, "generalizability_subgroup_composite_panel")) {
+    override <- candidate_generalizability_layout(display_payload)
+    override$metrics <- candidate_metrics_with_renderer(
+      template_id,
+      display_payload,
+      base_panel_box,
+      override$metrics
+    )
+    return(override)
+  }
+  NULL
 }
 
 build_candidate_metrics <- function(template_id, display_payload, panel_box) {

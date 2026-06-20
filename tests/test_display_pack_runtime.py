@@ -211,15 +211,15 @@ def test_resolve_display_template_runtime_migrates_aliases_on_default_surface() 
 
     default_runtime = resolve_display_template_runtime(
         repo_root=repo_root,
-        template_id="time_dependent_roc_horizon",
+        template_id="time_dependent_roc_comparison_panel",
     )
     migration_runtime = resolve_display_template_runtime(
         repo_root=repo_root,
-        template_id="time_dependent_roc_horizon",
+        template_id="time_dependent_roc_comparison_panel",
         inventory_scope="all",
     )
 
-    assert default_runtime.template_manifest.template_id == "roc_curve_binary"
+    assert default_runtime.template_manifest.template_id == "time_dependent_roc_horizon"
     assert migration_runtime.template_manifest.template_id == "time_dependent_roc_horizon"
 
 

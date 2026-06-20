@@ -11,82 +11,57 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 - overall_status: `not_publication_ready`
 - publication_ready_claim_authorized: `false`
-- visual template count: `55`
-- non-visual inventory count: `1`
-- lower-bound review required: `46`
-- blocked templates: `9`
+- visual template count: `28`
+- non-visual inventory count: `3`
+- lower-bound review required: `23`
+- blocked templates: `5`
 
 ## 主要阻断项
 
 | Blocker | Templates |
 | --- | ---: |
-| `low_information_density` | 7 |
+| `coefficient_path_renderer_gap` | 1 |
+| `km_risk_table_and_censor_mark_gap` | 1 |
 | `multi_panel_readability_risk` | 2 |
+| `oncoprint_annotation_track_gap` | 1 |
 
 ## 主要风险项
 
 | Warning | Templates |
 | --- | ---: |
 | `composition_density_risk` | 1 |
-| `legend_or_colorbar_overlap_risk` | 22 |
+| `legend_or_colorbar_overlap_risk` | 5 |
 
 ## 模板审计
 
 | Template | Category | Renderer | Status | Blockers |
 | --- | --- | --- | --- | --- |
-| `binary_calibration_decision_curve_panel` | Clinical Utility | r_ggplot2 | `lower_bound_review_required` | none |
-| `broader_heterogeneity_summary_panel` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
 | `calibration_curve_binary` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
-| `celltype_marker_dotplot_panel` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
-| `celltype_signature_heatmap` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
-| `clinical_impact_curve_binary` | Clinical Utility | r_ggplot2 | `lower_bound_review_required` | none |
-| `clustered_heatmap` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
-| `cnv_recurrence_summary_panel` | Matrix Pattern | r_ggplot2 | `not_publication_ready` | `low_information_density` |
-| `coefficient_path_panel` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
-| `compact_effect_estimate_panel` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
+| `celltype_marker_dotplot_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
+| `cnv_recurrence_summary_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
+| `coefficient_path_panel` | Effect Estimate | r_ggplot2 | `not_publication_ready` | `coefficient_path_renderer_gap` |
 | `confusion_matrix_heatmap_binary` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
-| `correlation_heatmap` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
 | `cumulative_incidence_grouped` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
 | `decision_curve_binary` | Clinical Utility | r_ggplot2 | `lower_bound_review_required` | none |
-| `diffusion_map_scatter_grouped` | Data Geometry | r_ggplot2 | `lower_bound_review_required` | none |
 | `forest_effect_main` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
 | `generalizability_subgroup_composite_panel` | Generalizability | r_ggplot2 | `lower_bound_review_required` | none |
-| `genomic_alteration_consequence_panel` | Matrix Pattern | r_ggplot2 | `not_publication_ready` | `low_information_density` |
-| `genomic_alteration_landscape_panel` | Matrix Pattern | r_ggplot2 | `not_publication_ready` | `low_information_density` |
-| `genomic_alteration_multiomic_consequence_panel` | Matrix Pattern | r_ggplot2 | `not_publication_ready` | `low_information_density` |
-| `genomic_alteration_pathway_integrated_composite_panel` | Matrix Pattern | r_ggplot2 | `not_publication_ready` | `low_information_density` |
-| `genomic_program_governance_summary_panel` | Matrix Pattern | r_ggplot2 | `not_publication_ready` | `low_information_density` |
-| `gsva_ssgsea_heatmap` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
+| `genomic_alteration_consequence_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
+| `genomic_alteration_landscape_panel` | Genomic and Omics | r_ggplot2 | `not_publication_ready` | `oncoprint_annotation_track_gap` |
 | `heatmap_group_comparison` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
-| `interaction_effect_summary_panel` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
-| `kaplan_meier_grouped` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
+| `kaplan_meier_grouped` | Time-to-Event | r_ggplot2 | `not_publication_ready` | `km_risk_table_and_censor_mark_gap` |
 | `model_complexity_audit_panel` | Model Audit | r_ggplot2 | `not_publication_ready` | `multi_panel_readability_risk` |
-| `multivariable_forest` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
-| `omics_volcano_panel` | Data Geometry | r_ggplot2 | `lower_bound_review_required` | none |
-| `oncoplot_mutation_landscape_panel` | Matrix Pattern | r_ggplot2 | `not_publication_ready` | `low_information_density` |
-| `pathway_enrichment_dotplot_panel` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
+| `omics_volcano_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
+| `pathway_enrichment_dotplot_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
 | `pca_scatter_grouped` | Data Geometry | r_ggplot2 | `lower_bound_review_required` | none |
-| `performance_heatmap` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
-| `phate_scatter_grouped` | Data Geometry | r_ggplot2 | `lower_bound_review_required` | none |
 | `pr_curve_binary` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
 | `risk_layering_monotonic_bars` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
 | `roc_curve_binary` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
-| `shap_bar_importance` | Model Explanation | r_ggplot2 | `lower_bound_review_required` | none |
 | `shap_dependence_panel` | Model Explanation | r_ggplot2 | `lower_bound_review_required` | none |
-| `shap_force_like_summary_panel` | Model Explanation | r_ggplot2 | `lower_bound_review_required` | none |
-| `shap_multicohort_importance_panel` | Model Explanation | r_ggplot2 | `lower_bound_review_required` | none |
 | `shap_summary_beeswarm` | Model Explanation | r_ggplot2 | `lower_bound_review_required` | none |
 | `shap_waterfall_local_explanation_panel` | Model Explanation | r_ggplot2 | `not_publication_ready` | `multi_panel_readability_risk` |
-| `subgroup_forest` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
-| `time_dependent_roc_comparison_panel` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
-| `time_dependent_roc_horizon` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
+| `time_dependent_roc_horizon` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
 | `time_to_event_decision_curve` | Clinical Utility | r_ggplot2 | `lower_bound_review_required` | none |
-| `time_to_event_discrimination_calibration_panel` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
-| `time_to_event_landmark_performance_panel` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
 | `time_to_event_multihorizon_calibration_panel` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
-| `time_to_event_risk_group_summary` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
-| `time_to_event_stratified_cumulative_incidence_panel` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
-| `time_to_event_threshold_governance_panel` | Clinical Utility | r_ggplot2 | `lower_bound_review_required` | none |
 | `tsne_scatter_grouped` | Data Geometry | r_ggplot2 | `lower_bound_review_required` | none |
 | `umap_scatter_grouped` | Data Geometry | r_ggplot2 | `lower_bound_review_required` | none |
 
@@ -94,16 +69,17 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 | Category | Status | Completion | Gallery visual | R/ggplot2 evidence | Current Python evidence |
 | --- | --- | ---: | ---: | ---: | ---: |
-| Clinical Utility | `done` | 100% | 5 | 5 | 0 |
-| Data Geometry | `done` | 100% | 6 | 6 | 0 |
-| Effect Estimate | `done` | 100% | 7 | 7 | 0 |
+| Clinical Utility | `done` | 100% | 2 | 2 | 0 |
+| Data Geometry | `done` | 100% | 3 | 3 | 0 |
+| Effect Estimate | `done` | 100% | 2 | 2 | 0 |
 | Generalizability | `done` | 100% | 1 | 1 | 0 |
-| Matrix Pattern | `done` | 100% | 16 | 16 | 0 |
+| Genomic and Omics | `done` | 100% | 6 | 6 | 0 |
+| Matrix Pattern | `done` | 100% | 2 | 2 | 0 |
 | Model Audit | `done` | 100% | 1 | 1 | 0 |
-| Model Explanation | `done` | 100% | 6 | 6 | 0 |
-| Prediction Performance | `done` | 100% | 5 | 5 | 0 |
+| Model Explanation | `done` | 100% | 3 | 3 | 0 |
+| Prediction Performance | `done` | 100% | 3 | 3 | 0 |
 | Publication Shells and Tables | `done` | 100% | 0 | 0 | 0 |
-| Time-to-Event | `done` | 100% | 8 | 8 | 0 |
+| Time-to-Event | `done` | 100% | 5 | 5 | 0 |
 
 ## 当前 Python Evidence
 
@@ -119,7 +95,9 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 ## 外部准则
 
-- [nature_final_submission_artwork](https://www.nature.com/nature/for-authors/final-submission): Use consistent sans-serif figure lettering, readable reduced-size labels, vector line art when possible, 0.25-1 pt final line weights, RGB color, and production-quality figure files.
+- [nature_final_submission_artwork](https://www.nature.com/nature/for-authors/final-submission): Use consistent figure lettering, readable reduced-size labels, vector line art when possible, RGB color, and production-quality figure files.
 - [ggplot2_theme_system](https://ggplot2.tidyverse.org/reference/theme.html): Use a single theme system for titles, labels, fonts, backgrounds, gridlines, and legends so all evidence figures share one article-level visual grammar.
-- [ggsci](https://nanx.me/ggsci/): Scientific-journal-inspired ggplot2 palettes are useful references, but MAS keeps one semantic clinical palette instead of exposing many style presets.
+- [ggsci_npg_palette](https://nanx.me/ggsci/reference/scale_npg.html): Nature Publishing Group inspired discrete palettes are mature ggplot2-compatible references for publication-style categorical roles.
+- [colorspace_hcl_palettes](https://colorspace.r-forge.r-project.org/): HCL-based qualitative, sequential and diverging palettes are a stable basis for article-level semantic color roles.
+- [viridis_perceptual_palette](https://sjmgarnier.github.io/viridis/): Perceptually uniform and color-vision-friendly sequential palettes are preferred for continuous matrix and density-like encodings.
 - [complexheatmap_color_mapping](https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html): Matrix heatmaps need fixed value-to-color mapping rather than per-plot drift; shared sequential and diverging mappings preserve cross-figure comparability.

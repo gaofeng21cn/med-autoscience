@@ -215,67 +215,53 @@ def _build_kaplan_meier_curve(
         values.append(survival)
     return times, values
 
-def _build_discrimination_payload(
+def _build_time_dependent_roc_payload(
     *,
-    discrimination_points: list[dict[str, Any]],
-    calibration_rows: list[dict[str, str]],
+    prediction_rows: list[dict[str, str]],
+    lasso_rows: list[dict[str, str]],
     display_id: str,
 ) -> dict[str, Any]:
-    calibration_summary: list[dict[str, Any]] = []
-    for row in calibration_rows:
-        decile = _parse_int(row.get("decile"), label="decile")
-        calibration_summary.append(
-            {
-                "group_label": f"Decile {decile}",
-                "group_order": decile,
-                "n": _parse_int(row.get("n"), label=f"calibration decile {decile} n"),
-                "events_5y": _parse_int(
-                    row.get("events_5y"),
-                    label=f"calibration decile {decile} events_5y",
-                ),
-                "predicted_risk_5y": _parse_float(
-                    row.get("mean_predicted_risk_5y"),
-                    label=f"calibration decile {decile} mean_predicted_risk_5y",
-                ),
-                "observed_risk_5y": _parse_float(
-                    row.get("observed_km_risk_5y"),
-                    label=f"calibration decile {decile} observed_km_risk_5y",
-                ),
-            }
-        )
-    calibration_summary.sort(key=lambda item: int(item["group_order"]))
-    if not calibration_summary:
-        raise ValueError("grouped calibration summary requires non-empty calibration rows")
-    highest_decile = calibration_summary[-1]
+    lasso_score_by_sequence = {
+        str(row.get("Sequnece") or "").strip(): _parse_float(row.get("risk_score"), label="lasso risk_score")
+        for row in lasso_rows
+    }
+    cox_scores: list[float] = []
+    lasso_scores: list[float] = []
+    labels: list[int] = []
+    for row in prediction_rows:
+        if not _is_evaluable_fixed_horizon(row, horizon_years=5.0):
+            continue
+        sequence_id = str(row.get("Sequnece") or "").strip()
+        if sequence_id not in lasso_score_by_sequence:
+            raise ValueError(f"missing lasso risk score for sequence `{sequence_id}`")
+        cox_scores.append(_parse_float(row.get("risk_score"), label="cox risk_score"))
+        lasso_scores.append(lasso_score_by_sequence[sequence_id])
+        labels.append(1 if _event_by_horizon(row, horizon_years=5.0) else 0)
+    cox_x, cox_y, cox_auc = _build_roc_curve(cox_scores, labels)
+    lasso_x, lasso_y, lasso_auc = _build_roc_curve(lasso_scores, labels)
 
     return {
         "schema_version": 1,
-        "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+        "input_schema_id": "binary_prediction_curve_inputs_v1",
         "displays": [
             {
                 "display_id": display_id,
                 "template_id": display_registry.get_evidence_figure_spec(
-                    "time_to_event_discrimination_calibration_panel"
+                    "time_dependent_roc_horizon"
                 ).template_id,
-                "title": "Validation discrimination and grouped calibration for 5-year cardiovascular mortality",
+                "title": "Five-year cardiovascular mortality discrimination",
                 "caption": (
-                    "Validation discrimination remained strong, and grouped 5-year calibration showed "
-                    "underprediction in the highest risk decile."
+                    "Fixed-horizon ROC curves summarize discrimination for the primary Cox model "
+                    "and the lasso comparator."
                 ),
-                "panel_a_title": "Validation discrimination",
-                "panel_b_title": "Grouped 5-year calibration",
-                "discrimination_x_label": "Validation C-index",
-                "calibration_x_label": "Risk decile",
-                "calibration_y_label": "5-year risk (%)",
-                "discrimination_points": discrimination_points,
-                "calibration_summary": calibration_summary,
-                "calibration_callout": {
-                    "group_label": highest_decile["group_label"],
-                    "predicted_risk_5y": highest_decile["predicted_risk_5y"],
-                    "observed_risk_5y": highest_decile["observed_risk_5y"],
-                    "events_5y": highest_decile["events_5y"],
-                    "n": highest_decile["n"],
-                },
+                "x_label": "1 - Specificity",
+                "y_label": "Sensitivity",
+                "time_horizon_months": 60,
+                "series": [
+                    {"label": f"CoxPH AUC {cox_auc:.3f}", "x": cox_x, "y": cox_y},
+                    {"label": f"LassoCox AUC {lasso_auc:.3f}", "x": lasso_x, "y": lasso_y},
+                ],
+                "reference_line": {"label": "Chance", "x": [0.0, 1.0], "y": [0.0, 1.0]},
             }
         ],
     }
@@ -287,7 +273,8 @@ def _build_risk_group_summary_payload(
 ) -> dict[str, Any]:
     label_map = {"low": "Low risk", "mid": "Intermediate risk", "high": "High risk"}
     ordered_keys = ("low", "mid", "high")
-    risk_group_summaries: list[dict[str, Any]] = []
+    predicted_bars: list[dict[str, Any]] = []
+    observed_bars: list[dict[str, Any]] = []
     risk_group_rows_by_key = {
         str(row.get("risk_group") or "").strip().casefold(): row for row in risk_group_rows
     }
@@ -295,20 +282,18 @@ def _build_risk_group_summary_payload(
         row = risk_group_rows_by_key.get(key)
         if row is None:
             raise ValueError(f"missing risk-group summary row for `{key}`")
-        risk_group_summaries.append(
-            {
-                "label": label_map[key],
-                "sample_size": _parse_int(row.get("n"), label=f"{key} n"),
-                "events_5y": _parse_int(row.get("events_5y"), label=f"{key} events_5y"),
-                "mean_predicted_risk_5y": _parse_float(
-                    row.get("mean_predicted_risk_5y"),
-                    label=f"{key} mean_predicted_risk_5y",
-                ),
-                "observed_km_risk_5y": _parse_float(
-                    row.get("observed_km_risk_5y"),
-                    label=f"{key} observed_km_risk_5y",
-                ),
-            }
+        cases = _parse_int(row.get("n"), label=f"{key} n")
+        observed_events = _parse_int(row.get("events_5y"), label=f"{key} events_5y")
+        predicted_risk = _parse_float(
+            row.get("mean_predicted_risk_5y"),
+            label=f"{key} mean_predicted_risk_5y",
+        )
+        predicted_events = max(0, min(cases, int(round(predicted_risk * cases))))
+        observed_bars.append(
+            {"label": label_map[key], "cases": cases, "events": observed_events, "risk": observed_events / cases}
+        )
+        predicted_bars.append(
+            {"label": label_map[key], "cases": cases, "events": predicted_events, "risk": predicted_events / cases}
         )
 
     for key in ("low", "mid", "high"):
@@ -316,24 +301,25 @@ def _build_risk_group_summary_payload(
             raise ValueError(f"risk-group summary rows must include `{key}`")
     return {
         "schema_version": 1,
-        "input_schema_id": "time_to_event_grouped_inputs_v1",
+        "input_schema_id": "risk_layering_monotonic_inputs_v1",
         "displays": [
             {
                 "display_id": display_id,
                 "template_id": display_registry.get_evidence_figure_spec(
-                    "time_to_event_risk_group_summary"
+                    "risk_layering_monotonic_bars"
                 ).template_id,
                 "title": "Tertile-based 5-year cardiovascular risk stratification",
                 "caption": (
                     "Predicted versus observed 5-year cardiovascular risk and observed event concentration "
                     "across prespecified validation tertiles."
                 ),
-                "panel_a_title": "Predicted and observed risk by tertile",
-                "panel_b_title": "Event concentration across tertiles",
-                "x_label": "Risk tertile",
                 "y_label": "5-year risk (%)",
-                "event_count_y_label": "Observed 5-year events",
-                "risk_group_summaries": risk_group_summaries,
+                "left_panel_title": "Predicted risk by tertile",
+                "left_x_label": "Predicted risk tertile",
+                "left_bars": predicted_bars,
+                "right_panel_title": "Observed risk by tertile",
+                "right_x_label": "Observed risk tertile",
+                "right_bars": observed_bars,
             }
         ],
     }
@@ -737,41 +723,6 @@ def _build_multicenter_generalizability_payload(
         ],
     }
 
-def _build_table2_payload(
-    *,
-    table_markdown_path: Path,
-    display_id: str,
-) -> dict[str, Any]:
-    header, rows = _load_markdown_table(table_markdown_path)
-    if len(header) < 2:
-        raise ValueError(f"table markdown must contain at least one data column: {table_markdown_path}")
-    columns = [
-        {
-            "column_id": _slugify(label),
-            "label": label,
-        }
-        for label in header[1:]
-    ]
-    normalized_rows = []
-    for raw_row in rows:
-        if len(raw_row) != len(header):
-            raise ValueError(f"row length mismatch in {table_markdown_path}")
-        normalized_rows.append(
-            {
-                "row_id": _slugify(raw_row[0]),
-                "label": raw_row[0],
-                "values": raw_row[1:],
-            }
-        )
-    return {
-        "schema_version": 1,
-        "table_shell_id": display_registry.get_table_shell_spec("table2_time_to_event_performance_summary").shell_id,
-        "display_id": display_id,
-        "title": "Fixed-horizon performance summary",
-        "columns": columns,
-        "rows": normalized_rows,
-    }
-
 def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_paper_root = Path(paper_root).expanduser().resolve()
@@ -825,8 +776,9 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
         resolved_study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "derived"
     )
 
-    discrimination_points = _load_validation_discrimination_points(primary_endpoint_root / "discrimination_report.md")
-    calibration_rows = _load_csv_rows(primary_derived_root / "coxph_calibration_5y.csv")
+    _load_validation_discrimination_points(primary_endpoint_root / "discrimination_report.md")
+    prediction_rows = _load_csv_rows(primary_derived_root / "coxph_validation_predictions.csv")
+    lasso_rows = _load_csv_rows(primary_derived_root / "lassocox_validation_predictions.csv")
     risk_group_rows = _load_csv_rows(primary_derived_root / "coxph_km_risk_groups_5y.csv")
     dca_rows = _load_csv_rows(primary_derived_root / "coxph_dca_5y.csv")
     center_rows: list[dict[str, str]] = []
@@ -839,20 +791,20 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
 
     blockers: list[str] = []
 
-    discrimination_payload = _build_discrimination_payload(
-        discrimination_points=discrimination_points,
-        calibration_rows=calibration_rows,
-        display_id=bindings["time_to_event_discrimination_calibration_panel"]["display_id"],
+    discrimination_payload = _build_time_dependent_roc_payload(
+        prediction_rows=prediction_rows,
+        lasso_rows=lasso_rows,
+        display_id=bindings["time_dependent_roc_horizon"]["display_id"],
     )
-    discrimination_path = resolved_paper_root / "time_to_event_discrimination_calibration_inputs.json"
+    discrimination_path = resolved_paper_root / "binary_prediction_curve_inputs.json"
     _write_json(discrimination_path, discrimination_payload)
     written_files.append(str(discrimination_path))
 
     grouped_payload = _build_risk_group_summary_payload(
         risk_group_rows=risk_group_rows,
-        display_id=bindings["time_to_event_risk_group_summary"]["display_id"],
+        display_id=bindings["risk_layering_monotonic_bars"]["display_id"],
     )
-    grouped_path = resolved_paper_root / "time_to_event_grouped_inputs.json"
+    grouped_path = resolved_paper_root / "risk_layering_monotonic_inputs.json"
     _write_json(grouped_path, grouped_payload)
     written_files.append(str(grouped_path))
 
@@ -877,14 +829,6 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
         written_files.append(str(multicenter_generalizability_path))
     else:
         report_notes["transportability_governance_binding"] = "current_contract_preserved"
-
-    table2_payload = _build_table2_payload(
-        table_markdown_path=resolved_paper_root / "tables" / "table2_performance_summary.md",
-        display_id=bindings["table2_time_to_event_performance_summary"]["display_id"],
-    )
-    table2_path = resolved_paper_root / "time_to_event_performance_summary.json"
-    _write_json(table2_path, table2_payload)
-    written_files.append(str(table2_path))
 
     cohort_flow_payload = _load_json(resolved_paper_root / "cohort_flow.json")
     table2_header, table2_rows = _load_markdown_table(resolved_paper_root / "tables" / "table2_performance_summary.md")

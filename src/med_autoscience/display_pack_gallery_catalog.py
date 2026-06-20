@@ -48,7 +48,6 @@ class TemplateRecord:
 def read_template_records(pack_root: Path, template_root: Path) -> list[TemplateRecord]:
     records: list[TemplateRecord] = []
     catalog = load_canonical_template_catalog(pack_root)
-    catalog_ids = set(catalog.entries_by_template_id) if catalog is not None else set()
     for template_path in sorted(template_root.glob("*/template.toml")):
         payload = tomllib.loads(template_path.read_text(encoding="utf-8"))
         canonical = canonical_catalog_entry_for_template(
@@ -83,9 +82,9 @@ def read_template_records(pack_root: Path, template_root: Path) -> list[Template
         )
     if catalog is not None:
         template_ids = {record.template_id for record in records}
-        missing = sorted(catalog_ids - template_ids)
+        missing = sorted(set(catalog.canonical_template_ids) - template_ids)
         if missing:
-            raise ValueError(f"canonical template catalog references missing template ids: {missing}")
+            raise ValueError(f"canonical template catalog references missing current template ids: {missing}")
     return records
 
 
@@ -115,7 +114,7 @@ def visual_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord
     return [
         record
         for record in canonical_records(records)
-        if record.renderer_family != "n/a" and record.kind != "table_shell"
+        if record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
     ]
 
 
@@ -123,7 +122,9 @@ def full_evidence_gallery_records(records: list[TemplateRecord]) -> list[Templat
     return [
         record
         for record in records
-        if record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
+        if record.kind == "evidence_figure"
+        and record.renderer_family == "r_ggplot2"
+        and record.default_visible
     ]
 
 
@@ -135,7 +136,7 @@ def non_visual_canonical_records(records: list[TemplateRecord]) -> list[Template
     return [
         record
         for record in canonical_records(records)
-        if record.renderer_family == "n/a" or record.kind == "table_shell"
+        if record.kind != "evidence_figure"
     ]
 
 
@@ -153,9 +154,9 @@ def figure_family_policy() -> dict[str, object]:
         "core_catalog_ref": CORE_MEDICAL_FIGURE_FAMILY_CATALOG_REF,
         "gallery_template_metadata_source": GALLERY_TEMPLATE_FAMILY_SOURCE,
         "core_catalog_dependency": "loaded_via_medical_figure_family_catalog_loader",
-        "default_gallery_surface": "all_r_ggplot2_evidence_templates",
-        "alias_handling": "current_r_ggplot2_evidence_aliases_visible_in_full_gallery_and_mapped_in_migration_index",
-        "non_visual_handling": "kept_in_manifest_inventory_hidden_from_image_gallery_cards",
+        "default_gallery_surface": "canonical_current_r_ggplot2_evidence_templates",
+        "alias_handling": "retired_duplicate_template_ids_are_migration_index_entries_not_gallery_cards",
+        "non_visual_handling": "design_flow_shells_and_table_shells_preserved_in_manifest_without_entering_ggplot2_evidence_gallery",
         "renderer_policy": default_surface_renderer_policy(),
         "machine_boundary": "core_catalog_and_gallery_metadata_only_not_source_truth_statistical_truth_or_publication_readiness_authority",
     }

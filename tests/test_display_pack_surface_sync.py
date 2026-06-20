@@ -234,27 +234,24 @@ def test_sync_display_pack_surface_prefers_materialized_catalog_contract_for_key
         {
             "display_id": "km_risk_stratification",
             "display_kind": "figure",
-            "requirement_key": "time_to_event_risk_group_summary",
+            "requirement_key": "risk_layering_monotonic_bars",
             "catalog_id": "F3",
-            "shell_path": "paper/figures/km_risk_stratification.shell.json",
+            "shell_path": "paper/figures/risk_layering.shell.json",
         }
     )
     dump_json(paper_root / "display_registry.json", registry)
-    dump_json(
-        paper_root / "time_to_event_grouped_inputs.json",
+    risk_layering_inputs = load_json(paper_root / "risk_layering_monotonic_inputs.json")
+    assert isinstance(risk_layering_inputs, dict)
+    assert isinstance(risk_layering_inputs["displays"], list)
+    risk_layering_inputs["displays"].append(
         {
-            "schema_version": 1,
-            "input_schema_id": "time_to_event_grouped_inputs_v1",
-            "displays": [
-                {
-                    "display_id": "km_risk_stratification",
-                    "catalog_id": "F3",
-                    "template_id": "time_to_event_risk_group_summary",
-                    "title": "External risk-group separation",
-                }
-            ],
-        },
+            "display_id": "km_risk_stratification",
+            "catalog_id": "F3",
+            "template_id": "risk_layering_monotonic_bars",
+            "title": "External risk-group separation",
+        }
     )
+    dump_json(paper_root / "risk_layering_monotonic_inputs.json", risk_layering_inputs)
     dump_json(
         paper_root / "figures" / "figure_catalog.json",
         {
@@ -264,15 +261,15 @@ def test_sync_display_pack_surface_prefers_materialized_catalog_contract_for_key
                     "figure_id": "F3",
                     "catalog_id": "F3",
                     "display_id": "km_risk_stratification",
-                    "template_id": "fenggaolab.org.medical-display-core::cumulative_incidence_grouped",
+                    "template_id": "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars",
                     "renderer_family": "r_ggplot2",
-                    "qc_profile": "publication_survival_curve",
+                    "qc_profile": "publication_risk_layering_bars",
                     "paper_role": "main_text",
                     "renderer_contract": {
                         "figure_semantics": "evidence",
                         "renderer_family": "r_ggplot2",
-                        "template_id": "fenggaolab.org.medical-display-core::cumulative_incidence_grouped",
-                        "layout_qc_profile": "publication_survival_curve",
+                        "template_id": "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars",
+                        "layout_qc_profile": "publication_risk_layering_bars",
                         "required_exports": ["png", "pdf"],
                         "fallback_on_failure": False,
                         "failure_action": "block_and_fix_environment",
@@ -340,8 +337,8 @@ def test_sync_display_pack_surface_prefers_materialized_catalog_contract_for_key
                     "renderer_contract": {
                         "renderer": "python",
                         "allowed_renderers": ["python", "r_ggplot2"],
-                        "template_id": "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
-                        "layout_qc_profile": "publication_survival_curve",
+                        "template_id": "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars",
+                        "layout_qc_profile": "publication_risk_layering_bars",
                         "fallback_on_failure": False,
                         "failure_action": "block_and_fix_environment",
                     },
@@ -356,10 +353,10 @@ def test_sync_display_pack_surface_prefers_materialized_catalog_contract_for_key
     figure_semantics = load_json(paper_root / "figure_semantics_manifest.json")
     assert isinstance(figure_semantics, dict)
     updated_contract = figure_semantics["figures"]["F3"]["renderer_contract"]
-    assert updated_contract["template_id"] == "fenggaolab.org.medical-display-core::cumulative_incidence_grouped"
+    assert updated_contract["template_id"] == "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars"
     assert updated_contract["renderer"] == "r_ggplot2"
     assert updated_contract["renderer_family"] == "r_ggplot2"
-    assert updated_contract["layout_qc_profile"] == "publication_survival_curve"
+    assert updated_contract["layout_qc_profile"] == "publication_risk_layering_bars"
     assert updated_contract["required_exports"] == ["png", "pdf"]
 
 
@@ -527,27 +524,27 @@ def test_sync_display_pack_surface_resolves_table_requirement_from_shell(tmp_pat
             "source_contract_path": "paper/medical_reporting_contract.json",
             "display_id": "table2_key_metrics",
             "display_kind": "table",
-            "requirement_key": "performance_summary_table_generic",
+            "requirement_key": "table1_baseline_characteristics",
             "catalog_id": "T2",
         },
     )
     dump_json(
-        paper_root / "performance_summary_table_generic.json",
+        paper_root / "baseline_characteristics_schema.json",
         {
             "schema_version": 1,
-            "table_shell_id": "table2_key_metrics",
+            "table_shell_id": "table1_baseline_characteristics",
             "display_id": "table2_key_metrics",
             "title": "Key metrics",
-            "columns": ["Metric", "Value"],
-            "rows": [{"Metric": "AUC", "Value": "0.82"}],
+            "groups": [{"group_id": "overall", "label": "Overall"}],
+            "variables": [{"variable_id": "auc", "label": "AUC", "values": ["0.82"]}],
         },
     )
 
     result = module.sync_display_pack_surface(paper_root=paper_root)
 
-    assert "paper/performance_summary_table_generic.json" in result["updated_files"]
-    table_payload = load_json(paper_root / "performance_summary_table_generic.json")
-    assert table_payload["table_shell_id"] == "fenggaolab.org.medical-display-core::performance_summary_table_generic"
+    assert "paper/baseline_characteristics_schema.json" in result["updated_files"]
+    table_payload = load_json(paper_root / "baseline_characteristics_schema.json")
+    assert table_payload["table_shell_id"] == "fenggaolab.org.medical-display-core::table1_baseline_characteristics"
 
 
 def test_cli_sync_display_pack_surface_emits_result_json(tmp_path: Path, capsys) -> None:

@@ -6,10 +6,9 @@ from typing import Any
 
 
 _REQUIRED_DISPLAY_KEYS = {
-    "time_to_event_discrimination_calibration_panel": ("time_to_event_discrimination_calibration_inputs.json", "time_to_event_discrimination_calibration_inputs_v1"),
-    "time_to_event_risk_group_summary": ("time_to_event_grouped_inputs.json", "time_to_event_grouped_inputs_v1"),
+    "time_dependent_roc_horizon": ("binary_prediction_curve_inputs.json", "binary_prediction_curve_inputs_v1"),
+    "risk_layering_monotonic_bars": ("risk_layering_monotonic_inputs.json", "risk_layering_monotonic_inputs_v1"),
     "time_to_event_decision_curve": ("time_to_event_decision_curve_inputs.json", "time_to_event_decision_curve_inputs_v1"),
-    "table2_time_to_event_performance_summary": ("time_to_event_performance_summary.json", "time_to_event_performance_summary_v1"),
 }
 
 

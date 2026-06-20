@@ -140,9 +140,9 @@ def _render_paper_proven_baseline_section() -> list[str]:
     template_ids = ", ".join(
         f"`{item}`"
         for item in (
-            _full_id("binary_calibration_decision_curve_panel"),
-            _full_id("time_to_event_discrimination_calibration_panel"),
-            _full_id("time_to_event_risk_group_summary"),
+            _full_id("calibration_curve_binary"),
+            _full_id("time_dependent_roc_horizon"),
+            _full_id("risk_layering_monotonic_bars"),
             _full_id("time_to_event_decision_curve"),
             _full_id("generalizability_subgroup_composite_panel"),
             _full_id("submission_graphical_abstract"),

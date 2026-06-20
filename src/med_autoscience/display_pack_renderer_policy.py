@@ -166,6 +166,10 @@ def renderer_policy_completion(records: list[RendererPolicyRecord]) -> dict[str,
         }
     )
     return {
+        "current_template_count": len(records),
+        "current_evidence_template_count": len(all_evidence),
+        "current_r_ggplot2_evidence_template_count": len(all_r_evidence),
+        "current_python_evidence_template_count": len(all_python_evidence),
         "default_visual_template_count": len(visual),
         "default_evidence_template_count": len(evidence),
         "default_r_ggplot2_evidence_template_count": len(r_evidence),

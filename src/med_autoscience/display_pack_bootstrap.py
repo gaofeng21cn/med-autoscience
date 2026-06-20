@@ -16,9 +16,9 @@ _TABLE_SHELL_ENTRYPOINT = "fenggaolab_org_medical_display_core.table_shells:rend
 _PUBLICATION_SHELL_CLASS_ID = "publication_shells_and_tables"
 _PAPER_PROVEN_TEMPLATE_IDS = frozenset(
     (
-        f"{CORE_PACK_ID}::binary_calibration_decision_curve_panel",
-        f"{CORE_PACK_ID}::time_to_event_discrimination_calibration_panel",
-        f"{CORE_PACK_ID}::time_to_event_risk_group_summary",
+        f"{CORE_PACK_ID}::calibration_curve_binary",
+        f"{CORE_PACK_ID}::time_dependent_roc_horizon",
+        f"{CORE_PACK_ID}::risk_layering_monotonic_bars",
         f"{CORE_PACK_ID}::time_to_event_decision_curve",
         f"{CORE_PACK_ID}::submission_graphical_abstract",
     )
@@ -27,22 +27,13 @@ _PAPERPLOTHUB_EXEMPLAR_REFS_BY_TEMPLATE_ID: dict[str, tuple[str, ...]] = {
     "forest_effect_main": (
         "PaperPlotHub `llmoptim_forest` https://paperplothub.tech/p/llmoptim_forest",
     ),
-    "subgroup_forest": (
-        "PaperPlotHub `llmoptim_forest` https://paperplothub.tech/p/llmoptim_forest",
-    ),
-    "multivariable_forest": (
-        "PaperPlotHub `llmoptim_forest` https://paperplothub.tech/p/llmoptim_forest",
-    ),
     "heatmap_group_comparison": (
-        "PaperPlotHub `aiscientist_heatmap` https://paperplothub.tech/p/aiscientist_heatmap",
-    ),
-    "performance_heatmap": (
         "PaperPlotHub `aiscientist_heatmap` https://paperplothub.tech/p/aiscientist_heatmap",
     ),
     "tsne_scatter_grouped": (
         "PaperPlotHub `scatter_tsne` https://paperplothub.tech/p/scatter_tsne",
     ),
-    "time_dependent_roc_comparison_panel": (
+    "time_dependent_roc_horizon": (
         "PaperPlotHub `prerl_passk_qwen4b` https://paperplothub.tech/p/prerl_passk_qwen4b",
     ),
 }

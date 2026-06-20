@@ -42,9 +42,9 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
     assert {item.template_id for item in evidence_specs} == _ids_for_kind("evidence_figure")
     assert {item.shell_id for item in illustration_specs} == _ids_for_kind("illustration_shell")
     assert {item.shell_id for item in table_specs} == _ids_for_kind("table_shell")
-    assert len(evidence_specs) == 55
-    assert len(illustration_specs) == 4
-    assert len(table_specs) == 7
+    assert len(evidence_specs) == 28
+    assert len(illustration_specs) == 2
+    assert len(table_specs) == 1
 
 
 def test_all_current_evidence_templates_are_r_ggplot2_subprocess() -> None:
@@ -85,16 +85,16 @@ def test_current_materialization_surface_excludes_retired_python_evidence_schema
     ("template_id", "expected_input_schema_id", "expected_qc_profile"),
     [
         ("roc_curve_binary", "binary_prediction_curve_inputs_v1", "publication_evidence_curve"),
-        ("time_to_event_threshold_governance_panel", "time_to_event_threshold_governance_inputs_v1", "publication_time_to_event_threshold_governance_panel"),
+        ("time_to_event_decision_curve", "time_to_event_decision_curve_inputs_v1", "publication_decision_curve"),
         ("time_to_event_multihorizon_calibration_panel", "time_to_event_multihorizon_calibration_inputs_v1", "publication_time_to_event_multihorizon_calibration_panel"),
-        ("time_to_event_landmark_performance_panel", "time_to_event_landmark_performance_inputs_v1", "publication_landmark_performance_panel"),
-        ("celltype_signature_heatmap", "celltype_signature_heatmap_inputs_v1", "publication_celltype_signature_panel"),
+        ("time_dependent_roc_horizon", "binary_prediction_curve_inputs_v1", "publication_evidence_curve"),
+        ("celltype_marker_dotplot_panel", "celltype_marker_dotplot_panel_inputs_v1", "publication_celltype_marker_dotplot_panel"),
         ("pathway_enrichment_dotplot_panel", "pathway_enrichment_dotplot_panel_inputs_v1", "publication_pathway_enrichment_dotplot_panel"),
         ("genomic_alteration_landscape_panel", "genomic_alteration_landscape_panel_inputs_v1", "publication_genomic_alteration_landscape_panel"),
         ("shap_summary_beeswarm", "shap_summary_inputs_v1", "publication_shap_summary"),
         ("shap_dependence_panel", "shap_dependence_panel_inputs_v1", "publication_shap_dependence_panel"),
         ("generalizability_subgroup_composite_panel", "generalizability_subgroup_composite_inputs_v1", "publication_generalizability_subgroup_composite_panel"),
-        ("clinical_impact_curve_binary", "binary_prediction_curve_inputs_v1", "publication_evidence_curve"),
+        ("decision_curve_binary", "binary_prediction_curve_inputs_v1", "publication_evidence_curve"),
         ("risk_layering_monotonic_bars", "risk_layering_monotonic_inputs_v1", "publication_risk_layering_bars"),
     ],
 )
@@ -124,8 +124,6 @@ def test_local_architecture_overview_figure_alias_resolves_to_risk_layering_temp
     [
         ("cohort_flow_figure", "cohort_flow_shell_inputs_v1", "publication_illustration_flow"),
         ("submission_graphical_abstract", "submission_graphical_abstract_inputs_v1", "submission_graphical_abstract"),
-        ("workflow_fact_sheet_panel", "workflow_fact_sheet_panel_inputs_v1", "publication_workflow_fact_sheet_panel"),
-        ("design_evidence_composite_shell", "design_evidence_composite_shell_inputs_v1", "publication_design_evidence_composite_shell"),
     ],
 )
 def test_illustration_shells_allow_python_composition(
@@ -146,10 +144,6 @@ def test_illustration_shells_allow_python_composition(
     ("table_id", "expected_input_schema_id"),
     [
         ("table1_baseline_characteristics", "baseline_characteristics_schema_v1"),
-        ("table2_time_to_event_performance_summary", "time_to_event_performance_summary_v1"),
-        ("table3_clinical_interpretation_summary", "clinical_interpretation_summary_v1"),
-        ("performance_summary_table_generic", "performance_summary_table_generic_v1"),
-        ("grouped_risk_event_summary_table", "grouped_risk_event_summary_table_v1"),
     ],
 )
 def test_table_shells_are_registered(table_id: str, expected_input_schema_id: str) -> None:
@@ -163,7 +157,7 @@ def test_table_shells_are_registered(table_id: str, expected_input_schema_id: st
 def test_registry_exposes_pack_manifest_paper_proven_truth() -> None:
     evidence_spec = display_registry.get_evidence_figure_spec(_full_id("time_to_event_decision_curve"))
     shell_spec = display_registry.get_illustration_shell_spec(_full_id("submission_graphical_abstract"))
-    table_spec = display_registry.get_table_shell_spec(_full_id("table2_time_to_event_performance_summary"))
+    table_spec = display_registry.get_table_shell_spec(_full_id("table1_baseline_characteristics"))
 
     assert evidence_spec.paper_proven is True
     assert shell_spec.paper_proven is True

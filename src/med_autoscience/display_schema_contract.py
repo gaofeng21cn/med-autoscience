@@ -24,8 +24,6 @@ _ALL_INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
 
 
 def _is_current_input_schema_contract(contract: InputSchemaContract) -> bool:
-    if contract.display_kind != "evidence_figure":
-        return True
     return bool(contract.template_ids)
 
 

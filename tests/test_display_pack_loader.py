@@ -192,8 +192,8 @@ def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
         if record.template_manifest.renderer_family == "python"
     ]
 
-    assert len(evidence_records) == 55
-    assert len(r_records) == 55
+    assert len(evidence_records) == 28
+    assert len(r_records) == 28
     assert len(python_records) == 0
     for record in r_records:
         assert record.template_manifest.execution_mode == "subprocess"
@@ -205,15 +205,15 @@ def test_default_display_pack_template_inventory_is_canonical_only() -> None:
     default_records = load_enabled_local_display_pack_template_records(REPO_ROOT)
     full_records = load_enabled_local_display_pack_template_records(REPO_ROOT, inventory_scope="all")
 
-    assert len(default_records) == 19
-    assert len(full_records) == 66
-    assert {record.template_manifest.template_id for record in default_records} < {
+    assert len(default_records) == 31
+    assert len(full_records) == 31
+    assert {record.template_manifest.template_id for record in default_records} == {
         record.template_manifest.template_id for record in full_records
     }
-    assert "time_dependent_roc_horizon" not in {
+    assert "time_dependent_roc_comparison_panel" not in {
         record.template_manifest.template_id for record in default_records
     }
-    assert "roc_curve_binary" in {
+    assert "time_dependent_roc_horizon" in {
         record.template_manifest.template_id for record in default_records
     }
     assert not [

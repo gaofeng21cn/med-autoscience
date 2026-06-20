@@ -69,9 +69,8 @@ _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
     "site_held_out_stability_figure": ("site_held_out_stability", "figure", "F3"),
     "table3_transition_site_support_summary": ("transition_site_support_summary", "table", "T3"),
     "treatment_gap_alignment_figure": ("treatment_gap_alignment", "figure", "F4"),
-    "table2_time_to_event_performance_summary": ("time_to_event_performance_summary", "table", "T2"),
-    "time_to_event_discrimination_calibration_panel": ("discrimination_calibration", "figure", "F2"),
-    "time_to_event_risk_group_summary": ("km_risk_stratification", "figure", "F3"),
+    "time_dependent_roc_horizon": ("discrimination_calibration", "figure", "F2"),
+    "risk_layering_monotonic_bars": ("km_risk_stratification", "figure", "F3"),
     "time_to_event_decision_curve": ("decision_curve", "figure", "F4"),
     "generalizability_subgroup_composite_panel": ("multicenter_generalizability", "figure", "F5"),
 }
@@ -206,12 +205,11 @@ def resolve_medical_reporting_contract(
         final_evidence_requirement = "generalizability_subgroup_composite_panel"
         table_shell_requirements = (
             "table1_baseline_characteristics",
-            "table2_time_to_event_performance_summary",
         )
         figure_shell_requirements = (
             "cohort_flow_figure",
-            "time_to_event_discrimination_calibration_panel",
-            "time_to_event_risk_group_summary",
+            "time_dependent_roc_horizon",
+            "risk_layering_monotonic_bars",
             "time_to_event_decision_curve",
             final_evidence_requirement,
         )
