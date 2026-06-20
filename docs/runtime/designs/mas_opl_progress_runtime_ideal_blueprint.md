@@ -5,6 +5,7 @@ Purpose: `ideal_progress_runtime_blueprint_after_mas_opl_failure_research`
 State: `active_target_design`
 Machine boundary: 本文是人读顶层目标设计和迁移门。机器真相继续归 `agent/` pack、`contracts/`、源码、CLI/MCP/API 行为、OPL `DomainProgressTransitionRuntime` / StageRun / current-control readback、MAS runtime/controller durable surfaces、owner receipt、typed blocker、human gate、route-back evidence、fresh `study_progress` / DHD readback 和真实 workspace artifact。
 Date: `2026-06-17`
+当前完成度读法：`2026-06-20` 起，以 `contracts/paper_progress_transition_runtime_completion_audit.json#/blueprint_l0_l7_functional_acceptance` 为准；只有 `repo/source/control-plane` L0-L7 切片可读为 `done` / `100%`，整体蓝图仍是 `partial`，live acceptance 仍是 `deferred_not_run`。
 
 ## 目标结论
 

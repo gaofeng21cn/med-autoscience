@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-20：蓝图 L0-L7 repo/source/control-plane 功能面完成，live acceptance 另账
+
+- 决策：[MAS / OPL 进度运行时理想蓝图](./runtime/designs/mas_opl_progress_runtime_ideal_blueprint.md) 的当前完成度以 `contracts/paper_progress_transition_runtime_completion_audit.json#/blueprint_l0_l7_functional_acceptance` 为机器读根。该矩阵把 L0-L7 每个功能面拆成 `repo/source/control-plane required`、`already done` 和 `live-only deferred` 三栏。
+- 决策：本轮只允许声明 `repo/source/control-plane` 功能面完成。L0 蓝图入口、L1 OPL transition runtime contract/readback shape、L2 MAS policy adapter 收薄、L3 historical replay、L4 DHD / owner-route / export consume-only projection、L5 transactional outbox side-effect boundary、L6 projection demotion / legacy retirement / rebuild surfaces、L7 live acceptance harness 均为 repo/source/control-plane `done`，并且 live-only deferred 不阻塞该栏完成。
+- 决策：整体蓝图仍是 `partial`，`overall_blueprint_completion_claim_allowed=false`。live acceptance、runtime ready、provider running、paper-line ready、publication-ready、domain-ready 和 production-ready 仍必须由 fresh same-identity OPL readback、DHD apply exactly-one outcome、owner receipt、stable typed blocker、human gate、route-back evidence、strict running proof 或 paper/gate/artifact semantic delta 证明。
+- 理由：用户当前目标是“蓝图功能面彻底落地”，不是追 live acceptance。把 L0-L7 的 repo/source/control-plane completion 与 live-only acceptance 分开，可以关闭同类源码/合同/投影/退役/false-claim 复发口，同时避免把 tests、docs、contract、queue empty、DHD dry-run 或 projection clean 包装成真实论文推进。
+- 影响：这是完成口径与文档 foldback，不执行 live DHD apply、hydrate、tick、redrive、owner-route reconcile 或 provider start，不写 Yang runtime/study/paper artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker 或 human gate。
+
 ## 2026-06-20：EvidenceGapDecision 区分 hard gate、soft gap 与 evidence tail
 
 - 决策：MAS 新增 `EvidenceGapDecision` 合同和核心 API，将 evidence gap 固定分为 `authority_gate`、`human_gate`、`proceed_with_assumption`、`soft_quality_gap`、`observability_backlog`、`evidence_tail` 六类。
