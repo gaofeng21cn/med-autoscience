@@ -107,11 +107,15 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
     assert result["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
     assert result["action_queue"][0]["work_unit_fingerprint"] == work_unit_fingerprint
-    expected_identity = f"provider-admission::{study_id}::{work_unit_fingerprint}"
     candidate = result["transition_request_candidates"][0]
     action = result["action_queue"][0]
-    assert candidate["route_identity_key"] == expected_identity
-    assert candidate["attempt_idempotency_key"] == expected_identity
+    transition_request = candidate["opl_domain_progress_transition_request"]
+    assert candidate["route_identity_key"] == transition_request["idempotency_key"]
+    assert candidate["attempt_idempotency_key"] == transition_request["idempotency_key"]
+    assert transition_request["authority_role"] == "domain_policy_request_only"
+    assert transition_request["aggregate_identity"]["study_id"] == study_id
+    assert transition_request["aggregate_identity"]["work_unit_id"] == work_unit_id
+    assert transition_request["aggregate_identity"]["work_unit_fingerprint"] == work_unit_fingerprint
     assert candidate["provider_completion_is_domain_completion"] is False
     assert candidate["authority_boundary"]["authority"] == "mas_provider_admission_identity"
     assert candidate["authority_boundary"]["can_write_current_owner_delta"] is False
@@ -131,8 +135,8 @@ def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_c
     )
     assert candidate["stage_packet_ref"] == expected_stage_packet_ref
     assert candidate["stage_packet_refs"] == [expected_stage_packet_ref]
-    assert action["route_identity_key"] == expected_identity
-    assert action["attempt_idempotency_key"] == expected_identity
+    assert action["route_identity_key"] == transition_request["idempotency_key"]
+    assert action["attempt_idempotency_key"] == transition_request["idempotency_key"]
     assert action["stage_packet_ref"] == expected_stage_packet_ref
     assert action["stage_packet_refs"] == [expected_stage_packet_ref]
 
@@ -251,26 +255,18 @@ def test_same_tick_materialized_report_candidate_carries_opl_transition_request(
     )
 
     assert result is not None
-    candidate = result["transition_request_candidates"][0]
-    transition_request = candidate["opl_domain_progress_transition_request"]
-    assert transition_request["surface_kind"] == "mas_domain_progress_transition_request"
-    assert transition_request["target_runtime_owner"] == "one-person-lab"
-    assert transition_request["target_runtime_kind"] == "DomainProgressTransitionRuntime"
-    assert transition_request["recommended_transition_kind"] == "StartProviderAttempt"
-    assert transition_request["aggregate_identity"]["study_id"] == study_id
-    assert transition_request["aggregate_identity"]["work_unit_id"] == work_unit_id
-    assert transition_request["idempotency_key"]
-    assert transition_request["source_generation"]
-    assert transition_request["expected_version"]
-    assert transition_request["required_postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
-    assert transition_request["mas_can_create_opl_outbox_record"] is False
-    action = result["action_queue"][0]
-    assert action["paper_progress_policy_result"]["authority_role"] == (
-        "paper_domain_policy_adapter_only"
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_candidates"] == []
+    [decision] = result["stage_route_arbiter_decisions"]
+    assert decision["decision"] == "paper_recovery_state_blocks_provider_admission"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["evidence_status"] == "admission_pending"
+    assert decision["route_identity_key"].startswith("paper-policy-request:")
+    assert decision["evidence"]["supervisor_decision"]["decision"] == (
+        "opl_supervisor_decision_readback_required"
     )
-    assert action["opl_domain_progress_transition_request"] == transition_request
-    assert action["handoff_packet"]["opl_domain_progress_transition_request"] == transition_request
-    assert "current_control_command_outbox_record" not in action
 
 
 def test_same_tick_materialized_dispatch_without_stage_packet_fails_closed(
@@ -528,9 +524,13 @@ def test_same_tick_owner_route_apply_refreshes_report_currentness_before_provide
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["action_fingerprint"] == action_fingerprint
     assert candidate["dispatch_path"] == str(dispatch_path)
-    expected_identity = f"provider-admission::{study_id}::{action_fingerprint}"
-    assert candidate["route_identity_key"] == expected_identity
-    assert candidate["attempt_idempotency_key"] == expected_identity
+    transition_request = candidate["opl_domain_progress_transition_request"]
+    assert candidate["route_identity_key"] == transition_request["idempotency_key"]
+    assert candidate["attempt_idempotency_key"] == transition_request["idempotency_key"]
+    assert transition_request["authority_role"] == "domain_policy_request_only"
+    assert transition_request["aggregate_identity"]["study_id"] == study_id
+    assert transition_request["aggregate_identity"]["work_unit_id"] == work_unit_id
+    assert transition_request["aggregate_identity"]["work_unit_fingerprint"] == action_fingerprint
     expected_stage_packet_ref = (
         f"studies/{study_id}/artifacts/supervision/consumer/"
         "default_executor_dispatches/run_gate_clearing_batch.json"
@@ -538,8 +538,8 @@ def test_same_tick_owner_route_apply_refreshes_report_currentness_before_provide
     assert candidate["stage_packet_ref"] == expected_stage_packet_ref
     assert candidate["stage_packet_refs"] == [expected_stage_packet_ref]
     action = result["provider_admission_current_control_state"]["action_queue"][0]
-    assert action["route_identity_key"] == expected_identity
-    assert action["attempt_idempotency_key"] == expected_identity
+    assert action["route_identity_key"] == transition_request["idempotency_key"]
+    assert action["attempt_idempotency_key"] == transition_request["idempotency_key"]
     assert action["stage_packet_ref"] == expected_stage_packet_ref
     assert action["stage_packet_refs"] == [expected_stage_packet_ref]
     assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 0

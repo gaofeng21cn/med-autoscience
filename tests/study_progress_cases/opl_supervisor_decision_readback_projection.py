@@ -171,10 +171,20 @@ def test_study_progress_consumes_opl_supervisor_decision_readback_ledger(
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
     decision = result["paper_recovery_state"]["supervisor_decision"]
-    assert decision["decision"] == "stop_with_stable_typed_blocker"
-    assert decision["opl_supervisor_decision_engine_readback_consumed"] is True
-    assert decision["opl_supervisor_decision_readback_ref"] == readback["decision_id"]
-    assert result["paper_autonomy_supervisor_decision"] == decision
+    assert decision["decision"] == "materialize_recovery_action"
+    assert decision["decision_authority"] is False
+    assert decision["decision_semantics"]["can_authorize_provider_admission"] is False
+    assert decision["next_safe_action"]["kind"] == "materialize_recovery_work_unit_or_receipt"
+    assert result["paper_autonomy_supervisor_decision"]["decision"] == "stop_with_stable_typed_blocker"
+    assert (
+        result["paper_autonomy_supervisor_decision"][
+            "opl_supervisor_decision_engine_readback_consumed"
+        ]
+        is True
+    )
+    assert result["paper_autonomy_supervisor_decision"]["opl_supervisor_decision_readback_ref"] == (
+        readback["decision_id"]
+    )
     assert result["opl_paper_autonomy_supervisor_decision_readback"] == readback
     assert result["refs"]["opl_paper_autonomy_supervisor_decision_ledger_path"] == str(
         ledger_path

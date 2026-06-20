@@ -78,7 +78,7 @@ def test_dm002_dm003_current_blockers_materialize_recovery_actions_when_owner_ca
     assert dm003["paper_progress_classification"] == "none_until_owner_receipt_or_stable_blocker"
 
 
-def test_paper_recovery_state_requires_supervisor_readback_for_dm002_dm003_live_shape() -> None:
+def test_paper_recovery_state_projects_current_supervisor_decision_for_dm002_dm003_live_shape() -> None:
     report = _dm002_dm003_dhd_live_shape()
 
     for study_id, progress in report["progress_currentness"].items():
@@ -93,8 +93,8 @@ def test_paper_recovery_state_requires_supervisor_readback_for_dm002_dm003_live_
         )
         direct_decision = build_supervisor_decision(progress, paper_recovery_state=state)
 
-        _assert_paper_recovery_state_requires_supervisor_readback(state)
         assert direct_decision["decision"] == "materialize_recovery_action"
+        _assert_paper_recovery_state_projects_supervisor_decision(state, direct_decision)
         assert direct_decision["decision"] in ALLOWED_SUPERVISOR_DECISIONS
         assert "provider_admission_pending_count=0" in direct_decision[
             "forbidden_interpretations"
@@ -109,8 +109,8 @@ def test_owner_receipt_recorded_live_shape_is_allowed_terminal_supervisor_decisi
     decision = build_supervisor_decision(progress, paper_recovery_state=state)
 
     assert state["phase"] == "owner_receipt_recorded"
-    _assert_paper_recovery_state_requires_supervisor_readback(state)
     assert decision["decision"] == "stop_with_owner_receipt"
+    _assert_paper_recovery_state_projects_supervisor_decision(state, decision)
     assert decision["decision"] in ALLOWED_SUPERVISOR_DECISIONS
     assert decision["decision"] not in FORBIDDEN_TERMINAL_DECISIONS
     assert decision["next_safe_action"]["kind"] == "consume_owner_receipt"
@@ -149,29 +149,29 @@ def _decisions_by_study(report: Mapping[str, Any]) -> dict[str, Mapping[str, Any
                 "provider_admission_pending_count": report["provider_admission_pending_count"],
             },
         )
-        _assert_paper_recovery_state_requires_supervisor_readback(state)
         decision = build_supervisor_decision(
             progress,
             paper_recovery_state=state,
         )
+        _assert_paper_recovery_state_projects_supervisor_decision(state, decision)
         assert study_id not in decisions
         decisions[study_id] = decision
     return decisions
 
 
-def _assert_paper_recovery_state_requires_supervisor_readback(
+def _assert_paper_recovery_state_projects_supervisor_decision(
     state: Mapping[str, Any],
+    expected: Mapping[str, Any],
 ) -> None:
     decision = state["supervisor_decision"]
     assert isinstance(decision, Mapping)
     assert decision["surface_kind"] == "paper_progress_policy_result_projection"
-    assert decision["decision"] == "opl_supervisor_decision_readback_required"
+    assert decision["decision"] == expected["decision"]
     assert decision["decision_authority"] is False
-    assert decision["read_model_can_build_supervisor_decision"] is False
-    assert decision["requires_opl_supervisor_decision_engine_readback"] is True
-    assert decision["mas_can_run_supervisor_decision_engine"] is False
-    assert decision["mas_can_store_recovery_obligation"] is False
-    assert decision["provider_admission_pending"] is False
+    assert decision["legacy_decision_field_is_authority"] is False
+    assert decision["decision_field_deprecated"] is True
+    assert decision["decision_semantics"]["can_authorize_provider_admission"] is False
+    assert decision["authority_boundary"]["provider_completion_is_paper_progress"] is False
 
 
 def _dm002_dm003_dhd_live_shape() -> dict[str, Any]:
