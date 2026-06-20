@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import paper_repair_execution_evidence
+from med_autoscience.controllers import paper_authority_migration
 from med_autoscience.controllers.domain_action_request_lifecycle import (
     materialize_ai_reviewer_request,
     stable_ai_reviewer_request_path,
@@ -62,9 +63,10 @@ def run_story_repair(
             typed_blocker=BLOCKER,
         )
 
+    paper_root = _active_story_paper_root(study_root=resolved_study_root)
     try:
         changed_paths = medical_prose_story_surface.materialize_medical_prose_story_surfaces(
-            paper_root=resolved_study_root / "paper",
+            paper_root=paper_root,
             work_unit_id=work_unit_id,
             source_eval_id=_text(publication_eval.get("eval_id")),
             previous_quality_repair_batch=quality_batch,
@@ -88,7 +90,7 @@ def run_story_repair(
         for path in changed_paths
     ]
     review_ledger_ref = _materialize_review_ledger(
-        study_root=resolved_study_root,
+        paper_root=paper_root,
         study_id=study_id,
         quest_id=resolved_quest_id,
         work_unit_id=work_unit_id,
@@ -98,7 +100,7 @@ def run_story_repair(
     if review_ledger_ref:
         changed_refs.append({"path": review_ledger_ref, "artifact_role": "review_ledger"})
     evidence_ledger_ref = _ensure_evidence_ledger(
-        study_root=resolved_study_root,
+        paper_root=paper_root,
         study_id=study_id,
         quest_id=resolved_quest_id,
         work_unit_id=work_unit_id,
@@ -140,6 +142,7 @@ def run_story_repair(
         review_finding={
             "source_eval_id": _text(publication_eval.get("eval_id")),
             "source_quality_repair_batch": str(quality_batch_path) if quality_batch_path.exists() else None,
+            "paper_root": str(paper_root),
         },
         source_refs=_source_refs(publication_eval_path, quality_batch_path, quality_batch),
         changed_artifact_refs=changed_refs,
@@ -241,14 +244,14 @@ def _candidate_work_unit_ids(payload: object) -> list[str]:
 
 def _materialize_review_ledger(
     *,
-    study_root: Path,
+    paper_root: Path,
     study_id: str,
     quest_id: str,
     work_unit_id: str,
     source_eval_id: str | None,
     generated_at: str,
 ) -> str:
-    path = study_root / "paper" / "review" / "review_ledger.json"
+    path = paper_root / "review" / "review_ledger.json"
     payload = _read_json_object(path)
     concerns = _mappings(payload.get("concerns"))
     concern_id = f"{work_unit_id}::story_delta"
@@ -282,16 +285,16 @@ def _materialize_review_ledger(
 
 def _ensure_evidence_ledger(
     *,
-    study_root: Path,
+    paper_root: Path,
     study_id: str,
     quest_id: str,
     work_unit_id: str,
     source_eval_id: str | None,
     generated_at: str,
 ) -> str:
-    path = study_root / "paper" / "evidence_ledger.json"
+    path = paper_root / "evidence_ledger.json"
     payload = _read_json_object(path)
-    claim_evidence_map = _read_json_object(study_root / "paper" / "claim_evidence_map.json")
+    claim_evidence_map = _read_json_object(paper_root / "claim_evidence_map.json")
     claims = _evidence_claims_from_claim_map(claim_evidence_map)
     updates = _mappings(payload.get("evidence_updates"))
     update_id = f"{work_unit_id}::story_surface_delta"
@@ -328,6 +331,18 @@ def _ensure_evidence_ledger(
         payload["claims"] = claims
     _write_json(path, payload)
     return str(path.resolve())
+
+
+def _active_story_paper_root(*, study_root: Path) -> Path:
+    stage_native_root = paper_authority_migration.stage_native_body_authority_root(study_root=study_root)
+    stage_native_paper_root = stage_native_root / "paper"
+    if _paper_story_surface_exists(stage_native_paper_root) or (stage_native_root / "paper_authority_receipt.json").exists():
+        return stage_native_paper_root.resolve()
+    return (Path(study_root).expanduser().resolve() / "paper").resolve()
+
+
+def _paper_story_surface_exists(paper_root: Path) -> bool:
+    return any((paper_root / relpath).exists() for relpath in medical_prose_story_surface.MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS)
 
 
 def _evidence_claims_from_claim_map(claim_evidence_map: Mapping[str, Any]) -> list[dict[str, Any]]:

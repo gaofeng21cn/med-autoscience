@@ -61,6 +61,9 @@ _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
     Path("paper/draft.md"),
     Path("paper/build/review_manuscript.md"),
 )
+_STAGE_NATIVE_BODY_ROOT_RELPATH = (
+    Path("artifacts") / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "current_body"
+)
 _MANUSCRIPT_STORY_BLOCKING_PATTERN_IDS = frozenset({"invalid_analysis_history_residue"})
 _MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID = "medical_prose_write_repair"
 _MEDICAL_PROSE_FORBIDDEN_MANUSCRIPT_TERMS = (
@@ -507,15 +510,19 @@ def _controller_progress_refs(
 
 
 def _default_evidence_ledger_ref(study_root: Path) -> str | None:
-    path = study_root / "paper" / "evidence_ledger.json"
-    return str(path.resolve()) if path.exists() else None
+    for root in _story_surface_authority_roots(study_root=study_root):
+        path = root / "paper" / "evidence_ledger.json"
+        if path.exists():
+            return str(path.resolve())
+    return None
 
 
 def _default_review_ledger_ref(study_root: Path) -> str | None:
-    for relpath in (Path("paper/review/review_ledger.json"), Path("paper/review_ledger.json")):
-        path = study_root / relpath
-        if path.exists():
-            return str(path.resolve())
+    for root in _story_surface_authority_roots(study_root=study_root):
+        for relpath in (Path("paper/review/review_ledger.json"), Path("paper/review_ledger.json")):
+            path = root / relpath
+            if path.exists():
+                return str(path.resolve())
     return None
 
 
@@ -572,10 +579,11 @@ def _manuscript_surface_hygiene(
 
 def _existing_manuscript_story_surfaces(*, study_root: Path) -> list[Path]:
     surfaces: list[Path] = []
-    for relative_path in _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS:
-        path = (study_root / relative_path).expanduser().resolve()
-        if path.exists() and path.is_file():
-            surfaces.append(path)
+    for root in _story_surface_authority_roots(study_root=study_root):
+        for relative_path in _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS:
+            path = (root / relative_path).expanduser().resolve()
+            if path.exists() and path.is_file() and path not in surfaces:
+                surfaces.append(path)
     return surfaces
 
 
@@ -601,7 +609,8 @@ def _story_surface_delta_refs(
     changed_artifact_refs: Iterable[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     story_surfaces = {
-        (study_root / relative_path).expanduser().resolve()
+        (root / relative_path).expanduser().resolve()
+        for root in _story_surface_authority_roots(study_root=study_root)
         for relative_path in _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS
     }
     refs: list[dict[str, Any]] = []
@@ -774,7 +783,7 @@ def _excerpt_around(line: str, start: int, end: int, *, radius: int = 80) -> str
 def _is_canonical_delta_ref(*, study_root: Path, path: Path) -> bool:
     resolved = path.expanduser().resolve()
     for root in (
-        study_root / "paper",
+        *[authority_root / "paper" for authority_root in _story_surface_authority_roots(study_root=study_root)],
         study_root / "artifacts" / "results",
         study_root / "results",
     ):
@@ -789,6 +798,14 @@ def _is_canonical_delta_ref(*, study_root: Path, path: Path) -> bool:
     return False
 
 
+def _story_surface_authority_roots(*, study_root: Path) -> tuple[Path, ...]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    stage_native_root = (resolved_study_root / _STAGE_NATIVE_BODY_ROOT_RELPATH).resolve()
+    if (stage_native_root / "paper").exists():
+        return (stage_native_root,)
+    return (resolved_study_root,)
+
+
 def _is_current_package_ref(path: Path) -> bool:
     parts = {part.lower() for part in path.parts}
     return "current_package" in parts or path.name in {"current_package.zip", "current_package.tar.gz"}
@@ -798,6 +815,8 @@ def _resolve_ref_path(*, study_root: Path, raw_path: str) -> Path:
     candidate = Path(raw_path).expanduser()
     if candidate.is_absolute():
         return candidate.resolve()
+    if candidate.parts and candidate.parts[0] == "paper":
+        return (_story_surface_authority_roots(study_root=study_root)[0] / candidate).resolve()
     return (study_root / candidate).resolve()
 
 

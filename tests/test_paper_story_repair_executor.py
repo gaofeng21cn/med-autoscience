@@ -140,6 +140,131 @@ def test_story_repair_executor_consumes_writer_handoff_into_canonical_story_delt
     assert (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").is_file()
 
 
+def test_story_repair_executor_targets_stage_native_body_authority(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
+    story_surface = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
+    legacy_paper_root = study_root / "paper"
+    authority_paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    for root, draft_text in (
+        (legacy_paper_root, "# Legacy draft\n\nThis surface is provenance only.\n"),
+        (authority_paper_root, "# Authority draft\n\nCurrent body before repair.\n"),
+    ):
+        (root / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+        (root / "draft.md").write_text(draft_text, encoding="utf-8")
+        (root / "build" / "review_manuscript.md").parent.mkdir(parents=True, exist_ok=True)
+        (root / "build" / "review_manuscript.md").write_text(draft_text, encoding="utf-8")
+        _write_json(
+            root / "claim_evidence_map.json",
+            {
+                "schema_version": 1,
+                "claims": [
+                    {
+                        "claim_id": "C1",
+                        "statement": "Current body authority story surface is aligned.",
+                        "status": "supported_with_limitations",
+                        "paper_role": "main_text",
+                        "evidence_items": [
+                            {
+                                "item_id": "C1_authority_story_surface",
+                                "support_level": "primary",
+                                "source_paths": ["paper/draft.md", "paper/build/review_manuscript.md"],
+                                "summary": "Authority body paper root carries the current story surface.",
+                            }
+                        ],
+                    }
+                ],
+            },
+        )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "eval-current",
+            "recommended_actions": [
+                {
+                    "next_work_unit": {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "handoff_ready",
+            "ok": True,
+            "source_eval_id": "eval-current",
+            "writer_worker_handoff": {
+                "next_executable_owner": "write",
+                "source_action": {"blocked_reason": "manuscript_story_surface_delta_missing"},
+            },
+        },
+    )
+
+    def fake_materialize(**kwargs: Any) -> list[str]:
+        assert kwargs["paper_root"] == authority_paper_root.resolve()
+        new_text = "# Authority draft\n\nStory repair body on current body authority.\n"
+        changed = []
+        for relpath in (Path("draft.md"), Path("build/review_manuscript.md")):
+            path = authority_paper_root / relpath
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(new_text, encoding="utf-8")
+            changed.append(str(path.resolve()))
+        return changed
+
+    monkeypatch.setattr(story_surface, "materialize_medical_prose_story_surfaces", fake_materialize)
+
+    result = module.run_story_repair(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        study_root=study_root,
+        source="test",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "progress_delta_candidate"
+    assert "provenance only" in (legacy_paper_root / "draft.md").read_text(encoding="utf-8")
+    assert "current body authority" in (authority_paper_root / "draft.md").read_text(encoding="utf-8")
+    changed_paths = {Path(ref["path"]) for ref in result["changed_artifact_refs"]}
+    assert authority_paper_root / "draft.md" in changed_paths
+    assert authority_paper_root / "build" / "review_manuscript.md" in changed_paths
+    assert authority_paper_root / "review" / "review_ledger.json" in changed_paths
+    assert authority_paper_root / "evidence_ledger.json" in changed_paths
+    evidence = result["repair_execution_evidence"]
+    assert evidence["progress_delta_candidate"] is True
+    assert evidence["manuscript_surface_hygiene"]["status"] == "clear"
+    assert {
+        Path(ref["path"]) for ref in evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"]
+    } == {
+        authority_paper_root / "draft.md",
+        authority_paper_root / "build" / "review_manuscript.md",
+    }
+    receipt = json.loads(
+        (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    receipt_paths = {Path(ref["path"]) for ref in receipt["canonical_artifact_delta_refs"]}
+    assert authority_paper_root / "draft.md" in receipt_paths
+    assert legacy_paper_root / "draft.md" not in receipt_paths
+
+
 def test_story_repair_executor_blocks_without_handoff_or_work_unit(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
