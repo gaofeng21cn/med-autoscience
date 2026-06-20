@@ -15,6 +15,12 @@ from med_autoscience.controllers.gate_clearing_batch_parts.io_utils import (
 from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID
 
 
+_CORE_DISPLAY_PACK_ID = "fenggaolab.org.medical-display-core"
+_LEGACY_TIME_TO_EVENT_RISK_GROUP_SUMMARY_TEMPLATE_ID = (
+    f"{_CORE_DISPLAY_PACK_ID}::time_to_event_risk_group_summary"
+)
+
+
 def publication_shell_surface_needs_sync(*, study_root: Path, paper_root: Path) -> bool:
     try:
         publication_shell_sync._resolve_cohort_flow_source_payload(
@@ -63,15 +69,6 @@ def _registry_display_ids_for_requirement(
         if display_id:
             display_ids.add(display_id)
     return display_ids
-
-
-def _time_to_event_risk_group_summary_template_id(
-    *,
-    display_surface_materialization_controller: Any,
-) -> str:
-    return display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
-        "time_to_event_risk_group_summary"
-    ).template_id
 
 
 def _is_stale_time_to_event_grouped_payload_candidate(
@@ -131,9 +128,7 @@ def stale_time_to_event_grouped_payload_candidates(
     if not risk_summary_display_ids:
         return payload_path, [], None
 
-    expected_template_id = _time_to_event_risk_group_summary_template_id(
-        display_surface_materialization_controller=display_surface_materialization_controller,
-    )
+    expected_template_id = _LEGACY_TIME_TO_EVENT_RISK_GROUP_SUMMARY_TEMPLATE_ID
     candidate_display_ids = _stale_time_to_event_grouped_payload_candidate_ids(
         displays=displays,
         risk_summary_display_ids=risk_summary_display_ids,

@@ -608,6 +608,77 @@ def test_run_gate_clearing_batch_blocks_legacy_f3_cumulative_incidence_payload_b
     assert result["repair_blocking_artifact_refs"] == blocker_result["blocking_artifact_refs"]
 
 
+def test_stale_time_to_event_grouped_payload_detection_does_not_require_retired_template_registry(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.gate_clearing_batch_parts.display_refresh"
+    )
+    paper_root = tmp_path / "paper"
+    paper_root.mkdir(parents=True)
+    payload_path = paper_root / "time_to_event_grouped_inputs.json"
+    _write_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "km_risk_stratification",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_risk_group_summary",
+                    "catalog_id": "F3",
+                }
+            ],
+        },
+    )
+    _write_json(
+        payload_path,
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_grouped_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "km_risk_stratification",
+                    "template_id": (
+                        "fenggaolab.org.medical-display-core::"
+                        "time_to_event_risk_group_summary"
+                    ),
+                    "title": "Cumulative incidence by transferred risk quartile",
+                    "caption": "Cumulative incidence curves by China-derived risk strata.",
+                    "x_label": "Years from baseline",
+                    "y_label": "Cumulative incidence",
+                    "groups": [
+                        {
+                            "label": "China Q1 low",
+                            "times": [0.0, 1.0, 3.0, 5.0],
+                            "values": [0.0, 0.001, 0.003, 0.004],
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    class RetiredTemplateRegistry:
+        @staticmethod
+        def get_evidence_figure_spec(template_id: str) -> object:
+            raise ValueError(f"unknown evidence figure template `{template_id}`")
+
+    class RetiredTemplateController:
+        display_registry = RetiredTemplateRegistry()
+
+    path, display_ids, expected_template_id = module.stale_time_to_event_grouped_payload_candidates(
+        paper_root=paper_root,
+        display_surface_materialization_controller=RetiredTemplateController(),
+    )
+
+    assert path == payload_path
+    assert display_ids == ["km_risk_stratification"]
+    assert expected_template_id == (
+        "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
+    )
+
+
 def test_run_gate_clearing_batch_syncs_legacy_table1_schema_before_materialize(
     monkeypatch,
     tmp_path: Path,
