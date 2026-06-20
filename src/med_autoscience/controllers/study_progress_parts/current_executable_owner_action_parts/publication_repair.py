@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.publication_work_units import derive_publication_work_units
 from med_autoscience.controllers.study_progress_parts.shared import (
     _mapping_copy,
     _non_empty_text,
@@ -27,14 +28,25 @@ def owner_action_from_publication_eval_readiness_blocker_repair(
     if not action:
         return None
     owner_delta = current_owner_delta(payload)
-    next_work_unit = _mapping_copy(action.get("next_work_unit"))
+    derived_work_units = _specificity_derived_publication_work_units(
+        action=action,
+        publication_eval=publication_eval,
+    )
+    next_work_unit = _mapping_copy(derived_work_units.get("next_work_unit")) or _mapping_copy(
+        action.get("next_work_unit")
+    )
     work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
     lane = _non_empty_text(next_work_unit.get("lane")) or _non_empty_text(action.get("route_target"))
     if work_unit_id is None or lane not in {"write", "analysis-campaign"}:
         return None
+    blocking_work_units = _mapping_items(derived_work_units.get("blocking_work_units")) or _mapping_items(
+        action.get("blocking_work_units")
+    )
     action_type = QUALITY_REPAIR_ACTION
     source_ref = _text_items(action.get("evidence_refs"))[0] if _text_items(action.get("evidence_refs")) else None
-    work_unit_fingerprint = _non_empty_text(action.get("work_unit_fingerprint"))
+    work_unit_fingerprint = _non_empty_text(derived_work_units.get("fingerprint")) or _non_empty_text(
+        action.get("work_unit_fingerprint")
+    )
     stage_typed_blocker_ref = (
         _non_empty_text(owner_delta.get("source_ref"))
         or _non_empty_text(_mapping_copy(owner_delta.get("hard_gate")).get("owner_answer_ref"))
@@ -103,7 +115,8 @@ def owner_action_from_publication_eval_readiness_blocker_repair(
                 "gap_ids": gap_ids,
                 "required_output_contract": required_output_contract,
                 "next_work_unit": next_work_unit or None,
-                "blocking_work_units": _mapping_items(action.get("blocking_work_units")),
+                "blocking_work_units": blocking_work_units,
+                "specificity_targets": _mapping_items(action.get("specificity_targets")),
                 "gaps": [gap for gap in gaps if gap],
             },
             "target_surface_specificity": "publication_eval_readiness_blocker_derived_repair",
@@ -119,6 +132,49 @@ def owner_action_from_publication_eval_readiness_blocker_repair(
             "authority_boundary": _authority_boundary(),
         }
     )
+
+
+def _specificity_derived_publication_work_units(
+    *,
+    action: Mapping[str, Any],
+    publication_eval: Mapping[str, Any],
+) -> dict[str, Any]:
+    specificity_targets = _mapping_items(action.get("specificity_targets"))
+    if not specificity_targets:
+        return {}
+    blockers = _text_items(action.get("blockers"))
+    blockers.extend(_text_items(action.get("medical_publication_surface_named_blockers")))
+    for unit in _mapping_items(action.get("blocking_work_units")):
+        blocker = _non_empty_text(unit.get("blocking_reason")) or _non_empty_text(unit.get("reason"))
+        if blocker is not None:
+            blockers.append(blocker)
+    for gap in _mapping_items(publication_eval.get("gaps")):
+        gap_id = _non_empty_text(gap.get("gap_id"))
+        if gap_id is not None:
+            blockers.append(gap_id)
+    for target in specificity_targets:
+        blocker = _non_empty_text(target.get("blocking_reason"))
+        if blocker is not None:
+            blockers.append(blocker)
+    blocker_list = _dedupe_text(blockers)
+    if not blocker_list:
+        return {}
+    derived = derive_publication_work_units(
+        {
+            "status": "blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "blockers": blocker_list,
+            "medical_publication_surface_status": "blocked",
+        },
+        specificity_targets=specificity_targets,
+    )
+    next_work_unit = _mapping_copy(derived.get("next_work_unit"))
+    lane = _non_empty_text(next_work_unit.get("lane"))
+    if lane not in {"write", "analysis-campaign"}:
+        return {}
+    if _non_empty_text(next_work_unit.get("unit_id")) is None:
+        return {}
+    return dict(derived)
 
 
 def _publication_eval_route_back_action(publication_eval: Mapping[str, Any]) -> dict[str, Any]:

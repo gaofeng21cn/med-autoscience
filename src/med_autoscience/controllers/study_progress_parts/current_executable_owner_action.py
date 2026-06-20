@@ -194,6 +194,8 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
             action=repair_progress_action,
             payload=payload,
         ):
+            if _next_forced_delta_is_terminal_routeback_action(next_forced_delta_action):
+                return next_forced_delta_action
             if publication_repair_action is not None:
                 return publication_repair_action
             return None
@@ -220,6 +222,8 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     ):
         return next_forced_delta_action
     if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
+        if _next_forced_delta_is_terminal_routeback_action(next_forced_delta_action):
+            return next_forced_delta_action
         publication_repair_action = _from_publication_eval_readiness_blocker_repair(payload)
         if publication_repair_action is not None:
             return publication_repair_action
@@ -899,9 +903,25 @@ def _terminal_stage_next_delta_supersedes_gate_followthrough(
         return False
     if next_work_unit == _non_empty_text(gate_action.get("work_unit_id")):
         return False
+    if _specificity_derived_gate_followthrough_action(gate_action):
+        return False
     if _non_empty_text(next_action.get("action_type")) == QUALITY_REPAIR_ACTION:
         return True
     return False
+
+
+def _specificity_derived_gate_followthrough_action(action: Mapping[str, Any]) -> bool:
+    payload = _mapping_copy(action)
+    if _non_empty_text(payload.get("source")) != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        return False
+    if _non_empty_text(payload.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    target_surface = _mapping_copy(payload.get("target_surface"))
+    specificity_targets = target_surface.get("specificity_targets")
+    if not isinstance(specificity_targets, list | tuple) or not specificity_targets:
+        return False
+    next_work_unit = _mapping_copy(target_surface.get("next_work_unit"))
+    return _non_empty_text(next_work_unit.get("unit_id")) == _non_empty_text(payload.get("work_unit_id"))
 
 
 def _action_consumed_by_dispatch_receipt(
