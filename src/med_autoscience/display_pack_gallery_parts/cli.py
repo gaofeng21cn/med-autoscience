@@ -143,6 +143,7 @@ def main(argv: list[str] | None = None) -> int:
                 "docs_reference_path": str(paths.DOCS_REFERENCE_PATH) if args.publish_docs else "",
                 "docs_quality_audit_path": str(paths.DOCS_QUALITY_AUDIT_PATH) if args.publish_docs else "",
                 "docs_status_path": str(paths.DOCS_STATUS_PATH) if args.publish_docs else "",
+                "docs_manifest_path": str(paths.DOCS_MANIFEST_PATH) if args.publish_docs else "",
                 "manifest_path": str(paths.MANIFEST_PATH),
             },
             ensure_ascii=False,

@@ -34,6 +34,12 @@ def _analysis_responsibility_rows(manifest: dict[str, Any]) -> str:
     return "\n".join(f"| `{key}` | {value} |" for key, value in sorted(counts.items()))
 
 
+def _join_counted(values: object) -> str:
+    if not isinstance(values, list):
+        return "0"
+    return str(len([item for item in values if isinstance(item, str) and item]))
+
+
 def build_gallery_status_markdown(manifest: dict[str, Any]) -> str:
     quality = manifest.get("quality_audit") if isinstance(manifest.get("quality_audit"), dict) else {}
     profile_coverage = (
@@ -61,6 +67,11 @@ def build_gallery_status_markdown(manifest: dict[str, Any]) -> str:
         if isinstance(manifest.get("composition_recipe_surface"), dict)
         else {}
     )
+    composition_gallery = (
+        manifest.get("composition_gallery_surface")
+        if isinstance(manifest.get("composition_gallery_surface"), dict)
+        else {}
+    )
     composition_policy = (
         composition_surface.get("policy")
         if isinstance(composition_surface.get("policy"), dict)
@@ -77,10 +88,12 @@ def build_gallery_status_markdown(manifest: dict[str, Any]) -> str:
         if isinstance(item, str)
     ) or "- none"
     composition_rows = "\n".join(
-        f"| `{item.get('recipe_id', '')}` | {item.get('title', '')} | {item.get('hero_panel_role', '')} |"
-        for item in composition_surface.get("recipes", [])
+        f"| `{item.get('recipe_id', '')}` | {item.get('title', '')} | "
+        f"{item.get('hero_panel_role', '')} | {_join_counted(item.get('supporting_panel_roles'))} | "
+        f"{_join_counted(item.get('evidence_primitive_family_ids'))} | {item.get('default_layout', '')} |"
+        for item in composition_gallery.get("recipes", [])
         if isinstance(item, dict)
-    ) or "| none | none | none |"
+    ) or "| none | none | none | 0 | 0 | none |"
     return f"""# MAS Display Pack Gallery Status
 
 Owner: `MedAutoScience`
@@ -99,8 +112,9 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Migration index entries | {_count(manifest, "migration_inventory_template_count") + _count(manifest, "retired_alias_template_count")} |
 | Current Python evidence templates | {renderer_completion.get("python_evidence_retained_count", 0)} |
 | Page-level composition recipes | {composition_surface.get("composition_recipe_count", 0)} |
+| Composition storyboard gallery pages | {composition_gallery.get("composition_recipe_count", 0)} |
 
-`Gallery evidence figures` 是 PDF Gallery 中展示的 R/ggplot2 数据证据图数量。`Page-level composition recipes` 是组织多个 evidence primitives 的图页 recipe，不是更多 Gallery 卡片。`Current canonical templates` 是当前可推荐 canonical surface，包含不进入 ggplot2 evidence Gallery 的非视觉库存。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是 Gallery 卡片。
+`Gallery evidence figures` 是 PDF Gallery 中展示的 R/ggplot2 数据证据图数量。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级 storyboard 数量。`Page-level composition recipes` 是组织多个 evidence primitives 的图页 recipe，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface，包含不进入 ggplot2 evidence Gallery 的非视觉库存。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是 Gallery 卡片。
 
 ## Renderer 与质量口径
 
@@ -136,10 +150,10 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 
 {required_workflow_before_paper}
 
-## 页面级 Composition Recipes
+## 页面级 Composition Recipe Gallery
 
-| Recipe | Title | Hero panel |
-| --- | --- | --- |
+| Recipe | Title | Hero panel | Supporting | Primitive families | Default layout |
+| --- | --- | --- | ---: | ---: | --- |
 {composition_rows}
 
 ## Gallery 分类

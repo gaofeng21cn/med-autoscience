@@ -5,6 +5,9 @@ from typing import Any
 
 from med_autoscience.display_pack_gallery_catalog import TemplateRecord
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
+from med_autoscience.display_pack_gallery_parts.composition_gallery import (
+    build_composition_gallery_surface,
+)
 from med_autoscience.display_pack_agent_parts.figure_contract import figure_contract_policy
 from med_autoscience.display_pack_agent_parts.figure_workflow import figure_workflow_policy
 from med_autoscience.display_pack_agent_parts.composition_recipe_projection import (
@@ -216,6 +219,7 @@ def build_quality_audit(
         default_surface_excluded_records=default_surface_excluded_records,
     )
     composition_recipe_surface = composition_recipe_discovery_payload(include_recipes=True)
+    composition_gallery_surface = build_composition_gallery_surface(composition_recipe_surface, records)
     return {
         "schema_version": 1,
         "overall_status": "not_publication_ready",
@@ -262,6 +266,7 @@ def build_quality_audit(
         "figure_contract_policy": figure_contract_policy(),
         "figure_workflow_policy": figure_workflow_policy(),
         "composition_recipe_surface": composition_recipe_surface,
+        "composition_gallery_surface": composition_gallery_surface,
         "publication_polish_policy": publication_polish_policy(),
         "external_quality_references": list(EXTERNAL_QUALITY_REFERENCES),
         "templates": template_audits,
@@ -410,6 +415,7 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
     polish = audit["publication_polish_policy"]
     workflow = audit["figure_workflow_policy"]
     composition = audit["composition_recipe_surface"]
+    composition_gallery = audit["composition_gallery_surface"]
     blocker_lines = "\n".join(f"| `{key}` | {value} |" for key, value in blockers.items()) or "| none | 0 |"
     warning_lines = "\n".join(f"| `{key}` | {value} |" for key, value in warnings.items()) or "| none | 0 |"
     before_paper_lines = "\n".join(
@@ -422,8 +428,13 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
         f"- `{item}`" for item in audit["quality_policy"]["composition_recipe_required_before_paper_use"]
     )
     composition_recipe_lines = "\n".join(
-        f"| `{item['recipe_id']}` | {item['title']} | {item['hero_panel_role']} |"
-        for item in composition["recipes"]
+        (
+            f"| `{item['recipe_id']}` | {item['title']} | {item['hero_panel_role']} | "
+            f"{len(item['supporting_panel_roles'])} | {len(item['evidence_primitive_family_ids'])} | "
+            f"`{str(item['programmatic_evidence_required']).lower()}` | "
+            f"`{str(item['design_shell_allowed']).lower()}` |"
+        )
+        for item in composition_gallery["recipes"]
     )
     high_risk_lines = "\n".join(
         f"| `{item['family']}` | {', '.join(f'`{check}`' for check in item['checks'])} |"
@@ -476,6 +487,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - figure workflow policy: `{workflow["policy_id"]}`
 - composition recipe policy: `{composition["policy"]["policy_id"]}`
 - composition recipes: `{composition["composition_recipe_count"]}`
+- composition storyboard gallery pages: `{composition_gallery["composition_recipe_count"]}`
 
 ## Paper-use 前置检查
 
@@ -489,10 +501,10 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 {composition_before_paper_lines}
 
-## 页面级 Composition Recipes
+## 页面级 Composition Recipe Gallery
 
-| Recipe | Title | Hero panel |
-| --- | --- | --- |
+| Recipe | Title | Hero panel | Supporting | Primitive families | Programmatic evidence | Design shell |
+| --- | --- | --- | ---: | ---: | --- | --- |
 {composition_recipe_lines}
 
 ## 高风险图族复核项

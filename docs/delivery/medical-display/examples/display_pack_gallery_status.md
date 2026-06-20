@@ -16,8 +16,9 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Migration index entries | 66 |
 | Current Python evidence templates | 0 |
 | Page-level composition recipes | 6 |
+| Composition storyboard gallery pages | 6 |
 
-`Gallery evidence figures` 是 PDF Gallery 中展示的 R/ggplot2 数据证据图数量。`Page-level composition recipes` 是组织多个 evidence primitives 的图页 recipe，不是更多 Gallery 卡片。`Current canonical templates` 是当前可推荐 canonical surface，包含不进入 ggplot2 evidence Gallery 的非视觉库存。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是 Gallery 卡片。
+`Gallery evidence figures` 是 PDF Gallery 中展示的 R/ggplot2 数据证据图数量。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级 storyboard 数量。`Page-level composition recipes` 是组织多个 evidence primitives 的图页 recipe，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface，包含不进入 ggplot2 evidence Gallery 的非视觉库存。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是 Gallery 卡片。
 
 ## Renderer 与质量口径
 
@@ -71,16 +72,16 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - `visual_audit_receipt_or_residual_item_recorded`
 - `owner_or_publication_gate_receipt_present_for_claim_bearing_figures`
 
-## 页面级 Composition Recipes
+## 页面级 Composition Recipe Gallery
 
-| Recipe | Title | Hero panel |
-| --- | --- | --- |
-| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary |
-| `model_validation_dashboard` | Model Validation Dashboard | validation_summary_or_generalizability |
-| `schematic_led_composite` | Schematic-led Composite | schematic_or_process_hero |
-| `image_plate_plus_quantification` | Image Plate plus Quantification | representative_image_plate |
-| `asymmetric_genomics_figure` | Asymmetric Genomics Figure | dominant_molecular_pattern |
-| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context |
+| Recipe | Title | Hero panel | Supporting | Primitive families | Default layout |
+| --- | --- | --- | ---: | ---: | --- |
+| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary | 3 | 5 | one_large_left_panel_with_two_or_three_right_support_panels |
+| `model_validation_dashboard` | Model Validation Dashboard | validation_summary_or_generalizability | 3 | 7 | performance_or_generalizability_hero_with_explanation_and_governance_support |
+| `schematic_led_composite` | Schematic-led Composite | schematic_or_process_hero | 3 | 6 | schematic_hero_above_or_left_with_small_programmatic_evidence_panels |
+| `image_plate_plus_quantification` | Image Plate plus Quantification | representative_image_plate | 3 | 5 | dark_or_neutral_image_plate_with_adjacent_white_background_quantification |
+| `asymmetric_genomics_figure` | Asymmetric Genomics Figure | dominant_molecular_pattern | 3 | 6 | wide_pattern_hero_with_narrow_right_or_bottom_consequence_panels |
+| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context | 3 | 7 | atlas_embedding_or_spatial_hero_with_marker_composition_and_trajectory_support |
 
 ## Gallery 分类
 

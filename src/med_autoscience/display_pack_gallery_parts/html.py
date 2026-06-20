@@ -11,7 +11,16 @@ from med_autoscience.display_pack_gallery_catalog import (
     visual_gallery_records,
 )
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
+from med_autoscience.display_pack_gallery_parts.composition_gallery import (
+    build_composition_gallery_surface,
+)
+from med_autoscience.display_pack_gallery_parts.composition_html import (
+    render_composition_gallery_html,
+)
 from med_autoscience.display_pack_gallery_parts.taxonomy import CATEGORY_ORDER
+from med_autoscience.display_pack_agent_parts.composition_recipe_projection import (
+    composition_recipe_discovery_payload,
+)
 
 def _html_id(value: str) -> str:
     return "".join(ch if ch.isalnum() else "-" for ch in value).strip("-")
@@ -51,6 +60,8 @@ def _render_html(
     palette = default_style["palette"]
     visible_records = gallery_display_records(records)
     canonical_visual_records = visual_gallery_records(records)
+    composition_surface = composition_recipe_discovery_payload(include_recipes=True)
+    composition_gallery = build_composition_gallery_surface(composition_surface, records)
     rendered_count = sum(1 for record in visible_records if rendered[record.template_id].status == "rendered")
     r_evidence_count = sum(
         1
@@ -61,7 +72,8 @@ def _render_html(
         f'<span class="pill">style_profile_id: {html.escape(default_style["style_profile_id"])}</span>'
         f'<span class="pill">journal_palette_ref: {html.escape(default_style["journal_palette_ref"])}</span>'
         f'<span class="pill">gallery cards: {len(visible_records)}</span>'
-        f'<span class="pill">gallery scope: canonical current R/ggplot2 evidence templates</span>'
+        f'<span class="pill">gallery scope: composition recipes + canonical R/ggplot2 evidence</span>'
+        f'<span class="pill">composition recipes: {composition_gallery["composition_recipe_count"]}</span>'
         f'<span class="pill">R/ggplot2 evidence: {r_evidence_count}</span>'
         f'<span class="pill">Python evidence: 0</span>'
         f'<span class="pill">canonical evidence representatives: {len(canonical_visual_records)}</span>'
@@ -76,8 +88,16 @@ def _render_html(
         if key in palette
     )
     nav = "\n".join(
-        f'<a href="#family-{_html_id(category)}"><span>{html.escape(category)}</span><strong>{len(categories[category])}</strong></a>'
-        for category in ordered_categories
+        [
+            (
+                f'<a href="#composition-recipes"><span>Composition Recipes</span>'
+                f'<strong>{composition_gallery["composition_recipe_count"]}</strong></a>'
+            )
+        ]
+        + [
+            f'<a href="#family-{_html_id(category)}"><span>{html.escape(category)}</span><strong>{len(categories[category])}</strong></a>'
+            for category in ordered_categories
+        ]
     )
     sections: list[str] = []
     for category in ordered_categories:
@@ -122,12 +142,14 @@ def _render_html(
 </section>"""
         )
 
+    composition_section = render_composition_gallery_html(composition_gallery, rendered)
+
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MAS Display Pack Evidence Gallery</title>
+<title>MAS Display Pack Figure Gallery</title>
 <style>
 :root{{--ink:#272727;--muted:#666;--line:#e4e7eb;--bg:#f7f8fa;--card:#fff;}}
 *{{box-sizing:border-box}}
@@ -164,20 +186,43 @@ h1{{margin:0 0 8px;font-size:25px;letter-spacing:0}}
 .card p{{margin:5px 0;font-size:12px;color:#555}}
 .tags{{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}}
 .tag{{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:2px 7px;background:#fbfcfd;color:#555}}
+.composition-section{{margin-bottom:34px}}
+.composition-intro{{font-size:13px;color:var(--muted);margin:0 0 12px;max-width:980px}}
+.composition-cards{{display:grid;grid-template-columns:1fr;gap:18px}}
+.composition-card{{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;break-inside:avoid}}
+.composition-head{{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:7px}}
+.composition-head h3{{margin:0;font-size:17px;line-height:1.25}}
+.composition-card p{{font-size:13px;color:#555;margin:0 0 12px;max-width:980px}}
+.storyboard{{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:8px;margin:10px 0 12px}}
+.story-panel{{border:1px solid var(--line);border-radius:7px;background:#fff;overflow:hidden;min-width:0}}
+.story-panel.hero{{grid-row:span 2}}
+.story-image{{background:#fff;min-height:128px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #eef1f4}}
+.story-panel.hero .story-image{{min-height:270px}}
+.story-image img{{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;background:#fff}}
+.panel-placeholder{{font-size:12px;line-height:1.3;color:#777;text-align:center;text-transform:uppercase;letter-spacing:.02em}}
+.story-meta{{padding:8px;font-size:11px;color:#555;display:flex;flex-direction:column;gap:4px}}
+.story-meta strong{{font-size:12px;color:#333;line-height:1.2}}
+.story-meta code{{white-space:normal;overflow-wrap:anywhere}}
+.mini-note{{display:inline-block;margin-left:5px;border:1px solid #d7dce2;border-radius:999px;padding:0 5px;font-size:10px;color:#777}}
+.composition-grid{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}}
+.composition-grid>div{{border-top:1px solid #eef1f4;padding-top:7px;font-size:12px;color:#555;min-width:0}}
+.composition-grid strong{{display:block;color:#333;margin-bottom:4px}}
+.composition-grid span{{display:block;overflow-wrap:anywhere}}
 @media(max-width:900px){{header{{position:static}}.layout{{display:block;padding:16px}}.nav{{position:static;margin-bottom:18px}}.cards{{grid-template-columns:1fr}}.panes.compare{{grid-template-columns:1fr}}.figure-pane{{border-right:0;border-bottom:1px solid var(--line)}}}}
-@media print{{@page{{size:A4;margin:10mm}}header{{position:static}}.layout{{display:block;padding:0}}.nav{{display:none}}.cards{{grid-template-columns:repeat(2,1fr);gap:10px}}body{{background:#fff}}.card{{break-inside:avoid}}}}
+@media(max-width:900px){{.storyboard{{grid-template-columns:1fr 1fr}}.story-panel.hero{{grid-column:1/-1}}.composition-grid{{grid-template-columns:1fr 1fr}}}}
+@media print{{@page{{size:A4;margin:10mm}}header{{position:static}}.layout{{display:block;padding:0}}.nav{{display:none}}.section h2{{font-size:18px;margin-bottom:8px}}.cards{{grid-template-columns:repeat(2,1fr);gap:10px}}.composition-intro{{font-size:11px;margin-bottom:8px}}.composition-card{{break-inside:avoid;page-break-inside:avoid;page-break-after:always;padding:8px;margin:0 0 8px}}.composition-head{{margin-bottom:4px}}.composition-head h3{{font-size:15px}}.composition-card p{{font-size:10px;margin-bottom:6px}}.storyboard{{grid-template-columns:1.2fr 1fr 1fr;grid-auto-rows:auto;gap:5px;margin:5px 0 7px}}.story-panel.hero{{grid-row:span 2}}.story-image{{height:78px;min-height:0}}.story-panel.hero .story-image{{height:161px;min-height:0}}.story-image img{{width:100%;height:100%;aspect-ratio:auto;object-fit:contain}}.panel-placeholder{{font-size:9px}}.story-meta{{padding:4px;font-size:8px;gap:1px}}.story-meta strong{{font-size:9px}}.composition-grid{{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}}.composition-grid>div{{font-size:8px;padding-top:3px}}.tag{{font-size:8px;padding:1px 4px}}body{{background:#fff}}.card{{break-inside:avoid}}}}
 </style>
 </head>
 <body>
 <header>
-  <h1>MAS Display Pack Evidence Gallery</h1>
-    <div class="sub">默认展示 canonical current R/ggplot2 数据证据图；重复的输入数据变体已退役为 alias，不再作为 Gallery 卡片。未证明优于 R/ggplot2 的 Python evidence 模板不进入当前 pack。设计/流程类 composition shell 不混入这份 ggplot2 evidence Gallery。</div>
+  <h1>MAS Display Pack Figure Gallery</h1>
+    <div class="sub">先展示页面级 composition recipe，再展示 canonical current R/ggplot2 数据证据图。Composition recipe 是论文图页 storyboard，不是真实数据结果、不签 publication-ready；重复输入数据变体已退役为 alias，未证明优于 R/ggplot2 的 Python evidence 模板不进入当前 pack。</div>
   <div class="meta">{meta}</div>
   <div class="palette">{swatches}</div>
 </header>
 <div class="layout">
 <nav class="nav"><h2>索引</h2>{nav}</nav>
-<main>{''.join(sections)}</main>
+<main>{composition_section}{''.join(sections)}</main>
 </div>
 </body>
 </html>

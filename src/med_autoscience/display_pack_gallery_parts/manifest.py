@@ -35,6 +35,9 @@ from med_autoscience.display_pack_renderer_policy import (
 )
 from med_autoscience.display_pack_gallery_parts import paths
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
+from med_autoscience.display_pack_gallery_parts.composition_gallery import (
+    build_composition_gallery_surface,
+)
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit
 
 
@@ -165,6 +168,7 @@ def build_manifest(
     )
     palette = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["palette"]
     composition_recipe_surface = composition_recipe_discovery_payload(include_recipes=True)
+    composition_gallery_surface = build_composition_gallery_surface(composition_recipe_surface, records)
     return {
         "schema_version": 9,
         "status": "rendered",
@@ -174,9 +178,12 @@ def build_manifest(
         "docs_pdf_path": str(paths.DOCS_PDF_PATH) if publish_docs else "",
         "docs_reference_path": str(paths.DOCS_REFERENCE_PATH) if publish_docs else "",
         "docs_quality_audit_path": str(paths.DOCS_QUALITY_AUDIT_PATH) if publish_docs else "",
+        "docs_status_path": str(paths.DOCS_STATUS_PATH) if publish_docs else "",
+        "docs_manifest_path": str(paths.DOCS_MANIFEST_PATH) if publish_docs else "",
         "template_count": len(visual_records),
         "active_template_count": len(visual_records),
         "evidence_gallery_template_count": len(visual_records),
+        "composition_recipe_gallery_count": composition_gallery_surface["composition_recipe_count"],
         "non_visual_canonical_template_count": len(non_visual_records),
         "current_template_count": len(records),
         "migration_inventory_template_count": len(records),
@@ -237,6 +244,7 @@ def build_manifest(
         "figure_contract_policy": figure_contract_policy(),
         "figure_workflow_policy": figure_workflow_policy(),
         "composition_recipe_surface": composition_recipe_surface,
+        "composition_gallery_surface": composition_gallery_surface,
         "publication_polish_policy": publication_polish_policy(),
         "quality_audit": quality_audit,
         "canonical_category_ontology": canonical_category_ontology(),
@@ -260,6 +268,7 @@ def build_manifest(
             "style_palette_qa_profile_required": True,
             "composition_recipe_routing_required": True,
             "composition_recipes_are_page_level_not_gallery_cards": True,
+            "composition_recipes_are_visible_in_gallery_storyboard_section": True,
         },
         "templates": [
             _template_payload(

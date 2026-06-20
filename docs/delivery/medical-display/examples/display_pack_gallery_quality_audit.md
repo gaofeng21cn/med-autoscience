@@ -19,6 +19,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
 - composition recipe policy: `mas_medical_figure_composition_recipes.v1`
 - composition recipes: `6`
+- composition storyboard gallery pages: `6`
 
 ## Paper-use 前置检查
 
@@ -50,16 +51,16 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - `shared_legend_or_direct_label_strategy_declared`
 - `programmatic_evidence_primitives_preserve_data_statistics_refs`
 
-## 页面级 Composition Recipes
+## 页面级 Composition Recipe Gallery
 
-| Recipe | Title | Hero panel |
-| --- | --- | --- |
-| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary |
-| `model_validation_dashboard` | Model Validation Dashboard | validation_summary_or_generalizability |
-| `schematic_led_composite` | Schematic-led Composite | schematic_or_process_hero |
-| `image_plate_plus_quantification` | Image Plate plus Quantification | representative_image_plate |
-| `asymmetric_genomics_figure` | Asymmetric Genomics Figure | dominant_molecular_pattern |
-| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context |
+| Recipe | Title | Hero panel | Supporting | Primitive families | Programmatic evidence | Design shell |
+| --- | --- | --- | ---: | ---: | --- | --- |
+| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary | 3 | 5 | `true` | `false` |
+| `model_validation_dashboard` | Model Validation Dashboard | validation_summary_or_generalizability | 3 | 7 | `true` | `false` |
+| `schematic_led_composite` | Schematic-led Composite | schematic_or_process_hero | 3 | 6 | `true` | `true` |
+| `image_plate_plus_quantification` | Image Plate plus Quantification | representative_image_plate | 3 | 5 | `true` | `true` |
+| `asymmetric_genomics_figure` | Asymmetric Genomics Figure | dominant_molecular_pattern | 3 | 6 | `true` | `false` |
+| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context | 3 | 7 | `true` | `false` |
 
 ## 高风险图族复核项
 

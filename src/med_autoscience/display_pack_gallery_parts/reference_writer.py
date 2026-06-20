@@ -13,6 +13,9 @@ from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
 from med_autoscience.display_pack_gallery_parts.taxonomy import CATEGORY_ORDER
 from med_autoscience.display_pack_gallery_reference import build_gallery_reference_markdown
 from med_autoscience.display_pack_gallery_parts import paths
+from med_autoscience.display_pack_gallery_parts.composition_gallery import (
+    build_composition_gallery_surface,
+)
 from med_autoscience.display_pack_agent_parts.composition_recipe_projection import (
     composition_recipe_discovery_payload,
 )
@@ -41,9 +44,11 @@ def _write_reference(
         if category in categories
     )
     composition_surface = composition_recipe_discovery_payload(include_recipes=True)
+    composition_gallery = build_composition_gallery_surface(composition_surface, records)
     composition_recipe_lines = "\n".join(
-        f"| `{item['recipe_id']}` | {item['hero_panel_role']} |"
-        for item in composition_surface["recipes"]
+        f"| `{item['recipe_id']}` | {item['hero_panel_role']} | "
+        f"{len(item['supporting_panel_roles'])} | {len(item['preview_template_ids'])} |"
+        for item in composition_gallery["recipes"]
     )
     reference_path.parent.mkdir(parents=True, exist_ok=True)
     reference_path.write_text(

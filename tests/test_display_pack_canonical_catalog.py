@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 import sys
 
@@ -17,7 +18,9 @@ from med_autoscience.display_pack_gallery_catalog import (
 )
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit_markdown
 from med_autoscience.display_pack_gallery_parts.payloads import _load_seed_r_payloads
+from med_autoscience.display_pack_gallery_parts.pdf import _docs_manifest_payload, _repo_relative_path
 from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
+from med_autoscience.display_pack_gallery_parts.html import _render_html
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
 from med_autoscience.display_pack_loader import load_enabled_local_display_template_records
 
@@ -229,6 +232,9 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     ] is True
     assert manifest["template_surface_policy"]["composition_recipe_routing_required"] is True
     assert manifest["template_surface_policy"]["composition_recipes_are_page_level_not_gallery_cards"] is True
+    assert manifest["template_surface_policy"][
+        "composition_recipes_are_visible_in_gallery_storyboard_section"
+    ] is True
     assert manifest["composition_recipe_surface"]["policy"]["policy_id"] == (
         "mas_medical_figure_composition_recipes.v1"
     )
@@ -243,6 +249,45 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         "single_cell_atlas_storyboard",
         "model_validation_dashboard",
     }
+    assert manifest["composition_recipe_gallery_count"] == 6
+    assert manifest["composition_gallery_surface"]["surface_kind"] == "display_pack_composition_recipe_gallery"
+    assert manifest["composition_gallery_surface"]["included_in_html_pdf"] is True
+    assert manifest["composition_gallery_surface"]["composition_recipe_count"] == 6
+    composition_by_id = {
+        item["recipe_id"]: item
+        for item in manifest["composition_gallery_surface"]["recipes"]
+    }
+    assert set(composition_by_id) == {
+        "clinical_triptych_prediction",
+        "schematic_led_composite",
+        "asymmetric_genomics_figure",
+        "image_plate_plus_quantification",
+        "single_cell_atlas_storyboard",
+        "model_validation_dashboard",
+    }
+    clinical_triptych = composition_by_id["clinical_triptych_prediction"]
+    assert clinical_triptych["hero_panel_role"] == "primary_model_performance_summary"
+    assert len(clinical_triptych["supporting_panel_roles"]) == 3
+    assert {"discrimination_curve", "calibration_panel", "decision_curve_analysis"} <= set(
+        clinical_triptych["evidence_primitive_family_ids"]
+    )
+    assert {"roc_curve_binary", "calibration_curve_binary", "decision_curve_binary"} <= set(
+        clinical_triptych["preview_template_ids"]
+    )
+    assert clinical_triptych["programmatic_evidence_required"] is True
+    assert clinical_triptych["design_shell_allowed"] is False
+    assert clinical_triptych["quality_floor_only"] is True
+    assert clinical_triptych["not_publication_ready"] is True
+    for recipe in composition_by_id.values():
+        assert recipe["supporting_panel_roles"]
+        assert recipe["evidence_primitive_family_ids"]
+        assert recipe["recommended_starter_recipe_ids"]
+        assert recipe["default_layout"]
+        assert recipe["guide_strategy"]
+        assert recipe["label_strategy"]
+        assert recipe["palette_tokens"]
+        assert recipe["qa_gate_ids"]
+        assert recipe["storyboard_panels"]
     assert "matrix_heatmap" in {
         item["family"] for item in manifest["publication_polish_policy"]["high_risk_family_checks"]
     }
@@ -325,6 +370,7 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         "mas_nature_skills_figure_workflow_lifecycle.v1"
     )
     assert manifest["quality_audit"]["composition_recipe_surface"]["composition_recipe_count"] == 6
+    assert manifest["quality_audit"]["composition_gallery_surface"]["composition_recipe_count"] == 6
     assert manifest["quality_audit"]["quality_policy"]["ai_authority"] == (
         "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim"
     )
@@ -348,8 +394,9 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "publication polish policy: `mas_publication_polish_policy.v1`" in status_markdown
     assert "figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`" in status_markdown
     assert "Page-level composition recipes | 6" in status_markdown
+    assert "Composition storyboard gallery pages | 6" in status_markdown
     assert "composition recipe policy: `mas_medical_figure_composition_recipes.v1`" in status_markdown
-    assert "| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary |" in status_markdown
+    assert "| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary | 3 |" in status_markdown
     assert "- `storyboard_panel_hierarchy_declared`" in status_markdown
     assert "| `computed_in_template` | 3 |" in status_markdown
     assert "| `validated_summary_required` | 25 |" in status_markdown
@@ -357,5 +404,71 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     quality_markdown = build_quality_audit_markdown(manifest["quality_audit"])
     assert "figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`" in quality_markdown
     assert "composition recipe policy: `mas_medical_figure_composition_recipes.v1`" in quality_markdown
-    assert "| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context |" in quality_markdown
+    assert "composition storyboard gallery pages: `6`" in quality_markdown
+    assert "| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context | 3 |" in quality_markdown
     assert "- `guide_legend_colorbar_overlap_checked_after_render`" in quality_markdown
+
+
+def test_gallery_html_exposes_composition_recipe_storyboards_without_counting_them_as_templates() -> None:
+    records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
+    rendered = {
+        record.template_id: type(
+            "Asset",
+            (),
+            {
+                "status": "rendered",
+                "preview_image_ref": f"assets/{record.template_id}.gallery.png",
+                "image_ref": f"assets/{record.template_id}.png",
+                "payload_ref": f"assets/{record.template_id}.payload.json",
+                "layout_ref": f"assets/{record.template_id}.layout.json",
+                "pdf_ref": f"assets/{record.template_id}.pdf",
+                "svg_ref": "",
+                "reason": "",
+            },
+        )()
+        for record in records
+    }
+
+    html = _render_html(records, rendered, {})
+
+    assert "<title>MAS Display Pack Figure Gallery</title>" in html
+    assert "Composition Recipe Gallery" in html
+    assert html.count('class="composition-card"') == 6
+    assert html.count('id="template-') == 28
+    assert "clinical_triptych_prediction" in html
+    assert "primary_model_performance_summary" in html
+    assert "calibration_reliability" in html
+    assert "decision_curve_binary" in html
+    assert "asymmetric_genomics_figure" in html
+    assert "dominant_molecular_pattern" in html
+    assert "mock storyboard; not real data; not publication-ready" in html
+
+
+def test_docs_gallery_manifest_uses_repo_relative_paths() -> None:
+    docs_manifest_path = REPO_ROOT / "docs" / "delivery" / "medical-display" / "examples" / "gallery_manifest.json"
+    if docs_manifest_path.is_file():
+        payload = json.loads(docs_manifest_path.read_text(encoding="utf-8"))
+        assert payload["surface_kind"] == "display_pack_gallery_docs_manifest"
+        assert payload["composition_recipe_gallery_count"] == 6
+        assert len(payload["evidence_gallery_templates"]) == 28
+        assert len(payload["composition_gallery_surface"]["recipes"]) == 6
+        for key, value in payload.items():
+            if key.endswith("_path") and isinstance(value, str):
+                assert not value.startswith(str(REPO_ROOT.parent))
+        assert docs_manifest_path.stat().st_size < 250_000
+
+    assert _repo_relative_path(str(REPO_ROOT / "outputs" / "display-pack-gallery" / "x.html")) == (
+        "outputs/display-pack-gallery/x.html"
+    )
+    compact = _docs_manifest_payload(
+        {
+            "schema_version": 9,
+            "status": "rendered",
+            "html_path": str(REPO_ROOT / "outputs" / "display-pack-gallery" / "x.html"),
+            "evidence_gallery_template_count": 0,
+            "composition_recipe_gallery_count": 0,
+            "templates": [],
+        }
+    )
+    assert compact["source_manifest_schema_version"] == 9
+    assert compact["html_path"] == "outputs/display-pack-gallery/x.html"
